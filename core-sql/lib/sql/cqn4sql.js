@@ -3,11 +3,11 @@
 const cds = require('@sap/cds/lib')
 const { computeColumnsToBeSearched } = require('@sap/cds/libx/_runtime/cds-services/services/utils/columns.js')
 
-const infer = require('../../ql/cds.infer')
+const infer = require('../ql/cds.infer')
 const copy = require('./copy').copy
 const { eqOps, notEqOps, notSupportedOps } = require('./structuralComparisonOps')
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
-const {pseudos} = require('../../ql/pseudos')
+const {pseudos} = require('../ql/pseudos')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
  *  - transform association paths in `from` to `WHERE exists` subqueries

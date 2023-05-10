@@ -1,5 +1,5 @@
-const cds = require('../../../cds')
-const cds_infer = require('../../ql/cds.infer')
+const cds = require('../../cds')
+const cds_infer = require('../ql/cds.infer')
 const cqn4sql = require('./cqn4sql')
 
 const DEBUG = (()=>{
@@ -211,8 +211,8 @@ class CQN2SQLRenderer {
 
   orderBy(orderBy,localized) {
     return orderBy.map(localized
-      ? c => this.expr(c) + (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC') 
-      : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC') 
+      ? c => this.expr(c) + (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+      : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
       )
   }
 

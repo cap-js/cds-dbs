@@ -1,7 +1,7 @@
 
 'use strict'
-const cds = require ('../../cds')
-const cqn2sql = require('../../lib/db/sql/cqn2sql')
+const cds = require ('@cap-js/core-sql/cds')
+const cqn2sql = require('@cap-js/core-sql/lib/sql/cqn2sql')
 
 beforeAll (async ()=>{
   cds.model = await cds.load(__dirname+'/testModel') .then (cds.linked)
@@ -40,4 +40,3 @@ describe('upsert', () => {
     expect({sql, entries}).toMatchSnapshot()
   })
 })
-
