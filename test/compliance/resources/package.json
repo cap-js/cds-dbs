@@ -1,0 +1,15 @@
+{
+  "name": "@test/cds-db-layer",
+  "version": "1.0.0",
+  "description": "Base for db layer validations",
+  "cds": {
+    "requires": {
+      "db": {
+        "impl": "@cap-js/sqlite",
+        "credentials": {
+          "url": ":memory:"
+        }
+      }
+    }
+  }
+}

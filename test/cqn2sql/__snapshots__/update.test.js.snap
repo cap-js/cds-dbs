@@ -1,0 +1,83 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`.update data alone still works 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=NULL,a=NULL",
+  "values": [],
+}
+`;
+
+exports[`.update set enhances data 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update set overwrites data 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?,a=6",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update test with entity and values with operators 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name=?,a=Foo2.a - 1",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update test with entity of type string 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update test with entity of type string and where clause 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2 WHERE Foo2.a < 9",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update test with setting a value to null 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=NULL,a=2 WHERE Foo2.a < 9",
+  "values": [],
+}
+`;
+
+exports[`.update test with subselect - sflight example 1`] = `
+{
+  "sql": "UPDATE Travel AS Travel SET TotalPrice=coalesce(BookingFee,0) + (SELECT coalesce(sum(FlightPrice + (SELECT coalesce(sum(Price),0) as coalesce FROM BookingSupplement WHERE to_Booking_BookingUUID = BookingUUID)),0) as coalesce FROM Booking WHERE to_Travel_TravelUUID = TravelUUID)",
+  "values": [],
+}
+`;
+
+exports[`.update virtual and non-existing fields filtered out from with 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?",
+  "values": [
+    "'asd'",
+  ],
+}
+`;
+
+exports[`.update virtual and non-existing filtered out from data 1`] = `
+{
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1",
+  "values": [],
+}
+`;

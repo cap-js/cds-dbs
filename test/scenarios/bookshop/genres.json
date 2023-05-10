@@ -1,0 +1,40 @@
+{
+  "name": "Some Sample Genres...",
+  "descr": null,
+  "ID": 100,
+  "parent_ID": null,
+  "children": [
+    {
+      "name": "Cat",
+      "descr": null,
+      "ID": 101,
+      "parent_ID": 100,
+      "children": [
+        {
+          "name": "Kitty",
+          "descr": null,
+          "ID": 102,
+          "parent_ID": 101,
+          "children": [
+            {
+              "name": "Kitty Cat",
+              "descr": null,
+              "ID": 103,
+              "parent_ID": 102,
+              "children": [{ "name": "Aristocat", "descr": null, "ID": 104, "parent_ID": 103 }]
+            },
+            { "name": "Kitty Bat", "descr": null, "ID": 105, "parent_ID": 102, "children": [] }
+          ]
+        },
+        {
+          "name": "Catwoman",
+          "descr": null,
+          "ID": 106,
+          "parent_ID": 101,
+          "children": [{ "name": "Catalina", "descr": null, "ID": 107, "parent_ID": 106, "children": [] }]
+        }
+      ]
+    },
+    { "name": "Catweazle", "descr": null, "ID": 108, "parent_ID": 100, "children": [] }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@cap-js/postgres",
+  "scripts": {
+    "//pg:up": "use only for dev time, CI is handled separately",
+    "pg:up": "docker-compose -f etc/pg-stack.yml up -d",
+    "test": "jest --silent"
+  },
+  "dependencies": {
+    "pg": "^8"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=6.8.0"
+  },
+  "license": "SEE LICENSE"
+}

@@ -1,0 +1,6 @@
+*.md
+*.html
+coverage/
+cds/index.js
+cds/ql
+cds.ql/

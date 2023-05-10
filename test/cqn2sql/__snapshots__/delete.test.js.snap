@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`delete test complex cascade delete for entity with 'not exists' 1`] = `"DELETE FROM Books as Books WHERE ( Books.author_id is not null or Books.author_version is not null ) and not exists (SELECT 1 as _exists FROM Author as Author left JOIN Books as parent ON parent.ID = Author.parent_ID WHERE Author.parent_ID = parent.code and parent.descr = Author.version)"`;
+
+exports[`delete test simple cascade delete for entity with 'not exists' 1`] = `"DELETE FROM Books as Books WHERE ( Books.author_id is not null ) and not exists (SELECT 1 as _exists FROM Author as Author WHERE Author.id = Author.parent_ID)"`;
+
+exports[`delete test simple cascade delete for entity with 'not in' 1`] = `"DELETE FROM Foo as Foo WHERE Foo.x not in (SELECT Foo2.a FROM Foo2 as Foo2)"`;
+
+exports[`delete test with from entity 1`] = `"DELETE FROM Foo as Foo"`;
+
+exports[`delete test with from ref 1`] = `"DELETE FROM Foo as Foo"`;
+
+exports[`delete test with from ref and alias 1`] = `"DELETE FROM Foo as lala"`;
+
+exports[`delete test with from string and where clause 1`] = `"DELETE FROM Foo as Foo WHERE Foo.x < 9"`;

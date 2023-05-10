@@ -1,0 +1,23 @@
+{
+  "name": "beershop",
+  "version": "0.0.1",
+  "description": "the beershop. what are you going to drink today?",
+  "dependencies": {
+    "cds-pg": "*"
+  },
+  "scripts": {
+    "// note!": "you need credentials for the pg db in your cds env!",
+    "start": "cds run",
+    "watch": "cds watch"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "pg"
+      },
+      "features": {
+        "lean_draft": true
+      }
+    }
+  }
+}

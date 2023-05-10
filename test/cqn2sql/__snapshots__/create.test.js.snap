@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`create with select statements Generate SQL from CREATE stmt with entity name  1`] = `
+{
+  "sql": "CREATE TABLE Foo ( ID INTEGER, a NVARCHAR(5000), b NVARCHAR(5000), c NVARCHAR(5000), x INTEGER )",
+}
+`;
