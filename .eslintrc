@@ -1,6 +1,7 @@
 {
   "extends": "eslint:recommended",
   "env": {
+    "jest": true,
     "es6": true,
     "node": true
   },
@@ -10,6 +11,7 @@
   "globals": {
     "SELECT": true,
     "INSERT": true,
+    "UPSERT": true,
     "UPDATE": true,
     "DELETE": true,
     "CREATE": true,

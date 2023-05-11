@@ -1,4 +1,5 @@
 module.exports = {
-  DatabaseService: require('./lib/DatabaseService'),
+  DatabaseService: require('./lib/common/DatabaseService'),
   SQLService: require('./lib/SQLService'),
+  cds: require('./cds')
 }

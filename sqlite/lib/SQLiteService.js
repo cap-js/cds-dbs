@@ -1,8 +1,8 @@
 const { SQLService } = require('@cap-js/core-sql')
-const sqlite = require('better-sqlite3')
-const cds = require ('@sap/cds/lib')
-const $session = Symbol('dbc.session')
 const { Readable } = require('stream')
+const cds = require ('@sap/cds/lib')
+const sqlite = require('better-sqlite3')
+const $session = Symbol('dbc.session')
 
 class SQLiteService extends SQLService {
 

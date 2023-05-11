@@ -1,16 +1,15 @@
-const cds = require('@sap/cds'), DEBUG = cds.debug('sql|db')
-const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView') // REVISIT: not good
-const DatabaseService = require('./DatabaseService')
-const cqn4sql = require('./sql/cqn4sql')
-const { target_name4 } = require('./sql/utils')
+const cds = require('@sap/cds/lib'), DEBUG = cds.debug('sql|db')
+const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const DatabaseService = require('./common/DatabaseService')
+const cqn4sql = require('./cqn4sql')
 const { PassThrough, pipeline } = require('stream')
 
 
 class SQLService extends DatabaseService {
 
   init() {
-    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./workarounds').input) // REVISIT should be replaced by correct input processing eventually
-    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./deep').onDeep)
+    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./deep-queries').onDeep)
     this.on([ 'SELECT' ], this.onSELECT)
     this.on([ 'INSERT' ], this.onINSERT)
     this.on([ 'UPSERT' ], this.onUPSERT)
@@ -129,7 +128,7 @@ class SQLService extends DatabaseService {
    * Helper class implementing {@link SQLService#cqn2sql}.
    * Subclasses commonly override this.
    */
-  static CQN2SQL = require('./sql/cqn2sql').class
+  static CQN2SQL = require('./cqn2sql').class
   constructor() {
     super(...arguments)
     this.class = new.target // for IntelliSense
@@ -150,7 +149,7 @@ class SQLService extends DatabaseService {
   }
   cqn4sql(q) {
     // REVISIT: move this check to cqn4sql?
-    if (!q.SELECT?.from?.join && !this.model?.definitions[target_name4(q)]) return _unquirked(q)
+    if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
     return cqn4sql (q, this.model)
   }
 
@@ -230,6 +229,23 @@ class StreamCQN {
 }
 }
 
+const _target_name4 = q => {
+  const target = (
+    q.SELECT?.from ||
+    q.INSERT?.into ||
+    q.UPSERT?.into ||
+    q.UPDATE?.entity ||
+    q.DELETE?.from ||
+    q.CREATE?.entity ||
+    q.DROP?.entity ||
+    undefined
+  )
+  if (target?.SET?.op === "union") throw new cds.error('”UNION” based queries are not supported')
+  if (!target?.ref) return target
+  const [first] = target.ref
+  return first.id || first
+}
+
 const _unquirked = q => {
   if (typeof q.INSERT?.into === 'string') q.INSERT.into = {ref:[q.INSERT.into]}
   if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = {ref:[q.UPSERT.into]}
@@ -240,4 +256,4 @@ const _unquirked = q => {
   return q
 }
 
-module.exports = SQLService
+module.exports = Object.assign (SQLService, { _target_name4 })
