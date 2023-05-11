@@ -1,6 +1,6 @@
 const cds = require('@sap/cds')
 const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
-const { target_name4 } = require('./utils')
+const { target_name4 } = require('./sql/utils')
 
 const handledDeep = Symbol('handledDeep')
 

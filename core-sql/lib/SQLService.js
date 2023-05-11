@@ -9,8 +9,8 @@ const { PassThrough, pipeline } = require('stream')
 class SQLService extends DatabaseService {
 
   init() {
-    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./sql/workarounds').input) // REVISIT should be replaced by correct input processing eventually
-    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./sql/deep').onDeep)
+    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./workarounds').input) // REVISIT should be replaced by correct input processing eventually
+    this.on([ 'INSERT', 'UPSERT', 'UPDATE', 'DELETE' ], require('./deep').onDeep)
     this.on([ 'SELECT' ], this.onSELECT)
     this.on([ 'INSERT' ], this.onINSERT)
     this.on([ 'UPSERT' ], this.onUPSERT)
@@ -123,7 +123,7 @@ class SQLService extends DatabaseService {
   }
 
 
-  static InsertResults = require('./sql/InsertResults')
+  static InsertResults = require('./InsertResults')
 
   /**
    * Helper class implementing {@link SQLService#cqn2sql}.
