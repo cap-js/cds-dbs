@@ -1,4 +1,4 @@
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../../../../test/cds.js')
 
 module.exports = (srv) => {
   srv.on('reset', async () => {

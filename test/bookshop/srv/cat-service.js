@@ -1,4 +1,4 @@
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../../cds.js')
 
 class CatalogService extends cds.ApplicationService { init(){
 

@@ -1,7 +1,6 @@
-const cds = require('@cap-js/sqlite/test/cds.js'), {path} = cds.utils
-const bookshop = path.resolve(__dirname,'../../bookshop')
-const testRes = cds.test(bookshop)
-const { expect, GET, POST, PUT, DELETE } = testRes
+const cds = require('../../cds.js')
+const bookshop = cds.utils.path.resolve(__dirname,'../../bookshop')
+const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
 
 const admin = {
   auth: {

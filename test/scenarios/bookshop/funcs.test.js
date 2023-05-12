@@ -1,9 +1,7 @@
-const path = require('path')
-
-const cds = require('@cap-js/sqlite/test/cds.js')
-
-const bookshop = path.resolve(__dirname,'../../bookshop')
+const cds = require('../../cds.js')
+const bookshop = require('path').resolve(__dirname,'../../bookshop')
 const { expect, GET } = cds.test(bookshop)
+
 
 describe('Bookshop - Functions', () => {
   describe('String Functions', () => {

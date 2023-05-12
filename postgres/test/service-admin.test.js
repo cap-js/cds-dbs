@@ -1,5 +1,5 @@
 const { resolve } = require('path')
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../../test/cds.js')
 
 const project = resolve(__dirname, 'beershop')
 const { GET, POST, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()

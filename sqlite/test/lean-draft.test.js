@@ -1,8 +1,6 @@
 process.env.cds_requires_db_kind = 'better-sqlite'
+const cds = require('../../test/cds.js')
 
-const sleep = require('util').promisify(setTimeout)
-
-const cds = require('@cap-js/sqlite/test/cds.js')
 if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
 else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
 cds.env.requires.auth = {
@@ -14,6 +12,7 @@ cds.env.requires.auth = {
 }
 
 const { expect, GET, POST, PATCH, DELETE } = cds.test('run', '@capire/sflight')
+const sleep = require('util').promisify(setTimeout)
 
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'

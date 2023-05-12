@@ -1,4 +1,4 @@
-module.exports = require('@sap/cds')
+module.exports = require('@sap/cds/lib')
 
 // Adding cds.hana types to cds.builtin.types
 // REVISIT: Where should we put this?

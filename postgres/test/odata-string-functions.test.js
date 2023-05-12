@@ -1,7 +1,5 @@
-const { resolve } = require('path')
-const cds = require('@cap-js/sqlite/test/cds.js')
-
-const project = resolve(__dirname, 'beershop')
+const cds = require('../../test/cds.js')
+const project = require('path').resolve(__dirname, 'beershop')
 const { GET, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)

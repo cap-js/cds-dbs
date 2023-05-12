@@ -1,4 +1,4 @@
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../../../test/cds.js')
 
 const { POST, DELETE } = cds.test(__dirname, '../cqn2sql/testModel.cds')
 

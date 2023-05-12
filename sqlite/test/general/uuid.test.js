@@ -1,5 +1,4 @@
-const cds = require('@cap-js/sqlite/test/cds.js')
-
+const cds = require('../../../test/cds.js')
 cds.test(__dirname, 'model.cds')
 
 describe('UUID Generation', () => {
