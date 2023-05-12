@@ -715,7 +715,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         Books.stock,
         Books.price,
         Books.currency_code,
-        Books.image,
         Books.dedication_addressee_ID,
         Books.dedication_text,
         Books.dedication_sub_foo,
