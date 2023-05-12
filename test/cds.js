@@ -1,4 +1,3 @@
-/* global before, after */
 module.exports = require('@sap/cds')
 
 // Adding cds.hana types to cds.builtin.types

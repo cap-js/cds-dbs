@@ -1,6 +1,6 @@
 const assert = require('assert')
 
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../cds.js')
 
 // Set cds.root before requiring cds.Service as it resolves and caches package.json
 // Call default cds.test API

@@ -4,7 +4,7 @@
   "description": "This is a monorepo for our SQL Database Services.",
   "author": "daniel.hutzel@sap.com",
   "workspaces": [
-    "core-sql",
+    "db-service",
     "postgres",
     "sqlite"
   ],
@@ -18,7 +18,7 @@
   },
   "scripts": {
     "prettier": "npx prettier --write .",
-    "green-tests": "npm run -s test core-sql compliance",
+    "green-tests": "npm run -s test db-service compliance",
     "red-tests": "npm run -s test general scenarios",
     "test": "npx jest --silent",
     "test:all": "npm run test:none && npm run test:sqlite && npm run test:pg",

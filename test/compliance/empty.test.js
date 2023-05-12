@@ -1,5 +1,5 @@
 describe('Place holder', () => {
   test('Test', () => {
-    require('@cap-js/sqlite')
+    require('@cap-js/db-service')
   })
 })

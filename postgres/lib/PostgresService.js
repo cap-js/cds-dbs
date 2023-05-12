@@ -1,4 +1,4 @@
-const { SQLService } = require('@cap-js/core-sql')
+const { SQLService } = require('@cap-js/db-service')
 const { Client } = require('pg')
 const cds = require('@sap/cds/lib')
 const crypto = require('crypto')

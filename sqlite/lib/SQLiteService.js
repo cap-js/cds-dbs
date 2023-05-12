@@ -1,4 +1,4 @@
-const { SQLService } = require('@cap-js/core-sql')
+const { SQLService } = require('@cap-js/db-service')
 const { Readable } = require('stream')
 const cds = require ('@sap/cds/lib')
 const sqlite = require('better-sqlite3')

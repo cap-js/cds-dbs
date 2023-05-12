@@ -1,5 +1,5 @@
 const assert = require('assert')
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../cds.js')
 const fspath = require('path')
 // Add the test names you want to run as only
 const only = []
@@ -28,7 +28,7 @@ describe('CREATE', () => {
     const path = table.split('.')
     const type = path[path.length - 1]
     const entity = model.definitions[table]
-    const desc = !only.length || only.includes(type) ? describe : describe.skip 
+    const desc = !only.length || only.includes(type) ? describe : describe.skip
 
     desc(`${entity.projection ? 'View' : 'Type'}: ${type}`, () => {
       let db
@@ -39,7 +39,7 @@ describe('CREATE', () => {
         // When using new SqliteService directly from class constructor it is missing the model
         // Causing all run calls to prefix the target with the service name
         db = await cds.connect()
-        await db.run(async tx => {  
+        await db.run(async tx => {
           deploy = Promise.resolve()
           // Create parent entity
           if(entity.projection) {

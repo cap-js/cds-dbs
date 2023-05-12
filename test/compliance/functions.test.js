@@ -1,9 +1,9 @@
-const cds = require('@cap-js/sqlite/test/cds.js')
+const cds = require('../cds.js')
 
 describe('functions', () => {
   const { expect,data } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
-  
+
   describe('ABAP_ALPHANUM', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
