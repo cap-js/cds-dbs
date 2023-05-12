@@ -60,7 +60,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     if (ret.data._autoIsolation && !ret.data._deployed) ret.data._deployed = await ret.cds.deploy(global.cds.options.from[0])
   })
 
-  after(async () => {
+  global.after(async () => {
     // Clean database connection pool
     return ret.cds.db?.disconnect?.()
   })
