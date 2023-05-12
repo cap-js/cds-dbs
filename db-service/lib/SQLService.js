@@ -54,6 +54,7 @@ class SQLService extends DatabaseService {
 
   /** Handler for UPDATE */
   async onUPDATE (req) {
+    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0
     return this.onSIMPLE(req)
   }
 
