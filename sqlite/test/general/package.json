@@ -1,0 +1,7 @@
+{
+  "cds": {
+    "requires": {
+      "db": "better-sqlite"
+    }
+  }
+}

@@ -6,7 +6,6 @@ module.exports = {
     'sqlite/test/general/localized.test.js',
     'test/scenarios/bookshop/funcs.test.js',
     'test/scenarios/bookshop/read.test.js',
-    'test/scenarios/bookshop/genres.test.js',
-    'sqlite/test/lean-draft.test.js',
+    'test/scenarios/bookshop/genres.test.js'
   ]
 }
