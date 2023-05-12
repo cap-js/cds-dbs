@@ -246,6 +246,13 @@ describe('negative', () => {
       )).to.throw(/Query source must be a an entity or an association/)
     })
 
+    it ('Queries with Large Binary Objects are rejected if explicitly selected', ()=>{
+      expect(() => _inferred (
+        CQL`SELECT from bookshop.Books { image }`,
+        model
+      )).to.throw()
+    })
+
     it('subquery cant see the scope of enclosing query', ()=>{
       // cds.infer does not infer deeply -> cqn4sql calls itself recursively
       // in case of nested subqueries

@@ -257,8 +257,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     } = _;
     if (!columns) {
       inferElementsFromWildCard(aliases);
-    }
-    else {
+    } else {
       let wildcardSelect = false;
       const refs = [];
       columns.forEach((col) => {
@@ -292,8 +291,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           setElementOnColumns(col, getElementForCast(col))
         else if(col.ref.length === 1 & col.ref[0] === '$user') // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
-        else
+        else {
+          if(definition.type === 'cds.LargeBinary')
+            throw cds.error(`Large Binary Objects must be streamed`)
           setElementOnColumns(col, definition)
+        }
       });
       if (wildcardSelect)
         inferElementsFromWildCard(aliases);
@@ -720,7 +722,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        queryElements = sources[aliases[0]].elements;
+        Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
+          if(v.type !== 'cds.LargeBinary')
+            queryElements[k] = v
+        });
         return;
       }
 

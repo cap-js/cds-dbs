@@ -415,6 +415,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
+      delete Books.elements['image'] // blobs are not part of the query elements
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
@@ -424,6 +425,7 @@ describe('infer elements', () => {
       let query = CQL`SELECT from bookshop.Books`
       let inferred = _inferred(query)
       let { Books } = model.entities
+      delete Books.elements['image'] // blobs are not part of the query elements
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
 
