@@ -1,6 +1,6 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, DELETE } = cds.test(__dirname, '../cqn2sql/testModel.cds')
+const { POST, DELETE } = cds.test(__dirname, 'testModel.cds')
 
 describe('delete on rename', () => {
   test('delete on projection with renamed elements', async () => {

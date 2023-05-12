@@ -1,5 +1,5 @@
 const cds = require('../../../test/cds.js')
-cds.test(__dirname, '../cqn2sql/testModel.cds')
+cds.test(__dirname, 'testModel.cds')
 
 const assert = require('assert')
 
