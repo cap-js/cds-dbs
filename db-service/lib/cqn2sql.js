@@ -363,9 +363,9 @@ class CQN2SQLRenderer {
 
     keys = keys.map(k => this.quote(k))
     const conflict = updateColumns.length
-      ? ` ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
-      : ` ON CONFLICT(${keys}) DO NOTHING`
-    return (this.sql = `${sql} WHERE true ${conflict}`)
+    ? `ON CONFLICT(${ keys }) DO UPDATE SET ` + updateColumns
+    : `ON CONFLICT(${ keys }) DO NOTHING`
+    return this.sql = `${sql} WHERE true ${conflict}`
   }
 
   // UPDATE Statements ------------------------------------------------
