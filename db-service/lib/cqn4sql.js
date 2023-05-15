@@ -1220,7 +1220,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
                 if(res === '$self') // next is resolvable in entity
                   return prev
                 const definition = prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
-                const target = getParentEntity(prev)
+                const target = getParentEntity(definition)
                 thing.$refLinks[i] = {definition, target, alias: definition.name}
                 return prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
               }, assocHost)
@@ -1250,7 +1250,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
             }
             // naive assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
-            else if(lhs.$refLinks[0].definition === assocRefLink.definition)
+            else if(lhs.$refLinks[0].definition === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name])
               result[i].ref = [result[i].ref[0], lhs.ref.slice(1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source

@@ -185,6 +185,9 @@ entity Receipt {
 entity Authors : managed, Person {
   books  : Association to many Books on books.author = $self;
 }
+entity AuthorsUnmanagedBooks : managed, Person {
+  books  : Association to many Books on books.coAuthor_ID_unmanaged = ID;
+}
 
 /** Hierarchically organized Code List for Genres */
 entity Genres : sap.common.CodeList {
