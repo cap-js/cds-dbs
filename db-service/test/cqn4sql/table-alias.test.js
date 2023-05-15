@@ -577,7 +577,7 @@ describe('table alias access', () => {
       try {
         const resultCopy = JSON.parse(JSON.stringify(query))
         cqn4sql(resultCopy, model)
-      } catch(e) {
+      } catch (e) {
         error = e
       }
       expect(error.message).to.match(/author_ID/)

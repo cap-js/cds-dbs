@@ -65,16 +65,12 @@ describe('SELECT', () => {
 
     test('like regex uses native regex support', async () => {
       let ret = await SELECT.from('basic.projection.string').where('string like', /ye./)
-      expect (ret.length).toBe(1)
+      expect(ret.length).toBe(1)
     })
 
     test('= regex behaves like string', async () => {
-      await expect (
-        SELECT.from('basic.projection.string').where('string =', /ye./)
-      ).resolves.toHaveProperty('length',0)
-      await expect (
-        SELECT.from('basic.projection.string').where('string =', /yes/)
-      ).resolves.toHaveProperty('length',1)
+      await expect(SELECT.from('basic.projection.string').where('string =', /ye./)).resolves.toHaveProperty('length', 0)
+      await expect(SELECT.from('basic.projection.string').where('string =', /yes/)).resolves.toHaveProperty('length', 1)
     })
 
     test('from select', async () => {
@@ -167,7 +163,6 @@ describe('SELECT', () => {
   })
 
   describe('where', () => {
-
     test('empty where clause', async () => {
       const cqn = CQL`SELECT bool FROM basic.literals.globals`
       cqn.SELECT.where = []

@@ -1,9 +1,9 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname,'../../bookshop')
-const { expect, GET } = cds.test(bookshop)
-
+const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Functions', () => {
+  const { expect, GET } = cds.test(bookshop)
+
   describe('String Functions', () => {
     test('concat', async () => {
       const res = await GET(`/browse/Books?$filter=concat(concat(author,', '),title) eq 'Edgar Allen Poe, Eleonora'`)
@@ -213,7 +213,9 @@ describe('Bookshop - Functions', () => {
     test.skip('time', () => {})
     test.skip('totaloffsetminutes', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
-      const res = await GET(`/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`)
+      const res = await GET(
+        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`
+      )
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)

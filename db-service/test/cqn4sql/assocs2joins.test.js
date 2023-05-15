@@ -32,7 +32,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     expect(query).to.deep.equal(expected)
   })
 
-
   it('in select, two assocs, second navigates to foreign key', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.ID }`, model)
     const expected = CQL`SELECT from bookshop.Authors as Authors
@@ -308,13 +307,15 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in where, one assoc in multiple xpr, one field', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Books { ID } where ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`,
+      model
+    )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
         { Books.ID } WHERE ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')
       `)
   })
-
 
   it('list in where', () => {
     let query = CQL`SELECT from bookshop.Books { ID } where (author.name, 1) in ('foo', 'bar')`
@@ -809,7 +810,10 @@ describe('Variations on ON', () => {
     expect(query).to.deep.equal(expected)
   })
   it('unmanaged assoc with on condition accessing structured foreign keys', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`,
+      model
+    )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
     left outer join bookshop.WithStructuredKey as oddNumberWithForeignKeyAccess on oddNumberWithForeignKeyAccess.struct_mid_anotherLeaf = oddNumberWithForeignKeyAccess.struct_mid_leaf / oddNumberWithForeignKeyAccess.second
     { BooksWithWeirdOnConditions.ID, oddNumberWithForeignKeyAccess.second as oddNumberWithForeignKeyAccess_second }
@@ -817,7 +821,10 @@ describe('Variations on ON', () => {
     expect(query).to.deep.equal(expected)
   })
   it('unmanaged assoc with on condition comparing to val', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`,
+      model
+    )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
         left outer join bookshop.BooksWithWeirdOnConditions as refComparedToVal on BooksWithWeirdOnConditions.ID != 1
         left outer join bookshop.BooksWithWeirdOnConditions as refComparedToValFlipped on 1 != refComparedToVal.ID
@@ -1108,14 +1115,18 @@ describe('Shared foreign key identity', () => {
 })
 
 describe('Where exists in combination with assoc to join', () => {
-  let model; beforeAll (async ()=>{
-    model = cds.model = await cds.load(__dirname+'/../bookshop/db/schema') .then (cds.linked)
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it ('one assoc + one where exists / aliases are treated case insensitive', ()=>{
-    let query = cqn4sql (CQL`select from bookshop.Books:author {
+  it('one assoc + one where exists / aliases are treated case insensitive', () => {
+    let query = cqn4sql(
+      CQL`select from bookshop.Books:author {
       books.genre.name,
-    }`, model)
+    }`,
+      model
+    )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as author
       left outer join bookshop.Books as books on books.author_ID = author.ID
       left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
@@ -1124,10 +1135,13 @@ describe('Where exists in combination with assoc to join', () => {
       )
     `)
   })
-  it ('aliases for recursive assoc in column + recursive assoc in from must not clash', ()=>{
-    let query = cqn4sql (CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
-      { parent.parent.parent.descr, }`, model)
-    expect (query) .to.deep.equal (CQL`SELECT from bookshop.Genres as parent
+  it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      { parent.parent.parent.descr, }`,
+      model
+    )
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
     {
@@ -1147,10 +1161,13 @@ describe('Where exists in combination with assoc to join', () => {
   })
 
   // Revisit: Alias count order in where + from could be flipped
-  it ('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', ()=>{
-    let query = cqn4sql (CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
-      { parent.parent.parent.descr } where exists parent`, model)
-    expect (query) .to.deep.equal (CQL`SELECT from bookshop.Genres as parent
+  it('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      { parent.parent.parent.descr } where exists parent`,
+      model
+    )
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
     {
@@ -1170,7 +1187,6 @@ describe('Where exists in combination with assoc to join', () => {
       SELECT 1 from bookshop.Genres as parent4 where parent4.ID = parent.parent_ID
     )`)
   })
-
 })
 
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {

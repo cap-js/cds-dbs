@@ -20,7 +20,10 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
     it('exists predicate for assoc combined with path expression in xpr', () => {
-      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists author and ((author.name + 's') = 'Schillers')`, model)
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books { ID } where exists author and ((author.name + 's') = 'Schillers')`,
+        model
+      )
       expect(query).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
@@ -99,7 +102,10 @@ describe('EXISTS predicate in where', () => {
   })
   describe('wrapped in expression', () => {
     it('exists predicate in xpr combined with infix filter', () => {
-      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where ( ( exists author[name = 'Schiller'] ) + 2 ) = 'foo'`, model)
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books { ID } where ( ( exists author[name = 'Schiller'] ) + 2 ) = 'foo'`,
+        model
+      )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
         WHERE (
           (
@@ -147,7 +153,7 @@ describe('EXISTS predicate in where', () => {
       //expect (query) .to.fail
     })
 
-    it ('MUST ... access struc fields in filter', () => {
+    it('MUST ... access struc fields in filter', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.text = 'For Hasso']`,
         model
@@ -589,7 +595,6 @@ describe('EXISTS predicate in where', () => {
   })
 })
 
-
 describe('EXISTS predicate in infix filter', () => {
   let model
   beforeAll(async () => {
@@ -597,10 +602,7 @@ describe('EXISTS predicate in infix filter', () => {
   })
 
   it('... in select', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Books {ID, genre[exists children].descr }`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Books {ID, genre[exists children].descr }`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as Books
         LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = Books.genre_ID
@@ -612,10 +614,7 @@ describe('EXISTS predicate in infix filter', () => {
   })
 
   it('... in select, nested', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Books {ID, genre[exists children[exists children]].descr }`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Books {ID, genre[exists children[exists children]].descr }`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as Books
         LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = Books.genre_ID
@@ -688,10 +687,13 @@ describe('Path in FROM which ends on association must be transformed to where ex
     )
   })
 
-  it ('handles infix filter with nested xpr at entity and WHERE clause', () => {
-    let query = cqn4sql(CQL`
+  it('handles infix filter with nested xpr at entity and WHERE clause', () => {
+    let query = cqn4sql(
+      CQL`
       SELECT from bookshop.Books[not (price < 12.13)] { Books.ID } where stock < 11
-      `, model)
+      `,
+      model
+    )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`
     )
@@ -944,10 +946,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   //
 
   it('exists predicate in infix filter in FROM', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Authors[exists books] {ID}`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors[exists books] {ID}`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as Authors {Authors.ID}
         WHERE EXISTS (
@@ -957,10 +956,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   })
 
   it('exists predicate in infix filter at ssoc path step in FROM', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Books:author[exists books] {ID}`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Books:author[exists books] {ID}`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
@@ -976,9 +972,8 @@ describe('Path in FROM which ends on association must be transformed to where ex
       CQL`SELECT from bookshop.Books:author[exists books[exists coAuthorUnmanaged or title = 'Sturmhöhe']] { ID }`,
       model
     )
-    expect(query)
-      .to.deep.equal(
-        CQL`SELECT from bookshop.Authors as author {author.ID}
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as author {author.ID}
             where exists (
               SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
             ) and exists (
@@ -990,14 +985,12 @@ describe('Path in FROM which ends on association must be transformed to where ex
                 )  or books2.title = 'Sturmhöhe'
               )
             )
-      `)
+      `
+    )
   })
 
   it('exists predicate in infix filter followed by assoc in FROM', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Books[exists genre]:author {ID}`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Books[exists genre]:author {ID}`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
@@ -1010,10 +1003,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   })
 
   it('exists predicate in infix filters in FROM', () => {
-    let query = cqn4sql(
-      CQL`SELECT from bookshop.Books[exists genre]:author[exists books] {ID}`,
-      model
-    )
+    let query = cqn4sql(CQL`SELECT from bookshop.Books[exists genre]:author[exists books] {ID}`, model)
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (

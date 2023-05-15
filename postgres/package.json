@@ -1,7 +1,6 @@
 {
   "name": "@cap-js/postgres",
   "scripts": {
-    "//pg:up": "use only for dev time, CI is handled separately",
     "pg:up": "docker-compose -f pg-stack.yml up -d",
     "test": "jest --silent"
   },

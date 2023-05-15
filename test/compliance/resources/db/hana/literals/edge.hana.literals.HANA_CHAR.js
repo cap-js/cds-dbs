@@ -5,7 +5,7 @@ module.exports = [
   },
   {
     char: 'a'
-  },
+  }
   /*
   {
     char: 'ab',

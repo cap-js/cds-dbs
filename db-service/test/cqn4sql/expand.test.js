@@ -275,8 +275,7 @@ describe('Unfold expands on associations to special subselects', () => {
         offset 1
       ) as author
     }`
-    expect(JSON.parse(JSON.stringify(res)))
-      .to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('nested expand with unmanaged backlink', () => {
@@ -308,9 +307,7 @@ describe('Unfold expands on associations to special subselects', () => {
     `
     // seems to only happen with the `for.nodejs(…)` compiled model
     expandQuery.SELECT.localized = true
-    expect(JSON.parse(JSON.stringify(
-      cqn4sql(expandQuery, cds.compile.for.nodejs(model))
-    ))).to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(model))))).to.deep.equal(expected)
   })
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
@@ -327,10 +324,7 @@ describe('Unfold expands on associations to special subselects', () => {
                 ref: ['name']
               }
             ],
-            where: [
-              'exists',
-              { ref: ['books', {id: 'author', where: [{ref: ['name'] }, '=', {val: 'King'}]}] },
-            ],
+            where: ['exists', { ref: ['books', { id: 'author', where: [{ ref: ['name'] }, '=', { val: 'King' }] }] }],
             limit: {
               offset: {
                 val: 1
@@ -369,8 +363,7 @@ describe('Unfold expands on associations to special subselects', () => {
         offset 1
       ) as author
     }`
-    expect(JSON.parse(JSON.stringify(res)))
-      .to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('unfold expand, make sure the prototype of the subquery is not polluted', () => {
@@ -378,10 +371,8 @@ describe('Unfold expands on associations to special subselects', () => {
       author { name }
     }`
     const res = cqn4sql(q)
-    expect(res.SELECT.columns[0].SELECT)
-      .to.not.have.property('ref')
-    expect(res.SELECT.columns[0].SELECT)
-      .to.have.property('expand').that.equals(true)
+    expect(res.SELECT.columns[0].SELECT).to.not.have.property('ref')
+    expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
   })
 
   it('enforce external alias to texts expand', () => {
@@ -955,9 +946,7 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
     })
   })
-
 })
-
 
 // the tests in here are a copy of the tests in `./inline.test.js`
 // and should behave exactly the same.
@@ -980,10 +969,9 @@ describe('expand on structure part II', () => {
       Employee.office_floor,
       Employee.office_room
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('structural expansion with path expression', () => {
+  it('structural expansion with path expression', () => {
     let expandQuery = CQL`select from Employee {
       office {
         floor,
@@ -996,8 +984,7 @@ describe('expand on structure part II', () => {
       Employee.office_floor,
       building.name as office_building_name
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
   it('deep expand', () => {
@@ -1015,8 +1002,7 @@ describe('expand on structure part II', () => {
         Employee.office_address_city,
         Employee.office_address_street
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
   it('structured expand with deep assoc expand', () => {
@@ -1040,8 +1026,7 @@ describe('expand on structure part II', () => {
       ) as office_address_country
     }`
     // expand subqueries have special non-enumerable props -> ignore them
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model))))
-      .to.eql(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
   it('deep, structured expand', () => {
     let expandQuery = CQL`select from Employee {
@@ -1058,8 +1043,7 @@ describe('expand on structure part II', () => {
       Employee.office_address_city,
       Employee.office_address_street,
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('deep expand on assoc within strucutre expand', () => {
     let expandQuery = CQL`select from Employee {
@@ -1078,8 +1062,7 @@ describe('expand on structure part II', () => {
       ) as office_building
     }`
     // expand subqueries have special non-enumerable props -> ignore them
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model))))
-      .to.eql(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
 
   it('wildcard expand toplevel', () => {
@@ -1106,9 +1089,7 @@ describe('expand on structure part II', () => {
     }`
     let wildcard = cqn4sql(expandQuery)
     let absolute = cqn4sql(absolutePaths)
-    expect(wildcard)
-      .to.eql(absolute)
-      .to.eql(expected)
+    expect(wildcard).to.eql(absolute).to.eql(expected)
   })
   it('wildcard on expand deep', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
@@ -1120,11 +1101,10 @@ describe('expand on structure part II', () => {
       EmployeeNoUnmanaged.office_address_country_code,
     }`
 
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-  it ('smart wildcard - assoc overwrite after *', () => {
+  it('smart wildcard - assoc overwrite after *', () => {
     // office.address.city replaces office.floor
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office { *, furniture as building, address.city as floor, building.id as room }
@@ -1141,12 +1121,10 @@ describe('expand on structure part II', () => {
       EmployeeNoUnmanaged.office_furniture_desks
 
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-
-  it ('smart wildcard - structure overwritten by assoc before *', () => {
+  it('smart wildcard - structure overwritten by assoc before *', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office.{ building as furniture, * }
@@ -1160,11 +1138,9 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_address_street,
      EmployeeNoUnmanaged.office_address_country_code
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('smart wildcard - structure overwritten by join relevant assoc before *', () => {
+  it('smart wildcard - structure overwritten by join relevant assoc before *', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office { building[name='mega tower'].name as furniture, * }
@@ -1180,11 +1156,9 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_address_street,
      EmployeeNoUnmanaged.office_address_country_code
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('wildcard - no overwrite but additional cols', () => {
+  it('wildcard - no overwrite but additional cols', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office { *, 'foo' as last }
@@ -1201,11 +1175,9 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_furniture_desks,
      'foo' as office_last
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('assigning alias within expand only influences name of element, prefix still appended', () => {
+  it('assigning alias within expand only influences name of element, prefix still appended', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office { floor as x }
@@ -1213,11 +1185,9 @@ describe('expand on structure part II', () => {
     let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor as office_x,
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('smart wildcard - structured overwrite before *', () => {
+  it('smart wildcard - structured overwrite before *', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office { 'first' as furniture, 'second' as building, * }
@@ -1231,11 +1201,9 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_address_street,
      EmployeeNoUnmanaged.office_address_country_code,
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it ('smart wildcard - structured overwrite after *', () => {
+  it('smart wildcard - structured overwrite after *', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office {*, 'third' as building, 'fourth' as address }
@@ -1248,11 +1216,10 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_furniture_chairs,
      EmployeeNoUnmanaged.office_furniture_desks
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-  it ('wildcard expansion - exclude association', () => {
+  it('wildcard expansion - exclude association', () => {
     // intermediate structures are overwritten
     let expandQuery = CQL`select from EmployeeNoUnmanaged {
       office {*} excluding { building, address }
@@ -1263,12 +1230,10 @@ describe('expand on structure part II', () => {
      EmployeeNoUnmanaged.office_furniture_chairs,
      EmployeeNoUnmanaged.office_furniture_desks
     }`
-    expect(cqn4sql(expandQuery, model))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-  it.skip ('wildcard expansion sql style on table alias', () => {
+  it.skip('wildcard expansion sql style on table alias', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*}
     }`
@@ -1289,12 +1254,9 @@ describe('expand on structure part II', () => {
      E.office_furniture_chairs,
      E.office_furniture_desks,
     }`
-    expect(cqn4sql(expandQuery))
-      .to.eql(cqn4sql(regularWildcard))
-      .to.eql(expected)
-
+    expect(cqn4sql(expandQuery)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
-  it.skip ('wildcard expansion sql style on table alias - exclude stuff', () => {
+  it.skip('wildcard expansion sql style on table alias - exclude stuff', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*} excluding { office }
     }`
@@ -1311,6 +1273,5 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model))
       .to.eql(expected)
       .to.eql(JSON.parse(JSON.stringify(cqn4sql(regularWildcard)))) // prototype is different
-
   })
 })

@@ -1,5 +1,5 @@
 'use strict'
-const cds = require ('@sap/cds/lib')
+const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 const cqn = require('./cqn.js')
 
@@ -11,13 +11,12 @@ const cqn = require('./cqn.js')
 // }
 
 describe('cqn2sql', () => {
-  beforeAll (async ()=>{
-    cds.model = await cds.load(__dirname+'/testModel') .then (cds.linked)
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
   })
   describe('selection of columns of one table', () => {
-
     test('with select with from ref and elements = undefined', () => {
-      const {sql} = cqn2sql(cqn.select)
+      const { sql } = cqn2sql(cqn.select)
       expect(sql).toMatchSnapshot()
     })
 
@@ -26,80 +25,80 @@ describe('cqn2sql', () => {
       const cqnSelect = {
         SELECT: Object.assign({}, cqn.select.SELECT, { columns: [] })
       }
-      const {sql} = cqn2sql(cqnSelect)
+      const { sql } = cqn2sql(cqnSelect)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select specific elements with from ref', () => {
-      const {sql} = cqn2sql(cqn.selectWithColumns)
+      const { sql } = cqn2sql(cqn.selectWithColumns)
       expect(sql).toMatchSnapshot()
     })
 
     // empty orderBy will be ignored
     test('with select with empty orderBy and specific elements with from type string', () => {
-      const {sql} = cqn2sql(cqn.selectWithColumnsEmptyOrderBy)
+      const { sql } = cqn2sql(cqn.selectWithColumnsEmptyOrderBy)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select with asterisk in columns', () => {
-      const {sql} = cqn2sql(cqn.selectWithColumnsWithAsterisk)
+      const { sql } = cqn2sql(cqn.selectWithColumnsWithAsterisk)
       expect(sql).toMatchSnapshot()
     })
 
     test('select distinct', () => {
-      const {sql} = cqn2sql(cqn.selectDistinct)
+      const { sql } = cqn2sql(cqn.selectDistinct)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select that has (faked) reflection model', () => {
-      const {sql} = cqn2sql(cqn.selectWithCSN)
+      const { sql } = cqn2sql(cqn.selectWithCSN)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('WHERE', () => {
     test('entries where one column holds entries smaller than 9', () => {
-      const {sql} = cqn2sql(cqn.selectWhereSmaller)
+      const { sql } = cqn2sql(cqn.selectWhereSmaller)
       expect(sql).toMatchSnapshot()
     })
 
     test('entries where with place holder', () => {
-      const {sql, values} = cqn2sql(cqn.selectWhereWithOnePlaceholderCqn)
-      expect({sql, values}).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn.selectWhereWithOnePlaceholderCqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('entries where with int reference and param true', () => {
-      const {sql, values} = cqn2sql(cqn.selectWhereWithRefIntParamTrueCqn)
-      expect({sql, values}).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn.selectWhereWithRefIntParamTrueCqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('where with partial cqn', () => {
-      const {sql} = cqn2sql(cqn.selectWhereCqn)
+      const { sql } = cqn2sql(cqn.selectWhereCqn)
       expect(sql).toMatchSnapshot()
     })
 
     test('where with two partial cqn', () => {
-      const {sql} = cqn2sql(cqn.selectWhereTwoCqn)
+      const { sql } = cqn2sql(cqn.selectWhereTwoCqn)
       expect(sql).toMatchSnapshot()
     })
 
     test('entries where one column holds entries which are in list', () => {
-      const {sql} = cqn2sql(cqn.selectWhereList)
+      const { sql } = cqn2sql(cqn.selectWhereList)
       expect(sql).toMatchSnapshot()
     })
 
     test('select with a nested select in where', () => {
-      const {sql} = cqn2sql(cqn.selectWhereSelect)
+      const { sql } = cqn2sql(cqn.selectWhereSelect)
       expect(sql).toMatchSnapshot()
     })
 
     test('select with a nested select in a complex where', () => {
-      const {sql} = cqn2sql(cqn.selectComplexWhere)
+      const { sql } = cqn2sql(cqn.selectComplexWhere)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select with exist in where condition', () => {
-      const {sql} = cqn2sql(cqn.selectWhereExists)
+      const { sql } = cqn2sql(cqn.selectWhereExists)
       expect(sql).toMatchSnapshot()
     })
 
@@ -114,23 +113,25 @@ describe('cqn2sql', () => {
           ]
         }
       }
-      const {sql, values} = cqn2sql(cqn)
-      expect({sql, values}).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('with contains with one column in where clause', () => {
       // const expected = getExpected("SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo AS Foo FROM T WHERE ( b LIKE ( '%' || ? || '%' ) ESCAPE '^' )", ['5'])
-      const {sql, values} = cqn2sql(cqn.selectContainsOneColumn)
-      expect({sql, values}).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn.selectContainsOneColumn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
-   test('EXISTS with nested EXISTS', () => {
-      const {sql} = cqn2sql(cqn.selectWhereNestedExists)
+    test('EXISTS with nested EXISTS', () => {
+      const { sql } = cqn2sql(cqn.selectWhereNestedExists)
       expect(sql).toMatchSnapshot()
     })
 
     test('with function without alias', () => {
-      const toThrow = () => { return cqn2sql(cqn.selectFuncitonWithoutAlias) }
+      const toThrow = () => {
+        return cqn2sql(cqn.selectFuncitonWithoutAlias)
+      }
       expect(toThrow).toThrowError('Expecting expression to have an alias name')
     })
 
@@ -150,7 +151,9 @@ describe('cqn2sql', () => {
           ]
         }
       }
-      const toThrow = () => { return cqn2sql(cqn) }
+      const toThrow = () => {
+        return cqn2sql(cqn)
+      }
       expect(toThrow).toThrowError('Unsupported expr: or')
     })
 
@@ -170,73 +173,72 @@ describe('cqn2sql', () => {
           ]
         }
       }
-      const {sql} = cqn2sql(cqn)
+      const { sql } = cqn2sql(cqn)
       expect(sql).toMatchSnapshot()
     })
   })
   describe('HAVING clauses', () => {
     test('with select specific elements with from type string with having clause', () => {
-      const {sql} = cqn2sql(cqn.selectHaving)
+      const { sql } = cqn2sql(cqn.selectHaving)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('complex combinations', () => {
-
     test('WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET', () => {
-      const {sql} = cqn2sql(cqn.selectAggregationLimitOrder)
+      const { sql } = cqn2sql(cqn.selectAggregationLimitOrder)
       expect(sql).toMatchSnapshot()
     })
 
     test('AS, sub query', () => {
-      const {sql} = cqn2sql(cqn.selectSubSelect)
+      const { sql } = cqn2sql(cqn.selectSubSelect)
       expect(sql).toMatchSnapshot()
     })
 
     test('Exists in object mode in complex where', () => {
-      const {sql, values} = cqn2sql(cqn.selectComplexWhereWithExists)
-      expect({sql, values}).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn.selectComplexWhereWithExists)
+      expect({ sql, values }).toMatchSnapshot()
     })
   })
 
   describe('GROUP BY', () => {
     test('GROUP BY two columns', () => {
-      const {sql} = cqn2sql(cqn.groupBy)
+      const { sql } = cqn2sql(cqn.groupBy)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('ORDER BY', () => {
     test('ORDER BY alias', () => {
-      const {sql} = cqn2sql(cqn.orderByWithAlias)
+      const { sql } = cqn2sql(cqn.orderByWithAlias)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('ONE', () => {
     test('one results in limit 1', () => {
-      const {sql} = cqn2sql(cqn.one)
+      const { sql } = cqn2sql(cqn.one)
       expect(sql).toMatchSnapshot()
     })
 
     test('one with additional limit with offset', () => {
-      const {sql} = cqn2sql(cqn.oneWithLimit)
+      const { sql } = cqn2sql(cqn.oneWithLimit)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('LIMIT', () => {
     test('with limit without offset', () => {
-      const {sql} = cqn2sql(cqn.limit)
+      const { sql } = cqn2sql(cqn.limit)
       expect(sql).toMatchSnapshot()
     })
 
     test('with limit and offset', () => {
-      const {sql} = cqn2sql(cqn.limitOffset)
+      const { sql } = cqn2sql(cqn.limitOffset)
       expect(sql).toMatchSnapshot()
     })
 
-   test('limit without rows throws error', () => {
+    test('limit without rows throws error', () => {
       const toThrow = () => {
         return cqn2sql({ SELECT: { from: { ref: ['Foo'] }, limit: { offset: { val: 5 } } } })
       }
@@ -245,7 +247,6 @@ describe('cqn2sql', () => {
   })
 
   describe('aggregation functions', () => {
-
     test('with select with same functions without alias in elements', () => {
       const toThrow = () => {
         return cqn2sql(cqn.selectWithSameFunctionsWithoutAlias)
@@ -254,29 +255,29 @@ describe('cqn2sql', () => {
     })
 
     test('with select with different functions without alias in elements', () => {
-      const {sql} = cqn2sql(cqn.selectWithFunctionsWithoutAlias)
+      const { sql } = cqn2sql(cqn.selectWithFunctionsWithoutAlias)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select with functions in elements new notation', () => {
-      const {sql} = cqn2sql(cqn.selectWithAggregationNew)
+      const { sql } = cqn2sql(cqn.selectWithAggregationNew)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select with count(1)', () => {
-      const {sql} = cqn2sql(cqn.selectWithCountOne)
+      const { sql } = cqn2sql(cqn.selectWithCountOne)
       expect(sql).toMatchSnapshot()
     })
 
     test('with select with functions in where clause new notation', () => {
-      const {sql} = cqn2sql(cqn.selectWhereAggregationNew)
+      const { sql } = cqn2sql(cqn.selectWhereAggregationNew)
       expect(sql).toMatchSnapshot()
     })
   })
 
   describe('functions new notation', () => {
     test('in orderby with 1 arg new notation', () => {
-      const {sql} = cqn2sql({
+      const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           orderBy: [{ func: 'lower', args: [{ ref: ['c'] }], sort: 'desc' }]
@@ -286,17 +287,17 @@ describe('cqn2sql', () => {
     })
 
     test('in filter with 1 arg new notation', () => {
-      const {sql, values} = cqn2sql({
+      const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           where: [{ func: 'lower', args: [{ ref: ['c'] }] }, '=', { val: 'name' }]
         }
       })
-      expect({sql, values}).toMatchSnapshot()
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('in filter with asterisk as arg new notation', () => {
-      const {sql} = cqn2sql({
+      const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           having: [{ func: 'count', args: ['*'] }, '>', { val: 1 }]
@@ -306,7 +307,7 @@ describe('cqn2sql', () => {
     })
 
     test('in filter with 2 arg new notation', () => {
-      const {sql} = cqn2sql({
+      const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ ref: ['a'] }, { ref: ['b'] }] }]
@@ -319,18 +320,14 @@ describe('cqn2sql', () => {
       const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [
-            { ref: ['c'] },
-            '=',
-            { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }
-          ]
+          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }]
         }
       })
-    expect({ sql, values }).toMatchSnapshot()
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('in filter with nested functions new notation', () => {
-      const {sql, values} = cqn2sql({
+      const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           where: [
@@ -347,7 +344,7 @@ describe('cqn2sql', () => {
           ]
         }
       })
-      expect({sql, values}).toMatchSnapshot()
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     test('in filter with subselect as function param', () => {
@@ -358,7 +355,7 @@ describe('cqn2sql', () => {
           where: [{ ref: ['a'] }, '=', { val: 1 }]
         }
       }
-      const {sql} = cqn2sql({
+      const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
           where: [{ ref: ['ID'] }, '=', { func: 'any', args: [subselect] }]
@@ -369,7 +366,6 @@ describe('cqn2sql', () => {
   })
 
   describe('quoted column aliases', () => {
-
     // aliases should be quoted only for HANA
     test('simple select with column aliases', () => {
       const cqn = {
@@ -405,7 +401,6 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql(cqn.aliasWithSubSelect)
       expect(sql).toMatchSnapshot()
     })
-
   })
 
   describe('joins', () => {
@@ -413,7 +408,5 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql(cqn.join)
       expect(sql).toMatchSnapshot()
     })
-
   })
-
 })

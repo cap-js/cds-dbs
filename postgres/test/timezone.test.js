@@ -1,11 +1,12 @@
 const { resolve } = require('path')
 const cds = require('../../test/cds.js')
 const project = resolve(__dirname, 'beershop')
-const { GET, PUT, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('CAP PostgreSQL Adapter', () => {
+  const { GET, PUT, expect, data } = cds.test('serve', '--project', project).verbose()
+
   data.autoIsolation(true)
   data.autoReset(true)
 

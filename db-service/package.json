@@ -1,3 +1,8 @@
 {
-  "name": "@cap-js/db-service"
+  "name": "@cap-js/db-service",
+  "scripts": {
+    "prettier": "npx prettier --write .",
+    "test": "npx jest --silent",
+    "lint": "npx eslint . && npx prettier --check . "
+  }
 }

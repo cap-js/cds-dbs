@@ -4,14 +4,14 @@ const { _target_name4 } = require('./SQLService')
 
 const handledDeep = Symbol('handledDeep')
 
-async function onDeep (req, next) {
+async function onDeep(req, next) {
   const { query } = req
   // REVISIT: req.target does not match the query.INSERT target for path insert
   // const target = query.sources[Object.keys(query.sources)[0]]
   if (!this.model?.definitions[_target_name4(req.query)]) {
     return next()
   }
-  const {target} = this.infer(query)
+  const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
   const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
 
@@ -20,14 +20,15 @@ async function onDeep (req, next) {
   }
 
   const queries = getDeepQueries(query, beforeData, target)
-  const res = await Promise.all(queries.map (query => {
-    if (query.INSERT) return this.onINSERT({query})
-    if (query.UPDATE) return this.onUPDATE({query})
-    if (query.DELETE) return this.onSIMPLE({query})
-  }))
+  const res = await Promise.all(
+    queries.map(query => {
+      if (query.INSERT) return this.onINSERT({ query })
+      if (query.UPDATE) return this.onUPDATE({ query })
+      if (query.DELETE) return this.onSIMPLE({ query })
+    })
+  )
   return res[0] ?? 0 // TODO what todo with multiple result responses?
 }
-
 
 const hasDeep = (query, target) => {
   if (handledDeep in query) return
@@ -35,10 +36,12 @@ const hasDeep = (query, target) => {
     for (let c in target?.compositions) return true
     return false
   }
-  const data = query.INSERT?.entries || (query.UPDATE?.data && [query.UPDATE.data]) || (query.UPDATE?.with && [query.UPDATE.with])
-  if (data) for (const c in target.compositions) {
-    for (const row of data) if (row[c] !== undefined) return true
-  }
+  const data =
+    query.INSERT?.entries || (query.UPDATE?.data && [query.UPDATE.data]) || (query.UPDATE?.with && [query.UPDATE.with])
+  if (data)
+    for (const c in target.compositions) {
+      for (const row of data) if (row[c] !== undefined) return true
+    }
 }
 
 // unofficial config!
@@ -46,7 +49,7 @@ const DEEP_DELETE_MAX_RECURSION_DEPTH =
   (cds.env.features.recursion_depth && Number(cds.env.features.recursion_depth)) || 4 // we use 4 here as our test data has a max depth of 3
 
 // IMPORTANT: Skip only if @cds.persistence.skip is `true` → e.g. this skips skipping targets marked with @cds.persistence.skip: 'if-unused'
-const _hasPersistenceSkip = target => target?.["@cds.persistence.skip"] === true
+const _hasPersistenceSkip = target => target?.['@cds.persistence.skip'] === true
 
 const getColumnsFromDataOrKeys = (data, target) => {
   if (Array.isArray(data)) {
@@ -71,7 +74,7 @@ const getColumnsFromDataOrKeys = (data, target) => {
 const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = new Map()) => {
   const compositions = target.compositions || {}
 
-  if(expandColumns.length === 0) {
+  if (expandColumns.length === 0) {
     // REVISIT: ensure that all keys are included in the expand columns
     expandColumns.push(...getColumnsFromDataOrKeys(data, target))
   }
@@ -184,7 +187,7 @@ const _getDeepQueries = (diff, target) => {
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
         arrayed.forEach(subEntry => {
-            subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target))
+          subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target))
         })
         delete diffEntry[prop]
       }

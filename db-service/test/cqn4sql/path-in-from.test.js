@@ -7,7 +7,7 @@ describe('infix filter on entities', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
   })
-      // (SMW) TODO: assoc path in FROM in subquery
+  // (SMW) TODO: assoc path in FROM in subquery
   it('fail for infix filter at namespace', () => {
     // cds infer takes care of this
     expect(() => cqn4sql(CQL`SELECT from bookshop[Books.price < 12.13].Books`, model)).to.throw(

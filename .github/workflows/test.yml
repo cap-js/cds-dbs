@@ -19,8 +19,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           cache: 'npm'
-      - run: npx eslint .
       - run: npm ci
+      - run: npm run lint
 
   test:
     needs: setup
@@ -30,8 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # db: ['none', 'sqlite', 'pg']
-        node: [ 18, 16 ]
+        node: [18, 16]
 
     steps:
       - uses: actions/checkout@v3
@@ -40,4 +39,4 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
       - run: npm ci
-      - run: npm run test:all
+      - run: npm t

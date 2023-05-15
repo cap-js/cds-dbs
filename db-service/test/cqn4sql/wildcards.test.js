@@ -10,7 +10,7 @@ describe('wildcard expansion and exclude clause', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it ('Respects excluding when expanding wildcard', () => {
+  it('Respects excluding when expanding wildcard', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { *, author.ID as author } excluding {createdBy, modifiedBy}`,
       model
@@ -57,7 +57,7 @@ describe('wildcard expansion and exclude clause', () => {
       }`
     )
   })
-  it ('overwrite column with struct', () => {
+  it('overwrite column with struct', () => {
     const input = CQL`SELECT from bookshop.Bar { structure as first, 'second' as createdAt, *, structure as ID }`
     let query = cqn4sql(input, model)
     expect(query).to.deep.equal(
@@ -147,7 +147,7 @@ describe('wildcard expansion and exclude clause', () => {
       `)
   })
 
-  it ('If a shadowed column is excluded, the shadowing column is inserted where defined', () => {
+  it('If a shadowed column is excluded, the shadowing column is inserted where defined', () => {
     const input = CQL`SELECT from bookshop.Bar { 'first' as first, 'second' as createdAt, *, 'last' as ID } excluding { ID }`
     let query = cqn4sql(input, model)
     // original query is prototype of transformed query -> JSON.parse(…)
@@ -391,7 +391,7 @@ describe('wildcard expansion and exclude clause', () => {
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar { Bar.ID } order by '*'`)
   })
 
-  it ('ignores virtual field from wildcard expansion', () => {
+  it('ignores virtual field from wildcard expansion', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { * }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.stru_u, Foo.stru_nested_nu }`)
   })

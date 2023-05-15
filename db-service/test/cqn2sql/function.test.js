@@ -71,7 +71,8 @@ describe('function', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [ 'not',
+        where: [
+          'not',
           {
             func: 'contains',
             args: [{ list: [{ ref: ['b'] }] }, { val: '5' }]
@@ -81,10 +82,8 @@ describe('function', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)",
-      "values": [
-        "5",
-      ]
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)',
+      values: ['5']
     })
   })
 
@@ -92,7 +91,8 @@ describe('function', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [ 'not',
+        where: [
+          'not',
           {
             func: 'contains',
             args: [{ list: [{ ref: ['ID'] }, { ref: ['a'] }] }, { val: '5' }]
@@ -102,11 +102,8 @@ describe('function', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not (instr((Foo.ID),?) and instr((Foo.a),?))",
-      "values": [
-        "5",
-        "5"
-      ]
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not (instr((Foo.ID),?) and instr((Foo.a),?))',
+      values: ['5', '5']
     })
   })
 
@@ -115,7 +112,8 @@ describe('function', () => {
       return {
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [ 'not',
+          where: [
+            'not',
             {
               func: 'contains',
               args: [{ list: [{ ref: ['a'] }] }, { val }]

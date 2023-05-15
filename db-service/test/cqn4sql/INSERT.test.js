@@ -21,7 +21,7 @@ describe('INSERT', () => {
   it('path expression in into clause with alias', () => {
     let i = {
       INSERT: {
-        into: {ref: ['bookshop.Books', 'author'], as: 'Foo'},
+        into: { ref: ['bookshop.Books', 'author'], as: 'Foo' }
       }
     }
     const result = cqn4sql(i)

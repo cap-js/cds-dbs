@@ -9,12 +9,12 @@ describe('functions', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
   describe('functions without arguments', () => {
-    it ('function in filter in order by', () => {
+    it('function in filter in order by', () => {
       let query = {
         SELECT: {
           from: { ref: ['bookshop.Books'] },
-          columns: [{ref: ['ID']}],
-          where: [{ func: 'current_date' }, '=',{val: 'today'}]
+          columns: [{ ref: ['ID'] }],
+          where: [{ func: 'current_date' }, '=', { val: 'today' }]
         }
       }
       let expected = CQL`
@@ -23,10 +23,9 @@ describe('functions', () => {
       `
 
       let result = cqn4sql(query, model)
-      expect(result)
-        .to.deep.equal(expected)
+      expect(result).to.deep.equal(expected)
     })
-    it ('function in filter of expand', () => {
+    it('function in filter of expand', () => {
       const q = CQL`SELECT from bookshop.Books {
           author[substring(placeOfBirth, 0, 2) = 'DE'] { name }
         }`
@@ -44,7 +43,7 @@ describe('functions', () => {
       expect(res.SELECT.columns[0].SELECT).to.have.property('one').that.equals(true)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
-    it ('function val in func.args must not be expanded to fk comparison', () => {
+    it('function val in func.args must not be expanded to fk comparison', () => {
       const q = CQL`SELECT from bookshop.Books {
          1
         } where not exists author[contains(toLower('foo'))]`

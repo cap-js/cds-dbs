@@ -101,7 +101,7 @@ describe('insert', () => {
     test('test with insert with alias', () => {
       const cqnInsert = {
         INSERT: {
-          into: {ref: ['Foo2'], as: 'Fooooo2'},
+          into: { ref: ['Foo2'], as: 'Fooooo2' },
           entries: [
             { ID: 1, name: null, a: 2 },
             { ID: null, name: "'asd'", a: 6 }

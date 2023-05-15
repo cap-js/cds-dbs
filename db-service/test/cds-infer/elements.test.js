@@ -2,7 +2,7 @@
 // test the calculation of the elements of the query
 
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('infer elements', () => {
@@ -62,25 +62,24 @@ describe('infer elements', () => {
         nameWithoutFilter: Books.elements.dedication.elements.addressee._target.elements.name
       })
     })
-
   })
 
   describe('literals', () => {
-    it('should allow selecting simple literal values', ()=>{
+    it('should allow selecting simple literal values', () => {
       const inferred = _inferred(CQL`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
-      expect (inferred.elements) .to.deep.equal ({
-        '11': {type:'cds.Integer'},
-        'foo': {type:'cds.String'},
-        'true': {type:'cds.Boolean'},
-        'false': {type:'cds.Boolean'},
+      expect(inferred.elements).to.deep.equal({
+        11: { type: 'cds.Integer' },
+        foo: { type: 'cds.String' },
+        true: { type: 'cds.Boolean' },
+        false: { type: 'cds.Boolean' }
       })
     })
   })
 
   describe('virtual', () => {
-    it('infers a query\'s virtual elements', () => {
+    it("infers a query's virtual elements", () => {
       let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
@@ -201,7 +200,6 @@ describe('infer elements', () => {
       expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
       expect(inferred.elements).to.deep.equal({ ...Books.elements, ...Receipt.elements }) // combined elements
     })
-
   })
   describe('scoped queries', () => {
     it('use table alias of scoped query', () => {
@@ -225,15 +223,11 @@ describe('infer elements', () => {
     }`)
       let { Books, Authors } = model.entities
 
-      expect(inferred.target)
-        .to.deep.equal(Books.elements.coAuthor._target)
-        .to.deep.equal(Authors)
+      expect(inferred.target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
       expect(inferred.elements).to.deep.equal({
         name: Authors.elements.name
       })
     })
-
-
   })
   describe('subqueries', () => {
     it('supports expressions and subqueries in the select list', () => {
@@ -271,14 +265,13 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
 
-
     it('anonymous functions are inferred by their func property name', () => {
       let functionWithoutAlias = CQL`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
       const inferred = _inferred(functionWithoutAlias)
       expect(inferred.elements).to.have.keys(['sum', 'count'])
     })
 
-    it ('infers functions results as query element', () => {
+    it('infers functions results as query element', () => {
       let query = CQL`
     SELECT from bookshop.Books {
       func(stock*price) as net,
@@ -288,7 +281,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
-        net: {},
+        net: {}
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -333,10 +326,10 @@ describe('infer elements', () => {
           type: 'cds.Decimal'
         },
         pid: {
-          type: 'cds.Decimal',
-        // REVISIT: currently CQL does not retain type arguments
-        // precision: 5,
-        // scale: 4
+          type: 'cds.Decimal'
+          // REVISIT: currently CQL does not retain type arguments
+          // precision: 5,
+          // scale: 4
         },
         boolf: {
           type: 'cds.Boolean'
@@ -363,7 +356,7 @@ describe('infer elements', () => {
         string: {
           type: 'cds.String'
         },
-        stringl:{
+        stringl: {
           type: 'cds.LargeString'
         }
       })
@@ -386,7 +379,7 @@ describe('infer elements', () => {
     })
 
     it('supports a cdl-style cast in the select list', () => {
-    // Revisit: clarify what the cast should mean
+      // Revisit: clarify what the cast should mean
       let query = CQL`
         SELECT from bookshop.Books {
           dedication.sub.foo: Integer,
@@ -419,14 +412,12 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
 
-
     it('query without projections', () => {
       let query = CQL`SELECT from bookshop.Books`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
-
 
     it('respects "excluding" when inferring elements from a *', () => {
       let query = CQL`SELECT from bookshop.Bar { *, ID, note } excluding { ID, stock }`
@@ -463,7 +454,6 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal(expectedElements)
       expect(inferred.elements).to.have.nested.property('author.name', 'author')
     })
-
   })
   describe('pseudo variables', () => {
     it('$variables are inferred as query elements', () => {
@@ -524,47 +514,44 @@ describe('infer elements', () => {
       let { Bar } = model.entities
       expect(inferred.elements).to.deep.equal(Bar.elements)
     })
-
-
   })
 
   describe('binding params', () => {
-    it ('put binding parameter into query elements as empty object', () => {
+    it('put binding parameter into query elements as empty object', () => {
       const query = {
         SELECT: {
-          columns: [ { ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount' } ],
+          columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount' }],
           from: { ref: ['bookshop.Books'] },
           where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
         }
       }
       const inferred = _inferred(query, model)
-      expect( Object.keys( inferred.elements ).length ).to.eql( inferred.SELECT.columns.length )
-      expect( inferred.elements['discount'] ).to.eql( {} )
+      expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
+      expect(inferred.elements['discount']).to.eql({})
     })
-    it ('respect cast type on binding parameter', () => {
+    it('respect cast type on binding parameter', () => {
       const query = {
         SELECT: {
-          columns: [ { ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', cast: { type: 'cds.Integer' } } ],
+          columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', cast: { type: 'cds.Integer' } }],
           from: { ref: ['bookshop.Books'] },
           where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
         }
       }
       const inferred = _inferred(query, model)
-      expect( Object.keys( inferred.elements ).length ).to.eql( inferred.SELECT.columns.length )
-      expect( inferred.elements['discount'] ).to.eql( { type: 'cds.Integer' } )
+      expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
+      expect(inferred.elements['discount']).to.eql({ type: 'cds.Integer' })
     })
-    it ('infers values type on binding parameter', () => {
+    it('infers values type on binding parameter', () => {
       const query = {
         SELECT: {
-          columns: [ { ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 } ],
+          columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 }],
           from: { ref: ['bookshop.Books'] },
           where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
         }
       }
       const inferred = _inferred(query, model)
-      expect( Object.keys( inferred.elements ).length ).to.eql( inferred.SELECT.columns.length )
-      expect( inferred.elements['discount'] ).to.eql( { type: 'cds.Integer' } )
+      expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
+      expect(inferred.elements['discount']).to.eql({ type: 'cds.Integer' })
     })
   })
-
 })

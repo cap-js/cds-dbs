@@ -4,7 +4,6 @@ if (cds.env.fiori) cds.env.fiori.lean_draft = true
 else cds.env.features.lean_draft = true
 
 const project = resolve(__dirname, 'beershop')
-const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
@@ -12,6 +11,8 @@ const guidRegEx = /\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f
 
 // run test suite with different sets of data
 describe('OData to Postgres dialect', () => {
+  const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
+
   data.autoIsolation(true)
   data.autoReset(true)
 
@@ -182,7 +183,6 @@ describe('OData to Postgres dialect', () => {
   })
 
   describe('odata: GET on Draft enabled Entity -> sql: SELECT', () => {
-
     test('odata: entityset TypeChecksWithDraft -> select all', async () => {
       const response = await GET('/beershop/TypeChecksWithDraft')
       expect(response.status).to.equal(200)

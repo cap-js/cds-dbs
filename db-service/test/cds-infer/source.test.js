@@ -2,7 +2,7 @@
 // test the calculation of the sources of the query
 
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('simple', () => {
@@ -36,7 +36,6 @@ describe('simple', () => {
     expect(_inferred(i)).to.have.property('target').that.equals(Books)
     expect(_inferred(d)).to.have.property('target').that.equals(Books)
   })
-
 })
 describe('scoped queries', () => {
   let model
@@ -86,7 +85,6 @@ describe('subqueries', () => {
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
 
-
   it('subquery in from with wildcard', () => {
     let query = CQL`SELECT from (select from bookshop.Books) as Bar { ID, author }`
     let inferred = _inferred(query)
@@ -99,7 +97,6 @@ describe('subqueries', () => {
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
-
 })
 
 describe('multiple sources', () => {
@@ -108,7 +105,7 @@ describe('multiple sources', () => {
     model = cds.model = await await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
   it('infers multiple table aliases as the queries source with a simple cross join', () => {
-    let inferred = _inferred (CQL`
+    let inferred = _inferred(CQL`
     SELECT from bookshop.Books:author as A, bookshop.Books {
       A.ID as aID,
       Books.ID as bID,
@@ -137,7 +134,7 @@ describe('multiple sources', () => {
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
       bID: Books.elements.ID,
-      fooID: Foo.elements.ID,
+      fooID: Foo.elements.ID
     })
   })
 
@@ -151,14 +148,11 @@ describe('multiple sources', () => {
 
     // same base entity, addressable via both aliases
     expect(inferred.target).to.deep.equal(inferred)
-    expect(inferred.sources['firstBook'])
-      .to.deep.equal(inferred.sources['secondBook'])
-      .to.deep.equal(Books)
+    expect(inferred.sources['firstBook']).to.deep.equal(inferred.sources['secondBook']).to.deep.equal(Books)
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,
-      secondBookID: Books.elements.ID,
+      secondBookID: Books.elements.ID
     })
   })
-
 })

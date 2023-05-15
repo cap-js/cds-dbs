@@ -1,6 +1,5 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname,'../../bookshop')
-const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
+const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 const admin = {
   auth: {
@@ -9,9 +8,10 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
+  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
-    const res = await GET('/browse/Books',{ headers: { 'accept-language': 'de' } })
+    const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(5)
   })
@@ -40,17 +40,17 @@ describe('Bookshop - Read', () => {
   })
 
   test('Plain sql', async () => {
-    const res = await cds.run("SELECT * FROM sap_capire_bookshop_Books")
+    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
     expect(res.length).to.be.eq(5)
   })
 
   test('Plain sql with values', async () => {
-    const res = await cds.run("SELECT * FROM sap_capire_bookshop_Books where ID = ?", [201])
+    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [201])
     expect(res.length).to.be.eq(1)
   })
 
   test('Plain sql with multiple values', async () => {
-    const res = await cds.run("SELECT * FROM sap_capire_bookshop_Books where ID = ?", [[201], [252]])
+    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [[201], [252]])
     expect(res.length).to.be.eq(2)
   })
 
@@ -133,13 +133,13 @@ describe('Bookshop - Read', () => {
     )
     expect(res.status).to.be.eq(201)
 
-    const res2 = await GET('/browse/Books?$orderby=title',{ headers: { 'accept-language': 'de' } })
+    const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
     expect(res2.status).to.be.eq(200)
     expect(res2.data.value[1].title).to.be.eq('dracula')
 
     const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
     const res3 = await cds.run(q)
-    expect(res3[res3.length-1].title).to.be.eq('dracula')
+    expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
     q.SELECT.localized = true
     const res4 = await cds.run(q)
@@ -177,7 +177,7 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
 
     expect(res.data.author_ID).to.be.eq(201)
-    expect(res.data.descr).to.be.eq("UPDATED")
+    expect(res.data.descr).to.be.eq('UPDATED')
   })
 
   test('Delete Book', async () => {

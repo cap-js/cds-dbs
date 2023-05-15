@@ -306,8 +306,7 @@ describe('Flattening', () => {
     // TODO move out
     it('does not transform queries with multiple query sources, but just returns the inferred query', () => {
       const query = CQL`SELECT from bookshop.Books, bookshop.Authors {Books.ID as bid, Authors.ID as aid}`
-      expect(cqn4sql(query, model))
-        .to.deep.equal(_inferred(query, model))
+      expect(cqn4sql(query, model)).to.deep.equal(_inferred(query, model))
     })
 
     // skipped as queries with multiple sources are not supported (at least for now)
@@ -360,7 +359,8 @@ describe('Flattening', () => {
               )`,
         model
       )
-      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE exists (
+      expect(JSON.parse(JSON.stringify(query))).to.deep
+        .equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE exists (
               SELECT Authors.address_street, Authors.address_city from bookshop.Authors as Authors where Authors.ID > Books.ID
             )`)
     })
@@ -488,7 +488,8 @@ describe('Flattening', () => {
             )`,
         model
       )
-      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE exists (
+      expect(JSON.parse(JSON.stringify(query))).to.deep
+        .equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE exists (
             SELECT Books.author_ID from bookshop.Books as Books where Books.ID > Authors.ID
           )`)
     })
@@ -819,7 +820,7 @@ describe('Flattening', () => {
     // (PB) moved from cds.infer and skipped for now as this doesnt hurt atm..
     // -> it does hurt because it dumps
     it.skip('MUST not have infix filters in struct paths', () => {
-        cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
+      cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
       expect(() => {
         cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
       }).to.throw('A filter can only be provided when navigating along associations')

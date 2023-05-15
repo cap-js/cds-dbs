@@ -10,6 +10,9 @@
   ],
   "devDependencies": {
     "@capire/sflight": "sap-samples/cap-sflight",
+    "prettier": "^2",
+    "eslint": "^8",
+    "jest": "^29",
     "axios": ">=1.3",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
@@ -18,14 +21,8 @@
   },
   "scripts": {
     "prettier": "npx prettier --write .",
-    "green-tests": "npm run -s test db-service compliance",
-    "red-tests": "npm run -s test general scenarios",
     "test": "npx jest --silent",
-    "test:all": "npm run test:none && npm run test:sqlite && npm run test:pg",
-    "test:none": "DB=none npm run test",
-    "test:sqlite": "DB=sqlite npm run test",
-    "test:pg": "npm run pg:up && DB=pg npm run test",
-    "lint": "npx eslint . && npx prettier --check ."
+    "lint": "npx eslint . && npx prettier --check . "
   },
   "license": "SEE LICENSE"
 }

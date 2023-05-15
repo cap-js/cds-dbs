@@ -2,7 +2,7 @@
 // https://github.tools.sap/cap/cds-compiler/blob/main/internalDoc/A2J.md
 
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname+'/bookshop')
+const { expect } = cds.test.in(__dirname + '/bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('nested projections', () => {
@@ -61,9 +61,9 @@ describe('nested projections', () => {
           dedication: {
             elements: {
               dedication: Books.elements.dedication.elements.dedication,
-              addressee: Books.elements.dedication.elements. addressee,
-              sub: Books.elements.dedication.elements. sub,
-              text: Books.elements.dedication.elements. text,
+              addressee: Books.elements.dedication.elements.addressee,
+              sub: Books.elements.dedication.elements.sub,
+              text: Books.elements.dedication.elements.text
             }
           }
         })
@@ -78,7 +78,7 @@ describe('nested projections', () => {
           dedication: {
             elements: {
               ...Books.elements.dedication.elements,
-              foo: Books.elements.dedication.elements.dedication,
+              foo: Books.elements.dedication.elements.dedication
             }
           }
         })
@@ -127,7 +127,7 @@ describe('nested projections', () => {
           books: {
             items: {
               elements: {
-                author : {
+                author: {
                   elements: {
                     name: Authors.elements.books._target.elements.author._target.elements.name
                   }
@@ -174,12 +174,10 @@ describe('nested projections', () => {
       let inferredInline = _inferred(queryInlineNotation)
       let inferredAbsolute = _inferred(queryStructuredAccess)
       let { Employee } = model.entities
-      expect(inferredInline.elements)
-        .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          office_floor: Employee.elements.office.elements.floor,
-          office_room: Employee.elements.office.elements.room
-        });
+      expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
+        office_floor: Employee.elements.office.elements.floor,
+        office_room: Employee.elements.office.elements.room
+      })
     })
     it('mixed with expand', () => {
       let queryInlineNotation = CQL`select from Employee {
@@ -211,7 +209,7 @@ describe('nested projections', () => {
               address_street: Employee.elements.office.elements.address.elements.street
             }
           }
-        });
+        })
     })
     it('deep inline', () => {
       let queryInlineNotation = CQL`select from Employee {
@@ -233,16 +231,15 @@ describe('nested projections', () => {
       let inferredInline = _inferred(queryInlineNotation)
       let inferredAbsolute = _inferred(variantWithoutInline)
       let { Employee } = model.entities
-      expect(inferredInline.elements)
-        .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          office_floor: Employee.elements.office.elements.floor,
-          office_address_city: Employee.elements.office.elements.address.elements.city,
-          office_address_street: Employee.elements.office.elements.address.elements.street,
-          office_address_country_code: Employee.elements.office.elements.address.elements.country._target.elements.code
-        });
+      expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
+        office_floor: Employee.elements.office.elements.floor,
+        office_address_city: Employee.elements.office.elements.address.elements.city,
+        office_address_street: Employee.elements.office.elements.address.elements.street,
+        office_address_country_code: Employee.elements.office.elements.address.elements.country._target.elements.code
+      })
     })
-    it ('deep expand in inline', () => { // revisit: naming
+    it('deep expand in inline', () => {
+      // revisit: naming
       let queryInlineNotation = CQL`select from Employee {
         office.{
           floor,
@@ -272,7 +269,7 @@ describe('nested projections', () => {
               street: Employee.elements.office.elements.address.elements.street
             }
           }
-        });
+        })
     })
     it('wildcard inline toplevel', () => {
       let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
@@ -311,7 +308,7 @@ describe('nested projections', () => {
           office_furniture: {
             elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements
           }
-        });
+        })
     })
     it('wildcard inline deep w/o brackets', () => {
       let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
@@ -325,13 +322,11 @@ describe('nested projections', () => {
       let inferredInline = _inferred(queryInlineNotation)
       let inferredAbsolute = _inferred(absolutePaths)
       let { EmployeeNoUnmanaged } = model.entities
-      expect(inferredInline.elements)
-        .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          office_address_city: EmployeeNoUnmanaged.elements.office.elements.address.elements.city,
-          office_address_street: EmployeeNoUnmanaged.elements.office.elements.address.elements.street,
-          office_address_country: EmployeeNoUnmanaged.elements.office.elements.address.elements.country,
-        });
+      expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
+        office_address_city: EmployeeNoUnmanaged.elements.office.elements.address.elements.city,
+        office_address_street: EmployeeNoUnmanaged.elements.office.elements.address.elements.street,
+        office_address_country: EmployeeNoUnmanaged.elements.office.elements.address.elements.country
+      })
     })
     it('smart wildcard - column overwrite after *', () => {
       // office.address.city replaces office.floor
@@ -360,7 +355,7 @@ describe('nested projections', () => {
           office_furniture: {
             elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements
           }
-        });
+        })
     })
     it('smart wildcard - column overwrite before *', () => {
       // office.furniture.chairs replaces office.furniture
@@ -380,14 +375,14 @@ describe('nested projections', () => {
       expect(inferredInline.elements)
         .to.deep.equal(inferredAbsolute.elements)
         .to.deep.equal({
-          office_building: {type: 'cds.String'},
+          office_building: { type: 'cds.String' },
           office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture.elements.chairs,
-          office_floor: {type: 'cds.String'},
+          office_floor: { type: 'cds.String' },
           office_room: EmployeeNoUnmanaged.elements.office.elements.room,
           office_address: {
             elements: EmployeeNoUnmanaged.elements.office.elements.address.elements
-          },
-        });
+          }
+        })
     })
 
     // TODO negative test for wildcard expansion of unmanaged association!
@@ -414,13 +409,11 @@ describe('nested projections', () => {
       let inferredInline = _inferred(queryInlineNotation)
       let inferredAbsolute = _inferred(absolutePaths)
       let { EmployeeNoUnmanaged } = model.entities
-      expect(inferredInline.elements)
-        .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          office_floor: EmployeeNoUnmanaged.elements.office.elements.floor,
-          office_room: EmployeeNoUnmanaged.elements.office.elements.room,
-          office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture
-        });
+      expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
+        office_floor: EmployeeNoUnmanaged.elements.office.elements.floor,
+        office_room: EmployeeNoUnmanaged.elements.office.elements.room,
+        office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture
+      })
     })
     it('wildcard - sql style on table alias', () => {
       let queryInlineNotation = CQL`select from EmployeeNoUnmanaged as E {
@@ -439,7 +432,7 @@ describe('nested projections', () => {
       expect(inferredWithoutBrackets.elements)
         .to.deep.equal(inferredWithBrackets.elements)
         .to.deep.equal(inferredWildcard.elements)
-        .to.deep.equal(EmployeeNoUnmanaged.elements);
+        .to.deep.equal(EmployeeNoUnmanaged.elements)
     })
     it('wildcard - sql style on table alias with excluding', () => {
       let queryInlineNotation = CQL`select from EmployeeNoUnmanaged as E {
@@ -452,14 +445,12 @@ describe('nested projections', () => {
       let inferredShortcut = _inferred(queryInlineNotation)
       let inferredAbsolute = _inferred(regularWildcard)
       let { EmployeeNoUnmanaged } = model.entities
-      expect(inferredShortcut.elements)
-        .to.deep.equal(inferredAbsolute.elements)
-        .to.deep.equal({
-          id: EmployeeNoUnmanaged.elements.id,
-          name: EmployeeNoUnmanaged.elements.name,
-          job: EmployeeNoUnmanaged.elements.job,
-          office: EmployeeNoUnmanaged.elements.office.elements.room,
-        });
+      expect(inferredShortcut.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
+        id: EmployeeNoUnmanaged.elements.id,
+        name: EmployeeNoUnmanaged.elements.name,
+        job: EmployeeNoUnmanaged.elements.job,
+        office: EmployeeNoUnmanaged.elements.office.elements.room
+      })
     })
 
     it('wildcard - sql style on table alias with excluding and hand written joins', () => {
@@ -469,14 +460,13 @@ describe('nested projections', () => {
       }`
       let inferredShortcut = _inferred(queryInlineNotation)
       let { EmployeeNoUnmanaged, Department } = model.entities
-      expect(inferredShortcut.elements)
-        .to.deep.equal({
-          id: EmployeeNoUnmanaged.elements.id,
-          name: EmployeeNoUnmanaged.elements.name,
-          job: EmployeeNoUnmanaged.elements.job,
-          office: EmployeeNoUnmanaged.elements.office.elements.room,
-          depName: Department.elements.name
-        });
+      expect(inferredShortcut.elements).to.deep.equal({
+        id: EmployeeNoUnmanaged.elements.id,
+        name: EmployeeNoUnmanaged.elements.name,
+        job: EmployeeNoUnmanaged.elements.job,
+        office: EmployeeNoUnmanaged.elements.office.elements.room,
+        depName: Department.elements.name
+      })
     })
   })
 })

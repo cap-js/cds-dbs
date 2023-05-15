@@ -13,7 +13,7 @@ module.exports = [
   },
   {
     integer64: '-9223372036854775808'
-  },/* REVISIT: requires output converters to maintain accuracy
+  } /* REVISIT: requires output converters to maintain accuracy
   {
     double: 3.141592653589793,
     '=double': 3.141592653589793

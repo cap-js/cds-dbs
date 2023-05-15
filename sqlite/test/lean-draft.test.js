@@ -471,7 +471,7 @@ describe('draft tests', () => {
       IsActiveEntity: true,
       HasActiveEntity: false,
       HasDraftEntity: false,
-      DraftAdministrativeData: null,
+      DraftAdministrativeData: null
     })
     for (const row of res.data.value.slice(1)) {
       expect(row.IsActiveEntity).to.be.eq(true)
@@ -534,7 +534,7 @@ describe('draft tests', () => {
       IsActiveEntity: true,
       HasActiveEntity: false,
       HasDraftEntity: false,
-      DraftAdministrativeData: null,
+      DraftAdministrativeData: null
     })
   })
 
@@ -581,7 +581,7 @@ describe('draft tests', () => {
       to_Supplement_SupplementID: 'ML-0023',
       to_Supplement: { Description: 'Trout Meuniere', SupplementID: 'ML-0023' },
       to_Travel: { TravelStatus: { code: 'A', fieldControl: 1 }, TravelUUID: '76757221A8E4645C17002DF03754AB66' },
-      IsActiveEntity: true,
+      IsActiveEntity: true
     })
   })
 
@@ -612,7 +612,7 @@ describe('draft tests', () => {
       to_Customer: { CustomerID: '000115', LastName: 'Benz' },
       IsActiveEntity: true,
       HasActiveEntity: false,
-      HasDraftEntity: false,
+      HasDraftEntity: false
     })
   })
 
