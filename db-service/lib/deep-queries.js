@@ -63,7 +63,7 @@ const getColumnsFromDataOrKeys = (data, target) => {
   } else {
     // get all columns from current level
     return Object.keys(data || target.keys)
-      .filter(propName => !target.elements[propName]?.isAssociation)
+      .filter(propName => target.elements[propName] && !target.elements[propName]?.isAssociation)
       .map(c => ({ ref: [c] }))
   }
 }
@@ -186,6 +186,8 @@ const _getDeepQueries = (diff, target) => {
         arrayed.forEach(subEntry => {
             subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target))
         })
+        delete diffEntry[prop]
+      } else if (diffEntry[prop] === undefined) { // restore current behavior, if property is undefined, not part of payload
         delete diffEntry[prop]
       }
     }
