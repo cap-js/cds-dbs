@@ -1,4 +1,4 @@
-const cds = require('@sap/cds')
+const cds = require('../../../test/cds')
 cds.env.features.recursion_depth = 2
 
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')

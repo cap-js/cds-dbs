@@ -1,4 +1,4 @@
-const cds = require('@sap/cds')
+const cds = require('../../../test/cds')
 const { POST, PUT, DELETE } = cds.test(__dirname, 'deep.cds')
 
 describe('deep operations with @cds.persistence.skip', () => {
