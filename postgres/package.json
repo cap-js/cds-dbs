@@ -1,8 +1,8 @@
 {
   "name": "@cap-js/postgres",
   "scripts": {
-    "pg:up": "docker-compose -f pg-stack.yml up -d",
-    "test": "jest --silent"
+    "setup": "docker-compose -f pg-stack.yml up -d",
+    "test": "npm run setup && jest --silent"
   },
   "dependencies": {
     "pg": "^8"

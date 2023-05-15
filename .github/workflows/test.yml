@@ -39,4 +39,4 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
       - run: npm ci
-      - run: npm t
+      - run: npm run test:all

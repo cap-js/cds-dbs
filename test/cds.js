@@ -35,14 +35,23 @@ module.exports.test = Object.setPrototypeOf(function () {
   let ret
 
   global.before(async () => {
-    cds.requires.db = require(/.*\/test\//.exec(require.main.filename)[0] + 'service.json')
-
-    if (ret.data._autoIsolation) {
-      await ret.data.isolate()
+    try {
+      const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
+      cds.env.requires.db = require(serviceDefinitionPath)
+    } catch (e) {
+      // Default to sqlite for packages without their own service
+      cds.env.requires.db = require('@cap-js/sqlite/test/service.json')
     }
   })
 
   ret = cdsTest(...arguments)
+
+  global.before(async () => {
+    // Setup isolation after cds has prepare the project (e.g. cds.model)
+    if (ret.data._autoIsolation) {
+      await ret.data.isolate()
+    }
+  })
 
   const cds = ret.cds
 
@@ -70,8 +79,6 @@ module.exports.test = Object.setPrototypeOf(function () {
         // Create new tenant isolation in database
         await db.tenant(isolate)
 
-        process.stdout.write(JSON.stringify(isolate) + '\n')
-
         ret.credentials = db.options.credentials
       }
     }
@@ -93,7 +100,14 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   global.after(async () => {
     // Clean database connection pool
-    return cds.db?.disconnect?.()
+    await cds.db?.disconnect?.()
+
+    // Clean cache
+    delete cds.services._pending.db
+    delete cds.services.db
+    delete cds.db
+    delete cds.model
+    global.cds.resolve.cache = {}
   })
 
   return ret
