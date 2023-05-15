@@ -914,7 +914,8 @@ describe('draft tests', () => {
       {},
       { auth: { username: 'user1', password: 'user1' } }
     )
-    expect(res.status).to.be.eq(201)
+    // 200 in cds 7, 201 in cds 6
+    expect(res.status).to.be.oneOf([200, 201])
   })
 
   test('edit then discard', async () => {
