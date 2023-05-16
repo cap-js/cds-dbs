@@ -1,0 +1,417 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS localized_test_fooLocalized;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP TABLE IF EXISTS test_fooLocalized_texts;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP TABLE IF EXISTS test_fooLocalized;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP TABLE IF EXISTS test_bar;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS test_foo;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `
+"CREATE TABLE test_foo (
+  createdAt TIMESTAMP_TEXT,
+  createdBy NVARCHAR(255),
+  modifiedAt TIMESTAMP_TEXT,
+  modifiedBy NVARCHAR(255),
+  ID INTEGER NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `
+"CREATE TABLE test_bar (
+  ID NVARCHAR(36) NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `
+"CREATE TABLE test_fooLocalized (
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `
+"CREATE TABLE test_fooLocalized_texts (
+  locale NVARCHAR(14) NOT NULL,
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(locale, ID)
+);"
+`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `
+"CREATE VIEW localized_test_fooLocalized AS SELECT
+  L_0.ID,
+  coalesce(localized_1.text, L_0.text) AS text
+FROM (test_fooLocalized AS L_0 LEFT JOIN test_fooLocalized_texts AS localized_1 ON localized_1.ID = L_0.ID AND localized_1.locale = session_context( '$user.locale' ));"
+`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"exec"`;
+
+exports[` 49`] = `"COMMIT"`;
+
+exports[` 50`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies INSERT execute on db only 1`] = `"exec"`;
+
+exports[`Managed thingies INSERT execute on db only 2`] = `"BEGIN"`;
+
+exports[`Managed thingies INSERT execute on db only 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies INSERT execute on db only 4`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.createdAt', '2000-01-01T00:00:00.000Z')),coalesce(value->>'$.createdBy', 'anonymous'),strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:00.000Z')),coalesce(value->>'$.modifiedBy', 'anonymous'),value->>'$.ID' FROM json_each(?)"`;
+
+exports[`Managed thingies INSERT execute on db only 5`] = `"run"`;
+
+exports[`Managed thingies INSERT execute on db only 6`] = `
+Arguments [
+  [
+    "[{"ID":2,"modifiedBy":"samuel"}]",
+  ],
+]
+`;
+
+exports[`Managed thingies INSERT execute on db only 7`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`Managed thingies INSERT execute on db only 8`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID = 2)"`;
+
+exports[`Managed thingies INSERT execute on db only 9`] = `"all"`;
+
+exports[`Managed thingies INSERT execute on db only 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies INSERT execute on db only 11`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"modifiedBy\\":\\"samuel\\",\\"ID\\":2}"}]"`;
+
+exports[`Managed thingies INSERT execute on db only 12`] = `"exec"`;
+
+exports[`Managed thingies INSERT execute on db only 13`] = `"COMMIT"`;
+
+exports[`Managed thingies INSERT execute on db only 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies UPSERT execute on db only 1`] = `"exec"`;
+
+exports[`Managed thingies UPSERT execute on db only 2`] = `"BEGIN"`;
+
+exports[`Managed thingies UPSERT execute on db only 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies UPSERT execute on db only 4`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',value->>'$.createdAt'),value->>'$.createdBy',strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:00.000Z')),coalesce(value->>'$.modifiedBy', 'anonymous'),value->>'$.ID' FROM json_each(?) WHERE true ON CONFLICT(ID) DO UPDATE SET modifiedBy = excluded.modifiedBy"`;
+
+exports[`Managed thingies UPSERT execute on db only 5`] = `"run"`;
+
+exports[`Managed thingies UPSERT execute on db only 6`] = `
+Arguments [
+  [
+    "[{"ID":3,"modifiedBy":"samuel"}]",
+  ],
+]
+`;
+
+exports[`Managed thingies UPSERT execute on db only 7`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`Managed thingies UPSERT execute on db only 8`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID = 3)"`;
+
+exports[`Managed thingies UPSERT execute on db only 9`] = `"all"`;
+
+exports[`Managed thingies UPSERT execute on db only 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies UPSERT execute on db only 11`] = `"[{"_json_":"{\\"createdAt\\":null,\\"createdBy\\":null,\\"modifiedAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"modifiedBy\\":\\"samuel\\",\\"ID\\":3}"}]"`;
+
+exports[`Managed thingies UPSERT execute on db only 12`] = `"exec"`;
+
+exports[`Managed thingies UPSERT execute on db only 13`] = `"COMMIT"`;
+
+exports[`Managed thingies UPSERT execute on db only 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 1`] = `"exec"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 2`] = `"BEGIN"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 4`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.createdAt', '2000-01-01T00:00:03.000Z')),coalesce(value->>'$.createdBy', 'tom'),strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:03.000Z')),coalesce(value->>'$.modifiedBy', 'tom'),value->>'$.ID' FROM json_each(?)"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 5`] = `"run"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 6`] = `
+Arguments [
+  [
+    "[{"ID":4711}]",
+  ],
+]
+`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 7`] = `"{"changes":1,"lastInsertRowid":4711}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 8`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.createdAt', '2000-01-01T00:00:03.000Z')),coalesce(value->>'$.createdBy', 'tom'),strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:03.000Z')),coalesce(value->>'$.modifiedBy', 'tom'),value->>'$.ID' FROM json_each(?)"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 9`] = `"run"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 10`] = `
+Arguments [
+  [
+    "[{"ID":4712}]",
+  ],
+]
+`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 11`] = `"{"changes":1,"lastInsertRowid":4712}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 12`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID in (4711,4712))"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 13`] = `"all"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 14`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 15`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"createdBy\\":\\"tom\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"tom\\",\\"ID\\":4711}"},{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"createdBy\\":\\"tom\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"tom\\",\\"ID\\":4712}"}]"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 16`] = `"exec"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 17`] = `"ROLLBACK"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on insert is filled 1`] = `"exec"`;
+
+exports[`Managed thingies on insert is filled 2`] = `"BEGIN"`;
+
+exports[`Managed thingies on insert is filled 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on insert is filled 4`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.createdAt', '2000-01-01T00:00:01.000Z')),coalesce(value->>'$.createdBy', 'anonymous'),strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:01.000Z')),coalesce(value->>'$.modifiedBy', 'anonymous'),value->>'$.ID' FROM json_each(?)"`;
+
+exports[`Managed thingies on insert is filled 5`] = `"run"`;
+
+exports[`Managed thingies on insert is filled 6`] = `
+Arguments [
+  [
+    "[{"ID":4}]",
+  ],
+]
+`;
+
+exports[`Managed thingies on insert is filled 7`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`Managed thingies on insert is filled 8`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID = 4 LIMIT 1)"`;
+
+exports[`Managed thingies on insert is filled 9`] = `"all"`;
+
+exports[`Managed thingies on insert is filled 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies on insert is filled 11`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:01.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:01.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":4}"}]"`;
+
+exports[`Managed thingies on insert is filled 12`] = `"exec"`;
+
+exports[`Managed thingies on insert is filled 13`] = `"COMMIT"`;
+
+exports[`Managed thingies on insert is filled 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 1`] = `"exec"`;
+
+exports[`Managed thingies on update is filled 2`] = `"BEGIN"`;
+
+exports[`Managed thingies on update is filled 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 4`] = `"INSERT INTO test_foo (createdAt,createdBy,modifiedAt,modifiedBy,ID) SELECT strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.createdAt', '2000-01-01T00:00:02.000Z')),coalesce(value->>'$.createdBy', 'anonymous'),strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(value->>'$.modifiedAt', '2000-01-01T00:00:02.000Z')),coalesce(value->>'$.modifiedBy', 'anonymous'),value->>'$.ID' FROM json_each(?)"`;
+
+exports[`Managed thingies on update is filled 5`] = `"run"`;
+
+exports[`Managed thingies on update is filled 6`] = `
+Arguments [
+  [
+    "[{"ID":5}]",
+  ],
+]
+`;
+
+exports[`Managed thingies on update is filled 7`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`Managed thingies on update is filled 8`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID = 5 LIMIT 1)"`;
+
+exports[`Managed thingies on update is filled 9`] = `"all"`;
+
+exports[`Managed thingies on update is filled 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies on update is filled 11`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":5}"}]"`;
+
+exports[`Managed thingies on update is filled 12`] = `"exec"`;
+
+exports[`Managed thingies on update is filled 13`] = `"COMMIT"`;
+
+exports[`Managed thingies on update is filled 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 15`] = `"exec"`;
+
+exports[`Managed thingies on update is filled 16`] = `"BEGIN"`;
+
+exports[`Managed thingies on update is filled 17`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 18`] = `"UPDATE test_foo AS foo SET ID=5,modifiedAt=strftime('%Y-%m-%dT%H:%M:%fZ',coalesce(NULL, '2000-01-01T00:00:03.000Z')),modifiedBy=coalesce(NULL, 'anonymous') WHERE foo.ID = 5"`;
+
+exports[`Managed thingies on update is filled 19`] = `"run"`;
+
+exports[`Managed thingies on update is filled 20`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies on update is filled 21`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`Managed thingies on update is filled 22`] = `"SELECT json_insert('{}','$.createdAt',strftime('%Y-%m-%dT%H:%M:%fZ',createdAt),'$.createdBy',createdBy,'$.modifiedAt',strftime('%Y-%m-%dT%H:%M:%fZ',modifiedAt),'$.modifiedBy',modifiedBy,'$.ID',ID) as _json_ FROM (SELECT foo.createdAt,foo.createdBy,foo.modifiedAt,foo.modifiedBy,foo.ID FROM test_foo as foo WHERE foo.ID = 5 LIMIT 1)"`;
+
+exports[`Managed thingies on update is filled 23`] = `"all"`;
+
+exports[`Managed thingies on update is filled 24`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`Managed thingies on update is filled 25`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":5}"}]"`;
+
+exports[`Managed thingies on update is filled 26`] = `"exec"`;
+
+exports[`Managed thingies on update is filled 27`] = `"COMMIT"`;
+
+exports[`Managed thingies on update is filled 28`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

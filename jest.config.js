@@ -1,8 +1,8 @@
 // arguments that can be used to remove disabled tests
 // Mostly to allow all tests to run when using vscode jest plugin
 const enableMap = {
-  pg: 'postgres',
   postgres: 'postgres',
+  sqlite: 'sqlite',
   test: '<rootDir>/test/' // Allow to explicitly run compliance tests
 }
 Object.keys(enableMap).forEach(k => (enableMap['-' + k] = enableMap[k]))
@@ -20,8 +20,6 @@ module.exports = {
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context
-    '<rootDir>/test/',
-    // Excluding tests which don't run locally - find better ways to control that
-    'postgres'
+    '<rootDir>/test/'
   ].filter(e => !enable.includes(e))
 }

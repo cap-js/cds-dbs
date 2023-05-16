@@ -1,0 +1,277 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS localized_test_fooLocalized;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP TABLE IF EXISTS test_fooLocalized_texts;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP TABLE IF EXISTS test_fooLocalized;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP TABLE IF EXISTS test_bar;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS test_foo;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `
+"CREATE TABLE test_foo (
+  createdAt TIMESTAMP_TEXT,
+  createdBy NVARCHAR(255),
+  modifiedAt TIMESTAMP_TEXT,
+  modifiedBy NVARCHAR(255),
+  ID INTEGER NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `
+"CREATE TABLE test_bar (
+  ID NVARCHAR(36) NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `
+"CREATE TABLE test_fooLocalized (
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `
+"CREATE TABLE test_fooLocalized_texts (
+  locale NVARCHAR(14) NOT NULL,
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(locale, ID)
+);"
+`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `
+"CREATE VIEW localized_test_fooLocalized AS SELECT
+  L_0.ID,
+  coalesce(localized_1.text, L_0.text) AS text
+FROM (test_fooLocalized AS L_0 LEFT JOIN test_fooLocalized_texts AS localized_1 ON localized_1.ID = L_0.ID AND localized_1.locale = session_context( '$user.locale' ));"
+`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"exec"`;
+
+exports[` 49`] = `"COMMIT"`;
+
+exports[` 50`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation INSERT with multiple entries 1`] = `"exec"`;
+
+exports[`UUID Generation INSERT with multiple entries 2`] = `"BEGIN"`;
+
+exports[`UUID Generation INSERT with multiple entries 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation INSERT with multiple entries 4`] = `"INSERT INTO test_bar (ID) SELECT value->>'$.ID' FROM json_each(?)"`;
+
+exports[`UUID Generation INSERT with multiple entries 5`] = `"run"`;
+
+exports[`UUID Generation INSERT with multiple entries 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000001"},{"ID":"00000000-0000-0000-0000-000000000002"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation INSERT with multiple entries 7`] = `"{"changes":2,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation INSERT with multiple entries 8`] = `"SELECT json_insert('{}','$.ID',ID) as _json_ FROM (SELECT bar.ID FROM test_bar as bar)"`;
+
+exports[`UUID Generation INSERT with multiple entries 9`] = `"all"`;
+
+exports[`UUID Generation INSERT with multiple entries 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`UUID Generation INSERT with multiple entries 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000001\\"}"},{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000002\\"}"}]"`;
+
+exports[`UUID Generation INSERT with multiple entries 12`] = `"DELETE FROM test_bar as bar"`;
+
+exports[`UUID Generation INSERT with multiple entries 13`] = `"run"`;
+
+exports[`UUID Generation INSERT with multiple entries 14`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`UUID Generation INSERT with multiple entries 15`] = `"{"changes":2,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation INSERT with multiple entries 16`] = `"exec"`;
+
+exports[`UUID Generation INSERT with multiple entries 17`] = `"COMMIT"`;
+
+exports[`UUID Generation INSERT with multiple entries 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation INSERT with one entry 1`] = `"exec"`;
+
+exports[`UUID Generation INSERT with one entry 2`] = `"BEGIN"`;
+
+exports[`UUID Generation INSERT with one entry 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation INSERT with one entry 4`] = `"INSERT INTO test_bar (ID) SELECT value->>'$.ID' FROM json_each(?)"`;
+
+exports[`UUID Generation INSERT with one entry 5`] = `"run"`;
+
+exports[`UUID Generation INSERT with one entry 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000000"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation INSERT with one entry 7`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation INSERT with one entry 8`] = `"SELECT json_insert('{}','$.ID',ID) as _json_ FROM (SELECT bar.ID FROM test_bar as bar)"`;
+
+exports[`UUID Generation INSERT with one entry 9`] = `"all"`;
+
+exports[`UUID Generation INSERT with one entry 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`UUID Generation INSERT with one entry 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\"}"}]"`;
+
+exports[`UUID Generation INSERT with one entry 12`] = `"DELETE FROM test_bar as bar"`;
+
+exports[`UUID Generation INSERT with one entry 13`] = `"run"`;
+
+exports[`UUID Generation INSERT with one entry 14`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`UUID Generation INSERT with one entry 15`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation INSERT with one entry 16`] = `"exec"`;
+
+exports[`UUID Generation INSERT with one entry 17`] = `"COMMIT"`;
+
+exports[`UUID Generation INSERT with one entry 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

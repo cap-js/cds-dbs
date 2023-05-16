@@ -1,0 +1,515 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS RenameService_EProjChild;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP VIEW IF EXISTS RenameService_SProjDeep;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP VIEW IF EXISTS FProjDeep;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP VIEW IF EXISTS EProjChild;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS DBDeepEntity;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP TABLE IF EXISTS DBDeepEntityChild;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `"DROP TABLE IF EXISTS BookingSupplement;"`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `"DROP TABLE IF EXISTS Booking;"`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"DROP TABLE IF EXISTS Travel;"`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `"DROP TABLE IF EXISTS Author;"`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `"DROP TABLE IF EXISTS Books;"`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"DROP TABLE IF EXISTS Foo2;"`;
+
+exports[` 49`] = `"run"`;
+
+exports[` 50`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 51`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 52`] = `"DROP TABLE IF EXISTS Foo;"`;
+
+exports[` 53`] = `"run"`;
+
+exports[` 54`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 55`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 56`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 57`] = `"run"`;
+
+exports[` 58`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 60`] = `
+"CREATE TABLE Foo (
+  ID INTEGER NOT NULL,
+  a NVARCHAR(5000),
+  b NVARCHAR(5000),
+  c NVARCHAR(5000),
+  x INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 61`] = `"run"`;
+
+exports[` 62`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 63`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 64`] = `
+"CREATE TABLE Foo2 (
+  ID INTEGER NOT NULL,
+  name NVARCHAR(5000),
+  a INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 65`] = `"run"`;
+
+exports[` 66`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 67`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 68`] = `
+"CREATE TABLE Books (
+  ID INTEGER NOT NULL,
+  author_id INTEGER,
+  author_version NVARCHAR(5000),
+  descr NVARCHAR(5000),
+  code NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 69`] = `"run"`;
+
+exports[` 70`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 72`] = `
+"CREATE TABLE Author (
+  id INTEGER NOT NULL,
+  version NVARCHAR(5000) NOT NULL,
+  parent_ID INTEGER,
+  PRIMARY KEY(id, version)
+);"
+`;
+
+exports[` 73`] = `"run"`;
+
+exports[` 74`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 75`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 76`] = `
+"CREATE TABLE Travel (
+  TravelUUID NVARCHAR(36) NOT NULL,
+  TravelID INTEGER DEFAULT 0,
+  BeginDate DATE_TEXT,
+  EndDate DATE_TEXT,
+  BookingFee DECIMAL(16, 3),
+  TotalPrice DECIMAL(16, 3),
+  Description NVARCHAR(1024),
+  PRIMARY KEY(TravelUUID)
+);"
+`;
+
+exports[` 77`] = `"run"`;
+
+exports[` 78`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 79`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 80`] = `
+"CREATE TABLE Booking (
+  BookingUUID NVARCHAR(36) NOT NULL,
+  FlightPrice DECIMAL(16, 3),
+  to_Travel_TravelUUID NVARCHAR(36),
+  PRIMARY KEY(BookingUUID)
+);"
+`;
+
+exports[` 81`] = `"run"`;
+
+exports[` 82`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 84`] = `
+"CREATE TABLE BookingSupplement (
+  BookSupplUUID NVARCHAR(36) NOT NULL,
+  Price DECIMAL(16, 3),
+  to_Booking_BookingUUID NVARCHAR(36),
+  to_Travel_TravelUUID NVARCHAR(36),
+  PRIMARY KEY(BookSupplUUID)
+);"
+`;
+
+exports[` 85`] = `"run"`;
+
+exports[` 86`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 87`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 88`] = `
+"CREATE TABLE DBDeepEntityChild (
+  ID INTEGER NOT NULL,
+  parent INTEGER,
+  otherName NVARCHAR(5000),
+  otherName2 NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 89`] = `"run"`;
+
+exports[` 90`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 91`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 92`] = `
+"CREATE TABLE DBDeepEntity (
+  ID INTEGER NOT NULL,
+  parent INTEGER,
+  otherName NVARCHAR(5000),
+  otherName2 NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 93`] = `"run"`;
+
+exports[` 94`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 95`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 96`] = `
+"CREATE VIEW EProjChild AS SELECT
+  DBDeepEntityChild_0.ID AS IDRename,
+  DBDeepEntityChild_0.parent AS parentRename,
+  DBDeepEntityChild_0.otherName AS otherNameRename,
+  DBDeepEntityChild_0.otherName2 AS otherName2Rename
+FROM DBDeepEntityChild AS DBDeepEntityChild_0;"
+`;
+
+exports[` 97`] = `"run"`;
+
+exports[` 98`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 99`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 100`] = `
+"CREATE VIEW FProjDeep AS SELECT
+  DBDeepEntity_0.ID AS IDRename,
+  DBDeepEntity_0.parent AS parentRename,
+  DBDeepEntity_0.otherName AS otherNameRename,
+  DBDeepEntity_0.otherName2 AS otherName2Rename
+FROM DBDeepEntity AS DBDeepEntity_0;"
+`;
+
+exports[` 101`] = `"run"`;
+
+exports[` 102`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 103`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 104`] = `
+"CREATE VIEW RenameService_SProjDeep AS SELECT
+  FProjDeep_0.IDRename,
+  FProjDeep_0.parentRename,
+  FProjDeep_0.otherNameRename,
+  FProjDeep_0.otherName2Rename
+FROM FProjDeep AS FProjDeep_0;"
+`;
+
+exports[` 105`] = `"run"`;
+
+exports[` 106`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 107`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 108`] = `
+"CREATE VIEW RenameService_EProjChild AS SELECT
+  EProjChild_0.IDRename,
+  EProjChild_0.parentRename,
+  EProjChild_0.otherNameRename,
+  EProjChild_0.otherName2Rename
+FROM EProjChild AS EProjChild_0;"
+`;
+
+exports[` 109`] = `"run"`;
+
+exports[` 110`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 111`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 112`] = `"exec"`;
+
+exports[` 113`] = `"COMMIT"`;
+
+exports[` 114`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 1`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 2`] = `"BEGIN"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 4`] = `"INSERT INTO Foo2 (ID,name,a) SELECT value->>'$.ID',value->>'$.name',value->>'$.a' FROM json_each(?)"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 5`] = `"run"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 6`] = `
+Arguments [
+  [
+    "[{"ID":42,"name":"Foo2"}]",
+  ],
+]
+`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 7`] = `"{"changes":1,"lastInsertRowid":42}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 8`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 9`] = `"COMMIT"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 11`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 12`] = `"BEGIN"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 13`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 14`] = `"INSERT INTO Foo (ID,a) SELECT Foo2.ID,Foo2.name FROM Foo2 as Foo2 WHERE Foo2.name = ?"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 15`] = `"run"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 16`] = `
+Arguments [
+  [
+    "Foo2",
+  ],
+]
+`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 17`] = `"{"changes":1,"lastInsertRowid":42}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 18`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 19`] = `"COMMIT"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 20`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 21`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 22`] = `"BEGIN"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 23`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 24`] = `"SELECT json_insert('{}','$.ID',ID,'$.a',a,'$.b',b,'$.c',c,'$.x',x) as _json_ FROM (SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = 42)"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 25`] = `"all"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 26`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 27`] = `"[{"_json_":"{\\"ID\\":42,\\"a\\":\\"Foo2\\",\\"b\\":null,\\"c\\":null,\\"x\\":null}"}]"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 28`] = `"exec"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 29`] = `"COMMIT"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 30`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

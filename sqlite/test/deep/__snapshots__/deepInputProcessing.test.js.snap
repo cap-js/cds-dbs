@@ -1,0 +1,888 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS bla_SProjChild;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP VIEW IF EXISTS bla_SProjRoot;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP VIEW IF EXISTS ProjChild;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP VIEW IF EXISTS ProjRoot;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS bla_SubChildUUID;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP TABLE IF EXISTS bla_ChildUUID;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `"DROP TABLE IF EXISTS bla_RootUUID;"`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `"DROP TABLE IF EXISTS BaseChild;"`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"DROP TABLE IF EXISTS BaseRoot;"`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `"DROP TABLE IF EXISTS Transient;"`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `"DROP TABLE IF EXISTS "Recursive";"`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"DROP TABLE IF EXISTS SubChild;"`;
+
+exports[` 49`] = `"run"`;
+
+exports[` 50`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 51`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 52`] = `"DROP TABLE IF EXISTS Child;"`;
+
+exports[` 53`] = `"run"`;
+
+exports[` 54`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 55`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 56`] = `"DROP TABLE IF EXISTS Root;"`;
+
+exports[` 57`] = `"run"`;
+
+exports[` 58`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 60`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 61`] = `"run"`;
+
+exports[` 62`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 63`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 64`] = `
+"CREATE TABLE Root (
+  ID INTEGER NOT NULL,
+  toOneChild_ID INTEGER,
+  toManyChild_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 65`] = `"run"`;
+
+exports[` 66`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 67`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 68`] = `
+"CREATE TABLE Child (
+  ID INTEGER NOT NULL,
+  toOneSubChild_ID INTEGER,
+  toManySubChild_ID INTEGER,
+  toOneChild_ID INTEGER,
+  toManyChild_ID INTEGER,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 69`] = `"run"`;
+
+exports[` 70`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 72`] = `
+"CREATE TABLE SubChild (
+  ID INTEGER NOT NULL,
+  subText NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 73`] = `"run"`;
+
+exports[` 74`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 75`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 76`] = `
+"CREATE TABLE "Recursive" (
+  ID INTEGER NOT NULL,
+  toOneRecursive_ID INTEGER,
+  toOneTransient_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 77`] = `"run"`;
+
+exports[` 78`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 79`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 80`] = `
+"CREATE TABLE Transient (
+  ID INTEGER NOT NULL,
+  toOneRecursive_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 81`] = `"run"`;
+
+exports[` 82`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 84`] = `
+"CREATE TABLE BaseRoot (
+  ID INTEGER NOT NULL,
+  toOneChild_rID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 85`] = `"run"`;
+
+exports[` 86`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 87`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 88`] = `
+"CREATE TABLE BaseChild (
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 89`] = `"run"`;
+
+exports[` 90`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 91`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 92`] = `
+"CREATE TABLE bla_RootUUID (
+  ID NVARCHAR(36) NOT NULL,
+  name NVARCHAR(5000),
+  toOneChild_ID NVARCHAR(36),
+  toOneSkip_ID NVARCHAR(36),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 93`] = `"run"`;
+
+exports[` 94`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 95`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 96`] = `
+"CREATE TABLE bla_ChildUUID (
+  ID NVARCHAR(36) NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 97`] = `"run"`;
+
+exports[` 98`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 99`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 100`] = `
+"CREATE TABLE bla_SubChildUUID (
+  ID NVARCHAR(36) NOT NULL,
+  text NVARCHAR(5000),
+  backlink_ID NVARCHAR(36),
+  toOneSkipChild_ID NVARCHAR(36),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 101`] = `"run"`;
+
+exports[` 102`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 103`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 104`] = `
+"CREATE VIEW ProjRoot AS SELECT
+  BaseRoot_0.ID AS rID,
+  BaseRoot_0.toOneChild_rID AS rToOneChild_rID
+FROM BaseRoot AS BaseRoot_0;"
+`;
+
+exports[` 105`] = `"run"`;
+
+exports[` 106`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 107`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 108`] = `
+"CREATE VIEW ProjChild AS SELECT
+  BaseChild_0.ID AS rID,
+  BaseChild_0.text AS rText
+FROM BaseChild AS BaseChild_0;"
+`;
+
+exports[` 109`] = `"run"`;
+
+exports[` 110`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 111`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 112`] = `
+"CREATE VIEW bla_SProjRoot AS SELECT
+  ProjRoot_0.rID,
+  ProjRoot_0.rToOneChild_rID
+FROM ProjRoot AS ProjRoot_0;"
+`;
+
+exports[` 113`] = `"run"`;
+
+exports[` 114`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 115`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 116`] = `
+"CREATE VIEW bla_SProjChild AS SELECT
+  ProjChild_0.rID,
+  ProjChild_0.rText
+FROM ProjChild AS ProjChild_0;"
+`;
+
+exports[` 117`] = `"run"`;
+
+exports[` 118`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 119`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 120`] = `"exec"`;
+
+exports[` 121`] = `"COMMIT"`;
+
+exports[` 122`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on insert 1`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on insert 2`] = `"BEGIN"`;
+
+exports[`UUID Generation generate UUID on insert 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on insert 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on insert 5`] = `"run"`;
+
+exports[`UUID Generation generate UUID on insert 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000000","toOneChild_ID":"00000000-0000-0000-0000-000000000002"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on insert 7`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 8`] = `"INSERT INTO bla_ChildUUID (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on insert 9`] = `"run"`;
+
+exports[`UUID Generation generate UUID on insert 10`] = `
+Arguments [
+  [
+    "[{"text":"abc","ID":"00000000-0000-0000-0000-000000000002"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on insert 11`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 12`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on insert 13`] = `"run"`;
+
+exports[`UUID Generation generate UUID on insert 14`] = `
+Arguments [
+  [
+    "[{"text":"a","backlink_ID":"00000000-0000-0000-0000-000000000002","ID":"00000000-0000-0000-0000-000000000003"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on insert 15`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 16`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on insert 17`] = `"run"`;
+
+exports[`UUID Generation generate UUID on insert 18`] = `
+Arguments [
+  [
+    "[{"text":"b","backlink_ID":"00000000-0000-0000-0000-000000000002","ID":"00000000-0000-0000-0000-000000000004"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on insert 19`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on insert 20`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild->'$','$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,(SELECT json_insert('{}','$.ID',ID,'$.text',text,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,toOneChild.text,(SELECT json_group_array(json_insert('{}','$.ID',ID,'$.text',text,'$.backlink_ID',backlink_ID,'$.toOneSkipChild_ID',toOneSkipChild_ID)) as _json_ FROM (SELECT toManySubChild.ID,toManySubChild.text,toManySubChild.backlink_ID,toManySubChild.toOneSkipChild_ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`UUID Generation generate UUID on insert 21`] = `"all"`;
+
+exports[`UUID Generation generate UUID on insert 22`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000000",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on insert 23`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000003\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000004\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on insert 24`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on insert 25`] = `"COMMIT"`;
+
+exports[`UUID Generation generate UUID on insert 26`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 1`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on update 2`] = `"BEGIN"`;
+
+exports[`UUID Generation generate UUID on update 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 5`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000005","toOneChild_ID":"00000000-0000-0000-0000-000000000007"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 7`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on update 8`] = `"INSERT INTO bla_ChildUUID (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 9`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 10`] = `
+Arguments [
+  [
+    "[{"text":"abc","ID":"00000000-0000-0000-0000-000000000007"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 11`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on update 12`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 13`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 14`] = `
+Arguments [
+  [
+    "[{"text":"a","backlink_ID":"00000000-0000-0000-0000-000000000007","ID":"00000000-0000-0000-0000-000000000008"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 15`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation generate UUID on update 16`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 17`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 18`] = `
+Arguments [
+  [
+    "[{"text":"b","backlink_ID":"00000000-0000-0000-0000-000000000007","ID":"00000000-0000-0000-0000-000000000009"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 19`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation generate UUID on update 20`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild->'$','$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,(SELECT json_insert('{}','$.ID',ID,'$.text',text,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,toOneChild.text,(SELECT json_group_array(json_insert('{}','$.ID',ID,'$.text',text,'$.backlink_ID',backlink_ID,'$.toOneSkipChild_ID',toOneSkipChild_ID)) as _json_ FROM (SELECT toManySubChild.ID,toManySubChild.text,toManySubChild.backlink_ID,toManySubChild.toOneSkipChild_ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`UUID Generation generate UUID on update 21`] = `"all"`;
+
+exports[`UUID Generation generate UUID on update 22`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000005",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 23`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000008\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on update 24`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on update 25`] = `"COMMIT"`;
+
+exports[`UUID Generation generate UUID on update 26`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 27`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on update 28`] = `"BEGIN"`;
+
+exports[`UUID Generation generate UUID on update 29`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 30`] = `"SELECT json_insert('{}','$.ID',ID,'$.toOneChild_ID',toOneChild_ID,'$.name',name,'$.toOneSkip_ID',toOneSkip_ID,'$.toOneChild',toOneChild->'$') as _json_ FROM (SELECT RootUUID.ID,RootUUID.toOneChild_ID,RootUUID.name,RootUUID.toOneSkip_ID,(SELECT json_insert('{}','$.text',text,'$.ID',ID,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.text,toOneChild.ID,(SELECT json_group_array(json_insert('{}','$.text',text,'$.backlink_ID',backlink_ID,'$.ID',ID,'$.toOneSkipChild_ID',toOneSkipChild_ID)) as _json_ FROM (SELECT toManySubChild.text,toManySubChild.backlink_ID,toManySubChild.ID,toManySubChild.toOneSkipChild_ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ?)"`;
+
+exports[`UUID Generation generate UUID on update 31`] = `"all"`;
+
+exports[`UUID Generation generate UUID on update 32`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000005",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 33`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"name\\":null,\\"toOneSkip_ID\\":null,\\"toOneChild\\":{\\"text\\":\\"abc\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toManySubChild\\":[{\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000008\\",\\"toOneSkipChild_ID\\":null},{\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"toOneSkipChild_ID\\":null}]}}"}]"`;
+
+exports[`UUID Generation generate UUID on update 34`] = `"UPDATE bla_RootUUID AS RootUUID SET ID=?,toOneChild_ID=? WHERE RootUUID.ID = ?"`;
+
+exports[`UUID Generation generate UUID on update 35`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 36`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000005",
+    "00000000-0000-0000-0000-000000000011",
+    "00000000-0000-0000-0000-000000000005",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 37`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation generate UUID on update 38`] = `"INSERT INTO bla_ChildUUID (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 39`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 40`] = `
+Arguments [
+  [
+    "[{"text":"abc","ID":"00000000-0000-0000-0000-000000000011"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 41`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation generate UUID on update 42`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 43`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 44`] = `
+Arguments [
+  [
+    "[{"text":"a","backlink_ID":"00000000-0000-0000-0000-000000000011","ID":"00000000-0000-0000-0000-000000000012","toOneSkipChild_ID":null}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 45`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`UUID Generation generate UUID on update 46`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation generate UUID on update 47`] = `"run"`;
+
+exports[`UUID Generation generate UUID on update 48`] = `
+Arguments [
+  [
+    "[{"text":"b","backlink_ID":"00000000-0000-0000-0000-000000000011","ID":"00000000-0000-0000-0000-000000000013","toOneSkipChild_ID":null}]",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 49`] = `"{"changes":1,"lastInsertRowid":6}"`;
+
+exports[`UUID Generation generate UUID on update 50`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild->'$','$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,(SELECT json_insert('{}','$.ID',ID,'$.text',text,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,toOneChild.text,(SELECT json_group_array(json_insert('{}','$.ID',ID,'$.text',text,'$.backlink_ID',backlink_ID,'$.toOneSkipChild_ID',toOneSkipChild_ID)) as _json_ FROM (SELECT toManySubChild.ID,toManySubChild.text,toManySubChild.backlink_ID,toManySubChild.toOneSkipChild_ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`UUID Generation generate UUID on update 51`] = `"all"`;
+
+exports[`UUID Generation generate UUID on update 52`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000005",
+  ],
+]
+`;
+
+exports[`UUID Generation generate UUID on update 53`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000012\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000013\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on update 54`] = `"exec"`;
+
+exports[`UUID Generation generate UUID on update 55`] = `"COMMIT"`;
+
+exports[`UUID Generation generate UUID on update 56`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update on projection root 1`] = `"exec"`;
+
+exports[`UUID Generation update on projection root 2`] = `"BEGIN"`;
+
+exports[`UUID Generation update on projection root 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update on projection root 4`] = `"INSERT INTO BaseRoot (ID,toOneChild_rID) SELECT value->>'$.ID',value->>'$.toOneChild_rID' FROM json_each(?)"`;
+
+exports[`UUID Generation update on projection root 5`] = `"run"`;
+
+exports[`UUID Generation update on projection root 6`] = `
+Arguments [
+  [
+    "[{"ID":1,"toOneChild_rID":2}]",
+  ],
+]
+`;
+
+exports[`UUID Generation update on projection root 7`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation update on projection root 8`] = `"INSERT INTO BaseChild (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`UUID Generation update on projection root 9`] = `"run"`;
+
+exports[`UUID Generation update on projection root 10`] = `
+Arguments [
+  [
+    "[{"ID":2,"text":"abc"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation update on projection root 11`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation update on projection root 12`] = `"SELECT json_insert('{}','$.rID',rID,'$.rToOneChild',rToOneChild->'$','$.rToOneChild_rID',rToOneChild_rID) as _json_ FROM (SELECT SProjRoot.rID,(SELECT json_insert('{}','$.rID',rID,'$.rText',rText) as _json_ FROM (SELECT rToOneChild.rID,rToOneChild.rText FROM bla_SProjChild as rToOneChild WHERE SProjRoot.rToOneChild_rID = rToOneChild.rID LIMIT 1)) as rToOneChild,SProjRoot.rToOneChild_rID FROM bla_SProjRoot as SProjRoot WHERE SProjRoot.rID = 1 LIMIT 1)"`;
+
+exports[`UUID Generation update on projection root 13`] = `"all"`;
+
+exports[`UUID Generation update on projection root 14`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`UUID Generation update on projection root 15`] = `"[{"_json_":"{\\"rID\\":1,\\"rToOneChild\\":{\\"rID\\":2,\\"rText\\":\\"abc\\"},\\"rToOneChild_rID\\":2}"}]"`;
+
+exports[`UUID Generation update on projection root 16`] = `"exec"`;
+
+exports[`UUID Generation update on projection root 17`] = `"COMMIT"`;
+
+exports[`UUID Generation update on projection root 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 1`] = `"exec"`;
+
+exports[`UUID Generation update root and delete child 2`] = `"BEGIN"`;
+
+exports[`UUID Generation update root and delete child 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`UUID Generation update root and delete child 5`] = `"run"`;
+
+exports[`UUID Generation update root and delete child 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000014","toOneChild_ID":"00000000-0000-0000-0000-000000000016"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 7`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation update root and delete child 8`] = `"INSERT INTO bla_ChildUUID (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`UUID Generation update root and delete child 9`] = `"run"`;
+
+exports[`UUID Generation update root and delete child 10`] = `
+Arguments [
+  [
+    "[{"text":"abc","ID":"00000000-0000-0000-0000-000000000016"}]",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 11`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 12`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild->'$','$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,(SELECT json_insert('{}','$.ID',ID,'$.text',text) as _json_ FROM (SELECT toOneChild.ID,toOneChild.text FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`UUID Generation update root and delete child 13`] = `"all"`;
+
+exports[`UUID Generation update root and delete child 14`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 15`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"text\\":\\"abc\\"},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation update root and delete child 16`] = `"exec"`;
+
+exports[`UUID Generation update root and delete child 17`] = `"COMMIT"`;
+
+exports[`UUID Generation update root and delete child 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 19`] = `"exec"`;
+
+exports[`UUID Generation update root and delete child 20`] = `"BEGIN"`;
+
+exports[`UUID Generation update root and delete child 21`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 22`] = `"SELECT json_insert('{}','$.ID',ID,'$.toOneChild_ID',toOneChild_ID,'$.name',name,'$.toOneSkip_ID',toOneSkip_ID,'$.toOneChild',toOneChild->'$') as _json_ FROM (SELECT RootUUID.ID,RootUUID.toOneChild_ID,RootUUID.name,RootUUID.toOneSkip_ID,(SELECT json_insert('{}','$.ID',ID,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,(SELECT json_group_array(json_insert('{}','$.ID',ID)) as _json_ FROM (SELECT toManySubChild.ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ?)"`;
+
+exports[`UUID Generation update root and delete child 23`] = `"all"`;
+
+exports[`UUID Generation update root and delete child 24`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 25`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"name\\":null,\\"toOneSkip_ID\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"toManySubChild\\":[]}}"}]"`;
+
+exports[`UUID Generation update root and delete child 26`] = `"UPDATE bla_RootUUID AS RootUUID SET ID=?,toOneChild_ID=NULL WHERE RootUUID.ID = ?"`;
+
+exports[`UUID Generation update root and delete child 27`] = `"run"`;
+
+exports[`UUID Generation update root and delete child 28`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 29`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 30`] = `"DELETE FROM bla_ChildUUID as ChildUUID WHERE ChildUUID.ID = ?"`;
+
+exports[`UUID Generation update root and delete child 31`] = `"run"`;
+
+exports[`UUID Generation update root and delete child 32`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000016",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 33`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 34`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,NULL as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`UUID Generation update root and delete child 35`] = `"all"`;
+
+exports[`UUID Generation update root and delete child 36`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`UUID Generation update root and delete child 37`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":null,\\"toOneChild\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation update root and delete child 38`] = `"exec"`;
+
+exports[`UUID Generation update root and delete child 39`] = `"COMMIT"`;
+
+exports[`UUID Generation update root and delete child 40`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

@@ -1,0 +1,1664 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[` 2`] = `"run"`;
+
+exports[` 3`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[` 4`] = `"{"changes":4}"`;
+
+exports[` 5`] = `"exec"`;
+
+exports[` 6`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[` 7`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 8`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[` 9`] = `"all"`;
+
+exports[` 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[` 11`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[` 12`] = `"exec"`;
+
+exports[` 13`] = `"BEGIN"`;
+
+exports[` 14`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 15`] = `"DROP VIEW IF EXISTS BeershopService_DraftAdministrativeData;"`;
+
+exports[` 16`] = `"run"`;
+
+exports[` 17`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 18`] = `"{"changes":null}"`;
+
+exports[` 19`] = `"DROP VIEW IF EXISTS BeershopService_TypeChecksWithDraft;"`;
+
+exports[` 20`] = `"run"`;
+
+exports[` 21`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 22`] = `"{"changes":null}"`;
+
+exports[` 23`] = `"DROP VIEW IF EXISTS BeershopService_TypeChecks;"`;
+
+exports[` 24`] = `"run"`;
+
+exports[` 25`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 26`] = `"{"changes":null}"`;
+
+exports[` 27`] = `"DROP VIEW IF EXISTS BeershopService_Breweries;"`;
+
+exports[` 28`] = `"run"`;
+
+exports[` 29`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 30`] = `"{"changes":null}"`;
+
+exports[` 31`] = `"DROP VIEW IF EXISTS BeershopService_Beers;"`;
+
+exports[` 32`] = `"run"`;
+
+exports[` 33`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 34`] = `"{"changes":null}"`;
+
+exports[` 35`] = `"DROP VIEW IF EXISTS BeershopAdminService_Breweries;"`;
+
+exports[` 36`] = `"run"`;
+
+exports[` 37`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 38`] = `"{"changes":null}"`;
+
+exports[` 39`] = `"DROP VIEW IF EXISTS BeershopAdminService_Beers;"`;
+
+exports[` 40`] = `"run"`;
+
+exports[` 41`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 42`] = `"{"changes":null}"`;
+
+exports[` 43`] = `"DROP TABLE IF EXISTS BeershopService_TypeChecksWithDraft_drafts;"`;
+
+exports[` 44`] = `"run"`;
+
+exports[` 45`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 46`] = `"{"changes":null}"`;
+
+exports[` 47`] = `"DROP TABLE IF EXISTS DRAFT_DraftAdministrativeData;"`;
+
+exports[` 48`] = `"run"`;
+
+exports[` 49`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 50`] = `"{"changes":null}"`;
+
+exports[` 51`] = `"DROP TABLE IF EXISTS BeershopAdminService_UserScopes;"`;
+
+exports[` 52`] = `"run"`;
+
+exports[` 53`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 54`] = `"{"changes":null}"`;
+
+exports[` 55`] = `"DROP TABLE IF EXISTS csw_TypeChecks;"`;
+
+exports[` 56`] = `"run"`;
+
+exports[` 57`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 58`] = `"{"changes":null}"`;
+
+exports[` 59`] = `"DROP TABLE IF EXISTS csw_Brewery;"`;
+
+exports[` 60`] = `"run"`;
+
+exports[` 61`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 62`] = `"{"changes":null}"`;
+
+exports[` 63`] = `"DROP TABLE IF EXISTS csw_Beers;"`;
+
+exports[` 64`] = `"run"`;
+
+exports[` 65`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 66`] = `"{"changes":null}"`;
+
+exports[` 67`] = `"DROP table if exists cds_model;"`;
+
+exports[` 68`] = `"run"`;
+
+exports[` 69`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 70`] = `"{"changes":null}"`;
+
+exports[` 71`] = `
+"CREATE TABLE csw_Beers (
+  ID VARCHAR(36) NOT NULL,
+  createdAt TIMESTAMP,
+  createdBy VARCHAR(255),
+  modifiedAt TIMESTAMP,
+  modifiedBy VARCHAR(255),
+  name VARCHAR(100),
+  abv DECIMAL(3, 1),
+  ibu INTEGER,
+  brewery_ID VARCHAR(36),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 72`] = `"run"`;
+
+exports[` 73`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 74`] = `"{"changes":null}"`;
+
+exports[` 75`] = `
+"CREATE TABLE csw_Brewery (
+  ID VARCHAR(36) NOT NULL,
+  createdAt TIMESTAMP,
+  createdBy VARCHAR(255),
+  modifiedAt TIMESTAMP,
+  modifiedBy VARCHAR(255),
+  name VARCHAR(150),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 76`] = `"run"`;
+
+exports[` 77`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 78`] = `"{"changes":null}"`;
+
+exports[` 79`] = `
+"CREATE TABLE csw_TypeChecks (
+  ID VARCHAR(36) NOT NULL,
+  type_Boolean BOOLEAN,
+  type_Int32 INTEGER,
+  type_Int64 BIGINT,
+  type_Decimal DECIMAL(2, 1),
+  type_Double FLOAT8,
+  type_Date DATE,
+  type_Time TIME,
+  type_DateTime TIMESTAMP,
+  type_Timestamp TIMESTAMP,
+  type_String VARCHAR(255),
+  type_Binary BYTEA,
+  type_LargeBinary BYTEA,
+  type_LargeString TEXT,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 80`] = `"run"`;
+
+exports[` 81`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 82`] = `"{"changes":null}"`;
+
+exports[` 83`] = `
+"CREATE TABLE BeershopAdminService_UserScopes (
+  username VARCHAR(255) NOT NULL,
+  is_admin BOOLEAN,
+  PRIMARY KEY(username)
+);"
+`;
+
+exports[` 84`] = `"run"`;
+
+exports[` 85`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 86`] = `"{"changes":null}"`;
+
+exports[` 87`] = `
+"CREATE TABLE DRAFT_DraftAdministrativeData (
+  DraftUUID VARCHAR(36) NOT NULL,
+  CreationDateTime TIMESTAMP,
+  CreatedByUser VARCHAR(256),
+  DraftIsCreatedByMe BOOLEAN,
+  LastChangeDateTime TIMESTAMP,
+  LastChangedByUser VARCHAR(256),
+  InProcessByUser VARCHAR(256),
+  DraftIsProcessedByMe BOOLEAN,
+  PRIMARY KEY(DraftUUID)
+);"
+`;
+
+exports[` 88`] = `"run"`;
+
+exports[` 89`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 90`] = `"{"changes":null}"`;
+
+exports[` 91`] = `
+"CREATE TABLE BeershopService_TypeChecksWithDraft_drafts (
+  ID VARCHAR(36) NOT NULL,
+  type_Boolean BOOLEAN NULL,
+  type_Int32 INTEGER NULL,
+  type_Int64 BIGINT NULL,
+  type_Decimal DECIMAL(2, 1) NULL,
+  type_Double FLOAT8 NULL,
+  type_Date DATE NULL,
+  type_Time TIME NULL,
+  type_DateTime TIMESTAMP NULL,
+  type_Timestamp TIMESTAMP NULL,
+  type_String VARCHAR(255) NULL,
+  type_Binary BYTEA NULL,
+  type_LargeBinary BYTEA NULL,
+  type_LargeString TEXT NULL,
+  IsActiveEntity BOOLEAN,
+  HasActiveEntity BOOLEAN,
+  HasDraftEntity BOOLEAN,
+  DraftAdministrativeData_DraftUUID VARCHAR(36) NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 92`] = `"run"`;
+
+exports[` 93`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 94`] = `"{"changes":null}"`;
+
+exports[` 95`] = `
+"CREATE VIEW BeershopAdminService_Beers AS SELECT
+  Beers_0.ID,
+  Beers_0.createdAt,
+  Beers_0.createdBy,
+  Beers_0.modifiedAt,
+  Beers_0.modifiedBy,
+  Beers_0.name,
+  Beers_0.abv,
+  Beers_0.ibu,
+  Beers_0.brewery_ID
+FROM csw_Beers AS Beers_0;"
+`;
+
+exports[` 96`] = `"run"`;
+
+exports[` 97`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 98`] = `"{"changes":null}"`;
+
+exports[` 99`] = `
+"CREATE VIEW BeershopAdminService_Breweries AS SELECT
+  Brewery_0.ID,
+  Brewery_0.createdAt,
+  Brewery_0.createdBy,
+  Brewery_0.modifiedAt,
+  Brewery_0.modifiedBy,
+  Brewery_0.name
+FROM csw_Brewery AS Brewery_0;"
+`;
+
+exports[` 100`] = `"run"`;
+
+exports[` 101`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 102`] = `"{"changes":null}"`;
+
+exports[` 103`] = `
+"CREATE VIEW BeershopService_Beers AS SELECT
+  Beers_0.ID,
+  Beers_0.createdAt,
+  Beers_0.createdBy,
+  Beers_0.modifiedAt,
+  Beers_0.modifiedBy,
+  Beers_0.name,
+  Beers_0.abv,
+  Beers_0.ibu,
+  Beers_0.brewery_ID
+FROM csw_Beers AS Beers_0;"
+`;
+
+exports[` 104`] = `"run"`;
+
+exports[` 105`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 106`] = `"{"changes":null}"`;
+
+exports[` 107`] = `
+"CREATE VIEW BeershopService_Breweries AS SELECT
+  Brewery_0.ID,
+  Brewery_0.createdAt,
+  Brewery_0.createdBy,
+  Brewery_0.modifiedAt,
+  Brewery_0.modifiedBy,
+  Brewery_0.name
+FROM csw_Brewery AS Brewery_0;"
+`;
+
+exports[` 108`] = `"run"`;
+
+exports[` 109`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 110`] = `"{"changes":null}"`;
+
+exports[` 111`] = `
+"CREATE VIEW BeershopService_TypeChecks AS SELECT
+  TypeChecks_0.ID,
+  TypeChecks_0.type_Boolean,
+  TypeChecks_0.type_Int32,
+  TypeChecks_0.type_Int64,
+  TypeChecks_0.type_Decimal,
+  TypeChecks_0.type_Double,
+  TypeChecks_0.type_Date,
+  TypeChecks_0.type_Time,
+  TypeChecks_0.type_DateTime,
+  TypeChecks_0.type_Timestamp,
+  TypeChecks_0.type_String,
+  TypeChecks_0.type_Binary,
+  TypeChecks_0.type_LargeBinary,
+  TypeChecks_0.type_LargeString
+FROM csw_TypeChecks AS TypeChecks_0;"
+`;
+
+exports[` 112`] = `"run"`;
+
+exports[` 113`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 114`] = `"{"changes":null}"`;
+
+exports[` 115`] = `
+"CREATE VIEW BeershopService_TypeChecksWithDraft AS SELECT
+  TypeChecks_0.ID,
+  TypeChecks_0.type_Boolean,
+  TypeChecks_0.type_Int32,
+  TypeChecks_0.type_Int64,
+  TypeChecks_0.type_Decimal,
+  TypeChecks_0.type_Double,
+  TypeChecks_0.type_Date,
+  TypeChecks_0.type_Time,
+  TypeChecks_0.type_DateTime,
+  TypeChecks_0.type_Timestamp,
+  TypeChecks_0.type_String,
+  TypeChecks_0.type_Binary,
+  TypeChecks_0.type_LargeBinary,
+  TypeChecks_0.type_LargeString
+FROM csw_TypeChecks AS TypeChecks_0;"
+`;
+
+exports[` 116`] = `"run"`;
+
+exports[` 117`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 118`] = `"{"changes":null}"`;
+
+exports[` 119`] = `
+"CREATE VIEW BeershopService_DraftAdministrativeData AS SELECT
+  DraftAdministrativeData.DraftUUID,
+  DraftAdministrativeData.CreationDateTime,
+  DraftAdministrativeData.CreatedByUser,
+  DraftAdministrativeData.DraftIsCreatedByMe,
+  DraftAdministrativeData.LastChangeDateTime,
+  DraftAdministrativeData.LastChangedByUser,
+  DraftAdministrativeData.InProcessByUser,
+  DraftAdministrativeData.DraftIsProcessedByMe
+FROM DRAFT_DraftAdministrativeData AS DraftAdministrativeData;"
+`;
+
+exports[` 120`] = `"run"`;
+
+exports[` 121`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 122`] = `"{"changes":null}"`;
+
+exports[` 123`] = `"exec"`;
+
+exports[` 124`] = `"COMMIT"`;
+
+exports[` 125`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 126`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[` 127`] = `"run"`;
+
+exports[` 128`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[` 129`] = `"{"changes":4}"`;
+
+exports[` 130`] = `"exec"`;
+
+exports[` 131`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[` 132`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 133`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[` 134`] = `"all"`;
+
+exports[` 135`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[` 136`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[` 137`] = `"exec"`;
+
+exports[` 138`] = `"BEGIN"`;
+
+exports[` 139`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 140`] = `"INSERT INTO csw_Beers (ID,name,abv,ibu,brewery_ID,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as decimal(3,1)),CAST(value->>3 as integer),value->>4,CAST(value->>5 as TIMESTAMP),value->>6,CAST(value->>7 as TIMESTAMP),value->>8 FROM json_array_elements($1)"`;
+
+exports[` 141`] = `"run"`;
+
+exports[` 142`] = `
+Arguments [
+  [
+    "[["b8c3fc14-22e2-4f42-837a-e6134775a186","Lagerbier Hell","5.2","12","9c937100-d459-491f-a72d-81b2929af10f","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b","Schönramer Hell","5","20","fa6b959e-3a01-40ef-872e-6030ee4de4e5","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9473beeb-1a74-4589-82b8-4fdcce1d66d5","Vollbier","4.9","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["31c9bc4c-7ba3-4feb-b94c-96e396d848e0","Festbier","5.5","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["f5578f62-9ae1-4829-8cf1-b8f13e4c5dc3","Grünerla","4.9","11","d265037f-4996-4195-a1fb-b0a8ab5c6f30","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["8a67be38-be68-401f-a2ee-0accd920f7c2","Hallerndorfer Landbier Hell","4.9","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fe9479d4-6f60-47e5-b565-a215e6292935","Hallerndorfer Hausbrauerbier","5","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["1efd2b35-6fd4-4ac5-a73e-64dfc3fb123b","Bitter 42","5.5","42","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["ba398ee9-9bfe-45b0-b586-9445af402a1a","Summer 69","5.9","12","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["08d5b3fb-549c-4be7-9ac8-e039d75823e7","Dunkles Lagerbier","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["3b9af296-f7d7-4436-bf49-f09f65ba3970","Leichtes Dunkel","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[` 143`] = `"{"changes":11}"`;
+
+exports[` 144`] = `"INSERT INTO csw_Brewery (ID,name,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as TIMESTAMP),value->>3,CAST(value->>4 as TIMESTAMP),value->>5 FROM json_array_elements($1)"`;
+
+exports[` 145`] = `"run"`;
+
+exports[` 146`] = `
+Arguments [
+  [
+    "[["9c937100-d459-491f-a72d-81b2929af10f","Augustiner-Bräu Wagner KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fa6b959e-3a01-40ef-872e-6030ee4de4e5","Private Landbrauerei Schönram GmbH & Co. KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["6832ba00-c20e-48b4-a685-dca4aff2ca13","Brauerei Meister","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["d265037f-4996-4195-a1fb-b0a8ab5c6f30","Grüner Bier","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","Rittmayer Hallerndorf","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["0465e9ca-6255-4f5c-b8ba-7439531f8d28","Kathi-Bräu Heckenhof","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[` 147`] = `"{"changes":6}"`;
+
+exports[` 148`] = `"INSERT INTO csw_TypeChecks (ID,type_String,type_LargeString) SELECT value->>0,value->>1,value->>2 FROM json_array_elements($1)"`;
+
+exports[` 149`] = `"run"`;
+
+exports[` 150`] = `
+Arguments [
+  [
+    "[["5e4ca9ef-7c4c-4b22-8e85-7cadefa02c94","Guía del autoestopista galáctico","At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, At accusam aliquyam diam diam dolore dolores duo eirmod eos erat, et nonumy sed tempor et et invidunt justo labore Stet clita ea et gubergren, kasd magna no rebum. sanctus sea sed takimata ut vero voluptua. est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat."]]",
+  ],
+]
+`;
+
+exports[` 151`] = `"{"changes":1}"`;
+
+exports[` 152`] = `"exec"`;
+
+exports[` 153`] = `"COMMIT"`;
+
+exports[` 154`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 1`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 2`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 3`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 4`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 5`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 6`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 7`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 8`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 9`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 11`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 12`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 13`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 14`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 15`] = `"DELETE FROM csw_Beers as Beers"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 16`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 17`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 18`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 19`] = `"SELECT json_build_object('ID',Brewery.ID,'beers',Brewery.beers) as _json_ FROM (SELECT Brewery.ID as ID,(SELECT coalesce(json_agg(json_build_object('ID',beers.ID)),'[]'::json) as _json_ FROM (SELECT beers.ID as ID FROM csw_Beers as beers WHERE Brewery.ID is not distinct from beers.brewery_ID) as beers) as beers FROM csw_Brewery as Brewery) as Brewery"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 20`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 21`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 22`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 23`] = `"DELETE FROM csw_TypeChecks as TypeChecks"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 24`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 25`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 26`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 27`] = `"DELETE FROM BeershopAdminService_UserScopes as UserScopes"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 28`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 29`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 30`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 31`] = `"DELETE FROM DRAFT_DraftAdministrativeData as DraftAdministrativeData"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 32`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 33`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 34`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 35`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 36`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 37`] = `
+Arguments [
+  [
+    "9c937100-d459-491f-a72d-81b2929af10f",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 38`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 39`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 40`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 41`] = `
+Arguments [
+  [
+    "fa6b959e-3a01-40ef-872e-6030ee4de4e5",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 42`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 43`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 44`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 45`] = `
+Arguments [
+  [
+    "6832ba00-c20e-48b4-a685-dca4aff2ca13",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 46`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 47`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 48`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 49`] = `
+Arguments [
+  [
+    "d265037f-4996-4195-a1fb-b0a8ab5c6f30",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 50`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 51`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 52`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 53`] = `
+Arguments [
+  [
+    "4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 54`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 55`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 56`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 57`] = `
+Arguments [
+  [
+    "0465e9ca-6255-4f5c-b8ba-7439531f8d28",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 58`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 59`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 60`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 61`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 62`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 63`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 64`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 65`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 66`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 67`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 68`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 69`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 70`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 71`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 72`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 73`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 74`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 75`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 76`] = `"INSERT INTO csw_Beers (ID,name,abv,ibu,brewery_ID,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as decimal(3,1)),CAST(value->>3 as integer),value->>4,CAST(value->>5 as TIMESTAMP),value->>6,CAST(value->>7 as TIMESTAMP),value->>8 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 77`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 78`] = `
+Arguments [
+  [
+    "[["b8c3fc14-22e2-4f42-837a-e6134775a186","Lagerbier Hell","5.2","12","9c937100-d459-491f-a72d-81b2929af10f","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b","Schönramer Hell","5","20","fa6b959e-3a01-40ef-872e-6030ee4de4e5","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9473beeb-1a74-4589-82b8-4fdcce1d66d5","Vollbier","4.9","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["31c9bc4c-7ba3-4feb-b94c-96e396d848e0","Festbier","5.5","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["f5578f62-9ae1-4829-8cf1-b8f13e4c5dc3","Grünerla","4.9","11","d265037f-4996-4195-a1fb-b0a8ab5c6f30","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["8a67be38-be68-401f-a2ee-0accd920f7c2","Hallerndorfer Landbier Hell","4.9","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fe9479d4-6f60-47e5-b565-a215e6292935","Hallerndorfer Hausbrauerbier","5","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["1efd2b35-6fd4-4ac5-a73e-64dfc3fb123b","Bitter 42","5.5","42","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["ba398ee9-9bfe-45b0-b586-9445af402a1a","Summer 69","5.9","12","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["08d5b3fb-549c-4be7-9ac8-e039d75823e7","Dunkles Lagerbier","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["3b9af296-f7d7-4436-bf49-f09f65ba3970","Leichtes Dunkel","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 79`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 80`] = `"INSERT INTO csw_Brewery (ID,name,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as TIMESTAMP),value->>3,CAST(value->>4 as TIMESTAMP),value->>5 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 81`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 82`] = `
+Arguments [
+  [
+    "[["9c937100-d459-491f-a72d-81b2929af10f","Augustiner-Bräu Wagner KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fa6b959e-3a01-40ef-872e-6030ee4de4e5","Private Landbrauerei Schönram GmbH & Co. KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["6832ba00-c20e-48b4-a685-dca4aff2ca13","Brauerei Meister","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["d265037f-4996-4195-a1fb-b0a8ab5c6f30","Grüner Bier","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","Rittmayer Hallerndorf","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["0465e9ca-6255-4f5c-b8ba-7439531f8d28","Kathi-Bräu Heckenhof","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 83`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 84`] = `"INSERT INTO csw_TypeChecks (ID,type_String,type_LargeString) SELECT value->>0,value->>1,value->>2 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 85`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 86`] = `
+Arguments [
+  [
+    "[["5e4ca9ef-7c4c-4b22-8e85-7cadefa02c94","Guía del autoestopista galáctico","At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, At accusam aliquyam diam diam dolore dolores duo eirmod eos erat, et nonumy sed tempor et et invidunt justo labore Stet clita ea et gubergren, kasd magna no rebum. sanctus sea sed takimata ut vero voluptua. est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat."]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 87`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 88`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 89`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 90`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 91`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 92`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 93`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"bob","CAP.LOCALE":"en","CAP.VALID_FROM":"2000-01-01T00:00:00.000Z","CAP.VALID_TO":"2000-01-01T00:00:01.000Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 94`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 95`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 96`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 97`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 98`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 99`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 100`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 101`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 102`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 103`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 104`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 105`] = `"INSERT INTO csw_Beers (ID,createdAt,createdBy,modifiedAt,modifiedBy,name,abv,ibu,brewery_ID) SELECT value->>'ID',CAST(coalesce(value->>'createdAt', '2000-01-01T00:00:00.000Z') as TIMESTAMP),coalesce(value->>'createdBy', 'bob'),CAST(coalesce(value->>'modifiedAt', '2000-01-01T00:00:00.000Z') as TIMESTAMP),coalesce(value->>'modifiedBy', 'bob'),value->>'name',CAST(value->>'abv' as decimal(3,1)),CAST(value->>'ibu' as integer),value->>'brewery_ID' FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 106`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 107`] = `
+Arguments [
+  [
+    "[{"name":"Schlappe Seppel","ibu":10,"abv":"16.2","ID":"00000000-0000-0000-0000-000000000003"}]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 108`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 109`] = `"SELECT json_build_object('ID',Beers.ID,'createdAt',to_char(Beers.createdAt, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'createdBy',Beers.createdBy,'modifiedAt',to_char(Beers.modifiedAt, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'modifiedBy',Beers.modifiedBy,'name',Beers.name,'abv',Beers.abv,'ibu',Beers.ibu,'brewery_ID',Beers.brewery_ID) as _json_ FROM (SELECT Beers.ID as ID,Beers.createdAt as createdAt,Beers.createdBy as createdBy,Beers.modifiedAt as modifiedAt,Beers.modifiedBy as modifiedBy,Beers.name as name,Beers.abv as abv,Beers.ibu as ibu,Beers.brewery_ID as brewery_ID FROM BeershopAdminService_Beers as Beers WHERE ((Beers.createdBy is not distinct from $1)) and (Beers.ID is not distinct from $2) LIMIT 1) as Beers"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 110`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 111`] = `
+Arguments [
+  [
+    "bob",
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 112`] = `"[{"_json_":{"ID":"00000000-0000-0000-0000-000000000003","createdAt":"2000-01-01T00:00:00.000Z","createdBy":"bob","modifiedAt":"2000-01-01T00:00:00.000Z","modifiedBy":"bob","name":"Schlappe Seppel","abv":16.2,"ibu":10,"brewery_ID":null}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 113`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 114`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 115`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 116`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 117`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 118`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"bob","CAP.LOCALE":"en","CAP.VALID_FROM":"2000-01-01T00:00:00.000Z","CAP.VALID_TO":"2000-01-01T00:00:01.000Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 119`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 120`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 121`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 122`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 123`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 124`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 125`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 126`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 127`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 128`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 129`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 130`] = `"SELECT json_build_object('ID',Beers.ID,'createdAt',to_char(Beers.createdAt, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'createdBy',Beers.createdBy,'modifiedAt',to_char(Beers.modifiedAt, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'),'modifiedBy',Beers.modifiedBy,'name',Beers.name,'abv',Beers.abv,'ibu',Beers.ibu,'brewery_ID',Beers.brewery_ID) as _json_ FROM (SELECT Beers.ID as ID,Beers.createdAt as createdAt,Beers.createdBy as createdBy,Beers.modifiedAt as modifiedAt,Beers.modifiedBy as modifiedBy,Beers.name as name,Beers.abv as abv,Beers.ibu as ibu,Beers.brewery_ID as brewery_ID FROM BeershopAdminService_Beers as Beers WHERE ((Beers.createdBy is not distinct from $1)) and (Beers.ID is not distinct from $2) LIMIT 1) as Beers"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 131`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 132`] = `
+Arguments [
+  [
+    "bob",
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 133`] = `"[{"_json_":{"ID":"00000000-0000-0000-0000-000000000003","createdAt":"2000-01-01T00:00:00.000Z","createdBy":"bob","modifiedAt":"2000-01-01T00:00:00.000Z","modifiedBy":"bob","name":"Schlappe Seppel","abv":16.2,"ibu":10,"brewery_ID":null}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 134`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 135`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 136`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 137`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 138`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 139`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"bob","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 140`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 141`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 142`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 143`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 144`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 145`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 146`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 147`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 148`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 149`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 150`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 151`] = `"SELECT json_build_object('n',Beers.n) as _json_ FROM (SELECT count(*) as n FROM BeershopAdminService_Beers as Beers WHERE Beers.ID is not distinct from $1 LIMIT 1) as Beers"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 152`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 153`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 154`] = `"[{"_json_":{"n":1}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 155`] = `"SELECT json_build_object('n',Beers.n) as _json_ FROM (SELECT count(*) as n FROM BeershopAdminService_Beers as Beers WHERE (Beers.createdBy is not distinct from $1) and (Beers.ID is not distinct from $2) LIMIT 1) as Beers"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 156`] = `"all"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 157`] = `
+Arguments [
+  [
+    "bob",
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 158`] = `"[{"_json_":{"n":1}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 159`] = `"DELETE FROM csw_Beers as Beers WHERE Beers.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 160`] = `"run"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 161`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 162`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 163`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 164`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 165`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 1`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 2`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 3`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 4`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 5`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 6`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 7`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 8`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 9`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 11`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 12`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 13`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 14`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 15`] = `"DELETE FROM csw_Beers as Beers"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 16`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 17`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 18`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 19`] = `"SELECT json_build_object('ID',Brewery.ID,'beers',Brewery.beers) as _json_ FROM (SELECT Brewery.ID as ID,(SELECT coalesce(json_agg(json_build_object('ID',beers.ID)),'[]'::json) as _json_ FROM (SELECT beers.ID as ID FROM csw_Beers as beers WHERE Brewery.ID is not distinct from beers.brewery_ID) as beers) as beers FROM csw_Brewery as Brewery) as Brewery"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 20`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 21`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 22`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 23`] = `"DELETE FROM csw_TypeChecks as TypeChecks"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 24`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 25`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 26`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 27`] = `"DELETE FROM BeershopAdminService_UserScopes as UserScopes"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 28`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 29`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 30`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 31`] = `"DELETE FROM DRAFT_DraftAdministrativeData as DraftAdministrativeData"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 32`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 33`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 34`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 35`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 36`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 37`] = `
+Arguments [
+  [
+    "9c937100-d459-491f-a72d-81b2929af10f",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 38`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 39`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 40`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 41`] = `
+Arguments [
+  [
+    "fa6b959e-3a01-40ef-872e-6030ee4de4e5",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 42`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 43`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 44`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 45`] = `
+Arguments [
+  [
+    "6832ba00-c20e-48b4-a685-dca4aff2ca13",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 46`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 47`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 48`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 49`] = `
+Arguments [
+  [
+    "d265037f-4996-4195-a1fb-b0a8ab5c6f30",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 50`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 51`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 52`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 53`] = `
+Arguments [
+  [
+    "4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 54`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 55`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 56`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 57`] = `
+Arguments [
+  [
+    "0465e9ca-6255-4f5c-b8ba-7439531f8d28",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 58`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 59`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 60`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 61`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 62`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 63`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 64`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 65`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 66`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 67`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 68`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 69`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 70`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 71`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 72`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 73`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 74`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 75`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 76`] = `"INSERT INTO csw_Beers (ID,name,abv,ibu,brewery_ID,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as decimal(3,1)),CAST(value->>3 as integer),value->>4,CAST(value->>5 as TIMESTAMP),value->>6,CAST(value->>7 as TIMESTAMP),value->>8 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 77`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 78`] = `
+Arguments [
+  [
+    "[["b8c3fc14-22e2-4f42-837a-e6134775a186","Lagerbier Hell","5.2","12","9c937100-d459-491f-a72d-81b2929af10f","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b","Schönramer Hell","5","20","fa6b959e-3a01-40ef-872e-6030ee4de4e5","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9473beeb-1a74-4589-82b8-4fdcce1d66d5","Vollbier","4.9","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["31c9bc4c-7ba3-4feb-b94c-96e396d848e0","Festbier","5.5","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["f5578f62-9ae1-4829-8cf1-b8f13e4c5dc3","Grünerla","4.9","11","d265037f-4996-4195-a1fb-b0a8ab5c6f30","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["8a67be38-be68-401f-a2ee-0accd920f7c2","Hallerndorfer Landbier Hell","4.9","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fe9479d4-6f60-47e5-b565-a215e6292935","Hallerndorfer Hausbrauerbier","5","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["1efd2b35-6fd4-4ac5-a73e-64dfc3fb123b","Bitter 42","5.5","42","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["ba398ee9-9bfe-45b0-b586-9445af402a1a","Summer 69","5.9","12","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["08d5b3fb-549c-4be7-9ac8-e039d75823e7","Dunkles Lagerbier","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["3b9af296-f7d7-4436-bf49-f09f65ba3970","Leichtes Dunkel","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 79`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 80`] = `"INSERT INTO csw_Brewery (ID,name,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as TIMESTAMP),value->>3,CAST(value->>4 as TIMESTAMP),value->>5 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 81`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 82`] = `
+Arguments [
+  [
+    "[["9c937100-d459-491f-a72d-81b2929af10f","Augustiner-Bräu Wagner KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fa6b959e-3a01-40ef-872e-6030ee4de4e5","Private Landbrauerei Schönram GmbH & Co. KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["6832ba00-c20e-48b4-a685-dca4aff2ca13","Brauerei Meister","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["d265037f-4996-4195-a1fb-b0a8ab5c6f30","Grüner Bier","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","Rittmayer Hallerndorf","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["0465e9ca-6255-4f5c-b8ba-7439531f8d28","Kathi-Bräu Heckenhof","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 83`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 84`] = `"INSERT INTO csw_TypeChecks (ID,type_String,type_LargeString) SELECT value->>0,value->>1,value->>2 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 85`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 86`] = `
+Arguments [
+  [
+    "[["5e4ca9ef-7c4c-4b22-8e85-7cadefa02c94","Guía del autoestopista galáctico","At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, At accusam aliquyam diam diam dolore dolores duo eirmod eos erat, et nonumy sed tempor et et invidunt justo labore Stet clita ea et gubergren, kasd magna no rebum. sanctus sea sed takimata ut vero voluptua. est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat."]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 87`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 88`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 89`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 90`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 1`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 2`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 3`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 4`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 5`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 6`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 7`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 8`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 9`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 11`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 12`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 13`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 14`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 15`] = `"DELETE FROM csw_Beers as Beers"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 16`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 17`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 18`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 19`] = `"SELECT json_build_object('ID',Brewery.ID,'beers',Brewery.beers) as _json_ FROM (SELECT Brewery.ID as ID,(SELECT coalesce(json_agg(json_build_object('ID',beers.ID)),'[]'::json) as _json_ FROM (SELECT beers.ID as ID FROM csw_Beers as beers WHERE Brewery.ID is not distinct from beers.brewery_ID) as beers) as beers FROM csw_Brewery as Brewery) as Brewery"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 20`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 21`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 22`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 23`] = `"DELETE FROM csw_TypeChecks as TypeChecks"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 24`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 25`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 26`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 27`] = `"DELETE FROM BeershopAdminService_UserScopes as UserScopes"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 28`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 29`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 30`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 31`] = `"DELETE FROM DRAFT_DraftAdministrativeData as DraftAdministrativeData"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 32`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 33`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 34`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 35`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 36`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 37`] = `
+Arguments [
+  [
+    "9c937100-d459-491f-a72d-81b2929af10f",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 38`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 39`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 40`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 41`] = `
+Arguments [
+  [
+    "fa6b959e-3a01-40ef-872e-6030ee4de4e5",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 42`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 43`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 44`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 45`] = `
+Arguments [
+  [
+    "6832ba00-c20e-48b4-a685-dca4aff2ca13",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 46`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 47`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 48`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 49`] = `
+Arguments [
+  [
+    "d265037f-4996-4195-a1fb-b0a8ab5c6f30",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 50`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 51`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 52`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 53`] = `
+Arguments [
+  [
+    "4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 54`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 55`] = `"DELETE FROM csw_Brewery as Brewery WHERE Brewery.ID is not distinct from $1"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 56`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 57`] = `
+Arguments [
+  [
+    "0465e9ca-6255-4f5c-b8ba-7439531f8d28",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 58`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 59`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 60`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 61`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 62`] = `"SELECT set_config(key::text,$1->>key,false) FROM json_each($1);"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 63`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 64`] = `
+Arguments [
+  [
+    "{"CAP.APPLICATIONUSER":"anonymous","CAP.LOCALE":"en","CAP.VALID_FROM":"1970-01-01T00:00:00Z","CAP.VALID_TO":"9999-11-11T22:22:22Z"}",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 65`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 66`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 67`] = `"SET search_path TO "T3516f3da79915f8cec694d2b64a9e8ed6b9495d7";"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 68`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 69`] = `"SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 70`] = `"all"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 71`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 72`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 73`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 74`] = `"BEGIN"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 75`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 76`] = `"INSERT INTO csw_Beers (ID,name,abv,ibu,brewery_ID,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as decimal(3,1)),CAST(value->>3 as integer),value->>4,CAST(value->>5 as TIMESTAMP),value->>6,CAST(value->>7 as TIMESTAMP),value->>8 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 77`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 78`] = `
+Arguments [
+  [
+    "[["b8c3fc14-22e2-4f42-837a-e6134775a186","Lagerbier Hell","5.2","12","9c937100-d459-491f-a72d-81b2929af10f","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b","Schönramer Hell","5","20","fa6b959e-3a01-40ef-872e-6030ee4de4e5","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["9473beeb-1a74-4589-82b8-4fdcce1d66d5","Vollbier","4.9","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["31c9bc4c-7ba3-4feb-b94c-96e396d848e0","Festbier","5.5","0","6832ba00-c20e-48b4-a685-dca4aff2ca13","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["f5578f62-9ae1-4829-8cf1-b8f13e4c5dc3","Grünerla","4.9","11","d265037f-4996-4195-a1fb-b0a8ab5c6f30","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["8a67be38-be68-401f-a2ee-0accd920f7c2","Hallerndorfer Landbier Hell","4.9","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fe9479d4-6f60-47e5-b565-a215e6292935","Hallerndorfer Hausbrauerbier","5","0","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["1efd2b35-6fd4-4ac5-a73e-64dfc3fb123b","Bitter 42","5.5","42","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["ba398ee9-9bfe-45b0-b586-9445af402a1a","Summer 69","5.9","12","4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["08d5b3fb-549c-4be7-9ac8-e039d75823e7","Dunkles Lagerbier","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["3b9af296-f7d7-4436-bf49-f09f65ba3970","Leichtes Dunkel","0","0","0465e9ca-6255-4f5c-b8ba-7439531f8d28","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 79`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 80`] = `"INSERT INTO csw_Brewery (ID,name,createdAt,createdBy,modifiedAt,modifiedBy) SELECT value->>0,value->>1,CAST(value->>2 as TIMESTAMP),value->>3,CAST(value->>4 as TIMESTAMP),value->>5 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 81`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 82`] = `
+Arguments [
+  [
+    "[["9c937100-d459-491f-a72d-81b2929af10f","Augustiner-Bräu Wagner KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["fa6b959e-3a01-40ef-872e-6030ee4de4e5","Private Landbrauerei Schönram GmbH & Co. KG","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["6832ba00-c20e-48b4-a685-dca4aff2ca13","Brauerei Meister","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["d265037f-4996-4195-a1fb-b0a8ab5c6f30","Grüner Bier","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","Rittmayer Hallerndorf","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"],["0465e9ca-6255-4f5c-b8ba-7439531f8d28","Kathi-Bräu Heckenhof","2000-01-01T00:00:00.000Z","anonymous","2000-01-01T00:00:00.000Z","anonymous"]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 83`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 84`] = `"INSERT INTO csw_TypeChecks (ID,type_String,type_LargeString) SELECT value->>0,value->>1,value->>2 FROM json_array_elements($1)"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 85`] = `"run"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 86`] = `
+Arguments [
+  [
+    "[["5e4ca9ef-7c4c-4b22-8e85-7cadefa02c94","Guía del autoestopista galáctico","At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, At accusam aliquyam diam diam dolore dolores duo eirmod eos erat, et nonumy sed tempor et et invidunt justo labore Stet clita ea et gubergren, kasd magna no rebum. sanctus sea sed takimata ut vero voluptua. est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat."]]",
+  ],
+]
+`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 87`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 88`] = `"exec"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 89`] = `"COMMIT"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 90`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;

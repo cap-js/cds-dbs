@@ -1,0 +1,313 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS localized_test_fooLocalized;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP TABLE IF EXISTS test_fooLocalized_texts;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP TABLE IF EXISTS test_fooLocalized;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP TABLE IF EXISTS test_bar;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS test_foo;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `
+"CREATE TABLE test_foo (
+  createdAt TIMESTAMP_TEXT,
+  createdBy NVARCHAR(255),
+  modifiedAt TIMESTAMP_TEXT,
+  modifiedBy NVARCHAR(255),
+  ID INTEGER NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `
+"CREATE TABLE test_bar (
+  ID NVARCHAR(36) NOT NULL,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `
+"CREATE TABLE test_fooLocalized (
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `
+"CREATE TABLE test_fooLocalized_texts (
+  locale NVARCHAR(14) NOT NULL,
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(locale, ID)
+);"
+`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `
+"CREATE VIEW localized_test_fooLocalized AS SELECT
+  L_0.ID,
+  coalesce(localized_1.text, L_0.text) AS text
+FROM (test_fooLocalized AS L_0 LEFT JOIN test_fooLocalized_texts AS localized_1 ON localized_1.ID = L_0.ID AND localized_1.locale = session_context( '$user.locale' ));"
+`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"exec"`;
+
+exports[` 49`] = `"COMMIT"`;
+
+exports[` 50`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[` 51`] = `"exec"`;
+
+exports[` 52`] = `"BEGIN"`;
+
+exports[` 53`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 54`] = `"INSERT INTO test_fooLocalized (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[` 55`] = `"run"`;
+
+exports[` 56`] = `
+Arguments [
+  [
+    "[{"ID":5,"text":"english"}]",
+  ],
+]
+`;
+
+exports[` 57`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[` 58`] = `"INSERT INTO test_fooLocalized_texts (locale,ID,text) SELECT value->>'$.locale',value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[` 59`] = `"run"`;
+
+exports[` 60`] = `
+Arguments [
+  [
+    "[{"locale":"de","text":"deutsch","ID":5}]",
+  ],
+]
+`;
+
+exports[` 61`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[` 62`] = `"SELECT json_insert('{}','$.ID',ID,'$.text',text,'$.texts',texts->'$') as _json_ FROM (SELECT fooLocalized.ID,fooLocalized.text,(SELECT json_group_array(json_insert('{}','$.locale',locale,'$.ID',ID,'$.text',text)) as _json_ FROM (SELECT texts.locale,texts.ID,texts.text FROM test_fooLocalized_texts as texts WHERE texts.ID = fooLocalized.ID)) as texts FROM localized_test_fooLocalized as fooLocalized WHERE fooLocalized.ID = 5 LIMIT 1)"`;
+
+exports[` 63`] = `"all"`;
+
+exports[` 64`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[` 65`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\",\\"texts\\":[{\\"locale\\":\\"de\\",\\"ID\\":5,\\"text\\":\\"deutsch\\"}]}"}]"`;
+
+exports[` 66`] = `"exec"`;
+
+exports[` 67`] = `"COMMIT"`;
+
+exports[` 68`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized custom handler does not return localized by default 1`] = `"exec"`;
+
+exports[`localized custom handler does not return localized by default 2`] = `"BEGIN"`;
+
+exports[`localized custom handler does not return localized by default 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized custom handler does not return localized by default 4`] = `"SELECT json_insert('{}','$.ID',ID,'$.text',text) as _json_ FROM (SELECT fooLocalized.ID,fooLocalized.text FROM test_fooLocalized as fooLocalized)"`;
+
+exports[`localized custom handler does not return localized by default 5`] = `"all"`;
+
+exports[`localized custom handler does not return localized by default 6`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`localized custom handler does not return localized by default 7`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\"}"}]"`;
+
+exports[`localized custom handler does not return localized by default 8`] = `"SELECT json_insert('{}','$.ID',ID,'$.text',text) as _json_ FROM (SELECT fooLocalized.ID,fooLocalized.text FROM localized_test_fooLocalized as fooLocalized)"`;
+
+exports[`localized custom handler does not return localized by default 9`] = `"all"`;
+
+exports[`localized custom handler does not return localized by default 10`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`localized custom handler does not return localized by default 11`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"deutsch\\"}"}]"`;
+
+exports[`localized custom handler does not return localized by default 12`] = `"exec"`;
+
+exports[`localized custom handler does not return localized by default 13`] = `"COMMIT"`;
+
+exports[`localized custom handler does not return localized by default 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request with language header is localized 1`] = `"exec"`;
+
+exports[`localized generic request with language header is localized 2`] = `"BEGIN"`;
+
+exports[`localized generic request with language header is localized 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request with language header is localized 4`] = `"SELECT json_insert('{}','$.ID',ID,'$.text',text) as _json_ FROM (SELECT fooLocalized.ID,fooLocalized.text FROM localized_test_fooLocalized as fooLocalized ORDER BY fooLocalized.ID ASC LIMIT 1000)"`;
+
+exports[`localized generic request with language header is localized 5`] = `"all"`;
+
+exports[`localized generic request with language header is localized 6`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`localized generic request with language header is localized 7`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"deutsch\\"}"}]"`;
+
+exports[`localized generic request with language header is localized 8`] = `"exec"`;
+
+exports[`localized generic request with language header is localized 9`] = `"COMMIT"`;
+
+exports[`localized generic request with language header is localized 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request without language header falls back to default 1`] = `"exec"`;
+
+exports[`localized generic request without language header falls back to default 2`] = `"BEGIN"`;
+
+exports[`localized generic request without language header falls back to default 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request without language header falls back to default 4`] = `"SELECT json_insert('{}','$.ID',ID,'$.text',text) as _json_ FROM (SELECT fooLocalized.ID,fooLocalized.text FROM localized_test_fooLocalized as fooLocalized ORDER BY fooLocalized.ID ASC LIMIT 1000)"`;
+
+exports[`localized generic request without language header falls back to default 5`] = `"all"`;
+
+exports[`localized generic request without language header falls back to default 6`] = `
+Arguments [
+  [],
+]
+`;
+
+exports[`localized generic request without language header falls back to default 7`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\"}"}]"`;
+
+exports[`localized generic request without language header falls back to default 8`] = `"exec"`;
+
+exports[`localized generic request without language header falls back to default 9`] = `"COMMIT"`;
+
+exports[`localized generic request without language header falls back to default 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

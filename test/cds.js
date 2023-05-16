@@ -1,5 +1,13 @@
 module.exports = require('@sap/cds/lib')
 
+let stableUUID = 0
+const utils = module.exports.utils
+utils.uuid
+utils.uuid = function () {
+  const id = stableUUID++
+  return /(.{8})(.{4})(.{4})(.{4})(.{12})/.exec(`${id}`.padStart(32, '0')).slice(1).join('-')
+}
+
 // Adding cds.hana types to cds.builtin.types
 // REVISIT: Where should we put this?
 const hana = module.exports.linked({
@@ -20,6 +28,11 @@ Object.assign(module.exports.builtin.types, hana.definitions)
 
 const cdsTest = module.exports.test
 
+jest.useFakeTimers({
+  doNotFake: ['setImmediate'],
+  now: new Date('2000-01-01T00:00:00.000Z')
+})
+
 let isolateCounter = 0
 
 const orgIn = cdsTest.constructor.prototype.in
@@ -35,6 +48,8 @@ module.exports.test = Object.setPrototypeOf(function () {
   let ret
 
   global.before(async () => {
+    // reset UUID for each test suite
+    stableUUID = 0
     try {
       const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
@@ -60,19 +75,23 @@ module.exports.test = Object.setPrototypeOf(function () {
     async function (db) {
       if (!db) db = await cds.connect.to('db')
 
-      // If database driver supports database and tenant isolation run test in isolation
-      if (typeof db.database === 'function' && typeof db.tenant === 'function') {
-        const { createHash } = require('crypto')
-        const hash = createHash('sha1')
-        const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
-        hash.update(isolateName)
-        const isolate = {
-          // Create one database for each overall test execution
-          database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
-          // Create one tenant for each test suite
-          tenant: 'T' + hash.digest('hex')
-        }
+      const snapshotState = expect.getState().snapshotState
+      // snapshotState._updateSnapshot = 'all'
+      const updateSnapshots = snapshotState._updateSnapshot === 'all'
 
+      const { createHash } = require('crypto')
+      const hash = createHash('sha1')
+      const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
+      hash.update(isolateName)
+      const isolate = {
+        // Create one database for each overall test execution
+        database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
+        // Create one tenant for each test suite
+        tenant: 'T' + hash.digest('hex')
+      }
+
+      // If database driver supports database and tenant isolation run test in isolation
+      if (updateSnapshots && typeof db.database === 'function' && typeof db.tenant === 'function') {
         // Create new database isolation
         await db.database(isolate)
 
@@ -80,6 +99,208 @@ module.exports.test = Object.setPrototypeOf(function () {
         await db.tenant(isolate)
 
         ret.credentials = db.options.credentials
+      }
+
+      const Queue = class {
+        constructor(parent) {
+          this.parent = parent
+        }
+
+        proms = []
+
+        done() {
+          const next = this.proms.shift()
+          if (next) {
+            next.resolve({
+              done: this.done.bind(this),
+              sub: new Queue(this)
+            })
+          } else {
+            this.busy = false
+            if (this.parent) {
+              this.parent.done()
+            }
+          }
+        }
+
+        then(resolve, reject) {
+          const prom = {
+            resolve: resolve,
+            reject: reject
+          }
+
+          if (this.busy) {
+            this.proms.push(prom)
+            return prom.prom
+          } else {
+            this.busy = true
+            return resolve({
+              done: this.done.bind(this),
+              sub: new Queue(this)
+            })
+          }
+        }
+      }
+
+      const queue = new Queue()
+
+      // create snapshot driver
+      if (typeof db.prepare === 'function' && typeof db.exec === 'function') {
+        // Echo existing snapshots
+        if (!updateSnapshots) {
+          db.pools._factory = {
+            create: () => ({}),
+            destroy: () => {},
+            validate: () => true,
+            options: {
+              acquireTimeoutMillis: 1000,
+              destroyTimeoutMillis: 1000
+            }
+          }
+
+          if (db.options.credentials) {
+            db.options.credentials.schema = isolate.tenant
+          }
+
+          db.prepare = async function (sql) {
+            const lock = await queue
+            await new Promise(res => setImmediate(res))
+            expect(sql).toMatchSnapshot()
+            return {
+              run: async function () {
+                const { done } = await lock.sub
+                try {
+                  expect('run').toMatchSnapshot()
+                  expect(arguments).toMatchSnapshot()
+                  await new Promise(res => setImmediate(res))
+                  const next = snapshotState.match({
+                    testName: expect.getState().currentTestName || ''
+                    // isInline: false,
+                  })
+                  const ret = snapshotState._initialData[next.key]
+                  snapshotState.unmatched--
+                  return JSON.parse(ret.slice(1, -1))
+                } finally {
+                  done()
+                }
+              },
+              get: async function () {
+                const { done } = await lock.sub
+                try {
+                  expect('get').toMatchSnapshot()
+                  expect(arguments).toMatchSnapshot()
+                  await new Promise(res => setImmediate(res))
+                  const next = snapshotState.match({
+                    testName: expect.getState().currentTestName || ''
+                    // isInline: false,
+                  })
+                  const ret = snapshotState._initialData[next.key]
+                  snapshotState.unmatched--
+                  return JSON.parse(ret.slice(1, -1))
+                } finally {
+                  done()
+                }
+              },
+              all: async function () {
+                const { done } = await lock.sub
+                try {
+                  expect('all').toMatchSnapshot()
+                  expect(arguments).toMatchSnapshot()
+                  await new Promise(res => setImmediate(res))
+                  const next = snapshotState.match({
+                    testName: expect.getState().currentTestName || ''
+                    // isInline: false,
+                  })
+                  const ret = snapshotState._initialData[next.key]
+                  snapshotState.unmatched--
+                  return JSON.parse(ret.slice(1, -1))
+                } finally {
+                  done()
+                }
+              }
+            }
+          }
+
+          db.exec = async function (sql) {
+            const { done } = await queue
+            try {
+              expect('exec').toMatchSnapshot()
+              expect(sql).toMatchSnapshot()
+              await new Promise(res => setImmediate(res))
+              const next = snapshotState.match({
+                testName: expect.getState().currentTestName || ''
+                // isInline: false,
+              })
+              const ret = snapshotState._initialData[next.key]
+              snapshotState.unmatched--
+              return JSON.parse(ret.slice(1, -1))
+            } finally {
+              done()
+            }
+          }
+
+          return
+        }
+
+        // capture snapshots with actual database driver passthrough
+        const orgPrepare = db.prepare
+        db.prepare = async function (sql) {
+          const lock = await queue
+          expect(sql).toMatchSnapshot()
+          const stmt = orgPrepare.apply(this, arguments)
+          return {
+            run: async function () {
+              const { done } = await lock.sub
+              try {
+                expect('run').toMatchSnapshot()
+                expect(arguments).toMatchSnapshot()
+                const ret = await stmt.run(...arguments)
+                expect(JSON.stringify(ret)).toMatchSnapshot()
+                return ret
+              } finally {
+                done()
+              }
+            },
+            get: async function () {
+              const { done } = await lock.sub
+              try {
+                expect('get').toMatchSnapshot()
+                expect(arguments).toMatchSnapshot()
+                const ret = await stmt.get(...arguments)
+                expect(JSON.stringify(ret)).toMatchSnapshot()
+                return ret
+              } finally {
+                done()
+              }
+            },
+            all: async function () {
+              const { done } = await lock.sub
+              try {
+                expect('all').toMatchSnapshot()
+                expect(arguments).toMatchSnapshot()
+                const ret = await stmt.all(...arguments)
+                expect(JSON.stringify(ret)).toMatchSnapshot()
+                return ret
+              } finally {
+                done()
+              }
+            }
+          }
+        }
+
+        const orgExec = db.exec
+        db.exec = async function (sql) {
+          const { done } = await queue
+          try {
+            expect('exec').toMatchSnapshot()
+            expect(sql).toMatchSnapshot()
+            const ret = await orgExec.apply(this, arguments)
+            expect(JSON.stringify(ret)).toMatchSnapshot()
+            return ret
+          } finally {
+            done()
+          }
+        }
       }
     }
 

@@ -1,0 +1,790 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec"`;
+
+exports[` 2`] = `"BEGIN"`;
+
+exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 4`] = `"DROP VIEW IF EXISTS bla_SProjChild;"`;
+
+exports[` 5`] = `"run"`;
+
+exports[` 6`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 8`] = `"DROP VIEW IF EXISTS bla_SProjRoot;"`;
+
+exports[` 9`] = `"run"`;
+
+exports[` 10`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"DROP VIEW IF EXISTS ProjChild;"`;
+
+exports[` 13`] = `"run"`;
+
+exports[` 14`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 16`] = `"DROP VIEW IF EXISTS ProjRoot;"`;
+
+exports[` 17`] = `"run"`;
+
+exports[` 18`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 20`] = `"DROP TABLE IF EXISTS bla_SubChildUUID;"`;
+
+exports[` 21`] = `"run"`;
+
+exports[` 22`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"DROP TABLE IF EXISTS bla_ChildUUID;"`;
+
+exports[` 25`] = `"run"`;
+
+exports[` 26`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 28`] = `"DROP TABLE IF EXISTS bla_RootUUID;"`;
+
+exports[` 29`] = `"run"`;
+
+exports[` 30`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 32`] = `"DROP TABLE IF EXISTS BaseChild;"`;
+
+exports[` 33`] = `"run"`;
+
+exports[` 34`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"DROP TABLE IF EXISTS BaseRoot;"`;
+
+exports[` 37`] = `"run"`;
+
+exports[` 38`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 40`] = `"DROP TABLE IF EXISTS Transient;"`;
+
+exports[` 41`] = `"run"`;
+
+exports[` 42`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 44`] = `"DROP TABLE IF EXISTS "Recursive";"`;
+
+exports[` 45`] = `"run"`;
+
+exports[` 46`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"DROP TABLE IF EXISTS SubChild;"`;
+
+exports[` 49`] = `"run"`;
+
+exports[` 50`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 51`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 52`] = `"DROP TABLE IF EXISTS Child;"`;
+
+exports[` 53`] = `"run"`;
+
+exports[` 54`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 55`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 56`] = `"DROP TABLE IF EXISTS Root;"`;
+
+exports[` 57`] = `"run"`;
+
+exports[` 58`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 60`] = `"DROP table if exists cds_Model;"`;
+
+exports[` 61`] = `"run"`;
+
+exports[` 62`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 63`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 64`] = `
+"CREATE TABLE Root (
+  ID INTEGER NOT NULL,
+  toOneChild_ID INTEGER,
+  toManyChild_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 65`] = `"run"`;
+
+exports[` 66`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 67`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 68`] = `
+"CREATE TABLE Child (
+  ID INTEGER NOT NULL,
+  toOneSubChild_ID INTEGER,
+  toManySubChild_ID INTEGER,
+  toOneChild_ID INTEGER,
+  toManyChild_ID INTEGER,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 69`] = `"run"`;
+
+exports[` 70`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 72`] = `
+"CREATE TABLE SubChild (
+  ID INTEGER NOT NULL,
+  subText NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 73`] = `"run"`;
+
+exports[` 74`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 75`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 76`] = `
+"CREATE TABLE "Recursive" (
+  ID INTEGER NOT NULL,
+  toOneRecursive_ID INTEGER,
+  toOneTransient_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 77`] = `"run"`;
+
+exports[` 78`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 79`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 80`] = `
+"CREATE TABLE Transient (
+  ID INTEGER NOT NULL,
+  toOneRecursive_ID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 81`] = `"run"`;
+
+exports[` 82`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 84`] = `
+"CREATE TABLE BaseRoot (
+  ID INTEGER NOT NULL,
+  toOneChild_rID INTEGER,
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 85`] = `"run"`;
+
+exports[` 86`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 87`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 88`] = `
+"CREATE TABLE BaseChild (
+  ID INTEGER NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 89`] = `"run"`;
+
+exports[` 90`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 91`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 92`] = `
+"CREATE TABLE bla_RootUUID (
+  ID NVARCHAR(36) NOT NULL,
+  name NVARCHAR(5000),
+  toOneChild_ID NVARCHAR(36),
+  toOneSkip_ID NVARCHAR(36),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 93`] = `"run"`;
+
+exports[` 94`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 95`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 96`] = `
+"CREATE TABLE bla_ChildUUID (
+  ID NVARCHAR(36) NOT NULL,
+  text NVARCHAR(5000),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 97`] = `"run"`;
+
+exports[` 98`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 99`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 100`] = `
+"CREATE TABLE bla_SubChildUUID (
+  ID NVARCHAR(36) NOT NULL,
+  text NVARCHAR(5000),
+  backlink_ID NVARCHAR(36),
+  toOneSkipChild_ID NVARCHAR(36),
+  PRIMARY KEY(ID)
+);"
+`;
+
+exports[` 101`] = `"run"`;
+
+exports[` 102`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 103`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 104`] = `
+"CREATE VIEW ProjRoot AS SELECT
+  BaseRoot_0.ID AS rID,
+  BaseRoot_0.toOneChild_rID AS rToOneChild_rID
+FROM BaseRoot AS BaseRoot_0;"
+`;
+
+exports[` 105`] = `"run"`;
+
+exports[` 106`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 107`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 108`] = `
+"CREATE VIEW ProjChild AS SELECT
+  BaseChild_0.ID AS rID,
+  BaseChild_0.text AS rText
+FROM BaseChild AS BaseChild_0;"
+`;
+
+exports[` 109`] = `"run"`;
+
+exports[` 110`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 111`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 112`] = `
+"CREATE VIEW bla_SProjRoot AS SELECT
+  ProjRoot_0.rID,
+  ProjRoot_0.rToOneChild_rID
+FROM ProjRoot AS ProjRoot_0;"
+`;
+
+exports[` 113`] = `"run"`;
+
+exports[` 114`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 115`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 116`] = `
+"CREATE VIEW bla_SProjChild AS SELECT
+  ProjChild_0.rID,
+  ProjChild_0.rText
+FROM ProjChild AS ProjChild_0;"
+`;
+
+exports[` 117`] = `"run"`;
+
+exports[` 118`] = `
+Arguments [
+  {},
+]
+`;
+
+exports[` 119`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 120`] = `"exec"`;
+
+exports[` 121`] = `"COMMIT"`;
+
+exports[` 122`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 1`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 2`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 5`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000003"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 7`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 8`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 9`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 10`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000003",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000003\\",\\"name\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 12`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 13`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to many with @cds.persistence.skip on deep insert 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 1`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 2`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 5`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000019","toOneSkip_ID":"00000000-0000-0000-0000-000000000021"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 7`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 8`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 9`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 10`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000019",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000019\\",\\"name\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":\\"00000000-0000-0000-0000-000000000021\\"}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 12`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 13`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 15`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 16`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 17`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 18`] = `"SELECT json_insert('{}','$.ID',ID,'$.toOneChild',toOneChild->'$') as _json_ FROM (SELECT RootUUID.ID,(SELECT json_insert('{}','$.ID',ID,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,(SELECT json_group_array(json_insert('{}','$.ID',ID)) as _json_ FROM (SELECT toManySubChild.ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 19`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 20`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000019",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 21`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000019\\",\\"toOneChild\\":null}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 22`] = `"DELETE FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ?"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 23`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 24`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000019",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 25`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 26`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 27`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep delete 28`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 1`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 2`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 5`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000000","toOneSkip_ID":"00000000-0000-0000-0000-000000000002"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 7`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 8`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 9`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 10`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000000",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\",\\"name\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":\\"00000000-0000-0000-0000-000000000002\\"}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 12`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 13`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep insert 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 1`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 2`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 5`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000014","toOneSkip_ID":"00000000-0000-0000-0000-000000000016"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 7`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 8`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 9`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 10`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":\\"00000000-0000-0000-0000-000000000016\\"}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 12`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 13`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 15`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 16`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 17`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 18`] = `"SELECT json_insert('{}','$.name',name,'$.ID',ID,'$.toOneSkip_ID',toOneSkip_ID,'$.toOneChild_ID',toOneChild_ID) as _json_ FROM (SELECT RootUUID.name,RootUUID.ID,RootUUID.toOneSkip_ID,RootUUID.toOneChild_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 19`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 20`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 21`] = `"[{"_json_":"{\\"name\\":null,\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"toOneSkip_ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"toOneChild_ID\\":null}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 22`] = `"UPDATE bla_RootUUID AS RootUUID SET name=?,ID=?,toOneSkip_ID=? WHERE RootUUID.ID = ?"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 23`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 24`] = `
+Arguments [
+  [
+    "abc",
+    "00000000-0000-0000-0000-000000000014",
+    "00000000-0000-0000-0000-000000000018",
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 25`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 26`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 27`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 28`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000014",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 29`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":\\"abc\\",\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":\\"00000000-0000-0000-0000-000000000018\\"}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 30`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 31`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip child to one with @cds.persistence.skip on deep update 32`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 1`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 2`] = `"BEGIN"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 4`] = `"INSERT INTO bla_RootUUID (ID,name,toOneChild_ID,toOneSkip_ID) SELECT value->>'$.ID',value->>'$.name',value->>'$.toOneChild_ID',value->>'$.toOneSkip_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 5`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 6`] = `
+Arguments [
+  [
+    "[{"ID":"00000000-0000-0000-0000-000000000007","toOneChild_ID":"00000000-0000-0000-0000-000000000009"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 7`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 8`] = `"INSERT INTO bla_ChildUUID (ID,text) SELECT value->>'$.ID',value->>'$.text' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 9`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 10`] = `
+Arguments [
+  [
+    "[{"text":"abc","ID":"00000000-0000-0000-0000-000000000009"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 11`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 12`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 13`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 14`] = `
+Arguments [
+  [
+    "[{"text":"a","backlink_ID":"00000000-0000-0000-0000-000000000009","ID":"00000000-0000-0000-0000-000000000010","toOneSkipChild_ID":"00000000-0000-0000-0000-000000000011"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 15`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 16`] = `"INSERT INTO bla_SubChildUUID (ID,text,backlink_ID,toOneSkipChild_ID) SELECT value->>'$.ID',value->>'$.text',value->>'$.backlink_ID',value->>'$.toOneSkipChild_ID' FROM json_each(?)"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 17`] = `"run"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 18`] = `
+Arguments [
+  [
+    "[{"text":"b","backlink_ID":"00000000-0000-0000-0000-000000000009","ID":"00000000-0000-0000-0000-000000000012","toOneSkipChild_ID":"00000000-0000-0000-0000-000000000013"}]",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 19`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 20`] = `"SELECT json_insert('{}','$.ID',ID,'$.name',name,'$.toOneChild',toOneChild->'$','$.toOneChild_ID',toOneChild_ID,'$.toOneSkip_ID',toOneSkip_ID) as _json_ FROM (SELECT RootUUID.ID,RootUUID.name,(SELECT json_insert('{}','$.ID',ID,'$.text',text,'$.toManySubChild',toManySubChild->'$') as _json_ FROM (SELECT toOneChild.ID,toOneChild.text,(SELECT json_group_array(json_insert('{}','$.ID',ID,'$.text',text,'$.backlink_ID',backlink_ID,'$.toOneSkipChild_ID',toOneSkipChild_ID)) as _json_ FROM (SELECT toManySubChild.ID,toManySubChild.text,toManySubChild.backlink_ID,toManySubChild.toOneSkipChild_ID FROM bla_SubChildUUID as toManySubChild WHERE toOneChild.ID = toManySubChild.backlink_ID)) as toManySubChild FROM bla_ChildUUID as toOneChild WHERE RootUUID.toOneChild_ID = toOneChild.ID LIMIT 1)) as toOneChild,RootUUID.toOneChild_ID,RootUUID.toOneSkip_ID FROM bla_RootUUID as RootUUID WHERE RootUUID.ID = ? LIMIT 1)"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 21`] = `"all"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 22`] = `
+Arguments [
+  [
+    "00000000-0000-0000-0000-000000000007",
+  ],
+]
+`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 23`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000010\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"toOneSkipChild_ID\\":\\"00000000-0000-0000-0000-000000000011\\"},{\\"ID\\":\\"00000000-0000-0000-0000-000000000012\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"toOneSkipChild_ID\\":\\"00000000-0000-0000-0000-000000000013\\"}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 24`] = `"exec"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 25`] = `"COMMIT"`;
+
+exports[`deep operations with @cds.persistence.skip skip nested child to one with @cds.persistence.skip on deep insert 26`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
