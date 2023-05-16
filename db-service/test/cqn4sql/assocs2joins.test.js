@@ -309,7 +309,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in where, one assoc in multiple xpr, one field', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID } where ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -812,7 +812,7 @@ describe('Variations on ON', () => {
   it('unmanaged assoc with on condition accessing structured foreign keys', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
     left outer join bookshop.WithStructuredKey as oddNumberWithForeignKeyAccess on oddNumberWithForeignKeyAccess.struct_mid_anotherLeaf = oddNumberWithForeignKeyAccess.struct_mid_leaf / oddNumberWithForeignKeyAccess.second
@@ -823,7 +823,7 @@ describe('Variations on ON', () => {
   it('unmanaged assoc with on condition comparing to val', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
         left outer join bookshop.BooksWithWeirdOnConditions as refComparedToVal on BooksWithWeirdOnConditions.ID != 1
@@ -1125,7 +1125,7 @@ describe('Where exists in combination with assoc to join', () => {
       CQL`select from bookshop.Books:author {
       books.genre.name,
     }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as author
       left outer join bookshop.Books as books on books.author_ID = author.ID
@@ -1139,7 +1139,7 @@ describe('Where exists in combination with assoc to join', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
       { parent.parent.parent.descr, }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
@@ -1165,7 +1165,7 @@ describe('Where exists in combination with assoc to join', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
       { parent.parent.parent.descr } where exists parent`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID

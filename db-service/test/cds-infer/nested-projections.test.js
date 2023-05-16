@@ -63,9 +63,9 @@ describe('nested projections', () => {
               dedication: Books.elements.dedication.elements.dedication,
               addressee: Books.elements.dedication.elements.addressee,
               sub: Books.elements.dedication.elements.sub,
-              text: Books.elements.dedication.elements.text
-            }
-          }
+              text: Books.elements.dedication.elements.text,
+            },
+          },
         })
       })
 
@@ -78,9 +78,9 @@ describe('nested projections', () => {
           dedication: {
             elements: {
               ...Books.elements.dedication.elements,
-              foo: Books.elements.dedication.elements.dedication
-            }
-          }
+              foo: Books.elements.dedication.elements.dedication,
+            },
+          },
         })
       })
     })
@@ -176,7 +176,7 @@ describe('nested projections', () => {
       let { Employee } = model.entities
       expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
         office_floor: Employee.elements.office.elements.floor,
-        office_room: Employee.elements.office.elements.room
+        office_room: Employee.elements.office.elements.room,
       })
     })
     it('mixed with expand', () => {
@@ -206,9 +206,9 @@ describe('nested projections', () => {
             elements: {
               floor: Employee.elements.office.elements.floor,
               address_city: Employee.elements.office.elements.address.elements.city,
-              address_street: Employee.elements.office.elements.address.elements.street
-            }
-          }
+              address_street: Employee.elements.office.elements.address.elements.street,
+            },
+          },
         })
     })
     it('deep inline', () => {
@@ -235,7 +235,7 @@ describe('nested projections', () => {
         office_floor: Employee.elements.office.elements.floor,
         office_address_city: Employee.elements.office.elements.address.elements.city,
         office_address_street: Employee.elements.office.elements.address.elements.street,
-        office_address_country_code: Employee.elements.office.elements.address.elements.country._target.elements.code
+        office_address_country_code: Employee.elements.office.elements.address.elements.country._target.elements.code,
       })
     })
     it('deep expand in inline', () => {
@@ -266,9 +266,9 @@ describe('nested projections', () => {
           office_address: {
             elements: {
               city: Employee.elements.office.elements.address.elements.city,
-              street: Employee.elements.office.elements.address.elements.street
-            }
-          }
+              street: Employee.elements.office.elements.address.elements.street,
+            },
+          },
         })
     })
     it('wildcard inline toplevel', () => {
@@ -306,8 +306,8 @@ describe('nested projections', () => {
             elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
           },
           office_furniture: {
-            elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements
-          }
+            elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements,
+          },
         })
     })
     it('wildcard inline deep w/o brackets', () => {
@@ -325,7 +325,7 @@ describe('nested projections', () => {
       expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
         office_address_city: EmployeeNoUnmanaged.elements.office.elements.address.elements.city,
         office_address_street: EmployeeNoUnmanaged.elements.office.elements.address.elements.street,
-        office_address_country: EmployeeNoUnmanaged.elements.office.elements.address.elements.country
+        office_address_country: EmployeeNoUnmanaged.elements.office.elements.address.elements.country,
       })
     })
     it('smart wildcard - column overwrite after *', () => {
@@ -353,8 +353,8 @@ describe('nested projections', () => {
             elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
           },
           office_furniture: {
-            elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements
-          }
+            elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements,
+          },
         })
     })
     it('smart wildcard - column overwrite before *', () => {
@@ -380,8 +380,8 @@ describe('nested projections', () => {
           office_floor: { type: 'cds.String' },
           office_room: EmployeeNoUnmanaged.elements.office.elements.room,
           office_address: {
-            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements
-          }
+            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
+          },
         })
     })
 
@@ -412,7 +412,7 @@ describe('nested projections', () => {
       expect(inferredInline.elements).to.deep.equal(inferredAbsolute.elements).to.deep.equal({
         office_floor: EmployeeNoUnmanaged.elements.office.elements.floor,
         office_room: EmployeeNoUnmanaged.elements.office.elements.room,
-        office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture
+        office_furniture: EmployeeNoUnmanaged.elements.office.elements.furniture,
       })
     })
     it('wildcard - sql style on table alias', () => {
@@ -449,7 +449,7 @@ describe('nested projections', () => {
         id: EmployeeNoUnmanaged.elements.id,
         name: EmployeeNoUnmanaged.elements.name,
         job: EmployeeNoUnmanaged.elements.job,
-        office: EmployeeNoUnmanaged.elements.office.elements.room
+        office: EmployeeNoUnmanaged.elements.office.elements.room,
       })
     })
 
@@ -465,7 +465,7 @@ describe('nested projections', () => {
         name: EmployeeNoUnmanaged.elements.name,
         job: EmployeeNoUnmanaged.elements.job,
         office: EmployeeNoUnmanaged.elements.office.elements.room,
-        depName: Department.elements.name
+        depName: Department.elements.name,
       })
     })
   })

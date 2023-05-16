@@ -134,7 +134,7 @@ describe('multiple sources', () => {
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
       bID: Books.elements.ID,
-      fooID: Foo.elements.ID
+      fooID: Foo.elements.ID,
     })
   })
 
@@ -152,7 +152,7 @@ describe('multiple sources', () => {
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,
-      secondBookID: Books.elements.ID
+      secondBookID: Books.elements.ID,
     })
   })
 })

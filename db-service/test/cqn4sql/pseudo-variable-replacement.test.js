@@ -35,7 +35,7 @@ describe('Pseudo Variables', () => {
       $locale,
       $tenant
     }`,
-      model
+      model,
     )
 
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
@@ -63,7 +63,7 @@ describe('Pseudo Variables', () => {
       GROUP BY $user.id, $to
       ORDER BY $user.locale, $now
     `,
-      model
+      model,
     )
 
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
@@ -80,7 +80,7 @@ describe('Pseudo Variables', () => {
       ID,
       author[name = $user.name or dateOfDeath < $now].dateOfBirth
     }`,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Books as Books
@@ -96,7 +96,7 @@ describe('Pseudo Variables', () => {
       CQL`SELECT from bookshop.Books {
       ID
     } where exists author[$user.name = 'towald'] `,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Books as Books

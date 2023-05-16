@@ -73,7 +73,7 @@ describe('infer elements', () => {
         11: { type: 'cds.Integer' },
         foo: { type: 'cds.String' },
         true: { type: 'cds.Boolean' },
-        false: { type: 'cds.Boolean' }
+        false: { type: 'cds.Boolean' },
       })
     })
   })
@@ -281,7 +281,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
-        net: {}
+        net: {},
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -326,7 +326,7 @@ describe('infer elements', () => {
           type: 'cds.Decimal',
         },
         pid: {
-          type: 'cds.Decimal'
+          type: 'cds.Decimal',
           // REVISIT: currently CQL does not retain type arguments
           // precision: 5,
           // scale: 4
@@ -360,8 +360,8 @@ describe('infer elements', () => {
           type: 'cds.LargeString',
         },
         stringl: {
-          type: 'cds.LargeString'
-        }
+          type: 'cds.LargeString',
+        },
       })
     })
 

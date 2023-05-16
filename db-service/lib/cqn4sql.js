@@ -101,8 +101,8 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
             func: 'search',
             args: [
               searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-              xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }
-            ]
+              xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+            ],
           }
           if (transformedQuery.SELECT.where)
             transformedQuery.SELECT.where = [asXpr(transformedQuery.SELECT.where), 'and', contains]
@@ -162,15 +162,15 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
           node.parent.$refLink || /** tree roots do not have $refLink */ {
             alias: node.parent.alias,
             definition: node.parent.queryArtifact,
-            target: node.parent.queryArtifact
+            target: node.parent.queryArtifact,
           },
-          /** flip source and target in on condition */ true
-        )
+          /** flip source and target in on condition */ true,
+        ),
       )
 
       const arg = {
         ref: [localized(model.definitions[nextAssoc.$refLink.definition.target])],
-        as: nextAssoc.$refLink.alias
+        as: nextAssoc.$refLink.alias,
       }
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
@@ -179,7 +179,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         lhs.on = [
           ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
           'and',
-          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)
+          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
         ]
       }
       if (node.children) {
@@ -263,14 +263,14 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
           transformedColumn = {
             func: col.func,
             args: col.args && getTransformedTokenStream(col.args),
-            as: col.func
+            as: col.func,
           }
         // {func}.args are optional
         // val
         else transformedColumn = copy(col)
         if (as) transformedColumn.as = as
         const replaceWith = transformedColumns.findIndex(
-          t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as
+          t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as,
         )
         if (replaceWith === -1) transformedColumns.push(transformedColumn)
         else transformedColumns.splice(replaceWith, 1, transformedColumn)
@@ -383,7 +383,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       // fake the ref since excluding only has strings
       col.excluding.forEach(c => {
         const fakeColumn = {
-          ref: [...col.ref, c]
+          ref: [...col.ref, c],
         }
         excludeFromExpansion.push(fakeColumn)
       })
@@ -393,7 +393,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       res.push(...getColumnsForWildcard(excludeFromExpansion, replaceInExpansion))
     else
       res.push(
-        ...getFlatColumnsFor(col, null, col.as, getQuerySourceName(col), [], excludeFromExpansion, replaceInExpansion)
+        ...getFlatColumnsFor(col, null, col.as, getQuerySourceName(col), [], excludeFromExpansion, replaceInExpansion),
       )
     return res
   }
@@ -439,7 +439,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
         ...transformedQuery.SELECT.from.ref,
-        ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref)
+        ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
     // we need to respect the aliases of the outer query
@@ -449,7 +449,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
     const subqueryBase = Object.fromEntries(
       // preserve all props on subquery (`limit`, `order by`, …) but `expand` and `ref`
-      Object.entries(column).filter(([key]) => !(key in { ref: true, expand: true }))
+      Object.entries(column).filter(([key]) => !(key in { ref: true, expand: true })),
     )
     const subquery = {
       SELECT: {
@@ -457,8 +457,8 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         from,
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
-        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one
-      }
+        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
+      },
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = cqn4sql(subquery, model)
@@ -469,7 +469,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     function _correlate(subq, outer) {
       const subqueryFollowingExists = (a, indexOfExists) => a[indexOfExists + 1]
       let {
-        SELECT: { where }
+        SELECT: { where },
       } = subq
       let recent = where
       let i = where.indexOf('exists')
@@ -483,7 +483,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         2,
         ...where.map(x => {
           return replaceAliasWithSubqueryAlias(x)
-        })
+        }),
       )
 
       function replaceAliasWithSubqueryAlias(x) {
@@ -503,7 +503,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       if (col.isJoinRelevant) {
         const tableAlias$refLink = getQuerySourceName(col)
         const transformedColumn = {
-          ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)]
+          ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
         }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
@@ -623,7 +623,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     tableAlias = null,
     csnPath = [],
     exclude = [],
-    replace = []
+    replace = [],
   ) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
@@ -694,7 +694,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         } else if (fkElement.isAssociation) {
           // assoc as key
           flatColumns.push(
-            ...getFlatColumnsFor(fkElement, baseName, columnAlias, tableAlias, csnPath, exclude, replace)
+            ...getFlatColumnsFor(fkElement, baseName, columnAlias, tableAlias, csnPath, exclude, replace),
           )
         } else {
           // leaf reached
@@ -832,7 +832,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
-          transformedWhere.push(...kv) && keyValComparisons[j + 1] ? transformedWhere.push('and') : null
+          transformedWhere.push(...kv) && keyValComparisons[j + 1] ? transformedWhere.push('and') : null,
         )
       } else if (token.ref && token.param) {
         transformedWhere.push({ ...token })
@@ -925,7 +925,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         cds.error(
           `Can't compare "${definition.name}" with "${
             value.$refLinks[value.$refLinks.length - 1].definition.name
-          }": the operands must have the same structure`
+          }": the operands must have the same structure`,
         )
       const pathNotFoundErr = []
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
@@ -1075,7 +1075,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         const { definition: leafAssoc, alias } = transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1]
         Object.assign(transformedFrom, {
           ref: [leafAssoc.target],
-          as: alias
+          as: alias,
         })
         transformedWhere.push(...['exists', { SELECT: whereExistsSubqueries(whereExistsSubSelects) }])
         filterConditions.forEach(f => {
@@ -1162,8 +1162,8 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     return backlinks.map(each =>
       getElementForRef(
         each.ref.slice(1),
-        each.ref[0] in { $self: true, $projection: true } ? getParentEntity(assoc) : target
-      )
+        each.ref[0] in { $self: true, $projection: true } ? getParentEntity(assoc) : target,
+      ),
     )
 
     function getParentEntity(element) {
@@ -1223,12 +1223,12 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
           if (lhs?.ref?.length === 1 && lhs.ref[0] === '$self')
             backlink = getElementForRef(
               rhs.ref.slice(1),
-              rhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target
+              rhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else if (rhs?.ref?.length === 1 && rhs.ref[0] === '$self')
             backlink = getElementForRef(
               lhs.ref.slice(1),
-              lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target
+              lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else {
             // if we have refs on each side of the comparison, we might need to perform tuple expansion
@@ -1239,7 +1239,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
               const assocHost = getParentEntity(assocRefLink.definition)
               Object.defineProperty(thing, '$refLinks', {
                 value: [],
-                writable: true
+                writable: true,
               })
               ref.reduce((prev, res, i) => {
                 if (res === '$self')
@@ -1327,7 +1327,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
                 Object.values(
-                  targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements
+                  targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements,
                 ).some(e => e === definition)
               ) {
                 // first step is association which refers to its foreign key by dot notation
@@ -1385,9 +1385,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
               targetSide: {
                 ref: [
                   targetSideRefLink.alias,
-                  refInTarget.as ? `${flatAssociationName}_${refInTarget.as}` : refInTarget.ref[0]
-                ]
-              }
+                  refInTarget.as ? `${flatAssociationName}_${refInTarget.as}` : refInTarget.ref[0],
+                ],
+              },
             })
           } else {
             // `select from <assoc>` to `where exists` expansion
@@ -1398,7 +1398,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
               sourceSide: {
                 ref: [refInSource.as ? `${flatAssociationName}_${refInSource.as}` : refInSource.ref[0]],
               },
-              targetSide: { ref: [targetSideRefLink.alias, ...refInTarget.ref] }
+              targetSide: { ref: [targetSideRefLink.alias, ...refInTarget.ref] },
             })
           }
         }
@@ -1445,11 +1445,11 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     const SELECT = {
       from: {
         ref: [localized(assocTarget(nextDefinition) || nextDefinition)],
-        as: next.alias
+        as: next.alias,
       },
       columns: [
         {
-          val: 1
+          val: 1,
           // as: 'dummy'
         },
       ],
@@ -1532,7 +1532,7 @@ module.exports = Object.assign(cqn4sql, {
   // for own tests only:
   eqOps,
   notEqOps,
-  notSupportedOps
+  notSupportedOps,
 })
 
 function copy(obj) {

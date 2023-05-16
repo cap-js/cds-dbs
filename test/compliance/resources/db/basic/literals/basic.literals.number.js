@@ -12,7 +12,7 @@ module.exports = [
     integer64: '9223372036854775807',
   },
   {
-    integer64: '-9223372036854775808'
+    integer64: '-9223372036854775808',
   } /* REVISIT: requires output converters to maintain accuracy
   {
     double: 3.141592653589793,

@@ -12,8 +12,8 @@ describe('delete on rename', () => {
       otherName2Rename: 'some name2',
       childrenRename: [
         { IDRename: 1, otherNameRename: 'children name', otherName2Rename: 'children name 1' },
-        { IDRename: 2, otherNameRename: 'children name', otherName2Rename: 'children name 2' }
-      ]
+        { IDRename: 2, otherNameRename: 'children name', otherName2Rename: 'children name 2' },
+      ],
     })
     expect(res).toMatchObject({ status: 201 })
 

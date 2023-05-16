@@ -20,7 +20,7 @@ describe('in where', () => {
     expect(cqn4sql(original, model)).to.deep.equal(
       CQL`
       SELECT from bookshop.Books as Books { Books.ID } where Books.ID = null
-     `
+     `,
     )
   })
   it('replace `not in <empty array>` in where', () => {
@@ -30,12 +30,12 @@ describe('in where', () => {
     expect(cqn4sql(original, model)).to.deep.equal(
       CQL`
       SELECT from bookshop.Books as Books { Books.ID } where Books.ID is not null
-     `
+     `,
     )
   })
   it('replace `in <empty array>` in join condition induced by infix filter', () => {
     const query = SELECT.from('bookshop.Books').columns({
-      ref: [{ id: 'author', where: [{ ref: ['name'] }, 'not', 'in', { list: [] }] }, 'ID']
+      ref: [{ id: 'author', where: [{ ref: ['name'] }, 'not', 'in', { list: [] }] }, 'ID'],
     })
 
     expect(cqn4sql(query, model)).to.deep.equal(
@@ -44,14 +44,14 @@ describe('in where', () => {
         left join bookshop.Authors as author
           on author.ID = Books.author_ID and author.name is not null
        { author.ID as author_ID }
-     `
+     `,
     )
   })
   it('replace `in <empty array>` in where exists subquery induced by scoped query', () => {
     const query = SELECT.from({
-      ref: [{ id: 'bookshop.Books', where: [{ ref: ['title'] }, 'not', 'in', { list: [] }] }, 'author']
+      ref: [{ id: 'bookshop.Books', where: [{ ref: ['title'] }, 'not', 'in', { list: [] }] }, 'author'],
     }).columns({
-      ref: ['ID']
+      ref: ['ID'],
     })
 
     expect(cqn4sql(query, model)).to.deep.equal(
@@ -61,7 +61,7 @@ describe('in where', () => {
        where exists (
         SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and Books.title is not null
        )
-     `
+     `,
     )
   })
 })

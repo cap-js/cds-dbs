@@ -13,7 +13,7 @@
   await SELECT`from ${Books} { title as book, author[ID<170].name as author, genre.name as genre }`
   await SELECT`from ${Books} { title as book, author.name as author, genre.name as genre }`.where({
     'author.name': { like: 'Ed%' },
-    or: { 'author.ID': 170 }
+    or: { 'author.ID': 170 },
   })
   await SELECT`from ${Books} { title as book, author.name as author, genre.name as genre } where author.name like 'Ed%' or author.ID=170`
   await SELECT`from ${Books}:author[name like 'Ed%' or ID=170] { books.title as book, name as author, books.genre.name as genre }`
@@ -44,12 +44,12 @@
         join: 'left',
         args: [
           { ref: ['sap.capire.bookshop.Books'], as: 'Books' },
-          { ref: ['sap.capire.bookshop.Authors'], as: 'author' }
+          { ref: ['sap.capire.bookshop.Authors'], as: 'author' },
         ],
-        on: [{ ref: ['author', 'ID'] }, '=', { ref: ['Books', 'author_ID'] }]
+        on: [{ ref: ['author', 'ID'] }, '=', { ref: ['Books', 'author_ID'] }],
       },
-      columns: [{ ref: ['Books', 'ID'] }, { ref: ['Books', 'title'] }, { ref: ['author', 'name'], as: 'author_name' }]
-    }
+      columns: [{ ref: ['Books', 'ID'] }, { ref: ['Books', 'title'] }, { ref: ['author', 'name'], as: 'author_name' }],
+    },
   }
 
   let lq1 = {
@@ -59,11 +59,11 @@
         join: 'left',
         args: [
           { ref: ['localized.sap.capire.bookshop.Books'], as: 'Books' },
-          { ref: ['localized.sap.capire.bookshop.Authors'], as: 'author' }
+          { ref: ['localized.sap.capire.bookshop.Authors'], as: 'author' },
         ],
-        on: [{ ref: ['author', 'ID'] }, '=', { ref: ['Books', 'author_ID'] }]
+        on: [{ ref: ['author', 'ID'] }, '=', { ref: ['Books', 'author_ID'] }],
       },
-      columns: [{ ref: ['Books', 'ID'] }, { ref: ['Books', 'title'] }, { ref: ['author', 'name'], as: 'author_name' }]
-    }
+      columns: [{ ref: ['Books', 'ID'] }, { ref: ['Books', 'title'] }, { ref: ['author', 'name'], as: 'author_name' }],
+    },
   }
 }

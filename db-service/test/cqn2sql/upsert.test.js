@@ -12,8 +12,8 @@ describe('upsert', () => {
       UPSERT: {
         into: 'Foo2',
         columns: ['ID'],
-        rows: [[1], [9]]
-      }
+        rows: [[1], [9]],
+      },
     }
 
     const { sql, entries } = cqn2sql(cqnUpsert)

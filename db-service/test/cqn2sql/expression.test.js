@@ -165,7 +165,7 @@ describe('expressions', () => {
         where: [
           { xpr: [{ ref: ['x'] }, '!=', { val: 5 }] },
           'or',
-          { xpr: [{ ref: ['x'] }, '=', { val: null }] }
+          { xpr: [{ ref: ['x'] }, '=', { val: null }] },
           // We should never have supported that!
           // 'or',
           // { xpr: [{ val: null }, '=', { ref: ['x'] }] }
@@ -174,7 +174,7 @@ describe('expressions', () => {
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is not 5) or (Foo.x is NULL)'
+      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is not 5) or (Foo.x is NULL)',
     )
   })
 

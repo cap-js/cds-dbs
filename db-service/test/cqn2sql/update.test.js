@@ -107,8 +107,8 @@ describe('.update', () => {
     const cqnUpdate = {
       UPDATE: {
         entity: { ref: ['Foo2'] },
-        with: { ID: { val: 1 }, name: { val: "'asd'" }, something: { val: 'bla' } /* foo: {ref: 'Foo'} */ }
-      }
+        with: { ID: { val: 1 }, name: { val: "'asd'" }, something: { val: 'bla' } /* foo: {ref: 'Foo'} */ },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -120,8 +120,8 @@ describe('.update', () => {
       UPDATE: {
         entity: 'Foo2',
         with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 6 } },
-        data: { a: 2 }
-      }
+        data: { a: 2 },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -132,8 +132,8 @@ describe('.update', () => {
   test.skip('test with subselect - sflight example', () => {
     const qlUpdate = UPDATE(`Travel`).with({
       TotalPrice: CXL`coalesce (BookingFee, 0) + ${SELECT`coalesce (sum (FlightPrice + ${SELECT`coalesce (sum (Price),0)`.from(
-        `BookingSupplement`
-      ).where`to_Booking_BookingUUID = BookingUUID`}),0)`.from(`Booking`).where`to_Travel_TravelUUID = TravelUUID`}`
+        `BookingSupplement`,
+      ).where`to_Booking_BookingUUID = BookingUUID`}),0)`.from(`Booking`).where`to_Travel_TravelUUID = TravelUUID`}`,
     })
     const { sql, values } = cqn2sql(qlUpdate)
     expect({ sql, values }).toMatchSnapshot()

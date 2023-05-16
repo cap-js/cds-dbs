@@ -104,7 +104,7 @@ class CQN2SQLRenderer {
     LargeBinary: () => 'BLOB',
     Association: () => false,
     Composition: () => false,
-    array: () => 'NCLOB'
+    array: () => 'NCLOB',
     // HANA types
     /* Disabled as these types are linked to normal cds types
     'cds.hana.TINYINT': () => 'REAL',
@@ -198,7 +198,7 @@ class CQN2SQLRenderer {
       const {
         join,
         args: [left, right],
-        on
+        on,
       } = from
       return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.xpr({ xpr: on })}`
     }
@@ -223,7 +223,7 @@ class CQN2SQLRenderer {
             this.expr(c) +
             (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
             (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
     )
   }
 
@@ -263,7 +263,7 @@ class CQN2SQLRenderer {
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
-      !!q.UPSERT
+      !!q.UPSERT,
     )
     const extraction = extractions
       .map(c => {
@@ -327,10 +327,10 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements || {}
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
-      c => c in elements && !elements[c].virtual && !elements[c].isAssociation
+      c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
     this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
-      cqn4sql(INSERT.as)
+      cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
     return this.sql
@@ -372,7 +372,7 @@ class CQN2SQLRenderer {
 
   UPDATE(q) {
     const {
-        UPDATE: { entity, with: _with, data, where }
+        UPDATE: { entity, with: _with, data, where },
       } = q,
       elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
@@ -524,7 +524,7 @@ class CQN2SQLRenderer {
           .filter(
             e =>
               (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual)) &&
-              !columns.find(c => c.name === e)
+              !columns.find(c => c.name === e),
           )
           .map(name => ({ name, sql: 'NULL' }))
 
@@ -549,13 +549,13 @@ class CQN2SQLRenderer {
         const d = element.default
         if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
           extract = `(CASE WHEN json_type(value,'$.${name}') IS NULL THEN ${this.defaultValue(
-            d.val
+            d.val,
           )} ELSE ${extract} END)`
         }
       }
       return {
         name,
-        sql: converter(managed === undefined ? extract : `coalesce(${extract}, ${managed})`, element)
+        sql: converter(managed === undefined ? extract : `coalesce(${extract}, ${managed})`, element),
       }
     })
   }

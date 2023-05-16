@@ -202,10 +202,10 @@ describe('assign element onto columns', () => {
             elements: {
               id: { type: 'cds.String' },
               locale: { type: 'cds.String' }, // deprecated
-              tenant: { type: 'cds.String' } // deprecated
-            }
-          }
-        }
+              tenant: { type: 'cds.String' }, // deprecated
+            },
+          },
+        },
       }
       let query = CQL`SELECT from bookshop.Bar {
         $user,

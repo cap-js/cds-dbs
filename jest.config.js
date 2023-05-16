@@ -3,7 +3,7 @@
 const enableMap = {
   postgres: 'postgres',
   sqlite: 'sqlite',
-  test: '<rootDir>/test/' // Allow to explicitly run compliance tests
+  test: '<rootDir>/test/', // Allow to explicitly run compliance tests
 }
 Object.keys(enableMap).forEach(k => (enableMap['-' + k] = enableMap[k]))
 
@@ -20,6 +20,6 @@ module.exports = {
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context
-    '<rootDir>/test/'
-  ].filter(e => !enable.includes(e))
+    '<rootDir>/test/',
+  ].filter(e => !enable.includes(e)),
 }

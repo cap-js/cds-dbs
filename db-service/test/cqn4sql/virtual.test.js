@@ -40,7 +40,7 @@ describe('virtual fields', () => {
         stru.nested.nu,
         stru.nested.nv
       }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
         Foo.ID,
@@ -67,7 +67,7 @@ describe('virtual fields', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Foo { ID, virtualField as x }
         order by ID, x, Foo.virtualField`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID }
         order by ID`)
@@ -82,7 +82,7 @@ describe('virtual fields', () => {
         ID,
         virtualField - 2 * stru.v + stru.nested.nv as c
       } where virtualField = 2 * stru.v + stru.nested.nv`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
         Foo.ID,
@@ -93,7 +93,7 @@ describe('virtual fields', () => {
   it('leave untouched also in simple conditions', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { ID } where ID = 5 and virtualField = 6`, model)
     expect(query).to.deep.equal(
-      CQL`SELECT from bookshop.Foo as Foo { Foo.ID } where Foo.ID = 5 and Foo.virtualField = 6`
+      CQL`SELECT from bookshop.Foo as Foo { Foo.ID } where Foo.ID = 5 and Foo.virtualField = 6`,
     )
   })
 })

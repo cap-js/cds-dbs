@@ -22,7 +22,7 @@ describe('Cloning queries', () => {
     )
 
     expect(
-      JSON.stringify(q1) //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
+      JSON.stringify(q1), //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
     ).to.eql(
       JSON.stringify(q2.flat()), //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
     )

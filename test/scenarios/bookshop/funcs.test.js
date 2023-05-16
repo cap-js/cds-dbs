@@ -214,7 +214,7 @@ describe('Bookshop - Functions', () => {
     test.skip('totaloffsetminutes', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`
+        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)

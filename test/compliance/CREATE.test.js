@@ -45,15 +45,15 @@ describe('CREATE', () => {
           .run(async tx => {
             await tx.run({
               DROP: {
-                entity: table
-              }
+                entity: table,
+              },
             })
 
             if (entity.projection) {
               await tx.run({
                 DROP: {
-                  entity: entity.projection.from.ref[0]
-                }
+                  entity: entity.projection.from.ref[0],
+                },
               })
             }
           })
@@ -73,9 +73,9 @@ describe('CREATE', () => {
           deploy = deploy.then(() =>
             tx.run({
               CREATE: {
-                entity: table
-              }
-            })
+                entity: table,
+              },
+            }),
           )
           await deploy.catch(() => {})
         })
@@ -87,15 +87,15 @@ describe('CREATE', () => {
           .run(async tx => {
             await tx.run({
               DROP: {
-                entity: table
-              }
+                entity: table,
+              },
             })
 
             if (entity.projection) {
               await tx.run({
                 DROP: {
-                  entity: entity.projection.from.ref[0]
-                }
+                  entity: entity.projection.from.ref[0],
+                },
               })
             }
           })

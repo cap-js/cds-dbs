@@ -323,8 +323,8 @@ describe('cqn2sql', () => {
       const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }]
-        }
+          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }],
+        },
       })
       expect({ sql, values }).toMatchSnapshot()
     })

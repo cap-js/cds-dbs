@@ -29,7 +29,7 @@ describe('Repetitive calls to cqn4sql must work', () => {
       WHERE EXISTS (
         SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
       )
-     `
+     `,
     )
   })
 

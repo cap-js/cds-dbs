@@ -22,7 +22,7 @@ describe('EXISTS predicate in where', () => {
     it('exists predicate for assoc combined with path expression in xpr', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where exists author and ((author.name + 's') = 'Schillers')`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books
@@ -104,7 +104,7 @@ describe('EXISTS predicate in where', () => {
     it('exists predicate in xpr combined with infix filter', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where ( ( exists author[name = 'Schiller'] ) + 2 ) = 'foo'`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
         WHERE (
@@ -695,7 +695,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
       CQL`
       SELECT from bookshop.Books[not (price < 12.13)] { Books.ID } where stock < 11
       `,
-      model
+      model,
     )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`,
@@ -988,7 +988,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
                 )  or books2.title = 'Sturmhöhe'
               )
             )
-      `
+      `,
     )
   })
 

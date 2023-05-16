@@ -30,7 +30,7 @@ const cdsTest = module.exports.test
 
 jest.useFakeTimers({
   doNotFake: ['setImmediate'],
-  now: new Date('2000-01-01T00:00:00.000Z')
+  now: new Date('2000-01-01T00:00:00.000Z'),
 })
 
 let isolateCounter = 0
@@ -87,7 +87,7 @@ module.exports.test = Object.setPrototypeOf(function () {
         // Create one database for each overall test execution
         database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
         // Create one tenant for each test suite
-        tenant: 'T' + hash.digest('hex')
+        tenant: 'T' + hash.digest('hex'),
       }
 
       // If database driver supports database and tenant isolation run test in isolation
@@ -113,7 +113,7 @@ module.exports.test = Object.setPrototypeOf(function () {
           if (next) {
             next.resolve({
               done: this.done.bind(this),
-              sub: new Queue(this)
+              sub: new Queue(this),
             })
           } else {
             this.busy = false
@@ -126,7 +126,7 @@ module.exports.test = Object.setPrototypeOf(function () {
         then(resolve, reject) {
           const prom = {
             resolve: resolve,
-            reject: reject
+            reject: reject,
           }
 
           if (this.busy) {
@@ -136,7 +136,7 @@ module.exports.test = Object.setPrototypeOf(function () {
             this.busy = true
             return resolve({
               done: this.done.bind(this),
-              sub: new Queue(this)
+              sub: new Queue(this),
             })
           }
         }
@@ -154,8 +154,8 @@ module.exports.test = Object.setPrototypeOf(function () {
             validate: () => true,
             options: {
               acquireTimeoutMillis: 1000,
-              destroyTimeoutMillis: 1000
-            }
+              destroyTimeoutMillis: 1000,
+            },
           }
 
           if (db.options.credentials) {
@@ -174,7 +174,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                   expect(arguments).toMatchSnapshot()
                   await new Promise(res => setImmediate(res))
                   const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || ''
+                    testName: expect.getState().currentTestName || '',
                     // isInline: false,
                   })
                   const ret = snapshotState._initialData[next.key]
@@ -191,7 +191,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                   expect(arguments).toMatchSnapshot()
                   await new Promise(res => setImmediate(res))
                   const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || ''
+                    testName: expect.getState().currentTestName || '',
                     // isInline: false,
                   })
                   const ret = snapshotState._initialData[next.key]
@@ -208,7 +208,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                   expect(arguments).toMatchSnapshot()
                   await new Promise(res => setImmediate(res))
                   const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || ''
+                    testName: expect.getState().currentTestName || '',
                     // isInline: false,
                   })
                   const ret = snapshotState._initialData[next.key]
@@ -217,7 +217,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                 } finally {
                   done()
                 }
-              }
+              },
             }
           }
 
@@ -228,7 +228,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               expect(sql).toMatchSnapshot()
               await new Promise(res => setImmediate(res))
               const next = snapshotState.match({
-                testName: expect.getState().currentTestName || ''
+                testName: expect.getState().currentTestName || '',
                 // isInline: false,
               })
               const ret = snapshotState._initialData[next.key]
@@ -284,7 +284,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               } finally {
                 done()
               }
-            }
+            },
           }
         }
 

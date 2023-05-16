@@ -13,8 +13,8 @@ describe('create with select statements', () => {
     const cqnCreate = {
       CREATE: {
         entity: 'Foo',
-        as: cqn.select
-      }
+        as: cqn.select,
+      },
     }
     const { sql } = cqn2sql(cqnCreate)
     expect({ sql }).toMatchSnapshot()
@@ -24,8 +24,8 @@ describe('create with select statements', () => {
   test('Generate SQL from CREATE stmt with entity name ', () => {
     const cqnCreate = {
       CREATE: {
-        entity: 'Foo'
-      }
+        entity: 'Foo',
+      },
     }
     const { sql } = cqn2sql(cqnCreate)
     expect({ sql }).toMatchSnapshot()
@@ -34,8 +34,8 @@ describe('create with select statements', () => {
   xtest('Generate SQL from CREATE stmt with CSN entity', () => {
     const cqnCreate = {
       CREATE: {
-        entity: cds.model.definitions['Books']
-      }
+        entity: cds.model.definitions['Books'],
+      },
     }
     const { sql } = cqn2sql(cqnCreate)
     expect({ sql }).toMatchSnapshot()

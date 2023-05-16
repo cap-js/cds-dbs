@@ -17,7 +17,7 @@ describe('query clauses', () => {
     expect(cqn4sql(original, model)).to.deep.equal(
       CQL`
       SELECT from bookshop.Books as Books { Books.ID } limit 50 offset 25
-     `
+     `,
     )
   })
 
@@ -34,7 +34,7 @@ describe('query clauses', () => {
         order by Books.ID asc nulls first,
                  1 + 1 desc nulls last,
                  func() desc nulls first
-     `
+     `,
     )
   })
   it('`sort` and `nulls` are passed along also to flat field in order by', () => {
@@ -43,7 +43,7 @@ describe('query clauses', () => {
       CQL`
       SELECT from bookshop.Books as Books { Books.ID }
         order by Books.dedication_sub_foo asc nulls first
-     `
+     `,
     )
   })
   it('preserves cast property on column', () => {

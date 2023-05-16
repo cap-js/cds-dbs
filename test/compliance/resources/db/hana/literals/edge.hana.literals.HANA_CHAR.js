@@ -4,8 +4,8 @@ module.exports = [
     char: null,
   },
   {
-    char: 'a'
-  }
+    char: 'a',
+  },
   /*
   {
     char: 'ab',

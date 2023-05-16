@@ -321,8 +321,8 @@ describe('Unfold expands on associations to special subselects', () => {
             ref: ['author'],
             expand: [
               {
-                ref: ['name']
-              }
+                ref: ['name'],
+              },
             ],
             where: ['exists', { ref: ['books', { id: 'author', where: [{ ref: ['name'] }, '=', { val: 'King' }] }] }],
             limit: {

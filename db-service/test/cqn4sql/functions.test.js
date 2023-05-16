@@ -14,8 +14,8 @@ describe('functions', () => {
         SELECT: {
           from: { ref: ['bookshop.Books'] },
           columns: [{ ref: ['ID'] }],
-          where: [{ func: 'current_date' }, '=', { val: 'today' }]
-        }
+          where: [{ func: 'current_date' }, '=', { val: 'today' }],
+        },
       }
       let expected = CQL`
         SELECT Books.ID from bookshop.Books as Books

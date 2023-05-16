@@ -14,7 +14,7 @@ describe('negative', () => {
   describe('filters', () => {
     it('filter must not be provided along a structure in column', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
-        /A filter can only be provided when navigating along associations/
+        /A filter can only be provided when navigating along associations/,
       )
     })
     it('filter must not be provided along a structure in from path expression', () => {
@@ -148,7 +148,7 @@ describe('negative', () => {
     // SQL would allow that, but different databases may return different column names
     it('duplicate field name', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, ID }`)).to.throw(
-        /Duplicate definition of element “ID”/
+        /Duplicate definition of element “ID”/,
       )
     })
 
@@ -224,13 +224,13 @@ describe('negative', () => {
   describe('restrictions', () => {
     it('UNION queries are not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books union all select from bookshop.Authors`)).to.throw(
-        /”UNION” based queries are not supported/
+        /”UNION” based queries are not supported/,
       )
     })
 
     it('selecting from structures is not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books:dedication.addressee.address`, model)).to.throw(
-        /Query source must be a an entity or an association/
+        /Query source must be a an entity or an association/,
       )
     })
 
@@ -240,8 +240,8 @@ describe('negative', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Authors { ID } where name = title) as foo }`,
-          model
-        )
+          model,
+        ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
   })

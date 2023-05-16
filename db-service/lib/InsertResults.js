@@ -7,7 +7,7 @@ const USAGE_SAMPLE = async () => {
   const [Emily, Charlotte] = await INSERT.into(Authors, [{ name: 'Emily Brontëe' }, { name: 'Charlotte Brontëe' }])
   await INSERT.into(Books, [
     { title: 'Wuthering Heights', author: Emily },
-    { title: 'Jane Eyre', author: Charlotte }
+    { title: 'Jane Eyre', author: Charlotte },
   ])
 }
 

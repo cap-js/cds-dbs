@@ -9,8 +9,8 @@ describe('drop', () => {
   test('test drop table with string entity', () => {
     const { sql } = cqn2sql({
       DROP: {
-        entity: 'Foo'
-      }
+        entity: 'Foo',
+      },
     })
     expect({ sql }).toMatchSnapshot()
   })
@@ -18,8 +18,8 @@ describe('drop', () => {
     const { sql } = cqn2sql({
       DROP: {
         entity: 'Foo',
-        table: 'Foo'
-      }
+        table: 'Foo',
+      },
     })
     expect({ sql }).toMatchSnapshot()
   })
@@ -27,8 +27,8 @@ describe('drop', () => {
   xtest('test drop table with ref', () => {
     const { sql } = cqn2sql({
       DROP: {
-        table: { ref: ['Foo'] }
-      }
+        table: { ref: ['Foo'] },
+      },
     })
     expect({ sql }).toMatchSnapshot()
     // Cannot destructure property 'ref' of 'from' as it is undefined.
@@ -37,8 +37,8 @@ describe('drop', () => {
   xtest('test drop table with ref', () => {
     const { sql } = cqn2sql({
       DROP: {
-        view: { ref: ['Foo'] }
-      }
+        view: { ref: ['Foo'] },
+      },
     })
     expect({ sql }).toMatchSnapshot()
     // Cannot destructure property 'ref' of 'from' as it is undefined.
@@ -47,8 +47,8 @@ describe('drop', () => {
   xtest('test drop view with string view', () => {
     const { sql } = cqn2sql({
       DROP: {
-        view: 'Foo'
-      }
+        view: 'Foo',
+      },
     })
     expect({ sql }).toMatchSnapshot()
     //TypeError: Cannot destructure property 'ref' of 'from' as it is undefined.
@@ -57,8 +57,8 @@ describe('drop', () => {
   xtest('test drop table with CQN entity', () => {
     const { sql } = cqn2sql({
       DROP: {
-        entity: { ref: 'Books' }
-      }
+        entity: { ref: 'Books' },
+      },
     })
     expect({ sql }).toMatchSnapshot()
     //"B" not found in the definitions of your model
