@@ -141,19 +141,39 @@ class SQLiteService extends SQLService {
     }
   }
 
-// SQLite doesn't support streaming, the whole data is read from the database
-  async onStream(query) {
-    delete query._streaming
-    const result = await super.onSELECT({query, data: {}})
-    if (result == null || result.length === 0) return
-    let val = Array.isArray(result) ? Object.values(result[0])[0] : Object.values(result)[0]
-    if (val === null) return null
+  // overrides generic onSTREAM 
+  // SQLite doesn't support streaming, the whole data is read from/written into the database
+  async onSTREAM(req) {
+    const { sql, values, entries } = this.cqn2sql (req.query)
+    // writing stream
+    if (req.query.STREAM.into) {
+      values.unshift(await this.STREAM_data(entries[0][0]))
+      const ps = await this.prepare(sql)
+      return (await ps.run(values)).changes
+    }
+    // reading stream
+    const ps = await this.prepare(sql)
+    let result = await ps.all(values)
+    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    const val = Object.values(result[0])[0]
+    if (val === null) return val
     const stream_ = new Readable()
-    stream_.push(Buffer.from(val, 'base64'))
+    stream_.push(val)
     stream_.push(null)
     return stream_
   }
 
+  STREAM_data(value) {
+    return new Promise((resolve,reject) => {
+      const chunks = []
+      value.on('data', chunk => chunks.push(chunk))
+      value.on('end', () => resolve(Buffer.concat(chunks)))
+      value.on('error', (err) => {
+        value.removeAllListeners('error')
+        reject(err)
+      })
+    })
+  }
 }
 
 // function _not_null (err) {
