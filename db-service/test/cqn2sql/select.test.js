@@ -154,9 +154,6 @@ describe('cqn2sql', () => {
       const toThrow = () => {
         return cqn2sql(cqn)
       }
-      const toThrow = () => {
-        return cqn2sql(cqn)
-      }
       expect(toThrow).toThrowError('Unsupported expr: or')
     })
 
