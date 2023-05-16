@@ -15,7 +15,7 @@ describe('Queries without models', () => {
     const entries = await SELECT.from(Schema)
     expect(entries).to.containSubset([
       { type: 'table', name: 'T1' },
-      { type: 'table', name: 'T2' }
+      { type: 'table', name: 'T2' },
     ])
   })
 
@@ -24,7 +24,7 @@ describe('Queries without models', () => {
     const entries = await SELECT('type', 'name').from(Schema)
     expect(entries).to.containSubset([
       { type: 'table', name: 'T1' },
-      { type: 'table', name: 'T2' }
+      { type: 'table', name: 'T2' },
     ])
   })
 
@@ -35,7 +35,7 @@ describe('Queries without models', () => {
     })
     expect(entries).to.containSubset([
       { type: 'table', name: 'T1' },
-      { type: 'table', name: 'T2' }
+      { type: 'table', name: 'T2' },
     ])
   })
 
@@ -58,7 +58,7 @@ describe('Queries not in models', () => {
     const entries = await SELECT.from(Schema)
     expect(entries).to.containSubset([
       { type: 'table', name: 'T1' },
-      { type: 'table', name: 'T2' }
+      { type: 'table', name: 'T2' },
     ])
   })
 

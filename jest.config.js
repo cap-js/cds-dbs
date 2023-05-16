@@ -3,7 +3,7 @@
 const enableMap = {
   pg: 'postgres',
   postgres: 'postgres',
-  test: '<rootDir>/test/' // Allow to explicitly run compliance tests
+  test: '<rootDir>/test/', // Allow to explicitly run compliance tests
 }
 Object.keys(enableMap).forEach(k => (enableMap['-' + k] = enableMap[k]))
 
@@ -22,6 +22,6 @@ module.exports = {
     // Exclude compliance tests without database context
     '<rootDir>/test/',
     // Excluding tests which don't run locally - find better ways to control that
-    'postgres'
-  ].filter(e => !enable.includes(e))
+    'postgres',
+  ].filter(e => !enable.includes(e)),
 }

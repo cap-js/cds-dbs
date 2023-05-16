@@ -1,12 +1,12 @@
 module.exports.select = {
   SELECT: {
-    from: { ref: ['Foo'] }
-  }
+    from: { ref: ['Foo'] },
+  },
 }
 module.exports.selectF = {
   SELECT: {
-    from: { ref: ['Foo2'] }
-  }
+    from: { ref: ['Foo2'] },
+  },
 }
 module.exports.selectContainsOneColumn = {
   SELECT: {
@@ -14,87 +14,87 @@ module.exports.selectContainsOneColumn = {
     where: [
       {
         func: 'contains',
-        args: [{ list: [{ ref: ['b'] }] }, { val: '5' }]
-      }
-    ]
-  }
+        args: [{ list: [{ ref: ['b'] }] }, { val: '5' }],
+      },
+    ],
+  },
 }
 
 module.exports.selectWithColumns = {
   SELECT: {
     from: { ref: ['Foo'] },
-    columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }]
-  }
+    columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
+  },
 }
 module.exports.selectWithColumnsEmptyOrderBy = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    orderBy: []
-  }
+    orderBy: [],
+  },
 }
 module.exports.selectWithColumnsWithAsterisk = {
   SELECT: {
     from: { ref: ['Foo'] },
-    columns: ['*']
-  }
+    columns: ['*'],
+  },
 }
 module.exports.orderByWithAlias = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { func: 'count', args: [{ ref: ['x'] }], as: 'count1' }],
-    orderBy: [{ ref: ['count1'], sort: 'asc' }]
-  }
+    orderBy: [{ ref: ['count1'], sort: 'asc' }],
+  },
 }
 module.exports.selectDistinct = {
   SELECT: {
     distinct: true,
     from: { ref: ['Foo'] },
-    columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }]
-  }
+    columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
+  },
 }
 module.exports.selectWithCSN = {
   SELECT: {
-    from: { ref: ['Foo'], as: 'T1' }
+    from: { ref: ['Foo'], as: 'T1' },
   },
-  [Symbol.for('sap.cds.model')]: { test: 'model' }
+  [Symbol.for('sap.cds.model')]: { test: 'model' },
 }
 
 module.exports.selectWhereCqn = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ xpr: [{ ref: ['x'] }, '=', { val: 9 }] }]
-  }
+    where: [{ xpr: [{ ref: ['x'] }, '=', { val: 9 }] }],
+  },
 }
 module.exports.selectWhereWithOnePlaceholderCqn = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-  }
+    where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+  },
 }
 module.exports.selectWhereWithRefStringParamTrueCqn = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ ref: ['x'] }, '=', { ref: ['y'], param: true }]
-  }
+    where: [{ ref: ['x'] }, '=', { ref: ['y'], param: true }],
+  },
 }
 module.exports.selectWhereWithRefIntParamTrueCqn = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ ref: ['x'] }, '=', { ref: [7], param: true }]
-  }
+    where: [{ ref: ['x'] }, '=', { ref: [7], param: true }],
+  },
 }
 module.exports.selectWhereTwoCqn = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ xpr: [{ ref: ['x'] }, '+', { val: 9 }] }, '=', { val: 9 }]
-  }
+    where: [{ xpr: [{ ref: ['x'] }, '+', { val: 9 }] }, '=', { val: 9 }],
+  },
 }
 module.exports.selectWhereList = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ ref: ['x'] }, 'IN', { list: [{ val: 1 }, { val: 2 }, { val: 3 }] }]
-  }
+    where: [{ ref: ['x'] }, 'IN', { list: [{ val: 1 }, { val: 2 }, { val: 3 }] }],
+  },
 }
 module.exports.selectWhereSelect = {
   SELECT: {
@@ -107,11 +107,11 @@ module.exports.selectWhereSelect = {
         SELECT: {
           from: { ref: ['Foo'] },
           columns: [{ ref: ['a'] }],
-          where: [{ ref: ['x'] }, '<', { val: 9 }]
-        }
-      }
-    ]
-  }
+          where: [{ ref: ['x'] }, '<', { val: 9 }],
+        },
+      },
+    ],
+  },
 }
 module.exports.selectComplexWhere = {
   SELECT: {
@@ -132,11 +132,11 @@ module.exports.selectComplexWhere = {
         SELECT: {
           from: { ref: ['Foo'] },
           columns: [{ ref: ['a'] }],
-          where: [{ ref: ['x'] }, '<', { val: 9 }]
-        }
-      }
-    ]
-  }
+          where: [{ ref: ['x'] }, '<', { val: 9 }],
+        },
+      },
+    ],
+  },
 }
 module.exports.selectWhereExists = {
   SELECT: {
@@ -145,11 +145,11 @@ module.exports.selectWhereExists = {
       'exists',
       {
         SELECT: {
-          from: { ref: ['Foo2'] }
-        }
-      }
-    ]
-  }
+          from: { ref: ['Foo2'] },
+        },
+      },
+    ],
+  },
 }
 module.exports.selectWhereNestedExists = {
   SELECT: {
@@ -178,35 +178,35 @@ module.exports.selectWhereNestedExists = {
                   { ref: ['T1', 'ID'] },
                   '=',
                   {
-                    ref: ['a']
-                  }
-                ]
-              }
+                    ref: ['a'],
+                  },
+                ],
+              },
             },
             'and',
             { ref: ['T2', 'ID'] },
             '=',
             {
-              ref: ['ID']
-            }
-          ]
-        }
-      }
-    ]
-  }
+              ref: ['ID'],
+            },
+          ],
+        },
+      },
+    ],
+  },
 }
 module.exports.selectHaving = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    having: [{ ref: ['x'] }, '<', { val: 9 }]
-  }
+    having: [{ ref: ['x'] }, '<', { val: 9 }],
+  },
 }
 module.exports.selectFuncitonWithoutAlias = {
   SELECT: {
     from: { ref: ['Foo'] },
-    columns: [{ xpr: [{ ref: ['x'] }, '+', { val: 1 }] }]
-  }
+    columns: [{ xpr: [{ ref: ['x'] }, '+', { val: 1 }] }],
+  },
 }
 module.exports.selectAggregationLimitOrder = {
   SELECT: {
@@ -216,8 +216,8 @@ module.exports.selectAggregationLimitOrder = {
     groupBy: [{ ref: ['x'] }],
     having: [{ ref: ['x'] }, '<', { val: 9 }],
     orderBy: [{ ref: ['c'], sort: 'asc' }],
-    limit: { rows: { val: 11 }, offset: { val: 22 } }
-  }
+    limit: { rows: { val: 11 }, offset: { val: 22 } },
+  },
 }
 module.exports.selectSubSelect = {
   SELECT: {
@@ -229,56 +229,56 @@ module.exports.selectSubSelect = {
       { xpr: [{ ref: ['x'] }, '+', { val: 2 }], as: 'D' },
       {
         SELECT: {
-          from: { ref: ['Foo'] }
+          from: { ref: ['Foo'] },
         },
-        as: 'E'
-      }
-    ]
-  }
+        as: 'E',
+      },
+    ],
+  },
 }
 module.exports.groupBy = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }],
-    groupBy: [{ ref: ['x'] }, { ref: ['c'] }]
-  }
+    groupBy: [{ ref: ['x'] }, { ref: ['c'] }],
+  },
 }
 
 module.exports.one = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    one: true
-  }
+    one: true,
+  },
 }
 module.exports.oneWithLimit = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
     one: true,
-    limit: { rows: { val: 2 }, offset: { val: 5 } }
-  }
+    limit: { rows: { val: 2 }, offset: { val: 5 } },
+  },
 }
 module.exports.limit = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    limit: { rows: { val: 1 } }
-  }
+    limit: { rows: { val: 1 } },
+  },
 }
 module.exports.limitOffset = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    limit: { rows: { val: 1 }, offset: { val: 2 } }
-  }
+    limit: { rows: { val: 1 }, offset: { val: 2 } },
+  },
 }
 
 module.exports.selectWithFunctionWithoutAlias = {
   SELECT: {
     from: { ref: ['Foo'] },
-    columns: [{ func: 'min', args: [{ ref: ['x'] }] }]
-  }
+    columns: [{ func: 'min', args: [{ ref: ['x'] }] }],
+  },
 }
 
 module.exports.selectWithFunctionsWithoutAlias = {
@@ -287,9 +287,9 @@ module.exports.selectWithFunctionsWithoutAlias = {
     columns: [
       { func: 'min', args: [{ ref: ['x'] }] },
       { func: 'count', args: [{ val: 1 }] },
-      { func: 'sum', args: [{ ref: ['x'] }] }
-    ]
-  }
+      { func: 'sum', args: [{ ref: ['x'] }] },
+    ],
+  },
 }
 
 module.exports.selectWithSameFunctionsWithoutAlias = {
@@ -298,9 +298,9 @@ module.exports.selectWithSameFunctionsWithoutAlias = {
     columns: [
       { func: 'count', args: ['*'] },
       { func: 'count', args: [{ val: 1 }] },
-      { func: 'count', args: ['*'] }
-    ]
-  }
+      { func: 'count', args: ['*'] },
+    ],
+  },
 }
 
 module.exports.selectWithAggregationNew = {
@@ -311,24 +311,24 @@ module.exports.selectWithAggregationNew = {
       { ref: ['a'] },
       { func: 'count', args: ['*'], as: 'foo2' },
       { func: 'count', args: [{ val: 1 }], as: 'foo3' },
-      { func: 'sum', args: [{ ref: ['x'] }], as: 'foo4' }
-    ]
-  }
+      { func: 'sum', args: [{ ref: ['x'] }], as: 'foo4' },
+    ],
+  },
 }
 
 module.exports.selectWithCountOne = {
   SELECT: {
     from: { ref: ['Foo'] },
-    columns: [{ func: 'count', args: [{ val: 1 }] }]
-  }
+    columns: [{ func: 'count', args: [{ val: 1 }] }],
+  },
 }
 
 module.exports.selectWhereAggregationNew = {
   SELECT: {
     from: { ref: ['Foo'] },
     columns: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }],
-    where: [{ func: 'max', args: [{ ref: ['x'] }] }, '<', { val: 9 }]
-  }
+    where: [{ func: 'max', args: [{ ref: ['x'] }] }, '<', { val: 9 }],
+  },
 }
 module.exports.aliasWithInSubSelect = {
   SELECT: {
@@ -338,8 +338,8 @@ module.exports.aliasWithInSubSelect = {
       { val: 'abc', as: 'ABC' },
       {
         xpr: [{ ref: ['x'] }, '+', { val: 1 }],
-        as: 'Xpr1'
-      }
+        as: 'Xpr1',
+      },
     ],
     where: [
       '(',
@@ -357,13 +357,13 @@ module.exports.aliasWithInSubSelect = {
           from: { ref: ['Foo'] },
           columns: [
             { ref: ['a'], as: 'B' },
-            { xpr: [{ ref: ['x'] }, '-', { val: 4 }], as: 'Xpr2' }
+            { xpr: [{ ref: ['x'] }, '-', { val: 4 }], as: 'Xpr2' },
           ],
-          where: [{ ref: ['x'] }, '<', { val: 9 }]
-        }
-      }
-    ]
-  }
+          where: [{ ref: ['x'] }, '<', { val: 9 }],
+        },
+      },
+    ],
+  },
 }
 
 module.exports.aliasWithNestedExists = {
@@ -376,7 +376,7 @@ module.exports.aliasWithNestedExists = {
           from: { ref: ['Books'], as: 'T1' },
           columns: [
             { val: 1, as: 'One' },
-            { xpr: [{ ref: ['code'] }], as: 'Xpr1' }
+            { xpr: [{ ref: ['code'] }], as: 'Xpr1' },
           ],
           where: [
             { ref: ['ID'] },
@@ -389,7 +389,7 @@ module.exports.aliasWithNestedExists = {
                 from: { ref: ['Foo'], as: 'T0' },
                 columns: [
                   { val: 3, as: 'Three' },
-                  { xpr: [{ ref: ['x'] }, '+', { val: 1 }], as: 'Xpr2' }
+                  { xpr: [{ ref: ['x'] }, '+', { val: 1 }], as: 'Xpr2' },
                 ],
                 where: [
                   { ref: ['ID'] },
@@ -399,16 +399,16 @@ module.exports.aliasWithNestedExists = {
                   { ref: ['T1', 'ID'] },
                   '=',
                   {
-                    ref: ['b']
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    ]
-  }
+                    ref: ['b'],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    ],
+  },
 }
 
 module.exports.aliasWithSubSelect = {
@@ -426,19 +426,19 @@ module.exports.aliasWithSubSelect = {
             { ref: ['a'] },
             { ref: ['b'], as: 'B' },
             { val: false, as: 'False' },
-            { xpr: [{ ref: ['x'] }, '+', { val: 2 }], as: 'Xpr' }
-          ]
+            { xpr: [{ ref: ['x'] }, '+', { val: 2 }], as: 'Xpr' },
+          ],
         },
-        as: 'E'
-      }
-    ]
-  }
+        as: 'E',
+      },
+    ],
+  },
 }
 module.exports.selectWhereSmaller = {
   SELECT: {
     from: { ref: ['Foo'] },
-    where: [{ ref: ['x'] }, '<', { val: 9 }]
-  }
+    where: [{ ref: ['x'] }, '<', { val: 9 }],
+  },
 }
 module.exports.join = {
   SELECT: {
@@ -446,12 +446,12 @@ module.exports.join = {
       join: 'left',
       args: [
         { ref: ['Foo'], as: 'A' },
-        { ref: ['Foo2'], as: 'B' }
+        { ref: ['Foo2'], as: 'B' },
       ],
-      on: [{ ref: ['A', 'x'] }, '=', { ref: ['B', 'a'] }, 'AND', { ref: ['x'] }, '=', { val: 1 }]
+      on: [{ ref: ['A', 'x'] }, '=', { ref: ['B', 'a'] }, 'AND', { ref: ['x'] }, '=', { val: 1 }],
     },
-    columns: [{ ref: ['c'] }, { ref: ['b'] }, { ref: ['name'] }]
-  }
+    columns: [{ ref: ['c'] }, { ref: ['b'] }, { ref: ['name'] }],
+  },
 }
 module.exports.selectComplexWhereWithExists = {
   SELECT: {
@@ -467,8 +467,8 @@ module.exports.selectComplexWhereWithExists = {
         SELECT: {
           columns: [{ ref: ['id'] }],
           from: { ref: ['Author'] },
-          where: [{ ref: ['id'] }, '!=', { val: '' }]
-        }
+          where: [{ ref: ['id'] }, '!=', { val: '' }],
+        },
       },
       'or',
       'exists',
@@ -476,10 +476,10 @@ module.exports.selectComplexWhereWithExists = {
         SELECT: {
           columns: [{ ref: ['ID'] }],
           from: { ref: ['Foo2'] },
-          where: [{ ref: ['name'] }, '!=', { val: '' }]
-        }
+          where: [{ ref: ['name'] }, '!=', { val: '' }],
+        },
       },
-      ')'
-    ]
-  }
+      ')',
+    ],
+  },
 }

@@ -18,12 +18,12 @@ describe('test deep query generation', () => {
           from: { ref: ['Root'] },
           where: [
             {
-              ref: ['ID']
+              ref: ['ID'],
             },
             '=',
             {
-              val: 1
-            }
+              val: 1,
+            },
           ],
           columns: [
             { ref: ['ID'] },
@@ -44,8 +44,8 @@ describe('test deep query generation', () => {
                       expand: [
                         { ref: ['ID'] },
                         { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                      ]
+                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -58,8 +58,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -72,14 +72,14 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
                 },
                 {
                   ref: ['toManyChild'],
@@ -98,8 +98,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -112,12 +112,12 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -136,16 +136,16 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
             {
               ref: ['toManyChild'],
@@ -164,8 +164,8 @@ describe('test deep query generation', () => {
                       expand: [
                         { ref: ['ID'] },
                         { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                      ]
+                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -178,8 +178,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -192,14 +192,14 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
                 },
                 {
                   ref: ['toManyChild'],
@@ -218,8 +218,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -232,12 +232,12 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -256,37 +256,37 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       })
     })
     test('Deep UPDATE with to-one all data provided', () => {
       const query = getExpandForDeep(
         UPDATE.entity(model.definitions.Root).with({
           ID: 1,
-          toOneChild: { ID: 10, toOneSubChild: { ID: 30 } }
+          toOneChild: { ID: 10, toOneSubChild: { ID: 30 } },
         }),
-        model.definitions.Root
+        model.definitions.Root,
       )
       expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
             { ref: ['ID'] },
-            { ref: ['toOneChild'], expand: [{ ref: ['ID'] }, { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] }] }
-          ]
-        }
+            { ref: ['toOneChild'], expand: [{ ref: ['ID'] }, { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] }] },
+          ],
+        },
       })
     })
 
@@ -296,10 +296,10 @@ describe('test deep query generation', () => {
           ID: 1,
           toManyChild: [
             { ID: 10, toManySubChild: [{ ID: 20, subText: 'sub' }] },
-            { ID: 21, text: 'text' }
-          ]
+            { ID: 21, text: 'text' },
+          ],
         }),
-        model.definitions.Root
+        model.definitions.Root,
       )
       expect(query).toEqual({
         SELECT: {
@@ -311,11 +311,11 @@ describe('test deep query generation', () => {
               expand: [
                 { ref: ['ID'] },
                 { ref: ['text'] },
-                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }, { ref: ['subText'] }] }
-              ]
-            }
-          ]
-        }
+                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }, { ref: ['subText'] }] },
+              ],
+            },
+          ],
+        },
       })
     })
 
@@ -323,9 +323,9 @@ describe('test deep query generation', () => {
       const query = getExpandForDeep(
         UPDATE.entity(model.definitions.Root).with({
           ID: 1,
-          toOneChild: null
+          toOneChild: null,
         }),
-        model.definitions.Root
+        model.definitions.Root,
       )
       expect(query).toEqual({
         SELECT: {
@@ -349,8 +349,8 @@ describe('test deep query generation', () => {
                       expand: [
                         { ref: ['ID'] },
                         { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                      ]
+                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -363,8 +363,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -377,14 +377,14 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
                 },
                 {
                   ref: ['toManyChild'],
@@ -403,8 +403,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -417,12 +417,12 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -441,19 +441,19 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       })
     })
 
@@ -468,12 +468,12 @@ describe('test deep query generation', () => {
               ID: 12,
               toManyChild: [
                 { ID: 13, toManyChild: null },
-                { ID: 14, toManySubChild: [{ ID: 21 }] }
-              ]
-            }
-          ]
+                { ID: 14, toManySubChild: [{ ID: 21 }] },
+              ],
+            },
+          ],
         }),
-        model.definitions.Root
+        model.definitions.Root,
       )
       // TODO toManySubChild: null -> max recursion
       expect(query).toEqual({
@@ -510,20 +510,20 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
                     },
-                    { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                    { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       })
     })
 
@@ -532,9 +532,9 @@ describe('test deep query generation', () => {
         UPDATE.entity(model.definitions.Root).with({
           ID: 1,
           toOneChild: { ID: 10 },
-          toManyChild: []
+          toManyChild: [],
         }),
-        model.definitions.Root
+        model.definitions.Root,
       )
 
       // expectation also needs to be adapted
@@ -561,8 +561,8 @@ describe('test deep query generation', () => {
                       expand: [
                         { ref: ['ID'] },
                         { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                      ]
+                        { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -575,8 +575,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -589,14 +589,14 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
                 },
                 {
                   ref: ['toManyChild'],
@@ -615,8 +615,8 @@ describe('test deep query generation', () => {
                           expand: [
                             { ref: ['ID'] },
                             { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                          ]
+                            { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                          ],
                         },
                         {
                           ref: ['toManyChild'],
@@ -629,12 +629,12 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       ref: ['toManyChild'],
@@ -653,38 +653,38 @@ describe('test deep query generation', () => {
                               expand: [
                                 { ref: ['ID'] },
                                 { ref: ['toOneSubChild'], expand: [{ ref: ['ID'] }] },
-                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                                { ref: ['toManySubChild'], expand: [{ ref: ['ID'] }] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       })
     })
 
     test('works with recursive and stops after getting to the same level 2 times', () => {
       const query = getExpandForDeep(
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
-        model.definitions.Recursive
+        model.definitions.Recursive,
       )
       expect(query).toEqual({
         SELECT: {
           from: { ref: ['Recursive'] },
           where: [
             {
-              ref: ['ID']
+              ref: ['ID'],
             },
             '=',
             {
-              val: 5
-            }
+              val: 5,
+            },
           ],
           columns: [
             { ref: ['ID'] },
@@ -708,15 +708,15 @@ describe('test deep query generation', () => {
                             { ref: ['ID'] },
                             {
                               ref: ['toOneRecursive'],
-                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
+                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
             {
               ref: ['toOneTransient'],
@@ -737,11 +737,11 @@ describe('test deep query generation', () => {
                             { ref: ['ID'] },
                             {
                               ref: ['toOneRecursive'],
-                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }]
-                            }
-                          ]
-                        }
-                      ]
+                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }],
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       ref: ['toOneTransient'],
@@ -753,18 +753,18 @@ describe('test deep query generation', () => {
                             { ref: ['ID'] },
                             {
                               ref: ['toOneRecursive'],
-                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+                              expand: [{ ref: ['ID'] }, { ref: ['toOneRecursive'], expand: [{ ref: ['ID'] }] }],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
       })
     })
   })
@@ -780,9 +780,9 @@ describe('test deep query generation', () => {
             { ID: 3, toManySubChild: [{ ID: 11 }, { ID: 12 }] },
             { ID: 4, toManySubChild: [{ ID: 13 }] },
             { ID: 5, toManyChild: [{ ID: 6 }, { ID: 7 }] },
-            { ID: 8, toOneChild: { ID: 9 } }
-          ]
-        }
+            { ID: 8, toOneChild: { ID: 9 } },
+          ],
+        },
       ])
       const deepQueries = getDeepQueries(query, [], model.definitions.Root)
 
@@ -802,7 +802,7 @@ describe('test deep query generation', () => {
         INSERT.into(model.definitions.SubChild).entries({ ID: 10 }),
         INSERT.into(model.definitions.SubChild).entries({ ID: 11 }),
         INSERT.into(model.definitions.SubChild).entries({ ID: 12 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 13 })
+        INSERT.into(model.definitions.SubChild).entries({ ID: 13 }),
       ]
 
       expectedInserts.forEach(insert => {

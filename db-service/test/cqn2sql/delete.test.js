@@ -15,8 +15,8 @@ describe('delete', () => {
   test('test with from ref', () => {
     const cqnDelete = {
       DELETE: {
-        from: { ref: ['Foo'] }
-      }
+        from: { ref: ['Foo'] },
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -25,8 +25,8 @@ describe('delete', () => {
   test('test with from ref and alias', () => {
     const cqnDelete = {
       DELETE: {
-        from: { ref: ['Foo'], as: 'lala' }
-      }
+        from: { ref: ['Foo'], as: 'lala' },
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -36,8 +36,8 @@ describe('delete', () => {
     const cqnDelete = {
       DELETE: {
         from: 'Foo',
-        where: [{ ref: ['x'] }, '<', { val: 9 }]
-      }
+        where: [{ ref: ['x'] }, '<', { val: 9 }],
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -49,21 +49,21 @@ describe('delete', () => {
         from: 'Foo',
         where: [
           {
-            ref: ['x']
+            ref: ['x'],
           },
           'not in',
           {
             SELECT: {
               columns: [
                 {
-                  ref: ['a']
-                }
+                  ref: ['a'],
+                },
               ],
-              from: { ref: ['Foo2'] }
-            }
-          }
-        ]
-      }
+              from: { ref: ['Foo2'] },
+            },
+          },
+        ],
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -76,7 +76,7 @@ describe('delete', () => {
         where: [
           '(',
           {
-            ref: ['author', 'id']
+            ref: ['author', 'id'],
           },
           'is not null',
           ')',
@@ -87,25 +87,25 @@ describe('delete', () => {
               columns: [
                 {
                   val: 1,
-                  as: '_exists'
-                }
+                  as: '_exists',
+                },
               ],
               from: {
-                ref: ['Author']
+                ref: ['Author'],
               },
               where: [
                 {
-                  ref: ['id']
+                  ref: ['id'],
                 },
                 '=',
                 {
-                  ref: ['parent', 'ID']
-                }
-              ]
-            }
-          }
-        ]
-      }
+                  ref: ['parent', 'ID'],
+                },
+              ],
+            },
+          },
+        ],
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -118,12 +118,12 @@ describe('delete', () => {
         where: [
           '(',
           {
-            ref: ['author', 'id']
+            ref: ['author', 'id'],
           },
           'is not null',
           'or',
           {
-            ref: ['author', 'version']
+            ref: ['author', 'version'],
           },
           'is not null',
           ')',
@@ -134,33 +134,33 @@ describe('delete', () => {
               columns: [
                 {
                   val: 1,
-                  as: '_exists'
-                }
+                  as: '_exists',
+                },
               ],
               from: {
-                ref: ['Author']
+                ref: ['Author'],
               },
               where: [
                 {
-                  ref: ['parent', 'ID']
+                  ref: ['parent', 'ID'],
                 },
                 '=',
                 {
-                  ref: ['parent', 'code']
+                  ref: ['parent', 'code'],
                 },
                 'and',
                 {
-                  ref: ['parent', 'descr']
+                  ref: ['parent', 'descr'],
                 },
                 '=',
                 {
-                  ref: ['Author', 'version']
-                }
-              ]
-            }
-          }
-        ]
-      }
+                  ref: ['Author', 'version'],
+                },
+              ],
+            },
+          },
+        ],
+      },
     }
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
@@ -173,12 +173,12 @@ describe('delete', () => {
         where: [
           '(',
           {
-            ref: ['sub1_1_1', 'sub1_1_parentForeignKey1_1_1']
+            ref: ['sub1_1_1', 'sub1_1_parentForeignKey1_1_1'],
           },
           'is not null',
           'or',
           {
-            ref: ['sub1_1_1', 'sub1_1_parentForeignVersion1_1_1']
+            ref: ['sub1_1_1', 'sub1_1_parentForeignVersion1_1_1'],
           },
           'is not null',
           ')',
@@ -189,38 +189,38 @@ describe('delete', () => {
               columns: [
                 {
                   val: 1,
-                  as: '_exists'
-                }
+                  as: '_exists',
+                },
               ],
               from: {
-                ref: ['sub1_1']
+                ref: ['sub1_1'],
               },
               where: [
                 {
-                  ref: ['sub1_1_1', 'sub1_1_parentForeignKey1_1_1']
+                  ref: ['sub1_1_1', 'sub1_1_parentForeignKey1_1_1'],
                 },
                 '=',
                 {
-                  ref: ['sub1_1', 'key1_1']
+                  ref: ['sub1_1', 'key1_1'],
                 },
                 'and',
                 {
-                  ref: ['sub1_1_1', 'sub1_1_parentForeignVersion1_1_1']
+                  ref: ['sub1_1_1', 'sub1_1_parentForeignVersion1_1_1'],
                 },
                 '=',
                 {
-                  ref: ['sub1_1', 'version1_1']
+                  ref: ['sub1_1', 'version1_1'],
                 },
                 'and',
                 '(',
                 '(',
                 {
-                  ref: ['sub1_1', 'sub1_parentForeignKey1_1']
+                  ref: ['sub1_1', 'sub1_parentForeignKey1_1'],
                 },
                 'is not null',
                 'or',
                 {
-                  ref: ['sub1_1', 'sub1_parentForeignVersion1_1']
+                  ref: ['sub1_1', 'sub1_parentForeignVersion1_1'],
                 },
                 'is not null',
                 ')',
@@ -231,38 +231,38 @@ describe('delete', () => {
                     columns: [
                       {
                         val: 1,
-                        as: '_exists'
-                      }
+                        as: '_exists',
+                      },
                     ],
                     from: {
-                      ref: ['sub1']
+                      ref: ['sub1'],
                     },
                     where: [
                       {
-                        ref: ['sub1_1', 'sub1_parentForeignKey1_1']
+                        ref: ['sub1_1', 'sub1_parentForeignKey1_1'],
                       },
                       '=',
                       {
-                        ref: ['sub1', 'key1']
+                        ref: ['sub1', 'key1'],
                       },
                       'and',
                       {
-                        ref: ['sub1_1', 'sub1_parentForeignVersion1_1']
+                        ref: ['sub1_1', 'sub1_parentForeignVersion1_1'],
                       },
                       '=',
                       {
-                        ref: ['sub1', 'version1']
+                        ref: ['sub1', 'version1'],
                       },
                       'and',
                       '(',
                       '(',
                       {
-                        ref: ['sub1', 'root_rootForeignKey1']
+                        ref: ['sub1', 'root_rootForeignKey1'],
                       },
                       'is not null',
                       'or',
                       {
-                        ref: ['sub1', 'root_rootForeignVersion1']
+                        ref: ['sub1', 'root_rootForeignVersion1'],
                       },
                       'is not null',
                       ')',
@@ -273,63 +273,63 @@ describe('delete', () => {
                           columns: [
                             {
                               val: 1,
-                              as: '_exists'
-                            }
+                              as: '_exists',
+                            },
                           ],
                           from: {
-                            ref: ['root']
+                            ref: ['root'],
                           },
                           where: [
                             {
-                              ref: ['sub1', 'root_rootForeignKey1']
+                              ref: ['sub1', 'root_rootForeignKey1'],
                             },
                             '=',
                             {
-                              ref: ['root', 'rootKey']
+                              ref: ['root', 'rootKey'],
                             },
                             'and',
                             {
-                              ref: ['sub1', 'root_rootForeignVersion1']
+                              ref: ['sub1', 'root_rootForeignVersion1'],
                             },
                             '=',
                             {
-                              ref: ['root', 'rootVersion']
+                              ref: ['root', 'rootVersion'],
                             },
                             'and',
                             '(',
                             {
-                              ref: ['rootKey']
+                              ref: ['rootKey'],
                             },
                             '=',
                             {
-                              val: 1
+                              val: 1,
                             },
                             'and',
                             {
-                              ref: ['rootVersion']
+                              ref: ['rootVersion'],
                             },
                             '=',
                             {
-                              val: 'active'
+                              val: 'active',
                             },
-                            ')'
-                          ]
-                        }
+                            ')',
+                          ],
+                        },
                       },
-                      ')'
-                    ]
-                  }
+                      ')',
+                    ],
+                  },
                 },
-                ')'
-              ]
-            }
-          }
-        ]
-      }
+                ')',
+              ],
+            },
+          },
+        ],
+      },
     }
     const expected = {
       sql: 'DELETE FROM sub1_1_1 WHERE ( sub1_1_1.sub1_1_parentForeignKey1_1_1 IS NOT NULL OR sub1_1_1.sub1_1_parentForeignVersion1_1_1 IS NOT NULL ) AND EXISTS ( SELECT 1 AS _exists FROM sub1_1 WHERE sub1_1_1.sub1_1_parentForeignKey1_1_1 = sub1_1.key1_1 AND sub1_1_1.sub1_1_parentForeignVersion1_1_1 = sub1_1.version1_1 AND ( ( sub1_1.sub1_parentForeignKey1_1 IS NOT NULL OR sub1_1.sub1_parentForeignVersion1_1 IS NOT NULL ) AND EXISTS ( SELECT 1 AS _exists FROM sub1 WHERE sub1_1.sub1_parentForeignKey1_1 = sub1.key1 AND sub1_1.sub1_parentForeignVersion1_1 = sub1.version1 AND ( ( sub1.root_rootForeignKey1 IS NOT NULL OR sub1.root_rootForeignVersion1 IS NOT NULL ) AND EXISTS ( SELECT 1 AS _exists FROM root WHERE sub1.root_rootForeignKey1 = root.rootKey AND sub1.root_rootForeignVersion1 = root.rootVersion AND ( rootKey = 1 AND rootVersion = ? ) ) ) ) ) )',
-      values: ['active']
+      values: ['active'],
     }
     expect(cqn2sql(cqnDelete)).toEqual(expected)
   })

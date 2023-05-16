@@ -46,7 +46,7 @@ describe('infer elements', () => {
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      dedication_text: Books.elements.dedication.elements.text
+      dedication_text: Books.elements.dedication.elements.text,
     })
   })
 
@@ -67,7 +67,7 @@ describe('infer elements', () => {
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      triggerRecursiveInfer: {}
+      triggerRecursiveInfer: {},
     })
     cds.model = keepModel
   })

@@ -17,7 +17,7 @@ class SQLiteService extends SQLService {
         return dbc
       },
       destroy: dbc => dbc.close(),
-      validate: dbc => dbc.open
+      validate: dbc => dbc.open,
     }
   }
 
@@ -87,7 +87,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
     }
 
     static OutputConverters = {
@@ -103,7 +103,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
     }
 
     // Used for SQL function expressions
@@ -116,7 +116,7 @@ class SQLiteService extends SQLService {
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
       DateTime: () => 'TIMESTAMP_TEXT',
-      Timestamp: () => 'TIMESTAMP_TEXT'
+      Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
@@ -169,7 +169,7 @@ function _not_unique(err, code) {
     return Object.assign({
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
-      code: 400 // FIXME: misusing code as (http) status
+      code: 400, // FIXME: misusing code as (http) status
     })
 }
 

@@ -19,7 +19,7 @@ module.exports = async tx => {
         ['USD', '$', 'US Dollar'],
         ['GBP', '£', 'British Pound'],
         ['ILS', '₪', 'Shekel'],
-        ['JPY', '¥', 'Yen']
-      )
+        ['JPY', '¥', 'Yen'],
+      ),
   )
 }

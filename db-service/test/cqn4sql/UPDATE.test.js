@@ -17,7 +17,7 @@ describe('UPDATE', () => {
     let u = UPDATE.entity('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
     const query = cqn4sql(u)
     const expected = JSON.parse(
-      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}'
+      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
   })
@@ -33,7 +33,7 @@ describe('UPDATE', () => {
     let u = UPDATE.entity('bookshop.Books').with({
       applyDiscount: {
         func: 'discount',
-        args: [{ ref: ['price'] }, { ref: ['dedication', 'sub', 'foo'] }]
+        args: [{ ref: ['price'] }, { ref: ['dedication', 'sub', 'foo'] }],
       },
       getAuthors: {
         SELECT: {
@@ -42,17 +42,17 @@ describe('UPDATE', () => {
             { ref: ['name'] },
             {
               func: 'dummy',
-              args: [{ ref: ['Authors', 'address', 'street'] }]
-            }
-          ]
-        }
-      }
+              args: [{ ref: ['Authors', 'address', 'street'] }],
+            },
+          ],
+        },
+      },
     })
     const query = cqn4sql(u, model)
     expect(query.UPDATE.with).deep.equal({
       applyDiscount: {
         func: 'discount',
-        args: [{ ref: ['Books', 'price'] }, { ref: ['Books', 'dedication_sub_foo'] }]
+        args: [{ ref: ['Books', 'price'] }, { ref: ['Books', 'dedication_sub_foo'] }],
       },
       getAuthors: {
         SELECT: {
@@ -62,11 +62,11 @@ describe('UPDATE', () => {
             {
               func: 'dummy',
               args: [{ ref: ['Authors', 'address_street'] }],
-              as: 'dummy'
-            }
-          ]
-        }
-      }
+              as: 'dummy',
+            },
+          ],
+        },
+      },
     })
   })
 

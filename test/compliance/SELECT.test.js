@@ -87,17 +87,17 @@ describe('SELECT', () => {
                 id: 'basic.projection.string',
                 where: [
                   {
-                    ref: ['string']
+                    ref: ['string'],
                   },
                   '=',
                   {
-                    val: 'yes'
-                  }
-                ]
-              }
-            ]
-          }
-        }
+                    val: 'yes',
+                  },
+                ],
+              },
+            ],
+          },
+        },
       }
 
       const res = await cds.run(cqn)
@@ -123,10 +123,10 @@ describe('SELECT', () => {
             {
               xpr: [{ val: 'yes' }, '=', { ref: ['string'] }],
               as: 'xpr',
-              cast: { type: 'cds.Boolean' }
-            }
-          ]
-        }
+              cast: { type: 'cds.Boolean' },
+            },
+          ],
+        },
       }
 
       const res = await cds.run(cqn)
@@ -144,8 +144,8 @@ describe('SELECT', () => {
           FROM basic.projection.globals
         `),
         {
-          message: 'Not supported type: cds.DoEsNoTeXiSt'
-        }
+          message: 'Not supported type: cds.DoEsNoTeXiSt',
+        },
       )
     })
   })
@@ -177,19 +177,19 @@ describe('SELECT', () => {
           from: { ref: ['basic.projection.string'] },
           where: [
             {
-              ref: ['string']
+              ref: ['string'],
             },
             '=',
             {
               ref: [
                 {
-                  id: 'basic.projection.globals'
+                  id: 'basic.projection.globals',
                 },
-                'bool'
-              ]
-            }
-          ]
-        }
+                'bool',
+              ],
+            },
+          ],
+        },
       }
 
       const res = await cds.run(cqn)

@@ -12,7 +12,7 @@ const StandardFunctions = {
   day: x => `date_part('day',(${x})::TIMESTAMP)`,
   hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
   minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
-  second: x => `date_part('second',(${x})::TIMESTAMP)`
+  second: x => `date_part('second',(${x})::TIMESTAMP)`,
 }
 
 const HANAFunctions = {
@@ -36,7 +36,7 @@ const HANAFunctions = {
     ))`,
   years_between(x, y) {
     return `TRUNC(${this.months_between(x, y)} / 12,0)`
-  }
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

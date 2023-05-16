@@ -35,7 +35,7 @@ describe('Pseudo Variables', () => {
       $locale,
       $tenant
     }`,
-      model
+      model,
     )
 
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
@@ -63,7 +63,7 @@ describe('Pseudo Variables', () => {
       GROUP BY $user.id, $to
       ORDER BY $user.locale, $now
     `,
-      model
+      model,
     )
 
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
@@ -80,7 +80,7 @@ describe('Pseudo Variables', () => {
       ID,
       author[name = $user.name or dateOfDeath < $now].dateOfBirth
     }`,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Books as Books
@@ -96,7 +96,7 @@ describe('Pseudo Variables', () => {
       CQL`SELECT from bookshop.Books {
       ID
     } where exists author[$user.name = 'towald'] `,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Books as Books
@@ -109,18 +109,18 @@ describe('Pseudo Variables', () => {
 
   it('must not be prefixed by table alias', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, Books.$now }`), model).to.throw(
-      '"$now" not found in "bookshop.Books"'
+      '"$now" not found in "bookshop.Books"',
     )
   })
 
   it('must not be prefixed by struc or assoc', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author.$user }`), model).to.throw(
-      '"$user" not found in "author"'
+      '"$user" not found in "author"',
     )
   })
   it('only well defined pseudo variables are allowed', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, $whatever }`), model).to.throw(
-      '"$whatever" not found in the elements of "bookshop.Books"'
+      '"$whatever" not found in the elements of "bookshop.Books"',
     )
   })
 

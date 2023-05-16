@@ -14,8 +14,8 @@ const cdsTypes = cds.linked({
     String: { type: 'cds.String' },
     Decimal: { type: 'cds.Decimal' },
     Integer: { type: 'cds.Integer' },
-    Boolean: { type: 'cds.Boolean' }
-  }
+    Boolean: { type: 'cds.Boolean' },
+  },
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 
@@ -45,15 +45,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   Object.defineProperties(inferred, {
     // REVISIT: public, or for local reuse, or in cqn4sql only?
     sources: { value: sources, writable: true },
-    target: { value: aliases.length === 1 ? sources[aliases[0]] : originalQuery, writable: true } // REVISIT: legacy?
+    target: { value: aliases.length === 1 ? sources[aliases[0]] : originalQuery, writable: true }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
   Object.defineProperties(originalQuery, {
     sources: { value: sources, writable: true },
     target: {
       value: aliases.length === 1 ? sources[aliases[0]] : originalQuery,
-      writable: true
-    }
+      writable: true,
+    },
   })
   if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
     const $combinedElements = inferCombinedElements()
@@ -67,7 +67,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     Object.defineProperties(inferred, {
       $combinedElements: { value: $combinedElements, writable: true },
       elements: { value: elements, writable: true },
-      joinTree: { value: joinTree, writable: true } // REVISIT: eliminate
+      joinTree: { value: joinTree, writable: true }, // REVISIT: eliminate
     })
     // also enrich original query -> writable because it may be inferred again
     Object.defineProperty(originalQuery, 'elements', { value: elements, writable: true })
@@ -146,7 +146,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // no unmanaged assoc in infix filter path
             if (!expandOrExists && e.on)
               throw new Error(
-                `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`
+                `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
@@ -223,7 +223,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   function setElementOnColumns(col, element) {
     Object.defineProperty(col, 'element', {
       value: element,
-      writable: true
+      writable: true,
     })
   }
 
@@ -498,7 +498,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (column.expand) {
         const { $refLinks } = column
         const skip = $refLinks.some(
-          link => model.definitions[link.definition.target]?.['@cds.persistence.skip'] === true
+          link => model.definitions[link.definition.target]?.['@cds.persistence.skip'] === true,
         )
         if (skip) {
           $refLinks[$refLinks.length - 1].skipExpand = true
@@ -558,8 +558,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const expandSubquery = {
             SELECT: {
               from: $leafLink.definition._target.name,
-              columns: expand.filter(c => !c.inline)
-            }
+              columns: expand.filter(c => !c.inline),
+            },
           }
           if (col.as) expandSubquery.SELECT.as = col.as
           const inferredExpandSubquery = infer(expandSubquery, model)
@@ -592,7 +592,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(
           `ambiguous reference to "${step}", write ${Object.values($combinedElements[step])
             .map(ta => `"${ta.index}.${step}"`)
-            .join(', ')} instead`
+            .join(', ')} instead`,
         )
       }
 
@@ -600,7 +600,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(
           `"${step}" not found in the elements of ${Object.values(sources)
             .map(def => `"${def.name || /* subquery */ def.as}"`)
-            .join(', ')}`
+            .join(', ')}`,
         )
       }
 
@@ -689,7 +689,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         Object.keys(ambiguousElements).forEach(name => {
           const tableAliasNames = Object.values(ambiguousElements[name]).map(v => v.index)
           err.push(
-            `       select "${name}" explicitly with ${tableAliasNames.map(taName => `"${taName}.${name}"`).join(', ')}`
+            `       select "${name}" explicitly with ${tableAliasNames
+              .map(taName => `"${taName}.${name}"`)
+              .join(', ')}`,
           )
         })
         throw new Error(err.join('\n'))
@@ -765,7 +767,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   function init$refLinks(arg) {
     Object.defineProperty(arg, '$refLinks', {
       value: [],
-      writable: true
+      writable: true,
     })
   }
 

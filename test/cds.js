@@ -13,8 +13,8 @@ const hana = module.exports.linked({
     'cds.hana.NCHAR': { type: 'cds.String' },
     'cds.hana.BINARY': { type: 'cds.String' },
     'cds.hana.ST_POINT': { type: 'cds.String' },
-    'cds.hana.ST_GEOMETRY': { type: 'cds.String' }
-  }
+    'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
+  },
 })
 Object.assign(module.exports.builtin.types, hana.definitions)
 
@@ -70,7 +70,7 @@ module.exports.test = Object.setPrototypeOf(function () {
           // Create one database for each overall test execution
           database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
           // Create one tenant for each test suite
-          tenant: 'T' + hash.digest('hex')
+          tenant: 'T' + hash.digest('hex'),
         }
 
         // Create new database isolation

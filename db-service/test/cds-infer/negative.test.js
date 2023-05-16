@@ -14,7 +14,7 @@ describe('negative', () => {
   describe('filters', () => {
     it('filter must not be provided along a structure in column', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
-        /A filter can only be provided when navigating along associations/
+        /A filter can only be provided when navigating along associations/,
       )
     })
     it('filter must not be provided along a structure in from path expression', () => {
@@ -89,7 +89,7 @@ describe('negative', () => {
     it('$self reference is not found in the query elements -> cds.infer hints alternatives', () => {
       let query = CQL`SELECT from bookshop.Books { ID, $self.author }`
       expect(() => _inferred(query)).to.throw(
-        /"author" not found in the columns list of query, did you mean "Books.author"?/ // revisit: error message
+        /"author" not found in the columns list of query, did you mean "Books.author"?/, // revisit: error message
       )
     })
 
@@ -97,7 +97,7 @@ describe('negative', () => {
       let query = CQL`SELECT from (select from bookshop.Books) as Foo { $self.author }`
       // wording? select list not optimal, did you mean to refer to bookshop.Books?
       expect(() => _inferred(query)).to.throw(
-        /"author" not found in the columns list of query, did you mean "Foo.author"?/ // revisit: error message
+        /"author" not found in the columns list of query, did you mean "Foo.author"?/, // revisit: error message
       )
     })
 
@@ -123,7 +123,7 @@ describe('negative', () => {
     it("element can't be found in one of multiple query sources", () => {
       let query = CQL`SELECT from bookshop.Books:author as Bar, bookshop.Books { doesNotExist }`
       expect(() => _inferred(query)).to.throw(
-        /"doesNotExist" not found in the elements of "bookshop.Authors", "bookshop.Books"/
+        /"doesNotExist" not found in the elements of "bookshop.Authors", "bookshop.Books"/,
       )
     })
   })
@@ -148,7 +148,7 @@ describe('negative', () => {
     // SQL would allow that, but different databases may return different column names
     it('duplicate field name', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, ID }`)).to.throw(
-        /Duplicate definition of element “ID”/
+        /Duplicate definition of element “ID”/,
       )
     })
 
@@ -203,7 +203,7 @@ describe('negative', () => {
        select "createdBy" explicitly with "Books.createdBy", "Authors.createdBy"
        select "modifiedAt" explicitly with "Books.modifiedAt", "Authors.modifiedAt"
        select "modifiedBy" explicitly with "Books.modifiedBy", "Authors.modifiedBy"
-       select "ID" explicitly with "Books.ID", "Authors.ID"`
+       select "ID" explicitly with "Books.ID", "Authors.ID"`,
         )
       })
 
@@ -215,7 +215,7 @@ describe('negative', () => {
        select "createdBy" explicitly with "BooksSub.createdBy", "Authors.createdBy"
        select "modifiedAt" explicitly with "BooksSub.modifiedAt", "Authors.modifiedAt"
        select "modifiedBy" explicitly with "BooksSub.modifiedBy", "Authors.modifiedBy"
-       select "ID" explicitly with "BooksSub.ID", "Authors.ID"`
+       select "ID" explicitly with "BooksSub.ID", "Authors.ID"`,
         )
       })
     })
@@ -224,13 +224,13 @@ describe('negative', () => {
   describe('restrictions', () => {
     it('UNION queries are not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books union all select from bookshop.Authors`)).to.throw(
-        /”UNION” based queries are not supported/
+        /”UNION” based queries are not supported/,
       )
     })
 
     it('selecting from structures is not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books:dedication.addressee.address`, model)).to.throw(
-        /Query source must be a an entity or an association/
+        /Query source must be a an entity or an association/,
       )
     })
 
@@ -240,8 +240,8 @@ describe('negative', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Authors { ID } where name = title) as foo }`,
-          model
-        )
+          model,
+        ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
   })

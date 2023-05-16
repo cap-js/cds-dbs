@@ -18,7 +18,7 @@ describe('Flattening', () => {
               ID,
               structure
             }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
               Bar.ID,
@@ -33,7 +33,7 @@ describe('Flattening', () => {
               structure,
               ID
             }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as structure {
               structure.structure_foo,
@@ -47,7 +47,7 @@ describe('Flattening', () => {
         CQL`SELECT from bookshop.Bar {
               structure as ding
             }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
               Bar.structure_foo as ding_foo,
@@ -61,7 +61,7 @@ describe('Flattening', () => {
               structure as ding,
               Bar.structure as bing
             }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
               Bar.structure_foo as ding_foo,
@@ -76,7 +76,7 @@ describe('Flattening', () => {
         CQL`SELECT from bookshop.Bar {
               nested
             }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
               Bar.nested_foo_x,
@@ -103,35 +103,35 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { 2*nested as x }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in SELECT clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { sin(nested) as x }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { 2*author as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     it('rejects managed associations in expressions in SELECT clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { sin(author) as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     it('rejects unmanaged associations in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { 2*coAuthorUnmanaged as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in SELECT clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { sin(coAuthorUnmanaged) as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
@@ -143,7 +143,7 @@ describe('Flattening', () => {
             coAuthor,
             genre
           }`,
-        model
+        model,
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -160,7 +160,7 @@ describe('Flattening', () => {
             genre,
             ID
           }`,
-        model
+        model,
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as genre {
             genre.author_ID,
@@ -176,7 +176,7 @@ describe('Flattening', () => {
             author as person,
             Books.genre as topic
           }`,
-        model
+        model,
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -318,7 +318,7 @@ describe('Flattening', () => {
           genre,
           coAuthorUnmanaged
         }`,
-        model
+        model,
       )
 
       expect(query).to.deep.eql(
@@ -326,7 +326,7 @@ describe('Flattening', () => {
           Books.ID,
           Books.author_ID,
           Books.genre_ID
-        }`
+        }`,
       )
     })
 
@@ -339,7 +339,7 @@ describe('Flattening', () => {
           genre as g,
           coAuthorUnmanaged
         }`,
-        model
+        model,
       )
 
       expect(query).to.deep.eql(
@@ -347,7 +347,7 @@ describe('Flattening', () => {
           Books.ID,
           Books.author_ID as a_ID,
           Books.genre_ID as g_ID
-        }`
+        }`,
       )
     })
   })
@@ -357,7 +357,7 @@ describe('Flattening', () => {
         CQL`SELECT from bookshop.Books { ID } WHERE exists (
               SELECT address from bookshop.Authors where ID > Books.ID
               )`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep
         .equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE exists (
@@ -366,49 +366,49 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } WHERE 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in WHERE clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } WHERE sin(nested) < 0`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed association in WHERE clause', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in WHERE clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE sin(author) < 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     // (PB) TODO align error message with the examples below
     it('rejects unmanaged associations in WHERE clause', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE 2 = coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in WHERE clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE sin(coAuthorUnmanaged) > 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
   })
@@ -424,7 +424,7 @@ describe('Flattening', () => {
           ID,
           (SELECT from bookshop.Person { address }) as foo
         }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
           Books.ID,
@@ -440,7 +440,7 @@ describe('Flattening', () => {
             (SELECT address from bookshop.Authors as genreAuthor where ID > Books.ID and G.ID = 42) as AuthorInG,
           }) as genreColumn
         }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
           (SELECT Authors.address_street, Authors.address_city from bookshop.Authors as Authors where Authors.ID > Books.ID) as authorColumn,
@@ -456,7 +456,7 @@ describe('Flattening', () => {
             ID,
             (SELECT from bookshop.Books { author }) as foo
           }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -470,7 +470,7 @@ describe('Flattening', () => {
             ID,
             (SELECT from bookshop.AssocMaze1 as AM { a_struc as a }) as foo
           }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -486,7 +486,7 @@ describe('Flattening', () => {
         CQL`SELECT from bookshop.Authors { ID } WHERE exists (
             SELECT author from bookshop.Books as Books where Books.ID > Authors.ID
             )`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep
         .equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE exists (
@@ -500,7 +500,7 @@ describe('Flattening', () => {
         author,
         co
       }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from (select from bookshop.Books as Books {
         Books.author_ID,
@@ -527,18 +527,18 @@ describe('Flattening', () => {
     })
     it('rejects struct field with multiple elements in ORDER BY', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { stock } ORDER BY structure`, model)).to.throw(
-        /"structure" can't be used in order by as it expands to multiple fields/
+        /"structure" can't be used in order by as it expands to multiple fields/,
       )
     })
     it('rejects nested struct field with multiple leafs elements in ORDER BY', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { stock } ORDER BY nested`, model)).to.throw(
-        /"nested" can't be used in order by as it expands to multiple fields/
+        /"nested" can't be used in order by as it expands to multiple fields/,
       )
     })
 
     it('fails for structures with multiple leafs in ORDER BY, accessing a deep element', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.WithStructuredKey { second } order by struct.mid`, model)).to.throw(
-        /"struct.mid" can't be used in order by as it expands to multiple fields/
+        /"struct.mid" can't be used in order by as it expands to multiple fields/,
       )
     })
 
@@ -546,7 +546,7 @@ describe('Flattening', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Bar as structure { structure.structure as structure }
       ORDER BY structure.foo, structure.baz`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as structure {
         structure.structure_foo as structure_foo,
@@ -561,7 +561,7 @@ describe('Flattening', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Bar as ID { stock }
       ORDER BY ID.structure.foo, ID.structure.baz`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as ID { ID.stock } ORDER BY
       ID.structure_foo,
@@ -572,7 +572,7 @@ describe('Flattening', () => {
     it('xy unfolds structured access to a single element in ORDER BY clause', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
         Bar.structure_foo as out_foo,
@@ -589,7 +589,7 @@ describe('Flattening', () => {
     it('unfolds structured access to a single element in ORDER BY clause', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
         Bar.structure_foo as out_foo,
@@ -605,20 +605,20 @@ describe('Flattening', () => {
 
     it('rejects struct fields in expressions in ORDER BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } ORDER BY 2*nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in ORDER BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } ORDER BY sin(nested)`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
     it('unfolds managed association with one FK in ORDER BY clause', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books  { ID, author, coAuthor as co }
         order by Books.author, co`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
         Books.ID,
@@ -632,19 +632,19 @@ describe('Flattening', () => {
 
     it('rejects managed association with multiple FKs in ORDER BY clause', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.AssocWithStructuredKey { ID } order by toStructuredKey`, model)
+        cqn4sql(CQL`SELECT from bookshop.AssocWithStructuredKey { ID } order by toStructuredKey`, model),
       ).to.throw(/"toStructuredKey" can't be used in order by as it expands to multiple fields/)
     })
 
     it('rejects managed associations in expressions in ORDER BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY 2*author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in ORDER BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY sin(author)`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     it('ignores unmanaged associations in ORDER BY clause', () => {
@@ -653,13 +653,13 @@ describe('Flattening', () => {
     })
     it('rejects unmanaged associations in expressions in ORDER BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY 2*coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in ORDER BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY sin(coAuthorUnmanaged)`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
   })
@@ -680,7 +680,7 @@ describe('Flattening', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, author, coAuthor as co }
             group by author, Books.coAuthor`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -694,24 +694,24 @@ describe('Flattening', () => {
 
     it('rejects managed associations in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY 2*author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in GROUP BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY sin(author)`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     it('rejects struct fields in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } GROUP BY 2*nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in GROUP BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } GROUP BY sin(nested)`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
@@ -731,13 +731,13 @@ describe('Flattening', () => {
 
     it('rejects unmanaged associations in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY 2*coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in GROUP BY clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY sin(coAuthorUnmanaged)`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
   })
@@ -745,7 +745,7 @@ describe('Flattening', () => {
   describe('in having', () => {
     it('rejects struct field in HAVING clause', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } HAVING nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
@@ -762,19 +762,19 @@ describe('Flattening', () => {
 
     it('rejects struct fields in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } HAVING 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in HAVING clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Bar { ID } HAVING sin(nested) < 0`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed association in HAVING clause', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     //
@@ -785,30 +785,30 @@ describe('Flattening', () => {
 
     it('rejects managed associations in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects managed associations in expressions in HAVING clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING sin(author) < 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in HAVING clause', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
     it('rejects unmanaged associations in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING 2 = coAuthorUnmanaged`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
 
     it('rejects unmanaged associations in expressions in HAVING clause (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING sin(coAuthorUnmanaged) < 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/
+        /An association can't be used as a value in an expression/,
       )
     })
   })

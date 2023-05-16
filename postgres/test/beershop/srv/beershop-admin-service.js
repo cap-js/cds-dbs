@@ -3,8 +3,8 @@ module.exports = async function (srv) {
     const users = [
       {
         username: req.user.id,
-        is_admin: req.user.is('admin')
-      }
+        is_admin: req.user.is('admin'),
+      },
     ]
     return users
   })

@@ -21,7 +21,7 @@ describe('simple', () => {
     expect(inferred.target).to.deep.equal(Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      author: Books.elements.author
+      author: Books.elements.author,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -50,7 +50,7 @@ describe('scoped queries', () => {
     let { Authors } = model.entities
     expect(inferred).to.have.nested.property('sources.author', Authors)
     expect(inferred.elements).to.deep.equal({
-      ID: Authors.elements.ID
+      ID: Authors.elements.ID,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -80,7 +80,7 @@ describe('subqueries', () => {
     let { Books } = model.entities
     expect(inferred).to.have.nested.property('sources.Bar.sources.Books', Books)
     expect(inferred.elements).to.deep.equal({
-      barID: Books.elements.ID
+      barID: Books.elements.ID,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -93,7 +93,7 @@ describe('subqueries', () => {
     expect(inferred.sources).to.have.nested.property('Bar.sources.Books', Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      author: Books.elements.author
+      author: Books.elements.author,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -118,7 +118,7 @@ describe('multiple sources', () => {
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
       bID: Books.elements.ID,
-      authorName: Authors.elements.name
+      authorName: Authors.elements.name,
     })
   })
 
@@ -134,7 +134,7 @@ describe('multiple sources', () => {
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
       bID: Books.elements.ID,
-      fooID: Foo.elements.ID
+      fooID: Foo.elements.ID,
     })
   })
 
@@ -152,7 +152,7 @@ describe('multiple sources', () => {
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,
-      secondBookID: Books.elements.ID
+      secondBookID: Books.elements.ID,
     })
   })
 })

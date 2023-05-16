@@ -1,7 +1,7 @@
 const cds = (module.exports = require('@sap/cds/lib'))
 const _default = {
   cqn2sql: require('./lib/cqn2sql'),
-  cqn4sql: require('./lib/cqn4sql')
+  cqn4sql: require('./lib/cqn4sql'),
 }
 
 cds.extend(cds.ql.Query).with(
@@ -15,7 +15,7 @@ cds.extend(cds.ql.Query).with(
     toSql(db = cds.db || _default) {
       return this.toSQL(db).sql
     }
-  }
+  },
 )
 
 // skip .cqn property when in repl

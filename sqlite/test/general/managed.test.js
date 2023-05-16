@@ -16,8 +16,8 @@ describe('Managed thingies', () => {
           createdAt: expect.any(String),
           createdBy: 'anonymous',
           modifiedAt: expect.any(String),
-          modifiedBy: 'samuel'
-        }
+          modifiedBy: 'samuel',
+        },
       ])
     })
   })
@@ -37,8 +37,8 @@ describe('Managed thingies', () => {
           createdAt: null,
           createdBy: null,
           modifiedAt: expect.any(String),
-          modifiedBy: 'samuel'
-        }
+          modifiedBy: 'samuel',
+        },
       ])
 
       const { modifiedAt } = result[0]
@@ -61,7 +61,7 @@ describe('Managed thingies', () => {
       createdAt: expect.any(String),
       createdBy: 'anonymous',
       modifiedAt: expect.any(String),
-      modifiedBy: 'anonymous'
+      modifiedBy: 'anonymous',
     })
 
     const { createdAt, modifiedAt } = resPost.data
@@ -86,7 +86,7 @@ describe('Managed thingies', () => {
       createdAt: resPost.data.createdAt,
       createdBy: resPost.data.createdBy,
       modifiedAt: expect.any(String),
-      modifiedBy: 'anonymous'
+      modifiedBy: 'anonymous',
     })
 
     const { createdAt, modifiedAt } = resUpdate.data

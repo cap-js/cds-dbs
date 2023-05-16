@@ -21,7 +21,7 @@ class PostgresService extends SQLService {
         min: 0,
         testOnBorrow: true,
         acquireTimeoutMillis: 1000,
-        destroyTimeoutMillis: 1000
+        destroyTimeoutMillis: 1000,
       },
       create: async () => {
         const cr = this.options.credentials || {}
@@ -37,15 +37,15 @@ class PostgresService extends SQLService {
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
           ssl: cr.sslrootcert && {
             rejectUnauthorized: false,
-            ca: cr.sslrootcert
-          }
+            ca: cr.sslrootcert,
+          },
         }
         const dbc = new Client(credentials)
         await dbc.connect()
         return dbc
       },
       destroy: dbc => dbc.end(),
-      validate: dbc => dbc.open
+      validate: dbc => dbc.open,
     }
   }
 
@@ -56,7 +56,7 @@ class PostgresService extends SQLService {
       '$user.id': 'CAP.APPLICATIONUSER',
       '$user.locale': 'CAP.LOCALE',
       '$valid.from': 'CAP.VALID_FROM',
-      '$valid.to': 'CAP.VALID_TO'
+      '$valid.to': 'CAP.VALID_TO',
     }
 
     const env = {}
@@ -66,7 +66,7 @@ class PostgresService extends SQLService {
 
     return Promise.all([
       (await this.prepare(`SELECT set_config(key::text,$1->>key,false) FROM json_each($1);`)).run([
-        JSON.stringify(env)
+        JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
         ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}";`)]
@@ -82,9 +82,9 @@ class PostgresService extends SQLService {
                 if (resp.find(row => row.collname === 'en-x-icu'))
                   this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
                 // REVISIT throw error when there is no collated libary found
-              })
+              }),
           ]
-        : [])
+        : []),
     ])
   }
 
@@ -93,7 +93,7 @@ class PostgresService extends SQLService {
       text: sql,
       // Track queries name for postgres referencing prepare statements
       // sha1 as it needs to be less then 63 characters
-      name: crypto.createHash('sha1').update(sql).digest('hex')
+      name: crypto.createHash('sha1').update(sql).digest('hex'),
     }
     return {
       run: async values => {
@@ -114,7 +114,7 @@ class PostgresService extends SQLService {
         } catch (e) {
           throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
         }
-      }
+      },
     }
   }
 
@@ -178,7 +178,7 @@ class PostgresService extends SQLService {
               this.expr(c) +
               (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
               (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
 
@@ -189,7 +189,7 @@ class PostgresService extends SQLService {
               this.expr(c) +
               (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
               (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
 
@@ -280,7 +280,7 @@ class PostgresService extends SQLService {
       array: () => 'TEXT',
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
-      Timestamp: () => 'TIMESTAMP'
+      Timestamp: () => 'TIMESTAMP',
     }
 
     // Used for INSERT statements
@@ -300,7 +300,7 @@ class PostgresService extends SQLService {
       Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Binary: e => `CAST(${e} as bytea)`,
-      LargeBinary: e => `CAST(${e} as bytea)`
+      LargeBinary: e => `CAST(${e} as bytea)`,
     }
 
     static OutputConverters = {
@@ -314,7 +314,7 @@ class PostgresService extends SQLService {
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       struct: e => `json(${e})`,
-      array: e => `json(${e})`
+      array: e => `json(${e})`,
     }
   }
 
@@ -323,7 +323,7 @@ class PostgresService extends SQLService {
     const creds = {
       database: database,
       usergroup: `${database}_USERS`,
-      user: `${database}_USER_MANAGER`
+      user: `${database}_USER_MANAGER`,
     }
     creds.password = creds.user
 
@@ -361,7 +361,7 @@ class PostgresService extends SQLService {
       database: database,
       usergroup: `${database}_USERS`,
       schema: tenant,
-      user: `${tenant}_USER`
+      user: `${tenant}_USER`,
     }
     creds.password = creds.user
 

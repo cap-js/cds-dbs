@@ -98,7 +98,7 @@ describe('Replace attribute search by search predicate', () => {
       {
         Books.ID,
         books2.title as authorsBook
-      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y')) `
+      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
   it('Search on navigation', () => {
@@ -117,7 +117,7 @@ describe('Replace attribute search by search predicate', () => {
           where Authors.ID = books.author_ID
         )
       ) and
-      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `
+      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
 })

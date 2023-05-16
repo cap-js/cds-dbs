@@ -20,7 +20,7 @@ describe('Bookshop - Functions', () => {
     test('endswith', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=endswith(author,'Poe')`),
-        GET(`/browse/Books?$filter=endswith(author,'Allen')`)
+        GET(`/browse/Books?$filter=endswith(author,'Allen')`),
       ])
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(2)
@@ -45,7 +45,7 @@ describe('Bookshop - Functions', () => {
     test('startswith', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=startswith(author,'Edgar')`),
-        GET(`/browse/Books?$filter=startswith(author,'Poe')`)
+        GET(`/browse/Books?$filter=startswith(author,'Poe')`),
       ])
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(2)
@@ -57,7 +57,7 @@ describe('Bookshop - Functions', () => {
       const [three, two, negative] = await Promise.all([
         GET(`/browse/Books?$filter=substring(author,1,2) eq 'dg'`),
         GET(`/browse/Books?$filter=substring(author,5) eq ' Allen Poe'`),
-        GET(`/browse/Books?$filter=substring(author,-3) eq 'Poe'`)
+        GET(`/browse/Books?$filter=substring(author,-3) eq 'Poe'`),
       ])
 
       expect(three.status).to.be.eq(200)
@@ -81,7 +81,7 @@ describe('Bookshop - Functions', () => {
     test('tolower', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=tolower(author) eq 'edgar allen poe'`),
-        GET(`/browse/Books?$filter=tolower(author) eq 'Edgar Allen Poe'`)
+        GET(`/browse/Books?$filter=tolower(author) eq 'Edgar Allen Poe'`),
       ])
 
       expect(res.status).to.be.eq(200)
@@ -94,7 +94,7 @@ describe('Bookshop - Functions', () => {
     test('toupper', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=toupper(author) eq 'EDGAR ALLEN POE'`),
-        GET(`/browse/Books?$filter=toupper(author) eq 'Edgar Allen Poe'`)
+        GET(`/browse/Books?$filter=toupper(author) eq 'Edgar Allen Poe'`),
       ])
 
       expect(res.status).to.be.eq(200)
@@ -107,7 +107,7 @@ describe('Bookshop - Functions', () => {
     test('trim', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=author eq trim('  Edgar Allen Poe  ')`),
-        GET(`/browse/Books?$filter=author eq '  Edgar Allen Poe  '`)
+        GET(`/browse/Books?$filter=author eq '  Edgar Allen Poe  '`),
       ])
 
       expect(res.status).to.be.eq(200)
@@ -158,7 +158,7 @@ describe('Bookshop - Functions', () => {
     test.skip('fractionalseconds', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:00.321Z) eq 321&$top=1`
+        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:00.321Z) eq 321&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
@@ -214,7 +214,7 @@ describe('Bookshop - Functions', () => {
     test.skip('totaloffsetminutes', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`
+        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)

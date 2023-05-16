@@ -23,7 +23,7 @@ describe('cqn2sql', () => {
     // empty columns will be ignored
     test('with select with from ref and elements as empty array', () => {
       const cqnSelect = {
-        SELECT: Object.assign({}, cqn.select.SELECT, { columns: [] })
+        SELECT: Object.assign({}, cqn.select.SELECT, { columns: [] }),
       }
       const { sql } = cqn2sql(cqnSelect)
       expect(sql).toMatchSnapshot()
@@ -109,9 +109,9 @@ describe('cqn2sql', () => {
           where: [
             { list: [{ ref: ['a'] }, { ref: ['b'] }, { val: 1 }] },
             '=',
-            { list: [{ ref: ['c'] }, { val: 'd' }, { ref: ['x'] }] }
-          ]
-        }
+            { list: [{ ref: ['c'] }, { val: 'd' }, { ref: ['x'] }] },
+          ],
+        },
       }
       const { sql, values } = cqn2sql(cqn)
       expect({ sql, values }).toMatchSnapshot()
@@ -146,10 +146,10 @@ describe('cqn2sql', () => {
             'and',
             {
               func: 'contains',
-              args: [{ list: [{ ref: ['a'] }] }, { val: 'z' }, 'or', { val: 'zz' }]
-            }
-          ]
-        }
+              args: [{ list: [{ ref: ['a'] }] }, { val: 'z' }, 'or', { val: 'zz' }],
+            },
+          ],
+        },
       }
       const toThrow = () => {
         return cqn2sql(cqn)
@@ -168,10 +168,10 @@ describe('cqn2sql', () => {
             'and',
             {
               func: 'contains',
-              args: [{ list: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }, { ref: ['x'] }] }, { val: 'z' }]
-            }
-          ]
-        }
+              args: [{ list: [{ ref: ['a'] }, { ref: ['b'] }, { ref: ['c'] }, { ref: ['x'] }] }, { val: 'z' }],
+            },
+          ],
+        },
       }
       const { sql } = cqn2sql(cqn)
       expect(sql).toMatchSnapshot()
@@ -280,8 +280,8 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          orderBy: [{ func: 'lower', args: [{ ref: ['c'] }], sort: 'desc' }]
-        }
+          orderBy: [{ func: 'lower', args: [{ ref: ['c'] }], sort: 'desc' }],
+        },
       })
       expect(sql).toMatchSnapshot()
     })
@@ -290,8 +290,8 @@ describe('cqn2sql', () => {
       const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [{ func: 'lower', args: [{ ref: ['c'] }] }, '=', { val: 'name' }]
-        }
+          where: [{ func: 'lower', args: [{ ref: ['c'] }] }, '=', { val: 'name' }],
+        },
       })
       expect({ sql, values }).toMatchSnapshot()
     })
@@ -300,8 +300,8 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          having: [{ func: 'count', args: ['*'] }, '>', { val: 1 }]
-        }
+          having: [{ func: 'count', args: ['*'] }, '>', { val: 1 }],
+        },
       })
       expect(sql).toMatchSnapshot()
     })
@@ -310,8 +310,8 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ ref: ['a'] }, { ref: ['b'] }] }]
-        }
+          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ ref: ['a'] }, { ref: ['b'] }] }],
+        },
       })
       expect(sql).toMatchSnapshot()
     })
@@ -320,8 +320,8 @@ describe('cqn2sql', () => {
       const { sql, values } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }]
-        }
+          where: [{ ref: ['c'] }, '=', { func: 'concat', args: [{ val: 'Existing' }, { ref: ['a'] }, { val: '!' }] }],
+        },
       })
       expect({ sql, values }).toMatchSnapshot()
     })
@@ -335,14 +335,14 @@ describe('cqn2sql', () => {
             '=',
             {
               func: 'lower',
-              args: [{ func: 'upper', args: [{ func: 'trim', args: [{ val: '   existing name  ' }] }] }]
+              args: [{ func: 'upper', args: [{ func: 'trim', args: [{ val: '   existing name  ' }] }] }],
             },
             'and',
             { func: 'length', args: [{ func: 'trim', args: [{ val: '  name' }] }] },
             '=',
-            { ref: ['b'] }
-          ]
-        }
+            { ref: ['b'] },
+          ],
+        },
       })
       expect({ sql, values }).toMatchSnapshot()
     })
@@ -352,14 +352,14 @@ describe('cqn2sql', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }],
           from: { ref: ['Foo2'] },
-          where: [{ ref: ['a'] }, '=', { val: 1 }]
-        }
+          where: [{ ref: ['a'] }, '=', { val: 1 }],
+        },
       }
       const { sql } = cqn2sql({
         SELECT: {
           from: { ref: ['Foo'] },
-          where: [{ ref: ['ID'] }, '=', { func: 'any', args: [subselect] }]
-        }
+          where: [{ ref: ['ID'] }, '=', { func: 'any', args: [subselect] }],
+        },
       })
       expect(sql).toMatchSnapshot()
     })
@@ -376,9 +376,9 @@ describe('cqn2sql', () => {
             { val: true, as: 'True' },
             { val: false, as: 'False' },
             { val: null, as: 'Null' },
-            { func: 'count', args: ['*'], as: 'CountFunc' }
-          ]
-        }
+            { func: 'count', args: ['*'], as: 'CountFunc' },
+          ],
+        },
       }
       const { sql } = cqn2sql(cqn)
       expect({ sql }).toMatchSnapshot()

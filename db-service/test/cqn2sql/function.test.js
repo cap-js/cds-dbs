@@ -12,10 +12,10 @@ describe('function', () => {
         where: [
           {
             func: 'contains',
-            args: [{ list: [{ ref: ['a'] }, { ref: ['b'] }] }, { val: '5' }]
-          }
-        ]
-      }
+            args: [{ list: [{ ref: ['a'] }, { ref: ['b'] }] }, { val: '5' }],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -30,10 +30,10 @@ describe('function', () => {
         where: [
           {
             func: 'contains',
-            args: [{ list: [{ ref: ['a'] }] }, { val: 'abc' }, 'and', { val: 'bcd' }, 'or', { val: 'efg' }]
-          }
-        ]
-      }
+            args: [{ list: [{ ref: ['a'] }] }, { val: 'abc' }, 'and', { val: 'bcd' }, 'or', { val: 'efg' }],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -50,16 +50,16 @@ describe('function', () => {
             func: 'contains',
             args: [
               {
-                list: [{ ref: ['ID'] }, { ref: ['x'] }]
+                list: [{ ref: ['ID'] }, { ref: ['x'] }],
               },
               { val: '5' },
               'and',
               'not',
-              { val: '3' }
-            ]
-          }
-        ]
-      }
+              { val: '3' },
+            ],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -75,15 +75,15 @@ describe('function', () => {
           'not',
           {
             func: 'contains',
-            args: [{ list: [{ ref: ['b'] }] }, { val: '5' }]
-          }
-        ]
-      }
+            args: [{ list: [{ ref: ['b'] }] }, { val: '5' }],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
       sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)',
-      values: ['5']
+      values: ['5'],
     })
   })
 
@@ -95,15 +95,15 @@ describe('function', () => {
           'not',
           {
             func: 'contains',
-            args: [{ list: [{ ref: ['ID'] }, { ref: ['a'] }] }, { val: '5' }]
-          }
-        ]
-      }
+            args: [{ list: [{ ref: ['ID'] }, { ref: ['a'] }] }, { val: '5' }],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
       sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not (instr((Foo.ID),?) and instr((Foo.a),?))',
-      values: ['5', '5']
+      values: ['5', '5'],
     })
   })
 
@@ -116,10 +116,10 @@ describe('function', () => {
             'not',
             {
               func: 'contains',
-              args: [{ list: [{ ref: ['a'] }] }, { val }]
-            }
-          ]
-        }
+              args: [{ list: [{ ref: ['a'] }] }, { val }],
+            },
+          ],
+        },
       }
     }
     // Input values should be escaped with ^ (on HANA)
@@ -148,10 +148,10 @@ describe('function', () => {
         where: [
           {
             func: 'contains',
-            args: [{ list: [{ ref: ['a'] }] }, { val: 'Te%st' }]
-          }
-        ]
-      }
+            args: [{ list: [{ ref: ['a'] }] }, { val: 'Te%st' }],
+          },
+        ],
+      },
     }
     const { values } = cqn2sql(cqn)
     expect({ values }).toMatchSnapshot()
@@ -167,10 +167,10 @@ describe('function', () => {
         where: [
           {
             func: 'round',
-            args: [{ xpr: [{ ref: ['x'] }, '-', { val: 100 }] }, { val: 3 }]
-          }
-        ]
-      }
+            args: [{ xpr: [{ ref: ['x'] }, '-', { val: 100 }] }, { val: 3 }],
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -180,8 +180,8 @@ describe('function', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ func: 'current_date' }]
-      }
+        where: [{ func: 'current_date' }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date()')
