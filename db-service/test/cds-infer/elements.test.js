@@ -359,9 +359,6 @@ describe('infer elements', () => {
         stringl: {
           type: 'cds.LargeString',
         },
-        stringl: {
-          type: 'cds.LargeString',
-        },
       })
     })
 

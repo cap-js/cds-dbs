@@ -222,7 +222,6 @@ module.exports.test = Object.setPrototypeOf(function () {
                 expect('get').toMatchSnapshot()
                 expect(arguments).toMatchSnapshot()
                 return await setResult(stmt.get(...arguments))
-                return ret
               } finally {
                 done()
               }
@@ -233,7 +232,6 @@ module.exports.test = Object.setPrototypeOf(function () {
                 expect('all').toMatchSnapshot()
                 expect(arguments).toMatchSnapshot()
                 return await setResult(stmt.all(...arguments))
-                return ret
               } finally {
                 done()
               }
