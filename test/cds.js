@@ -50,7 +50,9 @@ module.exports.test = Object.setPrototypeOf(function () {
   global.before(async () => {
     // reset UUID for each test suite
     stableUUID = 0
+
     try {
+      // Determine database driver based upon test source path
       const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
     } catch (e) {
@@ -59,6 +61,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     }
   })
 
+  // Run original cds.test function
   ret = cdsTest(...arguments)
 
   global.before(async () => {
@@ -75,13 +78,16 @@ module.exports.test = Object.setPrototypeOf(function () {
     async function (db) {
       if (!db) db = await cds.connect.to('db')
 
+      // Take and check snapshot state from expect to adjust snapshot driver behavior
       const snapshotState = expect.getState().snapshotState
       // snapshotState._updateSnapshot = 'all'
       const updateSnapshots = snapshotState._updateSnapshot === 'all'
 
+      // Create isolation information
       const { createHash } = require('crypto')
       const hash = createHash('sha1')
-      const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
+      const rootLength = __dirname.length - 5
+      const isolateName = (require.main.filename?.slice(rootLength) || 'test_tenant') + isolateCounter++
       hash.update(isolateName)
       const isolate = {
         // Create one database for each overall test execution
@@ -101,53 +107,14 @@ module.exports.test = Object.setPrototypeOf(function () {
         ret.credentials = db.options.credentials
       }
 
-      const Queue = class {
-        constructor(parent) {
-          this.parent = parent
-        }
-
-        proms = []
-
-        done() {
-          const next = this.proms.shift()
-          if (next) {
-            next.resolve({
-              done: this.done.bind(this),
-              sub: new Queue(this),
-            })
-          } else {
-            this.busy = false
-            if (this.parent) {
-              this.parent.done()
-            }
-          }
-        }
-
-        then(resolve, reject) {
-          const prom = {
-            resolve: resolve,
-            reject: reject,
-          }
-
-          if (this.busy) {
-            this.proms.push(prom)
-            return prom.prom
-          } else {
-            this.busy = true
-            return resolve({
-              done: this.done.bind(this),
-              sub: new Queue(this),
-            })
-          }
-        }
-      }
-
+      // Queue for database prepare and exec calls for stability
       const queue = new Queue()
 
       // create snapshot driver
       if (typeof db.prepare === 'function' && typeof db.exec === 'function') {
         // Echo existing snapshots
         if (!updateSnapshots) {
+          // Remove database connection factory
           db.pools._factory = {
             create: () => ({}),
             destroy: () => {},
@@ -158,8 +125,20 @@ module.exports.test = Object.setPrototypeOf(function () {
             },
           }
 
+          // For databases that use isolation simulate isolation logic
           if (db.options.credentials) {
             db.options.credentials.schema = isolate.tenant
+          }
+
+          const getResult = async function () {
+            // Detach to simulate network round trip
+            await new Promise(res => setImmediate(res))
+            const next = snapshotState.match({
+              testName: expect.getState().currentTestName || '',
+            })
+            const ret = snapshotState._initialData[next.key]
+            snapshotState.unmatched--
+            return JSON.parse(ret.slice(1, -1))
           }
 
           db.prepare = async function (sql) {
@@ -172,14 +151,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                 try {
                   expect('run').toMatchSnapshot()
                   expect(arguments).toMatchSnapshot()
-                  await new Promise(res => setImmediate(res))
-                  const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || '',
-                    // isInline: false,
-                  })
-                  const ret = snapshotState._initialData[next.key]
-                  snapshotState.unmatched--
-                  return JSON.parse(ret.slice(1, -1))
+                  return await getResult()
                 } finally {
                   done()
                 }
@@ -189,14 +161,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                 try {
                   expect('get').toMatchSnapshot()
                   expect(arguments).toMatchSnapshot()
-                  await new Promise(res => setImmediate(res))
-                  const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || '',
-                    // isInline: false,
-                  })
-                  const ret = snapshotState._initialData[next.key]
-                  snapshotState.unmatched--
-                  return JSON.parse(ret.slice(1, -1))
+                  return await getResult()
                 } finally {
                   done()
                 }
@@ -206,14 +171,7 @@ module.exports.test = Object.setPrototypeOf(function () {
                 try {
                   expect('all').toMatchSnapshot()
                   expect(arguments).toMatchSnapshot()
-                  await new Promise(res => setImmediate(res))
-                  const next = snapshotState.match({
-                    testName: expect.getState().currentTestName || '',
-                    // isInline: false,
-                  })
-                  const ret = snapshotState._initialData[next.key]
-                  snapshotState.unmatched--
-                  return JSON.parse(ret.slice(1, -1))
+                  return await getResult()
                 } finally {
                   done()
                 }
@@ -226,20 +184,19 @@ module.exports.test = Object.setPrototypeOf(function () {
             try {
               expect('exec').toMatchSnapshot()
               expect(sql).toMatchSnapshot()
-              await new Promise(res => setImmediate(res))
-              const next = snapshotState.match({
-                testName: expect.getState().currentTestName || '',
-                // isInline: false,
-              })
-              const ret = snapshotState._initialData[next.key]
-              snapshotState.unmatched--
-              return JSON.parse(ret.slice(1, -1))
+              return await getResult()
             } finally {
               done()
             }
           }
 
           return
+        }
+
+        const setResult = async function (ret) {
+          ret = await ret
+          expect(JSON.stringify(ret)).toMatchSnapshot()
+          return ret
         }
 
         // capture snapshots with actual database driver passthrough
@@ -254,9 +211,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               try {
                 expect('run').toMatchSnapshot()
                 expect(arguments).toMatchSnapshot()
-                const ret = await stmt.run(...arguments)
-                expect(JSON.stringify(ret)).toMatchSnapshot()
-                return ret
+                return await setResult(stmt.run(...arguments))
               } finally {
                 done()
               }
@@ -266,8 +221,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               try {
                 expect('get').toMatchSnapshot()
                 expect(arguments).toMatchSnapshot()
-                const ret = await stmt.get(...arguments)
-                expect(JSON.stringify(ret)).toMatchSnapshot()
+                return await setResult(stmt.get(...arguments))
                 return ret
               } finally {
                 done()
@@ -278,8 +232,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               try {
                 expect('all').toMatchSnapshot()
                 expect(arguments).toMatchSnapshot()
-                const ret = await stmt.all(...arguments)
-                expect(JSON.stringify(ret)).toMatchSnapshot()
+                return await setResult(stmt.all(...arguments))
                 return ret
               } finally {
                 done()
@@ -294,9 +247,7 @@ module.exports.test = Object.setPrototypeOf(function () {
           try {
             expect('exec').toMatchSnapshot()
             expect(sql).toMatchSnapshot()
-            const ret = await orgExec.apply(this, arguments)
-            expect(JSON.stringify(ret)).toMatchSnapshot()
-            return ret
+            return await setResult(orgExec.apply(this, arguments))
           } finally {
             done()
           }
@@ -310,8 +261,11 @@ module.exports.test = Object.setPrototypeOf(function () {
       this._autoIsolation = enabled
       return this
     }
+  // TODO: require explicit isolation definition in each test
+  // to not do the isolation if the test does not need that database
   ret.data.autoIsolation(true)
 
+  // Deploy as the cds.test call will not call deploy with cds.env.requires.db defined
   global.before(async () => {
     if (ret.data._autoIsolation && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
@@ -319,6 +273,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     }
   })
 
+  // Remove all database connections and clean up database related caches
   global.after(async () => {
     // Clean database connection pool
     await cds.db?.disconnect?.()
@@ -331,5 +286,78 @@ module.exports.test = Object.setPrototypeOf(function () {
     global.cds.resolve.cache = {}
   })
 
+  const axiosQueue = new Queue()
+  const axiosFunctions = [
+    'get',
+    'GET',
+    'put',
+    'PUT',
+    'post',
+    'POST',
+    'patch',
+    'PATCH',
+    'delete',
+    'DELETE',
+    'DEL',
+    'options',
+    'OPTIONS',
+  ]
+
+  axiosFunctions.forEach(f => {
+    const org = ret[f]
+    ret[f] = async function () {
+      const { done } = await axiosQueue
+      try {
+        return await org.apply(this, arguments)
+      } finally {
+        done()
+      }
+    }
+  })
+
   return ret
 }, cdsTest.constructor.prototype)
+
+const Queue = class {
+  constructor(parent) {
+    // Allow for parent queue (e.g. prepare().run())
+    this.parent = parent
+  }
+
+  proms = []
+
+  // Called when the async task is done and the next can be executed
+  done() {
+    const next = this.proms.shift()
+    if (next) {
+      next.resolve({
+        done: this.done.bind(this),
+        sub: new Queue(this),
+      })
+    } else {
+      this.busy = false
+      if (this.parent) {
+        this.parent.done()
+      }
+    }
+  }
+
+  // Create lock and wait for the request its turn
+  then(resolve, reject) {
+    const prom = {
+      resolve: resolve,
+      reject: reject,
+    }
+
+    if (this.busy) {
+      this.proms.push(prom)
+      return prom.prom
+    } else {
+      this.busy = true
+      return resolve({
+        done: this.done.bind(this),
+        sub: new Queue(this),
+      })
+    }
+  }
+}
