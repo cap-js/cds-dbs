@@ -17,7 +17,7 @@ describe('UPDATE', () => {
     let u = UPDATE.entity('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
     const query = cqn4sql(u)
     const expected = JSON.parse(
-      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}'
+      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
   })

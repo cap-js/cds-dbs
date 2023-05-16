@@ -51,7 +51,7 @@ describe('query clauses', () => {
       CQL`SELECT from bookshop.Bar {
             ID as castedID: cds.String
           }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
             Bar.ID as castedID: cds.String
@@ -65,7 +65,7 @@ describe('query clauses', () => {
       CQL`SELECT from bookshop.Bar {
             ID: cds.String
           }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
             Bar.ID as ID: cds.String

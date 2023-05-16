@@ -1,15 +1,15 @@
 module.exports = [
   {
-    integer: null
+    integer: null,
   },
   {
-    integer: -2147483648
+    integer: -2147483648,
   },
   {
-    integer: 2147483647
+    integer: 2147483647,
   },
   {
-    integer64: '9223372036854775807'
+    integer64: '9223372036854775807',
   },
   {
     integer64: '-9223372036854775808'
@@ -31,5 +31,5 @@ module.exports = [
     decimal: 31415,
     '=decimal': 5
   }
-  */
+  */,
 ]

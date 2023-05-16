@@ -20,14 +20,14 @@ describe('CAP PostgreSQL Adapter', () => {
         '/beershop/Beers/9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b',
         {
           name: 'Changed name',
-          ibu: 10
+          ibu: 10,
         },
 
         {
           headers: {
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
 
       //await cds.run(`alter user postgres set timezone = 'UTC'`, [])

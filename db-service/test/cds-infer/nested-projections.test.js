@@ -21,9 +21,9 @@ describe('nested projections', () => {
           ID: Books.elements.ID,
           dedication: {
             elements: {
-              text: Books.elements.dedication.elements.text // only text!
-            }
-          }
+              text: Books.elements.dedication.elements.text, // only text!
+            },
+          },
         })
       })
       it('wildcard access in structs', () => {
@@ -33,8 +33,8 @@ describe('nested projections', () => {
         expect(inferred.elements).to.deep.equal({
           ID: Books.elements.ID,
           dedication: {
-            elements: Books.elements.dedication.elements
-          }
+            elements: Books.elements.dedication.elements,
+          },
         })
       })
       it('respect alias of element in expand, combined with wildcard', () => {
@@ -46,9 +46,9 @@ describe('nested projections', () => {
           dedication: {
             elements: {
               foo: Books.elements.dedication.elements.dedication,
-              ...Books.elements.dedication.elements
-            }
-          }
+              ...Books.elements.dedication.elements,
+            },
+          },
         })
       })
 
@@ -93,8 +93,8 @@ describe('nested projections', () => {
         expect(inferred.elements).to.deep.equal({
           ID: Books.elements.ID,
           author: {
-            elements: Authors.elements
-          }
+            elements: Authors.elements,
+          },
         })
       })
       it('supports nested projections for assocs with a * (2)', () => {
@@ -104,8 +104,8 @@ describe('nested projections', () => {
         expect(inferred.elements).to.deep.equal({
           ID: Books.elements.ID,
           author: {
-            elements: { baz: Authors.elements.ID, ...Authors.elements }
-          }
+            elements: { baz: Authors.elements.ID, ...Authors.elements },
+          },
         })
       })
       it('supports nested projections for assocs with a * and respects column alias', () => {
@@ -115,8 +115,8 @@ describe('nested projections', () => {
         expect(inferred.elements).to.deep.equal({
           ID: Books.elements.ID,
           BUBU: {
-            elements: { baz: Authors.elements.ID, ...Authors.elements }
-          }
+            elements: { baz: Authors.elements.ID, ...Authors.elements },
+          },
         })
       })
       it('deeply nested ', () => {
@@ -129,12 +129,12 @@ describe('nested projections', () => {
               elements: {
                 author: {
                   elements: {
-                    name: Authors.elements.books._target.elements.author._target.elements.name
-                  }
-                }
-              }
-            }
-          }
+                    name: Authors.elements.books._target.elements.author._target.elements.name,
+                  },
+                },
+              },
+            },
+          },
         })
       })
       it('to many', () => {
@@ -145,10 +145,10 @@ describe('nested projections', () => {
           books: {
             items: {
               elements: {
-                title: Authors.elements.books._target.elements.title
-              }
-            }
-          }
+                title: Authors.elements.books._target.elements.title,
+              },
+            },
+          },
         })
       })
     })
@@ -303,7 +303,7 @@ describe('nested projections', () => {
           office_room: EmployeeNoUnmanaged.elements.office.elements.room,
           office_building: EmployeeNoUnmanaged.elements.office.elements.building,
           office_address: {
-            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements
+            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
           },
           office_furniture: {
             elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements
@@ -350,7 +350,7 @@ describe('nested projections', () => {
           office_room: EmployeeNoUnmanaged.elements.office.elements.room,
           office_building: EmployeeNoUnmanaged.elements.office.elements.building,
           office_address: {
-            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements
+            elements: EmployeeNoUnmanaged.elements.office.elements.address.elements,
           },
           office_furniture: {
             elements: EmployeeNoUnmanaged.elements.office.elements.furniture.elements

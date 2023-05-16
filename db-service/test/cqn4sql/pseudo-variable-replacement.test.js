@@ -109,18 +109,18 @@ describe('Pseudo Variables', () => {
 
   it('must not be prefixed by table alias', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, Books.$now }`), model).to.throw(
-      '"$now" not found in "bookshop.Books"'
+      '"$now" not found in "bookshop.Books"',
     )
   })
 
   it('must not be prefixed by struc or assoc', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author.$user }`), model).to.throw(
-      '"$user" not found in "author"'
+      '"$user" not found in "author"',
     )
   })
   it('only well defined pseudo variables are allowed', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, $whatever }`), model).to.throw(
-      '"$whatever" not found in the elements of "bookshop.Books"'
+      '"$whatever" not found in the elements of "bookshop.Books"',
     )
   })
 

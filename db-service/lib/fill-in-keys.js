@@ -34,7 +34,7 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
       }
 
       propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
-        deleteAssocs: true
+        deleteAssocs: true,
       })
     }
   }

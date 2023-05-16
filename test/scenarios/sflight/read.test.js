@@ -22,7 +22,7 @@ describe('SFlight - Read', () => {
     'Supplement',
     'FlightConnection',
     'SupplementType',
-    'Airport'
+    'Airport',
   ]
 
   test.each(processorPaths)('/processor/%s', async p => {

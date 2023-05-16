@@ -3,8 +3,8 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 const admin = {
   auth: {
-    username: 'alice'
-  }
+    username: 'alice',
+  },
 }
 
 describe('Bookshop - Read', () => {
@@ -57,7 +57,7 @@ describe('Bookshop - Read', () => {
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(200)
 
@@ -86,7 +86,7 @@ describe('Bookshop - Read', () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
       '/admin/Books?$count=true&$top=2&$orderby=title asc&$select=title&$expand=author($select=name;$expand=books($count=true;$orderby=title desc;$top=1;$select=title))',
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(200)
 
@@ -108,9 +108,9 @@ describe('Bookshop - Read', () => {
         genre: { ID: 12 },
         stock: 5,
         price: '12.05',
-        currency: { code: 'USD' }
+        currency: { code: 'USD' },
       },
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(201)
   })
@@ -127,9 +127,9 @@ describe('Bookshop - Read', () => {
         genre: { ID: 10 },
         stock: 5,
         price: '12.05',
-        currency: { code: 'USD' }
+        currency: { code: 'USD' },
       },
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(201)
 
@@ -158,9 +158,9 @@ describe('Bookshop - Read', () => {
         genre: { ID: 12 },
         stock: 5,
         price: '12.05',
-        currency: { code: 'USD' }
+        currency: { code: 'USD' },
       },
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(201)
   })
@@ -170,9 +170,9 @@ describe('Bookshop - Read', () => {
       '/admin/Books(201)', // was Books(2) -> UPSERT
       {
         descr: 'UPDATED',
-        author: { ID: 201 }
+        author: { ID: 201 },
       },
-      admin
+      admin,
     )
     expect(res.status).to.be.eq(200)
 

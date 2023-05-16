@@ -370,7 +370,7 @@ describe('functions', () => {
         throw new Error(
           `Not all results match the results from HANA ${res.length}:\n${res
             .map(r => `DAYS_BETWEEN('${r.a}','${r.b}') received: ${r.sqlite} expected ${r.days}`)
-            .join('\n')}`
+            .join('\n')}`,
         )
       }
     })
@@ -683,7 +683,7 @@ describe('functions', () => {
         throw new Error(
           `Not all results match the results from HANA ${res.length}:\n${res
             .map(r => `MONTHS_BETWEEN('${r.a}','${r.b}') received: ${r.sqlite} expected ${r.months}`)
-            .join('\n')}`
+            .join('\n')}`,
         )
       }
     })
@@ -705,7 +705,7 @@ describe('functions', () => {
         throw new Error(
           `Not all results match the results from HANA ${unacceptable.length}:\n${unacceptable
             .map(r => `NANO100_BETWEEN('${r.a}','${r.b}') received: ${r.sqlite} expected ${r.nano100}`)
-            .join('\n')}`
+            .join('\n')}`,
         )
       }
     })
@@ -893,7 +893,7 @@ describe('functions', () => {
         throw new Error(
           `Not all results match the results from HANA ${unacceptable.length}:\n${unacceptable
             .map(r => `SECONDS_BETWEEN('${r.a}','${r.b}') received: ${r.sqlite} expected ${r.seconds}`)
-            .join('\n')}`
+            .join('\n')}`,
         )
       }
     })
@@ -1256,7 +1256,7 @@ describe('functions', () => {
         throw new Error(
           `Not all results match the results from HANA ${res.length}:\n${res
             .map(r => `YEARS_BETWEEN('${r.a}','${r.b}') received: ${r.sqlite} expected ${r.years}`)
-            .join('\n')}`
+            .join('\n')}`,
         )
       }
     })

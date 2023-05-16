@@ -65,8 +65,8 @@ describe('CREATE', () => {
           if (entity.projection) {
             deploy = tx.run({
               CREATE: {
-                entity: entity.projection.from.ref[0]
-              }
+                entity: entity.projection.from.ref[0],
+              },
             })
           }
           // actually CREATE test
@@ -126,7 +126,7 @@ describe('CREATE', () => {
                   if (typeof b === 'function') return `${b}`
                   return b
                 },
-                Object.keys(obj).length === 1 ? undefined : '\t      '
+                Object.keys(obj).length === 1 ? undefined : '\t      ',
               )
                 // Super hacky way to make the jest report look nice
                 .replace(/\n}/g, '\n\t    }'),
@@ -167,8 +167,8 @@ describe('CREATE', () => {
                   // Extract data set
                   const sel = await tx.run({
                     SELECT: {
-                      from: { ref: [table] }
-                    }
+                      from: { ref: [table] },
+                    },
                   })
 
                   // TODO: Can we expect all Database to respond in insert order ?
@@ -185,7 +185,7 @@ describe('CREATE', () => {
                     }
                   })
                 })
-              }
+              },
             )
           })
         })

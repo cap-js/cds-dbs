@@ -18,7 +18,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
-        currency_code: Books.elements.currency._target.elements.code
+        currency_code: Books.elements.currency._target.elements.code,
       })
     })
 
@@ -28,7 +28,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
-        genre_parent_ID: Books.elements.genre._target.elements.parent._target.elements.ID
+        genre_parent_ID: Books.elements.genre._target.elements.parent._target.elements.ID,
       })
     })
 
@@ -39,7 +39,7 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
         code: Books.elements.currency._target.elements.code,
-        text: Books.elements.dedication.elements.text
+        text: Books.elements.dedication.elements.text,
       })
     })
 
@@ -50,7 +50,7 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
         dedication_sub_foo: Books.elements.dedication.elements.sub.elements.foo,
-        dedication_sub: Books.elements.dedication.elements.sub
+        dedication_sub: Books.elements.dedication.elements.sub,
       })
     })
     it('with filter conditions', () => {
@@ -59,7 +59,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
         dedication_addressee_name: Books.elements.dedication.elements.addressee._target.elements.name,
-        nameWithoutFilter: Books.elements.dedication.elements.addressee._target.elements.name
+        nameWithoutFilter: Books.elements.dedication.elements.addressee._target.elements.name,
       })
     })
   })
@@ -85,7 +85,7 @@ describe('infer elements', () => {
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Foo.elements.ID,
-        virtualField: Foo.elements.virtualField
+        virtualField: Foo.elements.virtualField,
       })
     })
   })
@@ -96,7 +96,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
-        ID: Books.elements.ID
+        ID: Books.elements.ID,
       })
     })
   })
@@ -108,7 +108,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
-        author: Books.elements.author
+        author: Books.elements.author,
       })
     })
 
@@ -119,7 +119,7 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal({
         identifier: Books.elements.ID,
         foo: Books.elements.dedication.elements.sub.elements.foo,
-        sub: Books.elements.dedication.elements.sub
+        sub: Books.elements.dedication.elements.sub,
       })
     })
     it('query alias shadows an element name', () => {
@@ -130,7 +130,7 @@ describe('infer elements', () => {
         ID: Books.elements.ID,
         dedication: Books.elements.dedication, // path of length 1: always interpreted as column ref, never as alias
         title: Books.elements.title,
-        dedication_text: Books.elements.dedication.elements.text
+        dedication_text: Books.elements.dedication.elements.text,
       })
     })
     it('element has the same name as the query alias and is still addressable', () => {
@@ -139,7 +139,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Books.elements.ID,
-        dedication_text: Books.elements.dedication.elements.text
+        dedication_text: Books.elements.dedication.elements.text,
       })
     })
   })
@@ -160,7 +160,7 @@ describe('infer elements', () => {
 
       // workaround: annotations are lost after parsing the CQL
       let {
-        SELECT: { columns }
+        SELECT: { columns },
       } = query
       columns[1]['@foo'] = true
       columns[4]['@foo'] = true
@@ -178,7 +178,7 @@ describe('infer elements', () => {
         AfterItWasOverwritten: { ...inferred.elements.ID, '@foo': true },
         realIDOnlyAnno: { ...inferred.elements.realID, '@foo': true },
         realIDBoo: { ...inferred.elements.realIDWithAnno, '@boo': true },
-        overwritesFoo: { ...inferred.elements.realIDWithAnno, '@foo': 'bar' }
+        overwritesFoo: { ...inferred.elements.realIDWithAnno, '@foo': 'bar' },
       })
     })
   })
@@ -213,7 +213,7 @@ describe('infer elements', () => {
         .equals(Genres.elements.foo._target)
 
       expect(inferred.elements).to.deep.equal({
-        fooID: Genres.elements.ID
+        fooID: Genres.elements.ID,
       })
     })
 
@@ -225,7 +225,7 @@ describe('infer elements', () => {
 
       expect(inferred.target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
       expect(inferred.elements).to.deep.equal({
-        name: Authors.elements.name
+        name: Authors.elements.name,
       })
     })
   })
@@ -242,7 +242,7 @@ describe('infer elements', () => {
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
         Two: {},
-        subquery: {}
+        subquery: {},
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -260,7 +260,7 @@ describe('infer elements', () => {
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
         Two: {},
-        subquery: {}
+        subquery: {},
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -293,7 +293,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
-        noType: {}
+        noType: {},
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -320,10 +320,10 @@ describe('infer elements', () => {
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred.elements).to.deep.equal({
         price: {
-          type: 'cds.Integer'
+          type: 'cds.Integer',
         },
         pi: {
-          type: 'cds.Decimal'
+          type: 'cds.Decimal',
         },
         pid: {
           type: 'cds.Decimal'
@@ -332,29 +332,32 @@ describe('infer elements', () => {
           // scale: 4
         },
         boolf: {
-          type: 'cds.Boolean'
+          type: 'cds.Boolean',
         },
         boolt: {
-          type: 'cds.Boolean'
+          type: 'cds.Boolean',
         },
         nullt: {},
         nullc: {
-          type: 'cds.String'
+          type: 'cds.String',
         },
         date: {
-          type: 'cds.Date'
+          type: 'cds.Date',
         },
         time: {
-          type: 'cds.Time'
+          type: 'cds.Time',
         },
         datetime: {
-          type: 'cds.DateTime'
+          type: 'cds.DateTime',
         },
         timestamp: {
-          type: 'cds.Timestamp'
+          type: 'cds.Timestamp',
         },
         string: {
-          type: 'cds.String'
+          type: 'cds.String',
+        },
+        stringl: {
+          type: 'cds.LargeString',
         },
         stringl: {
           type: 'cds.LargeString'
@@ -369,11 +372,11 @@ describe('infer elements', () => {
       expect(inferred).to.have.nested.property('sources.Books', Books)
       let expectedElements = {
         IDS: {
-          type: 'cds.String'
+          type: 'cds.String',
         },
         IDCustomType: {
-          type: 'bookshop.DerivedFromDerivedString'
-        }
+          type: 'bookshop.DerivedFromDerivedString',
+        },
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -389,14 +392,14 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let expectedElements = {
         dedication_sub_foo: {
-          type: 'cds.Integer'
+          type: 'cds.Integer',
         },
         IDS: {
-          type: 'cds.String'
+          type: 'cds.String',
         },
         IDCustomType: {
-          type: 'bookshop.DerivedFromDerivedString'
-        }
+          type: 'bookshop.DerivedFromDerivedString',
+        },
       }
       expect(inferred.elements).to.containSubset(expectedElements)
     })
@@ -449,7 +452,7 @@ describe('infer elements', () => {
       Object.assign(expectedElements, {
         ID: {},
         price: {},
-        author: Books.elements.author._target.elements.name
+        author: Books.elements.author._target.elements.name,
       })
       expect(inferred.elements).to.deep.equal(expectedElements)
       expect(inferred.elements).to.have.nested.property('author.name', 'author')
@@ -463,16 +466,16 @@ describe('infer elements', () => {
             elements: {
               id: { type: 'cds.String' },
               locale: { type: 'cds.String' }, // deprecated
-              tenant: { type: 'cds.String' } // deprecated
-            }
+              tenant: { type: 'cds.String' }, // deprecated
+            },
           },
           $now: { type: 'cds.Timestamp' },
           $at: { type: 'cds.Timestamp' },
           $from: { type: 'cds.Timestamp' },
           $to: { type: 'cds.Timestamp' },
           $locale: { type: 'cds.String' },
-          $tenant: { type: 'cds.String' }
-        }
+          $tenant: { type: 'cds.String' },
+        },
       }
       let query = CQL`SELECT from bookshop.Bar {
       $user,
@@ -500,7 +503,7 @@ describe('infer elements', () => {
         $to: pseudos.elements.$to,
         $from: pseudos.elements.$from,
         $locale: pseudos.elements.$locale,
-        $tenant: pseudos.elements.$tenant
+        $tenant: pseudos.elements.$tenant,
       }
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
@@ -522,8 +525,8 @@ describe('infer elements', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount' }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       const inferred = _inferred(query, model)
       expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
@@ -534,8 +537,8 @@ describe('infer elements', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', cast: { type: 'cds.Integer' } }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       const inferred = _inferred(query, model)
       expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
@@ -546,8 +549,8 @@ describe('infer elements', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       const inferred = _inferred(query, model)
       expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)

@@ -10,8 +10,8 @@ describe('.update', () => {
     const cqnUpdate = {
       UPDATE: {
         entity: { ref: ['Foo2'] },
-        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } }
-      }
+        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -23,8 +23,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } },
-        where: [{ ref: ['a'] }, '<', { val: 9 }]
-      }
+        where: [{ ref: ['a'] }, '<', { val: 9 }],
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -35,8 +35,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: null }, a: { val: 2 } },
-        where: [{ ref: ['a'] }, '<', { val: 9 }]
-      }
+        where: [{ ref: ['a'] }, '<', { val: 9 }],
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -51,9 +51,9 @@ describe('.update', () => {
           ID: { val: 42 },
           name: { val: "'asd'" },
           a: { xpr: [{ ref: ['a'] }, '-', { val: 1 }] },
-          count: { func: 'count', args: ['*'] }
-        }
-      }
+          count: { func: 'count', args: ['*'] },
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -67,9 +67,9 @@ describe('.update', () => {
         data: {
           ID: 1,
           name: undefined,
-          a: null
-        }
-      }
+          a: null,
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -82,9 +82,9 @@ describe('.update', () => {
         data: {
           ID: 1,
           something: 'bla',
-          foo: null
-        }
-      }
+          foo: null,
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -95,8 +95,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: "'asd'" } },
-        data: { a: 2 }
-      }
+        data: { a: 2 },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)

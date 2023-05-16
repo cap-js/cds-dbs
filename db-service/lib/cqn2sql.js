@@ -393,7 +393,7 @@ class CQN2SQLRenderer {
       if (q.elements?.[c.name]?.['@cds.extension']) {
         return {
           name: 'extensions__',
-          sql: `json_set(extensions__,${this.string('$.' + c.name)},${c.sql})`
+          sql: `json_set(extensions__,${this.string('$.' + c.name)},${c.sql})`,
         }
       }
       return c

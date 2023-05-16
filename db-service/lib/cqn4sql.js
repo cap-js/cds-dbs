@@ -319,8 +319,8 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
             $refLinks: { value: [...col.$refLinks, ...nestedProjection.$refLinks], writable: true },
             isJoinRelevant: {
               value: col.isJoinRelevant || nestedProjection.isJoinRelevant,
-              writable: true
-            }
+              writable: true,
+            },
           })
           const flatColumns = getTransformedColumns([augmentedInlineCol])
           flatColumns.forEach(flatColumn => {
@@ -772,7 +772,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
               // the table alias is the query source where the current ref step
               // originates from. As no table alias is specified, there must be
               // only one table alias for the given ref step
-              alias: inferred.$combinedElements[id][0].index
+              alias: inferred.$combinedElements[id][0].index,
             }
             next = $refLinks[0]
           } else {
@@ -1396,7 +1396,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
             const refInSource = backlink ? flatParentKeys[i] : flatForeignKeys[i]
             res.push({
               sourceSide: {
-                ref: [refInSource.as ? `${flatAssociationName}_${refInSource.as}` : refInSource.ref[0]]
+                ref: [refInSource.as ? `${flatAssociationName}_${refInSource.as}` : refInSource.ref[0]],
               },
               targetSide: { ref: [targetSideRefLink.alias, ...refInTarget.ref] }
             })
@@ -1451,9 +1451,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         {
           val: 1
           // as: 'dummy'
-        }
+        },
       ],
-      where: on
+      where: on,
     }
     return SELECT
   }

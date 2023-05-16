@@ -6,7 +6,7 @@ describe('localized', () => {
     return await POST('/test/fooLocalized', {
       ID: 5,
       text: 'english',
-      texts: [{ locale: 'de', text: 'deutsch' }]
+      texts: [{ locale: 'de', text: 'deutsch' }],
     })
   })
 
@@ -19,9 +19,9 @@ describe('localized', () => {
       value: [
         {
           ID: 5,
-          text: 'english'
-        }
-      ]
+          text: 'english',
+        },
+      ],
     })
   })
 
@@ -34,9 +34,9 @@ describe('localized', () => {
       value: [
         {
           ID: 5,
-          text: 'deutsch'
-        }
-      ]
+          text: 'deutsch',
+        },
+      ],
     })
   })
 

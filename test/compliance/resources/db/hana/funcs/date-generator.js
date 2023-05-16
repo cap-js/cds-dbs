@@ -33,7 +33,7 @@ csv.on('ready', async () => {
       months: () => 'MONTHS_BETWEEN(:a,:b)',
       days: () => 'DAYS_BETWEEN(:a,:b)',
       seconds: () => 'SECONDS_BETWEEN(:a,:b)',
-      nano100: () => 'NANO100_BETWEEN(:a,:b)'
+      nano100: () => 'NANO100_BETWEEN(:a,:b)',
     }
     csv.write(columns.join(';'))
     csv.write('\n')
@@ -41,7 +41,7 @@ csv.on('ready', async () => {
       const vals = columns.map(n => funcs[n]())
       const sql = `SELECT ${vals.map((c, i) => `${c} AS "${columns[i]}"`).join(',')} FROM DUMMY`.replace(
         /:(\D)/g,
-        (_, n) => vals[columns.indexOf(n)]
+        (_, n) => vals[columns.indexOf(n)],
       )
       const res = (await hana(sql))[0]
       csv.write(columns.map(c => res[c]).join(';'))

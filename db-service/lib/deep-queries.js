@@ -60,7 +60,7 @@ const getColumnsFromDataOrKeys = (data, target) => {
         .filter(propName => !target.elements[propName]?.isAssociation)
         .forEach(entry => {
           columns.add(entry)
-        })
+        }),
     )
     return Array.from(columns).map(c => ({ ref: [c] }))
   } else {
@@ -106,7 +106,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
     if (!expandColumn) {
       expandColumn = {
         ref: [composition.name],
-        expand: getColumnsFromDataOrKeys(compositionData, composition._target)
+        expand: getColumnsFromDataOrKeys(compositionData, composition._target),
       }
 
       expandColumns.push(expandColumn)
@@ -233,5 +233,5 @@ const _getDeepQueries = (diff, target) => {
 module.exports = {
   onDeep,
   getDeepQueries,
-  getExpandForDeep
+  getExpandForDeep,
 }

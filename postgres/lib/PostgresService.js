@@ -21,7 +21,7 @@ class PostgresService extends SQLService {
         min: 0,
         testOnBorrow: true,
         acquireTimeoutMillis: 1000,
-        destroyTimeoutMillis: 1000
+        destroyTimeoutMillis: 1000,
       },
       create: async () => {
         const cr = this.options.credentials || {}
@@ -37,15 +37,15 @@ class PostgresService extends SQLService {
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
           ssl: cr.sslrootcert && {
             rejectUnauthorized: false,
-            ca: cr.sslrootcert
-          }
+            ca: cr.sslrootcert,
+          },
         }
         const dbc = new Client(credentials)
         await dbc.connect()
         return dbc
       },
       destroy: dbc => dbc.end(),
-      validate: dbc => dbc.open
+      validate: dbc => dbc.open,
     }
   }
 
@@ -93,7 +93,7 @@ class PostgresService extends SQLService {
       text: sql,
       // Track queries name for postgres referencing prepare statements
       // sha1 as it needs to be less then 63 characters
-      name: crypto.createHash('sha1').update(sql).digest('hex')
+      name: crypto.createHash('sha1').update(sql).digest('hex'),
     }
     return {
       run: async values => {
@@ -114,7 +114,7 @@ class PostgresService extends SQLService {
         } catch (e) {
           throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
         }
-      }
+      },
     }
   }
 
@@ -323,7 +323,7 @@ class PostgresService extends SQLService {
     const creds = {
       database: database,
       usergroup: `${database}_USERS`,
-      user: `${database}_USER_MANAGER`
+      user: `${database}_USER_MANAGER`,
     }
     creds.password = creds.user
 
@@ -361,7 +361,7 @@ class PostgresService extends SQLService {
       database: database,
       usergroup: `${database}_USERS`,
       schema: tenant,
-      user: `${tenant}_USER`
+      user: `${tenant}_USER`,
     }
     creds.password = creds.user
 

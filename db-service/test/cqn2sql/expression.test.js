@@ -21,8 +21,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, new String('<'), { val: 9 }]
-      }
+        where: [{ ref: ['x'] }, new String('<'), { val: 9 }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -32,8 +32,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '=', { val: null }]
-      }
+        where: [{ ref: ['x'] }, '=', { val: null }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NULL/i)
@@ -44,8 +44,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ val: null }, '=', { ref: ['x'] }]
-      }
+        where: [{ val: null }, '=', { ref: ['x'] }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null = Foo.x/i)
@@ -56,8 +56,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ val: null }, '=', { val: null }]
-      }
+        where: [{ val: null }, '=', { val: null }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE NULL IS NULL/i)
@@ -67,8 +67,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '!=', { val: null }]
-      }
+        where: [{ ref: ['x'] }, '!=', { val: null }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NOT NULL/i)
@@ -78,8 +78,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ val: 5 }, '!=', { val: 6 }]
-      }
+        where: [{ val: 5 }, '!=', { val: 6 }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 is not 6/i)
@@ -89,8 +89,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '!=', { ref: ['a'] }]
-      }
+        where: [{ ref: ['x'] }, '!=', { ref: ['a'] }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is not Foo.a/i)
@@ -103,8 +103,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ val: null }, '!=', { ref: ['x'] }]
-      }
+        where: [{ val: null }, '!=', { ref: ['x'] }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null IS NOT Foo.x/i)
@@ -114,8 +114,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '!=', { val: 5 }]
-      }
+        where: [{ ref: ['x'] }, '!=', { val: 5 }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is not 5/i)
@@ -125,8 +125,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '<>', { val: 5 }]
-      }
+        where: [{ ref: ['x'] }, '<>', { val: 5 }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x <> 5/i)
@@ -136,8 +136,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '=', { val: 7 }, 'or', { ref: ['x'] }, '!=', { val: 5 }]
-      }
+        where: [{ ref: ['x'] }, '=', { val: 7 }, 'or', { ref: ['x'] }, '!=', { val: 5 }],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is not 5/i)
@@ -148,13 +148,13 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ val: 5 }, '!=', { ref: ['x'] }]
-      }
+        where: [{ val: 5 }, '!=', { ref: ['x'] }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
       sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 is not Foo.x',
-      values: []
+      values: [],
     })
   })
 
@@ -169,8 +169,8 @@ describe('expressions', () => {
           // We should never have supported that!
           // 'or',
           // { xpr: [{ val: null }, '=', { ref: ['x'] }] }
-        ]
-      }
+        ],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toEqual(
@@ -182,8 +182,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, 'like', { val: '%123' }]
-      }
+        where: [{ ref: ['x'] }, 'like', { val: '%123' }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -193,8 +193,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, 'between', { val: 1 }, 'and', { val: 20 }]
-      }
+        where: [{ ref: ['x'] }, 'between', { val: 1 }, 'and', { val: 20 }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -204,8 +204,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, 'regexp', { val: '/\\d/' }]
-      }
+        where: [{ ref: ['x'] }, 'regexp', { val: '/\\d/' }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -215,8 +215,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '>', { param: true, ref: ['abc'] }]
-      }
+        where: [{ ref: ['x'] }, '>', { param: true, ref: ['abc'] }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -230,8 +230,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '>', { param: true, ref: ['?'] }]
-      }
+        where: [{ ref: ['x'] }, '>', { param: true, ref: ['?'] }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -251,11 +251,11 @@ describe('expressions', () => {
           {
             SELECT: {
               from: { ref: ['Foo2'] },
-              columns: [{ ref: ['name'] }]
-            }
-          }
-        ]
-      }
+              columns: [{ ref: ['name'] }],
+            },
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -271,11 +271,11 @@ describe('expressions', () => {
           {
             SELECT: {
               from: { ref: ['Foo2'] },
-              columns: [{ ref: ['name'] }]
-            }
-          }
-        ]
-      }
+              columns: [{ ref: ['name'] }],
+            },
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -291,11 +291,11 @@ describe('expressions', () => {
           {
             SELECT: {
               from: { ref: ['Foo2'] },
-              columns: [{ ref: ['ID'] }, { ref: ['name'] }]
-            }
-          }
-        ]
-      }
+              columns: [{ ref: ['ID'] }, { ref: ['name'] }],
+            },
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -305,8 +305,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ xpr: [{ ref: ['x'] }, '<', { val: 9 }] }, 'AND', { xpr: [{ ref: ['x'] }, '>', { val: 1 }] }]
-      }
+        where: [{ xpr: [{ ref: ['x'] }, '<', { val: 9 }] }, 'AND', { xpr: [{ ref: ['x'] }, '>', { val: 1 }] }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -316,8 +316,8 @@ describe('expressions', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
-        where: [{ ref: ['x'] }, '<', { val: 9 }, 'AND', { ref: ['x'] }, '>', { val: 1 }]
-      }
+        where: [{ ref: ['x'] }, '<', { val: 9 }, 'AND', { ref: ['x'] }, '>', { val: 1 }],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -332,18 +332,18 @@ describe('expressions', () => {
           {
             SELECT: {
               from: { ref: ['Foo2'] },
-              columns: [{ ref: ['name'] }]
-            }
+              columns: [{ ref: ['name'] }],
+            },
           },
           'or not exists',
           {
             SELECT: {
               from: { ref: ['Foo2'] },
-              columns: [{ ref: ['name'] }]
-            }
-          }
-        ]
-      }
+              columns: [{ ref: ['name'] }],
+            },
+          },
+        ],
+      },
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
@@ -356,13 +356,13 @@ describe('expressions', () => {
         where: [
           { func: 'ROW_NUMBER', args: [{ val: 1 }] },
           'OVER',
-          { xpr: ['PARTITION BY', { ref: ['b'] }, 'ORDER BY', { ref: ['x'] }, 'desc'] }
-        ]
-      }
+          { xpr: ['PARTITION BY', { ref: ['b'] }, 'ORDER BY', { ref: ['x'] }, 'desc'] },
+        ],
+      },
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ROW_NUMBER(1) OVER (PARTITION BY Foo.b ORDER BY Foo.x desc)'
+      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ROW_NUMBER(1) OVER (PARTITION BY Foo.b ORDER BY Foo.x desc)',
     )
   })
 })

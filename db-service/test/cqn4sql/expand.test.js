@@ -15,7 +15,7 @@ describe('Unfold expands on structure', () => {
     expect(transformed).to.deep.eql(
       CQL`SELECT from bookshop.Books as Books { Books.ID,
         Books.dedication_addressee_ID,
-      }`
+      }`,
     )
   })
   it('supports deeply nested projections for structs', () => {
@@ -25,7 +25,7 @@ describe('Unfold expands on structure', () => {
       CQL`SELECT from bookshop.Books as Books { Books.ID,
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
-      }`
+      }`,
     )
   })
   it('supports deeply nested projections for structs w/ wildcard', () => {
@@ -36,7 +36,7 @@ describe('Unfold expands on structure', () => {
         Books.ID,
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
-      }`
+      }`,
     )
   })
   it('supports renaming', () => {
@@ -47,7 +47,7 @@ describe('Unfold expands on structure', () => {
         Books.ID as foo,
         Books.dedication_addressee_ID as bubu_addressee_ID,
         Books.dedication_sub_foo as bubu_sub_foo,
-      }`
+      }`,
     )
   })
   it('supports nested projections for structs w/ order by', () => {
@@ -58,7 +58,7 @@ describe('Unfold expands on structure', () => {
         Books.ID,
         Books.dedication_addressee_ID as bubu_addressee_ID,
         Books.dedication_sub_foo as bubu_sub_foo,
-      } order by bubu_sub_foo`
+      } order by bubu_sub_foo`,
     )
   })
 
@@ -71,7 +71,7 @@ describe('Unfold expands on structure', () => {
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
         Books.dedication_dedication,
-      }`
+      }`,
     )
   })
   it('supports nested projections for structs with wildcard select', () => {
@@ -83,7 +83,7 @@ describe('Unfold expands on structure', () => {
         Books.dedication_text,
         Books.dedication_sub_foo,
         Books.dedication_dedication,
-      }`
+      }`,
     )
   })
   it('supports nested projections for structs with smart wildcard', () => {
@@ -96,7 +96,7 @@ describe('Unfold expands on structure', () => {
         5 as dedication_text,
         Books.dedication_sub_foo,
         Books.dedication_dedication,
-      }`
+      }`,
     )
   })
 
@@ -108,7 +108,7 @@ describe('Unfold expands on structure', () => {
           left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID {
             Books.ID,
             addressee.name as dedication_addressee_name
-      }`
+      }`,
     )
   })
   it('supports nested projections for structs with join relevant path expression w/ infix filter', () => {
@@ -119,7 +119,7 @@ describe('Unfold expands on structure', () => {
           left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID and addressee.ID = 42 {
             Books.ID,
             addressee.name as dedication_addressee_name
-      }`
+      }`,
     )
   })
   it('nested projection of assoc within structured expand', () => {
@@ -137,7 +137,7 @@ describe('Unfold expands on structure', () => {
               from bookshop.Person as dedication_addressee
               where Books.dedication_addressee_ID = dedication_addressee.ID
             ) as dedication_addressee
-      }`
+      }`,
     )
   })
 
@@ -152,7 +152,7 @@ describe('Unfold expands on structure', () => {
         'Baz' as dedication_text,
         Books.dedication_dedication,
         5 as dedication_5
-      }`
+      }`,
     )
   })
 
@@ -174,7 +174,7 @@ describe('Unfold expands on structure', () => {
               from bookshop.Person as dedication_addressee
               where Books.dedication_addressee_ID = dedication_addressee.ID
             ) as dedication_addressee
-      }`
+      }`,
     )
   })
 })
@@ -190,12 +190,12 @@ describe('Unfold expands on associations to special subselects', () => {
   // - they can return multiple rows
   it('rejects unmanaged association in infix filter of expand path', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
-      /"books" in path "books.title" must not be an unmanaged association/
+      /"books" in path "books.title" must not be an unmanaged association/,
     )
   })
   it('rejects non-fk access in infix filter of expand path', () => {
     expect(() =>
-      cqn4sql(CQL`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model)
+      cqn4sql(CQL`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model),
     ).to.throw(/Only foreign keys of "sibling" can be accessed in infix filter/)
   })
   it('unfold expand, one field', () => {
@@ -222,45 +222,45 @@ describe('Unfold expands on associations to special subselects', () => {
               SELECT: {
                 from: { ref: ['bookshop.Authors'], as: 'author' },
                 columns: [{ ref: ['author', 'name'] }],
-                where: [{ ref: ['Books', 'author_ID'] }, '=', { ref: ['author', 'ID'] }]
+                where: [{ ref: ['Books', 'author_ID'] }, '=', { ref: ['author', 'ID'] }],
               },
-              as: 'author'
-            }
-          ]
-        }
+              as: 'author',
+            },
+          ],
+        },
       })
   })
   it('do not loose additional properties on expand column', () => {
     const q = {
       SELECT: {
         from: {
-          ref: ['bookshop.Books']
+          ref: ['bookshop.Books'],
         },
         columns: [
           {
             ref: ['author'],
             expand: [
               {
-                ref: ['name']
-              }
+                ref: ['name'],
+              },
             ],
             limit: {
               offset: {
-                val: 1
+                val: 1,
               },
               rows: {
-                val: 1
-              }
+                val: 1,
+              },
             },
             orderBy: [
               {
                 ref: ['name'],
-                sort: 'asc'
-              }
-            ]
-          }
-        ]
-      }
+                sort: 'asc',
+              },
+            ],
+          },
+        ],
+      },
     }
 
     const res = cqn4sql(q)
@@ -314,7 +314,7 @@ describe('Unfold expands on associations to special subselects', () => {
     const q = {
       SELECT: {
         from: {
-          ref: ['bookshop.Books']
+          ref: ['bookshop.Books'],
         },
         columns: [
           {
@@ -327,21 +327,21 @@ describe('Unfold expands on associations to special subselects', () => {
             where: ['exists', { ref: ['books', { id: 'author', where: [{ ref: ['name'] }, '=', { val: 'King' }] }] }],
             limit: {
               offset: {
-                val: 1
+                val: 1,
               },
               rows: {
-                val: 1
-              }
+                val: 1,
+              },
             },
             orderBy: [
               {
                 ref: ['name'],
-                sort: 'asc'
-              }
-            ]
-          }
-        ]
-      }
+                sort: 'asc',
+              },
+            ],
+          },
+        ],
+      },
     }
 
     const res = cqn4sql(q)

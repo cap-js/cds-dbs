@@ -48,7 +48,7 @@ describe('table alias access', () => {
     it('WHERE with implicit table alias', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } WHERE ID = 1 and Books.stock <> 1`, model)
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE Books.ID = 1 and Books.stock <> 1`
+        CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE Books.ID = 1 and Books.stock <> 1`,
       )
     })
 
@@ -57,11 +57,11 @@ describe('table alias access', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount' }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       expect(cqn4sql(query, model)).to.deep.equal(
-        CQL`SELECT Books.ID, ? as discount from bookshop.Books as Books WHERE Books.ID = ?`
+        CQL`SELECT Books.ID, ? as discount from bookshop.Books as Books WHERE Books.ID = ?`,
       )
     })
 
@@ -73,7 +73,7 @@ describe('table alias access', () => {
     it('WHERE with explicit table alias that equals field name', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books as stock { ID } WHERE stock.ID = 1 and stock <> 1`, model)
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.Books as stock { stock.ID } WHERE stock.ID = 1 and stock.stock <> 1`
+        CQL`SELECT from bookshop.Books as stock { stock.ID } WHERE stock.ID = 1 and stock.stock <> 1`,
       )
     })
 
@@ -81,7 +81,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { stock }
             group by stock, Books.title having stock > 5 and Books.title = 'foo'`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.stock }
             group by Books.stock, Books.title having Books.stock > 5 and Books.title = 'foo'`)
@@ -242,7 +242,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, ID as stock, ID as x }
         order by ID, stock, Books.stock, price, x`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID, Books.ID as stock, Books.ID as x }
         order by ID, stock, Books.stock, Books.price, x`)
@@ -255,7 +255,7 @@ describe('table alias access', () => {
 
     it('prefers to resolve name in ORDER BY as select item (2)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID as Books } ORDER BY Books.price`, model)).to.throw(
-        /"price" not found in "Books"/
+        /"price" not found in "Books"/,
       )
     })
 
@@ -282,7 +282,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, ID as stock, ID as x }
         order by ID + stock + Books.stock + price, stock, x`,
-        model
+        model,
       )
       expect(query).to.deep
         .equal(CQL`SELECT from bookshop.Books as Books { Books.ID, Books.ID as stock, Books.ID as x  }
@@ -291,7 +291,7 @@ describe('table alias access', () => {
 
     it('fails for select items in expressions in ORDER BY', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, ID as x } order by ID + x`, model)).to.throw(
-        /"x" not found in the elements of "bookshop.Books"/
+        /"x" not found in the elements of "bookshop.Books"/,
       )
     })
     it('should be possible to address alias of function', () => {
@@ -321,7 +321,7 @@ describe('table alias access', () => {
             2*(stock+3*stock)) as nested,
             2 as two
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.stock * Books.price as foo,
@@ -335,7 +335,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             where stock * price < power(price, stock) or stock * power(sin(2*price), 2*(stock+3*stock)) < 7`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             where Books.stock * Books.price < power(Books.price, Books.stock) or Books.stock * power(sin(2*Books.price), 2*(Books.stock+3*Books.stock)) < 7`)
@@ -346,7 +346,7 @@ describe('table alias access', () => {
         CQL`SELECT from bookshop.Books { ID }
             group by stock * price, power(price, stock), stock * power(sin(2*price), 2*(stock+3*stock))
             having stock * price < power(price, stock) or stock * power(sin(2*price), 2*(stock+3*stock)) < 7`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             group by Books.stock * Books.price, power(Books.price, Books.stock), Books.stock * power(sin(2*Books.price), 2*(Books.stock+3*Books.stock))
@@ -360,41 +360,41 @@ describe('table alias access', () => {
     it('applies the same alias handling in subqueries in FROM', () => {
       let query = cqn4sql(
         CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as Books { ID, Books.stock }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
     it('explicit alias for FROM subquery', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, B.stock }`, model)
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`,
       )
     })
 
     it('cannot access table name of FROM subquery in outer query', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, Books.stock }`, model)
+        cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, Books.stock }`, model),
       ).to.throw(/"Books" not found in the elements of "B"/)
     })
 
     it('expose column of inner query in outer query', () => {
       let query = cqn4sql(
         CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock as Books }) as B { ID, Books }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock as Books }) as B { B.ID, B.Books }`
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock as Books }) as B { B.ID, B.Books }`,
       )
     })
     it('preserves explicit table alias in FROM subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from (SELECT from bookshop.Books as inner { ID, inner.stock }) as Books { ID, Books.stock }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as inner { inner.ID, inner.stock }) as Books { Books.ID, Books.stock }`
+        CQL`SELECT from (SELECT from bookshop.Books as inner { inner.ID, inner.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
 
@@ -404,37 +404,37 @@ describe('table alias access', () => {
         CQL`SELECT from bookshop.Books as Books {
               Books.ID,
               (SELECT from bookshop.Books as Books { Books.ID } ) as foo
-            }`
+            }`,
       )
     })
 
     it('supports correlated value subquery in select list', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Books as Q { ID } where Q.ID = Books.ID) as foo }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
-        CQL`SELECT from bookshop.Books as Books { Books.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = Books.ID) as foo }`
+        CQL`SELECT from bookshop.Books as Books { Books.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = Books.ID) as foo }`,
       )
     })
 
     it('supports correlated value subquery in select list, explicit table alias for outer query', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books as O { ID, (SELECT from bookshop.Books as Q { ID } where Q.ID = O.ID) as foo }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
-        CQL`SELECT from bookshop.Books as O { O.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = O.ID) as foo }`
+        CQL`SELECT from bookshop.Books as O { O.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = O.ID) as foo }`,
       )
     })
 
     it('in correlated subquery, allows access to fields of inner query without explicit table alias', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Books as Q { ID } where ID = Books.ID) as foo }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
-        CQL`SELECT from bookshop.Books as Books { Books.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = Books.ID) as foo }`
+        CQL`SELECT from bookshop.Books as Books { Books.ID, (SELECT from bookshop.Books as Q { Q.ID } where Q.ID = Books.ID) as foo }`,
       )
     })
 
@@ -448,8 +448,8 @@ describe('table alias access', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Authors { ID } where name = title) as foo }`,
-          model
-        )
+          model,
+        ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
 
@@ -460,14 +460,14 @@ describe('table alias access', () => {
                 (SELECT from bookshop.Genres as G { ID } where descr = A.name and descr = B.title) as foo
               } where A.name = B.title) as foo
             }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
         CQL`SELECT from bookshop.Books as B {
               (SELECT from bookshop.Authors as A {
                 (SELECT from bookshop.Genres as G { G.ID } where G.descr = A.name and G.descr = B.title) as foo
               } where A.name = B.title) as foo
-            }`
+            }`,
       )
     })
 
@@ -478,14 +478,14 @@ describe('table alias access', () => {
                 (SELECT from bookshop.Genres as B { ID } where A.name = B.descr) as foo
               } where A.name = B.title) as foo
             }`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
         CQL`SELECT from bookshop.Books as B {
               (SELECT from bookshop.Authors as A {
                 (SELECT from bookshop.Genres as B { B.ID } where A.name = B.descr) as foo
               } where A.name = B.title) as foo
-            }`
+            }`,
       )
     })
 
@@ -497,8 +497,8 @@ describe('table alias access', () => {
               (SELECT from bookshop.Genres as B { ID } where A.name = B.title) as foo
             } where A.name = B.title) as foo
           }`,
-          model
-        )
+          model,
+        ),
       ).to.throw(/"title" not found in "bookshop.Genres"/)
     })
 
@@ -506,7 +506,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             WHERE (SELECT from bookshop.Books as qInWhere { ID }) = 5`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             WHERE (SELECT from bookshop.Books as qInWhere { qInWhere.ID }) = 5`)
@@ -516,7 +516,7 @@ describe('table alias access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             WHERE (SELECT from bookshop.Books as qInWhere { ID } where ID = Books.ID) = 5`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             WHERE (SELECT from bookshop.Books as qInWhere { qInWhere.ID } where qInWhere.ID = Books.ID) = 5`)
@@ -527,7 +527,7 @@ describe('table alias access', () => {
         CQL`SELECT from bookshop.Authors { ID } WHERE exists (
             SELECT 1 from bookshop.Books where ID = Authors.ID
             )`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep
         .equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE exists (
@@ -540,7 +540,7 @@ describe('table alias access', () => {
         CQL`SELECT from bookshop.Authors as Books { ID } WHERE exists (
             SELECT 1 from bookshop.Books as Authors where ID > Books.ID
             )`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep
         .equal(CQL`SELECT from bookshop.Authors as Books { Books.ID } WHERE exists (
@@ -553,7 +553,7 @@ describe('table alias access', () => {
         CQL`SELECT from bookshop.Authors { ID } WHERE exists (
             SELECT ID, stock, price from bookshop.Books where ID = Authors.ID
             )`,
-        model
+        model,
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep
         .equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE exists (

@@ -73,7 +73,7 @@ describe('assign element onto columns', () => {
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Foo.elements.ID,
-        virtualField: Foo.elements.virtualField
+        virtualField: Foo.elements.virtualField,
       })
       // 'ID'
       expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['ID']).to.deep.equal(Foo.elements.ID)
@@ -92,7 +92,7 @@ describe('assign element onto columns', () => {
       let { Authors } = model.entities
 
       expect(inferred.elements).to.deep.equal({
-        name: Authors.elements.name
+        name: Authors.elements.name,
       })
       // 'name'
       expect(inferred.SELECT.columns[0].element)
@@ -258,8 +258,8 @@ describe('assign element onto columns', () => {
         SELECT: {
           columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       const inferred = _inferred(query, model)
       // 'discount'

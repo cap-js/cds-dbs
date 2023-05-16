@@ -21,8 +21,8 @@ const hana = module.exports.linked({
     'cds.hana.NCHAR': { type: 'cds.String' },
     'cds.hana.BINARY': { type: 'cds.String' },
     'cds.hana.ST_POINT': { type: 'cds.String' },
-    'cds.hana.ST_GEOMETRY': { type: 'cds.String' }
-  }
+    'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
+  },
 })
 Object.assign(module.exports.builtin.types, hana.definitions)
 

@@ -98,7 +98,7 @@ class SQLService extends DatabaseService {
       localized: false,
       expand: false,
       limit: 0,
-      orderBy: 0
+      orderBy: 0,
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)

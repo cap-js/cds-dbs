@@ -16,15 +16,15 @@ describe('Cloning queries', () => {
     let q2 = cds.ql.clone(q1)
 
     expect(
-      JSON.stringify(q1) //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
+      JSON.stringify(q1), //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
     ).to.not.eql(
-      JSON.stringify(q2) //> {"SELECT":{}}
+      JSON.stringify(q2), //> {"SELECT":{}}
     )
 
     expect(
       JSON.stringify(q1) //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
     ).to.eql(
-      JSON.stringify(q2.flat()) //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
+      JSON.stringify(q2.flat()), //> {"SELECT":{"from":{"ref":["Books"]},"where":[{"ref":["ID"]},"=",{"val":201}]}}
     )
 
     // WARNING: q.flat() modifies q! -> never use that in productive code !!!

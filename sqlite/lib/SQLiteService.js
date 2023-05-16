@@ -116,7 +116,7 @@ class SQLiteService extends SQLService {
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
       DateTime: () => 'TIMESTAMP_TEXT',
-      Timestamp: () => 'TIMESTAMP_TEXT'
+      Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }

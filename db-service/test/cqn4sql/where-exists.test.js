@@ -36,7 +36,7 @@ describe('EXISTS predicate in where', () => {
     })
     it('rejects $self following exists predicate', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
-        'Unexpected "$self" following "exists", remove it or add a table alias instead'
+        'Unexpected "$self" following "exists", remove it or add a table alias instead',
       )
     })
 
@@ -140,7 +140,7 @@ describe('EXISTS predicate in where', () => {
 
     it('MUST fail for unknown field in filter (1)', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model)
+        cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model),
       ).to.throw(/"books" not found in "books"/)
       // it would work if entity "Books" had a field called "books"
       // Done by cds.infer
@@ -148,7 +148,7 @@ describe('EXISTS predicate in where', () => {
 
     it('MUST fail for unknown field in filter (2)', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[Authors.name = 'Horst']`, model)
+        cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[Authors.name = 'Horst']`, model),
       ).to.throw(/"Authors" not found in "books"/)
       //expect (query) .to.fail
     })
@@ -156,7 +156,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... access struc fields in filter', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.text = 'For Hasso']`,
-        model
+        model,
       )
       // TODO original test had no before `dedication_text`
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
@@ -168,7 +168,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... access FK of managed assoc in filter', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.ID = 29]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.dedication_addressee_ID = 29
@@ -177,14 +177,17 @@ describe('EXISTS predicate in where', () => {
 
     it.skip('MUST fail if following managed assoc in filter', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`, model)
+        cqn4sql(
+          CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
+          model,
+        ),
       ).to.throw()
     })
 
     it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where exists author.books[title = 'Harry Potter']`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and EXISTS (
@@ -205,7 +208,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST handle simple where exists with multiple association and also with $self backlink in shortcut notation', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where exists author[exists books[title = 'Harry Potter']]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and EXISTS (
@@ -224,7 +227,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... nested EXISTS with additional condition', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity']`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE
       EXISTS
@@ -241,7 +244,7 @@ describe('EXISTS predicate in where', () => {
     it('nested EXISTS with unmanaged assoc', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS coAuthorUnmanaged[EXISTS books]]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE
       EXISTS
@@ -265,14 +268,14 @@ describe('EXISTS predicate in where', () => {
         CQL`SELECT from bookshop.Books as Books { Books.ID }
               WHERE EXISTS (
                 SELECT 1 from bookshop.Person as addressee where addressee.ID = Books.dedication_addressee_ID
-              )`
+              )`,
       )
     })
 
     it('MUST ... nested EXISTS with additional condition reversed', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[title = 'Gravity' or EXISTS author]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
             SELECT 1 from bookshop.Books as books where
@@ -289,7 +292,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... 3 nested EXISTS', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[NOT EXISTS author[EXISTS books]]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND NOT EXISTS (
@@ -306,7 +309,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... 2 assocs with nested EXISTS (1)', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction']`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND ( EXISTS (
@@ -323,7 +326,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... 2 assocs with nested EXISTS (2)', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction' and exists children[name = 'Foo']]`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND ( EXISTS (
@@ -366,7 +369,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... adjacent EXISTS with 4 assocs each', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author.books.author AND EXISTS books.author.books.author`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
         SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND EXISTS (
@@ -389,7 +392,7 @@ describe('EXISTS predicate in where', () => {
     it.skip('COULD use the same table aliases in independent EXISTS subqueries', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author.books.author AND EXISTS books.author.books.author`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
         SELECT 1 from bookshop.Books as books where author_ID = Authors.ID AND EXISTS (
@@ -413,7 +416,7 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... with 4 assocs and filters', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[stock > 11].author[name = 'Horst'].books[price < 9.99].author[placeOfBirth = 'Rom']`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
         SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.stock > 11 AND EXISTS (
@@ -443,7 +446,7 @@ describe('EXISTS predicate in where', () => {
              else 'no'
         end as x
        }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
         Books.ID,
@@ -461,7 +464,7 @@ describe('EXISTS predicate in where', () => {
              else 'no'
         end as x
        }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
         Books.ID,
@@ -482,7 +485,7 @@ describe('EXISTS predicate in where', () => {
               when exists books[price>100] then 2
          end as descr
        }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         { Authors.ID,
@@ -609,7 +612,7 @@ describe('EXISTS predicate in infix filter', () => {
           and EXISTS (
             SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID
           )
-        { Books.ID, genre.descr as genre_descr }`
+        { Books.ID, genre.descr as genre_descr }`,
     )
   })
 
@@ -624,14 +627,14 @@ describe('EXISTS predicate in infix filter', () => {
               SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = children.ID
             )
           )
-        { Books.ID, genre.descr as genre_descr }`
+        { Books.ID, genre.descr as genre_descr }`,
     )
   })
 
   it('... in select, path with 2 assocs', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books {ID, genre[exists children[code=2]].children[exists children[code=3]].descr }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as Books
@@ -645,7 +648,7 @@ describe('EXISTS predicate in infix filter', () => {
             SELECT 1 from bookshop.Genres as children3 where children3.parent_ID = children.ID
             and children3.code = 3
           )
-      { Books.ID, children.descr as genre_children_descr }`
+      { Books.ID, children.descr as genre_children_descr }`,
     )
   })
 })
@@ -667,7 +670,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   it('handles infix filter at entity and WHERE clause', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[price < 12.13]{Books.ID} where stock < 11`, model)
     expect(query).to.deep.equal(
-      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (Books.price < 12.13)`
+      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (Books.price < 12.13)`,
     )
   })
   it('handles multiple assoc steps', () => {
@@ -675,7 +678,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.TestPublisher.texts as texts {texts.ID} WHERE exists (
         SELECT 1 from bookshop.TestPublisher as TestPublisher where texts.publisher_structuredKey_ID = TestPublisher.publisher_structuredKey_ID
-      )`
+      )`,
     )
   })
   it.skip('handles multiple assoc steps with renamed keys', () => {
@@ -683,7 +686,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.TestPublisher.texts as textsRenamedPublisher {textsRenamedPublisher.ID} WHERE exists (
         SELECT 1 from bookshop.TestPublisher as TestPublisher where textsRenamedPublisher.publisherRenamedKey_notID = TestPublisher.publisherRenamedKey_notID
-      )`
+      )`,
     )
   })
 
@@ -695,7 +698,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
       model
     )
     expect(query).to.deep.equal(
-      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`
+      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`,
     )
   })
 
@@ -704,10 +707,10 @@ describe('Path in FROM which ends on association must be transformed to where ex
   it('gets precedence right for infix filter at entity and WHERE clause', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books[price < 12.13 or stock > 77] {Books.ID} where stock < 11 or price > 17.89`,
-      model
+      model,
     )
     expect(query).to.deep.equal(
-      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11 or Books.price > 17.89) and (Books.price < 12.13 or Books.stock > 77)`
+      CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11 or Books.price > 17.89) and (Books.price < 12.13 or Books.stock > 77)`,
     )
     //expect (query) .to.deep.equal (CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.price < 12.13 or Books.stock > 77) and (Books.stock < 11 or Books.price > 17.89)`)  // (SMW) want this
   })
@@ -771,13 +774,13 @@ describe('Path in FROM which ends on association must be transformed to where ex
   it('handles FROM path with association and filters and WHERE', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books[ID=201 or ID=202]:author[ID=4711 or ID=4712]{author.ID} where author.name='foo' or name='bar'`,
-      model
+      model,
     )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and (Books.ID=201 or Books.ID=202)
-        ) and (author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar')`
+        ) and (author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar')`,
     )
   })
 
@@ -787,7 +790,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
       CQL`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
-        ) and author.ID=4711`
+        ) and author.ID=4711`,
     )
   })
 
@@ -828,7 +831,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   // TODO: message can include the fix: `write ”<key> = 42” explicitly`
   it('MUST ... reject filters on associations with multiple foreign keys', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`, model)).to.throw(
-      /Filters can only be applied to managed associations which result in a single foreign key/
+      /Filters can only be applied to managed associations which result in a single foreign key/,
     )
   })
 
@@ -858,7 +861,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   // TODO
   it.skip('MUST ... contain foreign keys of backlink association in on-condition? (3)', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Orders.items[2] {pos}`, model)).to.throw(
-      /Please specify all primary keys in the infix filter/
+      /Please specify all primary keys in the infix filter/,
     )
   })
 
@@ -951,7 +954,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
       CQL`SELECT from bookshop.Authors as Authors {Authors.ID}
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
-        )`
+        )`,
     )
   })
 
@@ -963,14 +966,14 @@ describe('Path in FROM which ends on association must be transformed to where ex
           SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
         ) and EXISTS (
           SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
-        )`
+        )`,
     )
   })
 
   it('exists predicate followed by unmanaged assoc as infix filter (also within xpr)', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books:author[exists books[exists coAuthorUnmanaged or title = 'Sturmhöhe']] { ID }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Authors as author {author.ID}
@@ -998,7 +1001,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
             and EXISTS (
               SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
             )
-        )`
+        )`,
     )
   })
 
@@ -1013,7 +1016,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
           )
         ) and EXISTS (
           SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
-        )`
+        )`,
     )
   })
 
@@ -1021,7 +1024,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
   it('exists predicate in infix filters in FROM, multiple assoc steps', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books[exists genre]:author[exists books].books[exists genre] {ID}`,
-      model
+      model,
     )
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Books as books {books.ID}
@@ -1038,7 +1041,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
           )
         ) and EXISTS (
           SELECT 1 from bookshop.Genres as genre2 where genre2.ID = books.genre_ID
-        )`
+        )`,
     )
   })
 
