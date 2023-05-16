@@ -3,7 +3,7 @@
 exports[`CSN to PostgreSQL Create Statements should return PostgreSQL compatible statements for beershop-admin-service 1`] = `
 "
 CREATE TABLE BeershopAdminService_UserScopes (
-  username VARCHAR(255) NOT NULL,
+  username VARCHAR(5000) NOT NULL,
   is_admin BOOLEAN,
   PRIMARY KEY(username)
 );
@@ -42,7 +42,7 @@ CREATE TABLE csw_TypeChecks (
   type_Time TIME,
   type_DateTime TIMESTAMP,
   type_Timestamp TIMESTAMP,
-  type_String VARCHAR(255),
+  type_String VARCHAR(5000),
   type_Binary BYTEA,
   type_LargeBinary BYTEA,
   type_LargeString TEXT,
