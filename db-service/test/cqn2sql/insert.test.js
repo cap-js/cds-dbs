@@ -14,8 +14,8 @@ describe('insert', () => {
         INSERT: {
           into: { ref: ['Foo'] },
           columns: ['ID', 'b', 'x'],
-          values: [1, "'asd'", 2]
-        }
+          values: [1, "'asd'", 2],
+        },
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
@@ -29,9 +29,9 @@ describe('insert', () => {
           columns: ['ID', 'b', 'a'],
           rows: [
             [1, "'asd'", 2],
-            [9, "mmm'", 77]
-          ]
-        }
+            [9, "mmm'", 77],
+          ],
+        },
       }
       const { sql, entries } = cqn2sql(cqnInsert)
       expect({ sql, entries }).toMatchSnapshot()
@@ -45,9 +45,9 @@ describe('insert', () => {
           columns: ['ID', 'not_existing', 'something'],
           rows: [
             [1, "'asd'", 2],
-            [9, "mmm'", 77]
-          ]
-        }
+            [9, "mmm'", 77],
+          ],
+        },
       }
       const { sql, entries } = cqn2sql(cqnInsert)
       expect({ sql, entries }).toMatchSnapshot()
@@ -61,9 +61,9 @@ describe('insert', () => {
           into: 'Foo2',
           rows: [
             [1, "'asd'", 2],
-            [9, "mmm'", 77]
-          ]
-        }
+            [9, "mmm'", 77],
+          ],
+        },
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
@@ -75,8 +75,8 @@ describe('insert', () => {
       const cqnInsert = {
         INSERT: {
           into: 'Foo2',
-          values: [1, "'asd'", 2]
-        }
+          values: [1, "'asd'", 2],
+        },
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
@@ -89,9 +89,9 @@ describe('insert', () => {
           into: 'Foo2',
           entries: [
             { ID: 1, name: null, a: 2 },
-            { ID: null, name: "'asd'", a: 6 }
-          ]
-        }
+            { ID: null, name: "'asd'", a: 6 },
+          ],
+        },
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
@@ -101,12 +101,12 @@ describe('insert', () => {
     test('test with insert with alias', () => {
       const cqnInsert = {
         INSERT: {
-          into: {ref: ['Foo2'], as: 'Fooooo2'},
+          into: { ref: ['Foo2'], as: 'Fooooo2' },
           entries: [
             { ID: 1, name: null, a: 2 },
-            { ID: null, name: "'asd'", a: 6 }
-          ]
-        }
+            { ID: null, name: "'asd'", a: 6 },
+          ],
+        },
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
@@ -120,8 +120,8 @@ describe('insert', () => {
       const cqnInsert = {
         INSERT: {
           into: 'Foo',
-          as: { SELECT: { from: { ref: ['Foo2'] } } }
-        }
+          as: { SELECT: { from: { ref: ['Foo2'] } } },
+        },
       }
 
       const { sql } = cqn2sql(cqnInsert)
@@ -133,8 +133,8 @@ describe('insert', () => {
         INSERT: {
           into: 'Foo',
           columns: ['ID'],
-          as: { SELECT: { from: { ref: ['Foo2'] }, columns: [{ ref: ['ID'] }] } }
-        }
+          as: { SELECT: { from: { ref: ['Foo2'] }, columns: [{ ref: ['ID'] }] } },
+        },
       }
 
       const { sql } = cqn2sql(cqnInsert)

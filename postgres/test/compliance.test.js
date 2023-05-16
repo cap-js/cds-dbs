@@ -1,0 +1,3 @@
+describe('postgres', () => {
+  require('../../test')
+})

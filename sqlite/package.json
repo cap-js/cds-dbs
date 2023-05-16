@@ -11,6 +11,8 @@
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
   "files": [
+    "index.js",
+    "cds-plugin.js",
     "lib",
     "CHANGELOG.md"
   ],

@@ -1,5 +1,5 @@
 'use strict'
-const cds = require ('@sap/cds/lib')
+const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
 beforeAll(async () => {
@@ -10,8 +10,8 @@ describe('.update', () => {
     const cqnUpdate = {
       UPDATE: {
         entity: { ref: ['Foo2'] },
-        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } }
-      }
+        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -23,8 +23,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 2 } },
-        where: [{ ref: ['a'] }, '<', { val: 9 }]
-      }
+        where: [{ ref: ['a'] }, '<', { val: 9 }],
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -35,8 +35,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: null }, a: { val: 2 } },
-        where: [{ ref: ['a'] }, '<', { val: 9 }]
-      }
+        where: [{ ref: ['a'] }, '<', { val: 9 }],
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -51,9 +51,9 @@ describe('.update', () => {
           ID: { val: 42 },
           name: { val: "'asd'" },
           a: { xpr: [{ ref: ['a'] }, '-', { val: 1 }] },
-          count: { func: 'count', args: ['*'] }
-        }
-      }
+          count: { func: 'count', args: ['*'] },
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -67,9 +67,9 @@ describe('.update', () => {
         data: {
           ID: 1,
           name: undefined,
-          a: null
-        }
-      }
+          a: null,
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -82,9 +82,9 @@ describe('.update', () => {
         data: {
           ID: 1,
           something: 'bla',
-          foo: null
-        }
-      }
+          foo: null,
+        },
+      },
     }
     const { sql, values } = cqn2sql(cqnUpdate)
     expect({ sql, values }).toMatchSnapshot()
@@ -95,8 +95,8 @@ describe('.update', () => {
       UPDATE: {
         entity: { ref: ['Foo2'] },
         with: { ID: { val: 1 }, name: { val: "'asd'" } },
-        data: { a: 2 }
-      }
+        data: { a: 2 },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -107,8 +107,8 @@ describe('.update', () => {
     const cqnUpdate = {
       UPDATE: {
         entity: { ref: ['Foo2'] },
-        with: { ID: { val: 1 }, name: { val: "'asd'" }, something: {val: 'bla'}, /* foo: {ref: 'Foo'} */}
-      }
+        with: { ID: { val: 1 }, name: { val: "'asd'" }, something: { val: 'bla' } /* foo: {ref: 'Foo'} */ },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -119,9 +119,9 @@ describe('.update', () => {
     const cqnUpdate = {
       UPDATE: {
         entity: 'Foo2',
-        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: {val:6} },
-        data: { a: 2 }
-      }
+        with: { ID: { val: 1 }, name: { val: "'asd'" }, a: { val: 6 } },
+        data: { a: 2 },
+      },
     }
 
     const { sql, values } = cqn2sql(cqnUpdate)
@@ -132,9 +132,8 @@ describe('.update', () => {
   test.skip('test with subselect - sflight example', () => {
     const qlUpdate = UPDATE(`Travel`).with({
       TotalPrice: CXL`coalesce (BookingFee, 0) + ${SELECT`coalesce (sum (FlightPrice + ${SELECT`coalesce (sum (Price),0)`.from(
-        `BookingSupplement`
-      ).where`to_Booking_BookingUUID = BookingUUID`}),0)`.from(`Booking`)
-        .where`to_Travel_TravelUUID = TravelUUID`}`
+        `BookingSupplement`,
+      ).where`to_Booking_BookingUUID = BookingUUID`}),0)`.from(`Booking`).where`to_Travel_TravelUUID = TravelUUID`}`,
     })
     const { sql, values } = cqn2sql(qlUpdate)
     expect({ sql, values }).toMatchSnapshot()

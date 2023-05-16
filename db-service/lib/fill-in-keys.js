@@ -15,7 +15,10 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
   const elements = target.elements
   for (const element in elements) {
     // if assoc keys are structured, do not ignore them, as they need to be flattened in propagateForeignKeys
-    if (elements[element].key && !(elements[element]._isAssociationStrict && elements[element].is2one && element in data)) {
+    if (
+      elements[element].key &&
+      !(elements[element]._isAssociationStrict && elements[element].is2one && element in data)
+    ) {
       continue
     }
 
@@ -31,17 +34,17 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
       }
 
       propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
-        deleteAssocs: true
+        deleteAssocs: true,
       })
     }
   }
 }
 
-module.exports = async function fill_in_keys (req, next) {
+module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
 
-  if (req.event === "UPDATE") {
+  if (req.event === 'UPDATE') {
     // REVISIT for deep update we need to inject the keys first
     enrichDataWithKeysFromWhere(req.data, req, this)
   }

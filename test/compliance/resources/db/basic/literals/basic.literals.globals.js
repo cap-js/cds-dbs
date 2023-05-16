@@ -1,11 +1,11 @@
 module.exports = [
   {
-    bool: true
+    bool: true,
   },
   {
-    bool: false
+    bool: false,
   },
   {
-    bool: null
-  }
+    bool: null,
+  },
 ]

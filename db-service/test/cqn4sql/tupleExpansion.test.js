@@ -364,7 +364,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStrucSibling { ID } where not sibling.struc2 ${first} struc3`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        /Can't compare "sibling.struc2" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "sibling.struc2"/
+        /Can't compare "sibling.struc2" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "sibling.struc2"/,
       )
     })
   })
@@ -373,7 +373,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        'Can\'t compare structure "AssocWithStructuredKey.toStructuredKey" with value "5"'
+        'Can\'t compare structure "AssocWithStructuredKey.toStructuredKey" with value "5"',
       )
     })
   })
@@ -382,7 +382,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        "An association can't be used as a value in an expression"
+        "An association can't be used as a value in an expression",
       )
     })
   })
