@@ -2,11 +2,11 @@ const infer = require('../infer')
 const cds = require('../../cds')
 
 function Pool(factory, tenant) {
-  return createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
+  const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
+  pool._trackedConnections = []
+  return pool
 }
 const { createPool } = require('@sap/cds-foss').pool
-const connections = []
-global.dbConnections = connections
 
 class DatabaseService extends cds.Service {
   /**
@@ -46,18 +46,19 @@ class DatabaseService extends cds.Service {
     if (!ctx) return this.tx().begin()
     const tenant = this.isMultitenant && ctx.tenant
     const pool = (this.pools[tenant] ??= new Pool(this.pools._factory, tenant))
-    // const connections =  this.constructor.connections
+    const connections = pool._trackedConnections
     let dbc
     try {
       dbc = this.dbc = await pool.acquire()
     } catch (err) {
+      // TODO: add acquire timeout error check
       err.stack += `\nActive connections:${connections.length}\n${connections.map(c => c._beginStack.stack).join('\n')}`
       throw err
     }
     this._beginStack = new Error('begin called from:')
     connections.push(this)
-    this._release = dbc => {
-      pool.release(dbc)
+    this._release = async dbc => {
+      await pool.release(dbc)
       connections.splice(connections.indexOf(this), 1)
     }
     try {
