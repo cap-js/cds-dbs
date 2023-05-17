@@ -12,7 +12,6 @@ concurrency:
 
 jobs:
   test:
-    needs: setup
     runs-on: ubuntu-latest
     name: Node.js ${{ matrix.node }}
 
