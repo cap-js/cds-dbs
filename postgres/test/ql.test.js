@@ -3,11 +3,12 @@ if (cds.env.fiori) cds.env.fiori.lean_draft = true
 else cds.env.features.lean_draft = true
 
 const project = require('path').resolve(__dirname, 'beershop')
-const { expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('QL to PostgreSQL', () => {
+  const { expect, data } = cds.test('serve', '--project', project).verbose()
+
   data.autoIsolation(true)
   data.autoReset(true)
 
@@ -34,7 +35,7 @@ describe('QL to PostgreSQL', () => {
     test('-> with one, columns and where', async () => {
       const { Beers } = cds.entities('csw')
       const beer = await cds.run(
-        SELECT.one(Beers).columns(['ID', 'name']).where({ ID: '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b' })
+        SELECT.one(Beers).columns(['ID', 'name']).where({ ID: '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b' }),
       )
       expect(beer).to.have.property('ID', '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b')
       expect(beer).not.to.have.property('abv')
@@ -60,13 +61,13 @@ describe('QL to PostgreSQL', () => {
       const beers = await cds.run(
         SELECT.from(Beers)
           .where({ abv: { '>': 1.0 } })
-          .orderBy({ abv: 'desc' })
+          .orderBy({ abv: 'desc' }),
       )
       expect(beers[0].abv).to.equal(5.9)
       const reverseBeers = await cds.run(
         SELECT.from(Beers)
           .where({ abv: { '>': 1.0 } })
-          .orderBy({ abv: 'asc' })
+          .orderBy({ abv: 'asc' }),
       )
       expect(reverseBeers[0].abv).to.equal(4.9)
     })
@@ -80,7 +81,7 @@ describe('QL to PostgreSQL', () => {
     test('-> with having', async () => {
       const { Beers } = cds.entities('csw')
       const results = await cds.run(
-        SELECT.from(Beers).columns('brewery_ID').groupBy('brewery_ID').having('count(*) >=', 2)
+        SELECT.from(Beers).columns('brewery_ID').groupBy('brewery_ID').having('count(*) >=', 2),
       )
       expect(results.length).to.equal(3)
     })
@@ -93,7 +94,7 @@ describe('QL to PostgreSQL', () => {
             b.brewery(br => {
               br`.*`
             })
-        }).where({ brewery_ID: '4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb' })
+        }).where({ brewery_ID: '4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb' }),
       )
       expect(results[0].brewery).to.have.property('name', 'Rittmayer Hallerndorf')
       expect(results.length).to.equal(4)
@@ -123,7 +124,7 @@ describe('QL to PostgreSQL', () => {
       const beers = await cds.run(
         INSERT.into(Beers)
           .columns(['ID', 'name'])
-          .rows([cds.utils.uuid(), 'Beer 1'], [cds.utils.uuid(), 'Beer 2'], [cds.utils.uuid(), 'Beer 3'])
+          .rows([cds.utils.uuid(), 'Beer 1'], [cds.utils.uuid(), 'Beer 2'], [cds.utils.uuid(), 'Beer 3']),
       )
 
       expect(beers.affectedRows).to.equal(3)
@@ -150,7 +151,7 @@ describe('QL to PostgreSQL', () => {
       const entries = [
         { name: 'Beer1', abv: 1.0, ibu: 1, brewery_ID: '0465e9ca-6255-4f5c-b8ba-7439531f8d28' },
         { name: 'Beer2', abv: 2.0, ibu: 2, brewery_ID: '0465e9ca-6255-4f5c-b8ba-7439531f8d28' },
-        { name: 'Beer3', abv: 3.0, ibu: 3, brewery_ID: '0465e9ca-6255-4f5c-b8ba-7439531f8d28' }
+        { name: 'Beer3', abv: 3.0, ibu: 3, brewery_ID: '0465e9ca-6255-4f5c-b8ba-7439531f8d28' },
       ]
 
       const uuidRegex = /[\d|a-f]{8}-[\d|a-f]{4}-[\d|a-f]{4}-[\d|a-f]{4}-[\d|a-f]{12}/
@@ -172,7 +173,7 @@ describe('QL to PostgreSQL', () => {
     test('-> Get affected rows ', async () => {
       const { Beers } = cds.entities('csw')
       const affectedRows = await cds.run(
-        UPDATE(Beers).set({ name: 'TEST' }).where({ ID: '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b' })
+        UPDATE(Beers).set({ name: 'TEST' }).where({ ID: '9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b' }),
       )
       expect(affectedRows).to.equal(1)
     })

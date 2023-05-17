@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 
 // REVISIT: we should always return cds.linked elements
 // > e.g. cds.linked({definitions:{pseudos}})
@@ -18,6 +18,6 @@ const pseudos = {
     $locale: { type: 'cds.String' },
     $tenant: { type: 'cds.String' },
   },
-};
+}
 
-module.exports = { pseudos };
+module.exports = { pseudos }

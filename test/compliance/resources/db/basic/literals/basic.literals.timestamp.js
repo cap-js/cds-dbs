@@ -1,14 +1,14 @@
 module.exports = [
   {
-    timestamp: null
+    timestamp: null,
   },
   {
-    timestamp: '1970-01-01T00:00:00.000Z'
+    timestamp: '1970-01-01T00:00:00.000Z',
   },
   {
     timestamp: new Date('1970-01-01Z'),
-    '=timestamp': '1970-01-01T00:00:00.000Z'
-  }
+    '=timestamp': '1970-01-01T00:00:00.000Z',
+  },
   /* Ignoring transformations
   {
     timestamp: '1970-01-01',

@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds/lib')
 const _inferred = require('../../lib/infer')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 
 describe('infer elements', () => {
   let model
@@ -20,7 +20,7 @@ describe('infer elements', () => {
         dedication.{*}
       }`
       let inferred = _inferred(query)
-      Object.values(inferred.elements).forEach( e => {
+      Object.values(inferred.elements).forEach(e => {
         expect(e).to.be.an.instanceof(cds.type)
       })
     })
@@ -34,7 +34,7 @@ describe('infer elements', () => {
         func(): cds.Integer,
       }`
       let inferred = _inferred(query)
-      Object.values(inferred.elements).forEach( e => {
+      Object.values(inferred.elements).forEach(e => {
         expect(e).to.be.an.instanceof(cds.type)
       })
     })
@@ -46,7 +46,7 @@ describe('infer elements', () => {
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      dedication_text: Books.elements.dedication.elements.text
+      dedication_text: Books.elements.dedication.elements.text,
     })
   })
 
@@ -54,7 +54,7 @@ describe('infer elements', () => {
     let query = CQL`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
     let inferred = _inferred(query)
     let inferredInferred = _inferred(inferred)
-    expect(inferred).to.eql(inferredInferred);
+    expect(inferred).to.eql(inferredInferred)
   })
 
   it('infer without global cds.model', () => {
@@ -67,7 +67,7 @@ describe('infer elements', () => {
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      triggerRecursiveInfer: {}
+      triggerRecursiveInfer: {},
     })
     cds.model = keepModel
   })

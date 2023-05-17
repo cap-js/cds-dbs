@@ -1,10 +1,10 @@
 // TODO: Add HANA TYPE EXPECTATIONS
 module.exports = [
   {
-    char: null
+    char: null,
   },
   {
-    char: 'a'
+    char: 'a',
   },
   /*
   {

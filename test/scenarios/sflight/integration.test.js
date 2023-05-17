@@ -2,17 +2,18 @@ const childProcess = require('child_process')
 const path = require('path')
 const cds = require('@sap/cds/lib')
 
+const sflightPath = require.resolve('@capire/sflight/package.json').slice(0, -13)
+
 if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
 else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
 
 // Set the test project to the sflight project
-cds.test.in(require.resolve('@capire/sflight/package.json').slice(0, -13))
 
 describe('Integration', () => {
   const dirs = ['travel_processor', 'travel_analytics']
 
   describe('Jest', () => {
-    require(path.resolve(cds.root, 'test/odata.test.js'))
+    require(path.resolve(sflightPath, 'test/odata.test.js'))
   })
 
   xdescribe.each(dirs)('%s', dir => {
@@ -32,7 +33,7 @@ describe('Integration', () => {
  */
 const npm = (dir, args) => {
   const proc = childProcess.spawn('npm', args, {
-    cwd: path.resolve(cds.root, dir),
+    cwd: path.resolve(sflightPath, dir),
     stdio: 'pipe',
     env: {
       ...process.env,
@@ -40,8 +41,8 @@ const npm = (dir, args) => {
       CDS_CONFIG: JSON.stringify({ requires: { db: cds.db.options } }),
       // Ensure that lean draft is enabled
       CDS_FIORI_LEAN__DRAFT: true,
-      CDS_FIORI_DRAFT__COMPAT: true
-    }
+      CDS_FIORI_DRAFT__COMPAT: true,
+    },
   })
 
   let logs = ''
