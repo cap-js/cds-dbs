@@ -3,7 +3,6 @@ name: Tests
 on:
   push:
     branches: [main]
-
   pull_request:
 
 # Allow parallel jobs on `main`, so that each commit is tested. For PRs, run only the latest commit.
@@ -12,16 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
-
   test:
     needs: setup
     runs-on: ubuntu-latest
@@ -30,7 +19,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        node: [18, 16]
+        # run with oldest supported node version
+        # the expectation being that the new version is backwards compatible
+        node: [16]
 
     steps:
       - uses: actions/checkout@v3
@@ -38,5 +29,19 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
-      - run: npm ci
+      - name: 'install'
+        run: npm ci
+      - name: 'lint'
+        run: npm run lint
+      - name: auto prettier
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run lint:eslint &&
+          npm run prettier &&
+          gh pr checkout ${{ github.event.pull_request.number }} &&
+          git add -A &&
+          git commit -m "✨prettier✨" &&
+          git push
       - run: npm run test:all
