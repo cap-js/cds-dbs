@@ -10,7 +10,7 @@ class CustomReporter {
     const sections = {
       CSN: ['literals', 'definitions', 'CREATE', 'DROP'],
       CQN: ['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'],
-      HANA: ['functions']
+      HANA: ['functions'],
     }
     const categories = Object.keys(sections)
       .map(k => sections[k])
@@ -28,7 +28,7 @@ class CustomReporter {
         const curCompliance = (complianceMap[key] = complianceMap[key] || {
           count: 0,
           pass: 0,
-          fail: 0
+          fail: 0,
         })
 
         curCompliance.count++

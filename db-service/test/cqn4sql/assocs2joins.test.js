@@ -32,7 +32,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     expect(query).to.deep.equal(expected)
   })
 
-
   it('in select, two assocs, second navigates to foreign key', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.ID }`, model)
     const expected = CQL`SELECT from bookshop.Authors as Authors
@@ -129,7 +128,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
               books.title as books_title,
               books.genre.code as books_genre_code
             }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.Authors as Authors
       left outer join bookshop.Books as books on books.author_ID = Authors.ID
@@ -152,7 +151,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
               books.title as books_title,
               books.genre.code as books_genre_code
             }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.Authors as Authors
       left outer join bookshop.Books as books on books.author_ID = Authors.ID
@@ -170,7 +169,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in select, unrelated paths', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID, author.name, genre.descr, dedication.addressee.name, author.dateOfBirth }`,
-      model
+      model,
     )
     let expected = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -199,7 +198,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Authors {
         name, books.genre.descr, books.coAuthor.name, books.genre.code, books.coAuthor.dateOfBirth }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID
@@ -224,7 +223,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         genre.parent.parent.parent.descr,
         genre.parent.code
       }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Genres as genre on genre.ID = Books.genre_ID
@@ -246,7 +245,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
       CQL`SELECT from bookshop.Genres as parent {
         parent.parent.parent.descr
       }`,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Genres as parent
@@ -308,13 +307,15 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in where, one assoc in multiple xpr, one field', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Books { ID } where ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`,
+      model,
+    )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
         { Books.ID } WHERE ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')
       `)
   })
-
 
   it('list in where', () => {
     let query = CQL`SELECT from bookshop.Books { ID } where (author.name, 1) in ('foo', 'bar')`
@@ -342,7 +343,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in select & where, same assoc', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID, author.name } where author.placeOfBirth = 'Marbach'`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -373,7 +374,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
 
   it('in select, same field with different filters requires alias', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`), model).to.throw(
-      /Duplicate definition of element “author_name”/
+      /Duplicate definition of element “author_name”/,
     )
   })
 
@@ -381,7 +382,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in select, assoc with filter using OR', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID, author[placeOfBirth='Marbach' OR placeOfDeath='Marbach'].name }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -406,7 +407,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         ID,
         author[placeOfBirth='Marbach'].ID as aID1,
       } having author[placeOfBirth='Foobach'].ID and genre[parent.ID='fiction'].ID`,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from bookshop.Books as Books
@@ -429,7 +430,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         author[placeOfBirth='Marbach'].name as n1,
         author.name as n2
       }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID AND author.placeOfBirth = 'Marbach'
@@ -451,7 +452,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
          author[placeOfBirth='Marbach'].dateOfBirth as d1,
          author[placeOfBirth='Erfurt'].dateOfBirth as d2
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID AND author.placeOfBirth = 'Marbach'
@@ -473,7 +474,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
          author[placeOfBirth='Marbach'].name as n1,
          author['Marbach'=placeOfBirth].name as n2
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID AND author.placeOfBirth = 'Marbach'
@@ -492,7 +493,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
          books[stock=1].genre[code='A'].descr as d1,
          books[stock=1].genre[code='A'].descr as d2
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -511,7 +512,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
          books[stock=1].genre[code='A'].descr as d1,
          books[stock=1].genre[code='B'].descr as d2
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -531,7 +532,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
          books[stock=1].genre[code='A'].descr as d1,
          books[stock=2].genre[code='A'].descr as d2
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -551,7 +552,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
        { ID,
          books[stock=1].genre[code='A'].descr
        } where books[stock=1].genre[code='B'].descr = 'foo'`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -571,7 +572,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
               when ID>4 then books[stock=1].genre[code='B'].descr
          end as descr
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -594,7 +595,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
               when exists books[price>100] then books[stock=1].genre[code='B' or code='C'].descr
          end as descr
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
@@ -616,7 +617,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
        { ID,
          books[exists genre[code='A']].title
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND
@@ -633,7 +634,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
        { ID,
          books[exists genre[code='A' or code='B']].title
        }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID AND
@@ -655,7 +656,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in select & having, same assoc', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID, author.name } having author.placeOfBirth = 'Marbach'`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -665,7 +666,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   it('in select & having, same assoc with same filter -> only one join', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { ID, author[placeOfBirth='Marbach'].name } having author[placeOfBirth='Marbach'].name = 'King'`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID and author.placeOfBirth = 'Marbach'
@@ -809,7 +810,10 @@ describe('Variations on ON', () => {
     expect(query).to.deep.equal(expected)
   })
   it('unmanaged assoc with on condition accessing structured foreign keys', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`,
+      model,
+    )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
     left outer join bookshop.WithStructuredKey as oddNumberWithForeignKeyAccess on oddNumberWithForeignKeyAccess.struct_mid_anotherLeaf = oddNumberWithForeignKeyAccess.struct_mid_leaf / oddNumberWithForeignKeyAccess.second
     { BooksWithWeirdOnConditions.ID, oddNumberWithForeignKeyAccess.second as oddNumberWithForeignKeyAccess_second }
@@ -817,7 +821,10 @@ describe('Variations on ON', () => {
     expect(query).to.deep.equal(expected)
   })
   it('unmanaged assoc with on condition comparing to val', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`,
+      model,
+    )
     const expected = CQL`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
         left outer join bookshop.BooksWithWeirdOnConditions as refComparedToVal on BooksWithWeirdOnConditions.ID != 1
         left outer join bookshop.BooksWithWeirdOnConditions as refComparedToValFlipped on 1 != refComparedToVal.ID
@@ -851,7 +858,7 @@ describe('subqueries in from', () => {
   it('in select, use one assoc in FROM subquery', () => {
     let query = cqn4sql(
       CQL`SELECT from (SELECT from bookshop.Books { author.name as author_name  }) as Bar { Bar.author_name }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from (
         SELECT from bookshop.Books as Books
@@ -886,7 +893,7 @@ describe('subqueries in from', () => {
     let query = cqn4sql(
       CQL`SELECT from (SELECT from bookshop.Books { author }) as Bar
         { Bar.author.name }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from (
           SELECT from bookshop.Books as Books { Books.author_ID }
@@ -901,7 +908,7 @@ describe('subqueries in from', () => {
     let query = cqn4sql(
       CQL`SELECT from (SELECT from bookshop.Books { author as a}) as Bar
         { Bar.a.name }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from (
           SELECT from bookshop.Books as Books { Books.author_ID as a_ID }
@@ -917,7 +924,7 @@ describe('subqueries in from', () => {
     let query = cqn4sql(
       CQL`SELECT from (SELECT from bookshop.Books { author.ID, author as a, author.name as author_name  }) as Bar
         { Bar.author_name, Bar.a.books.descr }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from (
           SELECT from bookshop.Books as Books
@@ -939,7 +946,7 @@ describe('subqueries in from', () => {
           title,
           (select from bookshop.Genres { parent.code } where Genres.ID = Books.genre.ID) as pc
         }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from bookshop.Books as Books
         {
@@ -963,7 +970,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.Header {
         toItem_selfMgd.id,
       }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from a2j.Header as Header
         left outer join a2j.Item as toItem_selfMgd on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
@@ -976,7 +983,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.Header {
         toItem_selfUmgd.id,
       }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from a2j.Header as Header
         left outer join a2j.Item as toItem_selfUmgd on (toItem_selfUmgd.elt2 = Header.elt)
@@ -990,7 +997,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.Header {
         toItem_combined.id,
       }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from a2j.Header as Header
         left outer join a2j.Item as toItem_combined
@@ -1009,7 +1016,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.Header {
         toItem_fwd.id,
       }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from a2j.Header as Header
         left outer join a2j.Item as toItem_fwd on Header.id = toItem_fwd.id
@@ -1026,7 +1033,7 @@ describe('Backlink Associations', () => {
         toItem_combined.id as combined_id,
         toItem_fwd.id as direct_id
       }`,
-      model
+      model,
     )
     const expected = CQL`SELECT from a2j.Header as Header
         left outer join a2j.Item as toItem_selfMgd
@@ -1052,7 +1059,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.Folder {
         nodeCompanyCode.assignments.data
       }`,
-      model
+      model,
     )
 
     const expected = CQL`SELECT from a2j.Folder as Folder
@@ -1071,7 +1078,7 @@ describe('Backlink Associations', () => {
       CQL`select from a2j.F {
         toE.data
       }`,
-      model
+      model,
     )
 
     const expected = CQL`select from a2j.F as F
@@ -1096,7 +1103,7 @@ describe('Shared foreign key identity', () => {
         a.b.c.toB.b.c.d.parent.c.d.e.ID  as a_b_c_toB_foo_boo,
         a.b.c.toB.e.f.g.child.c.d.e.ID  as a_b_c_toB_bar_bas
       }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from A as A
         {
@@ -1108,14 +1115,18 @@ describe('Shared foreign key identity', () => {
 })
 
 describe('Where exists in combination with assoc to join', () => {
-  let model; beforeAll (async ()=>{
-    model = cds.model = await cds.load(__dirname+'/../bookshop/db/schema') .then (cds.linked)
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it ('one assoc + one where exists / aliases are treated case insensitive', ()=>{
-    let query = cqn4sql (CQL`select from bookshop.Books:author {
+  it('one assoc + one where exists / aliases are treated case insensitive', () => {
+    let query = cqn4sql(
+      CQL`select from bookshop.Books:author {
       books.genre.name,
-    }`, model)
+    }`,
+      model,
+    )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as author
       left outer join bookshop.Books as books on books.author_ID = author.ID
       left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
@@ -1124,10 +1135,13 @@ describe('Where exists in combination with assoc to join', () => {
       )
     `)
   })
-  it ('aliases for recursive assoc in column + recursive assoc in from must not clash', ()=>{
-    let query = cqn4sql (CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
-      { parent.parent.parent.descr, }`, model)
-    expect (query) .to.deep.equal (CQL`SELECT from bookshop.Genres as parent
+  it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      { parent.parent.parent.descr, }`,
+      model,
+    )
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
     {
@@ -1147,10 +1161,13 @@ describe('Where exists in combination with assoc to join', () => {
   })
 
   // Revisit: Alias count order in where + from could be flipped
-  it ('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', ()=>{
-    let query = cqn4sql (CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
-      { parent.parent.parent.descr } where exists parent`, model)
-    expect (query) .to.deep.equal (CQL`SELECT from bookshop.Genres as parent
+  it('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      { parent.parent.parent.descr } where exists parent`,
+      model,
+    )
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent
     left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
     {
@@ -1170,7 +1187,6 @@ describe('Where exists in combination with assoc to join', () => {
       SELECT 1 from bookshop.Genres as parent4 where parent4.ID = parent.parent_ID
     )`)
   })
-
 })
 
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {

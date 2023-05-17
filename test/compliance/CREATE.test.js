@@ -4,23 +4,24 @@ const fspath = require('path')
 // Add the test names you want to run as only
 const only = []
 
-
 describe('CREATE', () => {
   // TODO: reference to ./definitions.test.js
 
   // Set cds.root before requiring cds.Service as it resolves and caches package.json
   // Call default cds.test API
-  const {data} = cds.test(__dirname + '/resources')
+  const { data } = cds.test(__dirname + '/resources')
   // Prevent deployment
+  /* skipping deploy causes issues with running all compliance tests in a single suite
   cds.deploy = () => ({
     to:() => {return cds.db || cds.connect('db')},
     then:() => {return cds.db || cds.connect('db')}
   })
+  // */
   data.autoIsolation(true)
   data._deployed = true // Skip automatic deployment
 
   // Load model before test suite to generate test suite from model definition
-  const model = cds.load(cds.root + '/db', { sync: true })
+  const model = cds.load(__dirname + '/resources/db', { sync: true })
 
   const literals = Object.keys(model.definitions).filter(n => model.definitions[n].kind === 'entity')
 
@@ -39,44 +40,67 @@ describe('CREATE', () => {
         // When using new SqliteService directly from class constructor it is missing the model
         // Causing all run calls to prefix the target with the service name
         db = await cds.connect()
+
+        await db
+          .run(async tx => {
+            await tx.run({
+              DROP: {
+                entity: table,
+              },
+            })
+
+            if (entity.projection) {
+              await tx.run({
+                DROP: {
+                  entity: entity.projection.from.ref[0],
+                },
+              })
+            }
+          })
+          .catch(() => {})
+
         await db.run(async tx => {
           deploy = Promise.resolve()
           // Create parent entity
-          if(entity.projection) {
+          if (entity.projection) {
             deploy = tx.run({
               CREATE: {
-                entity: entity.projection.from.ref[0]
-              }
+                entity: entity.projection.from.ref[0],
+              },
             })
           }
           // actually CREATE test
-          deploy = deploy.then(() => tx.run({
-            CREATE: {
-              entity: table
-            }
-          }))
-          await deploy.catch(()=>{})
+          deploy = deploy.then(() =>
+            tx.run({
+              CREATE: {
+                entity: table,
+              },
+            }),
+          )
+          await deploy.catch(() => {})
         })
-
       })
 
       afterAll(async () => {
-        // Cleanup created entities
-        await db.run(async tx => {
-          await tx.run({
-            DROP: {
-              entity: table
-            }
-          })
-
-          if(entity.projection) {
+        // DROP as normal deployment already deployed the model
+        await db
+          .run(async tx => {
             await tx.run({
               DROP: {
-                entity: entity.projection.from.ref[0]
-              }
+                entity: table,
+              },
             })
-          }
-        })
+
+            if (entity.projection) {
+              await tx.run({
+                DROP: {
+                  entity: entity.projection.from.ref[0],
+                },
+              })
+            }
+          })
+          .catch(() => {})
+
         await db.disconnect()
       })
 
@@ -102,7 +126,7 @@ describe('CREATE', () => {
                   if (typeof b === 'function') return `${b}`
                   return b
                 },
-                Object.keys(obj).length === 1 ? undefined : '\t      '
+                Object.keys(obj).length === 1 ? undefined : '\t      ',
               )
                 // Super hacky way to make the jest report look nice
                 .replace(/\n}/g, '\n\t    }'),
@@ -143,8 +167,8 @@ describe('CREATE', () => {
                   // Extract data set
                   const sel = await tx.run({
                     SELECT: {
-                      from: { ref: [table] }
-                    }
+                      from: { ref: [table] },
+                    },
                   })
 
                   // TODO: Can we expect all Database to respond in insert order ?
@@ -161,7 +185,7 @@ describe('CREATE', () => {
                     }
                   })
                 })
-              }
+              },
             )
           })
         })

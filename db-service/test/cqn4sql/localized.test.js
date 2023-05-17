@@ -13,7 +13,7 @@ describe('localized', () => {
   it('performs no replacement if not requested', () => {
     const q = CQL`SELECT from bookshop.Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(query))).to.deep.  equal(CQL`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`
         SELECT from bookshop.Books as Books
                     {
                       Books.ID,

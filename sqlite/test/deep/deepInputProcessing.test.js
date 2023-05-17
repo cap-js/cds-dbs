@@ -1,4 +1,4 @@
-const cds = require('@sap/cds')
+const cds = require('../../../test/cds')
 
 const { POST, PUT } = cds.test(__dirname, 'deep.cds')
 
@@ -9,8 +9,8 @@ describe('UUID Generation', () => {
       ID: uuid,
       toOneChild: {
         text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }]
-      }
+        toManySubChild: [{ text: 'a' }, { text: 'b' }],
+      },
     })
     expect(res.status).toBe(201)
 
@@ -20,8 +20,8 @@ describe('UUID Generation', () => {
       name: null,
       toOneChild: {
         text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }]
-      }
+        toManySubChild: [{ text: 'a' }, { text: 'b' }],
+      },
     })
 
     // uuid is properly generated
@@ -41,8 +41,8 @@ describe('UUID Generation', () => {
       ID: uuid,
       toOneChild: {
         text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }]
-      }
+        toManySubChild: [{ text: 'a' }, { text: 'b' }],
+      },
     })
     expect(resPost.status).toBe(201)
 
@@ -50,8 +50,8 @@ describe('UUID Generation', () => {
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
       toOneChild: {
         text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }]
-      }
+        toManySubChild: [{ text: 'a' }, { text: 'b' }],
+      },
     })
     expect(resUpdate.status).toBe(200)
 
@@ -66,14 +66,14 @@ describe('UUID Generation', () => {
     const resPost = await POST('/bla/RootUUID', {
       ID: uuid,
       toOneChild: {
-        text: 'abc'
-      }
+        text: 'abc',
+      },
     })
     expect(resPost.status).toBe(201)
 
     // child should be deleted
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
-      toOneChild: null
+      toOneChild: null,
     })
     expect(resUpdate.status).toBe(200)
 
@@ -81,7 +81,7 @@ describe('UUID Generation', () => {
       '@odata.context': '$metadata#RootUUID/$entity',
       ID: uuid,
       name: null,
-      toOneChild: null
+      toOneChild: null,
     })
   })
 
@@ -90,8 +90,8 @@ describe('UUID Generation', () => {
       rID: 1,
       rToOneChild: {
         rID: 2,
-        rText: 'abc'
-      }
+        rText: 'abc',
+      },
     })
     expect(resPost.status).toBe(201)
   })

@@ -1,6 +1,6 @@
 const cds = require('../../../../test/cds.js')
 
-module.exports = (srv) => {
+module.exports = srv => {
   srv.on('reset', async () => {
     let db
     try {
@@ -17,7 +17,7 @@ module.exports = (srv) => {
     // eslint-disable-next-line no-console
     console.log(insertResult)
   })
-  srv.before('READ', '*', async (req) => {
+  srv.before('READ', '*', async req => {
     if (req.headers.schema) {
       req.user.schema = req.headers.schema
     }
