@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, auto_merge_enabled]
 
 # Allow parallel jobs on `main`, so that each commit is tested. For PRs, run only the latest commit.
 concurrency:
