@@ -4,7 +4,6 @@ if (cds.env.fiori) cds.env.fiori.lean_draft = true
 else cds.env.features.lean_draft = true
 
 const project = resolve(__dirname, 'beershop')
-const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
@@ -12,6 +11,8 @@ const guidRegEx = /\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f
 
 // run test suite with different sets of data
 describe('OData to Postgres dialect', () => {
+  const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
+
   data.autoIsolation(true)
   data.autoReset(true)
 
@@ -80,7 +81,7 @@ describe('OData to Postgres dialect', () => {
           // REVISIT: this ^^^ looks like a pretty useless test
           //> did you mean this?:
           // expect(response).to.have(property)
-        }
+        },
       )
     })
 
@@ -121,7 +122,7 @@ describe('OData to Postgres dialect', () => {
 
     test('odata: $expand single entity on 1:1 rel -> sql: sub-select single record from expand-target table', async () => {
       const response = await GET(
-        '/beershop/Beers/9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b?$expand=brewery($select=ID,name)'
+        '/beershop/Beers/9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b?$expand=brewery($select=ID,name)',
       )
       expect(response.status).to.equal(200)
       expect(response.data.brewery.ID).to.equal('fa6b959e-3a01-40ef-872e-6030ee4de4e5')
@@ -132,7 +133,7 @@ describe('OData to Postgres dialect', () => {
 
       const expected = {
         ID: 'fa6b959e-3a01-40ef-872e-6030ee4de4e5',
-        name: 'Private Landbrauerei Schönram GmbH & Co. KG'
+        name: 'Private Landbrauerei Schönram GmbH & Co. KG',
       }
       const breweries = response.data.value.map(results => results.brewery)
       const found = breweries.filter(brewery => {
@@ -152,7 +153,7 @@ describe('OData to Postgres dialect', () => {
     })
     test('odata: $filter on $expand (1:n) -> sql: sub-select matching records from expand-target table', async () => {
       const response = await GET(
-        `/beershop/Breweries?$expand=beers($filter=name eq '${encodeURIComponent('Schönramer Hell')}')`
+        `/beershop/Breweries?$expand=beers($filter=name eq '${encodeURIComponent('Schönramer Hell')}')`,
       )
       expect(response.status).to.equal(200)
       const data = response.data.value
@@ -164,7 +165,9 @@ describe('OData to Postgres dialect', () => {
     })
     test('odata: multiple $ combined: $expand, $filter, $select -> sql: sub-select only selected fields matching records from expand-target table', async () => {
       const response = await GET(
-        `/beershop/Breweries?$expand=beers($filter=name eq '${encodeURIComponent('Schönramer Hell')}';$select=name,ibu)`
+        `/beershop/Breweries?$expand=beers($filter=name eq '${encodeURIComponent(
+          'Schönramer Hell',
+        )}';$select=name,ibu)`,
       )
       expect(response.status).to.equal(200)
       const data = response.data.value
@@ -175,14 +178,13 @@ describe('OData to Postgres dialect', () => {
       // we expect only these fields
       expect(schoenram.beers[0]).to.deep.include({
         name: 'Schönramer Hell',
-        ibu: 20
+        ibu: 20,
       })
       expect(schoenram.beers[0].ID).to.match(guidRegEx)
     })
   })
 
   describe('odata: GET on Draft enabled Entity -> sql: SELECT', () => {
-
     test('odata: entityset TypeChecksWithDraft -> select all', async () => {
       const response = await GET('/beershop/TypeChecksWithDraft')
       expect(response.status).to.equal(200)
@@ -194,7 +196,7 @@ describe('OData to Postgres dialect', () => {
     })
     test('odata: entityset TypeChecksWithDraft -> select like Fiori Elements UI', async () => {
       const response = await GET(
-        '/beershop/TypeChecksWithDraft?$count=true&$expand=DraftAdministrativeData&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$select=HasActiveEntity,ID,IsActiveEntity,type_Boolean,type_Date,type_Int32&$skip=0&$top=30'
+        '/beershop/TypeChecksWithDraft?$count=true&$expand=DraftAdministrativeData&$filter=(IsActiveEntity%20eq%20false%20or%20SiblingEntity/IsActiveEntity%20eq%20null)&$select=HasActiveEntity,ID,IsActiveEntity,type_Boolean,type_Date,type_Int32&$skip=0&$top=30',
       )
       expect(response.status).to.equal(200)
       expect(response.data['@odata.count']).to.equal(1)
@@ -208,9 +210,9 @@ describe('OData to Postgres dialect', () => {
         {
           headers: {
             Accept: 'application/json;odata.metadata=minimal;IEEE754Compatible=true',
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
 
       // Creates:
@@ -230,14 +232,14 @@ describe('OData to Postgres dialect', () => {
         {
           name: 'Schlappe Seppel',
           ibu: 10,
-          abv: '16.2'
+          abv: '16.2',
         },
         {
           headers: {
             Accept: 'application/json;odata.metadata=minimal;IEEE754Compatible=true',
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
 
       expect(response.data.createdAt).to.be.a.string
@@ -258,20 +260,20 @@ describe('OData to Postgres dialect', () => {
             {
               name: 'Glucks Pils',
               ibu: 101,
-              abv: '5.2'
+              abv: '5.2',
             },
             {
               name: 'Glucks Pils Herb',
               ibu: 101,
-              abv: '6.2'
-            }
-          ]
+              abv: '6.2',
+            },
+          ],
         },
         {
           headers: {
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
       expect(response.data.createdAt).to.be.a.string
       expect(response.data.modifiedAt).to.be.a.string
@@ -290,13 +292,13 @@ describe('OData to Postgres dialect', () => {
         '/beershop/Beers/9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b',
         {
           name: 'Changed name',
-          ibu: 10
+          ibu: 10,
         },
         {
           headers: {
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
 
       expect(response.status).to.equal(200)
@@ -304,7 +306,7 @@ describe('OData to Postgres dialect', () => {
       const getResponse = await GET('/beershop/Beers/9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b')
       expect(getResponse.data).to.include({
         name: 'Changed name',
-        ibu: 10
+        ibu: 10,
       })
     })
 
@@ -314,8 +316,8 @@ describe('OData to Postgres dialect', () => {
       const newBeer = { name: 'Testbier created with PUT', ibu: 15 }
       const response = await PUT(`/beershop/Beers/${guid}`, newBeer, {
         headers: {
-          'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-        }
+          'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+        },
       })
       expect(response.status).to.equal(200)
 
@@ -348,14 +350,14 @@ describe('OData to Postgres dialect', () => {
           name: 'Schönramer Hell',
           abv: '5.0',
           ibu: 20,
-          brewery_ID: 'fa6b959e-3a01-40ef-872e-6030ee4de4e5'
+          brewery_ID: 'fa6b959e-3a01-40ef-872e-6030ee4de4e5',
         },
         {
           headers: {
             Accept: 'application/json;odata.metadata=minimal;IEEE754Compatible=true',
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
     })
   })
@@ -389,15 +391,15 @@ describe('OData to Postgres dialect', () => {
             {
               name: 'Weissen',
               ibu: 55,
-              abv: '5.2'
-            }
-          ]
+              abv: '5.2',
+            },
+          ],
         },
         {
           headers: {
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
       expect(response.status).to.equal(200)
       // deep update deletes the other beers from Rittmayer Hallerndorf - they have to be restored, otherwise the user-defined-schema test fails
@@ -409,30 +411,30 @@ describe('OData to Postgres dialect', () => {
             {
               name: 'Hallerndorfer Landbier Hell',
               abv: 4.9,
-              ibu: 0
+              ibu: 0,
             },
             {
               name: 'Hallerndorfer Hausbrauerbier',
               abv: 5,
-              ibu: 0
+              ibu: 0,
             },
             {
               name: 'Bitter 42',
               abv: 5.5,
-              ibu: 42
+              ibu: 42,
             },
             {
               name: 'Summer 69',
               abv: 5.9,
-              ibu: 12
-            }
-          ]
+              ibu: 12,
+            },
+          ],
         },
         {
           headers: {
-            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
-          }
-        }
+            'Content-Type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
+          },
+        },
       )
       expect(restoreReponse.status).to.equal(200)
     })

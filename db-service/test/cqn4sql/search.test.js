@@ -12,7 +12,7 @@ describe('Replace attribute search by search predicate', () => {
   it('one string element with one search element', () => {
     // WithStructuredKey is the only entity with only one string element in the model ...
     let query = CQL`SELECT from bookshop.WithStructuredKey as wsk { second }`
-    query.SELECT.search = [{ val:'x' }]
+    query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
     // single val is stored as val directly, not as expr with val
@@ -25,7 +25,7 @@ describe('Replace attribute search by search predicate', () => {
   it('one string element', () => {
     // WithStructuredKey is the only entity with only one string element in the model ...
     let query = CQL`SELECT from bookshop.WithStructuredKey as wsk { second }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     const expected = CQL`SELECT from bookshop.WithStructuredKey as wsk {
@@ -36,7 +36,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('multiple string elements', () => {
     let query = CQL`SELECT from bookshop.Genres { ID }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
@@ -46,7 +46,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('with existing WHERE clause', () => {
     let query = CQL`SELECT from bookshop.Genres { ID } where ID < 4 or ID > 5`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
@@ -57,7 +57,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('with filter on data source', () => {
     let query = CQL`SELECT from bookshop.Genres[ID < 4 or ID > 5] { ID }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
@@ -68,7 +68,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('string fields inside struct', () => {
     let query = CQL`SELECT from bookshop.Person { ID }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Person as Person {
@@ -78,7 +78,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('ignores virtual string elements elements', () => {
     let query = CQL`SELECT from bookshop.Foo { ID }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
@@ -87,7 +87,7 @@ describe('Replace attribute search by search predicate', () => {
   })
   it('Uses primary query source in case of joins', () => {
     let query = CQL`SELECT from bookshop.Books { ID, author.books.title as authorsBook }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
@@ -98,12 +98,12 @@ describe('Replace attribute search by search predicate', () => {
       {
         Books.ID,
         books2.title as authorsBook
-      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y')) `
+      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
   it('Search on navigation', () => {
     let query = CQL`SELECT from bookshop.Authors:books { ID }`
-    query.SELECT.search = [{ val:'x' }, 'or', { val:'y'}]
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
@@ -117,7 +117,7 @@ describe('Replace attribute search by search predicate', () => {
           where Authors.ID = books.author_ID
         )
       ) and
-      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `
+      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
 })

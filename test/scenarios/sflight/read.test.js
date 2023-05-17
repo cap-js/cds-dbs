@@ -1,13 +1,13 @@
-process.env.cds_requires_db_kind = "better-sqlite"
+process.env.cds_requires_db_kind = 'better-sqlite'
 const cds = require('../../cds.js')
 if (cds.env.fiori) cds.env.fiori.lean_draft = true
 else cds.env.features.lean_draft = true
 
-// Jest require.resolve does not want to find @capire/sflight
-const { expect, GET, axios } = cds.test('@capire/sflight')
-axios.defaults.auth = { username: 'alice', password: 'admin' }
-
 describe('SFlight - Read', () => {
+  // Jest require.resolve does not want to find @capire/sflight
+  const { expect, GET, axios } = cds.test('@capire/sflight')
+  axios.defaults.auth = { username: 'alice', password: 'admin' }
+
   const processorPaths = [
     // 'Travel?$count=true&$orderby=TravelID desc&$filter=(IsActiveEntity eq false or SiblingEntity/IsActiveEntity eq null)&$expand=DraftAdministrativeData,TravelStatus,to_Agency,to_Customer&$skip=0&$top=30',
     'Travel',
@@ -22,7 +22,7 @@ describe('SFlight - Read', () => {
     'Supplement',
     'FlightConnection',
     'SupplementType',
-    'Airport'
+    'Airport',
   ]
 
   test.each(processorPaths)('/processor/%s', async p => {

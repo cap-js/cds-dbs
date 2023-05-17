@@ -2,11 +2,12 @@ const { resolve } = require('path')
 const cds = require('../../test/cds.js')
 
 const project = resolve(__dirname, 'beershop')
-const { GET, POST, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('OData to Postgres dialect', () => {
+  const { GET, POST, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
+
   data.autoIsolation(true)
   data.autoReset(true)
 
@@ -14,8 +15,8 @@ describe('OData to Postgres dialect', () => {
     const response = await GET('/beershop-admin/', {
       auth: {
         username: 'bob',
-        password: ''
-      }
+        password: '',
+      },
     })
 
     expect(response.status).to.equal(200)
@@ -36,17 +37,17 @@ describe('OData to Postgres dialect', () => {
         {
           name: 'Schlappe Seppel',
           ibu: 10,
-          abv: '16.2'
+          abv: '16.2',
         },
         {
           headers: {
-            'content-type': 'application/json;charset=UTF-8;IEEE754Compatible=true'
+            'content-type': 'application/json;charset=UTF-8;IEEE754Compatible=true',
           },
           auth: {
             username: 'bob',
-            password: ''
-          }
-        }
+            password: '',
+          },
+        },
       )
 
       const now = new Date().toISOString().substring(0, 10)
@@ -59,8 +60,8 @@ describe('OData to Postgres dialect', () => {
       const responseGet = await GET(`/beershop-admin/Beers(${response.data.ID})`, {
         auth: {
           username: 'bob',
-          password: ''
-        }
+          password: '',
+        },
       })
 
       expect(responseGet.status).to.equal(200)
@@ -70,8 +71,8 @@ describe('OData to Postgres dialect', () => {
       const responseDelete = await DELETE(`/beershop-admin/Beers(${response.data.ID})`, {
         auth: {
           username: 'bob',
-          password: ''
-        }
+          password: '',
+        },
       })
       expect(responseDelete.status).to.equal(204)
     })

@@ -28,7 +28,7 @@ describe('Structured Access', () => {
     // First path step is resolved as table alias, even if subsequent path steps cannot be resolved
     it('resolves first path step as table alias, if possible', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books as dedication { dedication.text }`, model)).to.throw(
-        /"text" not found in "bookshop.Books"/
+        /"text" not found in "bookshop.Books"/,
       )
     })
     it('resolves first path step as element of data source if it cannot be resolved as table alias', () => {
@@ -37,12 +37,12 @@ describe('Structured Access', () => {
     })
     it('cannot access flat names of structure elements', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { dedication_text }`, model)).to.throw(
-        /"dedication_text" not found in the elements of "bookshop.Books"/
+        /"dedication_text" not found in the elements of "bookshop.Books"/,
       )
     })
     it('cannot access flat names of FKs', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author_ID }`, model)).to.throw(
-        /"author_ID" not found in the elements of "bookshop.Books"/
+        /"author_ID" not found in the elements of "bookshop.Books"/,
       )
     })
     it('deeply structured access', () => {
@@ -67,7 +67,7 @@ describe('Structured Access', () => {
             dedication.dedication.text,
             dedication.dedication.dedication
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as dedication {
             dedication.stock,
@@ -77,7 +77,7 @@ describe('Structured Access', () => {
     })
     it('table alias has precedence over struct name', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books as dedication { dedication.text }`, model)).to.throw(
-        /"text" not found in "bookshop.Books"/
+        /"text" not found in "bookshop.Books"/,
       )
     })
     it('unfolds all leafs of sub structure', () => {
@@ -88,7 +88,7 @@ describe('Structured Access', () => {
             Books.dedication.sub,
             dedication.sub as anotherSub
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -105,7 +105,7 @@ describe('Structured Access', () => {
             dedication.dedication.dedication,
             dedication.dedication as d2
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as dedication {
             dedication.stock,
@@ -123,7 +123,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             WHERE dedication.text = 'For Mummy'`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             WHERE Books.dedication_text = 'For Mummy'`)
@@ -139,7 +139,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { dedication.sub }
             ORDER BY dedication_sub.foo, Books.dedication.text, dedication.text`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.dedication_sub_foo }
             ORDER BY dedication_sub_foo, Books.dedication_text, Books.dedication_text`)
@@ -149,21 +149,21 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books as dedication { dedication.dedication.sub }
             ORDER BY dedication_sub.foo, dedication.dedication.text, dedication.stock`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as dedication { dedication.dedication_sub_foo }
             ORDER BY dedication_sub_foo, dedication.dedication_text, dedication.stock`)
     })
     it('table alias shadows data source element (2)', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.Books as dedication { ID } ORDER BY dedication.text`, model)
+        cqn4sql(CQL`SELECT from bookshop.Books as dedication { ID } ORDER BY dedication.text`, model),
       ).to.throw(/"text" not found in "bookshop.Books"/)
     })
     it('explicit column alias shadows explicit table alias', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Bar as structure { structure.nested as structure }
             ORDER BY structure.foo, structure.bar.a, structure.bar.b`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as structure {
             structure.nested_foo_x as structure_foo_x,
@@ -177,7 +177,7 @@ describe('Structured Access', () => {
     })
     it('explicit column alias shadows explicit table alias (2)', () => {
       expect(() =>
-        cqn4sql(CQL`SELECT from bookshop.Books as dedication { ID as dedication } ORDER BY dedication.text`, model)
+        cqn4sql(CQL`SELECT from bookshop.Books as dedication { ID as dedication } ORDER BY dedication.text`, model),
       ).to.throw(/"text" not found in "dedication"/)
     })
     // new, TODO
@@ -185,7 +185,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, dedication.sub  }
                   ORDER BY power(2*dedication_sub.foo), Books.dedication.dedication+2`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_sub_foo }
                   ORDER BY power(2*dedication_sub_foo), Books.dedication_dedication+2`)
@@ -198,7 +198,7 @@ describe('Structured Access', () => {
         CQL`SELECT from bookshop.Books {
             power(Books.dedication.text, 2*dedication.sub.foo) as path
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             power(Books.dedication_text, 2*Books.dedication_sub_foo) as path
@@ -208,7 +208,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             WHERE power(Books.dedication.text, 2*dedication.sub.foo) > dedication.dedication+2`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             WHERE power(Books.dedication_text, 2*Books.dedication_sub_foo)  > Books.dedication_dedication+2`)
@@ -218,7 +218,7 @@ describe('Structured Access', () => {
         CQL`SELECT from bookshop.Books { ID }
             GROUP BY power(Books.dedication.text, 2*dedication.sub.foo), dedication.dedication+2
             HAVING power(Books.dedication.text, 2*dedication.sub.foo) > dedication.dedication+2`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             GROUP BY power(Books.dedication_text, 2*Books.dedication_sub_foo), Books.dedication_dedication+2
@@ -228,7 +228,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
             ORDER BY power(dedication.text, 2*dedication.sub.foo), dedication.dedication+2`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
             ORDER BY power(Books.dedication_text, 2*Books.dedication_sub_foo), Books.dedication_dedication+2`)
@@ -236,7 +236,7 @@ describe('Structured Access', () => {
 
     it('denies path ending on struct field in expression', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { 2*dedication.sub as foo }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/
+        /A structured element can't be used as a value in an expression/,
       )
     })
   })
@@ -248,7 +248,7 @@ describe('Structured Access', () => {
             ID,
             dedication.sub.foo as foo
           }) as Bar { ID, foo }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from (select from bookshop.Books as Books {
             Books.ID,
@@ -263,14 +263,14 @@ describe('Structured Access', () => {
           Bar.dedication.text as barText,
           BarTwo.dedication.text as barTwoText
         }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
         CQL`SELECT from bookshop.Books as Bar, bookshop.Books as BarTwo {
           BarTwo.ID,
           Bar.dedication_text as barText,
           BarTwo.dedication_text as barTwoText
-        }`
+        }`,
       )
     })
   })
@@ -286,10 +286,10 @@ describe('Structured Access', () => {
     it('structured fk', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, Books.dedication.addressee.ID as dedicationAddressee }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_addressee_ID as dedicationAddressee }`
+        CQL`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_addressee_ID as dedicationAddressee }`,
       )
     })
     it('optimizes assoc.assoc.fk path', () => {
@@ -300,24 +300,24 @@ describe('Structured Access', () => {
     it('optimizes assoc.fk path, with drilling into structured FK', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.AssocMaze1 as AM { ID, a_struc.ID_1.a, a_strass.A_1.b.assoc2.ID_2.b }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_struc_ID_1_a, AM.a_strass_A_1_b_assoc2_ID_2_b }`
+        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_struc_ID_1_a, AM.a_strass_A_1_b_assoc2_ID_2_b }`,
       )
     })
 
     it('optimizes assoc.fk path, with drilling into structured, explicit, aliased FK', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.AssocMaze1 as AM { ID, a_strucXA.S_1.a, a_assocYA.A_2.b.ID }`, model)
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_strucXA_T_1_a as a_strucXA_S_1_a, AM.a_assocYA_B_2_b_ID as a_assocYA_A_2_b_ID }`
+        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_strucXA_T_1_a as a_strucXA_S_1_a, AM.a_assocYA_B_2_b_ID as a_assocYA_A_2_b_ID }`,
       )
     })
 
     it('optimizes assoc.fk path, with fk being managed assoc', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.AssocMaze1 as AM { ID, a_assocYA.A_2 }`, model)
       expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_assocYA_B_2_a as a_assocYA_A_2_a, AM.a_assocYA_B_2_b_ID as a_assocYA_A_2_b_ID }`
+        CQL`SELECT from bookshop.AssocMaze1 as AM { AM.ID, AM.a_assocYA_B_2_a as a_assocYA_A_2_a, AM.a_assocYA_B_2_b_ID as a_assocYA_A_2_b_ID }`,
       )
     })
 
@@ -326,7 +326,7 @@ describe('Structured Access', () => {
         CQL`SELECT from bookshop.Books {
             power(author.ID, 2*dedication.addressee.ID) as path
           }`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             power(Books.author_ID, 2*Books.dedication_addressee_ID) as path
@@ -335,7 +335,7 @@ describe('Structured Access', () => {
     it('resolves struct paths into FROM subquery mix with assoc FK access', () => {
       let query = cqn4sql(
         CQL`SELECT from (select from bookshop.Books {Books.ID, Books.dedication as dedi}) as Bar { ID, dedi.addressee.ID}`,
-        model
+        model,
       )
       expect(query).to.deep.equal(
         CQL`SELECT from (select from bookshop.Books as Books {
@@ -344,7 +344,7 @@ describe('Structured Access', () => {
               Books.dedication_text as dedi_text,
               Books.dedication_sub_foo as dedi_sub_foo,
               Books.dedication_dedication as dedi_dedication
-            }) as Bar { Bar.ID, Bar.dedi_addressee_ID }`
+            }) as Bar { Bar.ID, Bar.dedi_addressee_ID }`,
       )
     })
   })
@@ -354,7 +354,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { dedication.text }
           GROUP BY dedication.text HAVING dedication.text = 'For Mummy'`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.dedication_text }
           GROUP BY Books.dedication_text HAVING Books.dedication_text = 'For Mummy'`)
@@ -364,7 +364,7 @@ describe('Structured Access', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { dedication.sub }
           GROUP BY dedication.sub`,
-        model
+        model,
       )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.dedication_sub_foo }
           GROUP BY Books.dedication_sub_foo`)

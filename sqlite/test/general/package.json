@@ -1,7 +1,5 @@
 {
-  "cds": {
-    "requires": {
-      "db": "better-sqlite"
-    }
+  "dependencies": {
+    "@cap-js/sqlite": "*"
   }
 }

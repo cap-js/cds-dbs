@@ -1,14 +1,14 @@
 module.exports = [
   {
-    date: null
+    date: null,
   },
   {
-    date: '1970-01-01'
+    date: '1970-01-01',
   },
   {
     // HANA supports up-to 9999-12-31
-    date: '9999-12-31'
-  }
+    date: '9999-12-31',
+  },
   /* Ignoring transformations
   {
     date: '1970-1-1',
