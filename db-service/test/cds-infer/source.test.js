@@ -2,7 +2,7 @@
 // test the calculation of the sources of the query
 
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('simple', () => {
@@ -21,7 +21,7 @@ describe('simple', () => {
     expect(inferred.target).to.deep.equal(Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      author: Books.elements.author
+      author: Books.elements.author,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -36,7 +36,6 @@ describe('simple', () => {
     expect(_inferred(i)).to.have.property('target').that.equals(Books)
     expect(_inferred(d)).to.have.property('target').that.equals(Books)
   })
-
 })
 describe('scoped queries', () => {
   let model
@@ -51,7 +50,7 @@ describe('scoped queries', () => {
     let { Authors } = model.entities
     expect(inferred).to.have.nested.property('sources.author', Authors)
     expect(inferred.elements).to.deep.equal({
-      ID: Authors.elements.ID
+      ID: Authors.elements.ID,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
@@ -81,11 +80,10 @@ describe('subqueries', () => {
     let { Books } = model.entities
     expect(inferred).to.have.nested.property('sources.Bar.sources.Books', Books)
     expect(inferred.elements).to.deep.equal({
-      barID: Books.elements.ID
+      barID: Books.elements.ID,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
-
 
   it('subquery in from with wildcard', () => {
     let query = CQL`SELECT from (select from bookshop.Books) as Bar { ID, author }`
@@ -95,11 +93,10 @@ describe('subqueries', () => {
     expect(inferred.sources).to.have.nested.property('Bar.sources.Books', Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
-      author: Books.elements.author
+      author: Books.elements.author,
     })
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
-
 })
 
 describe('multiple sources', () => {
@@ -108,7 +105,7 @@ describe('multiple sources', () => {
     model = cds.model = await await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
   it('infers multiple table aliases as the queries source with a simple cross join', () => {
-    let inferred = _inferred (CQL`
+    let inferred = _inferred(CQL`
     SELECT from bookshop.Books:author as A, bookshop.Books {
       A.ID as aID,
       Books.ID as bID,
@@ -121,7 +118,7 @@ describe('multiple sources', () => {
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
       bID: Books.elements.ID,
-      authorName: Authors.elements.name
+      authorName: Authors.elements.name,
     })
   })
 
@@ -151,14 +148,11 @@ describe('multiple sources', () => {
 
     // same base entity, addressable via both aliases
     expect(inferred.target).to.deep.equal(inferred)
-    expect(inferred.sources['firstBook'])
-      .to.deep.equal(inferred.sources['secondBook'])
-      .to.deep.equal(Books)
+    expect(inferred.sources['firstBook']).to.deep.equal(inferred.sources['secondBook']).to.deep.equal(Books)
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,
       secondBookID: Books.elements.ID,
     })
   })
-
 })

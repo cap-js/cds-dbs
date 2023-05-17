@@ -1,7 +1,7 @@
 // TODO: Add HANA TYPE EXPECTATIONS
 module.exports = [
   {
-    binary: null
+    binary: null,
   },
   /*
   REVISIT: investigate why this is always considered binary by sqlite

@@ -4,7 +4,7 @@
 
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 
 describe('assign element onto columns', () => {
   let model
@@ -28,14 +28,10 @@ describe('assign element onto columns', () => {
         Books.dedication_sub_foo
     }
     `
-    const {Books} = model.entities
+    const { Books } = model.entities
     expect(query).to.deep.eql(expected)
-    expect(query.SELECT.columns[0])
-      .to.have.property('element')
-      .that.equals(Books.elements['ID'])
-    expect(query.SELECT.columns[1])
-      .to.have.property('element')
-      .that.equals(Books.elements.author._target.elements.ID) // this is a structured model -> no fk in "Books"
+    expect(query.SELECT.columns[0]).to.have.property('element').that.equals(Books.elements['ID'])
+    expect(query.SELECT.columns[1]).to.have.property('element').that.equals(Books.elements.author._target.elements.ID) // this is a structured model -> no fk in "Books"
     expect(query.SELECT.columns[2])
       .to.have.property('element')
       .that.equals(Books.elements.dedication.elements.addressee._target.elements.ID) // this is a structured model -> no fk in "Books"
@@ -49,10 +45,8 @@ describe('assign element onto columns', () => {
         author { name }
       }
     `)
-    const {Authors} = model.entities
-    expect(query.SELECT.columns[0].SELECT.columns[0])
-      .to.have.property('element')
-      .that.equals(Authors.elements['name'])
+    const { Authors } = model.entities
+    expect(query.SELECT.columns[0].SELECT.columns[0]).to.have.property('element').that.equals(Authors.elements['name'])
   })
   it('attaches the `element` to functions, xpr and val', () => {
     let query = cqn4sql(CQL`
@@ -63,15 +57,9 @@ describe('assign element onto columns', () => {
         (SELECT from bookshop.Books) as subquery: cds.String
       }
     `)
-    expect(query.SELECT.columns[0])
-      .to.have.property('element')
-      .that.is.an.instanceof(cds.type) // has cds.Integer type inferred
-    expect(query.SELECT.columns[1])
-      .to.have.property('element')
-    expect(query.SELECT.columns[2])
-      .to.have.property('element')
-    expect(query.SELECT.columns[3])
-      .to.have.property('element')
-      .that.is.an.instanceof(cds.type) // has cds.String information through cast
+    expect(query.SELECT.columns[0]).to.have.property('element').that.is.an.instanceof(cds.type) // has cds.Integer type inferred
+    expect(query.SELECT.columns[1]).to.have.property('element')
+    expect(query.SELECT.columns[2]).to.have.property('element')
+    expect(query.SELECT.columns[3]).to.have.property('element').that.is.an.instanceof(cds.type) // has cds.String information through cast
   })
 })

@@ -4,11 +4,12 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require ('@sap/cds/lib')
+const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 describe('query clauses', () => {
-  let model; beforeAll (async ()=>{
-    model = await cds.load(__dirname+'/../bookshop/db/schema') .then (cds.linked)
+  let model
+  beforeAll(async () => {
+    model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
   it('limit + offset', () => {
@@ -16,10 +17,11 @@ describe('query clauses', () => {
     expect(cqn4sql(original, model)).to.deep.equal(
       CQL`
       SELECT from bookshop.Books as Books { Books.ID } limit 50 offset 25
-     `)
+     `,
+    )
   })
 
-  it ('`sort` and `nulls` are passed along in order by', ()=>{
+  it('`sort` and `nulls` are passed along in order by', () => {
     const original = CQL`
         SELECT from bookshop.Books { ID }
             order by Books.ID asc nulls first,
@@ -32,22 +34,24 @@ describe('query clauses', () => {
         order by Books.ID asc nulls first,
                  1 + 1 desc nulls last,
                  func() desc nulls first
-     `)
+     `,
+    )
   })
-  it ('`sort` and `nulls` are passed along also to flat field in order by', ()=>{
+  it('`sort` and `nulls` are passed along also to flat field in order by', () => {
     const original = CQL`SELECT from bookshop.Books { ID } order by Books.dedication.sub asc nulls first`
     expect(cqn4sql(original, model)).to.deep.equal(
       CQL`
       SELECT from bookshop.Books as Books { Books.ID }
         order by Books.dedication_sub_foo asc nulls first
-     `)
+     `,
+    )
   })
   it('preserves cast property on column', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Bar {
             ID as castedID: cds.String
           }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
             Bar.ID as castedID: cds.String
@@ -61,7 +65,7 @@ describe('query clauses', () => {
       CQL`SELECT from bookshop.Bar {
             ID: cds.String
           }`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {
             Bar.ID as ID: cds.String

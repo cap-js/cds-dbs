@@ -13,9 +13,11 @@ describe('Managed thingies', () => {
       expect(result).toEqual([
         {
           ID: 2,
-          createdAt: expect.any(String), createdBy: 'anonymous',
-          modifiedAt: expect.any(String), modifiedBy: 'samuel',
-        }
+          createdAt: expect.any(String),
+          createdBy: 'anonymous',
+          modifiedAt: expect.any(String),
+          modifiedBy: 'samuel',
+        },
       ])
     })
   })
@@ -36,7 +38,7 @@ describe('Managed thingies', () => {
           createdBy: null,
           modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
-        }
+        },
       ])
 
       const { modifiedAt } = result[0]
@@ -98,7 +100,7 @@ describe('Managed thingies', () => {
 
   test('managed attributes are shared within a transaction', async () => {
     const db = await cds.connect.to('db')
-    const tx = db.tx({ user: { id: 'tom' }})
+    const tx = db.tx({ user: { id: 'tom' } })
 
     let result
     try {

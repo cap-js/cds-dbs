@@ -1,14 +1,14 @@
 // TODO: Add HANA TYPE EXPECTATIONS
 module.exports = [
   {
-    tinyint: null
+    tinyint: null,
   },
   {
-    tinyint: 0
+    tinyint: 0,
   },
   {
-    tinyint: 255
-  }
+    tinyint: 255,
+  },
   /*
   {
     tinyint: -1,

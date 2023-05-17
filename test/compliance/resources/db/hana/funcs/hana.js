@@ -11,7 +11,7 @@ const creds = {
   sslValidateCertificate: true, // The HANA-cloud docker image has self signed SSL certificates
   driver: 'com.sap.db.jdbc.Driver',
   url: 'jdbc:sap://localhost:30041?encrypt=true&validateCertificate=false',
-  disableCloudRedirect: true
+  disableCloudRedirect: true,
 }
 
 let client
