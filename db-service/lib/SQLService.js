@@ -14,7 +14,7 @@ class SQLService extends DatabaseService {
     this.on(['UPDATE'], this.onUPDATE)
     this.on(['DELETE', 'CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
-    this.on([ 'STREAM' ], this.onSTREAM)
+    this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
     return super.init()
   }
@@ -59,7 +59,7 @@ class SQLService extends DatabaseService {
 
   /** Handler for Stream */
   async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql (req.query)
+    const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       values.unshift(entries[0][0])
@@ -72,7 +72,6 @@ class SQLService extends DatabaseService {
     if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
     return Object.values(result[0])[0]
   }
-
 
   /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
   async onSIMPLE({ query, data }) {

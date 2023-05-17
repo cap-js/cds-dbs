@@ -142,10 +142,10 @@ class SQLiteService extends SQLService {
     }
   }
 
-  // overrides generic onSTREAM 
+  // overrides generic onSTREAM
   // SQLite doesn't support streaming, the whole data is read from/written into the database
   async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql (req.query)
+    const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       values.unshift(await this.STREAM_data(entries[0][0]))
@@ -165,11 +165,11 @@ class SQLiteService extends SQLService {
   }
 
   STREAM_data(value) {
-    return new Promise((resolve,reject) => {
+    return new Promise((resolve, reject) => {
       const chunks = []
       value.on('data', chunk => chunks.push(chunk))
       value.on('end', () => resolve(Buffer.concat(chunks)))
-      value.on('error', (err) => {
+      value.on('error', err => {
         value.removeAllListeners('error')
         reject(err)
       })
