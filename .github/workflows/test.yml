@@ -40,8 +40,8 @@ jobs:
           npm run lint:eslint &&
           npm run prettier &&
           gh pr checkout ${{ github.event.pull_request.number }} &&
-          git config user.email "prettier@automation.com" &&
-          git config user.name "prettier" &&
+          git config user.email "$(git show -s --format='%ae')" &&
+          git config user.name "$(git show -s --format='%an')" &&
           git add -A &&
           git commit -m "✨prettier✨" &&
           git push
