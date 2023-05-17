@@ -491,7 +491,7 @@ class CQN2SQLRenderer {
   }
 
   json(o) {
-    return this.string(JSON.stringify(o))
+    return JSON.stringify(o)
   }
 
   string(s) {
