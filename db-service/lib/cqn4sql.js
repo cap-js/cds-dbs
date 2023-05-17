@@ -573,8 +573,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
       // ignore FK for odata csn / ignore blobs from wildcard expansion
-      if(isODataFlatForeignKey(element) || element.type === 'cds.LargeBinary')
-        return
+      if (isODataFlatForeignKey(element) || element.type === 'cds.LargeBinary') return
       const flatColumns = getFlatColumnsFor(element, null, null, index, [], except, replace)
       wildcardColumns.push(...flatColumns)
     })
