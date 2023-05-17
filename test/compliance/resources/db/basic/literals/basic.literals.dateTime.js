@@ -1,11 +1,11 @@
 module.exports = [
   {
-    dateTime: null
+    dateTime: null,
   },
   {
     // HANA support up-to 9999-12-31 24:00:00
-    dateTime: '9999-12-31T23:59:59Z'
-  }
+    dateTime: '9999-12-31T23:59:59Z',
+  },
   /* Ignoring transformations
   {
     dateTime: '1970-01-01',

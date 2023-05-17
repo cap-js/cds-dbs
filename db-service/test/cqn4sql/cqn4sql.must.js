@@ -34,7 +34,6 @@
 
 // > CQL`SELECT from Authors { ID, name, (SELECT author_ID, title from Books where exists (SELECT 1 as one from Authors where name like 'Edgar%' and ID = Books.author_ID )) as books } where name like 'Edgar%'`
 
-
 // add SHOULD
 //  where count(assoc) > 222
 

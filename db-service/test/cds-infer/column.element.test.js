@@ -5,7 +5,7 @@
 
 const cds = require('@sap/cds/lib')
 const cqn4sql = require('../../lib/cqn4sql')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('assign element onto columns', () => {
@@ -20,9 +20,11 @@ describe('assign element onto columns', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       // ID
-      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['ID']).to.deep.equal( Books.elements.ID )
+      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['ID']).to.deep.equal(Books.elements.ID)
       // currency_code
-      expect(inferred.SELECT.columns[1].element).to.deep.equal(inferred.elements['currency_code']).to.deep.equal( Books.elements.currency._target.elements.code )
+      expect(inferred.SELECT.columns[1].element)
+        .to.deep.equal(inferred.elements['currency_code'])
+        .to.deep.equal(Books.elements.currency._target.elements.code)
     })
 
     it('with filter conditions', () => {
@@ -32,56 +34,53 @@ describe('assign element onto columns', () => {
       // dedication_addressee_name
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['dedication_addressee_name'])
-        .to.deep.equal( Books.elements.dedication.elements.addressee._target.elements.name )
+        .to.deep.equal(Books.elements.dedication.elements.addressee._target.elements.name)
       // nameWithoutFilter
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['nameWithoutFilter'])
-        .to.deep.equal( Books.elements.dedication.elements.addressee._target.elements.name )
+        .to.deep.equal(Books.elements.dedication.elements.addressee._target.elements.name)
     })
-
   })
 
   describe('literals', () => {
-    it('should allow selecting simple literal values', ()=>{
+    it('should allow selecting simple literal values', () => {
       const inferred = _inferred(CQL`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
       // '11'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['11'])
-        .to.deep.equal( {type:'cds.Integer'} )
+        .to.deep.equal({ type: 'cds.Integer' })
       // 'foo'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['foo'])
-        .to.deep.equal( {type:'cds.String'} )
+        .to.deep.equal({ type: 'cds.String' })
       // 'true'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['true'])
-        .to.deep.equal( {type:'cds.Boolean'} )
+        .to.deep.equal({ type: 'cds.Boolean' })
       // 'foo'
       expect(inferred.SELECT.columns[3].element)
         .to.deep.equal(inferred.elements['false'])
-        .to.deep.equal( {type:'cds.Boolean'} )
+        .to.deep.equal({ type: 'cds.Boolean' })
     })
   })
 
   describe('virtual', () => {
-    it('infers a query\'s virtual elements', () => {
+    it("infers a query's virtual elements", () => {
       let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Foo.elements.ID,
-        virtualField: Foo.elements.virtualField
+        virtualField: Foo.elements.virtualField,
       })
       // 'ID'
-      expect(inferred.SELECT.columns[0].element)
-        .to.deep.equal(inferred.elements['ID'])
-        .to.deep.equal( Foo.elements.ID )
+      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['ID']).to.deep.equal(Foo.elements.ID)
       // 'virtualField'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['virtualField'])
-        .to.deep.equal( Foo.elements.virtualField )
+        .to.deep.equal(Foo.elements.virtualField)
     })
   })
 
@@ -93,15 +92,13 @@ describe('assign element onto columns', () => {
       let { Authors } = model.entities
 
       expect(inferred.elements).to.deep.equal({
-        name: Authors.elements.name
+        name: Authors.elements.name,
       })
       // 'name'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['name'])
-        .to.deep.equal( Authors.elements.name )
+        .to.deep.equal(Authors.elements.name)
     })
-
-
   })
   describe('subqueries', () => {
     it('supports expressions and subqueries in the select list', () => {
@@ -116,18 +113,13 @@ describe('assign element onto columns', () => {
       let { Authors } = model.entities
 
       // 'Two'
-      expect(inferred.SELECT.columns[0].element)
-        .to.deep.equal(inferred.elements['Two'])
-        .to.deep.equal( {} )
+      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['Two']).to.deep.equal({})
       // 'subquery'
-      expect(inferred.SELECT.columns[1].element)
-        .to.deep.equal(inferred.elements['subquery'])
-        .to.deep.equal( {} )
+      expect(inferred.SELECT.columns[1].element).to.deep.equal(inferred.elements['subquery']).to.deep.equal({})
       // subquery: 'name'
       expect(inferredSubquery.SELECT.columns[0].element)
         .to.deep.equal(inferredSubquery.elements['name'])
-        .to.deep.equal( Authors.elements.name )
-
+        .to.deep.equal(Authors.elements.name)
     })
   })
   describe('expressions', () => {
@@ -135,22 +127,16 @@ describe('assign element onto columns', () => {
       let functionWithoutAlias = CQL`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
       const inferred = _inferred(functionWithoutAlias)
       // 'sum'
-      expect(inferred.SELECT.columns[0].element)
-        .to.deep.equal(inferred.elements['sum'])
-        .to.deep.equal( {} )
+      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['sum']).to.deep.equal({})
       // 'count'
-      expect(inferred.SELECT.columns[1].element)
-        .to.deep.equal(inferred.elements['count'])
-        .to.deep.equal( {} )
+      expect(inferred.SELECT.columns[1].element).to.deep.equal(inferred.elements['count']).to.deep.equal({})
     })
 
     it('supports an expression with fields in the select list', () => {
       let query = CQL`SELECT from bookshop.Books { title + descr as noType }`
       let inferred = _inferred(query)
       // 'noType'
-      expect(inferred.SELECT.columns[0].element)
-        .to.deep.equal(inferred.elements['noType'])
-        .to.deep.equal( {} )
+      expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['noType']).to.deep.equal({})
     })
   })
 
@@ -164,7 +150,7 @@ describe('assign element onto columns', () => {
       // 'pid'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['pid'])
-        .to.deep.equal( {type: 'cds.Decimal'/* , precision: 5, scale: 4 */} )
+        .to.deep.equal({ type: 'cds.Decimal' /* , precision: 5, scale: 4 */ })
     })
 
     it('supports a cast expression in the select list', () => {
@@ -176,11 +162,11 @@ describe('assign element onto columns', () => {
       // 'IDS'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['IDS'])
-        .to.deep.equal( { type: 'cds.String' } )
+        .to.deep.equal({ type: 'cds.String' })
       // 'IDCustomType'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['IDCustomType'])
-        .to.deep.equal( { type: 'bookshop.DerivedFromDerivedString' } )
+        .to.deep.equal({ type: 'bookshop.DerivedFromDerivedString' })
     })
 
     it('supports a cdl-style cast in the select list', () => {
@@ -196,15 +182,15 @@ describe('assign element onto columns', () => {
       // (currently) b: object with type cds:integer? -> ignore the ref
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['dedication_sub_foo'])
-        .to.deep.equal( { type: 'cds.Integer' } )
+        .to.deep.equal({ type: 'cds.Integer' })
       // 'IDS'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['IDS'])
-        .to.deep.equal( { type: 'cds.String' } )
+        .to.deep.equal({ type: 'cds.String' })
       // 'IDCustomType'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['IDCustomType'])
-        .to.deep.equal( { type: 'bookshop.DerivedFromDerivedString' } )
+        .to.deep.equal({ type: 'bookshop.DerivedFromDerivedString' })
     })
   })
 
@@ -216,10 +202,10 @@ describe('assign element onto columns', () => {
             elements: {
               id: { type: 'cds.String' },
               locale: { type: 'cds.String' }, // deprecated
-              tenant: { type: 'cds.String' } // deprecated
-            }
+              tenant: { type: 'cds.String' }, // deprecated
+            },
           },
-        }
+        },
       }
       let query = CQL`SELECT from bookshop.Bar {
         $user,
@@ -230,20 +216,20 @@ describe('assign element onto columns', () => {
       // '$user'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['$user'])
-        .to.deep.equal( pseudos.elements.$user.elements.id )
+        .to.deep.equal(pseudos.elements.$user.elements.id)
       // '$user_tenant'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['$user_tenant'])
-        .to.deep.equal( pseudos.elements.$user.elements.tenant )
+        .to.deep.equal(pseudos.elements.$user.elements.tenant)
       // '$user_unknown_foo_bar'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['$user_unknown_foo_bar'])
-        .to.deep.equal( {} )
+        .to.deep.equal({})
     })
   })
 
   describe('binding params', () => {
-    it ('put binding parameter into query elements as empty object', () => {
+    it('put binding parameter into query elements as empty object', () => {
       const query = CQL`
         SELECT from bookshop.Books {
           ID,
@@ -252,12 +238,9 @@ describe('assign element onto columns', () => {
       `
       const inferred = _inferred(query, model)
       // 'discount'
-      expect(inferred.SELECT.columns[1].element)
-        .to.deep.equal(inferred.elements['discount'])
-        .to.deep.equal( {} )
-
+      expect(inferred.SELECT.columns[1].element).to.deep.equal(inferred.elements['discount']).to.deep.equal({})
     })
-    it ('respect cast type on binding parameter', () => {
+    it('respect cast type on binding parameter', () => {
       const query = CQL`
         SELECT from bookshop.Books {
           ID,
@@ -268,22 +251,21 @@ describe('assign element onto columns', () => {
       // 'discount'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['discount'])
-        .to.deep.equal( { type: 'cds.Integer' } )
+        .to.deep.equal({ type: 'cds.Integer' })
     })
-    it ('infers values type on binding parameter', () => {
+    it('infers values type on binding parameter', () => {
       const query = {
         SELECT: {
-          columns: [ { ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 } ],
+          columns: [{ ref: ['ID'] }, { ref: ['?'], param: true, as: 'discount', val: 42 }],
           from: { ref: ['bookshop.Books'] },
-          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }]
-        }
+          where: [{ ref: ['ID'] }, '=', { ref: ['?'], param: true }],
+        },
       }
       const inferred = _inferred(query, model)
       // 'discount'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['discount'])
-        .to.deep.equal( { type: 'cds.Integer' } )
+        .to.deep.equal({ type: 'cds.Integer' })
     })
   })
-
 })

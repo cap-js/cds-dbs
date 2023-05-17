@@ -1,10 +1,9 @@
 /* eslint-disable no-console */
-const cds = require ('../../cds')
+const cds = require('../../cds')
 
-describe('where exists assoc', ()=>{
-
-  it('should work with managed assocs', async()=>{
-    cds.model = await cds.load(__dirname+'/schema1').then(cds.linked)
+describe('where exists assoc', () => {
+  it('should work with managed assocs', async () => {
+    cds.model = await cds.load(__dirname + '/schema1').then(cds.linked)
     const { Books, Authors } = cds.model.entities
     let qb = SELECT.from(Books).where('exists author').forSQL()
     let qa = SELECT.from(Authors).where('exists books').forSQL()
@@ -12,9 +11,8 @@ describe('where exists assoc', ()=>{
     console.log(qb)
   })
 
-
-  it('should work with unmanaged assocs', async()=>{
-    cds.model = await cds.load(__dirname+'/schema2').then(cds.linked)
+  it('should work with unmanaged assocs', async () => {
+    cds.model = await cds.load(__dirname + '/schema2').then(cds.linked)
     const { Books, Authors } = cds.model.entities
     let qb = SELECT.from(Books).where('exists author').forSQL()
     let qa = SELECT.from(Authors).where('exists books').forSQL()
@@ -36,7 +34,7 @@ describe('where exists assoc', ()=>{
       at Query.cqn4sql [as forSQL] (cds-sqlite/cds/index.js:7:60)
       at Object.forSQL (cds-sqlite/test/unmanaged-assocs/unmanaged-assocs.test.js:12:16)
     */
-   console.log(JSON.stringify(qb, null,2))
-   console.log(JSON.stringify(qa, null,2))
+    console.log(JSON.stringify(qb, null, 2))
+    console.log(JSON.stringify(qa, null, 2))
   })
 })

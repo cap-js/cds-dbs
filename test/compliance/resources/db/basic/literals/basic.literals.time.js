@@ -1,10 +1,10 @@
 module.exports = [
   {
-    time: null
+    time: null,
   },
   {
-    time: '00:00:00'
-  }
+    time: '00:00:00',
+  },
   /* Ignoring transformations
   {
     time: '0',

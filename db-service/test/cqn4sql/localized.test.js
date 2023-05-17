@@ -13,7 +13,7 @@ describe('localized', () => {
   it('performs no replacement if not requested', () => {
     const q = CQL`SELECT from bookshop.Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(query))).to.deep.  equal(CQL`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`
         SELECT from bookshop.Books as Books
                     {
                       Books.ID,
@@ -170,6 +170,20 @@ describe('localized', () => {
     const qx = CQL`SELECT from localized.bookshop.Books as Books {
         (SELECT books2.name, (SELECT Books.title from localized.bookshop.Books as Books) as foo from localized.bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
       }`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
+  it('unmanaged, localized path expression', () => {
+    const q = CQL`SELECT from bookshop.AuthorsUnmanagedBooks:books {
+      ID
+    }`
+    q.SELECT.localized = true
+    const qx = CQL`SELECT from localized.bookshop.Books as books {
+      books.ID
+    } where exists (
+      SELECT 1 from localized.bookshop.AuthorsUnmanagedBooks as AuthorsUnmanagedBooks where books.coAuthor_ID_unmanaged = AuthorsUnmanagedBooks.ID
+    )`
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })

@@ -24,9 +24,7 @@ describe('inline', () => {
       Employee.office_floor,
       Employee.office_room
     }`
-    expect(cqn4sql(inlineQuery, model))
-      .to.eql(cqn4sql(longVersion, model))
-      .to.eql(expected)
+    expect(cqn4sql(inlineQuery, model)).to.eql(cqn4sql(longVersion, model)).to.eql(expected)
   })
   it('structural inline expansion with path expression', () => {
     let inlineQuery = CQL`select from Employee {
@@ -46,9 +44,7 @@ describe('inline', () => {
       building.name as office_building_name
     }`
     const longResult = cqn4sql(longVersion, model)
-    expect(cqn4sql(inlineQuery, model))
-      .to.eql(longResult)
-      .to.eql(expected)
+    expect(cqn4sql(inlineQuery, model)).to.eql(longResult).to.eql(expected)
   })
 
   it('mixed with expand', () => {
@@ -74,9 +70,7 @@ describe('inline', () => {
         Employee.office_address_street
     }`
     const inlineRes = cqn4sql(queryInlineNotation, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(variantWithoutInline, model))
-      .to.eql(expected)
+    expect(inlineRes).to.eql(cqn4sql(variantWithoutInline, model)).to.eql(expected)
   })
 
   it('deep inline', () => {
@@ -102,9 +96,7 @@ describe('inline', () => {
       Employee.office_address_street,
       Employee.office_address_country_code
     }`
-    expect(cqn4sql(queryInlineNotation, model))
-      .to.eql(cqn4sql(variantWithoutInline, model))
-      .to.eql(expected)
+    expect(cqn4sql(queryInlineNotation, model)).to.eql(cqn4sql(variantWithoutInline, model)).to.eql(expected)
   })
   it('deep expand in inline', () => {
     let queryInlineNotation = CQL`select from Employee {
@@ -128,9 +120,7 @@ describe('inline', () => {
       Employee.office_address_city,
       Employee.office_address_street,
     }`
-    expect(cqn4sql(queryInlineNotation, model))
-      .to.eql(cqn4sql(variantWithoutInline, model))
-      .to.eql(expected)
+    expect(cqn4sql(queryInlineNotation, model)).to.eql(cqn4sql(variantWithoutInline, model)).to.eql(expected)
   })
   it('deep expand on assoc in inline', () => {
     let queryInlineNotation = CQL`select from Employee {
@@ -194,10 +184,7 @@ describe('inline', () => {
     let wildcard = cqn4sql(inlineWildcard)
     let explicit = cqn4sql(inlineExplicit)
     let absolute = cqn4sql(absolutePaths)
-    expect(wildcard)
-      .to.eql(explicit)
-      .to.eql(absolute)
-      .to.eql(expected)
+    expect(wildcard).to.eql(explicit).to.eql(absolute).to.eql(expected)
   })
   it('wildcard inline deep w/o brackets', () => {
     let inline = CQL`select from EmployeeNoUnmanaged {
@@ -214,12 +201,10 @@ describe('inline', () => {
       EmployeeNoUnmanaged.office_address_country_code,
     }`
 
-    expect(cqn4sql(inline, model))
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
+    expect(cqn4sql(inline, model)).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
 
-  it ('smart wildcard - assoc overwrite after *', () => {
+  it('smart wildcard - assoc overwrite after *', () => {
     // office.address.city replaces office.floor
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ *, furniture as building, address.city as floor, building.id as room }
@@ -244,13 +229,10 @@ describe('inline', () => {
 
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
+    expect(inlineRes).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
 
-
-  it ('smart wildcard - structure overwritten by assoc before *', () => {
+  it('smart wildcard - structure overwritten by assoc before *', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ building as furniture, * }
@@ -272,12 +254,9 @@ describe('inline', () => {
      EmployeeNoUnmanaged.office_address_country_code
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
-  it ('smart wildcard - structure overwritten by join relevant assoc before *', () => {
+  it('smart wildcard - structure overwritten by join relevant assoc before *', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ building[name='mega tower'].name as furniture, * }
@@ -302,12 +281,9 @@ describe('inline', () => {
     }`
     const inlineRes = cqn4sql(inline, model)
     const absoluteRes = cqn4sql(absolutePaths)
-    expect(inlineRes)
-      .to.eql(absoluteRes)
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(absoluteRes).to.eql(expected)
   })
-  it ('wildcard - no overwrite but additional cols', () => {
+  it('wildcard - no overwrite but additional cols', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ *, 'foo' as last }
@@ -334,12 +310,9 @@ describe('inline', () => {
     }`
     const inlineRes = cqn4sql(inline, model)
     const absoluteRes = cqn4sql(absolutePaths)
-    expect(inlineRes)
-      .to.eql(absoluteRes)
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(absoluteRes).to.eql(expected)
   })
-  it ('assigning alias within inline only influences name of element, prefix still appended', () => {
+  it('assigning alias within inline only influences name of element, prefix still appended', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ floor as x }
@@ -348,11 +321,9 @@ describe('inline', () => {
      EmployeeNoUnmanaged.office_floor as office_x,
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(expected)
   })
-  it ('smart wildcard - structured overwrite before *', () => {
+  it('smart wildcard - structured overwrite before *', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{ 'first' as furniture, 'second' as building, * }
@@ -374,12 +345,9 @@ describe('inline', () => {
      EmployeeNoUnmanaged.office_address_country_code,
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
-  it ('smart wildcard - structured overwrite after *', () => {
+  it('smart wildcard - structured overwrite after *', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{*, 'third' as building, 'fourth' as address }
@@ -400,12 +368,10 @@ describe('inline', () => {
      EmployeeNoUnmanaged.office_furniture_desks
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
+    expect(inlineRes).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
 
-  it ('wildcard expansion - exclude association', () => {
+  it('wildcard expansion - exclude association', () => {
     // intermediate structures are overwritten
     let inline = CQL`select from EmployeeNoUnmanaged {
       office.{*} excluding { building, address }
@@ -422,13 +388,10 @@ describe('inline', () => {
      EmployeeNoUnmanaged.office_furniture_desks
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(absolutePaths))
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(cqn4sql(absolutePaths)).to.eql(expected)
   })
 
-  it ('wildcard expansion sql style on table alias', () => {
+  it('wildcard expansion sql style on table alias', () => {
     let inline = CQL`select from EmployeeNoUnmanaged as E {
       E.*
     }`
@@ -454,13 +417,9 @@ describe('inline', () => {
 
     }`
     const inlineRes = cqn4sql(inline, model)
-    expect(inlineRes)
-      .to.eql(cqn4sql(inlineWithBrackets))
-      .to.eql(cqn4sql(regularWildcard))
-      .to.eql(expected)
-
+    expect(inlineRes).to.eql(cqn4sql(inlineWithBrackets)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
-  it ('wildcard expansion sql style on table alias - exclude stuff', () => {
+  it('wildcard expansion sql style on table alias - exclude stuff', () => {
     let inlineWithBrackets = CQL`select from EmployeeNoUnmanaged as E {
       E.{*} excluding { office }
     }`
@@ -479,6 +438,5 @@ describe('inline', () => {
     expect(inlineRes)
       .to.eql(expected)
       .to.eql(JSON.parse(JSON.stringify(regularWildcardRes))) // prototype is different
-
   })
 })

@@ -9,24 +9,24 @@ module.exports = [
     short: null,
     medium: null,
     large: null,
-    blob: null
+    blob: null,
   },
   {
-    string: 'Simple String'
+    string: 'Simple String',
   },
   {
-    char: 'A'
+    char: 'A',
   },
   {
-    large: () => [...new Array(1000)].map(alphabetize).join('')
+    large: () => [...new Array(1000)].map(alphabetize).join(''),
   },
   {
-    string: '💾'
+    string: '💾',
   },
   {
     string:
-      'Simplified Chinese: 中国, Traditional Chinese: 中國, Korean: 대한민국, Japanese: 日本国, Russion: Российская Федерация, Greek: Ελληνική Δημοκρατία'
-  }
+      'Simplified Chinese: 中国, Traditional Chinese: 中國, Korean: 대한민국, Japanese: 日本国, Russion: Российская Федерация, Greek: Ελληνική Δημοκρατία',
+  },
   /* Ignoring transformations
   {
     char: () => alphabet,

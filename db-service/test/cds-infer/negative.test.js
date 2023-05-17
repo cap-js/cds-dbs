@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds/lib')
 const cqn4sql = require('../../lib/cqn4sql')
-const { expect } = cds.test.in(__dirname+'/../bookshop')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('negative', () => {
@@ -13,34 +13,29 @@ describe('negative', () => {
 
   describe('filters', () => {
     it('filter must not be provided along a structure in column', () => {
-      expect(() =>
-        _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
+      expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
+        /A filter can only be provided when navigating along associations/,
       )
-        .to.throw(/A filter can only be provided when navigating along associations/)
     })
-    it ('filter must not be provided along a structure in from path expression', ()=>{
-      expect(()=> {_inferred (
-        CQL`SELECT from bookshop.Books:dedication[sub.foo = 'bar'].addressee`,
-        model
-      )}).to.throw('A filter can only be provided when navigating along associations')
+    it('filter must not be provided along a structure in from path expression', () => {
+      expect(() => {
+        _inferred(CQL`SELECT from bookshop.Books:dedication[sub.foo = 'bar'].addressee`, model)
+      }).to.throw('A filter can only be provided when navigating along associations')
     })
-    it ('dangling filter must not be used on association in column', ()=>{
-      expect(()=> {_inferred (
-        CQL`SELECT from bookshop.Books { author[ID=42] }`,
-        model
-      )}).to.throw('A filter can only be provided when navigating along associations')
+    it('dangling filter must not be used on association in column', () => {
+      expect(() => {
+        _inferred(CQL`SELECT from bookshop.Books { author[ID=42] }`, model)
+      }).to.throw('A filter can only be provided when navigating along associations')
     })
-    it ('dangling filter must not be used on association in where', ()=>{
-      expect(()=> {_inferred (
-        CQL`SELECT from bookshop.Books { * } where author[id=42]`,
-        model
-      )}).to.throw('A filter can only be provided when navigating along associations')
+    it('dangling filter must not be used on association in where', () => {
+      expect(() => {
+        _inferred(CQL`SELECT from bookshop.Books { * } where author[id=42]`, model)
+      }).to.throw('A filter can only be provided when navigating along associations')
     })
   })
 
   describe('reference not resolvable', () => {
-
-    it('element can\'t be found', () => {
+    it("element can't be found", () => {
       let query = CQL`SELECT from bookshop.Books as Foo { boz }`
       expect(() => _inferred(query)).to.throw(/"boz" not found in the elements of "bookshop.Books"/) // revisit: or Foo?
     })
@@ -50,7 +45,7 @@ describe('negative', () => {
       expect(() => _inferred(query)).to.throw(/"boz" not found in "bookshop.Books:dedication.sub"/) // revisit: Foo:dedication.sub ?
     })
 
-    it('element can\'t be found in elements of subquery', () => {
+    it("element can't be found in elements of subquery", () => {
       let query = CQL`SELECT from (select from bookshop.Books { ID as FooID }) as Foo { ID }`
       expect(() => _inferred(query)).to.throw(/"ID" not found in the elements of "Foo"/)
     })
@@ -94,7 +89,7 @@ describe('negative', () => {
     it('$self reference is not found in the query elements -> cds.infer hints alternatives', () => {
       let query = CQL`SELECT from bookshop.Books { ID, $self.author }`
       expect(() => _inferred(query)).to.throw(
-        /"author" not found in the columns list of query, did you mean "Books.author"?/ // revisit: error message
+        /"author" not found in the columns list of query, did you mean "Books.author"?/, // revisit: error message
       )
     })
 
@@ -102,7 +97,7 @@ describe('negative', () => {
       let query = CQL`SELECT from (select from bookshop.Books) as Foo { $self.author }`
       // wording? select list not optimal, did you mean to refer to bookshop.Books?
       expect(() => _inferred(query)).to.throw(
-        /"author" not found in the columns list of query, did you mean "Foo.author"?/ // revisit: error message
+        /"author" not found in the columns list of query, did you mean "Foo.author"?/, // revisit: error message
       )
     })
 
@@ -120,17 +115,15 @@ describe('negative', () => {
       let query = CQL`SELECT from bookshop.Books:name { * }` // name does not exist
       expect(() => _inferred(query)).to.throw(/No association "name" in entity "bookshop.Books"/)
       let fromEndsWithScalar = CQL`SELECT from bookshop.Books:title { * }`
-      expect(() => _inferred(fromEndsWithScalar)).to.throw(
-        /No association "title" in entity "bookshop.Books"/
-      )
+      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association "title" in entity "bookshop.Books"/)
     })
 
     // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)
     // however, such queries can still be inferred
-    it('element can\'t be found in one of multiple query sources', () => {
+    it("element can't be found in one of multiple query sources", () => {
       let query = CQL`SELECT from bookshop.Books:author as Bar, bookshop.Books { doesNotExist }`
       expect(() => _inferred(query)).to.throw(
-        /"doesNotExist" not found in the elements of "bookshop.Authors", "bookshop.Books"/
+        /"doesNotExist" not found in the elements of "bookshop.Authors", "bookshop.Books"/,
       )
     })
   })
@@ -148,17 +141,15 @@ describe('negative', () => {
       expect(() => _inferred(castOnStruct)).to.throw(/Structured elements can't be cast to a different type/)
       expect(() => _inferred(castFuncOnStruct)).to.throw(/Structured elements can't be cast to a different type/)
     })
-
   })
 
   describe('ambiguites', () => {
-
     // same name twice in result set -> error
     // SQL would allow that, but different databases may return different column names
-    it ('duplicate field name', ()=>{
-      expect(() => _inferred (
-        CQL`SELECT from bookshop.Books { ID, ID }`
-      )).to.throw(/Duplicate definition of element “ID”/)
+    it('duplicate field name', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, ID }`)).to.throw(
+        /Duplicate definition of element “ID”/,
+      )
     })
 
     it('anonymous functions are inferred by their func property name, ambiguities are rejected', () => {
@@ -171,7 +162,6 @@ describe('negative', () => {
       expect(() => _inferred(ambiguousFunctions)).to.throw(/Duplicate definition of element “foo”/)
     })
 
-
     it('multiple values have same alias', () => {
       let ambiguousFunctions = CQL`SELECT from bookshop.Books { 1 as foo, 2 as foo }`
       expect(() => _inferred(ambiguousFunctions)).to.throw(/Duplicate definition of element “foo”/)
@@ -181,7 +171,6 @@ describe('negative', () => {
       let ambiguousFunctions = CQL`SELECT from bookshop.Books { ID as ![false], false }`
       expect(() => _inferred(ambiguousFunctions)).to.throw(/Duplicate definition of element “false”/)
     })
-
 
     describe('with multiple query sources', () => {
       // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)
@@ -214,7 +203,7 @@ describe('negative', () => {
        select "createdBy" explicitly with "Books.createdBy", "Authors.createdBy"
        select "modifiedAt" explicitly with "Books.modifiedAt", "Authors.modifiedAt"
        select "modifiedBy" explicitly with "Books.modifiedBy", "Authors.modifiedBy"
-       select "ID" explicitly with "Books.ID", "Authors.ID"`
+       select "ID" explicitly with "Books.ID", "Authors.ID"`,
         )
       })
 
@@ -226,24 +215,23 @@ describe('negative', () => {
        select "createdBy" explicitly with "BooksSub.createdBy", "Authors.createdBy"
        select "modifiedAt" explicitly with "BooksSub.modifiedAt", "Authors.modifiedAt"
        select "modifiedBy" explicitly with "BooksSub.modifiedBy", "Authors.modifiedBy"
-       select "ID" explicitly with "BooksSub.ID", "Authors.ID"`
+       select "ID" explicitly with "BooksSub.ID", "Authors.ID"`,
         )
       })
     })
   })
 
   describe('restrictions', () => {
-    it ('UNION queries are not supported', ()=>{
-      expect(() => _inferred (
-        CQL`SELECT from bookshop.Books union all select from bookshop.Authors`
-      )).to.throw(/”UNION” based queries are not supported/)
+    it('UNION queries are not supported', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.Books union all select from bookshop.Authors`)).to.throw(
+        /”UNION” based queries are not supported/,
+      )
     })
 
-    it ('selecting from structures is not supported', ()=>{
-      expect(() => _inferred (
-        CQL`SELECT from bookshop.Books:dedication.addressee.address`,
-        model
-      )).to.throw(/Query source must be a an entity or an association/)
+    it('selecting from structures is not supported', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.Books:dedication.addressee.address`, model)).to.throw(
+        /Query source must be a an entity or an association/,
+      )
     })
 
     it ('Queries with Large Binary Objects are rejected if explicitly selected', ()=>{
@@ -256,8 +244,12 @@ describe('negative', () => {
     it('subquery cant see the scope of enclosing query', ()=>{
       // cds.infer does not infer deeply -> cqn4sql calls itself recursively
       // in case of nested subqueries
-      expect (() => cqn4sql(CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Authors { ID } where name = title) as foo }`, model))
-        .to.throw(/"title" not found in the elements of "bookshop.Authors"/)
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Authors { ID } where name = title) as foo }`,
+          model,
+        ),
+      ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
   })
 })

@@ -88,7 +88,7 @@ describe('compare structures', () => {
       const expectedCQL = CQL(
         `SELECT from bookshop.Books as Books { Books.ID } having Books.author_ID ${
           second ? first + ' ' + second : first
-        } null`
+        } null`,
       )
       expect(query).to.deep.equal(expectedCQL)
     })
@@ -131,7 +131,7 @@ describe('compare structures', () => {
     // `<> NULL` concat with "or"
     let query = cqn4sql(
       CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
-      model
+      model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
         where 1<2
@@ -172,7 +172,7 @@ describe('compare structures', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        `The operator "${first}" is not supported for structure comparison`
+        `The operator "${first}" is not supported for structure comparison`,
       )
     })
   })

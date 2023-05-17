@@ -65,16 +65,12 @@ describe('SELECT', () => {
 
     test('like regex uses native regex support', async () => {
       let ret = await SELECT.from('basic.projection.string').where('string like', /ye./)
-      expect (ret.length).toBe(1)
+      expect(ret.length).toBe(1)
     })
 
     test('= regex behaves like string', async () => {
-      await expect (
-        SELECT.from('basic.projection.string').where('string =', /ye./)
-      ).resolves.toHaveProperty('length',0)
-      await expect (
-        SELECT.from('basic.projection.string').where('string =', /yes/)
-      ).resolves.toHaveProperty('length',1)
+      await expect(SELECT.from('basic.projection.string').where('string =', /ye./)).resolves.toHaveProperty('length', 0)
+      await expect(SELECT.from('basic.projection.string').where('string =', /yes/)).resolves.toHaveProperty('length', 1)
     })
 
     test('from select', async () => {
@@ -91,17 +87,17 @@ describe('SELECT', () => {
                 id: 'basic.projection.string',
                 where: [
                   {
-                    ref: ['string']
+                    ref: ['string'],
                   },
                   '=',
                   {
-                    val: 'yes'
-                  }
-                ]
-              }
-            ]
-          }
-        }
+                    val: 'yes',
+                  },
+                ],
+              },
+            ],
+          },
+        },
       }
 
       const res = await cds.run(cqn)
@@ -127,10 +123,10 @@ describe('SELECT', () => {
             {
               xpr: [{ val: 'yes' }, '=', { ref: ['string'] }],
               as: 'xpr',
-              cast: { type: 'cds.Boolean' }
-            }
-          ]
-        }
+              cast: { type: 'cds.Boolean' },
+            },
+          ],
+        },
       }
 
       const res = await cds.run(cqn)
@@ -148,8 +144,8 @@ describe('SELECT', () => {
           FROM basic.projection.globals
         `),
         {
-          message: 'Not supported type: cds.DoEsNoTeXiSt'
-        }
+          message: 'Not supported type: cds.DoEsNoTeXiSt',
+        },
       )
     })
   })
@@ -167,7 +163,6 @@ describe('SELECT', () => {
   })
 
   describe('where', () => {
-
     test('empty where clause', async () => {
       const cqn = CQL`SELECT bool FROM basic.literals.globals`
       cqn.SELECT.where = []
@@ -182,19 +177,19 @@ describe('SELECT', () => {
           from: { ref: ['basic.projection.string'] },
           where: [
             {
-              ref: ['string']
+              ref: ['string'],
             },
             '=',
             {
               ref: [
                 {
-                  id: 'basic.projection.globals'
+                  id: 'basic.projection.globals',
                 },
-                'bool'
-              ]
-            }
-          ]
-        }
+                'bool',
+              ],
+            },
+          ],
+        },
       }
 
       const res = await cds.run(cqn)

@@ -17,7 +17,7 @@ describe('UPDATE', () => {
     let u = UPDATE.entity('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
     const query = cqn4sql(u)
     const expected = JSON.parse(
-      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}'
+      '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
   })
@@ -30,47 +30,44 @@ describe('UPDATE', () => {
   })
   it('xpr in UPDATE with "with" are be considered', () => {
     const { UPDATE } = cds.ql
-    let u = UPDATE.entity('bookshop.Books')
-      .with({
-        applyDiscount: {
-          func: 'discount',
-          args: [{ ref: ['price']}, { ref: ['dedication', 'sub', 'foo']}]
+    let u = UPDATE.entity('bookshop.Books').with({
+      applyDiscount: {
+        func: 'discount',
+        args: [{ ref: ['price'] }, { ref: ['dedication', 'sub', 'foo'] }],
+      },
+      getAuthors: {
+        SELECT: {
+          from: { ref: ['bookshop.Authors'] },
+          columns: [
+            { ref: ['name'] },
+            {
+              func: 'dummy',
+              args: [{ ref: ['Authors', 'address', 'street'] }],
+            },
+          ],
         },
-        getAuthors: {
-          SELECT :{
-            from: {ref: ['bookshop.Authors']},
-            columns: [
-              { ref: ['name'] },
-              {
-                func: 'dummy',
-                args: [{ ref: ['Authors', 'address', 'street'] }],
-              }
-            ]
-          }
-        }
-      })
+      },
+    })
     const query = cqn4sql(u, model)
-    expect(query.UPDATE.with).deep.equal(
-      {
-        applyDiscount: {
-          func: 'discount',
-          args: [{ ref: ['Books', 'price']}, { ref: ['Books', 'dedication_sub_foo']}]
+    expect(query.UPDATE.with).deep.equal({
+      applyDiscount: {
+        func: 'discount',
+        args: [{ ref: ['Books', 'price'] }, { ref: ['Books', 'dedication_sub_foo'] }],
+      },
+      getAuthors: {
+        SELECT: {
+          from: { ref: ['bookshop.Authors'], as: 'Authors' },
+          columns: [
+            { ref: ['Authors', 'name'] },
+            {
+              func: 'dummy',
+              args: [{ ref: ['Authors', 'address_street'] }],
+              as: 'dummy',
+            },
+          ],
         },
-        getAuthors: {
-          SELECT :{
-            from: { ref: ['bookshop.Authors'], as: 'Authors' },
-            columns: [
-              { ref: ['Authors', 'name'] },
-              {
-                func: 'dummy',
-                args: [{ ref: ['Authors', 'address_street'] }],
-                as: 'dummy'
-              }
-            ]
-          }
-        }
-      }
-    )
+      },
+    })
   })
 
   // table alias in subquery should address Books instead of bookshop.Books

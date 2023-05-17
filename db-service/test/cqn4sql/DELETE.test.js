@@ -13,7 +13,7 @@ describe('DELETE', () => {
     let d = DELETE.from('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
     const query = cqn4sql(d)
     const expected = JSON.parse(
-      '{"DELETE":{"from":{"ref": ["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}'
+      '{"DELETE":{"from":{"ref": ["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
