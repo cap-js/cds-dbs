@@ -6,8 +6,8 @@ if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
 else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
 
 cds.requires.auth.users = {
-    user1: { password: 'user1', roles: ['processor'] },
-    user2: { password: 'user2', roles: ['processor'] },
+  user1: { password: 'user1', roles: ['processor'] },
+  user2: { password: 'user2', roles: ['processor'] },
 }
 
 const { expect, GET, POST, PATCH, DELETE } = cds.test('run', '@capire/sflight')
