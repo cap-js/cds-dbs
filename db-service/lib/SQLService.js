@@ -23,8 +23,6 @@ class SQLService extends DatabaseService {
   async onSELECT({ query, data }) {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
-    // REVISIT: streaming: if we need custom app and db handlers with app stream and cds.stream
-    if (query._streaming) return this.onStream(query) // TODO: implemented on HANA
     query.SELECT.expand = 'root'
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
@@ -62,7 +60,7 @@ class SQLService extends DatabaseService {
     const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      values.unshift(entries[0][0])
+      values.unshift(entries)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }

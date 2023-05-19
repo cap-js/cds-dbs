@@ -1,13 +1,8 @@
 const cds = require('../../../test/cds.js')
 const { fs, path } = cds.utils
+const { Readable } = require('stream')
 
 cds.test(__dirname, 'model.cds')
-
-// Connect to @cap-js/sqlite
-cds.requires['db'] = {
-  impl: '@cap-js/sqlite',
-  credentials: { url: ':memory:' },
-}
 
 describe('cds.stream', () => {
   beforeAll(async () => {
@@ -283,10 +278,29 @@ describe('new STREAM API', () => {
       )
   })
 
+  test('WRITE with incorrect data type results in error', async () => {
+    const { Images } = cds.entities('test')
+    const val = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
+
+    const stream = new Readable()
+    stream.push(val)
+    // data should be a stream
+    stream.push(1)
+    stream.push(null)
+    try {
+      await STREAM.into(Images)
+      .column('data')
+      .data(stream)
+      .where({ ID: 1 })
+    } catch (err){
+      expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
+    }
+  })
+
   test('WRITE stream property with .column and .where', done => {
     const { Images } = cds.entities('test')
     const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
-    // data should be a stream
+
     STREAM.into(Images)
       .column('data')
       .data(stream)
@@ -322,7 +336,7 @@ describe('new STREAM API', () => {
         readStream(1, done)
       })
   })
-  // REVISIT: sync with Daniel
+  
   xtest('WRITE stream property with keys and column in .into', done => {
     const { Images } = cds.entities('test')
     const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))

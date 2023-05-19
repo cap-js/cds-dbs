@@ -3,6 +3,7 @@ const { Readable } = require('stream')
 const cds = require('@sap/cds/lib')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
+const convStrm = require('stream/consumers')
 
 class SQLiteService extends SQLService {
   get factory() {
@@ -148,7 +149,7 @@ class SQLiteService extends SQLService {
     const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      values.unshift(await this.STREAM_data(entries[0][0]))
+      values.unshift(await convStrm.buffer(entries))
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
@@ -162,18 +163,6 @@ class SQLiteService extends SQLService {
     stream_.push(val)
     stream_.push(null)
     return stream_
-  }
-
-  STREAM_data(value) {
-    return new Promise((resolve, reject) => {
-      const chunks = []
-      value.on('data', chunk => chunks.push(chunk))
-      value.on('end', () => resolve(Buffer.concat(chunks)))
-      value.on('error', err => {
-        value.removeAllListeners('error')
-        reject(err)
-      })
-    })
   }
 }
 

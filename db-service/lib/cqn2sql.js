@@ -422,13 +422,13 @@ class CQN2SQLRenderer {
     // reading stream
     if (from) {
       sql = `SELECT`
-      if (!_empty((x = column))) sql += ` ${x}`
+      if (!_empty((x = column))) sql += ` ${this.quote(x)}`
       if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      sql = `UPDATE ${this.name(entity)} SET ${this.quote(column)}=?`
-      this.entries = [[data]]
+      sql = `UPDATE ${this.quote(entity)} SET ${this.quote(column)}=?`
+      this.entries = data
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
     if (from) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
