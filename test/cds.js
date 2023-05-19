@@ -112,6 +112,12 @@ module.exports.test = Object.setPrototypeOf(function () {
 
       // create snapshot driver
       if (typeof db.prepare === 'function' && typeof db.exec === 'function') {
+        const setCall = async function(action, args) {
+          const hash = createHash('sha1')
+          hash.update(JSON.stringify(args))
+          expect(`${action} - ${hash.digest('base64')}`).toMatchSnapshot()
+        }
+
         // Echo existing snapshots
         if (!updateSnapshots) {
           // Remove database connection factory
@@ -141,16 +147,15 @@ module.exports.test = Object.setPrototypeOf(function () {
             return JSON.parse(ret.slice(1, -1))
           }
 
-          db.prepare = async function (sql) {
+          db.prepare = async function () {
             const lock = await queue
             await new Promise(res => setImmediate(res))
-            expect(sql).toMatchSnapshot()
+            setCall('prepare', arguments)
             return {
               run: async function () {
                 const { done } = await lock.sub
                 try {
-                  expect('run').toMatchSnapshot()
-                  expect(arguments).toMatchSnapshot()
+                  setCall('run', arguments)
                   return await getResult()
                 } finally {
                   done()
@@ -159,8 +164,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               get: async function () {
                 const { done } = await lock.sub
                 try {
-                  expect('get').toMatchSnapshot()
-                  expect(arguments).toMatchSnapshot()
+                  setCall('get', arguments)
                   return await getResult()
                 } finally {
                   done()
@@ -169,8 +173,7 @@ module.exports.test = Object.setPrototypeOf(function () {
               all: async function () {
                 const { done } = await lock.sub
                 try {
-                  expect('all').toMatchSnapshot()
-                  expect(arguments).toMatchSnapshot()
+                  setCall('all', arguments)
                   return await getResult()
                 } finally {
                   done()
@@ -182,8 +185,7 @@ module.exports.test = Object.setPrototypeOf(function () {
           db.exec = async function (sql) {
             const { done } = await queue
             try {
-              expect('exec').toMatchSnapshot()
-              expect(sql).toMatchSnapshot()
+              setCall('exec', arguments)
               return await getResult()
             } finally {
               done()
@@ -192,6 +194,7 @@ module.exports.test = Object.setPrototypeOf(function () {
 
           return
         }
+
 
         const setResult = async function (ret) {
           ret = await ret
@@ -203,14 +206,13 @@ module.exports.test = Object.setPrototypeOf(function () {
         const orgPrepare = db.prepare
         db.prepare = async function (sql) {
           const lock = await queue
-          expect(sql).toMatchSnapshot()
+          setCall('prepare', arguments)
           const stmt = orgPrepare.apply(this, arguments)
           return {
             run: async function () {
               const { done } = await lock.sub
               try {
-                expect('run').toMatchSnapshot()
-                expect(arguments).toMatchSnapshot()
+                setCall('run', arguments)
                 return await setResult(stmt.run(...arguments))
               } finally {
                 done()
@@ -219,8 +221,7 @@ module.exports.test = Object.setPrototypeOf(function () {
             get: async function () {
               const { done } = await lock.sub
               try {
-                expect('get').toMatchSnapshot()
-                expect(arguments).toMatchSnapshot()
+                setCall('get', arguments)
                 return await setResult(stmt.get(...arguments))
               } finally {
                 done()
@@ -229,8 +230,7 @@ module.exports.test = Object.setPrototypeOf(function () {
             all: async function () {
               const { done } = await lock.sub
               try {
-                expect('all').toMatchSnapshot()
-                expect(arguments).toMatchSnapshot()
+                setCall('all', arguments)
                 return await setResult(stmt.all(...arguments))
               } finally {
                 done()
@@ -240,11 +240,10 @@ module.exports.test = Object.setPrototypeOf(function () {
         }
 
         const orgExec = db.exec
-        db.exec = async function (sql) {
+        db.exec = async function () {
           const { done } = await queue
           try {
-            expect('exec').toMatchSnapshot()
-            expect(sql).toMatchSnapshot()
+            setCall('exec', arguments)
             return await setResult(orgExec.apply(this, arguments))
           } finally {
             done()

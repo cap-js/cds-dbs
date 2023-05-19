@@ -1,277 +1,127 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[` 1`] = `"exec"`;
+exports[` 1`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 2`] = `"BEGIN"`;
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+exports[` 3`] = `"prepare - JaBH3ugwS/d34V4U3uvYe7TrWpY="`;
 
-exports[` 4`] = `"DROP VIEW IF EXISTS localized_test_fooLocalized;"`;
+exports[` 4`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 5`] = `"run"`;
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 6`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 6`] = `"prepare - mE9d09Q8QKjBAoDlMBYmvZH2PNs="`;
 
-exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 7`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 8`] = `"DROP TABLE IF EXISTS test_fooLocalized_texts;"`;
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 9`] = `"run"`;
+exports[` 9`] = `"prepare - QwleD3QVxrPjkTQLtvH03wuNRag="`;
 
-exports[` 10`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 10`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 12`] = `"DROP TABLE IF EXISTS test_fooLocalized;"`;
+exports[` 12`] = `"prepare - NPeAGHsYYggBMhYyTcjrCGEqgqg="`;
 
-exports[` 13`] = `"run"`;
+exports[` 13`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 14`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 15`] = `"prepare - RpuRrBHFtdgX7qxqKqVBNcIxIkk="`;
 
-exports[` 16`] = `"DROP TABLE IF EXISTS test_bar;"`;
+exports[` 16`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 17`] = `"run"`;
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 18`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 18`] = `"prepare - lRoxrLxTxTAC40iYX2rJ5ffX6t0="`;
 
-exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 19`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 20`] = `"DROP TABLE IF EXISTS test_foo;"`;
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 21`] = `"run"`;
+exports[` 21`] = `"prepare - P/uTG5Zbrmyx3RwxqUyEeQ8TkhU="`;
 
-exports[` 22`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 22`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 24`] = `"DROP table if exists cds_Model;"`;
+exports[` 24`] = `"prepare - Y7JDFIOSeNx9vUavdzsmQ4cRgjk="`;
 
-exports[` 25`] = `"run"`;
+exports[` 25`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 26`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 27`] = `"prepare - qjlqB1O3Hj8c47YkIWuwh4oLeFQ="`;
 
-exports[` 28`] = `
-"CREATE TABLE test_foo (
-  createdAt TIMESTAMP_TEXT,
-  createdBy NVARCHAR(255),
-  modifiedAt TIMESTAMP_TEXT,
-  modifiedBy NVARCHAR(255),
-  ID INTEGER NOT NULL,
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 28`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 29`] = `"run"`;
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 30`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 30`] = `"prepare - spT1PQtOCzPDI7iEwvFDt+Dw/s8="`;
 
-exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 31`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 32`] = `
-"CREATE TABLE test_bar (
-  ID NVARCHAR(36) NOT NULL,
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 33`] = `"run"`;
+exports[` 33`] = `"prepare - Qhbpaolzv3dzAE5iI2H9Z9fJkD0="`;
 
-exports[` 34`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 34`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 36`] = `
-"CREATE TABLE test_fooLocalized (
-  ID INTEGER NOT NULL,
-  text NVARCHAR(5000),
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 36`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 37`] = `"run"`;
+exports[` 37`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
 
-exports[` 38`] = `
-Arguments [
-  {},
-]
-`;
+exports[`UUID Generation INSERT with multiple entries 1`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`UUID Generation INSERT with multiple entries 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 40`] = `
-"CREATE TABLE test_fooLocalized_texts (
-  locale NVARCHAR(14) NOT NULL,
-  ID INTEGER NOT NULL,
-  text NVARCHAR(5000),
-  PRIMARY KEY(locale, ID)
-);"
-`;
+exports[`UUID Generation INSERT with multiple entries 3`] = `"prepare - 9qNny/0zP/Rp8ILA7/NBEC2E6NE="`;
 
-exports[` 41`] = `"run"`;
+exports[`UUID Generation INSERT with multiple entries 4`] = `"run - hdh0Zo7/qzSHZBtItP+LAPJDurI="`;
 
-exports[` 42`] = `
-Arguments [
-  {},
-]
-`;
+exports[`UUID Generation INSERT with multiple entries 5`] = `"{"changes":2,"lastInsertRowid":2}"`;
 
-exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`UUID Generation INSERT with multiple entries 6`] = `"prepare - FHprnhtU8fbxxtUltk/Bgu+aBa4="`;
 
-exports[` 44`] = `
-"CREATE VIEW localized_test_fooLocalized AS SELECT
-  L_0.ID,
-  coalesce(localized_1.text, L_0.text) AS text
-FROM (test_fooLocalized AS L_0 LEFT JOIN test_fooLocalized_texts AS localized_1 ON localized_1.ID = L_0.ID AND localized_1.locale = session_context( '$user.locale' ));"
-`;
+exports[`UUID Generation INSERT with multiple entries 7`] = `"all - kTjdZfiiPc+sbBOps1XCuu0aYrM="`;
 
-exports[` 45`] = `"run"`;
+exports[`UUID Generation INSERT with multiple entries 8`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000001\\"}"},{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000002\\"}"}]"`;
 
-exports[` 46`] = `
-Arguments [
-  {},
-]
-`;
+exports[`UUID Generation INSERT with multiple entries 9`] = `"prepare - r1m6HYYjjUT71ZAXIZx0c/QUMkA="`;
 
-exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`UUID Generation INSERT with multiple entries 10`] = `"run - kTjdZfiiPc+sbBOps1XCuu0aYrM="`;
 
-exports[` 48`] = `"exec"`;
+exports[`UUID Generation INSERT with multiple entries 11`] = `"{"changes":2,"lastInsertRowid":2}"`;
 
-exports[` 49`] = `"COMMIT"`;
+exports[`UUID Generation INSERT with multiple entries 12`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 50`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+exports[`UUID Generation INSERT with multiple entries 13`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
 
-exports[`UUID Generation INSERT with multiple entries 1`] = `"exec"`;
+exports[`UUID Generation INSERT with one entry 1`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[`UUID Generation INSERT with multiple entries 2`] = `"BEGIN"`;
+exports[`UUID Generation INSERT with one entry 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[`UUID Generation INSERT with multiple entries 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+exports[`UUID Generation INSERT with one entry 3`] = `"prepare - 9qNny/0zP/Rp8ILA7/NBEC2E6NE="`;
 
-exports[`UUID Generation INSERT with multiple entries 4`] = `"INSERT INTO test_bar (ID) SELECT value->>'$.ID' FROM json_each(?)"`;
+exports[`UUID Generation INSERT with one entry 4`] = `"run - 3i65Tl+ZVjdw5gNNgOv6aj7ifSs="`;
 
-exports[`UUID Generation INSERT with multiple entries 5`] = `"run"`;
+exports[`UUID Generation INSERT with one entry 5`] = `"{"changes":1,"lastInsertRowid":1}"`;
 
-exports[`UUID Generation INSERT with multiple entries 6`] = `
-Arguments [
-  [
-    "[{"ID":"00000000-0000-0000-0000-000000000001"},{"ID":"00000000-0000-0000-0000-000000000002"}]",
-  ],
-]
-`;
+exports[`UUID Generation INSERT with one entry 6`] = `"prepare - FHprnhtU8fbxxtUltk/Bgu+aBa4="`;
 
-exports[`UUID Generation INSERT with multiple entries 7`] = `"{"changes":2,"lastInsertRowid":2}"`;
+exports[`UUID Generation INSERT with one entry 7`] = `"all - kTjdZfiiPc+sbBOps1XCuu0aYrM="`;
 
-exports[`UUID Generation INSERT with multiple entries 8`] = `"SELECT json_insert('{}','$.ID',ID) as _json_ FROM (SELECT bar.ID FROM test_bar as bar)"`;
+exports[`UUID Generation INSERT with one entry 8`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\"}"}]"`;
 
-exports[`UUID Generation INSERT with multiple entries 9`] = `"all"`;
+exports[`UUID Generation INSERT with one entry 9`] = `"prepare - r1m6HYYjjUT71ZAXIZx0c/QUMkA="`;
 
-exports[`UUID Generation INSERT with multiple entries 10`] = `
-Arguments [
-  [],
-]
-`;
+exports[`UUID Generation INSERT with one entry 10`] = `"run - kTjdZfiiPc+sbBOps1XCuu0aYrM="`;
 
-exports[`UUID Generation INSERT with multiple entries 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000001\\"}"},{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000002\\"}"}]"`;
+exports[`UUID Generation INSERT with one entry 11`] = `"{"changes":1,"lastInsertRowid":1}"`;
 
-exports[`UUID Generation INSERT with multiple entries 12`] = `"DELETE FROM test_bar as bar"`;
+exports[`UUID Generation INSERT with one entry 12`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[`UUID Generation INSERT with multiple entries 13`] = `"run"`;
-
-exports[`UUID Generation INSERT with multiple entries 14`] = `
-Arguments [
-  [],
-]
-`;
-
-exports[`UUID Generation INSERT with multiple entries 15`] = `"{"changes":2,"lastInsertRowid":2}"`;
-
-exports[`UUID Generation INSERT with multiple entries 16`] = `"exec"`;
-
-exports[`UUID Generation INSERT with multiple entries 17`] = `"COMMIT"`;
-
-exports[`UUID Generation INSERT with multiple entries 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
-
-exports[`UUID Generation INSERT with one entry 1`] = `"exec"`;
-
-exports[`UUID Generation INSERT with one entry 2`] = `"BEGIN"`;
-
-exports[`UUID Generation INSERT with one entry 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
-
-exports[`UUID Generation INSERT with one entry 4`] = `"INSERT INTO test_bar (ID) SELECT value->>'$.ID' FROM json_each(?)"`;
-
-exports[`UUID Generation INSERT with one entry 5`] = `"run"`;
-
-exports[`UUID Generation INSERT with one entry 6`] = `
-Arguments [
-  [
-    "[{"ID":"00000000-0000-0000-0000-000000000000"}]",
-  ],
-]
-`;
-
-exports[`UUID Generation INSERT with one entry 7`] = `"{"changes":1,"lastInsertRowid":1}"`;
-
-exports[`UUID Generation INSERT with one entry 8`] = `"SELECT json_insert('{}','$.ID',ID) as _json_ FROM (SELECT bar.ID FROM test_bar as bar)"`;
-
-exports[`UUID Generation INSERT with one entry 9`] = `"all"`;
-
-exports[`UUID Generation INSERT with one entry 10`] = `
-Arguments [
-  [],
-]
-`;
-
-exports[`UUID Generation INSERT with one entry 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\"}"}]"`;
-
-exports[`UUID Generation INSERT with one entry 12`] = `"DELETE FROM test_bar as bar"`;
-
-exports[`UUID Generation INSERT with one entry 13`] = `"run"`;
-
-exports[`UUID Generation INSERT with one entry 14`] = `
-Arguments [
-  [],
-]
-`;
-
-exports[`UUID Generation INSERT with one entry 15`] = `"{"changes":1,"lastInsertRowid":1}"`;
-
-exports[`UUID Generation INSERT with one entry 16`] = `"exec"`;
-
-exports[`UUID Generation INSERT with one entry 17`] = `"COMMIT"`;
-
-exports[`UUID Generation INSERT with one entry 18`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+exports[`UUID Generation INSERT with one entry 13`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

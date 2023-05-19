@@ -1,515 +1,213 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[` 1`] = `"exec"`;
+exports[` 1`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 2`] = `"BEGIN"`;
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+exports[` 3`] = `"prepare - lS5P8r66aSBxOeSioFcRW/CO//g="`;
 
-exports[` 4`] = `"DROP VIEW IF EXISTS RenameService_EProjChild;"`;
+exports[` 4`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 5`] = `"run"`;
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 6`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 6`] = `"prepare - Ui1MOXnTC6zIr4GLcZwkOSwnM10="`;
 
-exports[` 7`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 7`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 8`] = `"DROP VIEW IF EXISTS RenameService_SProjDeep;"`;
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 9`] = `"run"`;
+exports[` 9`] = `"prepare - OsymdlgtyQB+Fg/F+pOObPFNqlM="`;
 
-exports[` 10`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 10`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 12`] = `"DROP VIEW IF EXISTS FProjDeep;"`;
+exports[` 12`] = `"prepare - 5kUYYfbXDY3POU3hSUHzqEJ3W6w="`;
 
-exports[` 13`] = `"run"`;
+exports[` 13`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 14`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 15`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 15`] = `"prepare - ZShdnN+t61YSy57mTrvXwkzCYAU="`;
 
-exports[` 16`] = `"DROP VIEW IF EXISTS EProjChild;"`;
+exports[` 16`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 17`] = `"run"`;
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 18`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 18`] = `"prepare - xl/W7pjIQ7iLS6PT9Gu9KtZPbT8="`;
 
-exports[` 19`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 19`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 20`] = `"DROP TABLE IF EXISTS DBDeepEntity;"`;
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 21`] = `"run"`;
+exports[` 21`] = `"prepare - P1SiILO9fbcNOYBDQtvEJ1wtNUg="`;
 
-exports[` 22`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 22`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 24`] = `"DROP TABLE IF EXISTS DBDeepEntityChild;"`;
+exports[` 24`] = `"prepare - uND1ro1gJHs2YgnVqj0OuoZdb34="`;
 
-exports[` 25`] = `"run"`;
+exports[` 25`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 26`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 27`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 27`] = `"prepare - y0ZUXMKPZ4eUaunTFebCQtDA5Sc="`;
 
-exports[` 28`] = `"DROP TABLE IF EXISTS BookingSupplement;"`;
+exports[` 28`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 29`] = `"run"`;
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 30`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 30`] = `"prepare - o90RA7P1/wpKwl20WJp+n0ScoN8="`;
 
-exports[` 31`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 31`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 32`] = `"DROP TABLE IF EXISTS Booking;"`;
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 33`] = `"run"`;
+exports[` 33`] = `"prepare - j6BQlowBPGDzG4y8iW9108/ebJ4="`;
 
-exports[` 34`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 34`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 36`] = `"DROP TABLE IF EXISTS Travel;"`;
+exports[` 36`] = `"prepare - +NsW9LSCFBM0up5qNORr6qVZATo="`;
 
-exports[` 37`] = `"run"`;
+exports[` 37`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 38`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 38`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 39`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 39`] = `"prepare - uiziVov1Xk4gW9LhOhzmlSKem+0="`;
 
-exports[` 40`] = `"DROP TABLE IF EXISTS Author;"`;
+exports[` 40`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 41`] = `"run"`;
+exports[` 41`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 42`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 42`] = `"prepare - lRoxrLxTxTAC40iYX2rJ5ffX6t0="`;
 
-exports[` 43`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 43`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 44`] = `"DROP TABLE IF EXISTS Books;"`;
+exports[` 44`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 45`] = `"run"`;
+exports[` 45`] = `"prepare - 4e0+fytAbfIIAmIEKRNEk6cWeRo="`;
 
-exports[` 46`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 46`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 48`] = `"DROP TABLE IF EXISTS Foo2;"`;
+exports[` 48`] = `"prepare - Ce5YJylmKakT6ewHJp2Yfvk3smY="`;
 
-exports[` 49`] = `"run"`;
+exports[` 49`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 50`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 50`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 51`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 51`] = `"prepare - GYymgaKUDr3Jwsl2GBuuohdrLZM="`;
 
-exports[` 52`] = `"DROP TABLE IF EXISTS Foo;"`;
+exports[` 52`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 53`] = `"run"`;
+exports[` 53`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 54`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 54`] = `"prepare - FodT+w5KnN6oqW916eRVAMf/giI="`;
 
-exports[` 55`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 55`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 56`] = `"DROP table if exists cds_Model;"`;
+exports[` 56`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 57`] = `"run"`;
+exports[` 57`] = `"prepare - AW68aGeaXBrgvXpf1/Tgkvzlzi0="`;
 
-exports[` 58`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 58`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 60`] = `
-"CREATE TABLE Foo (
-  ID INTEGER NOT NULL,
-  a NVARCHAR(5000),
-  b NVARCHAR(5000),
-  c NVARCHAR(5000),
-  x INTEGER,
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 60`] = `"prepare - Tn1SyuhLyKiqEbPnAP29QuKxyL4="`;
 
-exports[` 61`] = `"run"`;
+exports[` 61`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 62`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 62`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 63`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 63`] = `"prepare - qsKcVDio5ZlRlsptZdNqDvlXUwY="`;
 
-exports[` 64`] = `
-"CREATE TABLE Foo2 (
-  ID INTEGER NOT NULL,
-  name NVARCHAR(5000),
-  a INTEGER,
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 64`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 65`] = `"run"`;
+exports[` 65`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 66`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 66`] = `"prepare - +G3rvtLryr5ODoTCgzqfOv7IivE="`;
 
-exports[` 67`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 67`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 68`] = `
-"CREATE TABLE Books (
-  ID INTEGER NOT NULL,
-  author_id INTEGER,
-  author_version NVARCHAR(5000),
-  descr NVARCHAR(5000),
-  code NVARCHAR(5000),
-  PRIMARY KEY(ID)
-);"
-`;
+exports[` 68`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 69`] = `"run"`;
+exports[` 69`] = `"prepare - xVc954UxsWKLKbMu5JlwT1+2ZmE="`;
 
-exports[` 70`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 70`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 72`] = `
-"CREATE TABLE Author (
-  id INTEGER NOT NULL,
-  version NVARCHAR(5000) NOT NULL,
-  parent_ID INTEGER,
-  PRIMARY KEY(id, version)
-);"
-`;
+exports[` 72`] = `"prepare - 0pGthlgDBaa4Nf6MPnue1QT7wvg="`;
 
-exports[` 73`] = `"run"`;
+exports[` 73`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 74`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 74`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 75`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 75`] = `"prepare - Jdd2Tkk9txk3+2Aqx9IydDvEipE="`;
 
-exports[` 76`] = `
-"CREATE TABLE Travel (
-  TravelUUID NVARCHAR(36) NOT NULL,
-  TravelID INTEGER DEFAULT 0,
-  BeginDate DATE_TEXT,
-  EndDate DATE_TEXT,
-  BookingFee DECIMAL(16, 3),
-  TotalPrice DECIMAL(16, 3),
-  Description NVARCHAR(1024),
-  PRIMARY KEY(TravelUUID)
-);"
-`;
+exports[` 76`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 77`] = `"run"`;
+exports[` 77`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 78`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 78`] = `"prepare - JzekHJZKCH+d4VHWcSUdz7JEsRo="`;
 
-exports[` 79`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[` 79`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
-exports[` 80`] = `
-"CREATE TABLE Booking (
-  BookingUUID NVARCHAR(36) NOT NULL,
-  FlightPrice DECIMAL(16, 3),
-  to_Travel_TravelUUID NVARCHAR(36),
-  PRIMARY KEY(BookingUUID)
-);"
-`;
+exports[` 80`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 81`] = `"run"`;
+exports[` 81`] = `"prepare - hJE/Sbm+sHGat5W+HG/GeiNIe2E="`;
 
-exports[` 82`] = `
-Arguments [
-  {},
-]
-`;
+exports[` 82`] = `"run - UUdcj0oDV17Ffi3tQ6LAx9SMd7Q="`;
 
 exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
 
-exports[` 84`] = `
-"CREATE TABLE BookingSupplement (
-  BookSupplUUID NVARCHAR(36) NOT NULL,
-  Price DECIMAL(16, 3),
-  to_Booking_BookingUUID NVARCHAR(36),
-  to_Travel_TravelUUID NVARCHAR(36),
-  PRIMARY KEY(BookSupplUUID)
-);"
-`;
+exports[` 84`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 85`] = `"run"`;
+exports[` 85`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
 
-exports[` 86`] = `
-Arguments [
-  {},
-]
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 1`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 87`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 88`] = `
-"CREATE TABLE DBDeepEntityChild (
-  ID INTEGER NOT NULL,
-  parent INTEGER,
-  otherName NVARCHAR(5000),
-  otherName2 NVARCHAR(5000),
-  PRIMARY KEY(ID)
-);"
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 3`] = `"prepare - z1MV085VALJug3bgv14aePEj/xg="`;
 
-exports[` 89`] = `"run"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 4`] = `"run - AdrrSCc/saDItpB/p/7vkX1oJGc="`;
 
-exports[` 90`] = `
-Arguments [
-  {},
-]
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 5`] = `"{"changes":1,"lastInsertRowid":42}"`;
 
-exports[` 91`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 6`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 92`] = `
-"CREATE TABLE DBDeepEntity (
-  ID INTEGER NOT NULL,
-  parent INTEGER,
-  otherName NVARCHAR(5000),
-  otherName2 NVARCHAR(5000),
-  PRIMARY KEY(ID)
-);"
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 7`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
 
-exports[` 93`] = `"run"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 8`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 94`] = `
-Arguments [
-  {},
-]
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 9`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 95`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 10`] = `"prepare - X8EgTqiD7IloqgOTRT6GNc6N4RM="`;
 
-exports[` 96`] = `
-"CREATE VIEW EProjChild AS SELECT
-  DBDeepEntityChild_0.ID AS IDRename,
-  DBDeepEntityChild_0.parent AS parentRename,
-  DBDeepEntityChild_0.otherName AS otherNameRename,
-  DBDeepEntityChild_0.otherName2 AS otherName2Rename
-FROM DBDeepEntityChild AS DBDeepEntityChild_0;"
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 11`] = `"run - JE2c6+sOU4xTtxNKvI2ylxw7hIw="`;
 
-exports[` 97`] = `"run"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 12`] = `"{"changes":1,"lastInsertRowid":42}"`;
 
-exports[` 98`] = `
-Arguments [
-  {},
-]
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 13`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 99`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
 
-exports[` 100`] = `
-"CREATE VIEW FProjDeep AS SELECT
-  DBDeepEntity_0.ID AS IDRename,
-  DBDeepEntity_0.parent AS parentRename,
-  DBDeepEntity_0.otherName AS otherNameRename,
-  DBDeepEntity_0.otherName2 AS otherName2Rename
-FROM DBDeepEntity AS DBDeepEntity_0;"
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 15`] = `"exec - swFX3mSaTpBcIO4VaMo4btiduC8="`;
 
-exports[` 101`] = `"run"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 16`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
 
-exports[` 102`] = `
-Arguments [
-  {},
-]
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 17`] = `"prepare - dQ0nANJzTd3TR4KOSVi7ocdxuXk="`;
 
-exports[` 103`] = `"{"changes":0,"lastInsertRowid":0}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 18`] = `"all - kTjdZfiiPc+sbBOps1XCuu0aYrM="`;
 
-exports[` 104`] = `
-"CREATE VIEW RenameService_SProjDeep AS SELECT
-  FProjDeep_0.IDRename,
-  FProjDeep_0.parentRename,
-  FProjDeep_0.otherNameRename,
-  FProjDeep_0.otherName2Rename
-FROM FProjDeep AS FProjDeep_0;"
-`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 19`] = `"[{"_json_":"{\\"ID\\":42,\\"a\\":\\"Foo2\\",\\"b\\":null,\\"c\\":null,\\"x\\":null}"}]"`;
 
-exports[` 105`] = `"run"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 20`] = `"exec - mvfei0i6/P7jaJW/2LTxQWnJXeI="`;
 
-exports[` 106`] = `
-Arguments [
-  {},
-]
-`;
-
-exports[` 107`] = `"{"changes":0,"lastInsertRowid":0}"`;
-
-exports[` 108`] = `
-"CREATE VIEW RenameService_EProjChild AS SELECT
-  EProjChild_0.IDRename,
-  EProjChild_0.parentRename,
-  EProjChild_0.otherNameRename,
-  EProjChild_0.otherName2Rename
-FROM EProjChild AS EProjChild_0;"
-`;
-
-exports[` 109`] = `"run"`;
-
-exports[` 110`] = `
-Arguments [
-  {},
-]
-`;
-
-exports[` 111`] = `"{"changes":0,"lastInsertRowid":0}"`;
-
-exports[` 112`] = `"exec"`;
-
-exports[` 113`] = `"COMMIT"`;
-
-exports[` 114`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 1`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 2`] = `"BEGIN"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 3`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 4`] = `"INSERT INTO Foo2 (ID,name,a) SELECT value->>'$.ID',value->>'$.name',value->>'$.a' FROM json_each(?)"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 5`] = `"run"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 6`] = `
-Arguments [
-  [
-    "[{"ID":42,"name":"Foo2"}]",
-  ],
-]
-`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 7`] = `"{"changes":1,"lastInsertRowid":42}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 8`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 9`] = `"COMMIT"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 11`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 12`] = `"BEGIN"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 13`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 14`] = `"INSERT INTO Foo (ID,a) SELECT Foo2.ID,Foo2.name FROM Foo2 as Foo2 WHERE Foo2.name = ?"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 15`] = `"run"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 16`] = `
-Arguments [
-  [
-    "Foo2",
-  ],
-]
-`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 17`] = `"{"changes":1,"lastInsertRowid":42}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 18`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 19`] = `"COMMIT"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 20`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 21`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 22`] = `"BEGIN"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 23`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 24`] = `"SELECT json_insert('{}','$.ID',ID,'$.a',a,'$.b',b,'$.c',c,'$.x',x) as _json_ FROM (SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = 42)"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 25`] = `"all"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 26`] = `
-Arguments [
-  [],
-]
-`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 27`] = `"[{"_json_":"{\\"ID\\":42,\\"a\\":\\"Foo2\\",\\"b\\":null,\\"c\\":null,\\"x\\":null}"}]"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 28`] = `"exec"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 29`] = `"COMMIT"`;
-
-exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 30`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 21`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
