@@ -112,7 +112,7 @@ module.exports.test = Object.setPrototypeOf(function () {
 
       // create snapshot driver
       if (typeof db.prepare === 'function' && typeof db.exec === 'function') {
-        const setCall = async function(action, args) {
+        const setCall = async function (action, args) {
           const hash = createHash('sha1')
           hash.update(JSON.stringify(args))
           expect(`${action} - ${hash.digest('base64')}`).toMatchSnapshot()
@@ -182,7 +182,7 @@ module.exports.test = Object.setPrototypeOf(function () {
             }
           }
 
-          db.exec = async function (sql) {
+          db.exec = async function () {
             const { done } = await queue
             try {
               setCall('exec', arguments)
@@ -195,7 +195,6 @@ module.exports.test = Object.setPrototypeOf(function () {
           return
         }
 
-
         const setResult = async function (ret) {
           ret = await ret
           expect(JSON.stringify(ret)).toMatchSnapshot()
@@ -204,7 +203,7 @@ module.exports.test = Object.setPrototypeOf(function () {
 
         // capture snapshots with actual database driver passthrough
         const orgPrepare = db.prepare
-        db.prepare = async function (sql) {
+        db.prepare = async function () {
           const lock = await queue
           setCall('prepare', arguments)
           const stmt = orgPrepare.apply(this, arguments)
