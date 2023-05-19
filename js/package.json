@@ -1,0 +1,30 @@
+{
+  "name": "@cap-js/nodb",
+  "version": "0.1.0",
+  "description": "CDS database service for NoDB",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS",
+    "SQLite"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=14",
+    "npm": ">=8"
+  },
+  "scripts": {
+    "test": "jest --silent"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=6.8.0"
+  },
+  "license": "SEE LICENSE"
+}

@@ -6,7 +6,8 @@
   "workspaces": [
     "db-service",
     "postgres",
-    "sqlite"
+    "sqlite",
+    "js"
   ],
   "devDependencies": {
     "@capire/sflight": "sap-samples/cap-sflight",
