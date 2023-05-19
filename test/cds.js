@@ -113,7 +113,7 @@ module.exports.test = Object.setPrototypeOf(function () {
       // create snapshot driver
       if (typeof db.prepare === 'function' && typeof db.exec === 'function') {
         const setCall = async function (action, args) {
-          const hash = createHash('sha1')
+          const hash = createHash('sha256')
           hash.update(JSON.stringify(args))
           expect(`${action} - ${hash.digest('base64')}`).toMatchSnapshot()
         }
