@@ -27,9 +27,9 @@ const createScriptFromCode = function (scriptSource, filename) {
 }
 jestRuntime.default.prototype.createScriptFromCode = createScriptFromCode
 
-const runtimeSupportsVmModules = typeof require('vm').SyntheticModule === 'function';
+const runtimeSupportsVmModules = typeof require('vm').SyntheticModule === 'function'
 function invariant(condition, message) {
   if (!condition) {
-    throw new Error(message);
+    throw new Error(message)
   }
 }
