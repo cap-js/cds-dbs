@@ -288,11 +288,8 @@ describe('new STREAM API', () => {
     stream.push(1)
     stream.push(null)
     try {
-      await STREAM.into(Images)
-      .column('data')
-      .data(stream)
-      .where({ ID: 1 })
-    } catch (err){
+      await STREAM.into(Images).column('data').data(stream).where({ ID: 1 })
+    } catch (err) {
       expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
     }
   })
@@ -336,7 +333,7 @@ describe('new STREAM API', () => {
         readStream(1, done)
       })
   })
-  
+
   xtest('WRITE stream property with keys and column in .into', done => {
     const { Images } = cds.entities('test')
     const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
