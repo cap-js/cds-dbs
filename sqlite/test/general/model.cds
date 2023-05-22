@@ -13,4 +13,9 @@ service test {
         key ID   : Integer;
             text : localized String;
     }
+
+    entity Images {
+        key ID   : Integer;
+            data : LargeBinary @Core.MediaType: 'image/jpeg';
+    }
 }

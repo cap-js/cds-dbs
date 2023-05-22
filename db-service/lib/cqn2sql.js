@@ -414,6 +414,27 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
+  // STREAM Statement -------------------------------------------------
+
+  STREAM(q) {
+    let { from, into, where, column, data } = q.STREAM
+    let x, sql
+    // reading stream
+    if (from) {
+      sql = `SELECT`
+      if (!_empty((x = column))) sql += ` ${this.quote(x)}`
+      if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
+    } else {
+      // writing stream
+      const entity = this.name(q.target?.name || into.ref[0])
+      sql = `UPDATE ${this.quote(entity)} SET ${this.quote(column)}=?`
+      this.entries = [data]
+    }
+    if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
+    if (from) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
+    return (this.sql = sql)
+  }
+
   // Expression Clauses ---------------------------------------------
 
   expr(x) {
