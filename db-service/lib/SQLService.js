@@ -60,7 +60,9 @@ class SQLService extends DatabaseService {
     const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      values.unshift(entries)
+      const stream = entries[0]
+      stream.on('error', () => stream.removeAllListeners('error'))
+      values.unshift(stream)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }

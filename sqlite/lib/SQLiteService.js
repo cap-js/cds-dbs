@@ -149,7 +149,9 @@ class SQLiteService extends SQLService {
     const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      values.unshift(await convStrm.buffer(entries))
+      const stream = entries[0]
+      stream.on('error', () => stream.removeAllListeners('error'))
+      values.unshift(await convStrm.buffer(stream))
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
