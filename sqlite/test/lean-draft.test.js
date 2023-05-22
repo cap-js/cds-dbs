@@ -1,14 +1,13 @@
 process.env.cds_requires_db_kind = 'better-sqlite'
+process.env.cds_requires_auth_kind = 'mocked-auth'
 const cds = require('../../test/cds.js')
 
 if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
 else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
-cds.env.requires.auth = {
-  strategy: 'mock',
-  users: {
-    user1: { password: 'user1', roles: ['processor'] },
-    user2: { password: 'user2', roles: ['processor'] },
-  },
+
+cds.requires.auth.users = {
+  user1: { password: 'user1', roles: ['processor'] },
+  user2: { password: 'user2', roles: ['processor'] },
 }
 
 const { expect, GET, POST, PATCH, DELETE } = cds.test('run', '@capire/sflight')
