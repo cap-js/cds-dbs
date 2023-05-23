@@ -224,4 +224,25 @@ const _unquirked = q => {
   return q
 }
 
+const sqls = new (class extends SQLService {
+  get factory() {
+    return null
+  }
+})()
+cds.extend(cds.ql.Query).with(
+  class {
+    forSQL() {
+      let cqn = (cds.db || sqls).cqn4sql(this)
+      return this.flat(cqn)
+    }
+    toSQL() {
+      let { sql, values } = (cds.db || sqls).cqn2sql(this)
+      return { sql, values } // skipping .cqn property
+    }
+    toSql() {
+      return this.toSQL().sql
+    }
+  },
+)
+
 module.exports = Object.assign(SQLService, { _target_name4 })

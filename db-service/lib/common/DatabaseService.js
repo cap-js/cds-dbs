@@ -1,5 +1,5 @@
 const infer = require('../infer')
-const cds = require('../../cds')
+const cds = require('@sap/cds')
 
 function Pool(factory, tenant) {
   const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)

@@ -11,7 +11,6 @@
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
   "files": [
-    "index.js",
     "cds-plugin.js",
     "lib",
     "CHANGELOG.md"
@@ -28,6 +27,21 @@
   },
   "peerDependencies": {
     "@sap/cds": ">=6.8.0"
+  },
+  "cds": {
+    "requires": {
+      "kinds": {
+        "sql": {
+          "[development]": {
+            "kind": "sqlite"
+          }
+        },
+        "sqlite": {
+          "impl": "@cap-js/sqlite"
+        }
+      },
+      "db": "sql"
+    }
   },
   "license": "SEE LICENSE"
 }
