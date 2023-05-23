@@ -399,7 +399,7 @@ class CQN2SQLRenderer {
       return c
     })
 
-    const extraction = this.managed(columns, q.elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
+    const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where(where)}`
