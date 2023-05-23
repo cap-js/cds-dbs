@@ -1,5 +1,13 @@
 {
   "name": "@cap-js/db-service",
+  "version": "0.1.1",
+  "bin": {
+    "cds-deploy": "./lib/cds-deploy.js"
+  },
+  "main": "index.js",
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "prettier": "npx prettier --write .",
     "test": "npx jest --silent",

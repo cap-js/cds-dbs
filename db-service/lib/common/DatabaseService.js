@@ -9,6 +9,10 @@ function Pool(factory, tenant) {
 const { createPool } = require('@sap/cds-foss').pool
 
 class DatabaseService extends cds.Service {
+  static get deploy() {
+    return (super.deploy = require('../cds-deploy'))
+  }
+
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
