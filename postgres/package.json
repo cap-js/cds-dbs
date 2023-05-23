@@ -10,5 +10,21 @@
   "peerDependencies": {
     "@sap/cds": ">=6.8.0"
   },
+  "cds": {
+    "requires":{
+      "kinds": {
+        "sql": {
+          "[production]": {
+            "kind": "postgres"
+          }
+        },
+        "postgres": {
+          "impl": "@cap-js/postgres",
+          "dialect": "postgres"
+        }
+      },
+      "db": "sql"
+    }
+  },
   "license": "SEE LICENSE"
 }
