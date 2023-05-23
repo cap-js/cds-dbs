@@ -9,7 +9,7 @@ module.exports = exports = cds_deploy
 
 function cds_deploy(model, options, csvs) {
   return {
-    /** @param {cds.Service} db */
+    /** @param {import('@sap/cds/lib/srv/srv-api')} db */
     async to(db, o = options || cds.options || {}) {
       const TRACE = cds.debug('trace')
       try {
@@ -143,8 +143,8 @@ if (module.parent) {
   cds.deploy = Object.assign(cds_deploy, cds.deploy, { create: cds_deploy_create })
 } else
   (async () => {
-    let recent,
-      o = {}
+    const o = {}
+    let recent
     for (let each of process.argv.slice(2)) {
       if (each.startsWith('--')) o[(recent = each.slice(2))] = true
       else o[recent] = each
