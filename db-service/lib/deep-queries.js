@@ -66,7 +66,7 @@ const getColumnsFromDataOrKeys = (data, target) => {
   } else {
     // get all columns from current level
     return Object.keys(data || target.keys)
-      .filter(propName => !target.elements[propName]?.isAssociation)
+      .filter(propName => target.elements[propName] && !target.elements[propName].isAssociation)
       .map(c => ({ ref: [c] }))
   }
 }
@@ -170,6 +170,10 @@ const getDeepQueries = (query, dbData, target) => {
   return _getDeepQueries(diff, target)
 }
 
+const _hasManagedElements = target => {
+  return Object.keys(target.elements).filter(elementName => target.elements[elementName]['@cds.on.update']).length > 0
+}
+
 const _getDeepQueries = (diff, target) => {
   const queries = []
 
@@ -190,6 +194,9 @@ const _getDeepQueries = (diff, target) => {
           subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target))
         })
         delete diffEntry[prop]
+      } else if (diffEntry[prop] === undefined) {
+        // restore current behavior, if property is undefined, not part of payload
+        delete diffEntry[prop]
       }
     }
 
@@ -206,7 +213,7 @@ const _getDeepQueries = (diff, target) => {
       queries.push(INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
       queries.push(DELETE.from(target).where(diffEntry))
-    } else if (op === 'update') {
+    } else if (op === 'update' || (op === undefined && subQueries.length && _hasManagedElements(target))) {
       // TODO do we need the where here?
       const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)
