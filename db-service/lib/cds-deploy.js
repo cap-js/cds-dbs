@@ -124,8 +124,9 @@ async function cds_deploy_create(db, csn = db.model, options) {
       return { prior }
     }
     let [table_exists] = await db.run(
+      // REVISIT: prettier forced this horrible, unreadable formatting:
       db.kind === 'postgres'
-        ? `SELECT 1 from pg_tables WHERE tablename = 'cds_model'`
+        ? `SELECT 1 from pg_tables WHERE tablename = 'cds_model' and schemaname = current_schema()`
         : db.kind === 'sqlite'
         ? `SELECT 1 from sqlite_schema WHERE name = 'cds_model'`
         : cds.error`Schema evolution is not supported for ${db.kind} databases`,
