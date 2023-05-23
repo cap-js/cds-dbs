@@ -1,5 +1,5 @@
 const infer = require('../infer')
-const cds = require('../../cds')
+const cds = require('@sap/cds')
 
 function Pool(factory, tenant) {
   const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
@@ -9,6 +9,10 @@ function Pool(factory, tenant) {
 const { createPool } = require('@sap/cds-foss').pool
 
 class DatabaseService extends cds.Service {
+  static get deploy() {
+    return (super.deploy = require('../cds-deploy'))
+  }
+
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
