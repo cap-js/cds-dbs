@@ -1,0 +1,201 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 3`] = `"prepare - 4hJs3P4X0L/TtEZiK9E2+nXWsRx0Jc5M3xsCFU8+V9Y="`;
+
+exports[` 4`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 6`] = `"prepare - q6N+CSJsL36UKHmJdt9GQp4hUQTutrhYhdwrT/XlnzY="`;
+
+exports[` 7`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 9`] = `"prepare - ad/Tt1D2DlNkkPxqW/OmN5G9LInklB24xRyinpgNFGk="`;
+
+exports[` 10`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"prepare - YagGfW6HCVfIgJjVqtaFN9gP2ouzRymTZnkURpGGd9s="`;
+
+exports[` 13`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 15`] = `"prepare - Ol/6Y6BodP5gtx/l0jImFM5AaXljROl4Lm2ztc62tpk="`;
+
+exports[` 16`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 18`] = `"prepare - uoyHPNoxk0FNMMEEN8IbkOugv7dlMBLY76zdJsjsvgE="`;
+
+exports[` 19`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 21`] = `"prepare - lh6fNk8C7NkmdZlB8zMlg0z13HmVvYE+B3rPdFZHiW4="`;
+
+exports[` 22`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"prepare - VU7fCH9nq29aLeGn66nj9qhvosuvjSomvw0HoA8liTc="`;
+
+exports[` 25`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 27`] = `"prepare - ZaeHD6V0xGtu37W7tMHTwOjrHn/apS+A+YAt4sI0Zhc="`;
+
+exports[` 28`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 30`] = `"prepare - dPckc0XbsXm0WcB8Uyi1WJvdPAS51HRxL5/k7IpeMwQ="`;
+
+exports[` 31`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 33`] = `"prepare - Yf7UiNqPBtq3D3qHu9gs/izoOcg54CuSH8Dpy1RuXik="`;
+
+exports[` 34`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 37`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies INSERT execute on db only 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies INSERT execute on db only 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies INSERT execute on db only 3`] = `"prepare - scsNbffh1y25bjtlqvXGYvZ0VJRlWwWD7UBzdc2m4Zs="`;
+
+exports[`Managed thingies INSERT execute on db only 4`] = `"run - 2G8xQHMHRxuwOhWEMrjso3YQ5Lm8ci3+JSsLNdBGBQc="`;
+
+exports[`Managed thingies INSERT execute on db only 5`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`Managed thingies INSERT execute on db only 6`] = `"prepare - /dFakRfnI2vZr1FbcLqsYgTWRomvpfEXQv454pI9I20="`;
+
+exports[`Managed thingies INSERT execute on db only 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies INSERT execute on db only 8`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"modifiedBy\\":\\"samuel\\",\\"ID\\":2}"}]"`;
+
+exports[`Managed thingies INSERT execute on db only 9`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`Managed thingies INSERT execute on db only 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies UPSERT execute on db only 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies UPSERT execute on db only 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies UPSERT execute on db only 3`] = `"prepare - DTH+ZlYvsvJ6l6W9Ejo/3Fzn1LYTDJW+zudqAsJm5uQ="`;
+
+exports[`Managed thingies UPSERT execute on db only 4`] = `"run - 2digYQun0HTxDKuYfxnuNmmA/aB3ndP+nLSRdmtC/Pk="`;
+
+exports[`Managed thingies UPSERT execute on db only 5`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`Managed thingies UPSERT execute on db only 6`] = `"prepare - jyOaZaewo7fAVRD9JGha6FyEOcjv7JxZT2WMTdyTHhc="`;
+
+exports[`Managed thingies UPSERT execute on db only 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies UPSERT execute on db only 8`] = `"[{"_json_":"{\\"createdAt\\":null,\\"createdBy\\":null,\\"modifiedAt\\":\\"2000-01-01T00:00:00.000Z\\",\\"modifiedBy\\":\\"samuel\\",\\"ID\\":3}"}]"`;
+
+exports[`Managed thingies UPSERT execute on db only 9`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`Managed thingies UPSERT execute on db only 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 3`] = `"prepare - 1XaL7qpmXztBiEcPcB5Bj3kgnj8diVpObwoL49qRuPk="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 4`] = `"run - ev1uSntmQKGWFFY4ehL7Eh353od70O0Xrz44XpTosiE="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 5`] = `"{"changes":1,"lastInsertRowid":4711}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 6`] = `"prepare - 1XaL7qpmXztBiEcPcB5Bj3kgnj8diVpObwoL49qRuPk="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 7`] = `"run - o4BdCwp1dB6elPlRkOEFAmJ+o05A3rhZzDvtcN/n/vQ="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 8`] = `"{"changes":1,"lastInsertRowid":4712}"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 9`] = `"prepare - sTjGGO3qYeoVaMCqJrcDsoHBrVp5N+1cOLbtxr9gwrU="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 10`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 11`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"createdBy\\":\\"tom\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"tom\\",\\"ID\\":4711}"},{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"createdBy\\":\\"tom\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"tom\\",\\"ID\\":4712}"}]"`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 12`] = `"exec - I2U5bi8k83+3Tip5gESudJNLzMytaMF7eFvYogO6vDs="`;
+
+exports[`Managed thingies managed attributes are shared within a transaction 13`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on insert is filled 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies on insert is filled 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on insert is filled 3`] = `"prepare - TaN4MJDcyTnwmFTNTtYTrCl8vro3jxmUrr+OPrq6WLM="`;
+
+exports[`Managed thingies on insert is filled 4`] = `"run - 1yaRjbKT/R7ZubPZ4A74XhMPzb90nynUKKRm2dQ0ZWY="`;
+
+exports[`Managed thingies on insert is filled 5`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`Managed thingies on insert is filled 6`] = `"prepare - 28yz+PjvUkmijqRM5swRmCfEz2YbUxq8RKlRgaq613U="`;
+
+exports[`Managed thingies on insert is filled 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies on insert is filled 8`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:01.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:01.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":4}"}]"`;
+
+exports[`Managed thingies on insert is filled 9`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`Managed thingies on insert is filled 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies on update is filled 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 3`] = `"prepare - aGw5JwlZrVIlWOVI0ZUslEupK+bWqPJXQsg0dDL3F9Y="`;
+
+exports[`Managed thingies on update is filled 4`] = `"run - QqkKPCAHL9T+bnkVjhzmTtwX/S5BNyzWnz1JizmRXpE="`;
+
+exports[`Managed thingies on update is filled 5`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`Managed thingies on update is filled 6`] = `"prepare - LCvkLlY2RqIoqVt93Evp+mSOmYi35frMANax0E0LEJQ="`;
+
+exports[`Managed thingies on update is filled 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies on update is filled 8`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":5}"}]"`;
+
+exports[`Managed thingies on update is filled 9`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`Managed thingies on update is filled 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 11`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`Managed thingies on update is filled 12`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`Managed thingies on update is filled 13`] = `"prepare - m6xYLSxLZGEl//dw2qlFxVstUEDltP6Et4c4sbEb2GM="`;
+
+exports[`Managed thingies on update is filled 14`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies on update is filled 15`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`Managed thingies on update is filled 16`] = `"prepare - LCvkLlY2RqIoqVt93Evp+mSOmYi35frMANax0E0LEJQ="`;
+
+exports[`Managed thingies on update is filled 17`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`Managed thingies on update is filled 18`] = `"[{"_json_":"{\\"createdAt\\":\\"2000-01-01T00:00:02.000Z\\",\\"createdBy\\":\\"anonymous\\",\\"modifiedAt\\":\\"2000-01-01T00:00:03.000Z\\",\\"modifiedBy\\":\\"anonymous\\",\\"ID\\":5}"}]"`;
+
+exports[`Managed thingies on update is filled 19`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`Managed thingies on update is filled 20`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

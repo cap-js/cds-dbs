@@ -1,0 +1,149 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 3`] = `"prepare - 4hJs3P4X0L/TtEZiK9E2+nXWsRx0Jc5M3xsCFU8+V9Y="`;
+
+exports[` 4`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 6`] = `"prepare - q6N+CSJsL36UKHmJdt9GQp4hUQTutrhYhdwrT/XlnzY="`;
+
+exports[` 7`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 9`] = `"prepare - ad/Tt1D2DlNkkPxqW/OmN5G9LInklB24xRyinpgNFGk="`;
+
+exports[` 10`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"prepare - YagGfW6HCVfIgJjVqtaFN9gP2ouzRymTZnkURpGGd9s="`;
+
+exports[` 13`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 15`] = `"prepare - Ol/6Y6BodP5gtx/l0jImFM5AaXljROl4Lm2ztc62tpk="`;
+
+exports[` 16`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 18`] = `"prepare - uoyHPNoxk0FNMMEEN8IbkOugv7dlMBLY76zdJsjsvgE="`;
+
+exports[` 19`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 21`] = `"prepare - lh6fNk8C7NkmdZlB8zMlg0z13HmVvYE+B3rPdFZHiW4="`;
+
+exports[` 22`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"prepare - VU7fCH9nq29aLeGn66nj9qhvosuvjSomvw0HoA8liTc="`;
+
+exports[` 25`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 27`] = `"prepare - ZaeHD6V0xGtu37W7tMHTwOjrHn/apS+A+YAt4sI0Zhc="`;
+
+exports[` 28`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 30`] = `"prepare - dPckc0XbsXm0WcB8Uyi1WJvdPAS51HRxL5/k7IpeMwQ="`;
+
+exports[` 31`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 33`] = `"prepare - Yf7UiNqPBtq3D3qHu9gs/izoOcg54CuSH8Dpy1RuXik="`;
+
+exports[` 34`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 37`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[` 38`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 39`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 40`] = `"prepare - rW1CAMthMOEZ6Rol8LqIiVkJ8nPTQbdYA3Ul61xTse0="`;
+
+exports[` 41`] = `"run - q6irkRulvuOxJ1r3/nN0PUDcvwFC5EruAbrLOdpRUP8="`;
+
+exports[` 42`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[` 43`] = `"prepare - YuJ1Eu2NmVTutCoEsge3mxIVN5GMUNCzzQg+gScAXYg="`;
+
+exports[` 44`] = `"run - 9rnCfMeqDjLtEzpu+CvLPf8b1n5HJ6/5H/cZR5T+eXw="`;
+
+exports[` 45`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[` 46`] = `"prepare - 3Q03ndVObpEMYsmEBCpGMNWzKt6L/C0zfQQrJKY3w1k="`;
+
+exports[` 47`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[` 48`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\",\\"texts\\":[{\\"locale\\":\\"de\\",\\"ID\\":5,\\"text\\":\\"deutsch\\"}]}"}]"`;
+
+exports[` 49`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 50`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized custom handler does not return localized by default 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`localized custom handler does not return localized by default 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized custom handler does not return localized by default 3`] = `"prepare - hcM9Haz6uLVZya6OckMHqgd+FEbLjg11YdH/TboAQCo="`;
+
+exports[`localized custom handler does not return localized by default 4`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`localized custom handler does not return localized by default 5`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\"}"}]"`;
+
+exports[`localized custom handler does not return localized by default 6`] = `"prepare - VumbRPB9WM9oJsXHKxiB5gGcH56r0xo3D9bLKya3EM4="`;
+
+exports[`localized custom handler does not return localized by default 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`localized custom handler does not return localized by default 8`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"deutsch\\"}"}]"`;
+
+exports[`localized custom handler does not return localized by default 9`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`localized custom handler does not return localized by default 10`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request with language header is localized 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`localized generic request with language header is localized 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request with language header is localized 3`] = `"prepare - MFjU91jMJSLtmUpSZZy4+DcUhfDRcESNVGnYrFEYJT0="`;
+
+exports[`localized generic request with language header is localized 4`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`localized generic request with language header is localized 5`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"deutsch\\"}"}]"`;
+
+exports[`localized generic request with language header is localized 6`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`localized generic request with language header is localized 7`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request without language header falls back to default 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`localized generic request without language header falls back to default 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`localized generic request without language header falls back to default 3`] = `"prepare - MFjU91jMJSLtmUpSZZy4+DcUhfDRcESNVGnYrFEYJT0="`;
+
+exports[`localized generic request without language header falls back to default 4`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`localized generic request without language header falls back to default 5`] = `"[{"_json_":"{\\"ID\\":5,\\"text\\":\\"english\\"}"}]"`;
+
+exports[`localized generic request without language header falls back to default 6`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`localized generic request without language header falls back to default 7`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

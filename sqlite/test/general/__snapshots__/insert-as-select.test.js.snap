@@ -1,0 +1,213 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 3`] = `"prepare - 4YMVZevoO/EKgvCAMpXFQeIUqyDYMw4H/YHDsR+eI80="`;
+
+exports[` 4`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 6`] = `"prepare - F/Idi9YYBYhMV6/DqiC3bvGnUhh+0OESDjTOq47DOkk="`;
+
+exports[` 7`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 9`] = `"prepare - eC1FV+GryYqg8m7aqBgzyU7P779FcdY0+pZ9R8zek2M="`;
+
+exports[` 10`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"prepare - oSaGlGhlx2N5X7Mtu4KfHwkJGvtkRVj5pUQXHt/evos="`;
+
+exports[` 13`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 15`] = `"prepare - 3MBvrCCPTAJZWb/BsMu8X7hWg5KjRcAfmMP00KQaNy8="`;
+
+exports[` 16`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 18`] = `"prepare - gwos/mBPvHLL7NNN6ifT9fxB8cb9uU7QussRk2MBdjk="`;
+
+exports[` 19`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 21`] = `"prepare - OMYgQ25S/HKaqTeMpZ9F8b+/f3LeVVPOGNWXWJ4CmXY="`;
+
+exports[` 22`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"prepare - 0+KATJsY1KkrGSiGfRxlImlhoVfb1vEuQvLdQzlNY64="`;
+
+exports[` 25`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 27`] = `"prepare - NFQt2A6iHFLmX2cGFhKRC3A43optmDH4im0OI+HU0AU="`;
+
+exports[` 28`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 30`] = `"prepare - OOTeO2MMlsZ/xN3GEQ+t/YBq1c3L3TJht2IrPgkHvRY="`;
+
+exports[` 31`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 33`] = `"prepare - zSBkCWb+k/RYxkSBhhZmcB3RcE1zVclWOUqAcA4POsw="`;
+
+exports[` 34`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"prepare - reClwTubetO+JO65C8FH/y5qLQE41QwrcSKUBwMDKVU="`;
+
+exports[` 37`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 38`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 39`] = `"prepare - mJV6/phNyPCYnQwdKEuBIOf0PxVLWgZRFxprrk/uMDo="`;
+
+exports[` 40`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 41`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 42`] = `"prepare - uoyHPNoxk0FNMMEEN8IbkOugv7dlMBLY76zdJsjsvgE="`;
+
+exports[` 43`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 44`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 45`] = `"prepare - n2dIwkq0NdDy7blzXyxaUjRZzejBrjdhEvUdG7WQ1A4="`;
+
+exports[` 46`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"prepare - OYpLJdkY1jsyqpmoU82xDjf8EEGgVgqdX2IWYbSWIx4="`;
+
+exports[` 49`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 50`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 51`] = `"prepare - VxUzw1X6d+ysnyebe5mTYfQXSgc1ApRmqUBM+sEHtO4="`;
+
+exports[` 52`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 53`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 54`] = `"prepare - nit8dTcjlYaoQ1i/eD/BeoUwHjQyMHT73Ybn0sbDWmQ="`;
+
+exports[` 55`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 56`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 57`] = `"prepare - q8KJ+unbJ+KrdeYiBgjLwy9YlHDRleo7u21/rUPv63s="`;
+
+exports[` 58`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 60`] = `"prepare - txXWBnQybaXaMQErlaAm6G7SVE2bGbJ59QSilXNJQ/U="`;
+
+exports[` 61`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 62`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 63`] = `"prepare - u012AHNztfFoJIH2ukWhmQvb3f/KBhWLPA4ZJza7Vyc="`;
+
+exports[` 64`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 65`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 66`] = `"prepare - I1IhP6iJB80tjiUDOEZSxWkVaVm+dVF/QtKQtSQwbXY="`;
+
+exports[` 67`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 68`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 69`] = `"prepare - 4RkPdTKYYCBjR4KqM5+Nc0kokbQ+JKTlGm2vTjvAmbY="`;
+
+exports[` 70`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 72`] = `"prepare - pOM7iItKIqm/k8cj+n2tP1k4dOuB/zlqQOn2dEWW6BA="`;
+
+exports[` 73`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 74`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 75`] = `"prepare - B+hdOPpVeHxzuNhxwN6Vusjp8IDncscZ+PFOTB1Um2E="`;
+
+exports[` 76`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 77`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 78`] = `"prepare - Way9CE5TVnxGztQJiwVGXWM1DmefIkn8fAmBu4Zt9eQ="`;
+
+exports[` 79`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 80`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 81`] = `"prepare - NmDH7gzMhSAygvX9Yv8pB7prMEQSqWfRgvMUcQ1U3c8="`;
+
+exports[` 82`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 84`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 85`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 3`] = `"prepare - Zf2GKQaD9Zkj4U+IijbBpULk86AXCKohaBdumn2NE3A="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 4`] = `"run - tkkOxS5L4eeUF0J0Kdzm9+G9PKEBgd7U9jnL/XIoHx4="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 5`] = `"{"changes":1,"lastInsertRowid":42}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 6`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 7`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 8`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 9`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 10`] = `"prepare - uR+5jE6vnuTyes0GnRvE4fWZZeokeHqZ0SHJusYv+Uw="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 11`] = `"run - Z+or/yqRRE2Jcsvmhg8lnNEPb9mOTjC8oIMGZskgnFg="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 12`] = `"{"changes":1,"lastInsertRowid":42}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 13`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 14`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 15`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 16`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 17`] = `"prepare - qhTC39JaH9sXl5hEbfRB/2dTNlq8RgELAFqfZtIepJc="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 18`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 19`] = `"[{"_json_":"{\\"ID\\":42,\\"a\\":\\"Foo2\\",\\"b\\":null,\\"c\\":null,\\"x\\":null}"}]"`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 20`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`insert as select make sure that the placeholder values of the prepared statement are passed to the database 21`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

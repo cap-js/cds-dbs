@@ -1,0 +1,387 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[` 3`] = `"prepare - PSy1Q3Rl1dc7e1DfcmQkE7oTP2fCPMQ14ycXQo6TL2Y="`;
+
+exports[` 4`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 5`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 6`] = `"prepare - vzvJF3IndooFNDv3YojZnX983itHGRufnVzS1ajMTUI="`;
+
+exports[` 7`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 8`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 9`] = `"prepare - pojTwSvJ9VbK1Ws2A88ddAYvK89i1xO+MDaIS8P+BPI="`;
+
+exports[` 10`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 11`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 12`] = `"prepare - /5jo1FFcwdpfuzBQzdZ3YfFafhOQQpscK+gHGONAwGo="`;
+
+exports[` 13`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 14`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 15`] = `"prepare - G7NJjadM/V7lGmmkW0SDwV3RRcOYXCJWuC1LzL5j43U="`;
+
+exports[` 16`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 17`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 18`] = `"prepare - ymdtyUVwPiqx74kAC3YZ3OKXQZoFNVrbCydlljPzby0="`;
+
+exports[` 19`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 20`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 21`] = `"prepare - 20fjCPFdZ0HQmDy4Y8zDLkmUTy2I8CcBRSZOKRRH3Ew="`;
+
+exports[` 22`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 23`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 24`] = `"prepare - lS8p9XOPzffYUOt6BpVfdoH3ktGu0UIIu9Nt49QSdrE="`;
+
+exports[` 25`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 26`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 27`] = `"prepare - bRvbRUmQjtSIBXw6fEHvrEF2WOmpf39nWqiP+tnWVnk="`;
+
+exports[` 28`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 29`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 30`] = `"prepare - tDUROcP6N3xztjrbx+sLxsk0mLMe4m9fmZEapxKrw3A="`;
+
+exports[` 31`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 32`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 33`] = `"prepare - HKt4h4Hkqqso0f+yxg0HFxBFhVnLCTnpOAp1mRWQJnU="`;
+
+exports[` 34`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 35`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 36`] = `"prepare - yqh/ErOIw/J8pd/0mvPgNALPDSl6cbVkaI6dCd7ufes="`;
+
+exports[` 37`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 38`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 39`] = `"prepare - 4QBWJXfhtBtkP7vNRhGQR9S+4VNmXGXlSuvArL6yajE="`;
+
+exports[` 40`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 41`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 42`] = `"prepare - EALq7VMf6J5De25qthXyjl8onkRRAzLrmbVO+frC/jU="`;
+
+exports[` 43`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 44`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 45`] = `"prepare - uoyHPNoxk0FNMMEEN8IbkOugv7dlMBLY76zdJsjsvgE="`;
+
+exports[` 46`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 47`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 48`] = `"prepare - 5VGRD0OQgweESZL+mtpkT6BmH0PvcE3k7gf3lAUb4rU="`;
+
+exports[` 49`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 50`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 51`] = `"prepare - eCHejBa/lCZ7y1svVosxzRF+zZyG83C1dCovIwA7h/U="`;
+
+exports[` 52`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 53`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 54`] = `"prepare - JfeTNjBTaC/8xYiYoi8V9Jixgz9xV22K5Q0yvtxtHXg="`;
+
+exports[` 55`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 56`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 57`] = `"prepare - 0Fvxyt5kzTD8duuZ/beOWO4ovUjs7Nmb0Ly3T4s4YkM="`;
+
+exports[` 58`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 59`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 60`] = `"prepare - jXrfTQ4xaFAo66UML6OSnlF4AlsaY4rL51S+cktUjr4="`;
+
+exports[` 61`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 62`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 63`] = `"prepare - DnFqIRqrSPl2sHqQdgdczCy+Lp5qNAu0IaNqEsEJjao="`;
+
+exports[` 64`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 65`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 66`] = `"prepare - BrkPjkZGSLjtpsngSj5Ihb0gOViwfTowuThArOCJVZQ="`;
+
+exports[` 67`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 68`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 69`] = `"prepare - dr3LxjaCivCJIKIVt43FXoAZ2MUPJpgcRv+6G/eRNJY="`;
+
+exports[` 70`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 71`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 72`] = `"prepare - k97Y4aV61nnlG8i41haFX/QITa1EUK/Kl3XGmjrg1kk="`;
+
+exports[` 73`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 74`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 75`] = `"prepare - Ro0Kpa/bADxjDcfmP+NZVw53sGE2jFsnwX9wszPCiy0="`;
+
+exports[` 76`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 77`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 78`] = `"prepare - OfXFcWUTGlHfqQPhzyL2aygUqMVc2yyCtShDthWjSig="`;
+
+exports[` 79`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 80`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 81`] = `"prepare - 0ButPLmAcG3D8dKyN7YFeuS1MK4xfS3DbzF+DYGvgJA="`;
+
+exports[` 82`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 83`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 84`] = `"prepare - II1Bq6GvZ0tG7mR5MM3OaIGQfoebrNm0Wk9umt1ilR0="`;
+
+exports[` 85`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 86`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 87`] = `"prepare - 57x0L1ebZV7Ox1UA/YQwevm+qmiSpyUtytdJeOlJw/A="`;
+
+exports[` 88`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 89`] = `"{"changes":0,"lastInsertRowid":0}"`;
+
+exports[` 90`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 91`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on insert 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation generate UUID on insert 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on insert 3`] = `"prepare - NdGAnWyR/OhuImRiDgfk5/Jk6kvpInpmdFbtAfmlB6A="`;
+
+exports[`UUID Generation generate UUID on insert 4`] = `"run - 7cV4BJZ7ZIM9ye7NKu018Y9MUtJYzRJV6Wxux0vKgM8="`;
+
+exports[`UUID Generation generate UUID on insert 5`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 6`] = `"prepare - TStQ1gvGkMHsVAEhbah2Qy0Biv91kqOjpoBTiB3AjxE="`;
+
+exports[`UUID Generation generate UUID on insert 7`] = `"run - wkZ1oxrMZMrI+45R1/FNqkTP2EdTOkKUJaWgfCM5NII="`;
+
+exports[`UUID Generation generate UUID on insert 8`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 9`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on insert 10`] = `"run - r6Qa2bHH4Lq3RuWkypFOx7EzHweMCP2fCEwStIPDHIE="`;
+
+exports[`UUID Generation generate UUID on insert 11`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation generate UUID on insert 12`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on insert 13`] = `"run - xPrsAd6CiYZz2TNXsuCr7YFe7ilfbzNur2WBNfg0c/s="`;
+
+exports[`UUID Generation generate UUID on insert 14`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on insert 15`] = `"prepare - lDVfKHjtMwFLlZV9uO9Su16yqP16ZQ+brEN2M+1e9+Q="`;
+
+exports[`UUID Generation generate UUID on insert 16`] = `"all - sjeWEZGd/srLk6NjUO0pZtMz0L5iAdS2dusJdcQ/IOE="`;
+
+exports[`UUID Generation generate UUID on insert 17`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000000\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000003\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000004\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000002\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on insert 18`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation generate UUID on insert 19`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation generate UUID on update 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 3`] = `"prepare - NdGAnWyR/OhuImRiDgfk5/Jk6kvpInpmdFbtAfmlB6A="`;
+
+exports[`UUID Generation generate UUID on update 4`] = `"run - oevIYEN8QWVggebN9/r0fFGW6l7AaIVtlGvlQtH4D5k="`;
+
+exports[`UUID Generation generate UUID on update 5`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on update 6`] = `"prepare - TStQ1gvGkMHsVAEhbah2Qy0Biv91kqOjpoBTiB3AjxE="`;
+
+exports[`UUID Generation generate UUID on update 7`] = `"run - qHYFH8eXzzQcoQXYqi24sNeN+dWad78QhA2K23Yi78Q="`;
+
+exports[`UUID Generation generate UUID on update 8`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation generate UUID on update 9`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on update 10`] = `"run - cFDza8+KXZfztT0JxAcMNTxGqE5tiSOtv67kvFNXFxU="`;
+
+exports[`UUID Generation generate UUID on update 11`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation generate UUID on update 12`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on update 13`] = `"run - jypL6A9K77XzToUe8U2Afjau+bU/nO89teqjUd/QlPo="`;
+
+exports[`UUID Generation generate UUID on update 14`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation generate UUID on update 15`] = `"prepare - lDVfKHjtMwFLlZV9uO9Su16yqP16ZQ+brEN2M+1e9+Q="`;
+
+exports[`UUID Generation generate UUID on update 16`] = `"all - HCkychS63fKh+0MT9YPTY/YmdJJ1q2lnrWx6wWpM5mw="`;
+
+exports[`UUID Generation generate UUID on update 17`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000008\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on update 18`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation generate UUID on update 19`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 20`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation generate UUID on update 21`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation generate UUID on update 22`] = `"prepare - mO7mv1nqqgpUUaR7MHTkYgX/okLsKr8fDX3f4Tz9qSo="`;
+
+exports[`UUID Generation generate UUID on update 23`] = `"all - HCkychS63fKh+0MT9YPTY/YmdJJ1q2lnrWx6wWpM5mw="`;
+
+exports[`UUID Generation generate UUID on update 24`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"name\\":null,\\"toOneSkip_ID\\":null,\\"toOneChild\\":{\\"text\\":\\"abc\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"toManySubChild\\":[{\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000008\\",\\"toOneSkipChild_ID\\":null},{\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000007\\",\\"ID\\":\\"00000000-0000-0000-0000-000000000009\\",\\"toOneSkipChild_ID\\":null}]}}"}]"`;
+
+exports[`UUID Generation generate UUID on update 25`] = `"prepare - vueoGQ1MdUyaLqQbN/avM+LQSH+sxCtrJTtmg2Fp5W0="`;
+
+exports[`UUID Generation generate UUID on update 26`] = `"run - EQ4nBsEn8u+wdXrch+DMo98/E8LIY4QYncmAeiSWSZ8="`;
+
+exports[`UUID Generation generate UUID on update 27`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation generate UUID on update 28`] = `"prepare - TStQ1gvGkMHsVAEhbah2Qy0Biv91kqOjpoBTiB3AjxE="`;
+
+exports[`UUID Generation generate UUID on update 29`] = `"run - GYrdzlX/Mx61l7NMvJKkx7QzjPVserY4s67MPHVimmw="`;
+
+exports[`UUID Generation generate UUID on update 30`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation generate UUID on update 31`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on update 32`] = `"run - s4vKiEUZFBVRiRxkWKV8umtxnjTum8x/E8K6r0ERzNM="`;
+
+exports[`UUID Generation generate UUID on update 33`] = `"{"changes":1,"lastInsertRowid":5}"`;
+
+exports[`UUID Generation generate UUID on update 34`] = `"prepare - pIM6pSaLBqxTx6Z1WlGHuDGCBa4fGf589SCnh7aQNmc="`;
+
+exports[`UUID Generation generate UUID on update 35`] = `"run - 1R7WfYl/74YkQ3gkfRcR5NHlddeqGAgkWOS5YUfz2zQ="`;
+
+exports[`UUID Generation generate UUID on update 36`] = `"{"changes":1,"lastInsertRowid":6}"`;
+
+exports[`UUID Generation generate UUID on update 37`] = `"prepare - lDVfKHjtMwFLlZV9uO9Su16yqP16ZQ+brEN2M+1e9+Q="`;
+
+exports[`UUID Generation generate UUID on update 38`] = `"all - HCkychS63fKh+0MT9YPTY/YmdJJ1q2lnrWx6wWpM5mw="`;
+
+exports[`UUID Generation generate UUID on update 39`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000005\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"text\\":\\"abc\\",\\"toManySubChild\\":[{\\"ID\\":\\"00000000-0000-0000-0000-000000000012\\",\\"text\\":\\"a\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkipChild_ID\\":null},{\\"ID\\":\\"00000000-0000-0000-0000-000000000013\\",\\"text\\":\\"b\\",\\"backlink_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkipChild_ID\\":null}]},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000011\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation generate UUID on update 40`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation generate UUID on update 41`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update on projection root 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation update on projection root 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update on projection root 3`] = `"prepare - 7uS8wsX5C/RDEW1Ir1FaLuJyP2Op2acv6QY9+xD5biE="`;
+
+exports[`UUID Generation update on projection root 4`] = `"run - Q94XLZs5J+WHwxO1NY0GLS/h1SLT/bHxMJOs5bbXXZI="`;
+
+exports[`UUID Generation update on projection root 5`] = `"{"changes":1,"lastInsertRowid":1}"`;
+
+exports[`UUID Generation update on projection root 6`] = `"prepare - Vlatzxu4orWsYRyCFDD4Igr8wa0JEAIXuwOXOluFkp8="`;
+
+exports[`UUID Generation update on projection root 7`] = `"run - WWKFbcj4Aw0iPksqQuga+hdmOs0OH1FfeNRF9fH/N+8="`;
+
+exports[`UUID Generation update on projection root 8`] = `"{"changes":1,"lastInsertRowid":2}"`;
+
+exports[`UUID Generation update on projection root 9`] = `"prepare - UI/5ZzISgY6Ogur1AsUbJeV5Q9ApR0VSXfX+wX7q5tE="`;
+
+exports[`UUID Generation update on projection root 10`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`UUID Generation update on projection root 11`] = `"[{"_json_":"{\\"rID\\":1,\\"rToOneChild\\":{\\"rID\\":2,\\"rText\\":\\"abc\\"},\\"rToOneChild_rID\\":2}"}]"`;
+
+exports[`UUID Generation update on projection root 12`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation update on projection root 13`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 1`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation update root and delete child 2`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 3`] = `"prepare - NdGAnWyR/OhuImRiDgfk5/Jk6kvpInpmdFbtAfmlB6A="`;
+
+exports[`UUID Generation update root and delete child 4`] = `"run - gxFz3OkRGHYGP3LO1CgdBo7qolFpcmq+NeWNKyjQq7E="`;
+
+exports[`UUID Generation update root and delete child 5`] = `"{"changes":1,"lastInsertRowid":3}"`;
+
+exports[`UUID Generation update root and delete child 6`] = `"prepare - TStQ1gvGkMHsVAEhbah2Qy0Biv91kqOjpoBTiB3AjxE="`;
+
+exports[`UUID Generation update root and delete child 7`] = `"run - q7d0xzdA/38YCZmN5Wit+rYMs6o54CpswfRVo94k/+E="`;
+
+exports[`UUID Generation update root and delete child 8`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 9`] = `"prepare - s7F/cgDx97SK2hsCVSslhd4a9l8/e76y/xODFrDteMQ="`;
+
+exports[`UUID Generation update root and delete child 10`] = `"all - vQzayudwlg3T9YCN6krV9NDshF+M54gI3Yw1DpWNk7c="`;
+
+exports[`UUID Generation update root and delete child 11`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"text\\":\\"abc\\"},\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation update root and delete child 12`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation update root and delete child 13`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 14`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`UUID Generation update root and delete child 15`] = `"{"name":":memory:","open":true,"inTransaction":true,"readonly":false,"memory":true}"`;
+
+exports[`UUID Generation update root and delete child 16`] = `"prepare - t3kQbzXyuxzA26R8xPZsJnlqd8QYnkn4skcqpSTZ5ww="`;
+
+exports[`UUID Generation update root and delete child 17`] = `"all - vQzayudwlg3T9YCN6krV9NDshF+M54gI3Yw1DpWNk7c="`;
+
+exports[`UUID Generation update root and delete child 18`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"toOneChild_ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"name\\":null,\\"toOneSkip_ID\\":null,\\"toOneChild\\":{\\"ID\\":\\"00000000-0000-0000-0000-000000000016\\",\\"toManySubChild\\":[]}}"}]"`;
+
+exports[`UUID Generation update root and delete child 19`] = `"prepare - fx2SFSaCKQz1lQisGZbjwjCi6BRck8QRRljZIIFuXOQ="`;
+
+exports[`UUID Generation update root and delete child 20`] = `"run - rG1sQIWBeGpO6HO8IqAU+5ojfz0/4Dycrtl2Uyv1tK8="`;
+
+exports[`UUID Generation update root and delete child 21`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 22`] = `"prepare - 6e1TcqIyFVm5F+/JkajFXr1JvA3WqE7irOYeiXRZx8k="`;
+
+exports[`UUID Generation update root and delete child 23`] = `"run - 0AhQOsQug7CbXIlVs8QHnXRp4+/ajS3zRfxR+alG9MQ="`;
+
+exports[`UUID Generation update root and delete child 24`] = `"{"changes":1,"lastInsertRowid":4}"`;
+
+exports[`UUID Generation update root and delete child 25`] = `"prepare - O2Oksl1ZIcBkyESBE8GFHfbacq/vAJHkL2rXVVGLUmg="`;
+
+exports[`UUID Generation update root and delete child 26`] = `"all - vQzayudwlg3T9YCN6krV9NDshF+M54gI3Yw1DpWNk7c="`;
+
+exports[`UUID Generation update root and delete child 27`] = `"[{"_json_":"{\\"ID\\":\\"00000000-0000-0000-0000-000000000014\\",\\"name\\":null,\\"toOneChild\\":null,\\"toOneChild_ID\\":null,\\"toOneSkip_ID\\":null}"}]"`;
+
+exports[`UUID Generation update root and delete child 28`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`UUID Generation update root and delete child 29`] = `"{"name":":memory:","open":true,"inTransaction":false,"readonly":false,"memory":true}"`;

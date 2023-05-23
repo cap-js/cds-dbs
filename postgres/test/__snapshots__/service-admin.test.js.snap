@@ -1,0 +1,733 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` 1`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[` 2`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[` 3`] = `"{"changes":4}"`;
+
+exports[` 4`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[` 5`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 6`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[` 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[` 8`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[` 9`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 10`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 11`] = `"prepare - dea20IgEo/xE2Oc0Ou+VLX4+C2+Y7uLQenDpmeIy2W0="`;
+
+exports[` 12`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 13`] = `"{"changes":null}"`;
+
+exports[` 14`] = `"prepare - s3g9dvhIw4SnuJvrGK/vnpp/0oWKk0wM67oqQB6G2DM="`;
+
+exports[` 15`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 16`] = `"{"changes":null}"`;
+
+exports[` 17`] = `"prepare - IN5jFiUrNCfr2I7PUt364O/sMFMFX5m/hpkKRa8x0ho="`;
+
+exports[` 18`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 19`] = `"{"changes":null}"`;
+
+exports[` 20`] = `"prepare - B8AsVffykzoVqLp4rx3lTtwJxfg3fFcI6fa9jE/Xgr4="`;
+
+exports[` 21`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 22`] = `"{"changes":null}"`;
+
+exports[` 23`] = `"prepare - qcqEfGIyHq99zZeQg+iEWdl8y9ssrbvealmIZh3a3CM="`;
+
+exports[` 24`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 25`] = `"{"changes":null}"`;
+
+exports[` 26`] = `"prepare - kK64ggRVUSn34IoiNpDBH4Lm5TlrwbAh7RDNZG5OBH4="`;
+
+exports[` 27`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 28`] = `"{"changes":null}"`;
+
+exports[` 29`] = `"prepare - /haNoUkW+9jgIHu1OUTWQp0jZ33+TFha9IZYOnNhJ9Q="`;
+
+exports[` 30`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 31`] = `"{"changes":null}"`;
+
+exports[` 32`] = `"prepare - x184DHdqhvx2v+aMPLc056FdTmkhgIHO73ifRqpoR1M="`;
+
+exports[` 33`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 34`] = `"{"changes":null}"`;
+
+exports[` 35`] = `"prepare - hNM3XWRZiy35iqyDdhIyexQkGHlT//P0pSKOt2NTQIw="`;
+
+exports[` 36`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 37`] = `"{"changes":null}"`;
+
+exports[` 38`] = `"prepare - 1VghD054gt2HVsKKNIQ0mWsd3yRVbBgLFk9IWBkYFUk="`;
+
+exports[` 39`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 40`] = `"{"changes":null}"`;
+
+exports[` 41`] = `"prepare - 4lpop4LVp6aGXZChzjUhtjmqJzuHJ/yV+r7k7gbyOI4="`;
+
+exports[` 42`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 43`] = `"{"changes":null}"`;
+
+exports[` 44`] = `"prepare - EUrUj5dxmNJccwd99WalmnLL0/6ZLjT//q76fAF5JuA="`;
+
+exports[` 45`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 46`] = `"{"changes":null}"`;
+
+exports[` 47`] = `"prepare - 9ayeOZc8mjvV5kX4mLqUOxbysDU19u1sDMMdObliKwU="`;
+
+exports[` 48`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 49`] = `"{"changes":null}"`;
+
+exports[` 50`] = `"prepare - z6rwtlPTWc0bw4H5oAGhqyalc2zi5fsPOiHm3z/Kjtk="`;
+
+exports[` 51`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 52`] = `"{"changes":null}"`;
+
+exports[` 53`] = `"prepare - or5AFv4FcZdrCeaecScAaD85RqqGDzqdG1c1Dq3ejtY="`;
+
+exports[` 54`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 55`] = `"{"changes":null}"`;
+
+exports[` 56`] = `"prepare - fX7QbMJQwyrrz1Nn/sjfJtCqz+bTM/Lesca0xjSvwck="`;
+
+exports[` 57`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 58`] = `"{"changes":null}"`;
+
+exports[` 59`] = `"prepare - 3Ffph9vBzoLOqvabpE+AMmPDzj9JT5W32v5m7eDu2Eg="`;
+
+exports[` 60`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 61`] = `"{"changes":null}"`;
+
+exports[` 62`] = `"prepare - uc26nxdXTFbtkFbrRdF3vKeGJkZBrZEHIYc3lCrteh0="`;
+
+exports[` 63`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 64`] = `"{"changes":null}"`;
+
+exports[` 65`] = `"prepare - AUqDwAxu7ajmGUUiagXjMlnl2ukPT/oXE9XU/cBRGP4="`;
+
+exports[` 66`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 67`] = `"{"changes":null}"`;
+
+exports[` 68`] = `"prepare - GugPC7zQgAVBrtHkGS+x+YqSGdnhqqPj10UPXSmwCqI="`;
+
+exports[` 69`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 70`] = `"{"changes":null}"`;
+
+exports[` 71`] = `"prepare - gm2PzGDLO2P9Vcb5Eg4q/U0WyQQSY5jl5xDh5/tt81A="`;
+
+exports[` 72`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 73`] = `"{"changes":null}"`;
+
+exports[` 74`] = `"prepare - 5X/nZ8Aqpnkv4BkgHS7oKhRByp/KCCzT4MBBwd5iH2Y="`;
+
+exports[` 75`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 76`] = `"{"changes":null}"`;
+
+exports[` 77`] = `"prepare - xY89qE+iQsOUrpI8IGFZORn6u4v5RQ7rmiKG3wDzxY0="`;
+
+exports[` 78`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 79`] = `"{"changes":null}"`;
+
+exports[` 80`] = `"prepare - 6RnHmwnsAjS20GD34D9h3pUDkrPqpHSaoBb3D9CPURA="`;
+
+exports[` 81`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 82`] = `"{"changes":null}"`;
+
+exports[` 83`] = `"prepare - jmJN+F/mzXBv+UbQKGdA/c5qvjcOViC4WSxXpTD2MIk="`;
+
+exports[` 84`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 85`] = `"{"changes":null}"`;
+
+exports[` 86`] = `"prepare - F6pKk2mNeuI9zxOTspBU1zH/3WAW4rGod0tawLSTzmY="`;
+
+exports[` 87`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 88`] = `"{"changes":null}"`;
+
+exports[` 89`] = `"prepare - swvuyZ6grjy3+H+VRs8MJjYpG0yT9OYxWkdX7kYAH20="`;
+
+exports[` 90`] = `"run - olad8808d/XRMHJS7T+p13dyVVLgVJiTwu2s4YaFZkU="`;
+
+exports[` 91`] = `"{"changes":null}"`;
+
+exports[` 92`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 93`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 94`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[` 95`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[` 96`] = `"{"changes":4}"`;
+
+exports[` 97`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[` 98`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 99`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[` 100`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[` 101`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[` 102`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[` 103`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[` 104`] = `"prepare - v+JL84qAanJaLhi+Mia6N5ZLGXzrQBcIuENvLWWD3fw="`;
+
+exports[` 105`] = `"run - j5KjY7yxNEbN8bc1nyv6XrTbKIkEsgId4EZ419nzbAM="`;
+
+exports[` 106`] = `"{"changes":11}"`;
+
+exports[` 107`] = `"prepare - 3MeRza3+VYuNzrXf3PgQJpb0AwyRtb8ANHa75/ZVSeA="`;
+
+exports[` 108`] = `"run - 2udtMFgPCTPJ8yoxG2kqd/MHe4tbrRfvNiBZPdS4Hc8="`;
+
+exports[` 109`] = `"{"changes":6}"`;
+
+exports[` 110`] = `"prepare - N3b+zGzIpBpuixOLvKnvot/UU9NUVvVNC7NykKaKsuI="`;
+
+exports[` 111`] = `"run - a56uwAmUzz7SONKOtZHK9+SGPu91Lwm2xSK2KTO6UzE="`;
+
+exports[` 112`] = `"{"changes":1}"`;
+
+exports[` 113`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[` 114`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 1`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 2`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 3`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 4`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 5`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 6`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 8`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 9`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 10`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 11`] = `"prepare - +4UERU4WH2NxsWP2QuU8+l67ZFmdmzPH/4H7DZ82ves="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 12`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 13`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 14`] = `"prepare - +dhICkZNs5+Vmjjln02e60zjGlTecRL8N6LCeKH4K6Y="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 15`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 16`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 17`] = `"prepare - Few2H3EH2Opi1OSm6pWgpcqyAAp2yPrFG5sfqLLw0Fc="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 18`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 19`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 20`] = `"prepare - gv2KRoMrmgmA46jr1evlTys35bGpwynRuJCQodGHeP4="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 21`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 22`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 23`] = `"prepare - eyzDv48YT16xHZ6HwKfSy7hUTcmC1Y0vrlJkNKRe6ks="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 24`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 25`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 26`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 27`] = `"run - 9u09rvoTnP/WXz1O77UMN9K18L8VQn2wnzhYpSNxh5Y="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 28`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 29`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 30`] = `"run - 3AFFEW2oQb2WxN9H6pGJAoQw3dvPGPOv5AtbwQxqZMw="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 31`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 32`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 33`] = `"run - jh9i2KOPUZLHIytNFHNaPPea24A4VVc4y6V3J/o1e90="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 34`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 35`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 36`] = `"run - 9NlDOll6XwrWyuE3OatAsb17jJmpMX/tgsMhW5XWhPA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 37`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 38`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 39`] = `"run - /yk42dmgzhEEdhwulqoJHuzbmHUM8ZJoGZQRz1mnfx0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 40`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 41`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 42`] = `"run - 11e3rBwuhLsH7sNaqyJ2ZSUntwPh95V84+Ue++tsOgU="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 43`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 44`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 45`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 46`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 47`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 48`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 49`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 50`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 51`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 52`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 53`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 54`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 55`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 56`] = `"prepare - v+JL84qAanJaLhi+Mia6N5ZLGXzrQBcIuENvLWWD3fw="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 57`] = `"run - j5KjY7yxNEbN8bc1nyv6XrTbKIkEsgId4EZ419nzbAM="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 58`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 59`] = `"prepare - 3MeRza3+VYuNzrXf3PgQJpb0AwyRtb8ANHa75/ZVSeA="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 60`] = `"run - 2udtMFgPCTPJ8yoxG2kqd/MHe4tbrRfvNiBZPdS4Hc8="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 61`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 62`] = `"prepare - N3b+zGzIpBpuixOLvKnvot/UU9NUVvVNC7NykKaKsuI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 63`] = `"run - a56uwAmUzz7SONKOtZHK9+SGPu91Lwm2xSK2KTO6UzE="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 64`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 65`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 66`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 67`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 68`] = `"run - HXmm6rAwP0wJoJLC6PCJ+ySamqNSgss9lTuxZP5W3LQ="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 69`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 70`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 71`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 72`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 73`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 74`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 75`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 76`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 77`] = `"prepare - Q5XsmIwgsV7Mi0EqAyxRE85uW0omVVSujENEXYZSQPQ="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 78`] = `"run - yvzhUTCzB8PAS4UGLPRHAbWh8UrbL5D4H6PCglnjH7Y="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 79`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 80`] = `"prepare - fH54x16CgesiadA5qhEijps3mcYsuWGJhm/sHfZHtMk="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 81`] = `"all - Jaa73H3JPMs+ZnXkolgMDpvt5uc+G0uZg/O9I9N5UCY="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 82`] = `"[{"_json_":{"ID":"00000000-0000-0000-0000-000000000003","createdAt":"2000-01-01T00:00:00.000Z","createdBy":"bob","modifiedAt":"2000-01-01T00:00:00.000Z","modifiedBy":"bob","name":"Schlappe Seppel","abv":16.2,"ibu":10,"brewery_ID":null}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 83`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 84`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 85`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 86`] = `"run - HXmm6rAwP0wJoJLC6PCJ+ySamqNSgss9lTuxZP5W3LQ="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 87`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 88`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 89`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 90`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 91`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 92`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 93`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 94`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 95`] = `"prepare - fH54x16CgesiadA5qhEijps3mcYsuWGJhm/sHfZHtMk="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 96`] = `"all - Jaa73H3JPMs+ZnXkolgMDpvt5uc+G0uZg/O9I9N5UCY="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 97`] = `"[{"_json_":{"ID":"00000000-0000-0000-0000-000000000003","createdAt":"2000-01-01T00:00:00.000Z","createdBy":"bob","modifiedAt":"2000-01-01T00:00:00.000Z","modifiedBy":"bob","name":"Schlappe Seppel","abv":16.2,"ibu":10,"brewery_ID":null}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 98`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 99`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 100`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 101`] = `"run - kED7fM+7eCYYmB2q+Hg2S3Do8isIHNd2wi412ha5FEo="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 102`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 103`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 104`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 105`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 106`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 107`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 108`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 109`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 110`] = `"prepare - fM7NAKWTaB1gLwbLQTT/KciCaH8aS092nAiZrCDEZ/A="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 111`] = `"all - WnV6L06wwbKbrr9nI3OXvxV+g/7qnLnULe7atlDR2UU="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 112`] = `"[{"_json_":{"n":1}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 113`] = `"prepare - d6lsULvssgmFc/Pvq/gdLyjJX3oRJ9kXMZc8Xccx4tI="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 114`] = `"all - Jaa73H3JPMs+ZnXkolgMDpvt5uc+G0uZg/O9I9N5UCY="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 115`] = `"[{"_json_":{"n":1}}]"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 116`] = `"prepare - XWpa9O4vL4XNxniYPfJ1ek4BPLIsPAIU0nqVlRBPyIs="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 117`] = `"run - WnV6L06wwbKbrr9nI3OXvxV+g/7qnLnULe7atlDR2UU="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 118`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 119`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData admin: CREATE odata: entityset Beers -> sql: insert into beers 120`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 1`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 2`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 3`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 4`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 5`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 6`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 8`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 9`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 10`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 11`] = `"prepare - +4UERU4WH2NxsWP2QuU8+l67ZFmdmzPH/4H7DZ82ves="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 12`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 13`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 14`] = `"prepare - +dhICkZNs5+Vmjjln02e60zjGlTecRL8N6LCeKH4K6Y="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 15`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 16`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 17`] = `"prepare - Few2H3EH2Opi1OSm6pWgpcqyAAp2yPrFG5sfqLLw0Fc="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 18`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 19`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 20`] = `"prepare - gv2KRoMrmgmA46jr1evlTys35bGpwynRuJCQodGHeP4="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 21`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 22`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 23`] = `"prepare - eyzDv48YT16xHZ6HwKfSy7hUTcmC1Y0vrlJkNKRe6ks="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 24`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 25`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 26`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 27`] = `"run - 9u09rvoTnP/WXz1O77UMN9K18L8VQn2wnzhYpSNxh5Y="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 28`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 29`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 30`] = `"run - 3AFFEW2oQb2WxN9H6pGJAoQw3dvPGPOv5AtbwQxqZMw="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 31`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 32`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 33`] = `"run - jh9i2KOPUZLHIytNFHNaPPea24A4VVc4y6V3J/o1e90="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 34`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 35`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 36`] = `"run - 9NlDOll6XwrWyuE3OatAsb17jJmpMX/tgsMhW5XWhPA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 37`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 38`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 39`] = `"run - /yk42dmgzhEEdhwulqoJHuzbmHUM8ZJoGZQRz1mnfx0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 40`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 41`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 42`] = `"run - 11e3rBwuhLsH7sNaqyJ2ZSUntwPh95V84+Ue++tsOgU="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 43`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 44`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 45`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 46`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 47`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 48`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 49`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 50`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 51`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 52`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 53`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 54`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 55`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 56`] = `"prepare - v+JL84qAanJaLhi+Mia6N5ZLGXzrQBcIuENvLWWD3fw="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 57`] = `"run - j5KjY7yxNEbN8bc1nyv6XrTbKIkEsgId4EZ419nzbAM="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 58`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 59`] = `"prepare - 3MeRza3+VYuNzrXf3PgQJpb0AwyRtb8ANHa75/ZVSeA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 60`] = `"run - 2udtMFgPCTPJ8yoxG2kqd/MHe4tbrRfvNiBZPdS4Hc8="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 61`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 62`] = `"prepare - N3b+zGzIpBpuixOLvKnvot/UU9NUVvVNC7NykKaKsuI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 63`] = `"run - a56uwAmUzz7SONKOtZHK9+SGPu91Lwm2xSK2KTO6UzE="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 64`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 65`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the admin service 66`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 1`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 2`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 3`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 4`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 5`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 6`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 7`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 8`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 9`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 10`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 11`] = `"prepare - +4UERU4WH2NxsWP2QuU8+l67ZFmdmzPH/4H7DZ82ves="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 12`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 13`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 14`] = `"prepare - +dhICkZNs5+Vmjjln02e60zjGlTecRL8N6LCeKH4K6Y="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 15`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 16`] = `"[{"_json_":{"ID":"9c937100-d459-491f-a72d-81b2929af10f","beers":[]}},{"_json_":{"ID":"fa6b959e-3a01-40ef-872e-6030ee4de4e5","beers":[]}},{"_json_":{"ID":"6832ba00-c20e-48b4-a685-dca4aff2ca13","beers":[]}},{"_json_":{"ID":"d265037f-4996-4195-a1fb-b0a8ab5c6f30","beers":[]}},{"_json_":{"ID":"4aeebbed-90c2-4bdd-aa70-d8eecb8eaebb","beers":[]}},{"_json_":{"ID":"0465e9ca-6255-4f5c-b8ba-7439531f8d28","beers":[]}}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 17`] = `"prepare - Few2H3EH2Opi1OSm6pWgpcqyAAp2yPrFG5sfqLLw0Fc="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 18`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 19`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 20`] = `"prepare - gv2KRoMrmgmA46jr1evlTys35bGpwynRuJCQodGHeP4="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 21`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 22`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 23`] = `"prepare - eyzDv48YT16xHZ6HwKfSy7hUTcmC1Y0vrlJkNKRe6ks="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 24`] = `"run - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 25`] = `"{"changes":0}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 26`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 27`] = `"run - 9u09rvoTnP/WXz1O77UMN9K18L8VQn2wnzhYpSNxh5Y="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 28`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 29`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 30`] = `"run - 3AFFEW2oQb2WxN9H6pGJAoQw3dvPGPOv5AtbwQxqZMw="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 31`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 32`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 33`] = `"run - jh9i2KOPUZLHIytNFHNaPPea24A4VVc4y6V3J/o1e90="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 34`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 35`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 36`] = `"run - 9NlDOll6XwrWyuE3OatAsb17jJmpMX/tgsMhW5XWhPA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 37`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 38`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 39`] = `"run - /yk42dmgzhEEdhwulqoJHuzbmHUM8ZJoGZQRz1mnfx0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 40`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 41`] = `"prepare - Lg0H6LqKljgK9y+8G6G0wTc68dMajgu9krV7fE56fAA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 42`] = `"run - 11e3rBwuhLsH7sNaqyJ2ZSUntwPh95V84+Ue++tsOgU="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 43`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 44`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 45`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 46`] = `"prepare - H7m2PZeyWzjlTzoUWOisqLealQg6cI9qqJZHDeDqI4w="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 47`] = `"run - P9iA0HNu9KZvHIzE8tL4XcmsL63/YglWqQi9fNY1s0s="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 48`] = `"{"changes":4}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 49`] = `"exec - aXqLF8DN5Ixrq4hq8ecauxSxP52UJ1AL+YbW/ZrFqis="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 50`] = `"{"command":"SET","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 51`] = `"prepare - +Hu6LPqebCXXclAjh4/Lyh+Z5UpEvXcyyeH0fjbEml0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 52`] = `"all - dCO5yE5xNzuaUcJ/VNj+Q85B/d2k7Wc4cHmpfUZSmro="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 53`] = `"[{"collname":"en-x-icu"}]"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 54`] = `"exec - p5WzKUf1AZX+BwSxZE+Lmk8LORnkKWtlj23ZCCb6QJI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 55`] = `"{"command":"BEGIN","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 56`] = `"prepare - v+JL84qAanJaLhi+Mia6N5ZLGXzrQBcIuENvLWWD3fw="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 57`] = `"run - j5KjY7yxNEbN8bc1nyv6XrTbKIkEsgId4EZ419nzbAM="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 58`] = `"{"changes":11}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 59`] = `"prepare - 3MeRza3+VYuNzrXf3PgQJpb0AwyRtb8ANHa75/ZVSeA="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 60`] = `"run - 2udtMFgPCTPJ8yoxG2kqd/MHe4tbrRfvNiBZPdS4Hc8="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 61`] = `"{"changes":6}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 62`] = `"prepare - N3b+zGzIpBpuixOLvKnvot/UU9NUVvVNC7NykKaKsuI="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 63`] = `"run - a56uwAmUzz7SONKOtZHK9+SGPu91Lwm2xSK2KTO6UzE="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 64`] = `"{"changes":1}"`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 65`] = `"exec - lR5wERrlxCGxy2UdW3UXzY/MKf0HDvfbYEbOCrUifT0="`;
+
+exports[`OData to Postgres dialect OData: List of entities exposed by the service 66`] = `"{"command":"COMMIT","rowCount":null,"oid":null,"rows":[],"fields":[],"_types":{"_types":{"arrayParser":{},"builtins":{"BOOL":16,"BYTEA":17,"CHAR":18,"INT8":20,"INT2":21,"INT4":23,"REGPROC":24,"TEXT":25,"OID":26,"TID":27,"XID":28,"CID":29,"JSON":114,"XML":142,"PG_NODE_TREE":194,"SMGR":210,"PATH":602,"POLYGON":604,"CIDR":650,"FLOAT4":700,"FLOAT8":701,"ABSTIME":702,"RELTIME":703,"TINTERVAL":704,"CIRCLE":718,"MACADDR8":774,"MONEY":790,"MACADDR":829,"INET":869,"ACLITEM":1033,"BPCHAR":1042,"VARCHAR":1043,"DATE":1082,"TIME":1083,"TIMESTAMP":1114,"TIMESTAMPTZ":1184,"INTERVAL":1186,"TIMETZ":1266,"BIT":1560,"VARBIT":1562,"NUMERIC":1700,"REFCURSOR":1790,"REGPROCEDURE":2202,"REGOPER":2203,"REGOPERATOR":2204,"REGCLASS":2205,"REGTYPE":2206,"UUID":2950,"TXID_SNAPSHOT":2970,"PG_LSN":3220,"PG_NDISTINCT":3361,"PG_DEPENDENCIES":3402,"TSVECTOR":3614,"TSQUERY":3615,"GTSVECTOR":3642,"REGCONFIG":3734,"REGDICTIONARY":3769,"JSONB":3802,"REGNAMESPACE":4089,"REGROLE":4096}},"text":{},"binary":{}},"RowCtor":null,"rowAsArray":false}"`;

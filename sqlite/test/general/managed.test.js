@@ -43,6 +43,7 @@ describe('Managed thingies', () => {
 
       const { modifiedAt } = result[0]
 
+      jest.advanceTimersByTime(1000)
       const now = new Date()
       const date1 = new Date(modifiedAt)
 
@@ -67,6 +68,7 @@ describe('Managed thingies', () => {
     const { createdAt, modifiedAt } = resPost.data
     expect(createdAt).toEqual(modifiedAt)
 
+    jest.advanceTimersByTime(1000)
     const now = new Date()
     const date1 = new Date(createdAt)
 
@@ -77,6 +79,7 @@ describe('Managed thingies', () => {
   test('on update is filled', async () => {
     const resPost = await POST('/test/foo', { ID: 5 })
 
+    jest.advanceTimersByTime(1000)
     const resUpdate = await PUT('/test/foo(5)', {})
     expect(resUpdate.status).toBe(200)
 

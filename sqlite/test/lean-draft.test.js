@@ -11,7 +11,6 @@ cds.requires.auth.users = {
 }
 
 const { expect, GET, POST, PATCH, DELETE } = cds.test('run', '@capire/sflight')
-const sleep = require('util').promisify(setTimeout)
 
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
@@ -432,7 +431,8 @@ describe('draft tests', () => {
     expect(res.data.value.length).to.be.eq(0)
 
     cds.env.drafts = { cancellationTimeout: 0.000001 }
-    await sleep(1000)
+    // Jump ahead in time and safe a second of sleeping
+    jest.advanceTimersByTime(1000)
 
     res = await GET(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)/DraftAdministrativeData`,
