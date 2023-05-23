@@ -103,7 +103,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       from.args.forEach(a => inferTarget(a, querySources))
     } else if (from.SELECT) {
       infer(from, model) // we need the .elements in the sources
-      querySources[from.as] = from
+      querySources[from.as || ''] = from
     } else if (typeof from === 'string') {
       querySources[/([^.]*)$/.exec(from)[0]] = getDefinition(from, model)
     } else if (from.SET) {
