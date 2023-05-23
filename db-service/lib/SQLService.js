@@ -224,9 +224,11 @@ const _unquirked = q => {
   return q
 }
 
-const sqls = new class extends SQLService {
-  get factory() { return null }
-}
+const sqls = new (class extends SQLService {
+  get factory() {
+    return null
+  }
+})()
 cds.extend(cds.ql.Query).with(
   class {
     forSQL() {
