@@ -11,7 +11,7 @@
     "@sap/cds": ">=6.8.0"
   },
   "cds": {
-    "requires":{
+    "requires": {
       "kinds": {
         "sql": {
           "[production]": {
