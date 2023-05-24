@@ -88,6 +88,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
+      Timestamp: e => e, // required as Timestamp inherits from DateTime and uses DateTime converter if omitted
     }
 
     static OutputConverters = {
@@ -102,6 +103,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
+      Timestamp: e => e, // required as Timestamp inherits from DateTime and uses DateTime converter if omitted
     }
 
     // Used for SQL function expressions
