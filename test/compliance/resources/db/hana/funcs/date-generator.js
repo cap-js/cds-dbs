@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const hana = require('./hana')
+const normalizeTimestamp = require('@sap/cds/libx/_runtime/common/utils/normalizeTimestamp')
 
 const allDates = []
 for (let year = 1970; year < 9999; year++) {
@@ -27,8 +28,8 @@ csv.on('ready', async () => {
   try {
     const columns = ['a', 'b', 'years', 'months', 'days', 'seconds', 'nano100']
     const funcs = {
-      a: () => `'${allDates[next(1)].toISOString()}'`,
-      b: () => `'${allDates[next(1)].toISOString()}'`,
+      a: () => `'${normalizeTimestamp(allDates[next(1)])}'`,
+      b: () => `'${normalizeTimestamp(allDates[next(1)])}'`,
       years: () => 'YEARS_BETWEEN(:a,:b)',
       months: () => 'MONTHS_BETWEEN(:a,:b)',
       days: () => 'DAYS_BETWEEN(:a,:b)',

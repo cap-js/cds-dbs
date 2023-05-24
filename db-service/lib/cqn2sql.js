@@ -1,6 +1,7 @@
 const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const normalizeTimestamp = require('@sap/cds/libx/_runtime/common/utils/normalizeTimestamp')
 
 const DEBUG = (() => {
   let DEBUG = cds.debug('sql-json')
@@ -488,7 +489,7 @@ class CQN2SQLRenderer {
         return val // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
+        if (val instanceof Date) return `'${normalizeTimestamp(val)}'`
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
@@ -560,8 +561,7 @@ class CQN2SQLRenderer {
           managed = this.string(this.context.user.id)
           break
         case '$now':
-          // REVISIT fix for date precision
-          managed = this.string(this.context.timestamp.toISOString())
+          managed = normalizeTimestamp(this.context.timestamp)
           break
         default:
           managed = undefined
@@ -581,7 +581,7 @@ class CQN2SQLRenderer {
     })
   }
 
-  defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+  defaultValue(defaultValue = normalizeTimestamp(this.context.timestamp)) {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
 }

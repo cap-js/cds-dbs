@@ -99,7 +99,6 @@ class SQLiteService extends SQLService {
       Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
-      // REVISIT: Timestamp should not loos precision
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,

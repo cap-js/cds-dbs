@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client } = require('pg')
 const cds = require('@sap/cds/lib')
 const crypto = require('crypto')
+const normalizeTimestamp = require('@sap/cds/libx/_runtime/common/utils/normalizeTimestamp')
 
 class PostgresService extends SQLService {
   init() {
@@ -260,7 +261,7 @@ class PostgresService extends SQLService {
       else return x
     }
 
-    defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+    defaultValue(defaultValue = normalizeTimestamp(this.context.timestamp)) {
       return this.string(`${defaultValue}`)
     }
 

@@ -1,3 +1,4 @@
+const normalizeTimestamp = require('@sap/cds/libx/_runtime/common/utils/normalizeTimestamp.js')
 const cds = require('../../../test/cds.js')
 
 const { POST, PUT } = cds.test(__dirname, 'model.cds')
@@ -109,7 +110,7 @@ describe('Managed thingies', () => {
       result = await tx.run(SELECT.from('test.foo').where('ID in', [4711, 4712]))
     } finally {
       await tx.rollback()
-      expect(result[0].createdAt).toEqual(tx.context.timestamp.toISOString())
+      expect(result[0].createdAt).toEqual(normalizeTimestamp(tx.context.timestamp))
       expect(result[0].createdAt).toEqual(result[1].createdAt)
       expect(result[0].createdBy).toEqual('tom')
       expect(result[0].createdBy).toEqual(result[1].createdBy)
