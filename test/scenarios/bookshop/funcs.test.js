@@ -1,7 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
-
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test(bookshop)
 
