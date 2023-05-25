@@ -531,7 +531,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' /\\]/.test(s)) return '"' + s + '"'
+    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
