@@ -207,6 +207,8 @@ const _target_name4 = q => {
     q.DELETE?.from ||
     q.CREATE?.entity ||
     q.DROP?.entity ||
+    q.STREAM?.from ||
+    q.STREAM?.into ||
     undefined
   if (target?.SET?.op === 'union') throw new cds.error('”UNION” based queries are not supported')
   if (!target?.ref) return target
