@@ -260,7 +260,7 @@ class PostgresService extends SQLService {
       else return x
     }
 
-    defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+    defaultValue(defaultValue = this.context.timestamp.toISOString().slice(0, -1) + '0000Z') {
       return this.string(`${defaultValue}`)
     }
 

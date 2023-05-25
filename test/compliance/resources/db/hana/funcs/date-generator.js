@@ -27,8 +27,8 @@ csv.on('ready', async () => {
   try {
     const columns = ['a', 'b', 'years', 'months', 'days', 'seconds', 'nano100']
     const funcs = {
-      a: () => `'${allDates[next(1)].toISOString()}'`,
-      b: () => `'${allDates[next(1)].toISOString()}'`,
+      a: () => `'${allDates[next(1)].toISOString().slice(0, -1) + '0000Z'}'`,
+      b: () => `'${allDates[next(1)].toISOString().slice(0, -1) + '0000Z'}'`,
       years: () => 'YEARS_BETWEEN(:a,:b)',
       months: () => 'MONTHS_BETWEEN(:a,:b)',
       days: () => 'DAYS_BETWEEN(:a,:b)',
