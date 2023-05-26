@@ -30,8 +30,9 @@ class PostgresService extends SQLService {
           user: cr.username || cr.user,
           password: cr.password,
           // Special handling for:
-          // SAP Cloud Platform - Cloud Foundry - PostgreSQL Hyperscaler Service
+          // BTP - Cloud Foundry - PostgreSQL Hyperscaler Service
           host: cr.hostname || cr.host,
+          port: cr.port || process.env.PGPORT || 5432,
           database: cr.dbname || cr.database,
           schema: cr.schema,
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
