@@ -560,7 +560,6 @@ class CQN2SQLRenderer {
           managed = this.string(this.context.user.id)
           break
         case '$now':
-          // REVISIT fix for date precision
           managed = this.string(this.context.timestamp.toISOString().slice(0, -1) + '0000Z')
           break
         default:
