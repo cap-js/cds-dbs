@@ -488,7 +488,7 @@ class CQN2SQLRenderer {
         return val // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
+        if (val instanceof Date) return `'${val.toISOString().slice(0, -1) + '0000Z'}'`
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
@@ -560,8 +560,7 @@ class CQN2SQLRenderer {
           managed = this.string(this.context.user.id)
           break
         case '$now':
-          // REVISIT fix for date precision
-          managed = this.string(this.context.timestamp.toISOString())
+          managed = this.string(this.context.timestamp.toISOString().slice(0, -1) + '0000Z')
           break
         default:
           managed = undefined
@@ -581,7 +580,7 @@ class CQN2SQLRenderer {
     })
   }
 
-  defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+  defaultValue(defaultValue = this.context.timestamp.toISOString().slice(0, -1) + '0000Z') {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
 }

@@ -40,10 +40,10 @@ const StandardFunctions = {
   minute: x => `cast( strftime('%M',${x}) as Integer )`,
   second: x => `cast( strftime('%S',${x}) as Integer )`,
 
-  fractionalseconds: x => `cast( strftime('%f',${x}) as Integer )`,
+  fractionalseconds: x => `cast( strftime('%f0000',${x}) as Integer )`,
 
-  maxdatetime: () => '9999-12-31 23:59:59.999',
-  mindatetime: () => '0001-01-01 00:00:00.000',
+  maxdatetime: () => '9999-12-31 23:59:59.9999999',
+  mindatetime: () => '0001-01-01 00:00:00.0000000',
 
   // odata spec defines the date time offset type as a normal ISO time stamp
   // Where the timezone can either be 'Z' (for UTC) or [+|-]xx:xx for the time offset
@@ -99,9 +99,9 @@ const HANAFunctions = {
   ) + (
     case
       when ( julianday(${y}) < julianday(${x}) ) then
-        (cast( strftime('%H%M%S%f', ${y}) as Integer ) < cast( strftime('%H%M%S%f', ${x}) as Integer ))
+        (cast( strftime('%H%M%S%f0000', ${y}) as Integer ) < cast( strftime('%H%M%S%f0000', ${x}) as Integer ))
       else
-        (cast( strftime('%H%M%S%f', ${y}) as Integer ) > cast( strftime('%H%M%S%f', ${x}) as Integer )) * -1
+        (cast( strftime('%H%M%S%f0000', ${y}) as Integer ) > cast( strftime('%H%M%S%f0000', ${x}) as Integer )) * -1
     end
   )`,
 
@@ -130,9 +130,9 @@ const HANAFunctions = {
       (
         case
           when ( cast( strftime('%Y%m', ${y}) as Integer ) < cast( strftime('%Y%m', ${x}) as Integer ) ) then
-            (cast( strftime('%d%H%M%S%f', ${y}) as Integer ) > cast( strftime('%d%H%M%S%f', ${x}) as Integer ))
+            (cast( strftime('%d%H%M%S%f0000', ${y}) as Integer ) > cast( strftime('%d%H%M%S%f0000', ${x}) as Integer ))
           else
-            (cast( strftime('%d%H%M%S%f', ${y}) as Integer ) < cast( strftime('%d%H%M%S%f', ${x}) as Integer )) * -1
+            (cast( strftime('%d%H%M%S%f0000', ${y}) as Integer ) < cast( strftime('%d%H%M%S%f0000', ${x}) as Integer )) * -1
         end
       )
     )

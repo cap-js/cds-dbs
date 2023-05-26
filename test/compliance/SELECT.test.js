@@ -51,7 +51,7 @@ describe('SELECT', () => {
         assert.equal(row.date, '0001-01-01', `Ensure correct conversion. ${i}`)
         assert.equal(row.time, '01:01:01', `Ensure correct conversion. ${i}`)
         assert.equal(row.datetime, '0001-01-01T01:01:01Z', `Ensure correct conversion. ${i}`)
-        assert.equal(row.timestamp, '0001-01-01T01:01:01.100Z', `Ensure correct conversion. ${i}`)
+        assert.equal(row.timestamp, '0001-01-01T01:01:01.1000000Z', `Ensure correct conversion. ${i}`)
       })
     })
 
