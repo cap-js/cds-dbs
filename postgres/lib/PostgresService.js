@@ -30,8 +30,9 @@ class PostgresService extends SQLService {
           user: cr.username || cr.user,
           password: cr.password,
           // Special handling for:
-          // SAP Cloud Platform - Cloud Foundry - PostgreSQL Hyperscaler Service
+          // BTP - Cloud Foundry - PostgreSQL Hyperscaler Service
           host: cr.hostname || cr.host,
+          port: cr.port || process.env.PGPORT || 5432,
           database: cr.dbname || cr.database,
           schema: cr.schema,
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
@@ -260,7 +261,7 @@ class PostgresService extends SQLService {
       else return x
     }
 
-    defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+    defaultValue(defaultValue = this.context.timestamp.toISOString().slice(0, -1) + '0000Z') {
       return this.string(`${defaultValue}`)
     }
 
@@ -310,9 +311,9 @@ class PostgresService extends SQLService {
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
       struct: e => `json(${e})`,
       array: e => `json(${e})`,
     }

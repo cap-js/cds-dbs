@@ -78,16 +78,14 @@ class DatabaseService extends cds.Service {
           return _set(
             this,
             '$valid.from',
-            ctx._?.['VALID-FROM']?.toISOString() || ctx._?.['VALID-AT']?.toISOString() || '1970-01-01T00:00:00Z',
+            ctx._?.['VALID-FROM'] ?? ctx._?.['VALID-AT'] ?? '1970-01-01T00:00:00.0000000Z',
           )
         },
         get '$valid.to'() {
           return _set(
             this,
             '$valid.to',
-            ctx._?.['VALID-TO']?.toISOString() ||
-              _validTo4(ctx._?.['VALID-AT'])?.toISOString() ||
-              '9999-11-11T22:22:22Z',
+            ctx._?.['VALID-TO'] ?? _validTo4(ctx._?.['VALID-AT']) ?? '9999-11-11T22:22:22.0000000Z',
           )
         },
       })

@@ -109,7 +109,7 @@ describe('Managed thingies', () => {
       result = await tx.run(SELECT.from('test.foo').where('ID in', [4711, 4712]))
     } finally {
       await tx.rollback()
-      expect(result[0].createdAt).toEqual(tx.context.timestamp.toISOString())
+      expect(result[0].createdAt).toEqual(tx.context.timestamp.toISOString().slice(0, -1) + '0000Z')
       expect(result[0].createdAt).toEqual(result[1].createdAt)
       expect(result[0].createdBy).toEqual('tom')
       expect(result[0].createdBy).toEqual(result[1].createdBy)
