@@ -4,6 +4,21 @@ const { Readable } = require('stream')
 
 cds.test(__dirname, 'model.cds')
 
+const readStream = (id, done) => {
+  const { Images } = cds.entities('test')
+  const file = path.join(__dirname, 'samples/out.jpg')
+  STREAM.from(Images, { ID: id })
+    .column('data')
+    .then(stream =>
+      stream.pipe(
+        fs.createWriteStream(file).once('finish', () => {
+          expect(fs.statSync(file).size).toEqual(7891)
+          fs.unlink(file, done)
+        }),
+      ),
+    )
+}
+
 describe('cds.stream', () => {
   beforeAll(async () => {
     const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
@@ -137,21 +152,6 @@ describe('cds.stream', () => {
       )
   })
 })
-
-const readStream = (id, done) => {
-  const { Images } = cds.entities('test')
-  const file = path.join(__dirname, 'samples/out.jpg')
-  STREAM.from(Images, { ID: id })
-    .column('data')
-    .then(stream =>
-      stream.pipe(
-        fs.createWriteStream(file).once('finish', () => {
-          expect(fs.statSync(file).size).toEqual(7891)
-          fs.unlink(file, done)
-        }),
-      ),
-    )
-}
 
 describe('new STREAM API', () => {
   beforeAll(async () => {

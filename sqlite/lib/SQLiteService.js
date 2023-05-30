@@ -88,7 +88,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
     }
 
     static OutputConverters = {
@@ -104,7 +104,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
     }
 
     // Used for SQL function expressions
@@ -151,7 +151,7 @@ class SQLiteService extends SQLService {
     if (req.query.STREAM.into) {
       const stream = entries[0]
       stream.on('error', () => stream.removeAllListeners('error'))
-      values.unshift(await convStrm.buffer(stream))
+      values.unshift((await convStrm.buffer(stream)).toString('base64'))
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
@@ -162,7 +162,7 @@ class SQLiteService extends SQLService {
     const val = Object.values(result[0])[0]
     if (val === null) return val
     const stream_ = new Readable()
-    stream_.push(val)
+    stream_.push(Buffer.from(val, 'base64'))
     stream_.push(null)
     return stream_
   }
