@@ -279,7 +279,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
         else {
-          if (definition.type === 'cds.LargeBinary') throw cds.error(`Large Binary Objects must be streamed`)
           setElementOnColumns(col, definition)
         }
       })
@@ -669,7 +668,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
-          if (v.type !== 'cds.LargeBinary') queryElements[k] = v
+          if (v.type !== 'cds.LargeBinary' || v['@Core.MediaType'] === undefined) queryElements[k] = v
         })
         return
       }

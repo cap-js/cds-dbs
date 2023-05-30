@@ -45,6 +45,7 @@ entity Books.twin {
   key ID : Integer;
   author : Association to Authors;
   stock  : Integer;
+  nonStreamableImage: cds.LargeBinary; // w/o a @Core.MediaType it is not a streamable item
 }
 
 entity DeepRecursiveAssoc {
