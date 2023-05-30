@@ -367,7 +367,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       // on conditions of joins
       const skipAliasedFkSegmentsOfNameStack = []
       let pseudoPath = false
-       // if any path step points to an artifact with `@cds.persistence.skip`
+      // if any path step points to an artifact with `@cds.persistence.skip`
       // we must ignore the element from the queries elements
       let isPersisted = true
       column.ref.forEach((step, i) => {
