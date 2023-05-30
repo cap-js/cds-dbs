@@ -1,5 +1,6 @@
 namespace edge.hana.functions;
 
+@compliance.ignore
 entity timestamps {
     a       : Timestamp;
     b       : Timestamp;

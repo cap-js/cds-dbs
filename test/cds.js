@@ -93,7 +93,7 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   global.before(async () => {
     if (ret.data._autoIsolation && !ret.data._deployed) {
-      ret.data._deployed = cds.deploy(cds.options.from[0])
+      ret.data._deployed = cds.deploy(cds.options?.from?.[0] || '*')
       await ret.data._deployed
     }
   })
