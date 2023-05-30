@@ -49,7 +49,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
 
   const transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.cmd || Object.keys(inferred)[0]
-  if (inferred.INSERT || inferred.UPSERT) {
+  if (inferred.INSERT || inferred.UPSERT || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
     const { as } = transformedQuery[kind].into
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
@@ -88,9 +88,6 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       // one can reference aliases of the queries columns in the orderBy clause.
       if (orderBy) transformedQuery.SELECT.orderBy = getTransformedOrderByGroupBy(orderBy, true)
 
-      if (inferred.joinTree && !inferred.joinTree.isInitial)
-        transformedQuery.SELECT.from = translateAssocsToJoins(transformedQuery.SELECT.from)
-
       if (inferred.SELECT.search) {
         // search target can be a navigation, in that case use _target to get correct entity
         const entity = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
@@ -121,6 +118,10 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         })
       }
     }
+
+    if (inferred.joinTree && !inferred.joinTree.isInitial)
+    transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+
   }
   return transformedQuery
 
