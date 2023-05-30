@@ -122,9 +122,8 @@ describe('@cds.persistence.skip', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
-  // If select list is empty already in input, we produce corresponding SQL.
-  // But if empty select list results from removing virtual fields, we throw an error.
-  it('error out if removal of virtual element leads to empty columns', () => {
+  // same as for virtual
+  it('error out if removal of element leads to empty columns', () => {
     let query = CQL`SELECT from bookshop.NotSkipped { skipped.notSkipped.text }`
     expect(() => cqn4sql(query, model)).to.throw('Queries must have at least one non-virtual column')
   })
