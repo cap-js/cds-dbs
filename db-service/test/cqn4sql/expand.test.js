@@ -830,7 +830,6 @@ describe('Unfold expands on associations to special subselects', () => {
         books.stock,
         books.price,
         books.currency_code,
-        books.image,
         books.dedication_addressee_ID,
         books.dedication_text,
         books.dedication_sub_foo,
