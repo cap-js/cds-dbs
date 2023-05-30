@@ -353,7 +353,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (!column.ref) return
 
       init$refLinks(column)
-
       const firstStepIsTableAlias =
         (column.ref.length > 1 && column.ref[0] in sources) ||
         // nested projection on table alias
@@ -366,6 +365,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       // on conditions of joins
       const skipAliasedFkSegmentsOfNameStack = []
       let pseudoPath = false
+       // if any path step points to an artifact with `@cds.persistence.skip`
+      // we must ignore the element from the queries elements
+      let isPersisted = true
       column.ref.forEach((step, i) => {
         const id = step.id || step
         if (i === 0) {
@@ -453,7 +455,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         column.$refLinks[i].alias = !column.ref[i + 1] && column.as ? column.as : id.split('.').pop()
-
+        if (column.$refLinks[i].definition._target?.['@cds.persistence.skip'] === true) isPersisted = false
         if (!column.ref[i + 1]) {
           const flatName = nameSegments.join('_')
           Object.defineProperty(column, 'flatName', { value: flatName, writable: true })
@@ -472,7 +474,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const leafArt =
               i === 0 && id === '$user' ? column.$refLinks[i].definition.elements.id : column.$refLinks[i].definition
             // infer element based on leaf artifact of path
-            if (insertIntoQueryElements) {
+            if (insertIntoQueryElements && isPersisted) {
               let elementName
               if (column.as) {
                 elementName = column.as
@@ -506,7 +508,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
       // check if we need to merg the column `ref` into the join tree of the query
-      if (!inExists && isColumnJoinRelevant(column)) {
+      if (!inExists && isPersisted && isColumnJoinRelevant(column)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
       }

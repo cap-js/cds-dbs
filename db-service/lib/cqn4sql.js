@@ -81,12 +81,19 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
 
       // Like the WHERE clause, aliases from the SELECT list are
       // not accessible for `group by`/`having` (in most DB's)
-      if (groupBy) transformedQuery.SELECT.groupBy = getTransformedOrderByGroupBy(groupBy)
       if (having) transformedQuery.SELECT.having = getTransformedTokenStream(having)
+
+      if (groupBy) {
+        const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
+        if (transformedGroupBy.length) transformedQuery.SELECT.groupBy = transformedGroupBy
+      }
 
       // Since all the expressions in the SELECT part of the query have been computed
       // one can reference aliases of the queries columns in the orderBy clause.
-      if (orderBy) transformedQuery.SELECT.orderBy = getTransformedOrderByGroupBy(orderBy, true)
+      if (orderBy) {
+        const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
+        if (transformedOrderBy.length) transformedQuery.SELECT.orderBy = transformedOrderBy
+      }
 
       if (inferred.joinTree && !inferred.joinTree.isInitial)
         transformedQuery.SELECT.from = translateAssocsToJoins(transformedQuery.SELECT.from)
@@ -240,6 +247,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         if (!columnAlias) {
           if (col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
         }
+        if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
         const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
         flatColumns.forEach(flatColumn => {
           const { as } = flatColumn
@@ -511,6 +519,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
+        if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
         const { target } = col.$refLinks[0]
         const tableAliasName = target.SELECT ? null : getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition

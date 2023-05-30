@@ -3,13 +3,11 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
-
+let model
+beforeAll(async () => {
+  model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
+})
 describe('virtual fields', () => {
-  let model
-  beforeAll(async () => {
-    model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
-  })
-
   it('remove from columns', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { ID, virtualField }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID }`)
@@ -95,5 +93,39 @@ describe('virtual fields', () => {
     expect(query).to.deep.equal(
       CQL`SELECT from bookshop.Foo as Foo { Foo.ID } where Foo.ID = 5 and Foo.virtualField = 6`,
     )
+  })
+})
+
+describe('@cds.persistence.skip', () => {
+  it('ignores column if assoc in path expression has target ”@cds.persistence.skip”', () => {
+    const q = CQL`SELECT from bookshop.NotSkipped {
+      ID, skipped.notSkipped.text
+    }`
+    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
+    {
+      NotSkipped.ID,
+    }`
+    const res = cqn4sql(q)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it('ignores column if assoc in path expression has target ”@cds.persistence.skip” in order by / group by', () => {
+    const q = CQL`SELECT from bookshop.NotSkipped {
+      ID
+    }
+      group by skipped.notSkipped.text 
+      order by skipped.notSkipped.text`
+    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
+    {
+      NotSkipped.ID,
+    }`
+    const res = cqn4sql(q)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
+  // If select list is empty already in input, we produce corresponding SQL.
+  // But if empty select list results from removing virtual fields, we throw an error.
+  it('error out if removal of virtual element leads to empty columns', () => {
+    let query = CQL`SELECT from bookshop.NotSkipped { skipped.notSkipped.text }`
+    expect(() => cqn4sql(query, model)).to.throw('Queries must have at least one non-virtual column')
   })
 })
