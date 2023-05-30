@@ -10,29 +10,31 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('Basic stream', () => {
-    const q = STREAM.from('bookshop.Books');
-    const q2 = STREAM.into('bookshop.Books');
+    const q = STREAM.from('bookshop.Books')
+    const q2 = STREAM.into('bookshop.Books')
     expect(() => cqn4sql(q, model)).to.not.throw()
     expect(() => cqn4sql(q2, model)).to.not.throw()
   })
   it('Transform from into where', () => {
-    const q = STREAM.from('bookshop.Books:author');
+    const q = STREAM.from('bookshop.Books:author')
     expect(cqn4sql(q, model)).to.deep.equal(
-        STREAM.from('bookshop.Authors as author').where(`
+      STREAM.from('bookshop.Authors as author').where(`
             exists (
                 SELECT 1 from bookshop.Books as Books where
                     Books.author_ID = author.ID
             )
-        `)
+        `),
     )
   })
   it('Paths get resolved', () => {
-    const q = STREAM.from('bookshop.Books').where(`author.name = 'King'`);
+    const q = STREAM.from('bookshop.Books').where(`author.name = 'King'`)
     expect(cqn4sql(q, model)).to.deep.equal(
-        STREAM.from(`
+      STREAM.from(
+        `
             bookshop.Books as Books left join bookshop.Authors as author
                 on author.ID = Books.author_ID
-        `).where(`author.name = 'King'`)
+        `,
+      ).where(`author.name = 'King'`),
     )
   })
 })
