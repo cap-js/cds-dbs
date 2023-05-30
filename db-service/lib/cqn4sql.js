@@ -581,7 +581,8 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     Object.keys(inferred.$combinedElements).forEach(k => {
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
-      if (isODataFlatForeignKey(element)) return
+      // ignore FK for odata csn / ignore blobs from wildcard expansion
+      if (isODataFlatForeignKey(element) || element['@Core.MediaType'] !== undefined) return
       const flatColumns = getFlatColumnsFor(element, null, null, index, [], except, replace)
       wildcardColumns.push(...flatColumns)
     })
