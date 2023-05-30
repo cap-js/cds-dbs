@@ -49,15 +49,16 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
 
   const transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.cmd || Object.keys(inferred)[0]
-  if (inferred.INSERT || inferred.UPSERT || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
+  if (inferred.INSERT || inferred.UPSERT) {
     const { as } = transformedQuery[kind].into
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
   }
   const _ = inferred[kind]
-  if (_) {
-    const { from, entity, where } = _
+  if (_ || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
+    const { entity, where } = _
+    const from = _.from || inferred.STREAM?.into
 
     const transformedProp = { __proto__: _ } // IMPORTANT: don't loose anything you might not know of
     // first transform the existing where, prepend table aliases and so on....
@@ -107,7 +108,12 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         }
       }
     } else {
-      transformedProp[from ? 'from' : 'entity'] = transformedFrom
+      if(inferred.STREAM?.into)
+        transformedProp.into = transformedFrom
+      else if(from)
+        transformedProp.from = transformedFrom
+      else
+        transformedProp.entity = transformedFrom
       if (transformedWhere?.length > 0) transformedProp.where = transformedWhere
       transformedQuery[kind] = transformedProp
 
