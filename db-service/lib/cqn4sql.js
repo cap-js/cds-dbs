@@ -108,12 +108,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         }
       }
     } else {
-      if(inferred.STREAM?.into)
-        transformedProp.into = transformedFrom
-      else if(from)
-        transformedProp.from = transformedFrom
-      else
-        transformedProp.entity = transformedFrom
+      if (inferred.STREAM?.into) transformedProp.into = transformedFrom
+      else if (from) transformedProp.from = transformedFrom
+      else transformedProp.entity = transformedFrom
       if (transformedWhere?.length > 0) transformedProp.where = transformedWhere
       transformedQuery[kind] = transformedProp
 

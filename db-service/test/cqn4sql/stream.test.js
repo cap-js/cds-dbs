@@ -41,21 +41,20 @@ describe('Replace attribute search by search predicate', () => {
     const q = STREAM.from(`bookshop.Authors[name = 'JK Rowling']:books[title = 'Harry Potter']`)
     const qInto = STREAM.into(`bookshop.Authors[name = 'JK Rowling']:books[title = 'Harry Potter']`)
     expect(cqn4sql(q, model)).to.deep.equal(
-        STREAM.from('bookshop.Books as books').where(`
+      STREAM.from('bookshop.Books as books').where(`
             exists (
                 SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
                 and Authors.name = 'JK Rowling'
             ) and books.title = 'Harry Potter'
-        `)
+        `),
     )
     expect(cqn4sql(qInto, model)).to.deep.equal(
-        STREAM.into('bookshop.Books as books').where(`
+      STREAM.into('bookshop.Books as books').where(`
         exists (
             SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
             and Authors.name = 'JK Rowling'
         ) and books.title = 'Harry Potter'
-    `)
-        
+    `),
     )
   })
 })
