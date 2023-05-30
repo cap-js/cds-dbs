@@ -94,7 +94,9 @@ const addObjectTest = (ctx, obj) => {
         })
       } catch (e) {
         if (complianceMessage) {
-          global[global.Object.getOwnPropertySymbols(global).find(s => global[s].currentlyRunningTest)].currentlyRunningTest.errors.push(e)
+          global[
+            global.Object.getOwnPropertySymbols(global).find(s => global[s].currentlyRunningTest)
+          ].currentlyRunningTest.errors.push(e)
           throw new Error(complianceMessage)
         }
         throw e
