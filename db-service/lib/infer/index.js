@@ -278,7 +278,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
           // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
-        else setElementOnColumns(col, definition)
+        else {
+          setElementOnColumns(col, definition)
+        }
       })
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
@@ -365,7 +367,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       // on conditions of joins
       const skipAliasedFkSegmentsOfNameStack = []
       let pseudoPath = false
-       // if any path step points to an artifact with `@cds.persistence.skip`
+      // if any path step points to an artifact with `@cds.persistence.skip`
       // we must ignore the element from the queries elements
       let isPersisted = true
       column.ref.forEach((step, i) => {
@@ -667,7 +669,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        queryElements = sources[aliases[0]].elements
+        Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
+          if (v['@Core.MediaType'] === undefined) queryElements[k] = v
+        })
         return
       }
 
