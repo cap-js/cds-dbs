@@ -18,6 +18,11 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
+    it('omits alias for anonymous query which selects from other query', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
+      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) { ID }`)
+    })
+
     it('preserves table alias at field access', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { Books.ID }`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)

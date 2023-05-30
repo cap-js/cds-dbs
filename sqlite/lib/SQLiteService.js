@@ -3,6 +3,7 @@ const { Readable } = require('stream')
 const cds = require('@sap/cds/lib')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
+const convStrm = require('stream/consumers')
 
 class SQLiteService extends SQLService {
   get factory() {
@@ -87,7 +88,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
     }
 
     static OutputConverters = {
@@ -103,7 +104,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${e})`,
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
     }
 
     // Used for SQL function expressions
@@ -142,13 +143,24 @@ class SQLiteService extends SQLService {
     }
   }
 
-  // SQLite doesn't support streaming, the whole data is read from the database
-  async onStream(query) {
-    delete query._streaming
-    const result = await super.onSELECT({ query, data: {} })
-    if (result == null || result.length === 0) return
-    let val = Array.isArray(result) ? Object.values(result[0])[0] : Object.values(result)[0]
-    if (val === null) return null
+  // overrides generic onSTREAM
+  // SQLite doesn't support streaming, the whole data is read from/written into the database
+  async onSTREAM(req) {
+    const { sql, values, entries } = this.cqn2sql(req.query)
+    // writing stream
+    if (req.query.STREAM.into) {
+      const stream = entries[0]
+      stream.on('error', () => stream.removeAllListeners('error'))
+      values.unshift((await convStrm.buffer(stream)).toString('base64'))
+      const ps = await this.prepare(sql)
+      return (await ps.run(values)).changes
+    }
+    // reading stream
+    const ps = await this.prepare(sql)
+    let result = await ps.all(values)
+    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    const val = Object.values(result[0])[0]
+    if (val === null) return val
     const stream_ = new Readable()
     stream_.push(Buffer.from(val, 'base64'))
     stream_.push(null)

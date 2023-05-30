@@ -399,7 +399,7 @@ class CQN2SQLRenderer {
       return c
     })
 
-    const extraction = this.managed(columns, q.elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
+    const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where(where)}`
@@ -411,6 +411,27 @@ class CQN2SQLRenderer {
   DELETE({ DELETE: { from, where } }) {
     let sql = `DELETE FROM ${this.from(from)}`
     if (where) sql += ` WHERE ${this.where(where)}`
+    return (this.sql = sql)
+  }
+
+  // STREAM Statement -------------------------------------------------
+
+  STREAM(q) {
+    let { from, into, where, column, data } = q.STREAM
+    let x, sql
+    // reading stream
+    if (from) {
+      sql = `SELECT`
+      if (!_empty((x = column))) sql += ` ${this.quote(x)}`
+      if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
+    } else {
+      // writing stream
+      const entity = this.name(q.target?.name || into.ref[0])
+      sql = `UPDATE ${this.quote(entity)} SET ${this.quote(column)}=?`
+      this.entries = [data]
+    }
+    if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
+    if (from) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     return (this.sql = sql)
   }
 
@@ -467,7 +488,7 @@ class CQN2SQLRenderer {
         return val // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
+        if (val instanceof Date) return `'${val.toISOString().slice(0, -1) + '0000Z'}'`
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
@@ -491,7 +512,7 @@ class CQN2SQLRenderer {
   }
 
   json(o) {
-    return this.string(JSON.stringify(o))
+    return JSON.stringify(o)
   }
 
   string(s) {
@@ -510,7 +531,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' /\\]/.test(s)) return '"' + s + '"'
+    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
@@ -539,8 +560,7 @@ class CQN2SQLRenderer {
           managed = this.string(this.context.user.id)
           break
         case '$now':
-          // REVISIT fix for date precision
-          managed = this.string(this.context.timestamp.toISOString())
+          managed = this.string(this.context.timestamp.toISOString().slice(0, -1) + '0000Z')
           break
         default:
           managed = undefined
@@ -560,7 +580,7 @@ class CQN2SQLRenderer {
     })
   }
 
-  defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+  defaultValue(defaultValue = this.context.timestamp.toISOString().slice(0, -1) + '0000Z') {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
 }

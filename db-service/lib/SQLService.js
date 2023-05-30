@@ -3,7 +3,6 @@ const cds = require('@sap/cds/lib'),
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
-const { PassThrough, pipeline } = require('stream')
 
 class SQLService extends DatabaseService {
   init() {
@@ -15,6 +14,7 @@ class SQLService extends DatabaseService {
     this.on(['UPDATE'], this.onUPDATE)
     this.on(['DELETE', 'CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
+    this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
     return super.init()
   }
@@ -23,8 +23,6 @@ class SQLService extends DatabaseService {
   async onSELECT({ query, data }) {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
-    // REVISIT: streaming: if we need custom app and db handlers with app stream and cds.stream
-    if (query._streaming) return this.onStream(query) // TODO: implemented on HANA
     query.SELECT.expand = 'root'
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
@@ -53,7 +51,26 @@ class SQLService extends DatabaseService {
 
   /** Handler for UPDATE */
   async onUPDATE(req) {
+    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0
     return this.onSIMPLE(req)
+  }
+
+  /** Handler for Stream */
+  async onSTREAM(req) {
+    const { sql, values, entries } = this.cqn2sql(req.query)
+    // writing stream
+    if (req.query.STREAM.into) {
+      const stream = entries[0]
+      stream.on('error', () => stream.removeAllListeners('error'))
+      values.unshift(stream)
+      const ps = await this.prepare(sql)
+      return (await ps.run(values)).changes
+    }
+    // reading stream
+    const ps = await this.prepare(sql)
+    let result = await ps.all(values)
+    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    return Object.values(result[0])[0]
   }
 
   /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
@@ -104,18 +121,6 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     const { count } = await ps.get(values)
     return count
-  }
-
-  /**
-   * Streaming
-   * Returns either a readable stream for sync calls or a readable stream promise for async calls
-   */
-  stream(q) {
-    return typeof q === 'object'
-      ? // aynchronous API: cds.stream(query)
-        this.run(Object.assign(q, { _streaming: true }))
-      : // synchronous API: cds.stream('column').from(entity).where(...)
-        new StreamCQN(q, this)
   }
 
   static InsertResults = require('./InsertResults')
@@ -193,48 +198,6 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
-/**
- * Class that builds and runs stream CQN
- */
-class StreamCQN {
-  constructor(column, srv) {
-    this.column = column
-    this.srv = srv
-    this.result = new PassThrough()
-  }
-  /** synchronous streaming API: returns readable stream or class instance for chaining */
-  from(...args) {
-    this.sq = SELECT.from(...args)
-    this.sq._streaming = true
-    if (this.column) this.sq.columns([this.column])
-    const ref = this.sq.SELECT.from.ref
-    if (!ref?.[ref.length - 1].where) return this
-    this._runStream()
-    return this.result
-  }
-  /** synchronous streaming API: returns readable stream */
-  where(...args) {
-    this.sq.where(...args)
-    this._runStream()
-    return this.result
-  }
-
-  async _runStream() {
-    try {
-      const stream = await this.srv.run(this.sq)
-      // In case of streaming error while streaming from stream to this.result
-      // the error is emitted to both streams. After this the output stream this.result is destroyed.
-      // No explicit closing of this.result is needed.
-      // In (theoretical) case if for some error this.result is not destroyed the code like below can be used
-      // as callback: err => err && this.result.push(null)
-      stream ? pipeline(stream, this.result, () => {}) : this.result.push(null)
-    } catch (err) {
-      this.result.emit('error', err)
-      this.result.push(null)
-    }
-  }
-}
-
 const _target_name4 = q => {
   const target =
     q.SELECT?.from ||
@@ -260,5 +223,26 @@ const _unquirked = q => {
   if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
 }
+
+const sqls = new (class extends SQLService {
+  get factory() {
+    return null
+  }
+})()
+cds.extend(cds.ql.Query).with(
+  class {
+    forSQL() {
+      let cqn = (cds.db || sqls).cqn4sql(this)
+      return this.flat(cqn)
+    }
+    toSQL() {
+      let { sql, values } = (cds.db || sqls).cqn2sql(this)
+      return { sql, values } // skipping .cqn property
+    }
+    toSql() {
+      return this.toSQL().sql
+    }
+  },
+)
 
 module.exports = Object.assign(SQLService, { _target_name4 })

@@ -16,6 +16,7 @@
     "DELETE": true,
     "CREATE": true,
     "DROP": true,
+    "STREAM": true,
     "CDL": true,
     "CQL": true,
     "CXL": true
