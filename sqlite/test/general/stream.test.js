@@ -114,7 +114,7 @@ describe('cds.stream', () => {
     try {
       await cds.stream('data').from(Images, 23)
     } catch (e) {
-      expect(e.message).toEqual('Entity "test.Images" with entered keys is not found')
+      expect(e.code).toEqual(404)
     }
   })
 
@@ -258,7 +258,7 @@ describe('new STREAM API', () => {
     try {
       await STREAM('data').from(Images, 15)
     } catch (e) {
-      expect(e.message).toEqual('Entity "test.Images" with entered keys is not found')
+      expect(e.code).toEqual(404)
     }
   })
 
