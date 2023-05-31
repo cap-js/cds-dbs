@@ -279,7 +279,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
           // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
-        else setElementOnColumns(col, definition)
+        else {
+          setElementOnColumns(col, definition)
+        }
       })
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
@@ -666,7 +668,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        queryElements = sources[aliases[0]].elements
+        Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
+          if (v['@Core.MediaType'] === undefined) queryElements[k] = v
+        })
         return
       }
 

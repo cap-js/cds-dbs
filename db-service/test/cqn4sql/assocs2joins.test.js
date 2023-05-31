@@ -694,7 +694,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     let query = cqn4sql(input, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books.twin as twin
         left outer join bookshop.Authors as author on author.ID = twin.author_ID
-        { twin.ID, twin.author_ID, twin.stock } order by author.name asc
+        { twin.ID, twin.author_ID, twin.stock, twin.nonStreamableImage } order by author.name asc
       `)
   })
   it('in group by, one assoc, wildcard select', () => {
@@ -716,7 +716,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         Books.stock,
         Books.price,
         Books.currency_code,
-        Books.image,
         Books.dedication_addressee_ID,
         Books.dedication_text,
         Books.dedication_sub_foo,
