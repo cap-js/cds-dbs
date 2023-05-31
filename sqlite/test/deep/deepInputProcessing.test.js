@@ -61,6 +61,38 @@ describe('UUID Generation', () => {
     expect(resUpdate.data.toOneChild.ID).toEqual(resUpdate.data.toOneChild.toManySubChild[1].backlink_ID)
   })
 
+  test.only('generate UUID on update programmatically', async () => {
+    const uuid = cds.utils.uuid()
+    await cds.db.insert({
+      ID: uuid,
+      toOneChild: {
+        text: 'abc',
+        toManySubChild: [{ text: 'a' }, { text: 'b' }],
+      },
+    }).into('bla.RootUUID')
+
+    const inserted = await cds.db.read('bla.RootUUID', {ID: uuid}).columns(c => { c`.*`, c.toOneChild(c1 => { c1`.*`, c1.toManySubChild('*') }) })
+
+    // new children are created
+    await cds.db.update('bla.RootUUID', {ID: uuid}).set({
+      toOneChild: { // we omit the UUID --> insert
+        text: 'abc',
+        toManySubChild: [{ text: 'a' }, { text: 'b' }], // we omit the UUIDs --> insert
+      },
+    })
+    const updated = await cds.db.read('bla.RootUUID', {ID: uuid}).columns(c => { c`.*`, c.toOneChild(c1 => { c1`.*`, c1.toManySubChild('*') }) })
+
+    // foreign keys are set correctly (deep)
+    expect(updated.toOneChild.ID).toEqual(updated.toOneChild_ID)
+    expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[0].backlink_ID)
+    expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[1].backlink_ID)
+
+    // new IDs are generated (deep)
+    expect(inserted.toOneChild.ID).not.toEqual(updated.toOneChild.ID)
+    expect(inserted.toOneChild.toManySubChild[0].ID).toEqual(updated.toOneChild.toManySubChild[0].ID)
+    expect(inserted.toOneChild.toManySubChild[1].ID).toEqual(updated.toOneChild.toManySubChild[1].ID)
+  })
+
   test('update root and delete child', async () => {
     const uuid = cds.utils.uuid()
     const resPost = await POST('/bla/RootUUID', {
