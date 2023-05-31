@@ -102,8 +102,8 @@ describe('UUID Generation', () => {
 
     // new IDs are generated (deep)
     expect(inserted.toOneChild.ID).not.toEqual(updated.toOneChild.ID)
-    expect(inserted.toOneChild.toManySubChild[0].ID).toEqual(updated.toOneChild.toManySubChild[0].ID)
-    expect(inserted.toOneChild.toManySubChild[1].ID).toEqual(updated.toOneChild.toManySubChild[1].ID)
+    expect(inserted.toOneChild.toManySubChild[0].ID).not.toEqual(updated.toOneChild.toManySubChild[0].ID)
+    expect(inserted.toOneChild.toManySubChild[1].ID).not.toEqual(updated.toOneChild.toManySubChild[1].ID)
   })
 
   test('update root and delete child', async () => {
