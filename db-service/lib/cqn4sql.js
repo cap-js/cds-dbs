@@ -56,8 +56,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     return transformedQuery
   }
   const _ = inferred[kind]
-  if (_) {
-    const { from, entity, where } = _
+  if (_ || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
+    const { entity, where } = _
+    const from = _.from || inferred.STREAM?.into
 
     const transformedProp = { __proto__: _ } // IMPORTANT: don't loose anything you might not know of
     // first transform the existing where, prepend table aliases and so on....
@@ -95,9 +96,6 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         if (transformedOrderBy.length) transformedQuery.SELECT.orderBy = transformedOrderBy
       }
 
-      if (inferred.joinTree && !inferred.joinTree.isInitial)
-        transformedQuery.SELECT.from = translateAssocsToJoins(transformedQuery.SELECT.from)
-
       if (inferred.SELECT.search) {
         // search target can be a navigation, in that case use _target to get correct entity
         const entity = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
@@ -117,7 +115,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         }
       }
     } else {
-      transformedProp[from ? 'from' : 'entity'] = transformedFrom
+      if (inferred.STREAM?.into) transformedProp.into = transformedFrom
+      else if (from) transformedProp.from = transformedFrom
+      else transformedProp.entity = transformedFrom
       if (transformedWhere?.length > 0) transformedProp.where = transformedWhere
       transformedQuery[kind] = transformedProp
 
@@ -128,6 +128,9 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         })
       }
     }
+
+    if (inferred.joinTree && !inferred.joinTree.isInitial)
+      transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
   }
   return transformedQuery
 

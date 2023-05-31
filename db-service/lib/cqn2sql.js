@@ -427,7 +427,7 @@ class CQN2SQLRenderer {
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      sql = `UPDATE ${this.quote(entity)} SET ${this.quote(column)}=?`
+      sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`

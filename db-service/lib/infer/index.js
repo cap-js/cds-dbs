@@ -38,7 +38,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     inferred.UPDATE ||
     inferred.DELETE ||
     inferred.CREATE ||
-    inferred.DROP
+    inferred.DROP ||
+    inferred.STREAM
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
@@ -55,7 +56,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       writable: true,
     },
   })
-  if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
+  if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE || originalQuery.STREAM) {
     const $combinedElements = inferCombinedElements()
     /**
      * TODO: this function is currently only called on DELETE's
