@@ -243,10 +243,10 @@ class PostgresService extends SQLService {
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
         // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\.(.*?))|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
+        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1)')
-        .replace(/json_type\((\w+),'\$\.(\w+)'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
     }
 
     val(val) {
