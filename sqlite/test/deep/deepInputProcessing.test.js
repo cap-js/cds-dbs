@@ -63,24 +63,37 @@ describe('UUID Generation', () => {
 
   test.only('generate UUID on update programmatically', async () => {
     const uuid = cds.utils.uuid()
-    await cds.db.insert({
-      ID: uuid,
-      toOneChild: {
-        text: 'abc',
-        toManySubChild: [{ text: 'a' }, { text: 'b' }],
-      },
-    }).into('bla.RootUUID')
+    await cds.db
+      .insert({
+        ID: uuid,
+        toOneChild: {
+          text: 'abc',
+          toManySubChild: [{ text: 'a' }, { text: 'b' }],
+        },
+      })
+      .into('bla.RootUUID')
 
-    const inserted = await cds.db.read('bla.RootUUID', {ID: uuid}).columns(c => { c`.*`, c.toOneChild(c1 => { c1`.*`, c1.toManySubChild('*') }) })
+    const inserted = await cds.db.read('bla.RootUUID', { ID: uuid }).columns(c => {
+      c`.*`,
+        c.toOneChild(c1 => {
+          c1`.*`, c1.toManySubChild('*')
+        })
+    })
 
     // new children are created
-    await cds.db.update('bla.RootUUID', {ID: uuid}).set({
-      toOneChild: { // we omit the UUID --> insert
+    await cds.db.update('bla.RootUUID', { ID: uuid }).set({
+      toOneChild: {
+        // we omit the UUID --> insert
         text: 'abc',
         toManySubChild: [{ text: 'a' }, { text: 'b' }], // we omit the UUIDs --> insert
       },
     })
-    const updated = await cds.db.read('bla.RootUUID', {ID: uuid}).columns(c => { c`.*`, c.toOneChild(c1 => { c1`.*`, c1.toManySubChild('*') }) })
+    const updated = await cds.db.read('bla.RootUUID', { ID: uuid }).columns(c => {
+      c`.*`,
+        c.toOneChild(c1 => {
+          c1`.*`, c1.toManySubChild('*')
+        })
+    })
 
     // foreign keys are set correctly (deep)
     expect(updated.toOneChild.ID).toEqual(updated.toOneChild_ID)
