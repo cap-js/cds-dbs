@@ -229,10 +229,11 @@ const highPrecisionTimestamps = e =>
         substr(
           substr(T,21),
           0,
-          max(
-            instr(substr(T,21),'-'),
-            instr(substr(T,21),'+'),
-            instr(substr(T,21),'Z')
+          coalesce(
+            nullif(instr(substr(T,21),'-'),0),
+            nullif(instr(substr(T,21),'+'),0),
+            nullif(instr(substr(T,21),'Z'),0),
+            length(T)
           )
         ) || '0000000',
         1,
