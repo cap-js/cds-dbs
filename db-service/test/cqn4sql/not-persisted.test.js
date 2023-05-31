@@ -83,7 +83,8 @@ describe('virtual fields', () => {
         {
           Foo.ID
         }
-        order by ID, (toFoo.virtualField * 42)`)
+        order by ID, (toFoo.virtualField * 42)`,
+    )
   })
 
   it('Navigation to virtual field does not cause join', () => {
@@ -98,7 +99,6 @@ describe('virtual fields', () => {
         Foo.ID,
       }`)
   })
-
 
   // Virtual fields in expressions are left untouched and will cause an error in the DB.
   // The idea to replace conditions involving virtual fields by "1=1" doesn't work, as we
@@ -197,5 +197,4 @@ describe('@cds.persistence.skip', () => {
       { NotSkipped.ID } where notSkipped2.text`,
     )
   })
-
 })

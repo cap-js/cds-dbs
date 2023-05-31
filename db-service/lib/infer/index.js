@@ -344,7 +344,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * In some cases, no joins must be created for non-assoc path traversals:
      * - for infix filters in `exists assoc[parent.foo='bar']` -> part of semi join
      */
-    function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, inExists = false, inExpr = false) {
+    function inferQueryElement(
+      column,
+      insertIntoQueryElements = true,
+      $baseLink = null,
+      inExists = false,
+      inExpr = false,
+    ) {
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists, inExpr)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists, inExpr))
@@ -508,7 +514,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return
         }
       }
-      const virtual = (column.$refLinks[column.$refLinks.length-1].definition.virtual || !isPersisted) && !inExpr
+      const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
       if (!inExists && !virtual && isColumnJoinRelevant(column)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
