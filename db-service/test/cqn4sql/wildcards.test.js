@@ -388,6 +388,6 @@ describe('wildcard expansion and exclude clause', () => {
 
   it('ignores virtual field from wildcard expansion', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { * }`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.stru_u, Foo.stru_nested_nu }`)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.toFoo_ID, Foo.stru_u, Foo.stru_nested_nu }`)
   })
 })

@@ -1009,7 +1009,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
    * are always of length == 1 after processing.
    *
    * The steps in a `ref` are processed in reversed order. This is the main difference
-   * to the `WHERE exists` expansion in the @function getTransformedWhereOrHaving().
+   * to the `WHERE exists` expansion in the @function getTransformedTokenStream().
    *
    * @param {object} from
    * @param {object[]?} existingWhere custom where condition which is appended to the filter
