@@ -68,12 +68,19 @@ class CQN2SQLRenderer {
   }
 
   CREATE_elements(elements) {
+    const keys = []
     let sql = ''
     for (let e in elements) {
       const definition = elements[e]
       if (definition.isAssociation) continue
+      if (definition.key) {
+        keys.push(e)
+      }
       const s = this.CREATE_element(definition)
       if (s) sql += `${s}, `
+    }
+    if (keys.length) {
+      sql += `PRIMARY KEY(${keys}), `
     }
     return sql.slice(0, -2)
   }
