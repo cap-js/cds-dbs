@@ -358,7 +358,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     /**
      * This function is responsible for inferring a query element based on a provided column.
      * It initializes and attaches a non-enumerable `$refLinks` property to the column,
-     * which stores an array of objects that represent different artifacts (from the ref step).
+     * which stores an array of objects that represent the corresponding artifact of the ref step.
      * Each object in the `$refLinks` array corresponds to the same index position in the `column.ref` array.
      * Based on the leaf artifact (last object in the `$refLinks` array), the query element is inferred.
      *

@@ -224,6 +224,18 @@ describe('paths with @cds.persistence.skip', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+  it('Join for a skip path within filter if outer path is persisted in order by', () => {
+    const q = CQL`SELECT from bookshop.SkippedAndNotSkipped {
+      ID
+    } order by self[skipped.ID = 42].ID`
+    const qx = CQL`SELECT from bookshop.SkippedAndNotSkipped as SkippedAndNotSkipped
+      left join bookshop.SkippedAndNotSkipped as self on self.ID = SkippedAndNotSkipped.self_ID and self.skipped_ID = 42
+    {
+      SkippedAndNotSkipped.ID,
+    } order by self.ID`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
 
   it('do not remove from simple conditions', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.NotSkipped { ID } where skipped.notSkipped.text`, model)
