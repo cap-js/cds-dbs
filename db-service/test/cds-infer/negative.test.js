@@ -253,11 +253,14 @@ describe('negative', () => {
       )
     })
     it('rejects non fk traversal in infix filter in column', () => {
-      expect(() => _inferred(CQL`SELECT from bookshop.Authors {
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Authors {
         books[author.name = 'Kurt'].ID as kurtsBooks
-      }`, model)).to.throw(
-        /Only foreign keys of "author" can be accessed in infix filter/,
-      )
+      }`,
+          model,
+        ),
+      ).to.throw(/Only foreign keys of "author" can be accessed in infix filter/)
     })
   })
 })
