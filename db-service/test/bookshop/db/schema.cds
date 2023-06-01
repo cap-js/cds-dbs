@@ -263,6 +263,12 @@ entity AssocMaze4 {
   val : Integer;
 }
 
+entity SkippedAndNotSkipped {
+  key ID: Integer;
+  skipped: Association to Skip;
+  self: Association to SkippedAndNotSkipped;
+}
+
 entity NotSkipped {
   key ID: Integer;
   skipped: Association to Skip;
