@@ -120,13 +120,13 @@ describe('virtual fields', () => {
       CQL`SELECT from bookshop.Foo {
         ID,
         virtualField - 2 * stru.v + stru.nested.nv as c
-      } where virtualField = 2 * stru.v + stru.nested.nv`,
+      } where virtualField = 2 * stru.v + stru.nested.nv and virtualField`,
       model,
     )
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
         Foo.ID,
         Foo.virtualField - 2 * Foo.stru_v + Foo.stru_nested_nv as c
-      } where Foo.virtualField = 2 * Foo.stru_v + Foo.stru_nested_nv`)
+      } where Foo.virtualField = 2 * Foo.stru_v + Foo.stru_nested_nv and Foo.virtualField`)
   })
 
   it('Navigation to virtual field does cause join in expression', () => {
@@ -196,6 +196,17 @@ describe('paths with @cds.persistence.skip', () => {
       NotSkipped.ID,
       notSkipped2.text * 2 + 5 as bar
     } where (notSkipped2.text / 2 + 5) = 42`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it('No join for a skip path within filter if outer path is not persisted', () => {
+    const q = CQL`SELECT from bookshop.NotSkipped {
+      ID, skipped[notSkipped.ID = 42].notSkipped.text
+    }`
+    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
+    {
+      NotSkipped.ID,
+    }`
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
