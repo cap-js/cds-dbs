@@ -61,6 +61,7 @@ entity DeepRecursiveAssoc {
 
 entity Foo {
   key ID: Integer;
+  toFoo: Association to Foo;
   virtual virtualField: String;
   stru {
     u : Integer;
