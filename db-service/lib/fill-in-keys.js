@@ -29,7 +29,8 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
           subData = [subData]
         }
         for (const sub of subData) {
-          generateUUIDandPropagateKeys(elements[element]._target, sub, event)
+          // For subData the event is set to 'CREATE' as require UUID generation
+          generateUUIDandPropagateKeys(elements[element]._target, sub, 'CREATE')
         }
       }
 

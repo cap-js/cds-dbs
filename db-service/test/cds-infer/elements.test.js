@@ -78,14 +78,26 @@ describe('infer elements', () => {
     })
   })
 
-  describe('virtual', () => {
-    it("infers a query's virtual elements", () => {
+  describe('virtual and persistence skip', () => {
+    it('infers a queries virtual elements', () => {
       let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Foo.elements.ID,
         virtualField: Foo.elements.virtualField,
+      })
+    })
+    it('infers paths with ”@cds.persistence.skip” as query element', () => {
+      const q = CQL`SELECT from bookshop.NotSkipped {
+        ID,
+        skipped.notSkipped.text as skippedPath
+      }`
+      let { NotSkipped } = model.entities
+      let inferred = _inferred(q)
+      expect(inferred.elements).to.deep.equal({
+        ID: NotSkipped.elements.ID,
+        skippedPath: NotSkipped.elements.skipped._target.elements.notSkipped._target.elements.text,
       })
     })
   })
@@ -408,6 +420,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
+      delete Books.elements['image'] // blobs are not part of the query elements
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
@@ -416,6 +429,7 @@ describe('infer elements', () => {
       let query = CQL`SELECT from bookshop.Books`
       let inferred = _inferred(query)
       let { Books } = model.entities
+      delete Books.elements['image'] // blobs are not part of the query elements
       expect(inferred.elements).to.deep.equal(Books.elements)
     })
 

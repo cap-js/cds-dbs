@@ -830,7 +830,6 @@ describe('Unfold expands on associations to special subselects', () => {
         books.stock,
         books.price,
         books.currency_code,
-        books.image,
         books.dedication_addressee_ID,
         books.dedication_text,
         books.dedication_sub_foo,
@@ -900,21 +899,6 @@ describe('Unfold expands on associations to special subselects', () => {
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
-  it('renders joins even if assoc in path expression has target ”@cds.persistence.skip”', () => {
-    const q = CQL`SELECT from bookshop.NotSkipped {
-      ID, skipped.notSkipped.text
-    }`
-    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
-                  left outer join bookshop.Skip as skipped on skipped.ID = NotSkipped.skipped_ID
-                  left outer join bookshop.NotSkipped as notSkipped2 on notSkipped2.ID = skipped.notSkipped_ID
-    {
-      NotSkipped.ID,
-      notSkipped2.text as skipped_notSkipped_text
-    }`
-    const res = cqn4sql(q)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
-  })
-
   describe('comparisons of associations in on condition of elements needs to be expanded', () => {
     let model
     beforeAll(async () => {

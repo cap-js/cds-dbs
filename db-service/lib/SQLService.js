@@ -69,7 +69,7 @@ class SQLService extends DatabaseService {
     // reading stream
     const ps = await this.prepare(sql)
     let result = await ps.all(values)
-    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    if (result.length === 0) req.reject(404)
     return Object.values(result[0])[0]
   }
 
@@ -207,6 +207,8 @@ const _target_name4 = q => {
     q.DELETE?.from ||
     q.CREATE?.entity ||
     q.DROP?.entity ||
+    q.STREAM?.from ||
+    q.STREAM?.into ||
     undefined
   if (target?.SET?.op === 'union') throw new cds.error('”UNION” based queries are not supported')
   if (!target?.ref) return target

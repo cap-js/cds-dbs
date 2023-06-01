@@ -7,7 +7,7 @@ exports[`insert insert only test with insert entries 1`] = `
       "[{"ID":1,"name":null,"a":2},{"ID":null,"name":"'asd'","a":6}]",
     ],
   ],
-  "sql": "INSERT INTO Foo2 (ID,name,a) SELECT value->>'$.ID',value->>'$.name',value->>'$.a' FROM json_each(?)",
+  "sql": "INSERT INTO Foo2 (ID,name,a) SELECT value->>'$."ID"',value->>'$."name"',value->>'$."a"' FROM json_each(?)",
 }
 `;
 
@@ -40,6 +40,6 @@ exports[`insert insert only test with insert with alias 1`] = `
       "[{"ID":1,"name":null,"a":2},{"ID":null,"name":"'asd'","a":6}]",
     ],
   ],
-  "sql": "INSERT INTO Foo2 as Fooooo2 (ID,name,a) SELECT value->>'$.ID',value->>'$.name',value->>'$.a' FROM json_each(?)",
+  "sql": "INSERT INTO Foo2 as Fooooo2 (ID,name,a) SELECT value->>'$."ID"',value->>'$."name"',value->>'$."a"' FROM json_each(?)",
 }
 `;

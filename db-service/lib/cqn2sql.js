@@ -167,12 +167,12 @@ class CQN2SQLRenderer {
           const name = this.column_name(x)
           // REVISIT: can be removed when alias handling is resolved properly
           const d = elements[name] || elements[name.substring(1, name.length - 1)]
-          let col = `'$.${name}',${this.output_converter4(d, this.quote(name))}`
+          let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
 
           if (x.SELECT?.count) {
             // Return both the sub select and the count for @odata.count
             const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-            col += `, '$.${name}@odata.count',${this.expr(qc)}`
+            col += `, '$."${name}@odata.count"',${this.expr(qc)}`
           }
           return col
         })
@@ -190,7 +190,7 @@ class CQN2SQLRenderer {
     if (x.func && !x.as) x.as = x.func
     if (x?.element?.['@cds.extension']) {
       x.as = x.as || x.element.name
-      return `extensions__->${this.string('$.' + x.element.name)}`
+      return `extensions__->${this.string('$."' + x.element.name + '"')}`
     }
     let sql = this.expr(x)
     return sql
@@ -281,7 +281,9 @@ class CQN2SQLRenderer {
         if (c.name === 'extensions__') {
           const merges = extractions.filter(c => elements?.[c.name]?.['@cds.extension'])
           if (merges.length) {
-            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(c => this.string('$.' + c.name) + ',' + c.sql)})`
+            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(
+              c => this.string('$."' + c.name + '"') + ',' + c.sql,
+            )})`
           }
         }
         return c
@@ -401,7 +403,7 @@ class CQN2SQLRenderer {
       if (q.elements?.[c.name]?.['@cds.extension']) {
         return {
           name: 'extensions__',
-          sql: `json_set(extensions__,${this.string('$.' + c.name)},${c.sql})`,
+          sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
         }
       }
       return c
@@ -435,7 +437,7 @@ class CQN2SQLRenderer {
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      sql = `UPDATE ${this.quote(entity)} SET ${this.quote(column)}=?`
+      sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
@@ -559,7 +561,7 @@ class CQN2SQLRenderer {
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       const element = elements?.[name] || {}
-      let extract = sql ?? `value->>'$.${name}'`
+      let extract = sql ?? `value->>'$."${name}"'`
       const converter = element[inputConverterKey] || (e => e)
       let managed = element[annotation]?.['=']
       switch (managed) {
@@ -576,7 +578,7 @@ class CQN2SQLRenderer {
       if (!isUpdate) {
         const d = element.default
         if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
-          extract = `(CASE WHEN json_type(value,'$.${name}') IS NULL THEN ${this.defaultValue(
+          extract = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(
             d.val,
           )} ELSE ${extract} END)`
         }
