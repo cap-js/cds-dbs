@@ -15,7 +15,8 @@ const StandardFunctions = {
   countdistinct: x => `count(distinct ${x || '*'})`,
   indexof: (x, y) => `instr(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `instr(${x},${y}) = 1`, // sqlite instr is 1 indexed
-  endswith: (x, y) => `instr(${x},${y}) = length(${x}) - length(${y}) +1`,
+  // takes the end of the string of the size of the target and compares it with the target
+  endswith: (x, y) => `substr(${x}, length(${x}) + 1 - length(${y})) = ${y}`,
   substring: (x, y, z) =>
     z
       ? `substr( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
