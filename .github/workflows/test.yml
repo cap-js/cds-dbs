@@ -9,6 +9,7 @@ on:
 # Allow parallel jobs on `main`, so that each commit is tested. For PRs, run only the latest commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -24,6 +25,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
