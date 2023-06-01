@@ -97,9 +97,7 @@ describe('infer elements', () => {
       let inferred = _inferred(q)
       expect(inferred.elements).to.deep.equal({
         ID: NotSkipped.elements.ID,
-        skippedPath: NotSkipped.elements.skipped._target
-                               .elements.notSkipped._target
-                               .elements.text,
+        skippedPath: NotSkipped.elements.skipped._target.elements.notSkipped._target.elements.text,
       })
     })
   })
