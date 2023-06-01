@@ -4,7 +4,7 @@ const StandardFunctions = {
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
-  endswith: (x, y) => `strpos(${x},${y}) = length(${x}) - length(${y}) +1`,
+  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
 
   // Date and Time Functions
   year: x => `date_part('year',(${x})::TIMESTAMP)`,
