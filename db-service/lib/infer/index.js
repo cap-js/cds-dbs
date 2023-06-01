@@ -306,9 +306,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
           // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
-        else {
-          setElementOnColumns(col, definition)
-        }
+        else setElementOnColumns(col, definition)
       })
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
@@ -339,7 +337,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           // don't miss an exists within an expression
           token.xpr.forEach(walkTokenStream)
         } else {
-          inferQueryElement(token, false, null, skipJoins)
+          inferQueryElement(token, false, null, skipJoins, true)
           skipJoins = false
         }
       }
@@ -373,17 +371,25 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * In some cases, no joins must be created for non-assoc path traversals:
      * - for infix filters in `exists assoc[parent.foo='bar']` -> part of semi join
      */
-    function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, inExists = false) {
+    function inferQueryElement(
+      column,
+      insertIntoQueryElements = true,
+      $baseLink = null,
+      inExists = false,
+      inExpr = false,
+    ) {
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-      if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists)) // e.g. function in expression
-      if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists))
-      if (column.xpr) column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, inExists)) // e.g. function in expression
+      if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists, inExpr)) // e.g. function in expression
+      if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists, inExpr))
+      if (column.xpr) column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, inExists, true)) // e.g. function in expression
       if (column.SELECT) return
 
       if (!column.ref) return
 
       init$refLinks(column)
-
+      // if any path step points to an artifact with `@cds.persistence.skip`
+      // we must ignore the element from the queries elements
+      let isPersisted = true
       const firstStepIsTableAlias =
         (column.ref.length > 1 && column.ref[0] in sources) ||
         // nested projection on table alias
@@ -483,7 +489,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         column.$refLinks[i].alias = !column.ref[i + 1] && column.as ? column.as : id.split('.').pop()
-
+        if (column.$refLinks[i].definition._target?.['@cds.persistence.skip'] === true) isPersisted = false
         if (!column.ref[i + 1]) {
           const flatName = nameSegments.join('_')
           Object.defineProperty(column, 'flatName', { value: flatName, writable: true })
@@ -535,8 +541,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return
         }
       }
-      // check if we need to merg the column `ref` into the join tree of the query
-      if (!inExists && isColumnJoinRelevant(column)) {
+      const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
+      // check if we need to merge the column `ref` into the join tree of the query
+      if (!inExists && !virtual && isColumnJoinRelevant(column)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
       }
@@ -695,9 +702,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
-          if (v['@Core.MediaType'] === undefined) queryElements[k] = v
-        })
+        queryElements = sources[aliases[0]].elements
         return
       }
 
@@ -745,7 +750,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           // no joins for infix filters along `exists <path>`
           skipJoins = true
         } else {
-          inferQueryElement(token, false, null, skipJoins)
+          inferQueryElement(token, false, null, skipJoins, true)
           skipJoins = false
         }
       })
