@@ -1,4 +1,16 @@
-// remove virtual fields in most cases
+/*
+If a path in a list (`columns`, `order by`, `group by`)
+has either:
+
+- one assoc step which points to a definition with `@cds.persistence.skip: true`
+- the leaf of the path is `virtual`
+
+the whole path is removed from the `list`. If the `list` is `columns` and the
+`list` would be empty after such a removal, an error is emitted.
+
+If the path exists within an `xpr` we do not filter it out, but process it as a regular path -> render joins, perform flattening, e.t.c.
+*/
+
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
@@ -141,7 +153,7 @@ describe('virtual fields', () => {
   })
 })
 
-describe('@cds.persistence.skip', () => {
+describe('paths with @cds.persistence.skip', () => {
   it('ignores column if assoc in path expression has target ”@cds.persistence.skip”', () => {
     const q = CQL`SELECT from bookshop.NotSkipped {
       ID, skipped.notSkipped.text

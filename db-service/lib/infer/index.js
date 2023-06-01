@@ -508,7 +508,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const leafArt =
               i === 0 && id === '$user' ? column.$refLinks[i].definition.elements.id : column.$refLinks[i].definition
             // infer element based on leaf artifact of path
-            if (insertIntoQueryElements && isPersisted) {
+            if (insertIntoQueryElements) {
               let elementName
               if (column.as) {
                 elementName = column.as
