@@ -585,7 +585,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
       // ignore FK for odata csn / ignore blobs from wildcard expansion
-      if (isODataFlatForeignKey(element) || element['@Core.MediaType'] !== undefined) return
+      if (isODataFlatForeignKey(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
       const flatColumns = getFlatColumnsFor(element, null, null, index, [], except, replace)
       wildcardColumns.push(...flatColumns)
     })
@@ -1534,13 +1534,38 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
    * @returns the source name which can be used to address the node
    */
   function getQuerySourceName(node, $baseLink = null) {
-    if ($baseLink) return $baseLink.alias
-    if (node.isJoinRelevant)
+    if (!node || !node.$refLinks || !node.ref) {
+      throw new Error('Invalid node')
+    }
+    if ($baseLink) {
+      return getBaseLinkAlias($baseLink)
+    }
+
+    if (node.isJoinRelevant) {
+      return getJoinRelevantAlias(node)
+    }
+
+    return getSelectOrEntityAlias(node) || getCombinedElementAlias(node)
+    function getBaseLinkAlias($baseLink) {
+      return $baseLink.alias
+    }
+
+    function getJoinRelevantAlias(node) {
       return [...node.$refLinks]
         .reverse()
         .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess).alias
-    if (node.$refLinks[0].definition.SELECT || node.$refLinks[0].definition.kind === 'entity') return node.ref[0]
-    else return inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index.split('.').pop()
+    }
+
+    function getSelectOrEntityAlias(node) {
+      let firstRefLink = node.$refLinks[0].definition
+      if (firstRefLink.SELECT || firstRefLink.kind === 'entity') {
+        return node.ref[0]
+      }
+    }
+
+    function getCombinedElementAlias(node) {
+      return inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index.split('.').pop()
+    }
   }
 }
 

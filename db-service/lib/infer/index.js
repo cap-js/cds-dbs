@@ -76,8 +76,19 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   return inferred
 
   /**
-   * Infers all query sources from a queries `from` clause.
-   * Drills down into join arguments of the from clause.
+   * Infers all query sources from a given SQL-like query's `from` clause.
+   * It drills down into join arguments of the `from` clause.
+   *
+   * This function helps identify each source, target, and association within the `from` clause.
+   * It processes the `from` clause in the query and maps each source to a respective target and alias.
+   * In case of any errors like missing definitions or associations, this function will throw an error.
+   *
+   * @function inferTarget
+   * @param {object|string} from - The `from` clause of the query to infer the target from.
+   *                              It could be an object or a string.
+   * @param {object} querySources - An object to map the query sources.
+   *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
+   * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
   function inferTarget(from, querySources) {
     const { ref } = from
@@ -116,16 +127,27 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   // REVISIT: this helper is doing by far too much, with too many side effects
 
   /**
-   * Walk recursively through all `ref` steps of the `arg` and attach information such as
-   * the corresponding definition of each `ref` step as well as the target of the `ref` step
-   * in which the next `ref` step must be searched for in.
+   * This function recursively traverses through all 'ref' steps of the 'arg' object and enriches it by attaching
+   * additional information. For each 'ref' step, it adds the corresponding definition and the target in which the
+   * next 'ref' step should be looked up.
    *
-   * @param {object} arg the arg which shall be augmented
-   * @param {$refLink} $baseLink environment where the first `ref` step shall be resolved in.
-   *                             For infix filter / expand columns
-   * @param {boolean} expandOrExists whether the `arg` is part of a `column.expand` /
-   *                                 preceded by an `exists`.
-   *                                 In those cases, unmanaged association paths are allowed .
+   *
+   * @param {Object} arg - The argument object that will be augmented with additional properties.
+   *                        It must contain a 'ref' property, which is an array representing the steps to be processed.
+   *                        Optionally, it can also contain an 'xpr' property, which is also processed recursively.
+   *
+   * @param {Object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
+   *                             resolved. It's needed for infix filter / expand columns. It must contain a 'definition'
+   *                             property, which is an object representing the base environment.
+   *
+   * @param {boolean} expandOrExists - Optional parameter, defaults to false. It indicates whether the 'arg' is part of a
+   *                                   'column.expand' or preceded by an 'exists'. When true, unmanaged association paths
+   *                                   are allowed -> $baseLink is an `expand` or `assoc` preceded by `exists`.
+   *
+   * @throws Will throw an error if a 'ref' step cannot be found in the current environment or if a 'ref' step
+   *         represents an unmanaged association in the case of infix filters and 'expandOrExists' is false.
+   *
+   * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
     const { ref, xpr } = arg
@@ -195,13 +217,16 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Based on the queries `sources`, the `$combinedElements` are calculated.
-   * The `$combinedElements` of a query consist of all accessible elements
-   * across all the table aliases found in the from clause.
+   * Calculates the `$combinedElements` based on the provided queries `sources`.
+   * The `$combinedElements` of a query consist of all accessible elements across all
+   * the table aliases found in the from clause.
    *
-   * The `$combinedElements` are attached to the query as non-enumerable property.
+   * The `$combinedElements` are attached to the query as a non-enumerable property.
    * Each entry in the `$combinedElements` dictionary maps from the element name
-   * to all table aliases where an element with this name can be found.
+   * to an array of objects containing the index and table alias where the element can be found.
+   *
+   * @returns {Object} The `$combinedElements` dictionary, which maps element names to an array of objects
+   *                   containing the index and table alias where the element can be found.
    */
   function inferCombinedElements() {
     const combinedElements = {}
@@ -229,15 +254,17 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Walks over all columns of a queries `SELECT` and infers each `ref`, `xpr`
-   * or `val` as query element based on the queries `$combinedElements` and
-   * `sources`.
+   * Walks over all columns of a query's `SELECT` and infers each `ref`, `xpr`, or `val` as a query element
+   * based on the query's `$combinedElements` and `sources`.
    *
-   * The `elements` are attached to the query as non-enumerable property.
+   * The inferred `elements` are attached to the query as a non-enumerable property.
    *
-   * Also walks over other `ref`s in the query, validates them and attaches `$refLinks`.
-   * --> `where`, infix filters within column refs or other csn paths...
+   * Also walks over other `ref`s in the query, validates them, and attaches `$refLinks`.
+   * This includes handling `where`, infix filters within column `refs`, or other `csn` paths.
    *
+   * @param {Object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
+   *                                   to an array of objects containing the index and table alias where the element can be found.
+   * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
