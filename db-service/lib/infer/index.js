@@ -648,7 +648,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (e === '*') {
             elements = { ...elements, ...$leafLink.definition.elements }
           } else {
-            inferQueryElement(e, false, $leafLink, { inExists: false, inExpr: true, inNestedProjection: true })
+            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
             if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
             if (e.inline) elements = { ...elements, ...resolveInline(e) }
             else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
