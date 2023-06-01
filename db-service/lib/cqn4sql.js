@@ -128,7 +128,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
         })
       }
     }
- 
+
     if (inferred.joinTree && !inferred.joinTree.isInitial)
       transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
   }
