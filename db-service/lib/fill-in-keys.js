@@ -8,7 +8,7 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
   if (!data) return
   const keys = target.keys
   for (const key in keys) {
-    if (keys[key].type === 'cds.UUID' && !data[key] && event in { CREATE: 1, UPDATE: 1 }) {
+    if (keys[key].type === 'cds.UUID' && !data[key] && event === 'CREATE') {
       data[key] = cds.utils.uuid()
     }
   }
@@ -29,7 +29,8 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
           subData = [subData]
         }
         for (const sub of subData) {
-          generateUUIDandPropagateKeys(elements[element]._target, sub, event)
+          // For subData the event is set to 'CREATE' as require UUID generation
+          generateUUIDandPropagateKeys(elements[element]._target, sub, 'CREATE')
         }
       }
 
