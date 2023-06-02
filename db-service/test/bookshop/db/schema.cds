@@ -61,6 +61,7 @@ entity DeepRecursiveAssoc {
 
 entity Foo {
   key ID: Integer;
+  toFoo: Association to Foo;
   virtual virtualField: String;
   stru {
     u : Integer;
@@ -260,6 +261,12 @@ entity AssocMaze4 {
   key A_1 { a : Integer; b : Association to AssocMaze3; };
   key A_2 : KTA3;
   val : Integer;
+}
+
+entity SkippedAndNotSkipped {
+  key ID: Integer;
+  skipped: Association to Skip;
+  self: Association to SkippedAndNotSkipped;
 }
 
 entity NotSkipped {

@@ -76,8 +76,19 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   return inferred
 
   /**
-   * Infers all query sources from a queries `from` clause.
-   * Drills down into join arguments of the from clause.
+   * Infers all query sources from a given SQL-like query's `from` clause.
+   * It drills down into join arguments of the `from` clause.
+   *
+   * This function helps identify each source, target, and association within the `from` clause.
+   * It processes the `from` clause in the query and maps each source to a respective target and alias.
+   * In case of any errors like missing definitions or associations, this function will throw an error.
+   *
+   * @function inferTarget
+   * @param {object|string} from - The `from` clause of the query to infer the target from.
+   *                              It could be an object or a string.
+   * @param {object} querySources - An object to map the query sources.
+   *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
+   * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
   function inferTarget(from, querySources) {
     const { ref } = from
@@ -116,16 +127,27 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   // REVISIT: this helper is doing by far too much, with too many side effects
 
   /**
-   * Walk recursively through all `ref` steps of the `arg` and attach information such as
-   * the corresponding definition of each `ref` step as well as the target of the `ref` step
-   * in which the next `ref` step must be searched for in.
+   * This function recursively traverses through all 'ref' steps of the 'arg' object and enriches it by attaching
+   * additional information. For each 'ref' step, it adds the corresponding definition and the target in which the
+   * next 'ref' step should be looked up.
    *
-   * @param {object} arg the arg which shall be augmented
-   * @param {$refLink} $baseLink environment where the first `ref` step shall be resolved in.
-   *                             For infix filter / expand columns
-   * @param {boolean} expandOrExists whether the `arg` is part of a `column.expand` /
-   *                                 preceded by an `exists`.
-   *                                 In those cases, unmanaged association paths are allowed .
+   *
+   * @param {Object} arg - The argument object that will be augmented with additional properties.
+   *                        It must contain a 'ref' property, which is an array representing the steps to be processed.
+   *                        Optionally, it can also contain an 'xpr' property, which is also processed recursively.
+   *
+   * @param {Object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
+   *                             resolved. It's needed for infix filter / expand columns. It must contain a 'definition'
+   *                             property, which is an object representing the base environment.
+   *
+   * @param {boolean} expandOrExists - Optional parameter, defaults to false. It indicates whether the 'arg' is part of a
+   *                                   'column.expand' or preceded by an 'exists'. When true, unmanaged association paths
+   *                                   are allowed -> $baseLink is an `expand` or `assoc` preceded by `exists`.
+   *
+   * @throws Will throw an error if a 'ref' step cannot be found in the current environment or if a 'ref' step
+   *         represents an unmanaged association in the case of infix filters and 'expandOrExists' is false.
+   *
+   * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
     const { ref, xpr } = arg
@@ -195,13 +217,16 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Based on the queries `sources`, the `$combinedElements` are calculated.
-   * The `$combinedElements` of a query consist of all accessible elements
-   * across all the table aliases found in the from clause.
+   * Calculates the `$combinedElements` based on the provided queries `sources`.
+   * The `$combinedElements` of a query consist of all accessible elements across all
+   * the table aliases found in the from clause.
    *
-   * The `$combinedElements` are attached to the query as non-enumerable property.
+   * The `$combinedElements` are attached to the query as a non-enumerable property.
    * Each entry in the `$combinedElements` dictionary maps from the element name
-   * to all table aliases where an element with this name can be found.
+   * to an array of objects containing the index and table alias where the element can be found.
+   *
+   * @returns {Object} The `$combinedElements` dictionary, which maps element names to an array of objects
+   *                   containing the index and table alias where the element can be found.
    */
   function inferCombinedElements() {
     const combinedElements = {}
@@ -229,15 +254,17 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Walks over all columns of a queries `SELECT` and infers each `ref`, `xpr`
-   * or `val` as query element based on the queries `$combinedElements` and
-   * `sources`.
+   * Walks over all columns of a query's `SELECT` and infers each `ref`, `xpr`, or `val` as a query element
+   * based on the query's `$combinedElements` and `sources`.
    *
-   * The `elements` are attached to the query as non-enumerable property.
+   * The inferred `elements` are attached to the query as a non-enumerable property.
    *
-   * Also walks over other `ref`s in the query, validates them and attaches `$refLinks`.
-   * --> `where`, infix filters within column refs or other csn paths...
+   * Also walks over other `ref`s in the query, validates them, and attaches `$refLinks`.
+   * This includes handling `where`, infix filters within column `refs`, or other `csn` paths.
    *
+   * @param {Object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
+   *                                   to an array of objects containing the index and table alias where the element can be found.
+   * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
@@ -279,9 +306,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
           // shortcut to $user.id
           setElementOnColumns(col, queryElements[col.as || '$user'])
-        else {
-          setElementOnColumns(col, definition)
-        }
+        else setElementOnColumns(col, definition)
       })
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
@@ -312,7 +337,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           // don't miss an exists within an expression
           token.xpr.forEach(walkTokenStream)
         } else {
-          inferQueryElement(token, false, null, skipJoins)
+          inferQueryElement(token, false, null, { inExists: skipJoins, inExpr: true })
           skipJoins = false
         }
       }
@@ -331,32 +356,56 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     return queryElements
 
     /**
-     * Infers an element of the query based on the given `column`
+     * This function is responsible for inferring a query element based on a provided column.
+     * It initializes and attaches a non-enumerable `$refLinks` property to the column,
+     * which stores an array of objects that represent the corresponding artifact of the ref step.
+     * Each object in the `$refLinks` array corresponds to the same index position in the `column.ref` array.
+     * Based on the leaf artifact (last object in the `$refLinks` array), the query element is inferred.
      *
-     * attaches non-enumerable property `$refLinks` to the `column`
-     * which holds the corresponding artifact represented by the ref step
-     * at the same index. Based on the leaf artifact of the `ref` path, the queryElement
-     * is inferred.
+     * @param {object} column - The column object that contains the properties to infer a query element.
+     * @param {boolean} [insertIntoQueryElements=true] - Determines whether the inferred element should be inserted into the queries elements.
+     * For instance, it's set to false when walking over the where clause.
+     * @param {object} [$baseLink=null] - A base reference link, usually it's an object with a definition and a target.
+     * Used for infix filters, exists <assoc> and nested projections.
+     * @param {object} [context={}] - Contextual information for element inference.
+     * @param {boolean} [context.inExists=false] - Flag to control the creation of joins for non-association path traversals.
+     * for `exists <assoc>` paths we do not need to create joins for path expressions as they are part of the semi-joined subquery.
+     * @param {boolean} [context.inExpr=false] - Flag to signal whether the element is part of an expression.
+     * Used to ignore non-persisted elements.
+     * @param {boolean} [context.inNestedProjection=false] - Flag to signal whether the element is part of a nested projection.
      *
-     * @param {object} column
-     * @param {object} [insertIntoQueryElements=true]
-     * whether the inferred element shall be inserted into the queries elements.
-     * E.g. we do not want to do that when we walk over the where clause.
-     * @param {boolean} [inExists=false]
-     * In some cases, no joins must be created for non-assoc path traversals:
-     * - for infix filters in `exists assoc[parent.foo='bar']` -> part of semi join
+     * Note:
+     * - `inExists` is used to specify cases where no joins should be created for non-association path traversals.
+     *   It is primarily used for infix filters in `exists assoc[parent.foo='bar']`, where it becomes part of a semi-join.
+     * - Columns with a `param` property are parameter references resolved into values only at execution time.
+     * - Columns with an `args` property are function calls in expressions.
+     * - Columns with a `list` property represent a list of values (e.g., for the IN operator).
+     * - Columns with a `SELECT` property represent subqueries.
+     *
+     * @throws {Error} If an unmanaged association is found in an infix filter path, an error is thrown.
+     * @throws {Error} If a non-foreign key traversal is found in an infix filter, an error is thrown.
+     * @throws {Error} If a first step is not found in the combined elements, an error is thrown.
+     * @throws {Error} If a filter is provided while navigating along non-associations, an error is thrown.
+     * @throws {Error} If the same element name is inferred more than once, an error is thrown.
+     *
+     * @returns {void}
      */
-    function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, inExists = false) {
+
+    function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
+      const { inExists, inExpr, inNestedProjection } = context || {}
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-      if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists)) // e.g. function in expression
-      if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, inExists))
-      if (column.xpr) column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, inExists)) // e.g. function in expression
+      if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
+      if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
+      if (column.xpr)
+        column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
       if (column.SELECT) return
 
       if (!column.ref) return
 
       init$refLinks(column)
-
+      // if any path step points to an artifact with `@cds.persistence.skip`
+      // we must ignore the element from the queries elements
+      let isPersisted = true
       const firstStepIsTableAlias =
         (column.ref.length > 1 && column.ref[0] in sources) ||
         // nested projection on table alias
@@ -381,6 +430,21 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const { definition, target } = $baseLink
             const elements = definition.elements || definition._target?.elements
             if (elements && id in elements) {
+              const element = elements[id]
+              if (!inExists && !inNestedProjection && element.target) {
+                // only fk access in infix filter
+                const nextStep = column.ref[1]?.id || column.ref[1]
+                // no unmanaged assoc in infix filter path
+                if (element.on)
+                  throw new Error(
+                    `"${element.name}" in path "${column.ref
+                      .map(idOnly)
+                      .join('.')}" must not be an unmanaged association`,
+                  )
+                // no non-fk traversal in infix filter
+                if (nextStep && !(nextStep in element.foreignKeys))
+                  throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
+              }
               column.$refLinks.push({ definition: elements[id], target })
             } else {
               stepNotFoundInPredecessor(id, definition.name)
@@ -448,15 +512,20 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               // no joins for infix filters along `exists <path>`
               skipJoinsForFilter = true
             } else if (token.ref || token.xpr) {
-              inferQueryElement(token, false, column.$refLinks[i], skipJoinsForFilter)
+              inferQueryElement(token, false, column.$refLinks[i], {
+                inExists: skipJoinsForFilter,
+                inExpr: !!token.xpr,
+              })
             } else if (token.func) {
-              token.args?.forEach(arg => inferQueryElement(arg, false, column.$refLinks[i], skipJoinsForFilter))
+              token.args?.forEach(arg =>
+                inferQueryElement(arg, false, column.$refLinks[i], { inExists: skipJoinsForFilter, inExpr: true }),
+              )
             }
           })
         }
 
         column.$refLinks[i].alias = !column.ref[i + 1] && column.as ? column.as : id.split('.').pop()
-
+        if (column.$refLinks[i].definition._target?.['@cds.persistence.skip'] === true) isPersisted = false
         if (!column.ref[i + 1]) {
           const flatName = nameSegments.join('_')
           Object.defineProperty(column, 'flatName', { value: flatName, writable: true })
@@ -508,8 +577,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return
         }
       }
-      // check if we need to merg the column `ref` into the join tree of the query
-      if (!inExists && isColumnJoinRelevant(column)) {
+      const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
+      // check if we need to merge the column `ref` into the join tree of the query
+      if (!inExists && !virtual && isColumnJoinRelevant(column)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
       }
@@ -519,7 +589,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const $leafLink = $refLinks[$refLinks.length - 1]
         let elements = {}
         inline.forEach(inlineCol => {
-          inferQueryElement(inlineCol, false, $leafLink, false, true)
+          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true })
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
@@ -578,7 +648,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (e === '*') {
             elements = { ...elements, ...$leafLink.definition.elements }
           } else {
-            inferQueryElement(e, false, $leafLink)
+            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
             if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
             if (e.inline) elements = { ...elements, ...resolveInline(e) }
             else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
@@ -668,9 +738,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        Object.entries(sources[aliases[0]].elements).forEach(([k, v]) => {
-          if (v['@Core.MediaType'] === undefined) queryElements[k] = v
-        })
+        queryElements = sources[aliases[0]].elements
         return
       }
 
@@ -718,7 +786,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           // no joins for infix filters along `exists <path>`
           skipJoins = true
         } else {
-          inferQueryElement(token, false, null, skipJoins)
+          inferQueryElement(token, false, null, { inExists: skipJoins, inExpr: true })
           skipJoins = false
         }
       })

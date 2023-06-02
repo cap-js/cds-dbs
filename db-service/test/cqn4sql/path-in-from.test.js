@@ -38,13 +38,6 @@ describe('infix filter on entities', () => {
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.dedication_text = 'foo'`)
   })
 
-  // TODO probably not the right place -> this happens in cds.infer
-  it('rejects infix filter at entity containing assoc path', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-      /Only foreign keys of "author" can be accessed in infix filter/,
-    )
-  })
-
   // TODO belongs to flattening
   it('handles infix filter at entity with association if it accesses FK', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[author.ID = 22] {Books.ID}`, model)

@@ -158,7 +158,7 @@ class SQLiteService extends SQLService {
     // reading stream
     const ps = await this.prepare(sql)
     let result = await ps.all(values)
-    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    if (result.length === 0) req.reject(404)
     const val = Object.values(result[0])[0]
     if (val === null) return val
     const stream_ = new Readable()
