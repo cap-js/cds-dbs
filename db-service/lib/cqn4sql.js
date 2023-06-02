@@ -210,95 +210,116 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
+
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
-      const { as } = col
 
       if (col.expand) {
-        const { $refLinks } = col
-        const last = $refLinks[$refLinks.length - 1]
-        if (last.definition.elements) {
-          const expandCols = nestedProjectionOnStructure(col, 'expand')
-          transformedColumns.push(...expandCols)
-        } else if (!last.skipExpand) {
-          // assoc
-          const expandedSubqueryColumn = expandColumn(col)
-          transformedColumns.push(expandedSubqueryColumn)
-        }
+        handleExpand(col)
       } else if (col.inline) {
-        const inlineCols = nestedProjectionOnStructure(col)
-        transformedColumns.push(...inlineCols)
+        handleInline(col)
       } else if (col.ref) {
-        if (pseudos.elements[col.ref[0]]) {
-          transformedColumns.push({ ...col })
-          continue
-        }
-        if (col.param) {
-          transformedColumns.push({ ...col })
-          continue
-        }
-        const tableAliasName = getQuerySourceName(col)
-        const leaf = col.$refLinks[col.$refLinks.length - 1].definition
-        if (leaf.virtual === true) continue // already in getFlatColumnForElement
-        let baseName
-        if (col.ref.length >= 2) {
-          // leaf might be intermediate structure
-          baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
-        }
-        let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
-        const refNavigation = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0).join('_')
-        if (!columnAlias) {
-          if (col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
-        }
-        if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
-        const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
-        flatColumns.forEach(flatColumn => {
-          const { as } = flatColumn
-          // might already be present in result through wildcard expansion
-          if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
-        })
+        handleRef(col)
       } else if (col === '*') {
-        const wildcardIndex = columns.indexOf('*')
-        const ignoreInWildcardExpansion = columns.slice(0, wildcardIndex)
-        const { excluding } = inferred.SELECT
-        if (excluding) ignoreInWildcardExpansion.push(...excluding)
-        const wildcardColumns = getColumnsForWildcard(ignoreInWildcardExpansion, columns.slice(wildcardIndex + 1))
-        transformedColumns.push(...wildcardColumns)
+        handleWildcard(columns)
       } else {
-        let transformedColumn
-        if (col.SELECT) {
-          if (isLocalized(inferred.target)) col.SELECT.localized = true
-          transformedColumn = transformSubquery(col)
-        } else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
-        else if (col.func)
-          transformedColumn = {
-            func: col.func,
-            args: col.args && getTransformedTokenStream(col.args),
-            as: col.func,
-          }
-        // {func}.args are optional
-        // val
-        else transformedColumn = copy(col)
-        if (as) transformedColumn.as = as
-        const replaceWith = transformedColumns.findIndex(
-          t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as,
-        )
-        if (replaceWith === -1) transformedColumns.push(transformedColumn)
-        else transformedColumns.splice(replaceWith, 1, transformedColumn)
-        // attach `element` helper also to non-ref columns
-        Object.defineProperty(transformedColumn, 'element', { value: query.elements[as] })
+        handleDefault(col)
       }
     }
-    // if the removal of virtual columns leads to empty columns array -> error out
+
     if (transformedColumns.length === 0 && columns.length) {
-      // a managed composition exposure is also removed from the columns
-      // but in this case, we want to return the empty columns array
-      // it is safe to only check the leaf of the ref, as managed compositions can't be defined within structs
-      if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition'))
-        return transformedColumns
+      handleEmptyColumns(columns)
+    }
+
+    return transformedColumns
+
+    function handleExpand(col) {
+      const { $refLinks } = col
+      const last = $refLinks[$refLinks.length - 1]
+      if (last.definition.elements) {
+        const expandCols = nestedProjectionOnStructure(col, 'expand')
+        transformedColumns.push(...expandCols)
+      } else if (!last.skipExpand) {
+        const expandedSubqueryColumn = expandColumn(col)
+        transformedColumns.push(expandedSubqueryColumn)
+      }
+    }
+
+    function handleInline(col) {
+      const inlineCols = nestedProjectionOnStructure(col)
+      transformedColumns.push(...inlineCols)
+    }
+
+    function handleRef(col) {
+      if (pseudos.elements[col.ref[0]] || col.param) {
+        transformedColumns.push({ ...col })
+        return
+      }
+
+      const tableAliasName = getQuerySourceName(col)
+      const leaf = col.$refLinks[col.$refLinks.length - 1].definition
+      if (leaf.virtual === true) return
+
+      let baseName
+      if (col.ref.length >= 2) {
+        baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
+      }
+
+      let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
+      const refNavigation = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0).join('_')
+      if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
+
+      if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
+
+      const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
+      flatColumns.forEach(flatColumn => {
+        const { as } = flatColumn
+        if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
+      })
+    }
+
+    function handleWildcard(columns) {
+      const wildcardIndex = columns.indexOf('*')
+      const ignoreInWildcardExpansion = columns.slice(0, wildcardIndex)
+      const { excluding } = inferred.SELECT
+      if (excluding) ignoreInWildcardExpansion.push(...excluding)
+
+      const wildcardColumns = getColumnsForWildcard(ignoreInWildcardExpansion, columns.slice(wildcardIndex + 1))
+      transformedColumns.push(...wildcardColumns)
+    }
+
+    function handleDefault(col) {
+      let transformedColumn = getTransformedColumn(col)
+      if (col.as) transformedColumn.as = col.as
+
+      const replaceWith = transformedColumns.findIndex(t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as)
+      if (replaceWith === -1) transformedColumns.push(transformedColumn)
+      else transformedColumns.splice(replaceWith, 1, transformedColumn)
+
+      Object.defineProperty(transformedColumn, 'element', { value: query.elements[col.as] })
+    }
+
+    function getTransformedColumn(col) {
+      if (col.SELECT) {
+        if (isLocalized(inferred.target)) col.SELECT.localized = true
+        return transformSubquery(col)
+      } else if (col.xpr) {
+        return { xpr: getTransformedTokenStream(col.xpr) }
+      } else if (col.func) {
+        return {
+          func: col.func,
+          args: col.args && getTransformedTokenStream(col.args),
+          as: col.func,
+        }
+      } else {
+        return copy(col)
+      }
+    }
+
+    function handleEmptyColumns(columns) {
+      if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
     }
-    return transformedColumns
   }
 
   /**
