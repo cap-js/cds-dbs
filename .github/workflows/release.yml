@@ -24,7 +24,7 @@ jobs:
       - name: get-version # this takes the version of the monorepo root
         id: package-version
         uses: martinbeentjes/npm-get-version-action@v1.2.3
-      - run: git push --delete origin 'v${{ steps.package-version.outputs.current-version}}' || true # temporarily drop tag again
+      - run: git push --delete origin v${{ steps.package-version.outputs.current-version}} || true # temporarily drop tag again
       - name: Create a GitHub release
         uses: ncipollo/release-action@v1
         with:
