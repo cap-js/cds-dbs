@@ -106,6 +106,7 @@ class SQLService extends DatabaseService {
     const ps = await this.prepare(sql)
     let result = await ps.all(values)
     if (result.length === 0) return
+
     return Object.values(result[0])[0]
   }
 
