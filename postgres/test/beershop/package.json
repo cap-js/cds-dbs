@@ -13,11 +13,7 @@
   "cds": {
     "requires": {
       "db": {
-        "impl": "@cap-js/postgres",
-        "vcap": {
-          "label": "postgresql-db",
-          "tag": "postgresql-db"
-        }
+        "kind": "postgres"
       },
       "features": {
         "lean_draft": true
