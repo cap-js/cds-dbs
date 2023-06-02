@@ -157,7 +157,7 @@ class SQLiteService extends SQLService {
     }
     // reading stream
     const ps = await this.prepare(sql)
-    let result = await ps.all(values)    
+    let result = await ps.all(values)
     if (result.length === 0) return
 
     const val = Object.values(result[0])[0]

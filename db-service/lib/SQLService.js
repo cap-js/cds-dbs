@@ -25,15 +25,15 @@ class SQLService extends DatabaseService {
     if (!query._streaming) return next()
     const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
     if (query.SELECT.where) cqn.STREAM.where = query.SELECT.where
-    const stream = await this.run(cqn)    
-    return stream && { value: stream } 
+    const stream = await this.run(cqn)
+    return stream && { value: stream }
   }
 
-  async transformStreamIntoCQN({ query, data, target }, next) {    
+  async transformStreamIntoCQN({ query, data, target }, next) {
     let col, type, etag
     const elements = query._target?.elements || target?.elements
     if (!elements) next()
-    for(const key in elements) {
+    for (const key in elements) {
       const element = elements[key]
       if (element['@Core.MediaType'] && data[key]?.pipe) col = key
       if (element['@Core.IsMediaType'] && data[key]) type = key
@@ -43,17 +43,18 @@ class SQLService extends DatabaseService {
     if (!col) return next()
 
     const cqn = STREAM.into(query.UPDATE.entity).column(col).data(data[col])
-    if (query.UPDATE.where) cqn.STREAM.where = query.UPDATE.where   
+    if (query.UPDATE.where) cqn.STREAM.where = query.UPDATE.where
     const result = await this.run(cqn)
     if (type || etag) {
-      const d = { ...data }; delete d[col]
+      const d = { ...data }
+      delete d[col]
       const cqn = UPDATE.entity(query.UPDATE.entity).with(d)
-      if (query.UPDATE.where) cqn.UPDATE.where = query.UPDATE.where 
+      if (query.UPDATE.where) cqn.UPDATE.where = query.UPDATE.where
       await this.run(cqn)
     }
 
     return result
-  }  
+  }
 
   /** Handler for SELECT */
   async onSELECT({ query, data }) {
