@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "the beershop. what are you going to drink today?",
   "dependencies": {
-    "cds-pg": "*"
+    "@cap-js/postgres": "*"
   },
   "scripts": {
     "// note!": "you need credentials for the pg db in your cds env!",
@@ -13,7 +13,11 @@
   "cds": {
     "requires": {
       "db": {
-        "kind": "pg"
+        "impl": "@cap-js/postgres",
+        "vcap": {
+          "label": "postgresql-db",
+          "tag": "postgresql-db"
+        }
       },
       "features": {
         "lean_draft": true
