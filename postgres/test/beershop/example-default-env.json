@@ -1,55 +1,48 @@
 {
-    "VCAP_SERVICES": {
-        "user-provided": [
-            {
-                "label": "user-provided",
-                "name": "example-application-db",
-                "tags": [
-                    "plain",
-                    "postgresql-db"
-                ],
-                "instance_guid": "000000000-0000-0000-0000-0000000000000",
-                "instance_name": "example-application-db",
-                "binding_guid": "000000000-0000-0000-0000-0000000000000",
-                "binding_name": null,
-                "credentials": {
-                    "database": "postgres",
-                    "host": "localhost",
-                    "password": "postgres",
-                    "port": "5432",
-                    "schema": "public",
-                    "user": "postgres"
-                },
-                "syslog_drain_url": "",
-                "volume_mounts": []
-            }
-        ],
-        "postgresql-db": [
-            {
-                "label": "postgresql-db",
-                "provider": null,
-                "plan": "free",
-                "name": "example-application-db",
-                "tags": [
-                    "relational",
-                    "database",
-                    "plain"
-                ],
-                "instance_guid": "000000000-0000-0000-0000-0000000000000",
-                "instance_name": "example-application-db",
-                "binding_guid": "000000000-0000-0000-0000-0000000000000",
-                "binding_name": null,
-                "credentials": {
-                    "username": "postgres",
-                    "password": "postgres",
-                    "hostname": "localhost",
-                    "dbname": "postgres",
-                    "port": "5432",
-                    "uri": "postgres://postgres:postgres@localhost:5432/postgres"
-                },
-                "syslog_drain_url": null,
-                "volume_mounts": []
-            }
-        ]
-    }
+  "VCAP_SERVICES": {
+    "user-provided": [
+      {
+        "label": "user-provided",
+        "name": "example-application-db",
+        "tags": ["plain", "postgresql-db"],
+        "instance_guid": "000000000-0000-0000-0000-0000000000000",
+        "instance_name": "example-application-db",
+        "binding_guid": "000000000-0000-0000-0000-0000000000000",
+        "binding_name": null,
+        "credentials": {
+          "database": "postgres",
+          "host": "localhost",
+          "password": "postgres",
+          "port": "5432",
+          "schema": "public",
+          "user": "postgres"
+        },
+        "syslog_drain_url": "",
+        "volume_mounts": []
+      }
+    ],
+    "postgresql-db": [
+      {
+        "label": "postgresql-db",
+        "provider": null,
+        "plan": "free",
+        "name": "example-application-db",
+        "tags": ["relational", "database", "plain"],
+        "instance_guid": "000000000-0000-0000-0000-0000000000000",
+        "instance_name": "example-application-db",
+        "binding_guid": "000000000-0000-0000-0000-0000000000000",
+        "binding_name": null,
+        "credentials": {
+          "username": "postgres",
+          "password": "postgres",
+          "hostname": "localhost",
+          "dbname": "postgres",
+          "port": "5432",
+          "uri": "postgres://postgres:postgres@localhost:5432/postgres"
+        },
+        "syslog_drain_url": null,
+        "volume_mounts": []
+      }
+    ]
+  }
 }
