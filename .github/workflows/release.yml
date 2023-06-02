@@ -3,9 +3,10 @@
 
 name: Release
 
+# trigger to be adapted
 on:
-  push:
-    branches: [release]
+  pull_request: 
+    branches: [main]
 
 jobs:
   publish-npm:
@@ -19,7 +20,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm i
       - run: npm run test:all
-      - name: get-version
+      - name: get-version # this takes the version of the monorepo root
         id: package-version
         uses: martinbeentjes/npm-get-version-action@v1.2.3
       - name: Create a GitHub release
@@ -29,6 +30,12 @@ jobs:
           name: 'Release v${{ steps.package-version.outputs.current-version}}'
           prerelease: true
           # body: changelog...
-      - run: npm publish --tag beta --access public
+      - run: npm publish --workspace db-service --dry-run # --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      - run: npm publish --workspace sqlite --dry-run # --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      - run: npm publish --workspace postgres --dry-run # --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
