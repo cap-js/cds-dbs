@@ -410,32 +410,23 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * This function converts a column with an `expand` property into a subquery.
+   * Expands a column with an `expand` property to a subquery.
    *
-   * It operates by using the following steps:
+   * For a given query: `SELECT from Authors { books { title } }` do the following:
    *
-   * 1. It creates an intermediate SQL query, selecting `from <effective query source>:...<column>.ref { ...<column>.expand }`.
-   *    For example, from the query `SELECT from Authors { books { title } }`, it generates:
+   * 1. build intermediate query which selects `from <effective query source>:...<column>.ref { ...<column>.expand }`:
    *    - `SELECT from Authors:books as books {title}`
-   *
-   * 2. It then adds the properties `expand: true` and `one: <expand assoc>.is2one` to the intermediate SQL query.
-   *
-   * 3. It applies `cqn4sql` to the intermediate query (ensuring the aliases of the outer query are maintained).
-   *    For example, `cqn4sql(…)` is used to create the following query:
-   *    - `SELECT from Books as books {books.title} where exists ( SELECT 1 from Authors as Authors where Authors.ID = books.author_ID )`
-   *
-   * 4. It then replaces the `exists <subquery>` with the where condition of the `<subquery>` and correlates it with the effective query source.
-   *    For example, this query is created:
+   * 2. add properties `expand: true` and `one: <expand assoc>.is2one`
+   * 3. apply `cqn4sql` again on this intermediate query (respect aliases of outer query)
+   *    - `cqn4sql(…)` -> `SELECT from Books as books {books.title}
+   *                        where exists ( SELECT 1 from Authors as Authors where exists ID = books.author_ID )`
+   * 4. Replace the `exists <subquery>` with the where condition of the `<subquery>` and correlate it with the effective query source:
    *    - `SELECT from Books as books { books.title } where Authors.ID = books.author_ID`
-   *
-   * 5. Lastly, it replaces the `expand` column of the original query with the transformed subquery.
-   *    For example, the query becomes:
+   * 5. Replace the `expand` column of the original query with the transformed subquery:
    *    - `SELECT from Authors { (SELECT from Books as books { books.title } where Authors.ID = books.author_ID) as books }`
    *
-   * @param {CSN.column} column - The column with the 'expand' property to be transformed into a subquery.
-   *
-   * @returns {Object} Returns a subquery correlated with the enclosing query, with added properties `expand:true` and `one:true|false`.
-   *
+   * @param {CSN.column} column
+   * @returns a subquery, correlated with the enclosing query, having special properties `expand:true` and `one:true|false`
    */
   function expandColumn(column) {
     let outerAlias
@@ -579,18 +570,14 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * This function is designed to convert a wildcard into explicit columns in a query.
+   * Expands wildcard into explicit columns.
    *
-   * Based on the query's `$combinedElements` attribute, the function computes the flat column representations
-   * and returns them. Additionally, it prepends the respective table alias to each column. Columns specified
-   * in the `excluding` clause are ignored during this transformation.
+   * Based on a queries `$combinedElements`, the flat column representations
+   * are calculated and returned. Also prepends the respective table alias on each
+   * column. Columns which appear in the `excluding` clause, will be ignored.
    *
-   * Furthermore, foreign keys (FK) for OData CSN and blobs are excluded from the wildcard expansion.
-   *
-   * @param {Array} except - An optional list of columns to be excluded during the wildcard expansion.
-   * @param {Array} replace - An optional list of columns to replace during the wildcard expansion.
-   *
-   * @returns {Array} Returns an array of explicit columns derived from the wildcard.
+   * @param except a list of columns which shall not be included in the wildcard expansion
+   * @returns {object[]}
    */
   function getColumnsForWildcard(except = [], replace = []) {
     const wildcardColumns = []
@@ -629,27 +616,18 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Recursively expands a structured element into flat columns, representing all leaf paths.
-   * This function is designed to transform complex structured elements into simple column representations.
+   * Recursively expand a structured element in flat columns, representing all
+   * leaf paths.
    *
-   * For each element, the function checks if it's a structure, an association or a scalar,
-   * and proceeds accordingly. If the element is a structure, it recursively fetches flat columns for all sub-elements.
-   * If it's an association, it fetches flat columns for it's foreign keys.
-   * If it's a scalar, it creates a flat column for it.
-   *
-   * Columns excluded in a wildcard expansion or replaced by other columns are also handled accordingly.
-   *
-   * @param {object} column - The structured element which needs to be expanded.
-   * @param {string} baseName - The prefixes of the column reference (joined with '_'). Optional.
-   * @param {string} columnAlias - The explicit alias which the user has defined for the column.
-   *                               For instance `{ struct.foo as bar}` will be transformed into
-   *                               `{ struct_foo_leaf1 as bar_foo_leaf1, struct_foo_leaf2 as bar_foo_leaf2 }`.
-   * @param {string} tableAlias - The table alias to prepend to the column name. Optional.
-   * @param {Array} csnPath - An array containing CSN paths. Optional.
-   * @param {Array} exclude - An array of columns to be excluded from the flat structure. Optional.
-   * @param {Array} replace - An array of columns to be replaced in the flat structure. Optional.
-   *
-   * @returns {object[]} Returns an array of flat column(s) for the given element.
+   * @param {object} element the structured element which shall be expanded
+   * @param {string} baseName the prefixes of the column ref (joined with '_')
+   * @param {string} columnAlias the explicit alias which the user has defined for the column.
+   *                      `{ struct.foo as bar}` --> `{
+   *                                                    struct_foo_leaf1 as bar_foo_leaf1,
+   *                                                    struct_foo_leaf2 as bar_foo_leaf2
+   *                                                  }`
+   * @returns {object[]} flat column(s) for the given element
+   * @TODO REVISIT improve this function, it is too complex/generic
    */
   function getFlatColumnsFor(
     column,
