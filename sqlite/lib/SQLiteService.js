@@ -87,8 +87,8 @@ class SQLiteService extends SQLService {
       ...super.InputConverters,
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
+      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
+      Timestamp: e => highPrecisionTimestamps(e),
     }
 
     static OutputConverters = {
@@ -103,8 +103,8 @@ class SQLiteService extends SQLService {
       // REVISIT: Timestamp should not loos precision
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%f0000Z',${e})`,
+      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
+      Timestamp: e => highPrecisionTimestamps(e),
     }
 
     // Used for SQL function expressions
@@ -184,5 +184,63 @@ function _not_unique(err, code) {
       code: 400, // FIXME: misusing code as (http) status
     })
 }
+
+/**
+ * Generates SQL statement that allows SQLite to support most of the ISO 8601 timezone syntaxes
+ * @example
+ * '1970-01-01T00:00:00+0200' -> '1970-01-01T00:00:00+02:00'
+ * @example
+ * '1970-01-01T00:00:00-02' -> '1970-01-01T00:00:00-02:00'
+ * @example
+ * '1970-01-01T00:00:00Z' -> '1970-01-01T00:00:00Z'
+ * @param {String} e value SQL expression
+ * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
+ */
+const fixTimeZone = e =>
+  `(
+  SELECT
+    CASE
+      WHEN substr(T,length(T),1) = 'Z' THEN 
+        T
+      WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
+        substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
+      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
+        T || ':' || '00'
+      ELSE T
+    END AS T
+  FROM (SELECT (${e}) AS T)
+)`.replace(/\s*\n\s*/g, ' ')
+
+/**
+ * Generates SQL statement that allows SQLite to support high precision timestamps like HANA
+ * @example
+ * '1970-01-01T00:00:00.123456789-0200' -> '1970-01-01T02:00:00.123456789Z'
+ * @example
+ * '1970-01-01T00:00:00.123456789Z' -> '1970-01-01T00:00:00.123456789Z'
+ * @param {String} e value SQL expression
+ * @returns {String} SQL statement that processes the timestamp string to the highest precision available
+ */
+const highPrecisionTimestamps = e =>
+  `(
+  SELECT
+    strftime('%Y-%m-%dT%H:%M:%S', T) 
+    || '.' 
+    || substr(
+        substr(
+          substr(T,21),
+          0,
+          coalesce(
+            nullif(instr(substr(T,21),'-'),0),
+            nullif(instr(substr(T,21),'+'),0),
+            nullif(instr(substr(T,21),'Z'),0),
+            length(T)
+          )
+        ) || '0000000',
+        1,
+        7
+      )
+    || 'Z' AS T
+  FROM ${fixTimeZone(e)}
+)`.replace(/\s*\n\s*/g, ' ')
 
 module.exports = SQLiteService
