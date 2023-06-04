@@ -680,6 +680,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     return res
   }
 
+  /**
+   * Transforms a subquery.
+   *
+   * If the current query contains outer queries (is itself a subquery),
+   * it appends the current inferred query.
+   * Otherwise, it initializes the `outerQueries` array and adds the inferred query.
+   * The `outerQueries` property makes sure
+   * that the table aliases of the outer queries are accessible within the scope of the subquery.
+   * Lastly, it recursively calls cqn4sql on the subquery.
+   *
+   * @param {object} q - The query to be transformed. This should be a subquery object.
+   * @returns {object} - The cqn4sql transformed subquery.
+   */
   function transformSubquery(q) {
     if (q.outerQueries) q.outerQueries.push(inferred)
     else {
