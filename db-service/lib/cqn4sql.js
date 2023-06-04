@@ -39,13 +39,13 @@ const { pseudos } = require('./infer/pseudos')
  * `cqn4sql` is applied recursively to all queries found in `from`, `columns` and `where`
  *  of a query.
  *
- * @param {object} query
+ * @param {object} originalQuery
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(query, model = cds.context?.model || cds.model) {
-  const inferred = infer(query, model)
-  if (query.SELECT?.from.args && !query.joinTree) return inferred
+function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
+  const inferred = infer(originalQuery, model)
+  if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
   const transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.cmd || Object.keys(inferred)[0]
@@ -55,49 +55,65 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
   }
-  const _ = inferred[kind]
-  if (_ || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
-    const { entity, where } = _
-    const from = _.from || inferred.STREAM?.into
+  const queryProp = inferred[kind]
+  if (queryProp || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
+    const { entity, where } = queryProp
+    const from = queryProp.from || inferred.STREAM?.into
 
-    const transformedProp = { __proto__: _ } // IMPORTANT: don't loose anything you might not know of
-    // first transform the existing where, prepend table aliases and so on....
-    if (where) transformedProp.where = getTransformedTokenStream(where)
-    // now transform the from clause: association path steps turn
-    // into `WHERE EXISTS` subqueries. The already transformed `where` clause
-    // is then glued together with the resulting subqueries.
+    const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+
+    // Transform the existing where, prepend table aliases, and so on...
+    if (where) {
+      transformedProp.where = getTransformedTokenStream(where)
+    }
+
+    // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
+    // The already transformed `where` clause is then glued together with the resulting subqueries.
     const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
 
     if (inferred.SELECT) {
-      const { columns, having, groupBy, orderBy, limit } = _
+      const { columns, having, groupBy, orderBy, limit } = queryProp
 
-      // trivial replacement -> no transformations needed
-      if (limit) transformedQuery.SELECT.limit = limit
+      // Trivial replacement -> no transformations needed
+      if (limit) {
+        transformedQuery.SELECT.limit = limit
+      }
 
       transformedQuery.SELECT.from = transformedFrom
-      if (transformedWhere?.length > 0) transformedQuery.SELECT.where = transformedWhere
 
-      if (columns) transformedQuery.SELECT.columns = getTransformedColumns(columns)
-      else transformedQuery.SELECT.columns = getColumnsForWildcard()
+      if (transformedWhere?.length > 0) {
+        transformedQuery.SELECT.where = transformedWhere
+      }
 
-      // Like the WHERE clause, aliases from the SELECT list are
-      // not accessible for `group by`/`having` (in most DB's)
-      if (having) transformedQuery.SELECT.having = getTransformedTokenStream(having)
+      if (columns) {
+        transformedQuery.SELECT.columns = getTransformedColumns(columns)
+      } else {
+        transformedQuery.SELECT.columns = getColumnsForWildcard()
+      }
+
+      // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
+      if (having) {
+        transformedQuery.SELECT.having = getTransformedTokenStream(having)
+      }
 
       if (groupBy) {
         const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
-        if (transformedGroupBy.length) transformedQuery.SELECT.groupBy = transformedGroupBy
+        if (transformedGroupBy.length) {
+          transformedQuery.SELECT.groupBy = transformedGroupBy
+        }
       }
 
-      // Since all the expressions in the SELECT part of the query have been computed
+      // Since all the expressions in the SELECT part of the query have been computed,
       // one can reference aliases of the queries columns in the orderBy clause.
       if (orderBy) {
         const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
-        if (transformedOrderBy.length) transformedQuery.SELECT.orderBy = transformedOrderBy
+        if (transformedOrderBy.length) {
+          transformedQuery.SELECT.orderBy = transformedOrderBy
+        }
       }
 
       if (inferred.SELECT.search) {
-        // search target can be a navigation, in that case use _target to get correct entity
+        // Search target can be a navigation, in that case use _target to get the correct entity
         const entity = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
         const searchIn = computeColumnsToBeSearched(inferred, entity, transformedFrom.as)
         if (searchIn.length > 0) {
@@ -109,16 +125,27 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
               xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
             ],
           }
-          if (transformedQuery.SELECT.where)
+
+          if (transformedQuery.SELECT.where) {
             transformedQuery.SELECT.where = [asXpr(transformedQuery.SELECT.where), 'and', contains]
-          else transformedQuery.SELECT.where = [contains]
+          } else {
+            transformedQuery.SELECT.where = [contains]
+          }
         }
       }
     } else {
-      if (inferred.STREAM?.into) transformedProp.into = transformedFrom
-      else if (from) transformedProp.from = transformedFrom
-      else transformedProp.entity = transformedFrom
-      if (transformedWhere?.length > 0) transformedProp.where = transformedWhere
+      if (inferred.STREAM?.into) {
+        transformedProp.into = transformedFrom
+      } else if (from) {
+        transformedProp.from = transformedFrom
+      } else {
+        transformedProp.entity = transformedFrom
+      }
+
+      if (transformedWhere?.length > 0) {
+        transformedProp.where = transformedWhere
+      }
+
       transformedQuery[kind] = transformedProp
 
       if (inferred.UPDATE?.with) {
@@ -129,9 +156,11 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       }
     }
 
-    if (inferred.joinTree && !inferred.joinTree.isInitial)
+    if (inferred.joinTree && !inferred.joinTree.isInitial) {
       transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+    }
   }
+
   return transformedQuery
 
   /**
@@ -296,7 +325,7 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      Object.defineProperty(transformedColumn, 'element', { value: query.elements[col.as] })
+      Object.defineProperty(transformedColumn, 'element', { value: originalQuery.elements[col.as] })
     }
 
     function getTransformedColumn(col) {
