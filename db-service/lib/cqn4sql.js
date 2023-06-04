@@ -43,7 +43,6 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-// Main Function
 function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   const inferred = infer(originalQuery, model)
   if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
