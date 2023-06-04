@@ -56,9 +56,24 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     return transformedQuery
   }
   const queryProp = inferred[kind]
-  if (queryProp || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
+  if (!inferred.STREAM?.from && inferred.STREAM?.into) {
+    const { into, where } = inferred.STREAM
+    const transformedProp = { __proto__: inferred.STREAM } // IMPORTANT: don't lose anything you might not know of
+    // Transform the existing where, prepend table aliases, and so on...
+    if (where) {
+      transformedProp.where = getTransformedTokenStream(where)
+    }
+    // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
+    // The already transformed `where` clause is then glued together with the resulting subqueries.
+    const { transformedWhere, transformedFrom } = getTransformedFrom(into, transformedProp.where)
+    if (transformedWhere?.length > 0) {
+      transformedProp.where = transformedWhere
+    }
+    transformedProp.into = transformedFrom
+    transformedQuery.STREAM = transformedProp
+  } else if (queryProp) {
     const { entity, where } = queryProp
-    const from = queryProp.from || inferred.STREAM?.into
+    const from = queryProp.from
 
     const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
 
@@ -134,9 +149,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
     } else {
-      if (inferred.STREAM?.into) {
-        transformedProp.into = transformedFrom
-      } else if (from) {
+      if (from) {
         transformedProp.from = transformedFrom
       } else {
         transformedProp.entity = transformedFrom
