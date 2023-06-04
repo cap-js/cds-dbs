@@ -52,11 +52,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   const kind = inferred.cmd || Object.keys(inferred)[0]
 
   if (inferred.INSERT || inferred.UPSERT) {
-    transformedQuery = transformQueryForInsertUpsert(inferred, kind, transformedQuery)
+    transformedQuery = transformQueryForInsertUpsert(kind)
   } else {
     const queryProp = inferred[kind]
     if (!inferred.STREAM?.from && inferred.STREAM?.into) {
-      transformedQuery = transformStreamQuery(inferred, transformedQuery)
+      transformedQuery = transformStreamQuery()
     } else {
       const { entity, where } = queryProp
       const from = queryProp.from
@@ -73,67 +73,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
 
       if (inferred.SELECT) {
-        const { columns, having, groupBy, orderBy, limit } = queryProp
-
-        // Trivial replacement -> no transformations needed
-        if (limit) {
-          transformedQuery.SELECT.limit = limit
-        }
-
-        transformedQuery.SELECT.from = transformedFrom
-
-        if (transformedWhere?.length > 0) {
-          transformedQuery.SELECT.where = transformedWhere
-        }
-
-        if (columns) {
-          transformedQuery.SELECT.columns = getTransformedColumns(columns)
-        } else {
-          transformedQuery.SELECT.columns = getColumnsForWildcard()
-        }
-
-        // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
-        if (having) {
-          transformedQuery.SELECT.having = getTransformedTokenStream(having)
-        }
-
-        if (groupBy) {
-          const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
-          if (transformedGroupBy.length) {
-            transformedQuery.SELECT.groupBy = transformedGroupBy
-          }
-        }
-
-        // Since all the expressions in the SELECT part of the query have been computed,
-        // one can reference aliases of the queries columns in the orderBy clause.
-        if (orderBy) {
-          const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
-          if (transformedOrderBy.length) {
-            transformedQuery.SELECT.orderBy = transformedOrderBy
-          }
-        }
-
-        if (inferred.SELECT.search) {
-          // Search target can be a navigation, in that case use _target to get the correct entity
-          const entity = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
-          const searchIn = computeColumnsToBeSearched(inferred, entity, transformedFrom.as)
-          if (searchIn.length > 0) {
-            const xpr = inferred.SELECT.search
-            const contains = {
-              func: 'search',
-              args: [
-                searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-                xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-              ],
-            }
-
-            if (transformedQuery.SELECT.where) {
-              transformedQuery.SELECT.where = [asXpr(transformedQuery.SELECT.where), 'and', contains]
-            } else {
-              transformedQuery.SELECT.where = [contains]
-            }
-          }
-        }
+        transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
       } else {
         if (from) {
           transformedProp.from = transformedFrom
@@ -163,14 +103,80 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
   return transformedQuery
 
-  function transformQueryForInsertUpsert(inferred, kind, transformedQuery) {
+  function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
+    const { columns, having, groupBy, orderBy, limit } = queryProp
+
+    // Trivial replacement -> no transformations needed
+    if (limit) {
+      transformedQuery.SELECT.limit = limit
+    }
+
+    transformedQuery.SELECT.from = transformedFrom
+
+    if (transformedWhere?.length > 0) {
+      transformedQuery.SELECT.where = transformedWhere
+    }
+
+    if (columns) {
+      transformedQuery.SELECT.columns = getTransformedColumns(columns)
+    } else {
+      transformedQuery.SELECT.columns = getColumnsForWildcard()
+    }
+
+    // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
+    if (having) {
+      transformedQuery.SELECT.having = getTransformedTokenStream(having)
+    }
+
+    if (groupBy) {
+      const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
+      if (transformedGroupBy.length) {
+        transformedQuery.SELECT.groupBy = transformedGroupBy
+      }
+    }
+
+    // Since all the expressions in the SELECT part of the query have been computed,
+    // one can reference aliases of the queries columns in the orderBy clause.
+    if (orderBy) {
+      const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
+      if (transformedOrderBy.length) {
+        transformedQuery.SELECT.orderBy = transformedOrderBy
+      }
+    }
+
+    if (inferred.SELECT.search) {
+      // Search target can be a navigation, in that case use _target to get the correct entity
+      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
+      if (where) {
+        transformedQuery.SELECT.where = where
+      }
+    }
+    return transformedQuery
+  }
+
+  /**
+   * Transforms a query object for INSERT or UPSERT operations by modifying the `into` clause.
+   *
+   * @param {string} kind - The type of operation: "INSERT" or "UPSERT".
+   *
+   * @returns {Object} - The transformed query with updated `into` clause.
+   */
+  function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
   }
 
-  function transformStreamQuery(inferred, transformedQuery) {
+  /**
+   * Transforms a stream query, replacing the `where` and `into` clauses after processing.
+   *
+   * @param {Object} inferred - The inferred object containing the STREAM query.
+   * @param {Object} transformedQuery - The query object to be transformed.
+   *
+   * @returns {Object} - The transformed query with updated STREAM clauses.
+   */
+  function transformStreamQuery() {
     const { into, where } = inferred.STREAM
     const transformedProp = { __proto__: inferred.STREAM }
     if (where) {
@@ -183,6 +189,41 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedProp.into = transformedFrom
     transformedQuery.STREAM = transformedProp
     return transformedQuery
+  }
+
+  /**
+   * Transforms a search expression to a WHERE clause for a SELECT operation.
+   *
+   * @param {Object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {Object} from - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
+   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
+   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
+   *     If the target entity of the query does not contain searchable elements, the function returns null.
+   *
+   */
+  function transformSearchToWhere(search, from) {
+    const entity = from.$refLinks[0].definition._target || from.$refLinks[0].definition
+    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const contains = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
+      }
+
+      if (transformedQuery.SELECT.where) {
+        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
+      } else {
+        return [contains]
+      }
+    } else {
+      return null
+    }
   }
 
   /**
@@ -844,14 +885,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Walks over token stream such as the array of a `where` or `having`.
-   * Expands `exists <assoc>` into `WHERE EXISTS` subqueries and flattens `ref`s.
-   * Also applies `cqn4sql` to query expressions found in the token stream.
+   * Transforms a CQN token stream (e.g. `where`, `xpr` or `having`) into a SQL like expression.
    *
-   * @param {object[]} tokenStream
-   * @param {object} $baseLink the environment, where the `ref`s in the token stream are resolvable
-   *                           `{…} WHERE exists assoc[exists anotherAssoc]`
-   *                           --> the $baseLink for `anotherAssoc` is `assoc`
+   * Expand `exists <assoc>` into `WHERE EXISTS` subqueries, apply flattening to `ref`s.
+   * Recursively apply `cqn4sql` to query expressions found in the token stream.
+   *
+   * @param {object[]} tokenStream - The token stream to transform. Each token in the stream is an
+   *                                 object representing a CQN construct such as a column, an operator,
+   *                                 or a subquery.
+   * @param {object} [$baseLink=null] - The context in which the `ref`s in the token stream are resolvable.
+   *                                    It serves as the reference point for resolving associations in
+   *                                    statements like `{…} WHERE exists assoc[exists anotherAssoc]`.
+   *                                    Here, the $baseLink for `anotherAssoc` would be `assoc`.
+   * @returns {object[]} - The transformed token stream.
    */
   function getTransformedTokenStream(tokenStream, $baseLink = null) {
     const transformedWhere = []
