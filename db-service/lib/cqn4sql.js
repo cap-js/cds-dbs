@@ -39,100 +39,191 @@ const { pseudos } = require('./infer/pseudos')
  * `cqn4sql` is applied recursively to all queries found in `from`, `columns` and `where`
  *  of a query.
  *
- * @param {object} query
+ * @param {object} originalQuery
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(query, model = cds.context?.model || cds.model) {
-  const inferred = infer(query, model)
-  if (query.SELECT?.from.args && !query.joinTree) return inferred
+function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
+  const inferred = infer(originalQuery, model)
+  if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
-  const transformedQuery = cds.ql.clone(inferred)
+  let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.cmd || Object.keys(inferred)[0]
+
   if (inferred.INSERT || inferred.UPSERT) {
+    transformedQuery = transformQueryForInsertUpsert(kind)
+  } else {
+    const queryProp = inferred[kind]
+    if (!inferred.STREAM?.from && inferred.STREAM?.into) {
+      transformedQuery = transformStreamQuery()
+    } else {
+      const { entity, where } = queryProp
+      const from = queryProp.from
+
+      const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+
+      // Transform the existing where, prepend table aliases, and so on...
+      if (where) {
+        transformedProp.where = getTransformedTokenStream(where)
+      }
+
+      // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
+      // The already transformed `where` clause is then glued together with the resulting subqueries.
+      const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+
+      if (inferred.SELECT) {
+        transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
+      } else {
+        if (from) {
+          transformedProp.from = transformedFrom
+        } else {
+          transformedProp.entity = transformedFrom
+        }
+
+        if (transformedWhere?.length > 0) {
+          transformedProp.where = transformedWhere
+        }
+
+        transformedQuery[kind] = transformedProp
+
+        if (inferred.UPDATE?.with) {
+          Object.entries(inferred.UPDATE.with).forEach(([key, val]) => {
+            const transformed = getTransformedTokenStream([val])
+            inferred.UPDATE.with[key] = transformed[0]
+          })
+        }
+      }
+
+      if (inferred.joinTree && !inferred.joinTree.isInitial) {
+        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+      }
+    }
+  }
+
+  return transformedQuery
+
+  function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
+    const { columns, having, groupBy, orderBy, limit } = queryProp
+
+    // Trivial replacement -> no transformations needed
+    if (limit) {
+      transformedQuery.SELECT.limit = limit
+    }
+
+    transformedQuery.SELECT.from = transformedFrom
+
+    if (transformedWhere?.length > 0) {
+      transformedQuery.SELECT.where = transformedWhere
+    }
+
+    if (columns) {
+      transformedQuery.SELECT.columns = getTransformedColumns(columns)
+    } else {
+      transformedQuery.SELECT.columns = getColumnsForWildcard()
+    }
+
+    // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
+    if (having) {
+      transformedQuery.SELECT.having = getTransformedTokenStream(having)
+    }
+
+    if (groupBy) {
+      const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
+      if (transformedGroupBy.length) {
+        transformedQuery.SELECT.groupBy = transformedGroupBy
+      }
+    }
+
+    // Since all the expressions in the SELECT part of the query have been computed,
+    // one can reference aliases of the queries columns in the orderBy clause.
+    if (orderBy) {
+      const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
+      if (transformedOrderBy.length) {
+        transformedQuery.SELECT.orderBy = transformedOrderBy
+      }
+    }
+
+    if (inferred.SELECT.search) {
+      // Search target can be a navigation, in that case use _target to get the correct entity
+      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
+      if (where) {
+        transformedQuery.SELECT.where = where
+      }
+    }
+    return transformedQuery
+  }
+
+  /**
+   * Transforms a query object for INSERT or UPSERT operations by modifying the `into` clause.
+   *
+   * @param {string} kind - The type of operation: "INSERT" or "UPSERT".
+   *
+   * @returns {Object} - The transformed query with updated `into` clause.
+   */
+  function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
   }
-  const _ = inferred[kind]
-  if (_ || (!inferred.STREAM?.from && inferred.STREAM?.into)) {
-    const { entity, where } = _
-    const from = _.from || inferred.STREAM?.into
 
-    const transformedProp = { __proto__: _ } // IMPORTANT: don't loose anything you might not know of
-    // first transform the existing where, prepend table aliases and so on....
-    if (where) transformedProp.where = getTransformedTokenStream(where)
-    // now transform the from clause: association path steps turn
-    // into `WHERE EXISTS` subqueries. The already transformed `where` clause
-    // is then glued together with the resulting subqueries.
-    const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+  /**
+   * Transforms a stream query, replacing the `where` and `into` clauses after processing.
+   *
+   * @param {Object} inferred - The inferred object containing the STREAM query.
+   * @param {Object} transformedQuery - The query object to be transformed.
+   *
+   * @returns {Object} - The transformed query with updated STREAM clauses.
+   */
+  function transformStreamQuery() {
+    const { into, where } = inferred.STREAM
+    const transformedProp = { __proto__: inferred.STREAM }
+    if (where) {
+      transformedProp.where = getTransformedTokenStream(where)
+    }
+    const { transformedWhere, transformedFrom } = getTransformedFrom(into, transformedProp.where)
+    if (transformedWhere?.length > 0) {
+      transformedProp.where = transformedWhere
+    }
+    transformedProp.into = transformedFrom
+    transformedQuery.STREAM = transformedProp
+    return transformedQuery
+  }
 
-    if (inferred.SELECT) {
-      const { columns, having, groupBy, orderBy, limit } = _
-
-      // trivial replacement -> no transformations needed
-      if (limit) transformedQuery.SELECT.limit = limit
-
-      transformedQuery.SELECT.from = transformedFrom
-      if (transformedWhere?.length > 0) transformedQuery.SELECT.where = transformedWhere
-
-      if (columns) transformedQuery.SELECT.columns = getTransformedColumns(columns)
-      else transformedQuery.SELECT.columns = getColumnsForWildcard()
-
-      // Like the WHERE clause, aliases from the SELECT list are
-      // not accessible for `group by`/`having` (in most DB's)
-      if (having) transformedQuery.SELECT.having = getTransformedTokenStream(having)
-
-      if (groupBy) {
-        const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
-        if (transformedGroupBy.length) transformedQuery.SELECT.groupBy = transformedGroupBy
+  /**
+   * Transforms a search expression to a WHERE clause for a SELECT operation.
+   *
+   * @param {Object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {Object} from - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
+   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
+   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
+   *     If the target entity of the query does not contain searchable elements, the function returns null.
+   *
+   */
+  function transformSearchToWhere(search, from) {
+    const entity = from.$refLinks[0].definition._target || from.$refLinks[0].definition
+    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const contains = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
       }
 
-      // Since all the expressions in the SELECT part of the query have been computed
-      // one can reference aliases of the queries columns in the orderBy clause.
-      if (orderBy) {
-        const transformedOrderBy = getTransformedOrderByGroupBy(orderBy, true)
-        if (transformedOrderBy.length) transformedQuery.SELECT.orderBy = transformedOrderBy
-      }
-
-      if (inferred.SELECT.search) {
-        // search target can be a navigation, in that case use _target to get correct entity
-        const entity = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
-        const searchIn = computeColumnsToBeSearched(inferred, entity, transformedFrom.as)
-        if (searchIn.length > 0) {
-          const xpr = inferred.SELECT.search
-          const contains = {
-            func: 'search',
-            args: [
-              searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-              xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-            ],
-          }
-          if (transformedQuery.SELECT.where)
-            transformedQuery.SELECT.where = [asXpr(transformedQuery.SELECT.where), 'and', contains]
-          else transformedQuery.SELECT.where = [contains]
-        }
+      if (transformedQuery.SELECT.where) {
+        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
+      } else {
+        return [contains]
       }
     } else {
-      if (inferred.STREAM?.into) transformedProp.into = transformedFrom
-      else if (from) transformedProp.from = transformedFrom
-      else transformedProp.entity = transformedFrom
-      if (transformedWhere?.length > 0) transformedProp.where = transformedWhere
-      transformedQuery[kind] = transformedProp
-
-      if (inferred.UPDATE?.with) {
-        Object.entries(inferred.UPDATE.with).forEach(([key, val]) => {
-          const transformed = getTransformedTokenStream([val])
-          inferred.UPDATE.with[key] = transformed[0]
-        })
-      }
+      return null
     }
-
-    if (inferred.joinTree && !inferred.joinTree.isInitial)
-      transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
   }
-  return transformedQuery
 
   /**
    * Rewrites the from clause based on the `query.joinTree`.
@@ -210,95 +301,116 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
+
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
-      const { as } = col
 
       if (col.expand) {
-        const { $refLinks } = col
-        const last = $refLinks[$refLinks.length - 1]
-        if (last.definition.elements) {
-          const expandCols = nestedProjectionOnStructure(col, 'expand')
-          transformedColumns.push(...expandCols)
-        } else if (!last.skipExpand) {
-          // assoc
-          const expandedSubqueryColumn = expandColumn(col)
-          transformedColumns.push(expandedSubqueryColumn)
-        }
+        handleExpand(col)
       } else if (col.inline) {
-        const inlineCols = nestedProjectionOnStructure(col)
-        transformedColumns.push(...inlineCols)
+        handleInline(col)
       } else if (col.ref) {
-        if (pseudos.elements[col.ref[0]]) {
-          transformedColumns.push({ ...col })
-          continue
-        }
-        if (col.param) {
-          transformedColumns.push({ ...col })
-          continue
-        }
-        const tableAliasName = getQuerySourceName(col)
-        const leaf = col.$refLinks[col.$refLinks.length - 1].definition
-        if (leaf.virtual === true) continue // already in getFlatColumnForElement
-        let baseName
-        if (col.ref.length >= 2) {
-          // leaf might be intermediate structure
-          baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
-        }
-        let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
-        const refNavigation = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0).join('_')
-        if (!columnAlias) {
-          if (col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
-        }
-        if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
-        const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
-        flatColumns.forEach(flatColumn => {
-          const { as } = flatColumn
-          // might already be present in result through wildcard expansion
-          if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
-        })
+        handleRef(col)
       } else if (col === '*') {
-        const wildcardIndex = columns.indexOf('*')
-        const ignoreInWildcardExpansion = columns.slice(0, wildcardIndex)
-        const { excluding } = inferred.SELECT
-        if (excluding) ignoreInWildcardExpansion.push(...excluding)
-        const wildcardColumns = getColumnsForWildcard(ignoreInWildcardExpansion, columns.slice(wildcardIndex + 1))
-        transformedColumns.push(...wildcardColumns)
+        handleWildcard(columns)
       } else {
-        let transformedColumn
-        if (col.SELECT) {
-          if (isLocalized(inferred.target)) col.SELECT.localized = true
-          transformedColumn = transformSubquery(col)
-        } else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
-        else if (col.func)
-          transformedColumn = {
-            func: col.func,
-            args: col.args && getTransformedTokenStream(col.args),
-            as: col.func,
-          }
-        // {func}.args are optional
-        // val
-        else transformedColumn = copy(col)
-        if (as) transformedColumn.as = as
-        const replaceWith = transformedColumns.findIndex(
-          t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as,
-        )
-        if (replaceWith === -1) transformedColumns.push(transformedColumn)
-        else transformedColumns.splice(replaceWith, 1, transformedColumn)
-        // attach `element` helper also to non-ref columns
-        Object.defineProperty(transformedColumn, 'element', { value: query.elements[as] })
+        handleDefault(col)
       }
     }
-    // if the removal of virtual columns leads to empty columns array -> error out
+
     if (transformedColumns.length === 0 && columns.length) {
-      // a managed composition exposure is also removed from the columns
-      // but in this case, we want to return the empty columns array
-      // it is safe to only check the leaf of the ref, as managed compositions can't be defined within structs
-      if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition'))
-        return transformedColumns
+      handleEmptyColumns(columns)
+    }
+
+    return transformedColumns
+
+    function handleExpand(col) {
+      const { $refLinks } = col
+      const last = $refLinks[$refLinks.length - 1]
+      if (last.definition.elements) {
+        const expandCols = nestedProjectionOnStructure(col, 'expand')
+        transformedColumns.push(...expandCols)
+      } else if (!last.skipExpand) {
+        const expandedSubqueryColumn = expandColumn(col)
+        transformedColumns.push(expandedSubqueryColumn)
+      }
+    }
+
+    function handleInline(col) {
+      const inlineCols = nestedProjectionOnStructure(col)
+      transformedColumns.push(...inlineCols)
+    }
+
+    function handleRef(col) {
+      if (pseudos.elements[col.ref[0]] || col.param) {
+        transformedColumns.push({ ...col })
+        return
+      }
+
+      const tableAliasName = getQuerySourceName(col)
+      const leaf = col.$refLinks[col.$refLinks.length - 1].definition
+      if (leaf.virtual === true) return
+
+      let baseName
+      if (col.ref.length >= 2) {
+        baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
+      }
+
+      let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
+      const refNavigation = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0).join('_')
+      if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
+
+      if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
+
+      const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
+      flatColumns.forEach(flatColumn => {
+        const { as } = flatColumn
+        if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
+      })
+    }
+
+    function handleWildcard(columns) {
+      const wildcardIndex = columns.indexOf('*')
+      const ignoreInWildcardExpansion = columns.slice(0, wildcardIndex)
+      const { excluding } = inferred.SELECT
+      if (excluding) ignoreInWildcardExpansion.push(...excluding)
+
+      const wildcardColumns = getColumnsForWildcard(ignoreInWildcardExpansion, columns.slice(wildcardIndex + 1))
+      transformedColumns.push(...wildcardColumns)
+    }
+
+    function handleDefault(col) {
+      let transformedColumn = getTransformedColumn(col)
+      if (col.as) transformedColumn.as = col.as
+
+      const replaceWith = transformedColumns.findIndex(t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as)
+      if (replaceWith === -1) transformedColumns.push(transformedColumn)
+      else transformedColumns.splice(replaceWith, 1, transformedColumn)
+
+      Object.defineProperty(transformedColumn, 'element', { value: originalQuery.elements[col.as] })
+    }
+
+    function getTransformedColumn(col) {
+      if (col.SELECT) {
+        if (isLocalized(inferred.target)) col.SELECT.localized = true
+        return transformSubquery(col)
+      } else if (col.xpr) {
+        return { xpr: getTransformedTokenStream(col.xpr) }
+      } else if (col.func) {
+        return {
+          func: col.func,
+          args: col.args && getTransformedTokenStream(col.args),
+          as: col.func,
+        }
+      } else {
+        return copy(col)
+      }
+    }
+
+    function handleEmptyColumns(columns) {
+      if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
     }
-    return transformedColumns
   }
 
   /**
@@ -567,6 +679,19 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
     return res
   }
 
+  /**
+   * Transforms a subquery.
+   *
+   * If the current query contains outer queries (is itself a subquery),
+   * it appends the current inferred query.
+   * Otherwise, it initializes the `outerQueries` array and adds the inferred query.
+   * The `outerQueries` property makes sure
+   * that the table aliases of the outer queries are accessible within the scope of the subquery.
+   * Lastly, it recursively calls cqn4sql on the subquery.
+   *
+   * @param {object} q - The query to be transformed. This should be a subquery object.
+   * @returns {object} - The cqn4sql transformed subquery.
+   */
   function transformSubquery(q) {
     if (q.outerQueries) q.outerQueries.push(inferred)
     else {
@@ -772,14 +897,19 @@ function cqn4sql(query, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Walks over token stream such as the array of a `where` or `having`.
-   * Expands `exists <assoc>` into `WHERE EXISTS` subqueries and flattens `ref`s.
-   * Also applies `cqn4sql` to query expressions found in the token stream.
+   * Transforms a CQN token stream (e.g. `where`, `xpr` or `having`) into a SQL like expression.
    *
-   * @param {object[]} tokenStream
-   * @param {object} $baseLink the environment, where the `ref`s in the token stream are resolvable
-   *                           `{…} WHERE exists assoc[exists anotherAssoc]`
-   *                           --> the $baseLink for `anotherAssoc` is `assoc`
+   * Expand `exists <assoc>` into `WHERE EXISTS` subqueries, apply flattening to `ref`s.
+   * Recursively apply `cqn4sql` to query expressions found in the token stream.
+   *
+   * @param {object[]} tokenStream - The token stream to transform. Each token in the stream is an
+   *                                 object representing a CQN construct such as a column, an operator,
+   *                                 or a subquery.
+   * @param {object} [$baseLink=null] - The context in which the `ref`s in the token stream are resolvable.
+   *                                    It serves as the reference point for resolving associations in
+   *                                    statements like `{…} WHERE exists assoc[exists anotherAssoc]`.
+   *                                    Here, the $baseLink for `anotherAssoc` would be `assoc`.
+   * @returns {object[]} - The transformed token stream.
    */
   function getTransformedTokenStream(tokenStream, $baseLink = null) {
     const transformedWhere = []

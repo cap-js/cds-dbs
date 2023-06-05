@@ -76,7 +76,7 @@ describe('Replace attribute search by search predicate', () => {
     } where search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' OR 'y'))`)
   })
 
-  it('ignores virtual string elements elements', () => {
+  it('ignores virtual string elements', () => {
     let query = CQL`SELECT from bookshop.Foo { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
