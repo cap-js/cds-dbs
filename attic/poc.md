@@ -120,7 +120,7 @@ Currently the deployment is done through the `deploy` function. Which receives a
 
 So by taking two model definitions and comparing them it would be possible to create a list of `CQN` statements that the Database layer has to execute to achieve the new model state. This comes with a few challenges:
 
-- Getting the current state of the Database as a model
+- Getting the current state of the database as a model
 - Finding renames instead of removing and creating a new column / table
 
 #### Current Model
