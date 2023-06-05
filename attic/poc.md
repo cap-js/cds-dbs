@@ -96,7 +96,7 @@ Content-Length: 101
 
 The results of the compliance testing suite should be automatically converted into an overview matrix / table. As this will create easy access to critical information needed to developers using CAP. Allowing them to make decision on whether to start using a Database layer or not. Whether the bug they are facing is possibly coming from the Database layer rather then the `@sap/cds` Application layer. If it is know that a certain Database layer is not compliant in the manor of sorting. The developer can easily find out that the root cause of the wrong response is the Database layer rather then the core logic in `@sap/cds`.
 
-Having clearly state which is supported by what is very common in the javascript eco system. The most common two are probably browser compatibility with the HTML standard from [Mozilla](https://github.com/mdn/browser-compat-data) and [ecmascript](https://kangax.github.io/compat-table/es2016plus/) itself with browser, compilers, Servers and mobile platforms.
+Having clearly state which is supported by what is very common in the JavaScript ecosystem. The most common two are probably browser compatibility with the HTML standard from [Mozilla](https://github.com/mdn/browser-compat-data) and [ecmascript](https://kangax.github.io/compat-table/es2016plus/) itself with browser, compilers, Servers and mobile platforms.
 
 Of which both examples show that having 100% compliance for the specification is rare and most likely not a necesity. The most important aspect is to create transparency on what works and what does not work (yet).
 
