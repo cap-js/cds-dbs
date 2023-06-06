@@ -563,7 +563,7 @@ class CQN2SQLRenderer {
       switch (managed) {
         case '$user.id':
         case '$user':
-          managed = this.string(this.context.user.id)
+          managed = this.string(this.context.user.id || 'anonymous')
           break
         case '$now':
           managed = this.string(this.context.timestamp.toISOString().slice(0, -1) + '0000Z')
