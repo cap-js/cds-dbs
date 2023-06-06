@@ -393,10 +393,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getTransformedColumn(col) {
       if (col.SELECT) {
         if (isLocalized(inferred.target)) col.SELECT.localized = true
-        if(!col.SELECT.from.as) {
-          const foo = inferred.joinTree.addNextAvailableTableAlias(col.SELECT.from.ref[col.SELECT.from.ref.length-1].split('.').pop(), originalQuery.outerQueries)
+        if (!col.SELECT.from.as) {
+          const foo = inferred.joinTree.addNextAvailableTableAlias(
+            col.SELECT.from.ref[col.SELECT.from.ref.length - 1].split('.').pop(),
+            originalQuery.outerQueries,
+          )
           col.SELECT.from.as = foo
-        } 
+        }
         return transformSubquery(col)
       } else if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }
@@ -578,7 +581,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       ]
     }
     // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(column.as || column.ref.map(idOnly).join('_'), originalQuery.outerQueries)
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(
+      column.as || column.ref.map(idOnly).join('_'),
+      originalQuery.outerQueries,
+    )
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -1235,7 +1241,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
            * --> This is an artificial query, which will later be correlated
            * with the main query alias. see @function expandColumn()
            */
-          if(!originalQuery.SELECT?.expand) {
+          if (!originalQuery.SELECT?.expand) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
