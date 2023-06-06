@@ -1775,8 +1775,8 @@ function hasLogicalOr(tokenStream) {
  * @returns {string} The last segment of the string after the last dot. If there is no dot in the string, the function returns the original string.
  */
 function getLastStringSegment(str) {
-  let index = str.lastIndexOf('.')
-  return index != -1 ? str.substr(index + 1) : str
+  const index = str.lastIndexOf('.')
+  return index != -1 ? str.substring(index + 1) : str
 }
 
 const idOnly = ref => ref.id || ref
