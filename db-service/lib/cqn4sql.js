@@ -394,11 +394,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (col.SELECT) {
         if (isLocalized(inferred.target)) col.SELECT.localized = true
         if (!col.SELECT.from.as) {
-          const foo = inferred.joinTree.addNextAvailableTableAlias(
+          const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
             col.SELECT.from.ref[col.SELECT.from.ref.length - 1].split('.').pop(),
             originalQuery.outerQueries,
           )
-          col.SELECT.from.as = foo
+          col.SELECT.from.as = uniqueSubqueryAlias
         }
         return transformSubquery(col)
       } else if (col.xpr) {
