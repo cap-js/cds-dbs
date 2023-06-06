@@ -351,10 +351,10 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         }
         where Books.author_ID = author.ID and
-            exists ( SELECT 1 from bookshop.Books as books where
-                books.author_ID = author.ID and exists (
+            exists ( SELECT 1 from bookshop.Books as books2 where
+                books2.author_ID = author.ID and exists (
                   SELECT 1 from bookshop.Authors as author2 where
-                    author2.ID = books.author_ID and
+                    author2.ID = books2.author_ID and
                     author2.name = 'King'
                   )
               )
@@ -426,7 +426,7 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO: aliases of outer query needs to be considered
   // still valid sql in this case
-  it.skip('unfold expand, with subquery in expand', () => {
+  it('unfold expand, with subquery in expand', () => {
     const q = CQL`SELECT from bookshop.Books {
       author { name, (select title from bookshop.Books) as book }
     }`

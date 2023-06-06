@@ -393,6 +393,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getTransformedColumn(col) {
       if (col.SELECT) {
         if (isLocalized(inferred.target)) col.SELECT.localized = true
+        if (!col.SELECT.from.as) {
+          const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
+            getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
+            originalQuery.outerQueries,
+          )
+          col.SELECT.from.as = uniqueSubqueryAlias
+        }
         return transformSubquery(col)
       } else if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }
@@ -574,7 +581,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       ]
     }
     // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(column.as || column.ref.map(idOnly).join('_'))
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(
+      column.as || column.ref.map(idOnly).join('_'),
+      originalQuery.outerQueries,
+    )
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -592,7 +602,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       },
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
-    const expanded = cqn4sql(subquery, model)
+    const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: column.as || column.ref.map(idOnly).join('_') }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
@@ -952,7 +962,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             j = nextAssocIndex
           }
 
-          const as = getNextAvailableTableAlias(next.alias.split('.').pop())
+          const as = getNextAvailableTableAlias(getLastStringSegment(next.alias))
           next.alias = as
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
         }
@@ -1199,10 +1209,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function _transformFrom() {
       if (typeof from === 'string') {
         // normalize to `ref`, i.e. for `UPDATE.entity('bookshop.Books')`
-        return { transformedFrom: { ref: [from], as: from.split('.').pop() } }
+        return { transformedFrom: { ref: [from], as: getLastStringSegment(from) } }
       }
       transformedFrom.as =
-        from.as || transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name.split('.').pop()
+        from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
@@ -1224,7 +1234,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
             nextStepLink = $refLinksReverse[nextStepIndex]
           }
-          const as = getNextAvailableTableAlias(nextStepLink.alias.split('.').pop())
+          let as = getLastStringSegment(nextStepLink.alias)
+          /**
+           * for an `expand` subquery, we do not need to add
+           * the table alias of the `expand` host to the join tree
+           * --> This is an artificial query, which will later be correlated
+           * with the main query alias. see @function expandColumn()
+           */
+          if (!originalQuery.SELECT?.expand) {
+            as = getNextAvailableTableAlias(as)
+          }
           nextStepLink.alias = as
           whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where))
         }
@@ -1281,7 +1300,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   function getNextAvailableTableAlias(id) {
-    return inferred.joinTree.addNextAvailableTableAlias(id)
+    return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
   }
 
   function asXpr(thing) {
@@ -1715,7 +1734,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getCombinedElementAlias(node) {
-      return inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index.split('.').pop()
+      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index)
     }
   }
 }
@@ -1748,5 +1767,17 @@ function copy(obj) {
 function hasLogicalOr(tokenStream) {
   return tokenStream.some(t => t in { OR: true, or: true })
 }
+
+/**
+ * Returns the last segment of a string after the last dot.
+ *
+ * @param {string} str - The input string.
+ * @returns {string} The last segment of the string after the last dot. If there is no dot in the string, the function returns the original string.
+ */
+function getLastStringSegment(str) {
+  const index = str.lastIndexOf('.')
+  return index != -1 ? str.substring(index + 1) : str
+}
+
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
