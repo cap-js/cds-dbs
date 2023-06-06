@@ -410,6 +410,31 @@ describe('table alias access', () => {
             }) as foo
           }`)
     })
+    // TODO: replace usage of implicit, inner aliases of subqueries with generated ones
+    it.skip('respects aliases of outer queries and does not shadow them', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+              ID,
+              (
+                SELECT from bookshop.Books {
+                  ID,
+                } where Books.ID = 1
+              ) as sub
+            } where Books.ID = 1
+            `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+          Books.ID,
+          (
+            SELECT from bookshop.Books as Books2 {
+              Books2.ID,
+            } where Books2.ID = 1
+          ) as sub
+        } where Books.ID = 1`
+      )
+    })
     // explicit alias for FROM subquery is mandatory
     // could maybe be relaxed later
     it('applies the same alias handling in subqueries in FROM', () => {
