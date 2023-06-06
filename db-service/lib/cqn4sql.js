@@ -393,6 +393,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getTransformedColumn(col) {
       if (col.SELECT) {
         if (isLocalized(inferred.target)) col.SELECT.localized = true
+        if(!col.SELECT.from.as) {
+          const foo = inferred.joinTree.addNextAvailableTableAlias(col.SELECT.from.ref[col.SELECT.from.ref.length-1].split('.').pop(), originalQuery.outerQueries)
+          col.SELECT.from.as = foo
+        } 
         return transformSubquery(col)
       } else if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }

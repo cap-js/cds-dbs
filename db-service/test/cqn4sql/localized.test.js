@@ -102,7 +102,7 @@ describe('localized', () => {
                     {
                       Books.ID,
                       Books.title,
-                      (SELECT Books.title from localized.bookshop.Books as Books) as foo
+                      (SELECT Books2.title from localized.bookshop.Books as Books2) as foo
                     }`)
   })
   it('performs no replacement of ref within subquery if main query has ”@cds.localized: false”', () => {
@@ -168,7 +168,7 @@ describe('localized', () => {
       }`
     q.SELECT.localized = true
     const qx = CQL`SELECT from localized.bookshop.Books as Books {
-        (SELECT books2.name, (SELECT Books.title from localized.bookshop.Books as Books) as foo from localized.bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
+        (SELECT books2.name, (SELECT Books3.title from localized.bookshop.Books as Books3) as foo from localized.bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
       }`
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)

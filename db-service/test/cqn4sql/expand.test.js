@@ -426,7 +426,7 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO: aliases of outer query needs to be considered
   // still valid sql in this case
-  it.skip('unfold expand, with subquery in expand', () => {
+  it('unfold expand, with subquery in expand', () => {
     const q = CQL`SELECT from bookshop.Books {
       author { name, (select title from bookshop.Books) as book }
     }`
