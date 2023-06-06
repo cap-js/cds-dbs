@@ -578,7 +578,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       ]
     }
     // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(column.as || column.ref.map(idOnly).join('_'))
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(column.as || column.ref.map(idOnly).join('_'), originalQuery.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -596,7 +596,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       },
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
-    const expanded = cqn4sql(subquery, model)
+    const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: column.as || column.ref.map(idOnly).join('_') }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
@@ -1228,7 +1228,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
             nextStepLink = $refLinksReverse[nextStepIndex]
           }
-          const as = getNextAvailableTableAlias(nextStepLink.alias.split('.').pop())
+          let as = nextStepLink.alias.split('.').pop()
+          /**
+           * for an `expand` subquery, we do not need to add
+           * the table alias of the `expand` host to the join tree
+           * --> This is an artificial query, which will later be correlated
+           * with the main query alias. see @function expandColumn()
+           */
+          if(!originalQuery.SELECT?.expand) {
+            as = getNextAvailableTableAlias(as)
+          }
           nextStepLink.alias = as
           whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where))
         }
@@ -1285,7 +1294,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   function getNextAvailableTableAlias(id) {
-    return inferred.joinTree.addNextAvailableTableAlias(id)
+    return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
   }
 
   function asXpr(thing) {

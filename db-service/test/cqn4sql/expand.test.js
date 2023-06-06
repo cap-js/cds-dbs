@@ -351,10 +351,10 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         }
         where Books.author_ID = author.ID and
-            exists ( SELECT 1 from bookshop.Books as books where
-                books.author_ID = author.ID and exists (
+            exists ( SELECT 1 from bookshop.Books as books2 where
+                books2.author_ID = author.ID and exists (
                   SELECT 1 from bookshop.Authors as author2 where
-                    author2.ID = books.author_ID and
+                    author2.ID = books2.author_ID and
                     author2.name = 'King'
                   )
               )
