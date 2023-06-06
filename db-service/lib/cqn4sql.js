@@ -395,7 +395,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (isLocalized(inferred.target)) col.SELECT.localized = true
         if (!col.SELECT.from.as) {
           const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-            col.SELECT.from.ref[col.SELECT.from.ref.length - 1].split('.').pop(),
+            getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
             originalQuery.outerQueries,
           )
           col.SELECT.from.as = uniqueSubqueryAlias
@@ -962,7 +962,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             j = nextAssocIndex
           }
 
-          const as = getNextAvailableTableAlias(next.alias.split('.').pop())
+          const as = getNextAvailableTableAlias(getLastStringSegment(next.alias))
           next.alias = as
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
         }
@@ -1209,10 +1209,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function _transformFrom() {
       if (typeof from === 'string') {
         // normalize to `ref`, i.e. for `UPDATE.entity('bookshop.Books')`
-        return { transformedFrom: { ref: [from], as: from.split('.').pop() } }
+        return { transformedFrom: { ref: [from], as: getLastStringSegment(from) } }
       }
       transformedFrom.as =
-        from.as || transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name.split('.').pop()
+        from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
@@ -1234,7 +1234,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
             nextStepLink = $refLinksReverse[nextStepIndex]
           }
-          let as = nextStepLink.alias.split('.').pop()
+          let as = getLastStringSegment(nextStepLink.alias)
           /**
            * for an `expand` subquery, we do not need to add
            * the table alias of the `expand` host to the join tree
@@ -1734,7 +1734,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getCombinedElementAlias(node) {
-      return inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index.split('.').pop()
+      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index)
     }
   }
 }
@@ -1767,5 +1767,17 @@ function copy(obj) {
 function hasLogicalOr(tokenStream) {
   return tokenStream.some(t => t in { OR: true, or: true })
 }
+
+/**
+ * Returns the last segment of a string after the last dot.
+ *
+ * @param {string} str - The input string.
+ * @returns {string} The last segment of the string after the last dot. If there is no dot in the string, the function returns the original string.
+ */
+function getLastStringSegment(str) {
+  let index = str.lastIndexOf('.')
+  return index != -1 ? str.substr(index + 1) : str
+}
+
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
