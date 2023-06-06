@@ -432,7 +432,7 @@ describe('table alias access', () => {
               Books2.ID,
             } where Books2.ID = 1
           ) as sub
-        } where Books.ID = 1`
+        } where Books.ID = 1`,
       )
     })
     // explicit alias for FROM subquery is mandatory
