@@ -50,6 +50,12 @@ class PostgresService extends SQLService {
     }
   }
 
+  url4() {
+    // eslint-disable-line no-unused-vars
+    let { host, port } = this.options?.credentials || this.options || {}
+    return 'postgres@' + host + ':' + (port || 5432);
+  }
+
   async set(variables) {
     // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
@@ -75,16 +81,16 @@ class PostgresService extends SQLService {
 
       ...(!this._initalCollateCheck
         ? [
-            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';`))
-              .all([])
-              .then(resp => {
-                this._initalCollateCheck = true
-                if (resp.find(row => row.collname === 'en_US')) return
-                if (resp.find(row => row.collname === 'en-x-icu'))
-                  this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
-                // REVISIT throw error when there is no collated libary found
-              }),
-          ]
+          (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';`))
+            .all([])
+            .then(resp => {
+              this._initalCollateCheck = true
+              if (resp.find(row => row.collname === 'en_US')) return
+              if (resp.find(row => row.collname === 'en-x-icu'))
+                this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
+              // REVISIT throw error when there is no collated libary found
+            }),
+        ]
         : []),
     ])
   }
@@ -176,9 +182,9 @@ class PostgresService extends SQLService {
       return orderBy.map(
         localized
           ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+            this.expr(c) +
+            (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
+            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
@@ -187,9 +193,9 @@ class PostgresService extends SQLService {
       return orderBy.map(
         localized
           ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+            this.expr(c) +
+            (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
+            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
@@ -232,9 +238,8 @@ class PostgresService extends SQLService {
         return col
       })
       let obj = `json_build_object(${cols})`
-      return `SELECT ${
-        SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (${sql}) as ${queryAlias}`
+      return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
+        } as _json_ FROM (${sql}) as ${queryAlias}`
     }
 
     INSERT(q, isUpsert = false) {
@@ -387,7 +392,7 @@ class PostgresService extends SQLService {
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
+        await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
       })
     } finally {
       await this.disconnect()
