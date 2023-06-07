@@ -317,10 +317,10 @@ describe('table alias access', () => {
   })
 
   describe('replace implicit aliases', () => {
-        // TODO: replace usage of implicit, inner aliases of subqueries with generated ones
-        it('replace inner aliases', () => {
-          let query = cqn4sql(
-            CQL`SELECT from bookshop.Books {
+    // TODO: replace usage of implicit, inner aliases of subqueries with generated ones
+    it('replace inner aliases', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
                   ID,
                   (
                     SELECT from bookshop.Books {
@@ -329,10 +329,10 @@ describe('table alias access', () => {
                   ) as sub
                 } where Books.ID = 1
                 `,
-            model,
-          )
-          expect(query).to.deep.equal(
-            CQL`SELECT from bookshop.Books as Books {
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
               Books.ID,
               (
                 SELECT from bookshop.Books as Books2 {
@@ -340,8 +340,8 @@ describe('table alias access', () => {
                 } where Books2.ID = 1
               ) as sub
             } where Books.ID = 1`,
-          )
-        })
+      )
+    })
   })
 
   describe('in expressions', () => {

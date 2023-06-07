@@ -349,7 +349,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       const tableAliasName = getQuerySourceName(col)
       // re-adjust usage of implicit alias in subquery
-      if(col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAliasName) {
+      if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAliasName) {
         col.ref[0] = tableAliasName
       }
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
@@ -402,7 +402,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
             originalQuery.outerQueries,
           )
-          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', {value: uniqueSubqueryAlias})
+          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
         }
         return transformSubquery(col)
       } else if (col.xpr) {
@@ -1216,7 +1216,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return { transformedFrom: { ref: [from], as: getLastStringSegment(from) } }
       }
       transformedFrom.as =
-        from.uniqueSubqueryAlias || from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
+        from.uniqueSubqueryAlias ||
+        from.as ||
+        getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
