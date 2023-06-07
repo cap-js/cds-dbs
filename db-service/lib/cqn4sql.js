@@ -347,7 +347,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return
       }
 
-      const tableAliasName = getQuerySourceName(col)
+      const tableAliasName = getQuerySourceName(col) 
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
       if (leaf.virtual === true) return
 
