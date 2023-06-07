@@ -3,7 +3,7 @@
 const cds = require('@sap/cds/lib')
 const { computeColumnsToBeSearched } = require('@sap/cds/libx/_runtime/cds-services/services/utils/columns.js')
 
-const infer = require('./infer') 
+const infer = require('./infer')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -347,7 +347,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return
       }
 
-      const tableAliasName = getQuerySourceName(col) 
+      const tableAliasName = getQuerySourceName(col)
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
       if (leaf.virtual === true) return
 
