@@ -51,7 +51,6 @@ class PostgresService extends SQLService {
   }
 
   url4() {
-    // eslint-disable-line no-unused-vars
     let { host, port } = this.options?.credentials || this.options || {}
     return 'postgres@' + host + ':' + (port || 5432)
   }
