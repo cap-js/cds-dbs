@@ -1241,7 +1241,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
            * --> This is an artificial query, which will later be correlated
            * with the main query alias. see @function expandColumn()
            */
-          if (!originalQuery.SELECT?.expand) {
+          if (!(originalQuery.SELECT?.expand === true)) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
