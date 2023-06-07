@@ -348,6 +348,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       const tableAliasName = getQuerySourceName(col)
+      // re-adjust usage of implicit alias in subquery
+      if(col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAliasName) {
+        col.ref[0] = tableAliasName
+      }
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
       if (leaf.virtual === true) return
 
@@ -398,7 +402,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
             originalQuery.outerQueries,
           )
-          col.SELECT.from.as = uniqueSubqueryAlias
+          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', {value: uniqueSubqueryAlias})
         }
         return transformSubquery(col)
       } else if (col.xpr) {
@@ -1212,7 +1216,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return { transformedFrom: { ref: [from], as: getLastStringSegment(from) } }
       }
       transformedFrom.as =
-        from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
+        from.uniqueSubqueryAlias || from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
@@ -1729,6 +1733,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getSelectOrEntityAlias(node) {
       let firstRefLink = node.$refLinks[0].definition
       if (firstRefLink.SELECT || firstRefLink.kind === 'entity') {
+        const firstStep = node.ref[0]
+        if (
+          originalQuery.SELECT?.from.uniqueSubqueryAlias &&
+          !originalQuery.SELECT?.from.as &&
+          firstStep === getLastStringSegment(transformedQuery.SELECT.from.ref[0])
+        ) {
+          return originalQuery.SELECT?.from.uniqueSubqueryAlias
+        }
         return node.ref[0]
       }
     }

@@ -108,7 +108,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
       attachRefLinksToArg(from) // REVISIT: remove
       const alias =
-        from.as || (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
+        from.uniqueSubqueryAlias || from.as || (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = target
     } else if (from.args) {
