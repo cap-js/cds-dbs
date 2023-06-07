@@ -668,10 +668,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
     // table aliases for `query.SELECT.expand === true` are not materialized in the transformed query and must be ignored
     // however, for the main query having the `query.SELECT.expand === 'root'` we must consider the table aliases
     originalQuery.SELECT.expand = 'root'
-    let query = cqn4sql(
-      originalQuery,
-      model,
-    )
+    let query = cqn4sql(originalQuery, model)
 
     // clean up so that the queries match
     delete originalQuery.SELECT.expand
