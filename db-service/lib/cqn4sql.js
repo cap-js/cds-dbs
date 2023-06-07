@@ -3,7 +3,7 @@
 const cds = require('@sap/cds/lib')
 const { computeColumnsToBeSearched } = require('@sap/cds/libx/_runtime/cds-services/services/utils/columns.js')
 
-const infer = require('./infer')
+const infer = require('./infer') 
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
