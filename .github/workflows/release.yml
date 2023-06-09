@@ -3,7 +3,6 @@
 
 name: Release
 
-# trigger to be adapted
 on:
   workflow_dispatch:
 
