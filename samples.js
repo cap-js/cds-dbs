@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* global cds */ ;async () => {
   // Run the following line by line in
-  //$ npm add git+https://github.tools.sap/cap/cds-sqlite.git
+  //$ npm add git+https://github.com/cap-js/cds-dbs.git
   //$ cds watch --profile better-sqlite
   //$ cds repl --profile better-sqlite
   var { server } = await cds.test('@capire/bookshop'),

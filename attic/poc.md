@@ -1,24 +1,19 @@
 # cds-sqlite
 
-[![Tests](https://github.tools.sap/cap/cds-sqlite/actions/workflows/test.yml/badge.svg)](https://github.tools.sap/cap/cds-sqlite/actions/workflows/test.yml)
-[![Coverage](https://sonar.tools.sap/api/project_badges/measure?project=cds-sqlite&metric=coverage)](https://sonar.tools.sap/dashboard?id=cds-sqlite)
-[![Quality Gate Status](https://sonar.tools.sap/api/project_badges/measure?project=cds-sqlite&metric=alert_status)](https://sonar.tools.sap/dashboard?id=cds-sqlite)
-[![Code Smells](https://sonar.tools.sap/api/project_badges/measure?project=cds-sqlite&metric=code_smells)](https://sonar.tools.sap/dashboard?id=cds-sqlite)
-
 SQLite database layer for cds
 
 ## Proof of Concept
 
-This repository is currently being used to create the Proof of Concept for a new approach for plugable Database layers.
+This repository is currently being used to create the Proof of Concept for a new approach for pluggable Database layers.
 
 
 ## Concepts
 
-Here we can list some of the concepts that we would like to include inside the new plugable Database layer architecture.
+Here we can list some of the concepts that we would like to include inside the new pluggable Database layer architecture.
 
 ### Separate Application from Database
 
-At the core of the plugable Database layer concept it is required to have a hard cut between the application layer and the database layer. For this clear separation it is required to define an API that has to be fulfilled by the Database layer so the Application layer can function with ignorance of the contents of the Database layer.
+At the core of the pluggable Database layer concept it is required to have a hard cut between the application layer and the database layer. For this clear separation it is required to define an API that has to be fulfilled by the Database layer so the Application layer can function with ignorance of the contents of the Database layer.
 
 #### Database Isolation
 
@@ -101,7 +96,7 @@ Content-Length: 101
 
 The results of the compliance testing suite should be automatically converted into an overview matrix / table. As this will create easy access to critical information needed to developers using CAP. Allowing them to make decision on whether to start using a Database layer or not. Whether the bug they are facing is possibly coming from the Database layer rather then the `@sap/cds` Application layer. If it is know that a certain Database layer is not compliant in the manor of sorting. The developer can easily find out that the root cause of the wrong response is the Database layer rather then the core logic in `@sap/cds`.
 
-Having clearly state which is supported by what is very common in the javascript eco system. The most common two are probably browser compatability with the HTML standard from [Mozilla](https://github.com/mdn/browser-compat-data) and [ecmascript](https://kangax.github.io/compat-table/es2016plus/) itself with browser, compilers, Servers and mobile platforms.
+Having clearly state which is supported by what is very common in the JavaScript ecosystem. The most common two are probably browser compatibility with the HTML standard from [Mozilla](https://github.com/mdn/browser-compat-data) and [ecmascript](https://kangax.github.io/compat-table/es2016plus/) itself with browser, compilers, Servers and mobile platforms.
 
 Of which both examples show that having 100% compliance for the specification is rare and most likely not a necesity. The most important aspect is to create transparency on what works and what does not work (yet).
 
@@ -124,8 +119,9 @@ how, what ?
 Currently the deployment is done through the `deploy` function. Which receives a `CSN` definition for the model to deploy. This could instead be done through the `run` function using `CQN`. Currently the `CQN` definition provides interfaces for `CREATE` and `DROP`, but is lacking an `ALTER` definition. Which would be required to upgrade definitions without losing all data.
 
 So by taking two model definitions and comparing them it would be possible to create a list of `CQN` statements that the Database layer has to execute to achieve the new model state. This comes with a few challenges:
- - Getting the current state of the Database as a model
- - Finding renames instead of removing and creating a new column / table
+
+- Getting the current state of the database as a model
+- Finding renames instead of removing and creating a new column / table
 
 #### Current Model
 
@@ -138,4 +134,3 @@ Therefor it might be good to have a look at what `HDI` is doing. Their `API` is 
 When looking at `HDI` once more as example. It shows as the biggest weakness of the platform that it is not possible to rename columns as it is doing file comparisons without any additional information. There might be some information that could be gained from `git` history as it also is possible to find renamed files, but this probably comes with fall positives where there just happened to be a new column added that has the same data type. So there most likely is not easy solution to solving the renaming problem. Without additional historical information being provided from the developers.
 
 Deploy through `CQN`
-.

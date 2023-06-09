@@ -454,7 +454,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             column.$refLinks.push({ definition: sources[id], target: sources[id] })
           } else if (firstStepIsSelf) {
             column.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
-          } else if (inferred.outerQueries?.find(outer => id in outer.sources)) {
+          } else if (column.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
             // outer query accessed via alias
             const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
             column.$refLinks.push({ definition: outerAlias.sources[id], target: outerAlias.sources[id] })

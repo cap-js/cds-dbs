@@ -460,7 +460,7 @@ describe('Flattening', () => {
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
-            (SELECT from bookshop.Books as Books { Books.author_ID }) as foo
+            (SELECT from bookshop.Books as Books2 { Books2.author_ID }) as foo
           }`)
     })
 

@@ -1,5 +1,4 @@
 'use strict'
-// https://github.tools.sap/cap/cds-compiler/blob/main/internalDoc/A2J.md
 
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test.in(__dirname + '/bookshop')

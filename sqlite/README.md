@@ -174,8 +174,8 @@ The combination of the above-mentioned improvements commonly leads to significan
 
 ## Known Limitations & Changes
 
-- Node v14 is no longer supported → will be dropped anyways with upcoming cds7.
-- JOINs and UNIONs by CQN are no longer supported → use plain SQL instead.
+* Node v14 is no longer supported → will be dropped anyways with upcoming cds7.
+* JOINs and UNIONs by CQN are no longer supported → use plain SQL instead.
 * CQNs with subqueries require table aliases to refer to elements of outer queries.
 * CQNs with an empty columns array now throws an error.
 * Search: only single values are allowed as search expression.
