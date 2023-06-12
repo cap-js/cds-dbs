@@ -11,9 +11,9 @@ const data = [{ $test: 'Integer64 Zero', Integer64: '0' }]
 let bin = '0b'
 for (let i = 0; i < 63; i++) {
   bin += '1'
-  data.push({ $test: `Integer64 1 << ${i}`, Integer64: BigInt(bin).toString() })
+  data.push({ $test: `Integer64 1 << ${i}`, Integer64: global.BigInt(bin).toString() })
 }
-data.push({ $test: `Integer64 1 << 64`, Integer64: (BigInt(bin) * -1n).toString() })
+data.push({ $test: `Integer64 1 << 64`, Integer64: (global.BigInt(bin) * -1n).toString() })
 
 describe('features', () => {
   test(
@@ -28,7 +28,7 @@ describe('features', () => {
             .UPDATE('target')
             .where({ $test: d.$test })
             .with({
-              Integer64: (max ^ BigInt(d.Integer64)).toString(),
+              Integer64: (max ^ global.BigInt(d.Integer64)).toString(),
             }),
         ),
       )
@@ -51,7 +51,7 @@ describe('features', () => {
         const testName = row.$test
         const orgData = data.find(d => d.$test === testName)
         if (!orgData) continue
-        const expected = (max ^ BigInt(orgData.Integer64)).toString()
+        const expected = (max ^ global.BigInt(orgData.Integer64)).toString()
         if (expected !== row.Integer64)
           errors.push(new Error(`# cds.builtin.types # cds.Integer64 # can not store value "${expected}"`))
       }

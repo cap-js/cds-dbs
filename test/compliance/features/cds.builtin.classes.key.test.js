@@ -21,7 +21,7 @@ describe('features', () => {
         queries.UPSERT.push(cds.ql.UPSERT(q.INSERT.entries).into('key'))
       })
     },
-    (results, queries) => {
+    results => {
       const errors = []
 
       if (results.UPSERT.length !== results.INSERT.length) {

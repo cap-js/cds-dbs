@@ -1,7 +1,5 @@
 const { describe, test } = require('./test')
 
-const cds = require('@sap/cds')
-
 describe('features', () => {
   test(
     'cds.builtin.classes.struct',

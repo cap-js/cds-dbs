@@ -76,6 +76,7 @@ test('features', async () => {
 
     report[tests.join(' + ')] = errors
   }
+  // eslint-disable-next-line no-console
   console.log(
     Object.keys(report)
       .map(k => {
