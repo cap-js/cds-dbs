@@ -5,11 +5,3 @@
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Version 1.0.0 - tbd
-
-## Version 0.2.0 - 2023-05-03
-
-- Continuous improvements
-
-## Version 0.1.0 - 2023-04-04
-
-- Initial release
