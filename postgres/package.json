@@ -1,5 +1,24 @@
 {
   "name": "@cap-js/postgres",
+  "version": "1.0.0",
+  "description": "CDS database service for Postgres",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS",
+    "Postgres"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "main": "index.js",
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
   "scripts": {
     "setup": "docker-compose -f pg-stack.yml up -d",
     "test": "npm run setup && jest --silent"
@@ -20,7 +39,8 @@
         },
         "postgres": {
           "impl": "@cap-js/postgres",
-          "dialect": "postgres"
+          "dialect": "postgres",
+          "vcap": { "label": "postgresql-db" }
         }
       },
       "db": "sql"
