@@ -429,7 +429,6 @@ describe('table alias access', () => {
             } where Books.ID = 1`,
       )
     })
-    
   })
 
   describe('in expressions', () => {

@@ -585,15 +585,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       ]
     }
     const potentialSubqueryAlias =
-      column.as || (column.$refLinks[0].definition.kind === 'entity'
+      column.as ||
+      (column.$refLinks[0].definition.kind === 'entity'
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
 
     // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(
-      potentialSubqueryAlias,
-      originalQuery.outerQueries,
-    )
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(potentialSubqueryAlias, originalQuery.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
