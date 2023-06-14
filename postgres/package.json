@@ -40,7 +40,9 @@
         "postgres": {
           "impl": "@cap-js/postgres",
           "dialect": "postgres",
-          "vcap": { "label": "postgresql-db" }
+          "vcap": {
+            "label": "postgresql-db"
+          }
         }
       },
       "db": "sql"
