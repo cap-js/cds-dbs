@@ -584,9 +584,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
+    const potentialSubqueryAlias =
+      column.as || (column.$refLinks[0].definition.kind === 'entity'
+        ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
+        : column.ref.map(idOnly).join('_'))
+
     // we need to respect the aliases of the outer query
     const uniqueSubqueryAlias = getNextAvailableTableAlias(
-      column.as || column.ref.map(idOnly).join('_'),
+      potentialSubqueryAlias,
       originalQuery.outerQueries,
     )
 
@@ -607,7 +612,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
-    const correlated = _correlate({ ...expanded, as: column.as || column.ref.map(idOnly).join('_') }, outerAlias)
+    const correlated = _correlate({ ...expanded, as: column.as || uniqueSubqueryAlias }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
 
