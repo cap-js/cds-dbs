@@ -584,14 +584,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
-    const potentialSubqueryAlias =
+
+    // this is the alias of the column which holds the correlated subquery
+    const columnAlias =
       column.as ||
       (column.$refLinks[0].definition.kind === 'entity'
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
 
-    // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(potentialSubqueryAlias, originalQuery.outerQueries)
+    // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
+    // as table alias for the correlated subquery
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -610,7 +613,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
-    const correlated = _correlate({ ...expanded, as: column.as || potentialSubqueryAlias }, outerAlias)
+    const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
 

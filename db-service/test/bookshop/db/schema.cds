@@ -388,3 +388,35 @@ entity PartialStructuredKey {
   toSelf: Association to PartialStructuredKey { struct.one as partial}
 }
 
+service AssocTargetService {
+
+  // Target is skipped (error)
+
+  @cds.persistence.skip: false // Explicit!
+  entity NotSkipped {
+    key id         : Integer;
+        field      : String;
+        toSkippedF : Association to SkippedF;
+        toSkippedG : Association to SkippedG;
+  };
+
+  @cds.persistence.skip
+  entity SkippedF {
+    key id    : Integer;
+        field : String;
+  };
+
+  @cds.persistence.skip
+  entity SkippedG {
+    key toNotSkipped : Association to NotSkipped;
+        field        : String;
+  };
+
+
+  entity V as
+    select from NotSkipped {
+
+      toSkippedG.toNotSkipped.field
+
+    };
+}
