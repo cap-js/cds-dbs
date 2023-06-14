@@ -610,7 +610,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
-    const correlated = _correlate({ ...expanded, as: column.as || uniqueSubqueryAlias }, outerAlias)
+    const correlated = _correlate({ ...expanded, as: column.as || potentialSubqueryAlias }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
 

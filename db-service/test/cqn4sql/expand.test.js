@@ -706,7 +706,7 @@ describe('Unfold expands on associations to special subselects', () => {
       (
         select author2.name from bookshop.Authors as author2
         where twin.author_ID = author2.ID
-      ) as author2
+      ) as author
     } order by author.name asc
   `
     let res = cqn4sql(input)
@@ -772,7 +772,7 @@ describe('Unfold expands on associations to special subselects', () => {
               FROM bookshop.Genres as genre WHERE books2.genre_ID = genre.ID
             ) as genre
             FROM bookshop.Books AS books2 WHERE author.ID = books2.author_ID
-          ) as books2
+          ) as books
         FROM bookshop.Authors as author WHERE Books.author_ID = author.ID
       ) as author
     }`
@@ -800,7 +800,7 @@ describe('Unfold expands on associations to special subselects', () => {
     const qx = CQL`SELECT from bookshop.Authors as author {
       author.name,
       (SELECT books2.title from bookshop.Books as books2
-        where author.ID = books2.author_ID) as books2
+        where author.ID = books2.author_ID) as books
     } where exists (SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID)`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[1].SELECT).to.have.property('expand').that.equals(true)

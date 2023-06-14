@@ -367,7 +367,7 @@ describe('table alias access', () => {
                   Books2.ID,
                   (
                     SELECT author2.name from bookshop.Authors as author2 where Books2.author_ID = author2.ID
-                  ) as author2
+                  ) as author
                 } where author.dateOfBirth >= '01-01-1969'
               ) as sub
             } where Books.ID = 1`,
@@ -519,7 +519,7 @@ describe('table alias access', () => {
                 (SELECT from bookshop.Authors as author {
                   (SELECT from bookshop.Books as books4 {
                     books4.ID
-                  } where author.ID = books4.author_ID) as books4
+                  } where author.ID = books4.author_ID) as books
                 } where Books3.author_ID = author.ID) as author
                }) as bar
             }) as foo
