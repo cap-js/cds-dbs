@@ -1739,6 +1739,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       let firstRefLink = node.$refLinks[0].definition
       if (firstRefLink.SELECT || firstRefLink.kind === 'entity') {
         const firstStep = node.ref[0]
+        /**
+         * If the node.ref refers to an implicit alias which is later on changed by cqn4sql,
+         * we need to replace the usage of the implicit alias, with the correct, auto-generated table alias.
+         *
+         * This is the case if the following holds true:
+         * - the original query has NO explicit alias
+         * - ref[0] equals the implicit alias of the query (i.e. from.ref[ from.length - 1 ].split('.').pop())
+         * - but differs from the explicit alias, assigned by cqn4sql (i.e. <subquery>.from.uniqueSubqueryAlias)
+         */
         if (
           originalQuery.SELECT?.from.uniqueSubqueryAlias &&
           !originalQuery.SELECT?.from.as &&
