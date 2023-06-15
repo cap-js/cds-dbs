@@ -296,7 +296,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         } else if (col.ref) {
           refs.push(col)
         } else if (col.expand) {
-          queryElements[col.as] = resolveExpand(col)
+          inferQueryElement(col)
         } else {
           throw cds.error`Not supported: ${JSON.stringify(col)}`
         }
@@ -359,81 +359,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
     return queryElements
 
-    function resolveExpand(col) {
-      if (!col.$refLinks) attachRefLinksToArg(col)
-      const { expand, $refLinks } = col
-      const $leafLink = $refLinks?.[$refLinks.length - 1]
-      if ($leafLink?.definition._target) {
-        const expandSubquery = {
-          SELECT: {
-            from: $leafLink.definition._target.name,
-            columns: expand.filter(c => !c.inline),
-          },
-        }
-        if (col.as) expandSubquery.SELECT.as = col.as
-        const inferredExpandSubquery = infer(expandSubquery, model)
-        const res =
-          $leafLink.definition._isStructured || $leafLink.definition.is2one
-            ? // IMPORTANT: all definitions / elements in a cds.linked model have to be linked
-              new cds.struct({ elements: inferredExpandSubquery.elements })
-            : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
-        return Object.defineProperty(res, '$assocExpand', { value: true })
-      } // struct
-      let elements = {}
-      expand.forEach(e => {
-        if (e === '*') {
-          elements = { ...elements, ...$leafLink.definition.elements }
-        } else {
-          inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
-          if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
-          if (e.inline) elements = { ...elements, ...resolveInline(e) }
-          else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
-        }
-      })
-      return new cds.struct({ elements })
-    }
-
-    function resolveInline(col, namePrefix = col.as || col.flatName) {
-      const { inline, $refLinks } = col
-      const $leafLink = $refLinks[$refLinks.length - 1]
-      let elements = {}
-      inline.forEach(inlineCol => {
-        inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true })
-        if (inlineCol === '*') {
-          const wildCardElements = {}
-          // either the `.elements´ of the struct or the `.elements` of the assoc target
-          const leafLinkElements = $leafLink.definition.elements || $leafLink.definition._target.elements
-          Object.entries(leafLinkElements).forEach(([k, v]) => {
-            const name = namePrefix ? `${namePrefix}_${k}` : k
-            // if overwritten/excluded omit from wildcard elements
-            // in elements the names are already flat so consider the prefix
-            // in excluding, the elements are addressed without the prefix
-            if (!(name in elements || col.excluding?.some(e => e === k))) wildCardElements[name] = v
-          })
-          elements = { ...elements, ...wildCardElements }
-        } else {
-          const nameParts = namePrefix ? [namePrefix] : []
-          if (inlineCol.as) nameParts.push(inlineCol.as)
-          else nameParts.push(...inlineCol.ref.map(idOnly))
-          const name = nameParts.join('_')
-          if (inlineCol.inline) {
-            const inlineElements = resolveInline(inlineCol, name)
-            elements = { ...elements, ...inlineElements }
-          } else if (inlineCol.expand) {
-            const expandElements = resolveExpand(inlineCol)
-            elements = { ...elements, [name]: expandElements }
-          } else if (inlineCol.val) {
-            elements[name] = { ...getCdsTypeForVal(inlineCol.val) }
-          } else if (inlineCol.func) {
-            elements[name] = {}
-          } else {
-            elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
-          }
-        }
-      })
-      return elements
-    }
-
     /**
      * This function is responsible for inferring a query element based on a provided column.
      * It initializes and attaches a non-enumerable `$refLinks` property to the column,
@@ -479,7 +404,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
       if (column.SELECT) return
 
-      if (!column.ref) return
+      if (!column.ref) {
+        if(column.expand)
+          queryElements[column.as] = resolveExpand(column)
+        return
+      }
 
       init$refLinks(column)
       // if any path step points to an artifact with `@cds.persistence.skip`
@@ -661,6 +590,104 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (!inExists && !virtual && isColumnJoinRelevant(column)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
+      }
+
+      /**
+       * Resolves a query column which has an `expand` property.
+       *
+       * @param {Object} col - The column object with properties: `expand` and `$refLinks`.
+       * @returns {Object} - A `cds.struct` object with expanded column definitions.
+       *
+       * Procedure:
+       * - if `$leafLink` is an association, constructs an `expandSubquery` and infers a new query structure.
+       *   Returns a new `cds.struct` if the association has a target cardinality === 1 or a `cds.array` for to many relations.
+       * - else constructs an `elements` object based on the refs `expand` found in the expand and returns a new `cds.struct` with these `elements`.
+       */
+      function resolveExpand(col) {
+        const { expand, $refLinks } = col
+        const $leafLink = $refLinks?.[$refLinks.length - 1]
+        if ($leafLink?.definition._target) {
+          const expandSubquery = {
+            SELECT: {
+              from: $leafLink.definition._target.name,
+              columns: expand.filter(c => !c.inline),
+            },
+          }
+          if (col.as) expandSubquery.SELECT.as = col.as
+          const inferredExpandSubquery = infer(expandSubquery, model)
+          const res = $leafLink.definition.is2one
+            ? new cds.struct({ elements: inferredExpandSubquery.elements })
+            : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
+          return Object.defineProperty(res, '$assocExpand', { value: true })
+        } // struct
+        let elements = {}
+        expand.forEach(e => {
+          if (e === '*') {
+            elements = { ...elements, ...$leafLink.definition.elements }
+          } else {
+            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
+            if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
+            if (e.inline) elements = { ...elements, ...resolveInline(e) }
+            else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
+          }
+        })
+        return new cds.struct({ elements })
+      }
+
+      /**
+       * Resolves and processes the inline attribute of a column in a database query.
+       *
+       * @param {Object} col - The column object with properties: `inline` and `$refLinks`.
+       * @param {string} [namePrefix=col.as || col.flatName] - Prefix for naming new columns. Defaults to `col.as` or `col.flatName`.
+       * @returns {Object} - An object with resolved and processed inline column definitions.
+       *
+       * Procedure:
+       * 1. Iterate through `inline` array. For each `inlineCol`:
+       *    a. If `inlineCol` equals '*', wildcard elements are processed and added to the `elements` object.
+       *    b. If `inlineCol` has inline or expand attributes, corresponding functions are called recursively and the resulting elements are added to the `elements` object.
+       *    c. If `inlineCol` has val or func attributes, new elements are created and added to the `elements` object.
+       *    d. Otherwise, the corresponding `$refLinks` definition is added to the `elements` object.
+       * 2. Returns the `elements` object.
+       */
+      function resolveInline(col, namePrefix = col.as || col.flatName) {
+        const { inline, $refLinks } = col
+        const $leafLink = $refLinks[$refLinks.length - 1]
+        let elements = {}
+        inline.forEach(inlineCol => {
+          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true })
+          if (inlineCol === '*') {
+            const wildCardElements = {}
+            // either the `.elements´ of the struct or the `.elements` of the assoc target
+            const leafLinkElements = $leafLink.definition.elements || $leafLink.definition._target.elements
+            Object.entries(leafLinkElements).forEach(([k, v]) => {
+              const name = namePrefix ? `${namePrefix}_${k}` : k
+              // if overwritten/excluded omit from wildcard elements
+              // in elements the names are already flat so consider the prefix
+              // in excluding, the elements are addressed without the prefix
+              if (!(name in elements || col.excluding?.some(e => e === k))) wildCardElements[name] = v
+            })
+            elements = { ...elements, ...wildCardElements }
+          } else {
+            const nameParts = namePrefix ? [namePrefix] : []
+            if (inlineCol.as) nameParts.push(inlineCol.as)
+            else nameParts.push(...inlineCol.ref.map(idOnly))
+            const name = nameParts.join('_')
+            if (inlineCol.inline) {
+              const inlineElements = resolveInline(inlineCol, name)
+              elements = { ...elements, ...inlineElements }
+            } else if (inlineCol.expand) {
+              const expandElements = resolveExpand(inlineCol)
+              elements = { ...elements, [name]: expandElements }
+            } else if (inlineCol.val) {
+              elements[name] = { ...getCdsTypeForVal(inlineCol.val) }
+            } else if (inlineCol.func) {
+              elements[name] = {}
+            } else {
+              elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
+            }
+          }
+        })
+        return elements
       }
 
       function stepNotFoundInPredecessor(step, def) {
