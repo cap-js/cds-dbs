@@ -317,9 +317,9 @@ class PostgresService extends SQLService {
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
+      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
+      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"Z"')`,
       struct: e => `json(${e})`,
       array: e => `json(${e})`,
     }
