@@ -104,7 +104,7 @@ class SQLiteService extends SQLService {
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
       DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => highPrecisionTimestamps(e),
+      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
     }
 
     // Used for SQL function expressions
