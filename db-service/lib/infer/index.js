@@ -405,8 +405,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (column.SELECT) return
 
       if (!column.ref) {
-        if(column.expand)
-          queryElements[column.as] = resolveExpand(column)
+        if (column.expand) queryElements[column.as] = resolveExpand(column)
         return
       }
 
@@ -593,48 +592,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       /**
-       * Resolves a query column which has an `expand` property.
-       *
-       * @param {Object} col - The column object with properties: `expand` and `$refLinks`.
-       * @returns {Object} - A `cds.struct` object with expanded column definitions.
-       *
-       * Procedure:
-       * - if `$leafLink` is an association, constructs an `expandSubquery` and infers a new query structure.
-       *   Returns a new `cds.struct` if the association has a target cardinality === 1 or a `cds.array` for to many relations.
-       * - else constructs an `elements` object based on the refs `expand` found in the expand and returns a new `cds.struct` with these `elements`.
-       */
-      function resolveExpand(col) {
-        const { expand, $refLinks } = col
-        const $leafLink = $refLinks?.[$refLinks.length - 1]
-        if ($leafLink?.definition._target) {
-          const expandSubquery = {
-            SELECT: {
-              from: $leafLink.definition._target.name,
-              columns: expand.filter(c => !c.inline),
-            },
-          }
-          if (col.as) expandSubquery.SELECT.as = col.as
-          const inferredExpandSubquery = infer(expandSubquery, model)
-          const res = $leafLink.definition.is2one
-            ? new cds.struct({ elements: inferredExpandSubquery.elements })
-            : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
-          return Object.defineProperty(res, '$assocExpand', { value: true })
-        } // struct
-        let elements = {}
-        expand.forEach(e => {
-          if (e === '*') {
-            elements = { ...elements, ...$leafLink.definition.elements }
-          } else {
-            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
-            if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
-            if (e.inline) elements = { ...elements, ...resolveInline(e) }
-            else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
-          }
-        })
-        return new cds.struct({ elements })
-      }
-
-      /**
        * Resolves and processes the inline attribute of a column in a database query.
        *
        * @param {Object} col - The column object with properties: `inline` and `$refLinks`.
@@ -688,6 +645,48 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           }
         })
         return elements
+      }
+
+      /**
+       * Resolves a query column which has an `expand` property.
+       *
+       * @param {Object} col - The column object with properties: `expand` and `$refLinks`.
+       * @returns {Object} - A `cds.struct` object with expanded column definitions.
+       *
+       * Procedure:
+       * - if `$leafLink` is an association, constructs an `expandSubquery` and infers a new query structure.
+       *   Returns a new `cds.struct` if the association has a target cardinality === 1 or a `cds.array` for to many relations.
+       * - else constructs an `elements` object based on the refs `expand` found in the expand and returns a new `cds.struct` with these `elements`.
+       */
+      function resolveExpand(col) {
+        const { expand, $refLinks } = col
+        const $leafLink = $refLinks?.[$refLinks.length - 1]
+        if ($leafLink?.definition._target) {
+          const expandSubquery = {
+            SELECT: {
+              from: $leafLink.definition._target.name,
+              columns: expand.filter(c => !c.inline),
+            },
+          }
+          if (col.as) expandSubquery.SELECT.as = col.as
+          const inferredExpandSubquery = infer(expandSubquery, model)
+          const res = $leafLink.definition.is2one
+            ? new cds.struct({ elements: inferredExpandSubquery.elements })
+            : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
+          return Object.defineProperty(res, '$assocExpand', { value: true })
+        } // struct
+        let elements = {}
+        expand.forEach(e => {
+          if (e === '*') {
+            elements = { ...elements, ...$leafLink.definition.elements }
+          } else {
+            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
+            if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
+            if (e.inline) elements = { ...elements, ...resolveInline(e) }
+            else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
+          }
+        })
+        return new cds.struct({ elements })
       }
 
       function stepNotFoundInPredecessor(step, def) {
