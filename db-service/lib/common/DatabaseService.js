@@ -75,11 +75,7 @@ class DatabaseService extends cds.Service {
           return _set(this, '$user.locale', ctx.locale || cds.env.i18n.default_language)
         },
         get '$valid.from'() {
-          return _set(
-            this,
-            '$valid.from',
-            ctx._?.['VALID-FROM'] ?? ctx._?.['VALID-AT'] ?? '1970-01-01T00:00:00.000Z',
-          )
+          return _set(this, '$valid.from', ctx._?.['VALID-FROM'] ?? ctx._?.['VALID-AT'] ?? '1970-01-01T00:00:00.000Z')
         },
         get '$valid.to'() {
           return _set(
