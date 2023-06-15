@@ -5,9 +5,7 @@ const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
 class SQLService extends DatabaseService {
-  init() {
-    this.on(['SELECT'], this.transformStreamFromCQN)
-    this.on(['UPDATE'], this.transformStreamIntoCQN)
+  init() {    
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
@@ -19,41 +17,6 @@ class SQLService extends DatabaseService {
     this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
     return super.init()
-  }
-
-  async transformStreamFromCQN({ query }, next) {
-    if (!query._streaming) return next()
-    const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
-    if (query.SELECT.where) cqn.STREAM.where = query.SELECT.where
-    const stream = await this.run(cqn)
-    return stream && { value: stream }
-  }
-
-  async transformStreamIntoCQN({ query, data, target }, next) {
-    let col, type, etag
-    const elements = query._target?.elements || target?.elements
-    if (!elements) next()
-    for (const key in elements) {
-      const element = elements[key]
-      if (element['@Core.MediaType'] && data[key]?.pipe) col = key
-      if (element['@Core.IsMediaType'] && data[key]) type = key
-      if (element['@odata.etag'] && data[key]) etag = key
-    }
-
-    if (!col) return next()
-
-    const cqn = STREAM.into(query.UPDATE.entity).column(col).data(data[col])
-    if (query.UPDATE.where) cqn.STREAM.where = query.UPDATE.where
-    const result = await this.run(cqn)
-    if (type || etag) {
-      const d = { ...data }
-      delete d[col]
-      const cqn = UPDATE.entity(query.UPDATE.entity).with(d)
-      if (query.UPDATE.where) cqn.UPDATE.where = query.UPDATE.where
-      await this.run(cqn)
-    }
-
-    return result
   }
 
   /** Handler for SELECT */
