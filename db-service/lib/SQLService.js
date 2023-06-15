@@ -5,7 +5,7 @@ const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
 class SQLService extends DatabaseService {
-  init() {    
+  init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
