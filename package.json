@@ -2,7 +2,7 @@
   "name": "cds-dbs",
   "version": "1.0.0",
   "description": "This is a monorepo for our SQL Database Services.",
-  "author": "daniel.hutzel@sap.com",
+  "author": "SAP SE (https://www.sap.com)",
   "workspaces": [
     "db-service",
     "postgres",

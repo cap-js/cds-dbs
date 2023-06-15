@@ -8,7 +8,7 @@ entity number {
     integer   : Integer;
     integer64 : Integer64;
     double    : cds.Double;
-    // Deicmal: (p,s) p = 1 - 38, s = 0 - p
+    // Decimal: (p,s) p = 1 - 38, s = 0 - p
     // p = number of total decimal digits
     // s = number of decimal digits after decimal seperator
     float     : cds.Decimal; // implied float

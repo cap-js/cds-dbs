@@ -2,7 +2,7 @@ const iterator = Symbol.iterator
 
 // eslint-disable-next-line no-unused-vars
 const USAGE_SAMPLE = async () => {
-  // from https://pages.github.tools.sap/cap/docs/node.js/services?q=Emily#srvrun--query--results
+  // from https://cap.cloud.sap/docs/node.js/services?q=Emily#srv-run
   const { Authors, Books } = {}
   const [Emily, Charlotte] = await INSERT.into(Authors, [{ name: 'Emily Brontëe' }, { name: 'Charlotte Brontëe' }])
   await INSERT.into(Books, [
