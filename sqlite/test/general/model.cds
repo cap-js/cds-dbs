@@ -1,5 +1,6 @@
 using {managed} from '@sap/cds/common';
 
+@path: '/test'
 service test {
     entity foo : managed {
         key ID         : Integer;
