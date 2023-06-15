@@ -31,7 +31,7 @@ describe('SELECT', () => {
           null as ![nullt] : String,
           'String' as ![string],
           0 as ![integer],
-          0.1 as ![decimal],
+          0.1 as ![decimal]
         FROM basic.projection.globals
       `)
 
