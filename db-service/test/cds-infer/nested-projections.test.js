@@ -151,6 +151,36 @@ describe('nested projections', () => {
         })
       })
     })
+
+    describe('anonymous', () => {
+      it('scalar elements', () => {
+        const q = CQL`SELECT from bookshop.Books {
+          ID,
+          {
+            title,
+            descr,
+            author.name
+          } as bookInfos
+        }`
+        const qx = CQL`SELECT from bookshop.Books as Books {
+          Books.ID,
+          Books.title as bookInfos_title,
+          Books.descr as bookInfos_descr,
+          Books.price as bookInfos_price
+        }`
+        let { Books } = model.entities
+        const inferred = _inferred(q)
+        expect(inferred.elements)
+          .to.have.property('bookInfos')
+          .that.eql({
+            elements: {
+              title: Books.elements.title,
+              descr: Books.elements.descr,
+              author_name: Books.elements.author._target.elements.name,
+            },
+          })
+      })
+    })
   })
 
   describe('inline', () => {
