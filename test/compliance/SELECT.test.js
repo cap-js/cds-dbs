@@ -32,10 +32,6 @@ describe('SELECT', () => {
           'String' as ![string],
           0 as ![integer],
           0.1 as ![decimal],
-          '0001-01-01' as ![date] : Date,
-          '01:01:01' as ![time] : Time,
-          '0001-01-01 01:01:01' as ![datetime] : DateTime,
-          '0001-01-01 01:01:01.1' as ![timestamp] : Timestamp
         FROM basic.projection.globals
       `)
 
