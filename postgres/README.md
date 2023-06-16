@@ -1,4 +1,10 @@
-# PostgreSQL Adapter for SAP CAP
+# CDS database service for Postgres
+
+Welcome to the new Postgres database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture and [*pg* driver](https://www.npmjs.com/package/better-sqlite3) .
+
+Find documentation at https://cap.cloud.sap/docs/guides/databases-postgres.
+
+// QUESTION: Should the following sections move to docs?
 
 ## install + config
 
