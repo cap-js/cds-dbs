@@ -26,7 +26,7 @@
   "peerDependencies": {
     "hdb": "^0.19.5",
     "@sap/hana-client": "^2.16.26",
-    "@sap/cds": ">=7"
+    "@sap/cds": ">=6.8.0"
   },
   "cds": {
     "requires": {
