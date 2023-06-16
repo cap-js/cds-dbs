@@ -162,12 +162,6 @@ describe('nested projections', () => {
             author.name
           } as bookInfos
         }`
-        const qx = CQL`SELECT from bookshop.Books as Books {
-          Books.ID,
-          Books.title as bookInfos_title,
-          Books.descr as bookInfos_descr,
-          Books.price as bookInfos_price
-        }`
         let { Books } = model.entities
         const inferred = _inferred(q)
         expect(inferred.elements)
