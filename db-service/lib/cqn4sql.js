@@ -348,6 +348,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       const tableAliasName = getQuerySourceName(col)
+      // re-adjust usage of implicit alias in subquery
+      if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAliasName) {
+        col.ref[0] = tableAliasName
+      }
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
       if (leaf.virtual === true) return
 
@@ -398,7 +402,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
             originalQuery.outerQueries,
           )
-          col.SELECT.from.as = uniqueSubqueryAlias
+          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
         }
         return transformSubquery(col)
       } else if (col.xpr) {
@@ -580,11 +584,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
-    // we need to respect the aliases of the outer query
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(
-      column.as || column.ref.map(idOnly).join('_'),
-      originalQuery.outerQueries,
-    )
+
+    // this is the alias of the column which holds the correlated subquery
+    const columnAlias =
+      column.as ||
+      (column.$refLinks[0].definition.kind === 'entity'
+        ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
+        : column.ref.map(idOnly).join('_'))
+
+    // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
+    // as table alias for the correlated subquery
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -603,7 +613,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
-    const correlated = _correlate({ ...expanded, as: column.as || column.ref.map(idOnly).join('_') }, outerAlias)
+    const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements })
     return correlated
 
@@ -1212,7 +1222,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return { transformedFrom: { ref: [from], as: getLastStringSegment(from) } }
       }
       transformedFrom.as =
-        from.as || getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
+        from.uniqueSubqueryAlias ||
+        from.as ||
+        getLastStringSegment(transformedFrom.$refLinks[transformedFrom.$refLinks.length - 1].definition.name)
       const whereExistsSubSelects = []
       const filterConditions = []
       const refReverse = [...from.ref].reverse()
@@ -1729,6 +1741,23 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getSelectOrEntityAlias(node) {
       let firstRefLink = node.$refLinks[0].definition
       if (firstRefLink.SELECT || firstRefLink.kind === 'entity') {
+        const firstStep = node.ref[0]
+        /**
+         * If the node.ref refers to an implicit alias which is later on changed by cqn4sql,
+         * we need to replace the usage of the implicit alias, with the correct, auto-generated table alias.
+         *
+         * This is the case if the following holds true:
+         * - the original query has NO explicit alias
+         * - ref[0] equals the implicit alias of the query (i.e. from.ref[ from.length - 1 ].split('.').pop())
+         * - but differs from the explicit alias, assigned by cqn4sql (i.e. <subquery>.from.uniqueSubqueryAlias)
+         */
+        if (
+          originalQuery.SELECT?.from.uniqueSubqueryAlias &&
+          !originalQuery.SELECT?.from.as &&
+          firstStep === getLastStringSegment(transformedQuery.SELECT.from.ref[0])
+        ) {
+          return originalQuery.SELECT?.from.uniqueSubqueryAlias
+        }
         return node.ref[0]
       }
     }

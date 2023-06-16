@@ -387,4 +387,3 @@ entity PartialStructuredKey {
   };
   toSelf: Association to PartialStructuredKey { struct.one as partial}
 }
-
