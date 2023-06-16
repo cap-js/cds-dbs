@@ -5,9 +5,7 @@ const COLORS = !!process.stdout.isTTY && !!process.stderr.isTTY
 const GREY = COLORS ? '\x1b[2m' : ''
 const RESET = COLORS ? '\x1b[0m' : ''
 
-module.exports = exports = cds_deploy
-
-function cds_deploy(model, options, csvs) {
+module.exports = exports = function cds_deploy (model,options,csvs) {
   return {
     /** @param {import('@sap/cds/lib/srv/srv-api')} db */
     async to(db, o = options || cds.options || {}) {
@@ -34,12 +32,17 @@ function cds_deploy(model, options, csvs) {
           // fill in initial data
           await exports.init(tx, model, o, csvs, file => LOG(GREY, ` > init from ${local(file)}`, RESET))
         }
-        await (o.dry ? _deploy(db) : db.run(_deploy))
 
-        // done
         let url = db.url4(cds.context?.tenant)
         if (url === ':memory:') url = 'in-memory database.'
-        LOG('/> successfully deployed to', url, '\n')
+        else if (!url.startsWith('http:')) url = local(url)
+        try {
+          await (o.dry ? _deploy(db) : db.run(_deploy))
+          LOG('/> successfully deployed to', url, '\n')
+        } catch (e) {
+          LOG('/> deployment to', url, 'failed\n')
+          throw e
+        }
       } finally {
         TRACE?.timeEnd('cds.deploy db  ')
       }
@@ -56,35 +59,36 @@ function cds_deploy(model, options, csvs) {
   }
 }
 
-async function cds_deploy_create(db, csn = db.model, options) {
+exports.create = async function cds_deploy_create (db, csn=db.model, options) {
+
   /* eslint-disable no-console */
 
   const o = { ...options, ...db.options }
   if (o.impl === '@cap-js/sqlite') {
-    // REVISIT: What's that ?!?
-    // it's required to set both properties
+    // REVISIT: Move that to configuration or to cds.compile -> currently cds compile creates wrong output
     o.betterSqliteSessionVariables = true
     o.sqlDialect = 'sqlite'
   }
 
   let drops, creas
-  let schevo = o.schema_evolution === 'auto' || o['with-auto-schema-evolution'] || o['model-only'] || o['delta-from'] //|| o.kind === 'postgres'
-  if (schevo) db.options.schema_evolution = 'auto'
+  let schevo = o.schema_evolution === 'auto' || o['with-auto-schema-evolution'] || o['model-only'] || o['delta-from'] || (o.kind === 'postgres' && o.schema_evolution !== false);
   if (schevo) {
     const { prior, table_exists } = await get_prior_model()
     const { afterImage, drops: d, createsAndAlters } = cds.compile.to.sql.delta(csn, o, prior && JSON.parse(prior))
     const after = JSON.stringify(afterImage)
     if (!o.dry && after != prior) {
       if (!table_exists) {
-        await db.run(`CREATE table cds_model (csn text)`)
+        const CLOB = o.dialect === 'postgres' || o.kind === 'postgres' ? 'text' : 'CLOB'
+        await db.run(`CREATE table cds_model (csn ${CLOB})`)
         await db.run(`INSERT into cds_model values (?)`, after)
       } else {
         await db.run(`UPDATE cds_model SET csn = ?`, after)
       }
+      db.options.schema_evolution = 'auto' // for updating package.json
     }
-    // cds deploy --model > activate schema evolution by creating and filling in table cds_model
+    // cds deploy --model-only > fills in table cds_model above
     if (o['model-only']) return o.dry && console.log(after)
-    // cds deploy --with-auto-schema-evolution > upgrade by applying delta to former model
+    // cds deploy -- with auto schema evolution > upgrade by applying delta to former model
     creas = createsAndAlters
     drops = d
   } else {
@@ -117,7 +121,6 @@ async function cds_deploy_create(db, csn = db.model, options) {
   return true
 
   async function get_prior_model() {
-    if (o['model-only']) return {}
     let file = o['delta-from']
     if (file) {
       let prior = await cds.utils.read(file)
@@ -131,6 +134,10 @@ async function cds_deploy_create(db, csn = db.model, options) {
         ? `SELECT 1 from sqlite_schema WHERE name = 'cds_model'`
         : cds.error`Schema evolution is not supported for ${db.kind} databases`,
     )
+
+    if (o['model-only'])
+      return { table_exists };
+
     if (table_exists) {
       let [{ csn }] = await db.run('SELECT csn from cds_model')
       return { prior: csn, table_exists }
@@ -140,7 +147,7 @@ async function cds_deploy_create(db, csn = db.model, options) {
 }
 
 if (module.parent) {
-  cds.deploy = Object.assign(cds_deploy, cds.deploy, { create: cds_deploy_create })
+  cds.deploy = Object.assign(exports, cds.deploy, { create: exports.create })
 } else
   (async () => {
     const o = {}
@@ -150,7 +157,7 @@ if (module.parent) {
       else o[recent] = each
     }
     await cds.plugins // IMPORTANT: that has to go before any call to cds.env, like through cds.deploy or cds.requires below
-    cds.deploy = Object.assign(cds_deploy, cds.deploy, { create: cds_deploy_create })
+    cds.deploy = Object.assign(exports, cds.deploy, { create: exports.create })
     let db = cds.requires.db
     if (o.to) {
       db = { kind: o.to }
