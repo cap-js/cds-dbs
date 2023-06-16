@@ -35,9 +35,10 @@ class DatabaseService extends cds.Service {
    *   '$user.role': 'admin'
    * })
    * ```
+   * @param {Object} variables The session variables to be set
    */
-  // eslint-disable-next-line no-unused-vars
-  set(variables) {
+  async set(variables) {
+    variables
     throw '2b overridden by subclass'
   }
 
@@ -73,6 +74,9 @@ class DatabaseService extends cds.Service {
         },
         get '$user.locale'() {
           return _set(this, '$user.locale', ctx.locale || cds.env.i18n.default_language)
+        },
+        get '$user.now'() {
+          return _set(this, '$user.now', (ctx.timestamp || new Date()).toISOString())
         },
         get '$valid.from'() {
           return _set(
@@ -130,8 +134,13 @@ class DatabaseService extends cds.Service {
     return super.run(query, data)
   }
 
-  url4(/*tenant*/) {
-    // eslint-disable-line no-unused-vars
+  /**
+   * Provides the url for the target tenant based upon the configurations
+   * @param {string|undefined} tenant The tenant UUID or undefined for single tenant applications
+   * @returns {string} The url of the tenant
+   */
+  url4(tenant) {
+    tenant
     let { url } = this.options?.credentials || this.options || {}
     return url
   }

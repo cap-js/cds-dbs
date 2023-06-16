@@ -1,0 +1,28 @@
+const StandardFunctions = {
+  tolower: x => `lower(${x})`,
+  toupper: x => `upper(${x})`,
+  indexof: (x, y) => `locate(${x},${y}) - 1`, // locate is 1 indexed
+  startswith: (x, y) => `(CASE WHEN locate(${x},${y}) = 1 THEN TRUE ELSE FALSE END)`, // locate is 1 indexed
+  endswith: (x, y) => `(CASE WHEN substring(${x},length(${x})+1 - length(${y})) = ${y} THEN TRUE ELSE FALSE END)`,
+  substring: (x, y, z) =>
+    z
+      ? `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
+      : `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end )`,
+  count: x => `count(${x || '*'})`,
+  contains: (...args) => `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
+  search: function (ref, arg) {
+    if (!('val' in arg)) throw `HANA only supports single value arguments for $search`
+    const refs = ref.list || [ref],
+      { toString } = ref
+    return (
+      '(CASE WHEN (' +
+      refs.map(ref2 => `coalesce(locate(${this.tolower(toString(ref2))},${this.tolower(arg)}),0)>0`).join(' or ') +
+      ') THEN TRUE ELSE FALSE END)'
+    )
+  },
+
+  // Date and Time Functions
+  day: x => `DAYOFMONTH(${x})`,
+}
+
+module.exports = StandardFunctions

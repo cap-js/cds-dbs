@@ -36,8 +36,10 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   global.before(async () => {
     try {
-      const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
+      const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
+      const serviceDefinitionPath = testSource + 'test/service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
+      require(testSource + 'cds-plugin')
     } catch (e) {
       // Default to sqlite for packages without their own service
       cds.env.requires.db = require('@cap-js/sqlite/test/service.json')

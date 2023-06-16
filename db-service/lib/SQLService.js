@@ -127,7 +127,7 @@ class SQLService extends DatabaseService {
   /** Handler for SQL statements which don't have any CQN */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      DEBUG?.(query)
+      DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
@@ -148,8 +148,9 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
+    // REVISIT: made uppercase count because of HANA reserved word quoting
     const cq = cds.ql.clone(query, {
-      columns: [{ func: 'count' }],
+      columns: [{ func: 'count', as: 'COUNT' }],
       localized: false,
       expand: false,
       limit: 0,
@@ -157,8 +158,8 @@ class SQLService extends DatabaseService {
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)
-    const { count } = await ps.get(values)
-    return count
+    const { COUNT } = await ps.get(values)
+    return COUNT
   }
 
   static InsertResults = require('./InsertResults')
@@ -195,18 +196,23 @@ class SQLService extends DatabaseService {
   /**
    * Returns a Promise which resolves to a prepared statement object with
    * `{run,get,all}` signature as specified in {@link PreparedStatement}.
+   * @abstract
+   * @param {string} sql The SQL String to be prepared
    * @returns {PreparedStatement}
    */
-  // eslint-disable-next-line no-unused-vars
-  async prepare(/*sql*/) {
+  async prepare(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 
   /**
    * Used to execute simple SQL statement like BEGIN, COMMIT, ROLLBACK
+   * @abstract
+   * @param {string} sql The SQL String to be executed
+   * @returns {Promise<any>} The result from the database driver
    */
-  // eslint-disable-next-line no-unused-vars
   async exec(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 }
@@ -216,21 +222,29 @@ class PreparedStatement {
   // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
-   * @param {[]|{}} binding_params
+   * @abstract
+   * @param {[]|{}} binding_params The values to be used with the prepared statement
    */
-  async run(/*binding_params*/) {} // eslint-disable-line no-unused-vars
+  async run(binding_params) {
+    binding_params
+    return { changes: 1 }
+  } // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared SELECT query and returns a single/first row only
-   * @param {[]|{}} binding_params
+   * @abstract
+   * @param {[]|{}} binding_params The values to be used with the prepared statement
    */
-  async get(/*binding_params*/) {
+  async get(binding_params) {
+    binding_params
     return {}
   } // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared SELECT query and returns an array of all rows
-   * @param {[]|{}} binding_params
+   * @abstract
+   * @param {[]|{}} binding_params The values to be used with the prepared statement
    */
-  async all(/*binding_params*/) {
+  async all(binding_params) {
+    binding_params
     return [{}]
   } // eslint-disable-line no-unused-vars
 }
@@ -285,4 +299,7 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
+/**
+ * @type {SQLService}
+ */
 module.exports = Object.assign(SQLService, { _target_name4 })

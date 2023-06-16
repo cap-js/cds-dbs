@@ -34,6 +34,7 @@ class CQN2SQLRenderer {
     this._convertInput = _add_mixins(':convertInput', this.InputConverters)
     this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
     this._sqlType = _add_mixins(':sqlType', this.TypeMap)
+    this._insertType = _add_mixins(':insertType', this.InsertTypeMap)
     this._init = () => {} // makes this a noop for subsequent calls
   }
 
@@ -130,7 +131,7 @@ class CQN2SQLRenderer {
 
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
-    if (!expand) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
+    expand = q.SELECT.expand = expand ?? (has_expands(q) || has_arrays(q))
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -204,7 +205,7 @@ class CQN2SQLRenderer {
         args: [left, right],
         on,
       } = from
-      return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.xpr({ xpr: on })}`
+      return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.where(on)}`
     }
   }
 
@@ -289,7 +290,7 @@ class CQN2SQLRenderer {
       .map(c => c.sql)
 
     this.entries = [[JSON.stringify(INSERT.entries)]]
-    return (this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
     }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -317,7 +318,7 @@ class CQN2SQLRenderer {
     })
 
     this.entries = [[JSON.stringify(INSERT.rows)]]
-    return (this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
     }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -563,10 +564,10 @@ class CQN2SQLRenderer {
       switch (managed) {
         case '$user.id':
         case '$user':
-          managed = this.string(this.context.user.id)
+          managed = `SESSION_CONTEXT('$user.id')`
           break
         case '$now':
-          managed = this.string(this.context.timestamp.toISOString().slice(0, -1) + '0000Z')
+          managed = `SESSION_CONTEXT('$user.now')`
           break
         default:
           managed = undefined

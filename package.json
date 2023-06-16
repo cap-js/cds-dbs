@@ -6,9 +6,12 @@
   "workspaces": [
     "db-service",
     "postgres",
-    "sqlite"
+    "sqlite",
+    "hana"
   ],
   "devDependencies": {
+    "@sap/hana-client": "^2.16.26",
+    "hdb": "^0.19.5",
     "@capire/sflight": "sap-samples/cap-sflight",
     "prettier": "^2",
     "eslint": "^8",

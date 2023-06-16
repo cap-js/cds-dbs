@@ -1,0 +1,53 @@
+{
+  "name": "@cap-js/hana",
+  "version": "1.0.0",
+  "description": "CDS database service for SAP HANA",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS",
+    "HANA"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "main": "index.js",
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
+  "scripts": {
+    "test": "jest --silent"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "hdb": "^0.19.5",
+    "@sap/hana-client": "^2.16.26",
+    "@sap/cds": ">=7"
+  },
+  "cds": {
+    "requires": {
+      "kinds": {
+        "sql": {
+          "[development]": {
+            "kind": "sqlite"
+          },
+          "[production]": {
+            "kind": "hana"
+          }
+        },
+        "hana": {
+          "impl": "@cap-js/hana"
+        },
+        "hana-cloud": {
+          "impl": "@cap-js/hana"
+        }
+      },
+      "db": "sql"
+    }
+  },
+  "license": "SEE LICENSE"
+}
