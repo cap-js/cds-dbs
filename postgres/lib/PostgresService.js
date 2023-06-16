@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client } = require('pg')
 const cds = require('@sap/cds/lib')
 const crypto = require('crypto')
+const sessionVariableMap = require('./session.json')
 
 class PostgresService extends SQLService {
   init() {
@@ -57,18 +58,10 @@ class PostgresService extends SQLService {
   }
 
   async set(variables) {
-    // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
-    const nameMap = {
-      '$user.id': 'CAP.APPLICATIONUSER',
-      '$user.locale': 'CAP.LOCALE',
-      '$valid.from': 'CAP.VALID_FROM',
-      '$valid.to': 'CAP.VALID_TO',
-    }
-
     const env = {}
     for (let name in variables) {
-      env[nameMap[name]] = variables[name]
+      env[sessionVariableMap[name] || name] = variables[name]
     }
 
     return Promise.all([
@@ -253,11 +246,6 @@ class PostgresService extends SQLService {
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1)')
         .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
-    }
-
-    val(val) {
-      const ret = super.val(val)
-      return ret === '?' ? `$${this.values.length}` : ret
     }
 
     operator(x) {

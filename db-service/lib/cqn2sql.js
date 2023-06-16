@@ -62,13 +62,10 @@ class CQN2SQLRenderer {
     const { target } = q,
       { query } = target
     const name = this.name(target.name)
-    // Don't allow place holders inside views
-    delete this.values
     this.sql =
       !query || target['@cds.persistence.table']
         ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
         : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
-    this.values = []
     return
   }
 
@@ -499,9 +496,7 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    if (!this.values) return this.string(val)
-    this.values.push(val)
-    return '?'
+    return this.string(val)
   }
 
   static Functions = require('./cql-functions')
@@ -564,10 +559,10 @@ class CQN2SQLRenderer {
       switch (managed) {
         case '$user.id':
         case '$user':
-          managed = `SESSION_CONTEXT('$user.id')`
+          managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
           break
         case '$now':
-          managed = `SESSION_CONTEXT('$user.now')`
+          managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
           break
         default:
           managed = undefined

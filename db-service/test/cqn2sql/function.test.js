@@ -82,8 +82,8 @@ describe('function', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)',
-      values: ['5'],
+      sql: `SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),'5'),0)`,
+      values: [],
     })
   })
 

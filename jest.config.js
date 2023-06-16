@@ -23,5 +23,6 @@ module.exports = {
     '<rootDir>/test/',
     // Excluding tests which don't run locally - find better ways to control that
     'postgres',
+    'hana',
   ].filter(e => !enable.includes(e)),
 }

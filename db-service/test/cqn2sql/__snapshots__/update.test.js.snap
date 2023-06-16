@@ -9,46 +9,36 @@ exports[`.update data alone still works 1`] = `
 
 exports[`.update set enhances data 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name='''asd'''",
+  "values": [],
 }
 `;
 
 exports[`.update set overwrites data 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?,a=6",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name='''asd''',a=6",
+  "values": [],
 }
 `;
 
 exports[`.update test with entity and values with operators 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name=?,a=Foo2.a - 1",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name='''asd''',a=Foo2.a - 1",
+  "values": [],
 }
 `;
 
 exports[`.update test with entity of type string 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name='''asd''',a=2",
+  "values": [],
 }
 `;
 
 exports[`.update test with entity of type string and where clause 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2 WHERE Foo2.a < 9",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name='''asd''',a=2 WHERE Foo2.a < 9",
+  "values": [],
 }
 `;
 
@@ -68,10 +58,8 @@ exports[`.update test with subselect - sflight example 1`] = `
 
 exports[`.update virtual and non-existing fields filtered out from with 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?",
-  "values": [
-    "'asd'",
-  ],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name='''asd'''",
+  "values": [],
 }
 `;
 

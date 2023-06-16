@@ -1,4 +1,13 @@
+const session = require('./session.json')
+const sessionVariableMap = {}
+Object.keys(session).forEach(k => {
+  sessionVariableMap[`'${k}'`] = `'${session[k]}'`
+})
+
 const StandardFunctions = {
+  session_context: x => {
+    return `current_setting(${sessionVariableMap[x] || x})`
+  },
   countdistinct: x => `count(distinct ${x || '*'})`,
   average: x => `avg(${x})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,

@@ -507,10 +507,10 @@ class HANAService extends SQLService {
         switch (managed) {
           case '$user.id':
           case '$user':
-            managed = `SESSION_CONTEXT('$user.id')`
+            managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
             break
           case '$now':
-            managed = `SESSION_CONTEXT('$user.now')`
+            managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
             break
           default:
             managed = undefined
@@ -587,7 +587,7 @@ class HANAService extends SQLService {
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF7"Z"')`,
+      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
     }
   }
 

@@ -158,8 +158,8 @@ class SQLService extends DatabaseService {
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)
-    const { COUNT } = await ps.get(values)
-    return COUNT
+    const { count, COUNT } = await ps.get(values)
+    return count ?? COUNT
   }
 
   static InsertResults = require('./InsertResults')
