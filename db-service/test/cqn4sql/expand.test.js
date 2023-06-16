@@ -641,7 +641,7 @@ describe('Unfold expands on associations to special subselects', () => {
     const q = CQL`SELECT from bookshop.Books {
       title,
       author.name,
-      author.books.genre[name = 'foo'] { name }
+      Books.author.books.genre[name = 'foo'] { name }
     }`
     const qx = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
