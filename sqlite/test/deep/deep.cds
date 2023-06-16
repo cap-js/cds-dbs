@@ -49,6 +49,7 @@ entity ProjChild as projection on BaseChild {
   text as rText
 }
 
+@path:'/bla'
 service bla {
     entity RootUUID {
         key ID         : UUID;
