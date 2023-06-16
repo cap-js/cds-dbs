@@ -5,7 +5,7 @@ const COLORS = !!process.stdout.isTTY && !!process.stderr.isTTY
 const GREY = COLORS ? '\x1b[2m' : ''
 const RESET = COLORS ? '\x1b[0m' : ''
 
-module.exports = exports = function cds_deploy (model,options,csvs) {
+module.exports = exports = function cds_deploy(model, options, csvs) {
   return {
     /** @param {import('@sap/cds/lib/srv/srv-api')} db */
     async to(db, o = options || cds.options || {}) {
@@ -59,8 +59,7 @@ module.exports = exports = function cds_deploy (model,options,csvs) {
   }
 }
 
-exports.create = async function cds_deploy_create (db, csn=db.model, options) {
-
+exports.create = async function cds_deploy_create(db, csn = db.model, options) {
   /* eslint-disable no-console */
 
   const o = { ...options, ...db.options }
@@ -71,7 +70,12 @@ exports.create = async function cds_deploy_create (db, csn=db.model, options) {
   }
 
   let drops, creas
-  let schevo = o.schema_evolution === 'auto' || o['with-auto-schema-evolution'] || o['model-only'] || o['delta-from'] || (o.kind === 'postgres' && o.schema_evolution !== false);
+  let schevo =
+    o.schema_evolution === 'auto' ||
+    o['with-auto-schema-evolution'] ||
+    o['model-only'] ||
+    o['delta-from'] ||
+    (o.kind === 'postgres' && o.schema_evolution !== false)
   if (schevo) {
     const { prior, table_exists } = await get_prior_model()
     const { afterImage, drops: d, createsAndAlters } = cds.compile.to.sql.delta(csn, o, prior && JSON.parse(prior))
@@ -135,8 +139,7 @@ exports.create = async function cds_deploy_create (db, csn=db.model, options) {
         : cds.error`Schema evolution is not supported for ${db.kind} databases`,
     )
 
-    if (o['model-only'])
-      return { table_exists };
+    if (o['model-only']) return { table_exists }
 
     if (table_exists) {
       let [{ csn }] = await db.run('SELECT csn from cds_model')
