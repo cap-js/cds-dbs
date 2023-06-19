@@ -53,7 +53,7 @@ class PostgresService extends SQLService {
   url4() {
     // TODO: Maybe log which database and which user? Be more robust against missing properties?
     let { host, port } = this.options?.credentials || this.options || {}
-    return 'postgres@' + host + ':' + (port || 5432)
+    return host + ':' + (port || 5432)
   }
 
   async set(variables) {

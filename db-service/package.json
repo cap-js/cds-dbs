@@ -8,9 +8,6 @@
     "CDS"
   ],
   "author": "SAP SE (https://www.sap.com)",
-  "bin": {
-    "cds-deploy": "./lib/cds-deploy.js"
-  },
   "main": "index.js",
   "files": [
     "lib",
