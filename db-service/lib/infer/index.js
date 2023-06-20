@@ -477,7 +477,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         } else {
           const { definition } = column.$refLinks[i - 1]
           const elements = definition.elements || definition._target?.elements
-          if (elements && id in elements) {
+          const element = elements?.[id]
+          if (element) {
             const $refLink = { definition: elements[id], target: column.$refLinks[i - 1].target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -504,7 +505,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             : null
           if (foreignKeyAlias) nameSegments.push(foreignKeyAlias)
           else if (skipAliasedFkSegmentsOfNameStack[0] === id) skipAliasedFkSegmentsOfNameStack.shift()
-          else nameSegments.push(id)
+          else {
+            nameSegments.push(firstStepIsSelf && i === 1 ? element.__proto__.name : element.name)
+          }
         }
 
         if (step.where) {

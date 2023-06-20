@@ -301,7 +301,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
-
+    const selfReferences = []
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
@@ -310,6 +310,21 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       } else if (col.inline) {
         handleInline(col)
       } else if (col.ref) {
+        if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          // we need to replace the $self references in the end
+          const { ref } = col
+          const stepToFind = ref[1]
+          const referencedColumn = columns.find(
+            c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
+          )
+          if (referencedColumn.ref) {
+            col.ref = [...referencedColumn.ref, ...col.ref.slice(2)]
+            col.$refLinks = [...referencedColumn.$refLinks, ...col.$refLinks.slice(2)]
+            col.flatName = referencedColumn.flatName
+          } else {
+            continue
+          }
+        }
         handleRef(col)
       } else if (col === '*') {
         handleWildcard(columns)
