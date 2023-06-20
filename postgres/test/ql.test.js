@@ -41,11 +41,11 @@ describe('QL to PostgreSQL', () => {
       expect(beer).not.to.have.property('abv')
     })
 
-    test('-> with one - no result returns null not empty array', async () => {
+    test('-> with one - no result returns undefined not empty array', async () => {
       const { Beers } = cds.entities('csw')
       const beer = await cds.run(SELECT.one(Beers).where({ name: 'does not exist' }))
       expect(beer).to.not.be.an.instanceof(Array)
-      expect(beer).to.be.null
+      expect(beer).to.be.undefined
     })
 
     test('-> with distinct', async () => {
