@@ -326,13 +326,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function handleExpand(col) {
       const { $refLinks } = col
-      const last = $refLinks[$refLinks.length - 1]
-      if (last.definition.elements) {
-        const expandCols = nestedProjectionOnStructure(col, 'expand')
-        transformedColumns.push(...expandCols)
-      } else if (!last.skipExpand) {
+      const last = $refLinks?.[$refLinks.length - 1]
+      if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
         transformedColumns.push(expandedSubqueryColumn)
+      } else if (!last?.skipExpand) {
+        const expandCols = nestedProjectionOnStructure(col, 'expand')
+        transformedColumns.push(...expandCols)
       }
     }
 
@@ -444,18 +444,23 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         const name = nameParts.join('_')
         if (nestedProjection.ref) {
           const augmentedInlineCol = { ...nestedProjection }
-          augmentedInlineCol.ref = [...col.ref, ...nestedProjection.ref]
+          augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
           if (col.as || nestedProjection.as || nestedProjection.isJoinRelevant) {
             augmentedInlineCol.as = nameParts.join('_')
           }
-          // propagate join relevance
           Object.defineProperties(augmentedInlineCol, {
-            $refLinks: { value: [...col.$refLinks, ...nestedProjection.$refLinks], writable: true },
+            $refLinks: { value: [...nestedProjection.$refLinks], writable: true },
             isJoinRelevant: {
-              value: col.isJoinRelevant || nestedProjection.isJoinRelevant,
+              value: nestedProjection.isJoinRelevant,
               writable: true,
             },
           })
+          // if the expand is not anonymous, we must prepend the expand columns path
+          // to make sure the full path is resolvable
+          if (col.ref) {
+            augmentedInlineCol.$refLinks.unshift(...col.$refLinks)
+            augmentedInlineCol.isJoinRelevant = augmentedInlineCol.isJoinRelevant || col.isJoinRelevant
+          }
           const flatColumns = getTransformedColumns([augmentedInlineCol])
           flatColumns.forEach(flatColumn => {
             const flatColumnName = flatColumn.as || flatColumn.ref[flatColumn.ref.length - 1]
