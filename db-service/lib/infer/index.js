@@ -506,7 +506,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (foreignKeyAlias) nameSegments.push(foreignKeyAlias)
           else if (skipAliasedFkSegmentsOfNameStack[0] === id) skipAliasedFkSegmentsOfNameStack.shift()
           else {
-            nameSegments.push(firstStepIsSelf && i === 1 ? element.__proto__.name : element.name)
+            nameSegments.push(firstStepIsSelf && i === 1 ? element.__proto__.name : id)
           }
         }
 

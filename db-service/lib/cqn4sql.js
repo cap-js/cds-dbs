@@ -303,7 +303,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const transformedColumns = []
     const selfReferences = []
     for (let i = 0; i < columns.length; i++) {
-      const col = columns[i]
+      let col = columns[i]
 
       if (col.expand) {
         handleExpand(col)
@@ -311,19 +311,31 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleInline(col)
       } else if (col.ref) {
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          // we need to replace the $self references in the end
-          const { ref } = col
-          const stepToFind = ref[1]
-          const referencedColumn = columns.find(
-            c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
-          )
-          if (referencedColumn.ref) {
-            col.ref = [...referencedColumn.ref, ...col.ref.slice(2)]
-            col.$refLinks = [...referencedColumn.$refLinks, ...col.$refLinks.slice(2)]
-            col.flatName = referencedColumn.flatName
-          } else {
-            continue
+          const buildDummyColumnForDollarSelf = (dummyColumn) => {
+            const { ref } = dummyColumn
+            const stepToFind = ref[1]
+            const referencedColumn = columns.find(
+              c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
+            )
+            if (referencedColumn.ref) {
+              dummyColumn.ref = [...referencedColumn.ref, ...col.ref.slice(2)]
+              dummyColumn.$refLinks = [...referencedColumn.$refLinks, ...col.$refLinks.slice(2)]
+              dummyColumn.flatName = dummyColumn.ref.join('_')
+            } else {
+              const { xpr, val } = referencedColumn
+              if (xpr) dummyColumn.xpr = xpr
+              else dummyColumn.val = val
+              delete dummyColumn.ref
+            }
+            return dummyColumn.ref?.[0] === '$self' ? buildDummyColumnForDollarSelf(dummyColumn) : dummyColumn
           }
+          const dummyColumn = buildDummyColumnForDollarSelf(col)
+          if (dummyColumn.ref) {
+            handleRef(dummyColumn)
+          } else {
+            handleDefault(dummyColumn)
+          }
+          continue
         }
         handleRef(col)
       } else if (col === '*') {
