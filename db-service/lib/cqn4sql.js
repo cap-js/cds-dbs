@@ -301,9 +301,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
-    const selfReferences = []
     for (let i = 0; i < columns.length; i++) {
-      let col = columns[i]
+      const col = columns[i]
 
       if (col.expand) {
         handleExpand(col)
