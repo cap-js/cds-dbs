@@ -53,7 +53,7 @@ class PostgresService extends SQLService {
   url4() {
     // TODO: Maybe log which database and which user? Be more robust against missing properties?
     let { host, port } = this.options?.credentials || this.options || {}
-    return 'postgres@' + host + ':' + (port || 5432)
+    return host + ':' + (port || 5432)
   }
 
   async set(variables) {
@@ -267,7 +267,7 @@ class PostgresService extends SQLService {
       else return x
     }
 
-    defaultValue(defaultValue = this.context.timestamp.toISOString().slice(0, -1) + '0000Z') {
+    defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }
 
@@ -317,9 +317,9 @@ class PostgresService extends SQLService {
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
+      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF6"0Z"')`,
+      UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       struct: e => `json(${e})`,
       array: e => `json(${e})`,
     }

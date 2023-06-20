@@ -30,7 +30,7 @@ class SQLService extends DatabaseService {
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] || null : rows
+    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {

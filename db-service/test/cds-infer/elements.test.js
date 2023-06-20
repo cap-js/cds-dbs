@@ -325,7 +325,7 @@ describe('infer elements', () => {
       '1970-01-01' as date : cds.Date,
       '00:00:00' as time : cds.Time,
       '1970-01-01 00:00:00' as datetime : cds.DateTime,
-      '1970-01-01 00:00:00.0000000' as timestamp : cds.Timestamp,
+      '1970-01-01 00:00:00.000' as timestamp : cds.Timestamp,
     }`)
       let inferred = _inferred(query)
       let { Books } = model.entities
