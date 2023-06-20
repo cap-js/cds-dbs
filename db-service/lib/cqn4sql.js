@@ -310,7 +310,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleInline(col)
       } else if (col.ref) {
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          const buildDummyColumnForDollarSelf = (dummyColumn) => {
+          const buildDummyColumnForDollarSelf = dummyColumn => {
             const { ref } = dummyColumn
             const stepToFind = ref[1]
             const referencedColumn = columns.find(
