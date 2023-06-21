@@ -301,10 +301,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const firstStepIsSelf =
             !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
           // we must handle $self references after the query elements have been calculated
-          if(firstStepIsSelf)
-            dollarSelfRefs.push(col)
-          else
-            handleRef(col)
+          if (firstStepIsSelf) dollarSelfRefs.push(col)
+          else handleRef(col)
         } else if (col.expand) {
           inferQueryElement(col)
         } else {
