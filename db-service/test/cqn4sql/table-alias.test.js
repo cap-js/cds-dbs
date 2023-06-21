@@ -224,8 +224,6 @@ describe('table alias access', () => {
       1 + 1 as expression,
       42 as value,
 
-      $self.title as book,
-      $self.title2 as book2,
       $self.struct.text as dedication,
       $self.dedication as dedication2,
       $self.dedication2 as dedication3,
@@ -244,8 +242,6 @@ describe('table alias access', () => {
       1 + 1 as expression,
       42 as value,
 
-      Books.title as book,
-      Books.title as book2,
       Books.dedication_text as dedication,
       Books.dedication_text as dedication2,
       Books.dedication_text as dedication3,

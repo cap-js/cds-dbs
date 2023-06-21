@@ -310,30 +310,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleInline(col)
       } else if (col.ref) {
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          const buildDummyColumnForDollarSelf = dummyColumn => {
-            const { ref } = dummyColumn
-            const stepToFind = ref[1]
-            const referencedColumn = columns.find(
-              c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
-            )
-            if (referencedColumn.ref) {
-              dummyColumn.ref = [...referencedColumn.ref, ...col.ref.slice(2)]
-              dummyColumn.$refLinks = [...referencedColumn.$refLinks, ...col.$refLinks.slice(2)]
-              dummyColumn.flatName = dummyColumn.ref.join('_')
-            } else {
-              const { xpr, val } = referencedColumn
-              if (xpr) dummyColumn.xpr = xpr
-              else dummyColumn.val = val
-              delete dummyColumn.ref
-            }
-            return dummyColumn.ref?.[0] === '$self' ? buildDummyColumnForDollarSelf(dummyColumn) : dummyColumn
-          }
-          const dummyColumn = buildDummyColumnForDollarSelf(col)
-          if (dummyColumn.ref) {
-            handleRef(dummyColumn)
-          } else {
-            handleDefault(dummyColumn)
-          }
+          handleDollarSelfReference(col)
           continue
         }
         handleRef(col)
@@ -349,6 +326,38 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     return transformedColumns
+
+    function handleDollarSelfReference(col) {
+      const dummyColumn = buildDummyColumnForDollarSelf({...col}, col.$refLinks)
+      if (dummyColumn.ref) {
+        handleRef(dummyColumn)
+      } else {
+        handleDefault(dummyColumn)
+      }
+
+      function buildDummyColumnForDollarSelf(dummyColumn, $refLinks) {
+        const { ref } = dummyColumn
+        const stepToFind = ref[1]
+        let referencedColumn = columns.find(
+          c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
+        )
+        if(referencedColumn.ref?.[0] === '$self') {
+          referencedColumn =buildDummyColumnForDollarSelf({...referencedColumn}, referencedColumn.$refLinks)
+        }
+
+        if (referencedColumn.ref) {
+          dummyColumn.ref = [...referencedColumn.ref, ...dummyColumn.ref.slice(2)]
+          dummyColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
+          dummyColumn.flatName = dummyColumn.ref.join('_')
+        } else {
+          const { xpr, val } = referencedColumn
+          if (xpr) dummyColumn.xpr = xpr
+          else dummyColumn.val = val
+          delete dummyColumn.ref
+        }
+        return dummyColumn.ref?.[0] === '$self' ? buildDummyColumnForDollarSelf(dummyColumn, $refLinks) : dummyColumn
+      }
+    }
 
     function handleExpand(col) {
       const { $refLinks } = col
