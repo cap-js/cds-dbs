@@ -4,6 +4,93 @@
 
 ## migration guide
 
+`@cap-js/postgres` works as a drop-in replacement for `cds-pg`.  
+However, some preliminary checks and cleanups help:
+
+- for using the BTP Postgres Hyperscaler as database, 
+  - know that the credentials are picked up automatically by from the enviornment (`VCAP_SERVICES.postgres`)
+  - the service binding label is `postgresql-db`
+  - `cds-dbm` is replaced by a hand-crafted "db-deployer" app &rarr; see below
+- your local `package.json`: you can safely remove the entry `cds.requires.postgres` previously mandatory for `cds-pg`
+- recommendation: set the env var `DEBUG=sql` during local development to see DB-level output from PostgreSQL
+
+### schema migration
+
+`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from HANA and SQLite.  
+Enabling schema migration in an existing `cds-pg`-based project consists of generating and deploying a "csn-snapshot" of your database structure.
+
+#### local development
+
+First, set a basis for the evolution
+`$> cds deploy --model-only`  
+&rarr; this will create the table `cds_model` laying the foundation for the schema migration
+
+Subsequent deployments can then re-use the standard deploy mechanism via `$> cds deploy`
+
+#### On BTP, Cloud Foundry environment
+
+The above "csn-snapshots" can be implemented via the `mtar`-based approach. At the same time, the same `mtar` can be used for subsequent PostgreSQL deployments (with schema evolution).
+
+Two major steps in addition to enabling the schema evoluation are included in this `mtar`.
+
+1. create local folder `deployer` (any name works)
+2. in `deployer`, create a `package.json` containing
+
+  ```json
+  ...
+  "//npm run migrate": "only one-time!",
+  "migrate": "cds deploy --model-only",
+  "//npm run deploy": "subsequent deployments",
+  "deploy": "cds deploy"
+  ...
+  ```
+
+3. add a section to your `/mta.yaml` denoting the `deployer` directory as a standalone application that runs one-time
+
+```yaml
+- name: pg-db-deployer
+    type: custom
+    path: deployer
+    parameters:
+      buildpacks: nodejs_buildpack
+      no-route: true
+      no-start: true
+      disk-quota: 2GB
+      memory: 512MB
+      tasks:
+      - name: migrate
+        command: npm run migrate
+      # # for subsequent deployments
+      # - name: deploy
+      #  command: npm run deploy
+        disk-quota: 2GB
+        memory: 512MB
+    build-parameters:
+      before-all:
+        custom: 
+        - npm i
+        # generate the "csn-snapshot" - only necessary for one-time migration,
+        # can be commented out on subsequent deployments
+        - cds compile '*' -2 json > deployer/schema.csn
+      ignore: ["node_modules/"]
+    requires:
+      - name: pg-database
+
+resources:
+  - name: pg-database
+    parameters:
+      path: ./pg-options.json
+      service: postgresql-db
+      service-plan: trial # change to yours!
+      skip-service-updates:
+        parameters: true
+      service-tags:
+        - plain
+    type: org.cloudfoundry.managed-service
+```
+
+## migration points to consider
+
 ### mixed-case identifiers
 
 even though column names that are not double-quoted are folded to lowercase in PostgreSQL (`yourName` -> `yourname`, `"yourName"` -> `yourName`),  
