@@ -223,18 +223,16 @@ describe('table alias access', () => {
       dedication as struct,
       1 + 1 as expression,
       42 as value,
-      author,
 
       $self.struct.text as dedication,
       $self.dedication as dedication2,
       $self.dedication2 as dedication3,
       $self.expression as selfXpr,
       $self.value as selfVal,
-      $self.author.ID as aID
     }`
       const transformed = cqn4sql(q, model)
 
-      expect(transformed).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
       Books.title,
       Books.title as title2,
       Books.dedication_addressee_ID as struct_addressee_ID,
@@ -243,14 +241,12 @@ describe('table alias access', () => {
       Books.dedication_dedication as struct_dedication,
       1 + 1 as expression,
       42 as value,
-      Books.author_ID,
 
       Books.dedication_text as dedication,
       Books.dedication_text as dedication2,
       Books.dedication_text as dedication3,
       1 + 1 as selfXpr,
-      42 as selfVal,
-      Books.author_ID as aID
+      42 as selfVal
     }`)
     })
   })

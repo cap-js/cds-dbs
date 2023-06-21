@@ -275,7 +275,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       inferElementsFromWildCard(aliases)
     } else {
       let wildcardSelect = false
-      const refs = []
+      const dollarSelfRefs = []
       columns.forEach(col => {
         if (col === '*') {
           wildcardSelect = true
@@ -294,23 +294,25 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           }
           setElementOnColumns(col, queryElements[as])
         } else if (col.ref) {
-          refs.push(col)
+          const firstStepIsTableAlias =
+            (col.ref.length > 1 && col.ref[0] in sources) ||
+            // nested projection on table alias
+            (col.ref.length === 1 && col.ref[0] in sources && col.inline)
+          const firstStepIsSelf =
+            !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
+          // we must handle $self references after the query elements have been calculated
+          if(firstStepIsSelf)
+            dollarSelfRefs.push(col)
+          else
+            handleRef(col)
         } else if (col.expand) {
           inferQueryElement(col)
         } else {
           throw cds.error`Not supported: ${JSON.stringify(col)}`
         }
       })
-      refs.forEach(col => {
-        inferQueryElement(col)
-        const { definition } = col.$refLinks[col.$refLinks.length - 1]
-        if (col.cast)
-          // final type overwritten -> element not visible anymore
-          setElementOnColumns(col, getElementForCast(col))
-        else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
-          // shortcut to $user.id
-          setElementOnColumns(col, queryElements[col.as || '$user'])
-        else setElementOnColumns(col, definition)
+      dollarSelfRefs.forEach(col => {
+        handleRef(col)
       })
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
@@ -358,6 +360,18 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
 
     return queryElements
+
+    function handleRef(col) {
+      inferQueryElement(col)
+      const { definition } = col.$refLinks[col.$refLinks.length - 1]
+      if (col.cast)
+        // final type overwritten -> element not visible anymore
+        setElementOnColumns(col, getElementForCast(col))
+      else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
+        // shortcut to $user.id
+        setElementOnColumns(col, queryElements[col.as || '$user'])
+      else setElementOnColumns(col, definition)
+    }
 
     /**
      * This function is responsible for inferring a query element based on a provided column.
@@ -478,6 +492,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const { definition } = column.$refLinks[i - 1]
           const elements = definition.elements || definition._target?.elements
           const element = elements?.[id]
+
+          if (firstStepIsSelf && element?.isAssociation) {
+            throw cds.error(
+              `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ ${column.ref.map(
+                idOnly,
+              )} ]`,
+            )
+          }
+
           if (element) {
             const $refLink = { definition: elements[id], target: column.$refLinks[i - 1].target }
             column.$refLinks.push($refLink)
@@ -731,7 +754,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * @param {object} column the column with the `ref` to check for join relevance
      * @returns {boolean} true if the column ref needs to be merged into a join tree
      */
-    function isColumnJoinRelevant(column, firstStepIsSelf) {
+    function isColumnJoinRelevant(column) {
       let fkAccess = false
       let assoc = null
       for (let i = 0; i < column.ref.length; i++) {
@@ -743,12 +766,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // if unmanaged assoc is exposed, ignore it
             return false
           }
-          if (firstStepIsSelf)
-            cds.error(
-              `Select items starting with “$self” must not contain “cds.Association” paths other than foreign key accesses: ref ${column.ref.map(
-                idOnly,
-              )}`,
-            )
           return true
         }
         if (assoc && assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) {
@@ -762,10 +779,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (ref.where) {
             // always join relevant except for expand assoc
             if (column.expand && !column.ref[i + 1]) return false
-            if (firstStepIsSelf)
-              cds.error(
-                `Select items starting with “$self” must not contain “cds.Association” paths with infix filter`,
-              )
             return true
           }
         }
@@ -773,12 +786,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
       if (!assoc) return false
       if (fkAccess) return false
-      if (firstStepIsSelf)
-        cds.error(
-          `Select items starting with “$self” must not contain path steps of type “cds.Association”: ref: [ ${column.ref.map(
-            idOnly,
-          )} ]`,
-        )
       return true
     }
 
