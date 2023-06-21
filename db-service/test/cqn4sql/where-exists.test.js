@@ -663,6 +663,33 @@ describe('Path in FROM which ends on association must be transformed to where ex
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
   })
 
+  it('does not ignore the expand root from being considered for the table alias calculation', () => {
+    const originalQuery = CQL`SELECT from bookshop.Genres:parent.parent.parent { ID }`
+    // table aliases for `query.SELECT.expand === true` are not materialized in the transformed query and must be ignored
+    // however, for the main query having the `query.SELECT.expand === 'root'` we must consider the table aliases
+    originalQuery.SELECT.expand = 'root'
+    let query = cqn4sql(originalQuery, model)
+
+    // clean up so that the queries match
+    delete originalQuery.SELECT.expand
+
+    expect(query).to.deep.equal(CQL`
+      SELECT from bookshop.Genres as parent { parent.ID }
+      where exists (
+        SELECT 1 from bookshop.Genres as parent2
+          where parent2.parent_ID = parent.ID and
+          exists (
+            SELECT 1 from bookshop.Genres as parent3
+              where parent3.parent_ID = parent2.ID  and
+              exists (
+                SELECT 1 from bookshop.Genres as Genres
+                where Genres.parent_ID = parent3.ID
+              )
+          )
+      )
+    `)
+  })
+
   //TODO infix filter with association with structured foreign key
 
   //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE

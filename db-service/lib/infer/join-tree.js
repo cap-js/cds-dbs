@@ -1,5 +1,13 @@
 'use strict'
 
+/**
+ * A class representing a Node in the join tree.
+ *
+ * @property {$refLink} - A reference link to this node.
+ * @property {parent} - The parent Node of this node.
+ * @property {where} - An optional condition to be applied to this node.
+ * @property {children} - A Map of children nodes belonging to this node.
+ */
 class Node {
   constructor($refLink, parent, where = null) {
     this.$refLink = $refLink
@@ -9,6 +17,14 @@ class Node {
   }
 }
 
+/**
+ * A class representing the root of the join tree.
+ *
+ * @property {queryArtifact} - The artifact used to make the query.
+ * @property {alias} - The alias of the artifact.
+ * @property {parent} - The parent Node of this root, null for the root Node.
+ * @property {children} - A Map of children nodes belonging to this root.
+ */
 class Root {
   constructor(querySource) {
     const [alias, queryArtifact] = querySource
@@ -19,6 +35,13 @@ class Root {
   }
 }
 
+/**
+ * A class representing a Join Tree.
+ *
+ * @property {_roots} - A Map of root nodes.
+ * @property {isInitial} - A boolean indicating if the join tree is in its initial state.
+ * @property {_queryAliases} - A Map of query aliases, which is used during the association to join translation.
+ */
 class JoinTree {
   constructor(sources) {
     this._roots = new Map()
@@ -42,10 +65,9 @@ class JoinTree {
   }
 
   /**
-   * Recursively drills into subqueries in a query source and
-   * adds the aliases of those subqueries to the alias map.
+   * Recursively adds aliases of subqueries from a given query source to the alias map.
    *
-   * @param {object} sources of inferred subquery in from
+   * @param {object} sources - The sources of the inferred subquery in a FROM clause.
    */
   addAliasesOfSubqueryInFrom(sources) {
     Object.entries(sources).forEach(e => {
@@ -57,34 +79,36 @@ class JoinTree {
   }
 
   /**
-   * Calculate the next available table alias and add it to
-   * the alias map. Returns the alias in original case, appended
-   * by an integer if necessary.
+   * Calculates and adds the next available table alias to the alias map.
    *
-   * @param {string} alias
-   * @returns the next un-ambigous table alias
+   * @param {string} alias - The original alias name.
+   * @returns {string} - The next unambiguous table alias.
    */
-  addNextAvailableTableAlias(alias) {
+  addNextAvailableTableAlias(alias, outerQueries) {
     const upperAlias = alias.toUpperCase()
-    if (this._queryAliases.get(upperAlias)) {
+    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer))) {
       let j = 2
-      while (this._queryAliases.get(upperAlias + j)) j += 1
+      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, j))) j += 1
       alias += j
     }
     this._queryAliases.set(alias.toUpperCase(), alias)
     return alias
+
+    function outerHasAlias(outer, number) {
+      return outer.joinTree._queryAliases.get(number ? upperAlias + number : upperAlias)
+    }
   }
 
   /**
-   * Merge a column into the join tree.
+   * Merges a column into the join tree.
    *
-   * First, the source of the column is inferred, i.e. the table alias in which the `col` is resolvable.
-   * The table alias is the root of this column. Each of the following steps represents a `node` in the join tree.
-   * If a `node` is already present in the tree, the current step is replaced by the already merged `node`.
-   * This makes sure all references which follow the same path will have the same table alias in the end.
+   * It begins by inferring the source of the given column, which is the table alias where the column is resolvable.
+   * Each step during this process represents a node in the join tree. If a node already exists in the tree, the current step is replaced by the already merged node.
+   * For each step, it checks whether it has been seen before. If so, it resets the $refLink to point to the already merged $refLink.
+   * If not, it creates a new Node and ensures proper aliasing and foreign key access.
    *
-   * @param {object} col the column which shall be merged into the existing join tree
-   * @returns {true}
+   * @param {Object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
+   * @returns {boolean} - Always returns true, indicating the column has been successfully merged into the join tree.
    */
   mergeColumn(col) {
     if (this.isInitial) this.isInitial = false
@@ -144,11 +168,10 @@ class JoinTree {
   }
 
   /**
-   * Search depth-first for the next association in the children's of the given `node` which
-   * does not only access foreign keys.
+   * Performs a depth-first search for the next association in the children of the given node which does not only access foreign keys.
    *
-   * @param {Node} node the node from which to search for the next association
-   * @returns {Node|null} the node which represents an association. Or null if none was found.
+   * @param {Node} node - The node from which to search for the next association.
+   * @returns {Node|null} - Returns the node which represents an association or null if none was found.
    */
   findNextAssoc(node) {
     if (node.$refLink.definition.isAssociation && !node.$refLink.onlyForeignKeyAccess) return node

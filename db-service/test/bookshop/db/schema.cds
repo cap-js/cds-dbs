@@ -45,6 +45,7 @@ entity Books.twin {
   key ID : Integer;
   author : Association to Authors;
   stock  : Integer;
+  nonStreamableImage: cds.LargeBinary; // w/o a @Core.MediaType it is not a streamable item
 }
 
 entity DeepRecursiveAssoc {
@@ -60,6 +61,7 @@ entity DeepRecursiveAssoc {
 
 entity Foo {
   key ID: Integer;
+  toFoo: Association to Foo;
   virtual virtualField: String;
   stru {
     u : Integer;
@@ -261,6 +263,12 @@ entity AssocMaze4 {
   val : Integer;
 }
 
+entity SkippedAndNotSkipped {
+  key ID: Integer;
+  skipped: Association to Skip;
+  self: Association to SkippedAndNotSkipped;
+}
+
 entity NotSkipped {
   key ID: Integer;
   skipped: Association to Skip;
@@ -379,4 +387,3 @@ entity PartialStructuredKey {
   };
   toSelf: Association to PartialStructuredKey { struct.one as partial}
 }
-

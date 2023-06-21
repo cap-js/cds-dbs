@@ -15,7 +15,8 @@ const StandardFunctions = {
   countdistinct: x => `count(distinct ${x || '*'})`,
   indexof: (x, y) => `instr(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `instr(${x},${y}) = 1`, // sqlite instr is 1 indexed
-  endswith: (x, y) => `instr(${x},${y}) = length(${x}) - length(${y}) +1`,
+  // takes the end of the string of the size of the target and compares it with the target
+  endswith: (x, y) => `substr(${x}, length(${x}) + 1 - length(${y})) = ${y}`,
   substring: (x, y, z) =>
     z
       ? `substr( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
@@ -40,7 +41,7 @@ const StandardFunctions = {
   minute: x => `cast( strftime('%M',${x}) as Integer )`,
   second: x => `cast( strftime('%S',${x}) as Integer )`,
 
-  fractionalseconds: x => `cast( strftime('%f',${x}) as Integer )`,
+  fractionalseconds: x => `cast( strftime('%f0000',${x}) as Integer )`,
 
   maxdatetime: () => '9999-12-31 23:59:59.999',
   mindatetime: () => '0001-01-01 00:00:00.000',
@@ -99,9 +100,9 @@ const HANAFunctions = {
   ) + (
     case
       when ( julianday(${y}) < julianday(${x}) ) then
-        (cast( strftime('%H%M%S%f', ${y}) as Integer ) < cast( strftime('%H%M%S%f', ${x}) as Integer ))
+        (cast( strftime('%H%M%S%f0000', ${y}) as Integer ) < cast( strftime('%H%M%S%f0000', ${x}) as Integer ))
       else
-        (cast( strftime('%H%M%S%f', ${y}) as Integer ) > cast( strftime('%H%M%S%f', ${x}) as Integer )) * -1
+        (cast( strftime('%H%M%S%f0000', ${y}) as Integer ) > cast( strftime('%H%M%S%f0000', ${x}) as Integer )) * -1
     end
   )`,
 
@@ -130,9 +131,9 @@ const HANAFunctions = {
       (
         case
           when ( cast( strftime('%Y%m', ${y}) as Integer ) < cast( strftime('%Y%m', ${x}) as Integer ) ) then
-            (cast( strftime('%d%H%M%S%f', ${y}) as Integer ) > cast( strftime('%d%H%M%S%f', ${x}) as Integer ))
+            (cast( strftime('%d%H%M%S%f0000', ${y}) as Integer ) > cast( strftime('%d%H%M%S%f0000', ${x}) as Integer ))
           else
-            (cast( strftime('%d%H%M%S%f', ${y}) as Integer ) < cast( strftime('%d%H%M%S%f', ${x}) as Integer )) * -1
+            (cast( strftime('%d%H%M%S%f0000', ${y}) as Integer ) < cast( strftime('%d%H%M%S%f0000', ${x}) as Integer )) * -1
         end
       )
     )

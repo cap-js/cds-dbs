@@ -28,7 +28,6 @@ describe('wildcard expansion and exclude clause', () => {
         Books.stock,
         Books.price,
         Books.currency_code,
-        Books.image,
         Books.dedication_addressee_ID,
         Books.dedication_text,
         Books.dedication_sub_foo,
@@ -137,7 +136,6 @@ describe('wildcard expansion and exclude clause', () => {
           Books.stock,
           Books.price,
           Books.currency_code,
-          Books.image,
           Books.dedication_addressee_ID,
           Books.dedication_text,
           Books.dedication_sub_foo,
@@ -216,7 +214,6 @@ describe('wildcard expansion and exclude clause', () => {
       Books.stock,
       Books.price,
       Books.currency_code,
-      Books.image,
       Books.dedication_addressee_ID,
       Books.dedication_text,
       Books.dedication_sub_foo,
@@ -316,7 +313,6 @@ describe('wildcard expansion and exclude clause', () => {
             Books.stock,
             Books.price,
             Books.currency_code,
-            Books.image,
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,
@@ -348,7 +344,6 @@ describe('wildcard expansion and exclude clause', () => {
       Books.stock,
       Books.price,
       Books.currency_code,
-      Books.image,
       Books.dedication_addressee_ID,
       Books.dedication_text,
       Books.dedication_sub_foo,
@@ -393,6 +388,8 @@ describe('wildcard expansion and exclude clause', () => {
 
   it('ignores virtual field from wildcard expansion', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { * }`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.stru_u, Foo.stru_nested_nu }`)
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.toFoo_ID, Foo.stru_u, Foo.stru_nested_nu }`,
+    )
   })
 })

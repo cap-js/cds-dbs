@@ -316,6 +316,121 @@ describe('table alias access', () => {
     })
   })
 
+  describe('replace usage of implicit aliases in subqueries', () => {
+    it('in columns', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+                  ID,
+                  (
+                    SELECT from bookshop.Books {
+                      Books.ID,
+                    } where Books.ID = 1
+                  ) as sub
+                } where Books.ID = 1
+                `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+              Books.ID,
+              (
+                SELECT from bookshop.Books as Books2 {
+                  Books2.ID,
+                } where Books2.ID = 1
+              ) as sub
+            } where Books.ID = 1`,
+      )
+    })
+    it('in expand subquery', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+                  ID,
+                  (
+                    SELECT from bookshop.Books {
+                      Books.ID,
+                      Books.author {
+                        name
+                      },
+                    } where Books.author.dateOfBirth >= '01-01-1969'
+                  ) as sub
+                } where Books.ID = 1
+                `,
+        model,
+      )
+      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+              Books.ID,
+              (
+                SELECT from bookshop.Books as Books2
+                  left join bookshop.Authors as author on author.ID = Books2.author_ID
+                {
+                  Books2.ID,
+                  (
+                    SELECT author2.name from bookshop.Authors as author2 where Books2.author_ID = author2.ID
+                  ) as author
+                } where author.dateOfBirth >= '01-01-1969'
+              ) as sub
+            } where Books.ID = 1`,
+      )
+    })
+    it('in join relevant columns', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+                  ID,
+                  (
+                    SELECT from bookshop.Books {
+                      Books.ID,
+                      Books.author.name,
+                    } where Books.author.dateOfBirth >= '01-01-1969'
+                  ) as sub
+                } where Books.ID = 1
+                `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+              Books.ID,
+              (
+                SELECT from bookshop.Books as Books2
+                  left join bookshop.Authors as author on author.ID = Books2.author_ID
+                {
+                  Books2.ID,
+                  author.name as author_name,
+                } where author.dateOfBirth >= '01-01-1969'
+              ) as sub
+            } where Books.ID = 1`,
+      )
+    })
+    it('in group by and order by', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+                  ID,
+                  (
+                    SELECT from bookshop.Books {
+                      Books.ID,
+                    }
+                    group by Books.title
+                    order by Books.ID
+                  ) as sub
+                } where Books.ID = 1
+                `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+              Books.ID,
+              (
+                SELECT from bookshop.Books as Books2 {
+                  Books2.ID,
+                }
+                group by Books2.title
+                order by Books2.ID
+              ) as sub
+            } where Books.ID = 1`,
+      )
+    })
+  })
+
   describe('in expressions', () => {
     it('expressions and functions in select list', () => {
       let query = cqn4sql(
@@ -360,6 +475,56 @@ describe('table alias access', () => {
   })
 
   describe('in subqueries', () => {
+    it('respects aliases of outer queries and does not shadow them', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            (SELECT from bookshop.Books {
+              author,
+              (
+                SELECT from bookshop.Books {
+                  author
+              }) as bar
+            }) as foo
+          }`,
+        model,
+      )
+      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+            Books.ID,
+            (SELECT from bookshop.Books as Books2 { Books2.author_ID,
+              (SELECT from bookshop.Books as Books3 { Books3.author_ID }) as bar
+            }) as foo
+          }`)
+    })
+    it('respects aliases of outer queries and does not shadow them mix of regular subqueries and expands', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            (SELECT from bookshop.Books {
+              author,
+              (
+                SELECT from bookshop.Books {
+                  author {
+                    books { ID }
+                  }
+              }) as bar
+            }) as foo
+          }`,
+        model,
+      )
+      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+            Books.ID,
+            (SELECT from bookshop.Books as Books2 { Books2.author_ID,
+              (SELECT from bookshop.Books as Books3 { 
+                (SELECT from bookshop.Authors as author {
+                  (SELECT from bookshop.Books as books4 {
+                    books4.ID
+                  } where author.ID = books4.author_ID) as books
+                } where Books3.author_ID = author.ID) as author
+               }) as bar
+            }) as foo
+          }`)
+    })
     // explicit alias for FROM subquery is mandatory
     // could maybe be relaxed later
     it('applies the same alias handling in subqueries in FROM', () => {
@@ -408,7 +573,7 @@ describe('table alias access', () => {
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
         CQL`SELECT from bookshop.Books as Books {
               Books.ID,
-              (SELECT from bookshop.Books as Books { Books.ID } ) as foo
+              (SELECT from bookshop.Books as Books2 { Books2.ID } ) as foo
             }`,
       )
     })

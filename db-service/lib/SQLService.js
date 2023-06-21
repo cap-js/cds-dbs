@@ -6,6 +6,8 @@ const cqn4sql = require('./cqn4sql')
 
 class SQLService extends DatabaseService {
   init() {
+    this.on(['SELECT'], this.transformStreamFromCQN)
+    this.on(['UPDATE'], this.transformStreamIntoCQN)
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
@@ -19,6 +21,41 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
+  async transformStreamFromCQN({ query }, next) {
+    if (!query._streaming) return next()
+    const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
+    if (query.SELECT.where) cqn.STREAM.where = query.SELECT.where
+    const stream = await this.run(cqn)
+    return stream && { value: stream }
+  }
+
+  async transformStreamIntoCQN({ query, data, target }, next) {
+    let col, type, etag
+    const elements = query._target?.elements || target?.elements
+    if (!elements) next()
+    for (const key in elements) {
+      const element = elements[key]
+      if (element['@Core.MediaType'] && data[key]?.pipe) col = key
+      if (element['@Core.IsMediaType'] && data[key]) type = key
+      if (element['@odata.etag'] && data[key]) etag = key
+    }
+
+    if (!col) return next()
+
+    const cqn = STREAM.into(query.UPDATE.entity).column(col).data(data[col])
+    if (query.UPDATE.where) cqn.STREAM.where = query.UPDATE.where
+    const result = await this.run(cqn)
+    if (type || etag) {
+      const d = { ...data }
+      delete d[col]
+      const cqn = UPDATE.entity(query.UPDATE.entity).with(d)
+      if (query.UPDATE.where) cqn.UPDATE.where = query.UPDATE.where
+      await this.run(cqn)
+    }
+
+    return result
+  }
+
   /** Handler for SELECT */
   async onSELECT({ query, data }) {
     // REVISIT: disable this for queries like (SELECT 1)
@@ -30,7 +67,7 @@ class SQLService extends DatabaseService {
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] || null : rows
+    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -69,7 +106,8 @@ class SQLService extends DatabaseService {
     // reading stream
     const ps = await this.prepare(sql)
     let result = await ps.all(values)
-    if (result.length === 0) cds.error`Entity "${req.query.STREAM.from.ref[0]}" with entered keys is not found`
+    if (result.length === 0) return
+
     return Object.values(result[0])[0]
   }
 
@@ -207,6 +245,8 @@ const _target_name4 = q => {
     q.DELETE?.from ||
     q.CREATE?.entity ||
     q.DROP?.entity ||
+    q.STREAM?.from ||
+    q.STREAM?.into ||
     undefined
   if (target?.SET?.op === 'union') throw new cds.error('”UNION” based queries are not supported')
   if (!target?.ref) return target

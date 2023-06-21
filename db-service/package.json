@@ -1,16 +1,30 @@
 {
   "name": "@cap-js/db-service",
-  "version": "0.1.1",
-  "bin": {
-    "cds-deploy": "./lib/cds-deploy.js"
-  },
+  "version": "1.0.0",
+  "description": "CDS base database service",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
   "files": [
-    "lib"
+    "lib",
+    "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
   "scripts": {
     "prettier": "npx prettier --write .",
     "test": "npx jest --silent",
     "lint": "npx eslint . && npx prettier --check . "
-  }
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "@sap/cds": ">=6.8.0"
+  },
+  "license": "SEE LICENSE"
 }

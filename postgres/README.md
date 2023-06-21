@@ -29,11 +29,12 @@ now, re-use the CDS definitions: `SELECT.from(Beers).columns('brewery_ID').group
 So please adjust your `CQL` statements accordingly.
 
 ### timezones (potential _**BREAKING CHANGE**_)
-any date- + time-type will get stored in [`UTC`](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) **without any timezone identifier in the actual data field**.
-CAP's inbound- and outbound adapters take care of converting incoming and outgoing data from/to the desired time zones.
-So when a `dateime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format
-  `2009-01-01T15:00:00+01:00` (15:00:00 on January 1 2009 in Vienna (CEST))
-will get stored as
+
+any date- + time-type will get stored in [`UTC`](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) **without any timezone identifier in the actual data field**.  
+CAP's inbound- and outbound adapters take care of converting incoming and outgoing data from/to the desired time zones.  
+So when a `dateime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format  
+  `2009-01-01T15:00:00+01:00` (15:00:00 on January 1 2009 in Vienna (CEST))  
+will get stored as  
   `2009-01-01T13:00:00` (13:00:00 on January 1 2009 in UTC).
 
 Please be aware of that concept and rely on the client to parse UTC in your desired timezone (format).

@@ -351,10 +351,10 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         }
         where Books.author_ID = author.ID and
-            exists ( SELECT 1 from bookshop.Books as books where
-                books.author_ID = author.ID and exists (
+            exists ( SELECT 1 from bookshop.Books as books2 where
+                books2.author_ID = author.ID and exists (
                   SELECT 1 from bookshop.Authors as author2 where
-                    author2.ID = books.author_ID and
+                    author2.ID = books2.author_ID and
                     author2.name = 'King'
                   )
               )
@@ -426,7 +426,7 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO: aliases of outer query needs to be considered
   // still valid sql in this case
-  it.skip('unfold expand, with subquery in expand', () => {
+  it('unfold expand, with subquery in expand', () => {
     const q = CQL`SELECT from bookshop.Books {
       author { name, (select title from bookshop.Books) as book }
     }`
@@ -641,7 +641,7 @@ describe('Unfold expands on associations to special subselects', () => {
     const q = CQL`SELECT from bookshop.Books {
       title,
       author.name,
-      author.books.genre[name = 'foo'] { name }
+      Books.author.books.genre[name = 'foo'] { name }
     }`
     const qx = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -753,8 +753,6 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
-  // once this works: more tests of this kind, adding filters ...
-
   it('unfold nested expands', () => {
     const q = CQL`SELECT from bookshop.Books {
       author {
@@ -830,7 +828,6 @@ describe('Unfold expands on associations to special subselects', () => {
         books.stock,
         books.price,
         books.currency_code,
-        books.image,
         books.dedication_addressee_ID,
         books.dedication_text,
         books.dedication_sub_foo,
@@ -900,21 +897,81 @@ describe('Unfold expands on associations to special subselects', () => {
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
-  it('renders joins even if assoc in path expression has target ”@cds.persistence.skip”', () => {
-    const q = CQL`SELECT from bookshop.NotSkipped {
-      ID, skipped.notSkipped.text
-    }`
-    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
-                  left outer join bookshop.Skip as skipped on skipped.ID = NotSkipped.skipped_ID
-                  left outer join bookshop.NotSkipped as notSkipped2 on notSkipped2.ID = skipped.notSkipped_ID
-    {
-      NotSkipped.ID,
-      notSkipped2.text as skipped_notSkipped_text
-    }`
-    const res = cqn4sql(q)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  describe('anonymous expand', () => {
+    it('scalar elements', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          title,
+          descr,
+          price
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.title as bookInfos_title,
+        Books.descr as bookInfos_descr,
+        Books.price as bookInfos_price
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('scalar elements, structure with renaming and association', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          title,
+          author,
+          dedication.text as widmung,
+          dedication.sub as deep
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.title as bookInfos_title,
+        Books.author_ID as bookInfos_author_ID,
+        Books.dedication_text as bookInfos_widmung,
+        Books.dedication_sub_foo as bookInfos_deep_foo
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('mixed with inline', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          dedication.{
+            *
+          }
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.dedication_addressee_ID as bookInfos_dedication_addressee_ID,
+        Books.dedication_text as bookInfos_dedication_text,
+        Books.dedication_sub_foo as bookInfos_dedication_sub_foo,
+        Books.dedication_dedication as bookInfos_dedication_dedication,
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('join relevant association', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          author.name
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books 
+        left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        author.name as bookInfos_author_name,
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
   })
-
   describe('comparisons of associations in on condition of elements needs to be expanded', () => {
     let model
     beforeAll(async () => {
