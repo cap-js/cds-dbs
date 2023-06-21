@@ -143,7 +143,7 @@ describe('negative', () => {
     })
   })
 
-  describe('ambiguites', () => {
+  describe('ambiguities', () => {
     // same name twice in result set -> error
     // SQL would allow that, but different databases may return different column names
     it('duplicate field name', () => {

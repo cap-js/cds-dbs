@@ -216,19 +216,21 @@ describe('table alias access', () => {
   })
 
   describe('replace $self references', () => {
-    it('refer to other query element', () => {
+    it.only('refer to other query element', () => {
       const q = CQL`SELECT from bookshop.Books {
       title,
       title as title2,
       dedication as struct,
       1 + 1 as expression,
       42 as value,
+      author,
 
       $self.struct.text as dedication,
       $self.dedication as dedication2,
       $self.dedication2 as dedication3,
       $self.expression as selfXpr,
       $self.value as selfVal,
+      $self.author.ID as aID
     }`
       const transformed = cqn4sql(q, model)
 
@@ -241,12 +243,14 @@ describe('table alias access', () => {
       Books.dedication_dedication as struct_dedication,
       1 + 1 as expression,
       42 as value,
+      Books.author_ID,
 
       Books.dedication_text as dedication,
       Books.dedication_text as dedication2,
       Books.dedication_text as dedication3,
       1 + 1 as selfXpr,
-      42 as selfVal
+      42 as selfVal,
+      Books.author_ID as author_ID
     }`)
     })
   })

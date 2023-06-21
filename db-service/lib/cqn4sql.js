@@ -328,7 +328,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     return transformedColumns
 
     function handleDollarSelfReference(col) {
-      const dummyColumn = buildDummyColumnForDollarSelf({...col}, col.$refLinks)
+      const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
       if (dummyColumn.ref) {
         handleRef(dummyColumn)
       } else {
@@ -341,8 +341,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         let referencedColumn = columns.find(
           c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
         )
-        if(referencedColumn.ref?.[0] === '$self') {
-          referencedColumn =buildDummyColumnForDollarSelf({...referencedColumn}, referencedColumn.$refLinks)
+        if (referencedColumn.ref?.[0] === '$self') {
+          referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)
         }
 
         if (referencedColumn.ref) {
@@ -426,7 +426,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      Object.defineProperty(transformedColumn, 'element', { value: originalQuery.elements[col.as] })
+      setElementOnColumns(transformedColumn, originalQuery.elements[col.as])
     }
 
     function getTransformedColumn(col) {
@@ -921,8 +921,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
           else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
-          Object.defineProperty(flatColumn, 'element', { value: fkElement })
-          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath })
+
+          setElementOnColumns(flatColumn, fkElement)
+          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
           flatColumns.push(flatColumn)
         }
       })
@@ -944,8 +945,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
-    Object.defineProperty(flatRef, 'element', { value: element })
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath })
+    setElementOnColumns(flatRef, element)
+    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
     return [flatRef]
 
     function getReplacement(from) {
@@ -1846,6 +1847,19 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+/**
+ * Assigns the given `element` as non-enumerable property 'element' onto `col`.
+ *
+ * @param {object} col
+ * @param {csn.Element} element
+ */
+function setElementOnColumns(col, element) {
+  Object.defineProperty(col, 'element', {
+    value: element,
+    writable: true,
+  })
 }
 
 const idOnly = ref => ref.id || ref
