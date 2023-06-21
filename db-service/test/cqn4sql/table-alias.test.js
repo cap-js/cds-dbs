@@ -216,7 +216,7 @@ describe('table alias access', () => {
   })
 
   describe('replace $self references', () => {
-    it.only('refer to other query element', () => {
+    it('refer to other query element', () => {
       const q = CQL`SELECT from bookshop.Books {
       title,
       title as title2,
@@ -250,7 +250,7 @@ describe('table alias access', () => {
       Books.dedication_text as dedication3,
       1 + 1 as selfXpr,
       42 as selfVal,
-      Books.author_ID as author_ID
+      Books.author_ID as aID
     }`)
     })
   })

@@ -589,7 +589,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
       const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
-      if (!inExists && !virtual && isColumnJoinRelevant(column)) {
+      if (!inExists && !virtual && isColumnJoinRelevant(column, firstStepIsSelf)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
       }
@@ -731,7 +731,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * @param {object} column the column with the `ref` to check for join relevance
      * @returns {boolean} true if the column ref needs to be merged into a join tree
      */
-    function isColumnJoinRelevant(column) {
+    function isColumnJoinRelevant(column, firstStepIsSelf) {
       let fkAccess = false
       let assoc = null
       for (let i = 0; i < column.ref.length; i++) {
@@ -743,6 +743,12 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // if unmanaged assoc is exposed, ignore it
             return false
           }
+          if (firstStepIsSelf)
+            cds.error(
+              `Select items starting with “$self” must not contain “cds.Association” paths other than foreign key accesses: ref ${column.ref.map(
+                idOnly,
+              )}`,
+            )
           return true
         }
         if (assoc && assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) {
@@ -756,6 +762,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (ref.where) {
             // always join relevant except for expand assoc
             if (column.expand && !column.ref[i + 1]) return false
+            if (firstStepIsSelf)
+              cds.error(
+                `Select items starting with “$self” must not contain “cds.Association” paths with infix filter`,
+              )
             return true
           }
         }
@@ -763,7 +773,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
       if (!assoc) return false
       if (fkAccess) return false
-      else return true
+      if (firstStepIsSelf)
+        cds.error(
+          `Select items starting with “$self” must not contain path steps of type “cds.Association”: ref: [ ${column.ref.map(
+            idOnly,
+          )} ]`,
+        )
+      return true
     }
 
     /**

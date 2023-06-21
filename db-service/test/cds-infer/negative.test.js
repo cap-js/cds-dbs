@@ -221,6 +221,40 @@ describe('negative', () => {
     })
   })
 
+  describe('join relevant association path traversals via $self are rejected', () => {
+    it('simple field access', () => {
+      const errorMessage = 'Select items starting with “$self” must not contain path steps of type “cds.Association”: ref: [ $self,author,name ]'
+      expect(() => _inferred(CQL`SELECT from bookshop.Books{
+        author,
+        $self.author.name
+      }`, model)).to.throw(
+        errorMessage,
+      )
+    })
+    it('with infix filter', () => {
+      const errorMessage = `Select items starting with “$self” must not contain “cds.Association” paths with infix filter`
+      expect(() => cqn4sql(CQL`SELECT from bookshop.Books{
+        author,
+        $self.author[ID = 42].ID as a
+      }`, model)).to.throw(
+        errorMessage,
+      )
+    })
+    it.skip('with inline syntax', () => {
+      const errorMessage = `Select items starting with “$self” must not contain “cds.Association” paths with infix filter`
+      const q = cqn4sql(CQL`SELECT from bookshop.Books{
+        author,
+        $self.author.{name}
+      }`, model)
+      expect(() => cqn4sql(CQL`SELECT from bookshop.Books{
+        author,
+        $self.author.{name}
+      }`, model)).to.throw(
+        errorMessage,
+      )
+    })
+  })
+
   describe('restrictions', () => {
     it('UNION queries are not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books union all select from bookshop.Authors`)).to.throw(

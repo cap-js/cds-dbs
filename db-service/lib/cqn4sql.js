@@ -305,6 +305,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const col = columns[i]
 
       if (col.expand) {
+        if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          handleDollarSelfReference(col)
+          continue
+        }
         handleExpand(col)
       } else if (col.inline) {
         handleInline(col)
@@ -329,11 +333,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function handleDollarSelfReference(col) {
       const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
-      if (dummyColumn.ref) {
-        handleRef(dummyColumn)
-      } else {
-        handleDefault(dummyColumn)
-      }
+
+      transformedColumns.push(...getTransformedColumns([dummyColumn]))
 
       function buildDummyColumnForDollarSelf(dummyColumn, $refLinks) {
         const { ref } = dummyColumn
@@ -654,7 +655,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', { value: subquery.elements })
+    Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
     return correlated
 
     function _correlate(subq, outer) {
