@@ -334,8 +334,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     /**
      * This function resolves a `ref` starting with a `$self`.
      * Such a path targets another element of the query by it's implicit, or explicit alias.
-     * 
-     * @param {*} col 
+     *
+     * A `$self` reference may also target another `$self` path. In this case, this function
+     * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
+     * new base.
+     *
+     * @param {*} col
      */
     function handleDollarSelfReference(col) {
       const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
@@ -346,7 +350,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         const { ref, as } = dummyColumn
         const stepToFind = ref[1]
         let referencedColumn = columns.find(
-          c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
+          otherColumn =>
+            otherColumn !== dummyColumn &&
+            (otherColumn.as
+              ? stepToFind === otherColumn.as
+              : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
         )
         if (referencedColumn.ref?.[0] === '$self') {
           referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)

@@ -309,9 +309,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           throw cds.error`Not supported: ${JSON.stringify(col)}`
         }
       })
-      dollarSelfRefs.forEach(col => {
-        handleRef(col)
-      })
+
+      if (dollarSelfRefs.length) inferDollarSelfRefs(dollarSelfRefs)
+
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
     if (orderBy) {
@@ -358,6 +358,42 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
 
     return queryElements
+
+    /**
+     * Processes references starting with `$self`, which are intended to target other query elements.
+     * These `$self` paths must be handled after processing the "regular" columns since they are dependent on other query elements.
+     *
+     * This function checks for `$self` references that may target other `$self` columns, and delays their processing.
+     * `$self` references not targeting other `$self` references are handled by the generic `handleRef` function immediately.
+     *
+     * @param {array} dollarSelfColumns - An array of column objects containing `$self` references.
+     */
+    function inferDollarSelfRefs(dollarSelfColumns) {
+      do {
+        const unprocessedColumns = []
+
+        for (const currentDollarSelfColumn of dollarSelfColumns) {
+          const { ref } = currentDollarSelfColumn
+          const stepToFind = ref[1]
+
+          const referencesOtherDollarSelfColumn = dollarSelfColumns.find(
+            otherDollarSelfCol =>
+              otherDollarSelfCol !== currentDollarSelfColumn &&
+              (otherDollarSelfCol.as
+                ? stepToFind === otherDollarSelfCol.as
+                : stepToFind === otherDollarSelfCol.ref?.[otherDollarSelfCol.ref.length - 1]),
+          )
+
+          if (referencesOtherDollarSelfColumn) {
+            unprocessedColumns.push(currentDollarSelfColumn)
+          } else {
+            handleRef(currentDollarSelfColumn)
+          }
+        }
+
+        dollarSelfColumns = unprocessedColumns
+      } while (dollarSelfColumns.length > 0)
+    }
 
     function handleRef(col) {
       inferQueryElement(col)
