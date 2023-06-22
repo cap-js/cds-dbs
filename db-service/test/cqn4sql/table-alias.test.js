@@ -218,7 +218,7 @@ describe('table alias access', () => {
   describe('replace $self references', () => {
     it('refer to other query element', () => {
       const q = CQL`SELECT from bookshop.Books {
-      title,
+      Books.title,
       title as title2,
       dedication as struct,
       1 + 1 as expression,

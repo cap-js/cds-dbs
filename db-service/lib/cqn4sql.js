@@ -331,13 +331,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     return transformedColumns
 
+    /**
+     * This function resolves a `ref` starting with a `$self`.
+     * Such a path targets another element of the query by it's implicit, or explicit alias.
+     * 
+     * @param {*} col 
+     */
     function handleDollarSelfReference(col) {
       const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
 
       transformedColumns.push(...getTransformedColumns([dummyColumn]))
 
       function buildDummyColumnForDollarSelf(dummyColumn, $refLinks) {
-        const { ref } = dummyColumn
+        const { ref, as } = dummyColumn
         const stepToFind = ref[1]
         let referencedColumn = columns.find(
           c => c !== stepToFind && (c.as ? stepToFind === c.as : stepToFind === c.ref?.[c.ref.length - 1]),
@@ -351,10 +357,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           dummyColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
           dummyColumn.flatName = dummyColumn.ref.join('_')
         } else {
-          const { xpr, val } = referencedColumn
-          if (xpr) dummyColumn.xpr = xpr
-          else dummyColumn.val = val
-          delete dummyColumn.ref
+          const { xpr, val, ref, ...rest } = referencedColumn // destructure the rest of the properties
+          if (xpr) rest.xpr = xpr
+          else rest.val = val
+          dummyColumn = { ...rest, as } // reassign dummyColumn without 'ref'
         }
         return dummyColumn.ref?.[0] === '$self' ? buildDummyColumnForDollarSelf(dummyColumn, $refLinks) : dummyColumn
       }
