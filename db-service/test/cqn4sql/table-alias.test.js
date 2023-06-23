@@ -542,6 +542,12 @@ describe('table alias access', () => {
         CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`,
       )
     })
+    it.only('wildcard expansion for subquery in FROM', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock, sum(stock) as totalStock }) as B`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock, sum(Books.stock) as totalStock }) as B { B.ID, B.stock, B.totalStock }`,
+      )
+    })
 
     it('cannot access table name of FROM subquery in outer query', () => {
       expect(() =>
