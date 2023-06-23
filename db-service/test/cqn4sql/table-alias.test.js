@@ -537,15 +537,66 @@ describe('table alias access', () => {
       )
     })
     it('explicit alias for FROM subquery', () => {
-      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, B.stock }`, model)
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            ID, Books.stock, Books.dedication
+          }) as B { ID, B.stock, B.dedication }`,
+        model,
+      )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`,
+        CQL`SELECT from (
+              SELECT from bookshop.Books as Books {
+                Books.ID,
+                Books.stock,
+                Books.dedication_addressee_ID,
+                Books.dedication_text,
+                Books.dedication_sub_foo,
+                Books.dedication_dedication
+              }
+            ) as B {
+              B.ID,
+              B.stock,
+              B.dedication_addressee_ID,
+              B.dedication_text,
+              B.dedication_sub_foo,
+              B.dedication_dedication
+            }`,
       )
     })
     it.only('wildcard expansion for subquery in FROM', () => {
-      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock, sum(stock) as totalStock }) as B`, model)
+      // REVISIT: order not stable, move "ID" to top of columns in subquery in from
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            sum(stock) as totalStock,
+            ID,
+            Books.stock,
+            Books.dedication
+          }
+         ) as B`,
+        model,
+      )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock, sum(Books.stock) as totalStock }) as B { B.ID, B.stock, B.totalStock }`,
+        CQL`SELECT from (
+          SELECT from bookshop.Books as Books {
+            sum(Books.stock) as totalStock,
+            Books.ID,
+            Books.stock, 
+            Books.dedication_addressee_ID,
+            Books.dedication_text,
+            Books.dedication_sub_foo,
+            Books.dedication_dedication
+          }
+        ) as B {
+          B.totalStock,
+          B.ID,
+          B.stock,
+          B.dedication_addressee_ID,
+          B.dedication_text,
+          B.dedication_sub_foo,
+          B.dedication_dedication
+        }`,
       )
     })
 
