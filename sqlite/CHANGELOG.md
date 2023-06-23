@@ -5,7 +5,7 @@
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
 
-## Version 1.0.0 - 2023-06-22
+## Version 1.0.0 - 2023-06-23
 
 - First official release
 
