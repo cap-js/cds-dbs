@@ -190,7 +190,7 @@ async function* rsIterator(rs) {
 
     for (const blobColumn of nativeBlobs) {
       // Skip all blobs that are not part of this row
-      if (!blobColumn in blobs) {
+      if (!(blobColumn in blobs)) {
         state.read(2)
         continue
       }
@@ -248,13 +248,13 @@ const readString = function (state) {
     case 0xf6:
       ens = state.ensure(2)
       if (ens) return ens.then(() => readString(state))
-      length = buffer.readInt16LE(state.reading)
+      length = state.buffer.readInt16LE(state.reading)
       offset = 2
       break
     case 0xf7:
       ens = state.ensure(4)
       if (ens) return ens.then(() => readString(state))
-      length = this.buffer.readInt32LE(state.reading)
+      length = state.buffer.readInt32LE(state.reading)
       offset = 4
       break
     default:
@@ -284,7 +284,7 @@ const readBlob = function (state, encoding) {
   if (encoding) {
     state.inject('"')
   }
-  write = state.write(length, encoding)
+  const write = state.write(length, encoding)
   if (write)
     return write.then(() => {
       if (encoding) {

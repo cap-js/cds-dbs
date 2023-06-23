@@ -6,9 +6,7 @@ const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
 
-DEBUG = cds.debug('sql|db')
-
-const del = String.fromCharCode(127)
+const DEBUG = cds.debug('sql|db')
 
 /**
  * @implements SQLService
@@ -220,7 +218,6 @@ class HANAService extends SQLService {
       q.SELECT.orderBy = undefined
       // Track and expose foreign keys for follow up expand queries
       let foreignKeys = []
-      let expands = []
 
       // When one of these is defined wrap the query in a sub query
       if (expand || limit || one || orderBy) {
@@ -229,7 +226,6 @@ class HANAService extends SQLService {
         if (expand === 'root') {
           const flatExpands = this.SELECT_expand_flat(orgQuery, ['$'])
           foreignKeys = this.foreignKeys = flatExpands.foreignKeys
-          expands = flatExpands.expands
         }
 
         // Convert columns to pure references
@@ -442,9 +438,7 @@ class HANAService extends SQLService {
       tmp.as = alias
       tmp.SELECT.from.ref[0] = ':' + tmp.SELECT.from.ref[0]
 
-      const path = (q.path = q.path || ['$'])
       const foreignKeys = []
-      const expands = []
 
       columns.map(c => {
         // Extract all expand sub selects to a flat list of queries with joins
@@ -466,12 +460,10 @@ class HANAService extends SQLService {
           }
           this.extractForeignKeys(subQuery.SELECT.where, alias, foreignKeys)
           subQuery.SELECT.where = undefined
-          const subSQL = this.SELECT(subQuery)
-          expands.push(subSQL)
+          this.SELECT(subQuery)
         }
       })
       return {
-        expands,
         foreignKeys,
       }
     }

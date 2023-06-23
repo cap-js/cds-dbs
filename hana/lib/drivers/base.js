@@ -151,7 +151,7 @@ const handleLevel = function (levels, path, expands) {
       const leftOverExpands = Object.keys(level.expands)
       // Fill in all missing expands
       if (leftOverExpands.length) {
-        buffer += leftOverExpands.map(p => `${JSON.stringify(property)}:${JSON.stringify(level.expands[p])}`).join(',')
+        buffer += leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
       }
       if (level.suffix) buffer += level.suffix
     }

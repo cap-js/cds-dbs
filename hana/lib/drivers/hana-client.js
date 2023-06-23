@@ -183,7 +183,7 @@ async function* rsIterator(rs) {
         let blobPosition = 0
         while (true) {
           // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-          const read = await getData(3, blobPosition, binaryBuffer, 0, binaryBufferSize)
+          const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBufferSize)
           blobPosition += read
           if (read < binaryBufferSize) {
             yield binaryBuffer.slice(0, read).toString('base64')
@@ -192,7 +192,7 @@ async function* rsIterator(rs) {
           yield binaryBuffer.toString('base64')
         }
       } else {
-        yield values[blobPosition]
+        yield values[columnIndex]
       }
       buffer += '"'
     }
@@ -237,7 +237,7 @@ async function* rowsIterator(rows, cols) {
     for (let i = 4; i < cols.length; i++) {
       const blobColumn = cols[i]
       // Skip all blobs that are not part of this row
-      if (!blobColumn in blobs) {
+      if (!(blobColumn in blobs)) {
         continue
       }
 
