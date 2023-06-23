@@ -770,7 +770,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        queryElements = sources[aliases[0]].elements
+        Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
+          if(element.type !== 'cds.LargeBinary')
+            queryElements[name] = element
+        })
         return
       }
 
@@ -782,8 +785,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return ambiguousElements[name]
         }
         if (exclude(name) || name in queryElements) return true
-        queryElements[name] = tableAliases[0].tableAlias.elements[name]
-        return queryElements[name]
+        const element = tableAliases[0].tableAlias.elements[name]
+        if(element.type !== 'cds.LargeBinary')
+          queryElements[name] = element
       })
 
       if (Object.keys(ambiguousElements).length > 0) throwAmbiguousWildcardError()
