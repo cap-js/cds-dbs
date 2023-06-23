@@ -1086,11 +1086,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (token.ref) {
             const tableAlias = getQuerySourceName(token, $baseLink)
             if (!$baseLink && token.isJoinRelevant) {
-              // t.push(...flatColumns)
               result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
-            } else {
-              // revisit: can we get rid of flatName?
+            } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
+            } else {
+              // if there is no table alias, we might select from an anonymous subquery
+              result.ref = [token.flatName]
             }
           } else if (token.SELECT) {
             result = transformSubquery(token)
