@@ -564,6 +564,21 @@ describe('table alias access', () => {
             }`,
       )
     })
+    it('wildcard expansion of subquery in from ignores assocs', () => {
+      let query = cqn4sql(
+        CQL`SELECT from ( SELECT from bookshop.Orders ) as O`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Orders as Orders {
+            Orders.ID,
+          }
+        ) as O {
+          O.ID,
+        }`,
+      )
+    })
     it('wildcard expansion for subquery in FROM', () => {
       // REVISIT: order not stable, move "ID" to top of columns in subquery in from
       let query = cqn4sql(
