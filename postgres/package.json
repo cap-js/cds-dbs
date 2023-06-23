@@ -27,7 +27,7 @@
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=6.8.0"
+    "@sap/cds": ">=7"
   },
   "cds": {
     "requires": {
