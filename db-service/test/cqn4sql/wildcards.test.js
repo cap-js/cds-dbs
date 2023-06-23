@@ -177,10 +177,9 @@ describe('wildcard expansion and exclude clause', () => {
       CQL`select from bookshop.Books.twin as Books {
         Books.ID,
         Books.struct_deepImage
-      }`
+      }`,
     )
-
-  })  
+  })
 
   it('MUST transform wildcard into explicit column refs (1)', () => {
     const input = CQL`SELECT from bookshop.Bar { * }`
