@@ -849,9 +849,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       return getFlatColumnsFor(
         replacedBy,
         { baseName, columnAlias: replacedBy.as, tableAlias },
-        csnPath,
-        excludeAndReplace,
-        isWildcard,
+        csnPath
       )
     }
 
