@@ -846,11 +846,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
-      return getFlatColumnsFor(
-        replacedBy,
-        { baseName, columnAlias: replacedBy.as, tableAlias },
-        csnPath
-      )
+      return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
     }
 
     csnPath.push(element.name)
