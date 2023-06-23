@@ -564,7 +564,7 @@ describe('table alias access', () => {
             }`,
       )
     })
-    it.only('wildcard expansion for subquery in FROM', () => {
+    it('wildcard expansion for subquery in FROM', () => {
       // REVISIT: order not stable, move "ID" to top of columns in subquery in from
       let query = cqn4sql(
         CQL`SELECT from (
@@ -572,7 +572,8 @@ describe('table alias access', () => {
             sum(stock) as totalStock,
             ID,
             Books.stock,
-            Books.dedication
+            Books.dedication,
+            Books.author
           }
          ) as B`,
         model,
@@ -586,7 +587,8 @@ describe('table alias access', () => {
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,
-            Books.dedication_dedication
+            Books.dedication_dedication,
+            Books.author_ID
           }
         ) as B {
           B.totalStock,
@@ -595,7 +597,8 @@ describe('table alias access', () => {
           B.dedication_addressee_ID,
           B.dedication_text,
           B.dedication_sub_foo,
-          B.dedication_dedication
+          B.dedication_dedication,
+          B.author_ID
         }`,
       )
     })

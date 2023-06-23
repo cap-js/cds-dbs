@@ -749,7 +749,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // ignore FK for odata csn / ignore blobs from wildcard expansion
       if (isODataFlatForeignKey(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
       // for wildcard on subquery in from, just reference the elements
-      if (tableAlias.SELECT && !element.elements) {
+      if (tableAlias.SELECT && !element.elements && !element.keys) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
       } else {
         const flatColumns = getFlatColumnsFor(element, null, null, index, [], except, replace)
