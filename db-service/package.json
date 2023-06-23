@@ -24,7 +24,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@sap/cds": ">=6.8.0"
+    "@sap/cds": ">=7"
   },
   "license": "SEE LICENSE"
 }

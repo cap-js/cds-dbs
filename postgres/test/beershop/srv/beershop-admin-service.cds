@@ -1,6 +1,6 @@
 using {csw} from '../db/schema';
 
-@(requires : 'authenticated-user')
+@(requires : 'authenticated-user', path: '/beershop-admin')
 service BeershopAdminService {
   @restrict : [{
     grant : [
