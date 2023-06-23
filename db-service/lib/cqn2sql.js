@@ -421,12 +421,14 @@ class CQN2SQLRenderer {
   // STREAM Statement -------------------------------------------------
 
   STREAM(q) {
-    let { from, into, where, column, data } = q.STREAM
+    let { from, into, where, column, columns, data } = q.STREAM
     let x, sql
     // reading stream
     if (from) {
       sql = `SELECT`
       if (!_empty((x = column))) sql += ` ${this.quote(x)}`
+      else if (!_empty((x = columns))) sql += ` ${this.SELECT_columns({ SELECT: { columns } })}`
+      else sql += ` ${this.SELECT_columns({ SELECT: { columns: ['*'] } })}`
       if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
     } else {
       // writing stream
@@ -435,7 +437,7 @@ class CQN2SQLRenderer {
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
-    if (from) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
+    if (from && column) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     return (this.sql = sql)
   }
 

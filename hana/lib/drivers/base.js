@@ -19,6 +19,7 @@ class HANADriver {
   async prepare(sql) {
     const prep = prom(this._native, 'prepare')(sql)
     return {
+      _prep: prep,
       run: async values => {
         const stmt = await prep
         return {
@@ -95,17 +96,72 @@ const prom = function (dbc, func) {
     const stack = {}
     Error.captureStackTrace(stack)
     return new Promise((resolve, reject) => {
-      dbc[func](...args, (err, res) => {
+      dbc[func](...args, (err, res, output) => {
         if (err) {
           return reject(Object.assign(err, stack, { sql: typeof args[0] === 'string' ? args[0] : null }))
         }
-        resolve(res)
+        resolve(output || res)
       })
     })
   }
 }
 
+const handleLevel = function (levels, path, expands) {
+  let buffer = ''
+  // Find correct level for the current row
+  while (levels.length) {
+    const level = levels[levels.length - 1]
+    // Check if the current row is a child of the current level
+    if (path.indexOf(level.path) === 0) {
+      // Check if the current row is an expand of the current level
+      const property = path.slice(level.path.length + 2, -7)
+      if (property && property in level.expands) {
+        const is2Many = level.expands[property]
+        delete level.expands[property]
+        if (level.hasProperties) {
+          buffer += ','
+        } else {
+          level.hasProperties = true
+        }
+        if (is2Many) {
+          buffer += `${JSON.stringify(property)}:[`
+        } else {
+          buffer += `${JSON.stringify(property)}:`
+        }
+        levels.push({
+          index: 1,
+          suffix: is2Many ? ']' : '',
+          path: path.slice(0, -6),
+          expands,
+        })
+      }
+      // Current row is on the same level now so incrementing the index
+      // If the index was not 0 it should add a comma
+      if (level.index++) buffer += ','
+      levels.push({
+        index: 0,
+        suffix: '}',
+        path: path,
+        expands,
+      })
+      break
+    } else {
+      // Step up if it is not a child of the current level
+      const level = levels.pop()
+      const leftOverExpands = Object.keys(level.expands)
+      // Fill in all missing expands
+      if (leftOverExpands.length) {
+        buffer += leftOverExpands.map(p => `${JSON.stringify(property)}:${JSON.stringify(level.expands[p])}`).join(',')
+      }
+      if (level.suffix) buffer += level.suffix
+    }
+  }
+  return buffer
+}
+
 module.exports.driver = HANADriver
+module.exports.prom = prom
+module.exports.handleLevel = handleLevel
 
 // REVISIT: Ensure that all credential options are properly mapped by all drivers
 /**

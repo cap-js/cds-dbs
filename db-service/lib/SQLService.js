@@ -98,17 +98,13 @@ class SQLService extends DatabaseService {
     // writing stream
     if (req.query.STREAM.into) {
       const stream = entries[0]
-      stream.on('error', () => stream.removeAllListeners('error'))
       values.unshift(stream)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
     // reading stream
     const ps = await this.prepare(sql)
-    let result = await ps.all(values)
-    if (result.length === 0) return
-
-    return Object.values(result[0])[0]
+    return ps.stream(values)
   }
 
   /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
@@ -219,7 +215,6 @@ class SQLService extends DatabaseService {
 
 /** Interface of prepared statement objects as returned by {@link SQLService#prepare} */
 class PreparedStatement {
-  // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
    * @abstract
@@ -228,7 +223,7 @@ class PreparedStatement {
   async run(binding_params) {
     binding_params
     return { changes: 1 }
-  } // eslint-disable-line no-unused-vars
+  }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
    * @abstract
@@ -237,7 +232,7 @@ class PreparedStatement {
   async get(binding_params) {
     binding_params
     return {}
-  } // eslint-disable-line no-unused-vars
+  }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
    * @abstract
@@ -246,7 +241,16 @@ class PreparedStatement {
   async all(binding_params) {
     binding_params
     return [{}]
-  } // eslint-disable-line no-unused-vars
+  }
+  /**
+   * Executes a prepared SELECT query and returns a stream of the result
+   * @abstract
+   * @param {[]|{}} binding_params The values to be used with the prepared statement
+   * @returns {ReadableStream} A stream of the result
+   */
+  async stream(binding_params) {
+    binding_params
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 

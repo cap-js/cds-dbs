@@ -1,8 +1,12 @@
+// Currently has to be disabled before starting application (only required for node-hdb)
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
 // arguments that can be used to remove disabled tests
 // Mostly to allow all tests to run when using vscode jest plugin
 const enableMap = {
   pg: 'postgres',
   postgres: 'postgres',
+  hana: 'hana',
   test: '<rootDir>/test/', // Allow to explicitly run compliance tests
 }
 Object.keys(enableMap).forEach(k => (enableMap['-' + k] = enableMap[k]))
