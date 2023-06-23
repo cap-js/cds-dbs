@@ -1,3 +1,5 @@
-# Welcome to @cap-js/db-service Repo
+# CDS base database service
 
-This package provides the common base classes and functions for CAP's SQL Services.
+Welcome to the new base database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture.
+
+Find documentation at https://cap.cloud.sap/docs/guides/databases.
