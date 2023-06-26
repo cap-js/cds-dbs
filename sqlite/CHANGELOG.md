@@ -4,7 +4,10 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.0.0 - tbd
+
+## Version 1.0.0 - 2023-06-23
+
+- First official release
 
 ## Version 0.2.0 - 2023-05-03
 
