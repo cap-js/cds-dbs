@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET } = cds.test(bookshop)
+  const { expect, GET, SELECT } = cds.test(bookshop)
 
   describe('String Functions', () => {
     test('concat', async () => {
@@ -15,6 +15,14 @@ describe('Bookshop - Functions', () => {
       const res = await GET(`/browse/Books?$filter=contains(author,'Allen')`)
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(2)
+    })
+
+    test('avg', async () => {
+      const { Books } = cds.entities
+      const res = await cds.run(CQL`SELECT from ${Books} { 
+        average(stock) as avgStock
+      }`)
+      expect(res[0].avgStock).to.not.be.undefined
     })
 
     test('endswith', async () => {
