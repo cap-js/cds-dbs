@@ -45,7 +45,7 @@ class HANAClientDriver extends driver {
         values = Array.isArray(values) ? values : []
         return prom(stmt, 'exec')(values)
       },
-      stream: async values => {
+      stream: async (values, one) => {
         const stmt = await prep
         values = Array.isArray(values) ? values : []
         // Uses the native exec method instead of executeQuery to initialize a full stream
@@ -70,7 +70,7 @@ class HANAClientDriver extends driver {
           if (rs.isNull(0)) return null
           return hdbStream.createLobStream(rs, 0, {})
         }
-        return Readable.from(rsIterator(rs))
+        return Readable.from(rsIterator(rs, one))
       },
     }
   }
@@ -109,7 +109,7 @@ class HANAClientDriver extends driver {
 }
 
 const useGetData = true
-async function* rsIterator(rs) {
+async function* rsIterator(rs, one) {
   const next = prom(rs, 'next') // () => rs.next()
   const getValues = prom(rs, 'getValues')
   const getValue = prom(rs, 'getValue') // nr => rs.getValue(nr)
@@ -117,7 +117,7 @@ async function* rsIterator(rs) {
   const levels = [
     {
       index: 0,
-      suffix: ']',
+      suffix: one ? '' : ']',
       path: '$[',
       expands: {},
     },
@@ -133,7 +133,10 @@ async function* rsIterator(rs) {
       blobColumns[c.columnName] = i + 4
     })
 
-  yield '['
+  if (!one) {
+    yield '['
+  }
+
   let buffer = ''
   // Load next row of the result set (starts before the first row)
   while (await next()) {

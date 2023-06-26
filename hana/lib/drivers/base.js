@@ -77,7 +77,8 @@ class HANADriver {
    * @returns {Promise<any}
    */
   async disconnect() {
-    if (await this.connected) {
+    if (this.connected) {
+      await this.connected
       this.connected = false
       return prom(this._native, 'disconnect')()
     }

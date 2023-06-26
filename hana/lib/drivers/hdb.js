@@ -19,7 +19,7 @@ class HDBDriver extends driver {
 
   async prepare(sql) {
     const ret = await super.prepare(sql)
-    ret.stream = async values => {
+    ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values)
       const cols = rs.metadata
@@ -36,13 +36,13 @@ class HDBDriver extends driver {
         return blobStream
       }
       // Create ResultSet stream from ResultSet iterator
-      return Readable.from(rsIterator(rs))
+      return Readable.from(rsIterator(rs, one))
     }
     return ret
   }
 }
 
-async function* rsIterator(rs) {
+async function* rsIterator(rs, one) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
@@ -50,13 +50,14 @@ async function* rsIterator(rs) {
   const levels = [
     {
       index: 0,
-      suffix: ']',
+      suffix: one ? '' : ']',
       path: '$[',
       expands: {},
     },
   ]
 
   const state = {
+    rs,
     levels,
     reading: 0,
     writing: 0,
@@ -66,7 +67,7 @@ async function* rsIterator(rs) {
       // Validate whether the current buffer is finished reading
       if (this.buffer.byteLength <= this.reading) {
         return raw.next().then(next => {
-          if (next.done) {
+          if (next.done || next.value.byteLength === 0) {
             return true
           }
           this.yields.push(this.buffer.slice(0, this.writing))
@@ -158,6 +159,9 @@ async function* rsIterator(rs) {
         this.yields.push(this.buffer.slice(0, this.writing))
         this.yields.push(str)
         this.buffer = this.buffer.slice(this.reading)
+        this.writing = 0
+        this.reading = 0
+        return
       }
       str.copy(this.buffer, this.writing)
       this.writing += str.byteLength
@@ -171,8 +175,15 @@ async function* rsIterator(rs) {
     },
   }
 
-  state.inject('[')
-  while (true) {
+  if (!one) {
+    state.inject('[')
+  }
+
+  let isDone = state.done()
+  if (isDone) {
+    isDone = await isDone
+  }
+  while (!isDone) {
     // Made all functions possible promises giving a 5x speed up
     const _path = readString(state)
     const path = (typeof _path === 'string' ? _path : await _path).toString('utf-8')
@@ -186,7 +197,6 @@ async function* rsIterator(rs) {
     // Read and write JSON blob data
     const jsonLength = readBlob(state)
     let hasProperties = (typeof jsonLength === 'number' ? jsonLength : await jsonLength) > 2
-    state.writing -= 1
 
     for (const blobColumn of nativeBlobs) {
       // Skip all blobs that are not part of this row
@@ -212,9 +222,10 @@ async function* rsIterator(rs) {
       }
     }
     state.yields = []
-    const isDone = state.done()
-    if (isDone && (await isDone)) {
-      break
+
+    isDone = state.done()
+    if (isDone) {
+      isDone = await isDone
     }
   }
 
@@ -265,6 +276,7 @@ const readString = function (state) {
   return state.slice(length)
 }
 
+const { readInt64LE } = require('hdb/lib/util/bignum.js')
 const readBlob = function (state, encoding) {
   // Check if the blob is null
   let ens = state.ensure(2)
@@ -278,25 +290,61 @@ const readBlob = function (state, encoding) {
   // Read actual chunk size
   ens = state.ensure(32)
   if (ens) return ens.then(() => readBlob(state, encoding))
+  // const charLength = readInt64LE(state.buffer, state.reading + 4)
+  const byteLength = readInt64LE(state.buffer, state.reading + 12)
+  const locatorId = Buffer.from(state.buffer.slice(state.reading + 20, state.reading + 28).toString('hex'), 'hex')
   const length = state.buffer.readInt32LE(state.reading + 28)
   state.read(32)
 
   if (encoding) {
     state.inject('"')
   }
-  const write = state.write(length, encoding)
-  if (write)
-    return write.then(() => {
-      if (encoding) {
-        state.inject('"')
-      }
-      return length
-    })
 
-  if (encoding) {
-    state.inject('"')
+  let hasMore = length < byteLength
+  const skipLast = !encoding && !hasMore
+  const preFetchRead = skipLast ? length - 1 : length
+  const write = state.write(preFetchRead, encoding)
+  if (skipLast) {
+    state.read(1)
   }
-  return length
+
+  const after = () => {
+    if (encoding) {
+      state.inject('"')
+    }
+    return byteLength
+  }
+
+  const next = () => {
+    if (hasMore) {
+      return new Promise((resolve, reject) => {
+        state.rs._connection.readLob(
+          {
+            locatorId: locatorId,
+            offset: length,
+            length: 1 << 16,
+          },
+          (err, data) => {
+            if (err) return reject(err)
+            const isLast = data.readLobReply.isLast
+            const chunk = isLast && !encoding ? data.readLobReply.chunk.slice(0, -1) : data.readLobReply.chunk
+            state.inject(encoding ? chunk.toString(encoding) : chunk)
+            if (isLast) {
+              hasMore = false
+            }
+            resolve()
+          },
+        )
+      }).then(next)
+    }
+    return after()
+  }
+
+  if (write) {
+    return write.then(next)
+  }
+
+  return next()
 }
 
 module.exports.driver = HDBDriver

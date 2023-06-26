@@ -72,7 +72,7 @@ class HANAService extends SQLService {
   }
 
   async onSTREAM(req) {
-    let { sql, values, entries, temporary, blobs } = this.cqn2sql(req.query)
+    let { cqn, sql, values, entries, temporary, blobs } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       const stream = entries[0]
@@ -86,7 +86,9 @@ class HANAService extends SQLService {
       sql = this.wrapTemporary(temporary, blobs)
     }
     const ps = await this.prepare(sql)
-    return ps.stream(values)
+    const stream = await ps.stream(values, cqn.SELECT?.one)
+    if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
+    return stream
   }
 
   // Allow for running complex expand queries in a single statement
@@ -433,7 +435,12 @@ class HANAService extends SQLService {
       q = cds.ql.clone(q)
       const { columns, from } = q.SELECT
 
-      const alias = from.as || from.args?.[0]?.as
+      let curFrom = from
+      while (curFrom && !curFrom.as) {
+        curFrom = from.SELECT?.from || from.args?.[0]
+      }
+      from.as = curFrom.as
+      const alias = from.as
       const tmp = cds.ql.SELECT('*').from(alias)
       tmp.as = alias
       tmp.SELECT.from.ref[0] = ':' + tmp.SELECT.from.ref[0]
