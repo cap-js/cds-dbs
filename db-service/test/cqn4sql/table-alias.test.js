@@ -537,9 +537,100 @@ describe('table alias access', () => {
       )
     })
     it('explicit alias for FROM subquery', () => {
-      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, B.stock }`, model)
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            ID, Books.stock, Books.dedication
+          }) as B { ID, B.stock, B.dedication }`,
+        model,
+      )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`,
+        CQL`SELECT from (
+              SELECT from bookshop.Books as Books {
+                Books.ID,
+                Books.stock,
+                Books.dedication_addressee_ID,
+                Books.dedication_text,
+                Books.dedication_sub_foo,
+                Books.dedication_dedication
+              }
+            ) as B {
+              B.ID,
+              B.stock,
+              B.dedication_addressee_ID,
+              B.dedication_text,
+              B.dedication_sub_foo,
+              B.dedication_dedication
+            }`,
+      )
+    })
+    it('wildcard expansion of subquery in from ignores assocs', () => {
+      let query = cqn4sql(CQL`SELECT from ( SELECT from bookshop.Orders ) as O`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Orders as Orders {
+            Orders.ID,
+          }
+        ) as O {
+          O.ID,
+        }`,
+      )
+    })
+    it('no alias for function args or expressions on top of anonymous subquery', () => {
+      let query = cqn4sql(
+        CQL`SELECT from ( SELECT from bookshop.Orders ) {
+          sum(ID) as foo,
+          ID + 42 as anotherFoo
+        }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Orders as Orders {
+            Orders.ID
+          }
+        ) {
+          sum(ID) as foo,
+          ID + 42 as anotherFoo
+        }`,
+      )
+    })
+    it('wildcard expansion for subquery in FROM', () => {
+      // REVISIT: order not stable, move "ID" to top of columns in subquery in from
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            sum(stock) as totalStock,
+            ID,
+            Books.stock,
+            Books.dedication,
+            Books.author
+          }
+         ) as B`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Books as Books {
+            sum(Books.stock) as totalStock,
+            Books.ID,
+            Books.stock, 
+            Books.dedication_addressee_ID,
+            Books.dedication_text,
+            Books.dedication_sub_foo,
+            Books.dedication_dedication,
+            Books.author_ID
+          }
+        ) as B {
+          B.totalStock,
+          B.ID,
+          B.stock,
+          B.dedication_addressee_ID,
+          B.dedication_text,
+          B.dedication_sub_foo,
+          B.dedication_dedication,
+          B.author_ID
+        }`,
       )
     })
 
