@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET, SELECT } = cds.test(bookshop)
+  const { expect, GET } = cds.test(bookshop)
 
   describe('String Functions', () => {
     test('concat', async () => {
