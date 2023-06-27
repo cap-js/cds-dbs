@@ -17,6 +17,14 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(2)
     })
 
+    test('avg', async () => {
+      const { Books } = cds.entities
+      const res = await cds.run(CQL`SELECT from ${Books} { 
+        average(stock) as avgStock
+      }`)
+      expect(res[0].avgStock).to.not.be.undefined
+    })
+
     test('endswith', async () => {
       const [res, wrong] = await Promise.all([
         GET(`/browse/Books?$filter=endswith(author,'Poe')`),
