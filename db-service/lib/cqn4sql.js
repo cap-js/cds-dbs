@@ -306,7 +306,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          handleDollarSelfReference(col)
+          transformedColumns.push(...handleDollarSelfReference(col))
           continue
         }
         handleExpand(col)
@@ -314,7 +314,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleInline(col)
       } else if (col.ref) {
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          handleDollarSelfReference(col)
+          transformedColumns.push(...handleDollarSelfReference(col))
           continue
         }
         handleRef(col)
@@ -339,19 +339,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
      * new base.
      *
-     * @param {*} col
+     * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
      */
     function handleDollarSelfReference(col) {
       const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
 
-      transformedColumns.push(...getTransformedColumns([dummyColumn]))
+      return getTransformedColumns([dummyColumn])
 
-      function buildDummyColumnForDollarSelf(dummyColumn, $refLinks) {
-        const { ref, as } = dummyColumn
+      function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
+        const { ref, as } = dollarSelfColumn
         const stepToFind = ref[1]
         let referencedColumn = columns.find(
           otherColumn =>
-            otherColumn !== dummyColumn &&
+            otherColumn !== dollarSelfColumn &&
             (otherColumn.as
               ? stepToFind === otherColumn.as
               : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
@@ -361,16 +361,20 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         if (referencedColumn.ref) {
-          dummyColumn.ref = [...referencedColumn.ref, ...dummyColumn.ref.slice(2)]
-          dummyColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
-          dummyColumn.flatName = dummyColumn.ref.join('_')
+          dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
+          dollarSelfColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
+          dollarSelfColumn.flatName = dollarSelfColumn.ref.join('_')
         } else {
-          const { xpr, val, ref, ...rest } = referencedColumn // destructure the rest of the properties
+          // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+          // eslint-disable-next-line no-unused-vars
+          const { xpr, val, ref, ...rest } = referencedColumn
           if (xpr) rest.xpr = xpr
           else rest.val = val
-          dummyColumn = { ...rest, as } // reassign dummyColumn without 'ref'
+          dollarSelfColumn = { ...rest, as } // reassign dummyColumn without 'ref'
         }
-        return dummyColumn.ref?.[0] === '$self' ? buildDummyColumnForDollarSelf(dummyColumn, $refLinks) : dummyColumn
+        return dollarSelfColumn.ref?.[0] === '$self'
+          ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
+          : dollarSelfColumn
       }
     }
 
