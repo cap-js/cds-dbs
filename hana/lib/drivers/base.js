@@ -20,21 +20,53 @@ class HANADriver {
     const prep = prom(this._native, 'prepare')(sql)
     return {
       _prep: prep,
-      run: async values => {
+      run: async params => {
+        const { values, streams } = this._extractStreams(params)
         const stmt = await prep
-        return {
-          changes: await prom(stmt, 'exec')(values),
+        let changes = await prom(stmt, 'exec')(values)
+        await this._sendStreams(stmt, streams)
+        // REVISIT: hana-client does not return any changes when doing an update with streams
+        // This causes the best assumption to be that the changes are one
+        // To get the correct information it is required to send a count with the update where clause
+        if (streams.length && changes === 0) {
+          changes = 1
         }
+        return { changes }
       },
-      get: async values => {
+      get: async params => {
         const stmt = await prep
-        return (await prom(stmt, 'exec')(values))[0]
+        return (await prom(stmt, 'exec')(params))[0]
       },
-      all: async values => {
+      all: async params => {
         const stmt = await prep
-        return prom(stmt, 'exec')(values)
+        return prom(stmt, 'exec')(params)
       },
     }
+  }
+
+  /**
+   * Extracts streams from parameters
+   * @abstract
+   * @param {Array[any]} params
+   */
+  async _extractStreams(values) {
+    /**
+     * @type {Array<ReadableStream>}
+     */
+    const streams = []
+    return { values, streams }
+  }
+
+  /**
+   * Sends streams to the prepared statement
+   * @abstract
+   * @param {import('@cap-js/db-service/lib/SQLService').PreparedStatement} stmt
+   * @param {Array<ReadableStream>} streams
+   */
+  async _sendStreams(stmt, streams) {
+    stmt
+    streams
+    return
   }
 
   /**

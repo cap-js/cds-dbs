@@ -1,4 +1,4 @@
-const { Readable } = require('stream')
+const { Readable, PassThrough, Stream } = require('stream')
 
 const hdb = require('hdb')
 
@@ -39,6 +39,25 @@ class HDBDriver extends driver {
       return Readable.from(rsIterator(rs, one))
     }
     return ret
+  }
+
+  _extractStreams(values) {
+    // Removes all streams from the values and replaces them with a placeholder
+    if (!Array.isArray(values)) return { values: [], streams: [] }
+    const streams = []
+    values = values.map((v, i) => {
+      if (v instanceof Stream && !(v instanceof PassThrough)) {
+        streams[i] = v
+        const passThrough = new PassThrough()
+        v.pipe(passThrough)
+        return passThrough
+      }
+      return v
+    })
+    return {
+      values,
+      streams,
+    }
   }
 }
 

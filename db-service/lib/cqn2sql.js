@@ -159,6 +159,7 @@ class CQN2SQLRenderer {
     let cols = !SELECT.columns
       ? ['*']
       : SELECT.columns.map(x => {
+          if (x === '*') return x
           const name = this.column_name(x)
           // REVISIT: can be removed when alias handling is resolved properly
           const d = elements[name] || elements[name.substring(1, name.length - 1)]
@@ -427,13 +428,21 @@ class CQN2SQLRenderer {
     if (from) {
       sql = `SELECT`
       if (!_empty((x = column))) sql += ` ${this.quote(x)}`
-      else if (!_empty((x = columns))) sql += ` ${this.SELECT_columns({ SELECT: { columns } })}`
-      else sql += ` ${this.SELECT_columns({ SELECT: { columns: ['*'] } })}`
+      else {
+        const select = cds.ql.SELECT(columns?.length ? columns : ['*']).from(from)
+        select.SELECT.expand = 'root'
+        return this.SELECT(select.forSQL())
+      }
       if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
+      if (!_empty((x = column)))
+        sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
+      else
+        sql = global.useUpsert
+          ? this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
+          : this.INSERT(cds.ql.INSERT([{}]).into(into).forSQL())
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`

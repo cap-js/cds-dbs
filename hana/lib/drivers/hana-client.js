@@ -20,59 +20,35 @@ class HANAClientDriver extends driver {
   }
 
   async prepare(sql) {
-    let prep = prom(this._native, 'prepare')(sql)
-    return {
-      run: async params => {
-        const stmt = await prep
-        const { values, streams } = this._extractStreams(params)
-        let changes = await prom(stmt, 'exec')(values)
-        await this._sendStreams(stmt, streams)
-        // REVISIT: hana-client does not return any changes when doing an update with streams
-        // This causes the best assumption to be that the changes are one
-        // To get the correct information it is required to send a count with the update where clause
-        if (streams.length && changes === 0) {
-          changes = 1
-        }
-        return { changes }
-      },
-      get: async values => {
-        const stmt = await prep
-        values = Array.isArray(values) ? values : []
-        return (await prom(stmt, 'exec')(values))[0]
-      },
-      all: async values => {
-        const stmt = await prep
-        values = Array.isArray(values) ? values : []
-        return prom(stmt, 'exec')(values)
-      },
-      stream: async (values, one) => {
-        const stmt = await prep
-        values = Array.isArray(values) ? values : []
-        // Uses the native exec method instead of executeQuery to initialize a full stream
-        // As executeQuery does not request the whole result set at once
-        // It is required to request each value at once and each row at once
-        // When this is done with sync functions it is blocking the main thread
-        // When this is done with async functions it is extremely slow
-        // While with node-hdb it is possible to get the raw stream from the query
-        // Allowing for an efficient inline modification of the stream
-        // This is not possible with the current implementation of hana-client
-        // Which creates an inherent limitation to the maximum size of a result set (~0xfffffffb)
-        if (streamUnsafe && sql.startsWith('DO')) {
-          const rows = await prom(stmt, 'exec')(values, { rowsAsArray: true })
-          return Readable.from(rowsIterator(rows, stmt.getColumnInfo()))
-        }
-        const rs = await prom(stmt, 'executeQuery')(values)
-        const cols = rs.getColumnInfo()
-        // If the query only returns a single row with a single blob it is the final stream
-        if (cols.length === 1 && cols[0].type === 1) {
-          if (rs.getRowCount() === 0) return null
-          await prom(rs, 'next')()
-          if (rs.isNull(0)) return null
-          return hdbStream.createLobStream(rs, 0, {})
-        }
-        return Readable.from(rsIterator(rs, one))
-      },
+    const ret = await super.prepare(sql)
+    ret.stream = async (values, one) => {
+      const stmt = await ret._prep
+      values = Array.isArray(values) ? values : []
+      // Uses the native exec method instead of executeQuery to initialize a full stream
+      // As executeQuery does not request the whole result set at once
+      // It is required to request each value at once and each row at once
+      // When this is done with sync functions it is blocking the main thread
+      // When this is done with async functions it is extremely slow
+      // While with node-hdb it is possible to get the raw stream from the query
+      // Allowing for an efficient inline modification of the stream
+      // This is not possible with the current implementation of hana-client
+      // Which creates an inherent limitation to the maximum size of a result set (~0xfffffffb)
+      if (streamUnsafe && sql.startsWith('DO')) {
+        const rows = await prom(stmt, 'exec')(values, { rowsAsArray: true })
+        return Readable.from(rowsIterator(rows, stmt.getColumnInfo()))
+      }
+      const rs = await prom(stmt, 'executeQuery')(values)
+      const cols = rs.getColumnInfo()
+      // If the query only returns a single row with a single blob it is the final stream
+      if (cols.length === 1 && cols[0].type === 1) {
+        if (rs.getRowCount() === 0) return null
+        await prom(rs, 'next')()
+        if (rs.isNull(0)) return null
+        return hdbStream.createLobStream(rs, 0, {})
+      }
+      return Readable.from(rsIterator(rs, one))
     }
+    return ret
   }
 
   _extractStreams(values) {

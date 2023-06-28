@@ -1,6 +1,8 @@
 const infer = require('../infer')
 const cds = require('@sap/cds')
 
+const { Readable } = require('stream')
+
 function Pool(factory, tenant) {
   const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
   pool._trackedConnections = []
@@ -94,11 +96,33 @@ class DatabaseService extends cds.Service {
     return this
   }
 
-  async commit() {
+  async commit(res) {
     const dbc = this.dbc
     if (!dbc) return
-    await this.send('COMMIT')
-    this._release(dbc) // only release on successful commit as otherwise released on rollback
+
+    const _commit = async delayed => {
+      if (delayed) {
+        this.ready = true
+        this._done = false
+      }
+
+      await this.send('COMMIT')
+      this._release(dbc) // only release on successful commit as otherwise released on rollback
+    }
+
+    if (res instanceof Readable) {
+      new Promise((resolve, reject) => {
+        res.on('error', reject)
+        res.on('end', resolve)
+        res.on('close', resolve)
+        res.on('finish', resolve)
+      }).then(
+        () => _commit(true),
+        e => this.rollback(e),
+      )
+      return
+    }
+    return _commit()
   }
 
   async rollback() {

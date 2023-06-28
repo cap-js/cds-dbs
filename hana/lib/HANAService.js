@@ -602,30 +602,6 @@ class HANAService extends SQLService {
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
     }
 
-    STREAM(q) {
-      let { column, from, into, data } = q.STREAM
-      if (!column && from?.SELECT) {
-        const subSelect = from.forSQL()
-        subSelect.SELECT.expand = 'root'
-        return this.SELECT(subSelect)
-      }
-
-      if (!column && into) {
-        if (global.useUpsert) {
-          // Upsert also works with dataset streaming
-          const upsert = cds.ql.UPSERT([]).into(into).forSQL()
-          this.UPSERT(upsert)
-        } else {
-          const insert = cds.ql.INSERT([]).into(into).forSQL()
-          this.INSERT(insert)
-        }
-        this.entries = [data]
-        return this.sql
-      }
-
-      return super.STREAM(q)
-    }
-
     orderBy(orderBy, localized) {
       return orderBy.map(
         localized
