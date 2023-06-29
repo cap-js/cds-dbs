@@ -5,6 +5,8 @@ const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 
+const streamUnsafe = false
+
 class SQLiteService extends SQLService {
   get factory() {
     return {
@@ -47,6 +49,7 @@ class SQLiteService extends SQLService {
       const stmt = this.dbc.prepare(sql)
       stmt._run = stmt.run
       stmt.run = this._run.bind(stmt)
+      stmt._iterator = this._iterator
       stmt.stream = this._stream.bind(stmt)
       return stmt
     } catch (e) {
@@ -61,14 +64,32 @@ class SQLiteService extends SQLService {
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
       } else if (typeof val === 'object' && val && val.pipe) {
-        val.setEncoding('base64')
+        if(val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
       }
     }
     return this._run(binding_params)
   }
 
-  async _stream(binding_params) {
+  async *_iterator(rs, one) {
+    // Allow for both array and iterator result sets
+    const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
+    if (first.done) return
+    if (one) {
+      yield first.value[0]
+      return
+    }
+
+    yield '['
+    // Print first value as stand alone to prevent comma check inside the loop
+    yield first.value[0]
+    for (const row of rs) {
+      yield `,${row[0]}`
+    }
+    yield ']'
+  }
+
+  async _stream(binding_params, one) {
     const columns = this.columns()
     // Stream single blob column
     if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
@@ -88,7 +109,10 @@ class SQLiteService extends SQLService {
         },
       })
     }
-    cds.error`Streaming multiple columns not yet supported`
+
+    this.raw(true)
+    const rs = this[streamUnsafe ? 'all' : 'iterate'](binding_params)
+    return Readable.from(this._iterator(rs, one))
   }
 
   exec(sql) {
@@ -108,6 +132,7 @@ class SQLiteService extends SQLService {
           }
         })
       return SELECT.columns.map(x => {
+        if (x === '*') return x
         const alias = this.column_name(x)
         // Check whether the column alias should be added
         const xpr = this.column_expr(x)

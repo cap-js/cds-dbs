@@ -427,22 +427,32 @@ class CQN2SQLRenderer {
     // reading stream
     if (from) {
       sql = `SELECT`
-      if (!_empty((x = column))) sql += ` ${this.quote(x)}`
+      if (!_empty((x = column))) {
+        this.one = true
+        sql += ` ${this.quote(x)}`
+      }
       else {
         const select = cds.ql.SELECT(columns?.length ? columns : ['*']).from(from)
         select.SELECT.expand = 'root'
+        this.one = !!select.SELECT.one
         return this.SELECT(select.forSQL())
       }
       if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      if (!_empty((x = column)))
-        sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
-      else
+      if (!_empty((x = column))) {
+        data.type = 'binary'
+        sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=${this.param({
+          ref: ['?'],
+          param: true,
+        })}`
+      } else {
+        data.type = 'json'
         sql = global.useUpsert
           ? this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
           : this.INSERT(cds.ql.INSERT([{}]).into(into).forSQL())
+      }
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`

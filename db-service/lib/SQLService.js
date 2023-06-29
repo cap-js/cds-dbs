@@ -94,7 +94,7 @@ class SQLService extends DatabaseService {
 
   /** Handler for Stream */
   async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql(req.query)
+    const { one, sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       const stream = entries[0]
@@ -104,7 +104,7 @@ class SQLService extends DatabaseService {
     }
     // reading stream
     const ps = await this.prepare(sql)
-    return ps.stream(values)
+    return ps.stream(values, one)
   }
 
   /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
