@@ -64,7 +64,7 @@ class SQLiteService extends SQLService {
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
       } else if (typeof val === 'object' && val && val.pipe) {
-        if(val.type === 'binary') val.setEncoding('base64')
+        if (val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
       }
     }

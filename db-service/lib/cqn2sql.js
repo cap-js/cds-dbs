@@ -430,8 +430,7 @@ class CQN2SQLRenderer {
       if (!_empty((x = column))) {
         this.one = true
         sql += ` ${this.quote(x)}`
-      }
-      else {
+      } else {
         const select = cds.ql.SELECT(columns?.length ? columns : ['*']).from(from)
         select.SELECT.expand = 'root'
         this.one = !!select.SELECT.one
