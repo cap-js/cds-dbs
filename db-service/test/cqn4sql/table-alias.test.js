@@ -215,6 +215,42 @@ describe('table alias access', () => {
     })
   })
 
+  describe('replace $self references', () => {
+    it('refer to other query element', () => {
+      const q = CQL`SELECT from bookshop.Books {
+      Books.title,
+      title as title2,
+      dedication as struct,
+      1 + 1 as expression,
+      42 as value,
+
+      $self.dedication2 as dedication3,
+      $self.struct.text as dedication,
+      $self.dedication as dedication2,
+      $self.expression as selfXpr,
+      $self.value as selfVal,
+    }`
+      const transformed = cqn4sql(q, model)
+
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+      Books.title,
+      Books.title as title2,
+      Books.dedication_addressee_ID as struct_addressee_ID,
+      Books.dedication_text as struct_text,
+      Books.dedication_sub_foo as struct_sub_foo,
+      Books.dedication_dedication as struct_dedication,
+      1 + 1 as expression,
+      42 as value,
+
+      Books.dedication_text as dedication3,
+      Books.dedication_text as dedication,
+      Books.dedication_text as dedication2,
+      1 + 1 as selfXpr,
+      42 as selfVal
+    }`)
+    })
+  })
+
   describe('in ORDER BY', () => {
     // - Name resolution in ORDER BY --------------------------------------------------------------
     // --- HANA -----------------------------------------------------------------------------------
