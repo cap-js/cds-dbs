@@ -101,7 +101,7 @@ class PostgresService extends SQLService {
       run: async values => {
         // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
         let newQuery = this._prepareStreams(query, values)
-        if (typeof newQuery.then) newQuery = await newQuery
+        if (typeof newQuery.then === 'function') newQuery = await newQuery
         const result = await this.dbc.query(newQuery)
         return { changes: result.rowCount }
       },
@@ -627,9 +627,6 @@ class ParameterStream extends Writable {
   }
 
   flush(chunk, callback) {
-    if (!callback) {
-      debugger
-    }
     if (this.flushChunk(chunk)) {
       return callback()
     }
