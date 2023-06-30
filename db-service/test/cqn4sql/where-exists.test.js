@@ -36,7 +36,7 @@ describe('EXISTS predicate in where', () => {
     })
     it('rejects $self following exists predicate', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
-        'Unexpected "$self" following "exists", remove it or add a table alias instead',
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]',
       )
     })
 

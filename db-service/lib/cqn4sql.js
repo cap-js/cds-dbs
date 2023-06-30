@@ -301,15 +301,22 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
-
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
       if (col.expand) {
+        if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          transformedColumns.push(...handleDollarSelfReference(col))
+          continue
+        }
         handleExpand(col)
       } else if (col.inline) {
         handleInline(col)
       } else if (col.ref) {
+        if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          transformedColumns.push(...handleDollarSelfReference(col))
+          continue
+        }
         handleRef(col)
       } else if (col === '*') {
         handleWildcard(columns)
@@ -323,6 +330,53 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     return transformedColumns
+
+    /**
+     * This function resolves a `ref` starting with a `$self`.
+     * Such a path targets another element of the query by it's implicit, or explicit alias.
+     *
+     * A `$self` reference may also target another `$self` path. In this case, this function
+     * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
+     * new base.
+     *
+     * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
+     */
+    function handleDollarSelfReference(col) {
+      const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
+
+      return getTransformedColumns([dummyColumn])
+
+      function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
+        const { ref, as } = dollarSelfColumn
+        const stepToFind = ref[1]
+        let referencedColumn = columns.find(
+          otherColumn =>
+            otherColumn !== dollarSelfColumn &&
+            (otherColumn.as
+              ? stepToFind === otherColumn.as
+              : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
+        )
+        if (referencedColumn.ref?.[0] === '$self') {
+          referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)
+        }
+
+        if (referencedColumn.ref) {
+          dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
+          dollarSelfColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
+          dollarSelfColumn.flatName = dollarSelfColumn.ref.join('_')
+        } else {
+          // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+          // eslint-disable-next-line no-unused-vars
+          const { xpr, val, ref, ...rest } = referencedColumn
+          if (xpr) rest.xpr = xpr
+          else rest.val = val
+          dollarSelfColumn = { ...rest, as } // reassign dummyColumn without 'ref'
+        }
+        return dollarSelfColumn.ref?.[0] === '$self'
+          ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
+          : dollarSelfColumn
+      }
+    }
 
     function handleExpand(col) {
       const { $refLinks } = col
@@ -391,7 +445,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      Object.defineProperty(transformedColumn, 'element', { value: originalQuery.elements[col.as] })
+      setElementOnColumns(transformedColumn, originalQuery.elements[col.as])
     }
 
     function getTransformedColumn(col) {
@@ -622,7 +676,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', { value: subquery.elements })
+    Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
     return correlated
 
     function _correlate(subq, outer) {
@@ -903,8 +957,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
           else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
-          Object.defineProperty(flatColumn, 'element', { value: fkElement })
-          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath })
+
+          setElementOnColumns(flatColumn, fkElement)
+          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
           flatColumns.push(flatColumn)
         }
       })
@@ -934,8 +989,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
-    Object.defineProperty(flatRef, 'element', { value: element })
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath })
+    setElementOnColumns(flatRef, element)
+    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
     return [flatRef]
 
     function getReplacement(from) {
@@ -1840,6 +1895,19 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+/**
+ * Assigns the given `element` as non-enumerable property 'element' onto `col`.
+ *
+ * @param {object} col
+ * @param {csn.Element} element
+ */
+function setElementOnColumns(col, element) {
+  Object.defineProperty(col, 'element', {
+    value: element,
+    writable: true,
+  })
 }
 
 const idOnly = ref => ref.id || ref
