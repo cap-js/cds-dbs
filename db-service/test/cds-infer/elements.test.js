@@ -468,7 +468,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       // eslint-disable-next-line no-unused-vars
-      let { image, ...expectedElements } = JSON.parse(JSON.stringify(Books.elements)) // if not copied, the next lines would spoil Books.elements
+      let { image, ...expectedElements } = Books.elements
       Object.assign(expectedElements, {
         ID: {},
         price: {},
