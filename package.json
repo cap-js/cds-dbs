@@ -25,7 +25,7 @@
   "scripts": {
     "prettier": "npx prettier --write .",
     "test": "npx jest --silent",
-    "test:all": "cd db-service && npm t && cd ../sqlite && npm t && cd ../postgres && npm t",
+    "test:all": "cd db-service && npm t && cd ../sqlite && npm t && cd ../postgres && npm t && cd ../hana && npm t",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "npx eslint .",
     "lint:prettier": "npx prettier --check ."
