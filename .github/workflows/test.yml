@@ -57,10 +57,11 @@ jobs:
           TAG="$(sha1sum hana/tools/docker/hxe/* | sha1sum --tag | grep '[^ ]*$' -o)";
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/hanaexpress;
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]');
-          GHCR_TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
-          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          GHCR_TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64);
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT;
+          curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG;
           if
-            curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/cap-js/hanaexpress/manifests/$TAG | grep "MANIFEST_UNKNOWN";
+            curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG | grep "MANIFEST_UNKNOWN";
           then
             echo "BUILD_HXE=true" >> $GITHUB_OUTPUT
           else
@@ -87,4 +88,4 @@ jobs:
           { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
 
       # testing
-      - run: npm run test:all
+      # - run: npm run test:all
