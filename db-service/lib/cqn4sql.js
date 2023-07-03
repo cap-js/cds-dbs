@@ -306,7 +306,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          transformedColumns.push(...handleDollarSelfReference(col))
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
           continue
         }
         handleExpand(col)
@@ -314,7 +315,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleInline(col)
       } else if (col.ref) {
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          transformedColumns.push(...handleDollarSelfReference(col))
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
           continue
         }
         handleRef(col)
@@ -440,11 +442,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * new base.
    *
    * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
+   * @param {boolean} omitAlias if we replace a $self reference in an aggregation or a token stream, we must not add an "as" to the result
    */
-  function handleDollarSelfReference(col) {
+  function calculateDollarSelfColumn(col, omitAlias = false) {
     const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
 
-    return getTransformedColumns([dummyColumn])
+    return dummyColumn
 
     function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
       const { ref, as } = dollarSelfColumn
@@ -462,15 +465,25 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (referencedColumn.ref) {
         dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
-        dollarSelfColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
-        dollarSelfColumn.flatName = dollarSelfColumn.ref.join('_')
+        Object.defineProperties(dollarSelfColumn, {
+          flatName: {
+            value: dollarSelfColumn.ref.join('_'),
+          },
+          isJoinRelevant: {
+            value: referencedColumn.isJoinRelevant,
+          },
+          $refLinks: {
+            value: [...referencedColumn.$refLinks, ...$refLinks.slice(2)],
+          },
+        })
       } else {
         // target column is `val` or `xpr`, destructure and throw away the ref with the $self
         // eslint-disable-next-line no-unused-vars
-        const { xpr, val, ref, ...rest } = referencedColumn
+        const { xpr, val, ref, as: _as, ...rest } = referencedColumn
         if (xpr) rest.xpr = xpr
         else rest.val = val
-        dollarSelfColumn = { ...rest, as } // reassign dummyColumn without 'ref'
+        dollarSelfColumn = { ...rest } // reassign dummyColumn without 'ref'
+        if (!omitAlias) dollarSelfColumn.as = as
       }
       return dollarSelfColumn.ref?.[0] === '$self'
         ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
@@ -726,7 +739,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       } else if (col.ref) {
         if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
-          res.push(...handleDollarSelfReference(col))
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
           continue
         }
         const { target } = col.$refLinks[0]
@@ -1144,7 +1158,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
-              transformedTokenStream.push(...handleDollarSelfReference(token))
+              const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
+              transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
               continue
             }
             const tableAlias = getQuerySourceName(token, $baseLink)

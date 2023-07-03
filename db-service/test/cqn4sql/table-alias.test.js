@@ -249,6 +249,25 @@ describe('table alias access', () => {
       42 as selfVal
     }`)
     })
+    it('late replace join relevant paths', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            Authors.name as author,
+            $self.book as dollarSelfBook,
+            books.title as book,
+          } group by $self.book
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+          Authors.name as author,
+          books.title as dollarSelfBook,
+          books.title as book
+        } group by books.title
+       `,
+      )
+    })
     it('in aggregation', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors {
