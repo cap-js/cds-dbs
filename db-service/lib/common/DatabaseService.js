@@ -52,6 +52,11 @@ class DatabaseService extends cds.Service {
     const connections = pool._trackedConnections
     let dbc
     try {
+      pool.on('factoryCreateError', e => {
+        console.error(e.stack)
+        cds.error`Failed to create database connection for tenant ${tenant}:\n${e.stack || e}`
+        process.exit(1)
+      })
       dbc = this.dbc = await pool.acquire()
     } catch (err) {
       // TODO: add acquire timeout error check
