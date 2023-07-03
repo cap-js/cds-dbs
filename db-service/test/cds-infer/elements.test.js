@@ -201,7 +201,8 @@ describe('infer elements', () => {
       let { Books, Receipt } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
-      const { image: _image, ...BooksElementsWithoutBlob } = Books.elements
+      // eslint-disable-next-line no-unused-vars
+      const { image, ...BooksElementsWithoutBlob } = Books.elements
       expect(inferred.elements).to.deep.equal({ ...BooksElementsWithoutBlob, ...Receipt.elements }) // combined elements
     })
 
