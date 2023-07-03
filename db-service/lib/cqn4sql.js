@@ -331,53 +331,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     return transformedColumns
 
-    /**
-     * This function resolves a `ref` starting with a `$self`.
-     * Such a path targets another element of the query by it's implicit, or explicit alias.
-     *
-     * A `$self` reference may also target another `$self` path. In this case, this function
-     * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
-     * new base.
-     *
-     * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
-     */
-    function handleDollarSelfReference(col) {
-      const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
-
-      return getTransformedColumns([dummyColumn])
-
-      function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
-        const { ref, as } = dollarSelfColumn
-        const stepToFind = ref[1]
-        let referencedColumn = columns.find(
-          otherColumn =>
-            otherColumn !== dollarSelfColumn &&
-            (otherColumn.as
-              ? stepToFind === otherColumn.as
-              : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
-        )
-        if (referencedColumn.ref?.[0] === '$self') {
-          referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)
-        }
-
-        if (referencedColumn.ref) {
-          dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
-          dollarSelfColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
-          dollarSelfColumn.flatName = dollarSelfColumn.ref.join('_')
-        } else {
-          // target column is `val` or `xpr`, destructure and throw away the ref with the $self
-          // eslint-disable-next-line no-unused-vars
-          const { xpr, val, ref, ...rest } = referencedColumn
-          if (xpr) rest.xpr = xpr
-          else rest.val = val
-          dollarSelfColumn = { ...rest, as } // reassign dummyColumn without 'ref'
-        }
-        return dollarSelfColumn.ref?.[0] === '$self'
-          ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
-          : dollarSelfColumn
-      }
-    }
-
     function handleExpand(col) {
       const { $refLinks } = col
       const last = $refLinks?.[$refLinks.length - 1]
@@ -475,6 +428,53 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function handleEmptyColumns(columns) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
+    }
+  }
+
+  /**
+   * This function resolves a `ref` starting with a `$self`.
+   * Such a path targets another element of the query by it's implicit, or explicit alias.
+   *
+   * A `$self` reference may also target another `$self` path. In this case, this function
+   * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
+   * new base.
+   *
+   * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
+   */
+  function handleDollarSelfReference(col) {
+    const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
+
+    return getTransformedColumns([dummyColumn])
+
+    function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
+      const { ref, as } = dollarSelfColumn
+      const stepToFind = ref[1]
+      let referencedColumn = inferred.SELECT.columns.find(
+        otherColumn =>
+          otherColumn !== dollarSelfColumn &&
+          (otherColumn.as
+            ? stepToFind === otherColumn.as
+            : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
+      )
+      if (referencedColumn.ref?.[0] === '$self') {
+        referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)
+      }
+
+      if (referencedColumn.ref) {
+        dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
+        dollarSelfColumn.$refLinks = [...referencedColumn.$refLinks, ...$refLinks.slice(2)]
+        dollarSelfColumn.flatName = dollarSelfColumn.ref.join('_')
+      } else {
+        // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+        // eslint-disable-next-line no-unused-vars
+        const { xpr, val, ref, ...rest } = referencedColumn
+        if (xpr) rest.xpr = xpr
+        else rest.val = val
+        dollarSelfColumn = { ...rest, as } // reassign dummyColumn without 'ref'
+      }
+      return dollarSelfColumn.ref?.[0] === '$self'
+        ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
+        : dollarSelfColumn
     }
   }
 
@@ -725,6 +725,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         res.push({ ...col })
       } else if (col.ref) {
         if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
+        if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          res.push(...handleDollarSelfReference(col))
+          continue
+        }
         const { target } = col.$refLinks[0]
         const tableAlias = target.SELECT ? null : getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition
@@ -1017,11 +1021,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {object[]} - The transformed token stream.
    */
   function getTransformedTokenStream(tokenStream, $baseLink = null) {
-    const transformedWhere = []
+    const transformedTokenStream = []
     for (let i = 0; i < tokenStream.length; i++) {
       const token = tokenStream[i]
       if (token === 'exists') {
-        transformedWhere.push(token)
+        transformedTokenStream.push(token)
         const whereExistsSubSelects = []
         const { ref, $refLinks } = tokenStream[i + 1]
         if (!ref) continue
@@ -1063,7 +1067,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
-        transformedWhere[i + 1] = whereExists
+        transformedTokenStream[i + 1] = whereExists
         // skip newly created subquery from being iterated
         i += 1
       } else if (token.list) {
@@ -1076,14 +1080,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             typeof precedingTwoTokens[1] === 'string' ? precedingTwoTokens[1].toLowerCase() : ''
 
           if (firstPrecedingToken === 'not') {
-            transformedWhere.splice(i - 2, 2, 'is', 'not', 'null')
+            transformedTokenStream.splice(i - 2, 2, 'is', 'not', 'null')
           } else if (secondPrecedingToken === 'in') {
-            transformedWhere.splice(i - 1, 1, '=', { val: null })
+            transformedTokenStream.splice(i - 1, 1, '=', { val: null })
           } else {
-            transformedWhere.push({ list: [] })
+            transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedWhere.push({ list: getTransformedTokenStream(token.list) })
+          transformedTokenStream.push({ list: getTransformedTokenStream(token.list) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1101,12 +1105,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
-          transformedWhere.push(...kv) && keyValComparisons[j + 1] ? transformedWhere.push('and') : null,
+          transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
         )
       } else if (token.ref && token.param) {
-        transformedWhere.push({ ...token })
+        transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
-        transformedWhere.push({ ...token })
+        transformedTokenStream.push({ ...token })
       } else {
         // expand `struct = null | struct2`
         const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
@@ -1130,7 +1134,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               cds.error(`The operator "${next}" is not supported for structure comparison`)
             const newTokens = expandComparison(token, ops, rhs)
             const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
-            transformedWhere.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
+            transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
             i = indexRhs // jump to next relevant index
           }
         } else {
@@ -1139,6 +1143,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
+            if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
+              transformedTokenStream.push(...handleDollarSelfReference(token))
+              continue
+            }
             const tableAlias = getQuerySourceName(token, $baseLink)
             if (!$baseLink && token.isJoinRelevant) {
               result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
@@ -1161,11 +1169,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             })
           }
 
-          transformedWhere.push(result)
+          transformedTokenStream.push(result)
         }
       }
     }
-    return transformedWhere
+    return transformedTokenStream
   }
 
   /**
@@ -1852,7 +1860,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getCombinedElementAlias(node) {
-      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index)
+      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index)
     }
   }
 }

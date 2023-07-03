@@ -249,6 +249,64 @@ describe('table alias access', () => {
       42 as selfVal
     }`)
     })
+    it('in aggregation', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+            years_between(dateOfBirth, dateOfDeath) as age
+          }
+          group by $self.author, $self.xpr
+          order by $self.author, $self.xpr
+         `, model
+        )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+          years_between(Authors.dateOfBirth, Authors.dateOfDeath) as age
+        }
+        group by Authors.name, 1+1
+        order by Authors.name, 1+1
+       `,
+      )
+    })
+    it('in having', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          having $self.xpr = 2
+         `, model
+        )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        having (1+1) = 2
+       `,
+      )
+    })
+    it('in where', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          where 2 / $self.xpr = 1
+         `, model
+        )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        where 2 / (1+1) = 1
+       `,
+      )
+    })
   })
 
   describe('in ORDER BY', () => {
