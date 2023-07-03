@@ -258,8 +258,9 @@ describe('table alias access', () => {
           }
           group by $self.author, $self.xpr
           order by $self.author, $self.xpr
-         `, model
-        )
+         `,
+        model,
+      )
       expect(query).to.deep.equal(
         CQL`SELECT from bookshop.Authors as Authors {
           Authors.name as author,
@@ -278,8 +279,9 @@ describe('table alias access', () => {
             1+1 as xpr,
           }
           having $self.xpr = 2
-         `, model
-        )
+         `,
+        model,
+      )
       expect(query).to.deep.equal(
         CQL`SELECT from bookshop.Authors as Authors {
           Authors.name as author,
@@ -296,8 +298,9 @@ describe('table alias access', () => {
             1+1 as xpr,
           }
           where 2 / $self.xpr = 1
-         `, model
-        )
+         `,
+        model,
+      )
       expect(query).to.deep.equal(
         CQL`SELECT from bookshop.Authors as Authors {
           Authors.name as author,
