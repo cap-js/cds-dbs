@@ -59,6 +59,7 @@ jobs:
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]');
           GHCR_TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64);
           echo "TAG=${TAG}" >> $GITHUB_OUTPUT;
+          echo "IMAGE_ID=${IMAGE_ID}" >> $GITHUB_OUTPUT;
           curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG;
           if
             curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG | grep "MANIFEST_UNKNOWN";
@@ -76,6 +77,7 @@ jobs:
         if: ${{ steps.find-hxe.outputs.BUILD_HXE == 'true' }}
         run: |
           TAG=${{ steps.find-hxe.outputs.TAG }};
+          IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
           DOCKER_BUILDKIT=1 docker build -t $IMAGE_ID:$TAG ./etc/hxe;
           docker push $IMAGE_ID:$TAG;
@@ -85,6 +87,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
           TAG=${{ steps.find-hxe.outputs.TAG }};
+          IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
           { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
 
       # testing
