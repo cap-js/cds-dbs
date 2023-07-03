@@ -14,6 +14,9 @@
 
 ### Fixed
 
+- Paths addressing a column of the query via `$self.<column>` in `group by` / `order by`, `having` or `where`
+  are now correctly substituted.
+
 ### Removed
 
 ## Version 1.0.0 - 2023-06-23

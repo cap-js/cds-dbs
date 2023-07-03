@@ -249,6 +249,86 @@ describe('table alias access', () => {
       42 as selfVal
     }`)
     })
+    it('late replace join relevant paths', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            Authors.name as author,
+            $self.book as dollarSelfBook,
+            books.title as book,
+          } group by $self.book
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+          Authors.name as author,
+          books.title as dollarSelfBook,
+          books.title as book
+        } group by books.title
+       `,
+      )
+    })
+    it('in aggregation', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+            years_between(dateOfBirth, dateOfDeath) as age
+          }
+          group by $self.author, $self.xpr
+          order by $self.author, $self.xpr
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+          years_between(Authors.dateOfBirth, Authors.dateOfDeath) as age
+        }
+        group by Authors.name, 1+1
+        order by Authors.name, 1+1
+       `,
+      )
+    })
+    it('in having', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          having $self.xpr = 2
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        having (1+1) = 2
+       `,
+      )
+    })
+    it('in where', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          where 2 / $self.xpr = 1
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        where 2 / (1+1) = 1
+       `,
+      )
+    })
   })
 
   describe('in ORDER BY', () => {
