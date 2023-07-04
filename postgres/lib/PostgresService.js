@@ -423,7 +423,7 @@ class PostgresService extends SQLService {
     }
   }
 
-  async tenant({ database, tenant }) {
+  async tenant({ database, tenant }, clean = false) {
     const creds = {
       database: database,
       usergroup: `${database}_USERS`,
@@ -433,18 +433,20 @@ class PostgresService extends SQLService {
     creds.password = creds.user
 
     try {
-      await this.tx(async tx => {
-        // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
-        await tx
-          .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
-          .catch(e => {
-            if (e.code === '42710') return
-            throw e
-          })
-      })
-      await this.tx(async tx => {
-        await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
-      })
+      if (!clean) {
+        await this.tx(async tx => {
+          // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
+          await tx
+            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+            .catch(e => {
+              if (e.code === '42710') return
+              throw e
+            })
+        })
+        await this.tx(async tx => {
+          await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+        })
+      }
 
       // Update credentials to new Schema owner
       await this.disconnect()
@@ -453,7 +455,7 @@ class PostgresService extends SQLService {
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
       })
     } finally {
       await this.disconnect()
