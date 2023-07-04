@@ -964,15 +964,17 @@ class HANAService extends SQLService {
         throw new Error(`Failed to initialize database:\n${errors.join('\n')}`)
       }
     } finally {
-      // Release table lock
-      await this.onCOMMIT()
+      if (this.dbc) {
+        // Release table lock
+        await this.onCOMMIT()
 
-      await this.dbc.disconnect()
-      delete this.dbc
+        await this.dbc.disconnect()
+        delete this.dbc
 
-      // Update credentials to new Database owner
-      await this.disconnect()
-      this.options.credentials = Object.assign({}, this.options.credentials, creds, { sys: this.options.credentials })
+        // Update credentials to new Database owner
+        await this.disconnect()
+        this.options.credentials = Object.assign({}, this.options.credentials, creds, { sys: this.options.credentials })
+      }
     }
   }
 
