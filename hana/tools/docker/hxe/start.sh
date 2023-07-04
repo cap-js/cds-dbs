@@ -5,5 +5,5 @@ if [ $exists ]; then
 else
     export VERSION=$(node ./latest.js);
     docker-compose -f hana.yml up -d;
-    ./ready.sh;
 fi
+./ready.sh;
