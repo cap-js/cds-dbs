@@ -10,6 +10,13 @@ class HDBDriver extends driver {
    * @param {import('./base').Credentials} creds The credentials for the HDBDriver instance
    */
   constructor(creds) {
+    creds = {
+      useCesu8: false,
+      rejectUnauthorized: !!creds.sslValidateCertificate,
+      fetchSize: 1 << 16, // V8 default memory page size
+      useTLS: creds.useTLS || creds.encrypt,
+      ...creds,
+    }
     super(creds)
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
