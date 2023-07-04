@@ -101,7 +101,6 @@ class HANAService extends SQLService {
       sql = this.wrapTemporary(temporary, blobs)
     }
     const ps = await this.prepare(sql)
-    debugger
     const stream = await ps.stream(values, cqn.SELECT?.one)
     if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
     return stream
