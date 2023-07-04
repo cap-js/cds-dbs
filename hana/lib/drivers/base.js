@@ -101,7 +101,15 @@ class HANADriver {
    */
   async connect() {
     this.connected = prom(this._native, 'connect')(this._creds)
-    return this.connected
+    return this.connected.then(async () => {
+      const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
+      const split = version[0].VERSION.split('.')
+      this.server = {
+        major: split[0],
+        minor: split[2],
+        patch: split[3],
+      }
+    })
   }
 
   /**

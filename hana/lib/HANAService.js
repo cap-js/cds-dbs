@@ -7,6 +7,7 @@ const cds = require('@sap/cds')
 const collations = require('./collations.json')
 
 const DEBUG = cds.debug('sql|db')
+let HANAVERSION = null
 
 /**
  * @implements SQLService
@@ -33,6 +34,7 @@ class HANAService extends SQLService {
         const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
         const dbc = new driver(this.options.credentials)
         await dbc.connect()
+        HANAVERSION = dbc.server.major
         return dbc
       },
       error: (err /*, tenant*/) => {
@@ -565,11 +567,34 @@ class HANAService extends SQLService {
       // JSON_TABLE([[1],[2],[3]],'$') flattens the nested arrays making it impossible to define the path as '$[n]`
       // even with STRICT path syntax it still flattens the nested arrays
       // Therefor the rows are stringified making q.INSERT.entries the preferred format for inserting
-      this.entries = [[JSON.stringify(INSERT.rows.map(r => JSON.stringify(r)))]]
+      if (HANAVERSION <= 2) {
+        // HANA Express does not process large JSON documents
+        // The limit is somewhere between 64KB and 128KB
+        // The for this splits up the JSON document into smaller chunks
+        this.entries = []
+        let cur = ['[']
+        this.entries.push(cur)
+        INSERT.rows
+          .map(r => JSON.stringify(JSON.stringify(r)))
+          .forEach(r => {
+            if (cur[0].length > 65535) {
+              cur[0] += ']'
+              cur = ['[']
+              this.entries.push(cur)
+            } else if (cur[0].length > 1) {
+              cur[0] += ','
+            }
+            cur[0] += r
+          })
+        cur[0] += ']'
+      } else {
+        this.entries = [[JSON.stringify(INSERT.rows.map(r => JSON.stringify(r)))]]
+      }
 
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
-      )}) SELECT ${converter} FROM JSON_TABLE(?, '$' COLUMNS(JSON NVARCHAR(2147483647) PATH '$'))`)
+      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(JSON NVARCHAR(2147483647) PATH '$'))`)
     }
 
     UPSERT(q) {
@@ -890,7 +915,7 @@ class HANAService extends SQLService {
   async onPlainSQL(req, next) {
     // HANA does not support IF EXISTS there for it is removed and the error codes are accepted
     if (/ IF EXISTS /i.test(req.query)) {
-      req.query = req.query.replace(/ IF EXISTS/i, '')
+      req.query = req.query.replace(/ IF EXISTS/gi, '')
       try {
         return await super.onPlainSQL(req, next)
       } catch (err) {
