@@ -44,6 +44,11 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
         // REVISIT: Add additional connection error scenarios
+        try {
+          cds.error(err)
+        } finally {
+          cds.exit(1)
+        }
       },
       destroy: dbc => dbc.disconnect(),
       validate: (/*dbc*/) => true,
@@ -96,6 +101,7 @@ class HANAService extends SQLService {
       sql = this.wrapTemporary(temporary, blobs)
     }
     const ps = await this.prepare(sql)
+    debugger
     const stream = await ps.stream(values, cqn.SELECT?.one)
     if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
     return stream
