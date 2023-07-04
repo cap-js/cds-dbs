@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CDS database service for Postgres",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -24,7 +24,7 @@
     "test": "npm run setup && jest --silent"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1",
+    "@cap-js/db-service": "^1.0.1",
     "pg": "^8"
   },
   "peerDependencies": {
