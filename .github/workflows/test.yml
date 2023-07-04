@@ -87,7 +87,8 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
           TAG=${{ steps.find-hxe.outputs.TAG }};
           IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
-          { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
+          docker pull $IMAGE_ID:$TAG;
+          docker tag $IMAGE_ID:$TAG hanaexpress:current;
 
       # testing
       # - run: npm run test:all
