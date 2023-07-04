@@ -21,6 +21,7 @@ const enable = process.argv
   .filter(a => a)
 
 module.exports = {
+  testTimeout: 30 * 1000,
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context

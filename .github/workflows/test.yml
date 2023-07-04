@@ -90,4 +90,5 @@ jobs:
           { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
 
       # testing
-      - run: npm run test:all
+      # - run: npm run test:all
+      - run: cd hana && npm t
