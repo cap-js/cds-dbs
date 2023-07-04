@@ -1,3 +1,3 @@
 describe('hana', () => {
-  require('../../test/compliance/CREATE.test')
+  require('../../test')
 })
