@@ -35,6 +35,14 @@ class HANAService extends SQLService {
         await dbc.connect()
         return dbc
       },
+      error: (err /*, tenant*/) => {
+        // Check whether the connection error was an authentication error
+        if (err.code === 10) {
+          // REVISIT: Refresh the credentials when possible
+          cds.exit(1)
+        }
+        // REVISIT: Add additional connection error scenarios
+      },
       destroy: dbc => dbc.disconnect(),
       validate: (/*dbc*/) => true,
     }

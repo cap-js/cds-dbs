@@ -6,6 +6,10 @@ const { Readable } = require('stream')
 function Pool(factory, tenant) {
   const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
   pool._trackedConnections = []
+  pool.on('factoryCreateError', e => {
+    if (typeof factory.error === 'function') return factory.error(e, tenant)
+    cds.error`Failed to create database connection for tenant "${tenant}":\n${e.stack || e}`
+  })
   return pool
 }
 const { createPool } = require('@sap/cds-foss').pool
@@ -52,11 +56,6 @@ class DatabaseService extends cds.Service {
     const connections = pool._trackedConnections
     let dbc
     try {
-      pool.on('factoryCreateError', e => {
-        console.error(e.stack)
-        cds.error`Failed to create database connection for tenant ${tenant}:\n${e.stack || e}`
-        process.exit(1)
-      })
       dbc = this.dbc = await pool.acquire()
     } catch (err) {
       // TODO: add acquire timeout error check
