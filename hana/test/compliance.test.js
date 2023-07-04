@@ -1,3 +1,5 @@
 describe('hana', () => {
-  require('../../test')
+  require('../../test/compliance')
+  require('../../test/scenarios/bookshop')
+  require('../../test/scenarios/sflight/read.test')
 })
