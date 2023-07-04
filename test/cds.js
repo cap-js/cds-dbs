@@ -57,6 +57,8 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   const cds = ret.cds
 
+  let isolate = null
+
   ret.data.isolate =
     ret.data.isolate ||
     async function (db) {
@@ -68,7 +70,7 @@ module.exports.test = Object.setPrototypeOf(function () {
         const hash = createHash('sha1')
         const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
         hash.update(isolateName)
-        const isolate = {
+        isolate = {
           // Create one database for each overall test execution
           database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
           // Create one tenant for each test suite
@@ -101,6 +103,10 @@ module.exports.test = Object.setPrototypeOf(function () {
   })
 
   global.after(async () => {
+    if (cds.db && isolate) {
+      await cds.db.tenant(isolate, true)
+    }
+
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
