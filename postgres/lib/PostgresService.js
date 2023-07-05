@@ -20,7 +20,7 @@ class PostgresService extends SQLService {
         ...this.options.pool,
         min: 0,
         testOnBorrow: true,
-        acquireTimeoutMillis: 1000,
+        acquireTimeoutMillis: (this.options.pool && this.options.pool.acquireTimeoutMillis ) ? this.options.pool.acquireTimeoutMillis:1000,
         destroyTimeoutMillis: 1000,
       },
       create: async () => {
