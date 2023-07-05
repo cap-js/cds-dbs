@@ -275,7 +275,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       inferElementsFromWildCard(aliases)
     } else {
       let wildcardSelect = false
-      const refs = []
+      const dollarSelfRefs = []
       columns.forEach(col => {
         if (col === '*') {
           wildcardSelect = true
@@ -294,24 +294,24 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           }
           setElementOnColumns(col, queryElements[as])
         } else if (col.ref) {
-          refs.push(col)
+          const firstStepIsTableAlias =
+            (col.ref.length > 1 && col.ref[0] in sources) ||
+            // nested projection on table alias
+            (col.ref.length === 1 && col.ref[0] in sources && col.inline)
+          const firstStepIsSelf =
+            !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
+          // we must handle $self references after the query elements have been calculated
+          if (firstStepIsSelf) dollarSelfRefs.push(col)
+          else handleRef(col)
         } else if (col.expand) {
           inferQueryElement(col)
         } else {
           throw cds.error`Not supported: ${JSON.stringify(col)}`
         }
       })
-      refs.forEach(col => {
-        inferQueryElement(col)
-        const { definition } = col.$refLinks[col.$refLinks.length - 1]
-        if (col.cast)
-          // final type overwritten -> element not visible anymore
-          setElementOnColumns(col, getElementForCast(col))
-        else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
-          // shortcut to $user.id
-          setElementOnColumns(col, queryElements[col.as || '$user'])
-        else setElementOnColumns(col, definition)
-      })
+
+      if (dollarSelfRefs.length) inferDollarSelfRefs(dollarSelfRefs)
+
       if (wildcardSelect) inferElementsFromWildCard(aliases)
     }
     if (orderBy) {
@@ -358,6 +358,54 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
 
     return queryElements
+
+    /**
+     * Processes references starting with `$self`, which are intended to target other query elements.
+     * These `$self` paths must be handled after processing the "regular" columns since they are dependent on other query elements.
+     *
+     * This function checks for `$self` references that may target other `$self` columns, and delays their processing.
+     * `$self` references not targeting other `$self` references are handled by the generic `handleRef` function immediately.
+     *
+     * @param {array} dollarSelfColumns - An array of column objects containing `$self` references.
+     */
+    function inferDollarSelfRefs(dollarSelfColumns) {
+      do {
+        const unprocessedColumns = []
+
+        for (const currentDollarSelfColumn of dollarSelfColumns) {
+          const { ref } = currentDollarSelfColumn
+          const stepToFind = ref[1]
+
+          const referencesOtherDollarSelfColumn = dollarSelfColumns.find(
+            otherDollarSelfCol =>
+              otherDollarSelfCol !== currentDollarSelfColumn &&
+              (otherDollarSelfCol.as
+                ? stepToFind === otherDollarSelfCol.as
+                : stepToFind === otherDollarSelfCol.ref?.[otherDollarSelfCol.ref.length - 1]),
+          )
+
+          if (referencesOtherDollarSelfColumn) {
+            unprocessedColumns.push(currentDollarSelfColumn)
+          } else {
+            handleRef(currentDollarSelfColumn)
+          }
+        }
+
+        dollarSelfColumns = unprocessedColumns
+      } while (dollarSelfColumns.length > 0)
+    }
+
+    function handleRef(col) {
+      inferQueryElement(col)
+      const { definition } = col.$refLinks[col.$refLinks.length - 1]
+      if (col.cast)
+        // final type overwritten -> element not visible anymore
+        setElementOnColumns(col, getElementForCast(col))
+      else if ((col.ref.length === 1) & (col.ref[0] === '$user'))
+        // shortcut to $user.id
+        setElementOnColumns(col, queryElements[col.as || '$user'])
+      else setElementOnColumns(col, definition)
+    }
 
     /**
      * This function is responsible for inferring a query element based on a provided column.
@@ -477,7 +525,17 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         } else {
           const { definition } = column.$refLinks[i - 1]
           const elements = definition.elements || definition._target?.elements
-          if (elements && id in elements) {
+          const element = elements?.[id]
+
+          if (firstStepIsSelf && element?.isAssociation) {
+            throw cds.error(
+              `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ ${column.ref.map(
+                idOnly,
+              )} ]`,
+            )
+          }
+
+          if (element) {
             const $refLink = { definition: elements[id], target: column.$refLinks[i - 1].target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -504,7 +562,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             : null
           if (foreignKeyAlias) nameSegments.push(foreignKeyAlias)
           else if (skipAliasedFkSegmentsOfNameStack[0] === id) skipAliasedFkSegmentsOfNameStack.shift()
-          else nameSegments.push(id)
+          else {
+            nameSegments.push(firstStepIsSelf && i === 1 ? element.__proto__.name : id)
+          }
         }
 
         if (step.where) {
@@ -586,7 +646,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
       const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
-      if (!inExists && !virtual && isColumnJoinRelevant(column)) {
+      if (!inExists && !virtual && isColumnJoinRelevant(column, firstStepIsSelf)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
       }
@@ -760,7 +820,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
       if (!assoc) return false
       if (fkAccess) return false
-      else return true
+      return true
     }
 
     /**
@@ -770,7 +830,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function inferElementsFromWildCard() {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
-        queryElements = sources[aliases[0]].elements
+        Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
+          if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+        })
         return
       }
 
@@ -782,8 +844,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return ambiguousElements[name]
         }
         if (exclude(name) || name in queryElements) return true
-        queryElements[name] = tableAliases[0].tableAlias.elements[name]
-        return queryElements[name]
+        const element = tableAliases[0].tableAlias.elements[name]
+        if (element.type !== 'cds.LargeBinary') queryElements[name] = element
       })
 
       if (Object.keys(ambiguousElements).length > 0) throwAmbiguousWildcardError()

@@ -301,15 +301,24 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getTransformedColumns(columns) {
     const transformedColumns = []
-
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
       if (col.expand) {
+        if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
+          continue
+        }
         handleExpand(col)
       } else if (col.inline) {
         handleInline(col)
       } else if (col.ref) {
+        if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
+          continue
+        }
         handleRef(col)
       } else if (col === '*') {
         handleWildcard(columns)
@@ -347,26 +356,26 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         return
       }
 
-      const tableAliasName = getQuerySourceName(col)
+      const tableAlias = getQuerySourceName(col)
       // re-adjust usage of implicit alias in subquery
-      if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAliasName) {
-        col.ref[0] = tableAliasName
+      if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAlias) {
+        col.ref[0] = tableAlias
       }
       const leaf = col.$refLinks[col.$refLinks.length - 1].definition
       if (leaf.virtual === true) return
 
       let baseName
       if (col.ref.length >= 2) {
-        baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
+        baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
       }
 
       let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
-      const refNavigation = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0).join('_')
+      const refNavigation = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
-      const flatColumns = getFlatColumnsFor(col, baseName, columnAlias, tableAliasName)
+      const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
         const { as } = flatColumn
         if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
@@ -391,7 +400,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      Object.defineProperty(transformedColumn, 'element', { value: originalQuery.elements[col.as] })
+      setElementOnColumns(transformedColumn, originalQuery.elements[col.as])
     }
 
     function getTransformedColumn(col) {
@@ -421,6 +430,64 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function handleEmptyColumns(columns) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
+    }
+  }
+
+  /**
+   * This function resolves a `ref` starting with a `$self`.
+   * Such a path targets another element of the query by it's implicit, or explicit alias.
+   *
+   * A `$self` reference may also target another `$self` path. In this case, this function
+   * recursively resolves the tail of the `$self` references (`$selfPath.ref.slice(2)`) onto it's
+   * new base.
+   *
+   * @param {object} col with a ref like `[ '$self', <target column>, <optional further path navigation> ]`
+   * @param {boolean} omitAlias if we replace a $self reference in an aggregation or a token stream, we must not add an "as" to the result
+   */
+  function calculateDollarSelfColumn(col, omitAlias = false) {
+    const dummyColumn = buildDummyColumnForDollarSelf({ ...col }, col.$refLinks)
+
+    return dummyColumn
+
+    function buildDummyColumnForDollarSelf(dollarSelfColumn, $refLinks) {
+      const { ref, as } = dollarSelfColumn
+      const stepToFind = ref[1]
+      let referencedColumn = inferred.SELECT.columns.find(
+        otherColumn =>
+          otherColumn !== dollarSelfColumn &&
+          (otherColumn.as
+            ? stepToFind === otherColumn.as
+            : stepToFind === otherColumn.ref?.[otherColumn.ref.length - 1]),
+      )
+      if (referencedColumn.ref?.[0] === '$self') {
+        referencedColumn = buildDummyColumnForDollarSelf({ ...referencedColumn }, referencedColumn.$refLinks)
+      }
+
+      if (referencedColumn.ref) {
+        dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
+        Object.defineProperties(dollarSelfColumn, {
+          flatName: {
+            value: dollarSelfColumn.ref.join('_'),
+          },
+          isJoinRelevant: {
+            value: referencedColumn.isJoinRelevant,
+          },
+          $refLinks: {
+            value: [...referencedColumn.$refLinks, ...$refLinks.slice(2)],
+          },
+        })
+      } else {
+        // target column is `val` or `xpr`, destructure and throw away the ref with the $self
+        // eslint-disable-next-line no-unused-vars
+        const { xpr, val, ref, as: _as, ...rest } = referencedColumn
+        if (xpr) rest.xpr = xpr
+        else rest.val = val
+        dollarSelfColumn = { ...rest } // reassign dummyColumn without 'ref'
+        if (!omitAlias) dollarSelfColumn.as = as
+      }
+      return dollarSelfColumn.ref?.[0] === '$self'
+        ? buildDummyColumnForDollarSelf({ ...dollarSelfColumn }, $refLinks)
+        : dollarSelfColumn
     }
   }
 
@@ -504,10 +571,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const res = []
     // everything before the wildcard is inserted before the wildcard
     // and ignored from the wildcard expansion
-    const excludeFromExpansion = col[prop].slice(0, wildcardIndex)
+    const exclude = col[prop].slice(0, wildcardIndex)
     // everything after the wildcard, is a potential replacement
     // in the wildcard expansion
-    const replaceInExpansion = []
+    const replace = []
     // we need to absolutefy the refs
     col[prop].slice(wildcardIndex + 1).forEach(c => {
       const fakeColumn = { ...c }
@@ -515,7 +582,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         fakeColumn.ref = [...col.ref, ...fakeColumn.ref]
         fakeColumn.$refLinks = [...col.$refLinks, ...c.$refLinks]
       }
-      replaceInExpansion.push(fakeColumn)
+      replace.push(fakeColumn)
     })
     // respect excluding clause
     if (col.excluding) {
@@ -524,15 +591,18 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         const fakeColumn = {
           ref: [...col.ref, c],
         }
-        excludeFromExpansion.push(fakeColumn)
+        exclude.push(fakeColumn)
       })
     }
 
     if (col.$refLinks[col.$refLinks.length - 1].definition.kind === 'entity')
-      res.push(...getColumnsForWildcard(excludeFromExpansion, replaceInExpansion))
+      res.push(...getColumnsForWildcard(exclude, replace))
     else
       res.push(
-        ...getFlatColumnsFor(col, null, col.as, getQuerySourceName(col), [], excludeFromExpansion, replaceInExpansion),
+        ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getQuerySourceName(col) }, [], {
+          exclude,
+          replace,
+        }),
       )
     return res
   }
@@ -619,7 +689,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', { value: subquery.elements })
+    Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
     return correlated
 
     function _correlate(subq, outer) {
@@ -668,16 +738,21 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         res.push({ ...col })
       } else if (col.ref) {
         if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
+        if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
+          const dollarSelfReplacement = calculateDollarSelfColumn(col)
+          res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
+          continue
+        }
         const { target } = col.$refLinks[0]
-        const tableAliasName = target.SELECT ? null : getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
+        const tableAlias = target.SELECT ? null : getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition
         if (leaf.virtual === true) continue // already in getFlatColumnForElement
         let baseName
         if (col.ref.length >= 2) {
           // leaf might be intermediate structure
-          baseName = col.ref.slice(col.ref[0] === tableAliasName ? 1 : 0, col.ref.length - 1).join('_')
+          baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
         }
-        const flatColumns = getFlatColumnsFor(col, baseName, null, tableAliasName)
+        const flatColumns = getFlatColumnsFor(col, { baseName, tableAlias })
         /**
          * We can't guarantee that the element order will NOT change in the future.
          * We claim that the element order doesn't matter, hence we can't allow elements
@@ -736,26 +811,31 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * Furthermore, foreign keys (FK) for OData CSN and blobs are excluded from the wildcard expansion.
    *
-   * @param {Array} except - An optional list of columns to be excluded during the wildcard expansion.
+   * @param {Array} exclude - An optional list of columns to be excluded during the wildcard expansion.
    * @param {Array} replace - An optional list of columns to replace during the wildcard expansion.
    *
    * @returns {Array} Returns an array of explicit columns derived from the wildcard.
    */
-  function getColumnsForWildcard(except = [], replace = []) {
+  function getColumnsForWildcard(exclude = [], replace = []) {
     const wildcardColumns = []
     Object.keys(inferred.$combinedElements).forEach(k => {
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
       // ignore FK for odata csn / ignore blobs from wildcard expansion
       if (isODataFlatForeignKey(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
-      const flatColumns = getFlatColumnsFor(element, null, null, index, [], except, replace)
-      wildcardColumns.push(...flatColumns)
+      // for wildcard on subquery in from, just reference the elements
+      if (tableAlias.SELECT && !element.elements && !element.target) {
+        wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
+      } else {
+        const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
+        wildcardColumns.push(...flatColumns)
+      }
     })
     return wildcardColumns
 
     /**
      * HACK for odata csn input - foreign keys are already part of the elements in this csn flavor
-     * not excluding them from the wilcard columns would cause duplicate columns upon foreign key expansion
+     * not excluding them from the wildcard columns would cause duplicate columns upon foreign key expansion
      * @param {CSN.element} e
      * @returns {boolean} true if the element is a flat foreign key generated by the compiler
      */
@@ -800,21 +880,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * @returns {object[]} Returns an array of flat column(s) for the given element.
    */
-  function getFlatColumnsFor(
-    column,
-    baseName = null,
-    columnAlias = null,
-    tableAlias = null,
-    csnPath = [],
-    exclude = [],
-    replace = [],
-  ) {
+  function getFlatColumnsFor(column, names, csnPath = [], excludeAndReplace, isWildcard = false) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
+    let { baseName, columnAlias, tableAlias } = names
+    const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
+    if (isWildcard && element.type === 'cds.LargeBinary') return []
     if (element.on) return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
@@ -833,7 +908,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     // it could be a structure, an association or a scalar
     // check if the column shall be skipped
     // e.g. for wildcard elements which have been overwritten before
-    if (getReplacement(exclude)) return []
+    if (exclude && getReplacement(exclude)) return []
     const replacedBy = getReplacement(replace)
     if (replacedBy) {
       // the replacement alias is the baseName of the flat structure
@@ -848,7 +923,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
-      return getFlatColumnsFor(replacedBy, baseName, replacedBy.as, tableAlias, csnPath)
+      return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
     }
 
     csnPath.push(element.name)
@@ -873,12 +948,26 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 : `${fk.ref.join('_')}_${e.name}`
               alias = `${columnAlias}_${fkName}`
             }
-            flatColumns.push(...getFlatColumnsFor(e, fkBaseName, alias, tableAlias, [...fkPath], exclude, replace))
+            flatColumns.push(
+              ...getFlatColumnsFor(
+                e,
+                { baseName: fkBaseName, columnAlias: alias, tableAlias },
+                [...fkPath],
+                excludeAndReplace,
+                isWildcard,
+              ),
+            )
           })
         } else if (fkElement.isAssociation) {
           // assoc as key
           flatColumns.push(
-            ...getFlatColumnsFor(fkElement, baseName, columnAlias, tableAlias, csnPath, exclude, replace),
+            ...getFlatColumnsFor(
+              fkElement,
+              { baseName, columnAlias, tableAlias },
+              csnPath,
+              excludeAndReplace,
+              isWildcard,
+            ),
           )
         } else {
           // leaf reached
@@ -886,8 +975,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
           else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
-          Object.defineProperty(flatColumn, 'element', { value: fkElement })
-          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath })
+
+          setElementOnColumns(flatColumn, fkElement)
+          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
           flatColumns.push(flatColumn)
         }
       })
@@ -896,7 +986,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const flatRefs = []
       Object.values(element.elements).forEach(e => {
         const alias = columnAlias ? `${columnAlias}_${e.name}` : null
-        flatRefs.push(...getFlatColumnsFor(e, baseName, alias, tableAlias, [...csnPath], exclude, replace))
+        flatRefs.push(
+          ...getFlatColumnsFor(
+            e,
+            { baseName, columnAlias: alias, tableAlias },
+            [...csnPath],
+            excludeAndReplace,
+            isWildcard,
+          ),
+        )
       })
       return flatRefs
     }
@@ -909,12 +1007,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
-    Object.defineProperty(flatRef, 'element', { value: element })
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath })
+    setElementOnColumns(flatRef, element)
+    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
     return [flatRef]
 
     function getReplacement(from) {
-      return from.find(replacement => {
+      return from?.find(replacement => {
         const nameOfExcludedColumn = replacement.as || replacement.ref?.[replacement.ref.length - 1] || replacement
         return nameOfExcludedColumn === element.name
       })
@@ -937,11 +1035,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {object[]} - The transformed token stream.
    */
   function getTransformedTokenStream(tokenStream, $baseLink = null) {
-    const transformedWhere = []
+    const transformedTokenStream = []
     for (let i = 0; i < tokenStream.length; i++) {
       const token = tokenStream[i]
       if (token === 'exists') {
-        transformedWhere.push(token)
+        transformedTokenStream.push(token)
         const whereExistsSubSelects = []
         const { ref, $refLinks } = tokenStream[i + 1]
         if (!ref) continue
@@ -983,7 +1081,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
-        transformedWhere[i + 1] = whereExists
+        transformedTokenStream[i + 1] = whereExists
         // skip newly created subquery from being iterated
         i += 1
       } else if (token.list) {
@@ -996,14 +1094,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             typeof precedingTwoTokens[1] === 'string' ? precedingTwoTokens[1].toLowerCase() : ''
 
           if (firstPrecedingToken === 'not') {
-            transformedWhere.splice(i - 2, 2, 'is', 'not', 'null')
+            transformedTokenStream.splice(i - 2, 2, 'is', 'not', 'null')
           } else if (secondPrecedingToken === 'in') {
-            transformedWhere.splice(i - 1, 1, '=', { val: null })
+            transformedTokenStream.splice(i - 1, 1, '=', { val: null })
           } else {
-            transformedWhere.push({ list: [] })
+            transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedWhere.push({ list: getTransformedTokenStream(token.list) })
+          transformedTokenStream.push({ list: getTransformedTokenStream(token.list) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1015,18 +1113,18 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           // up__ID already part of inner where exists, no need to add it explicitly here
           .filter(k => k !== backlinkFor($baseLink.definition)?.[0])
           .forEach(v => {
-            flatKeys.push(...getFlatColumnsFor(v, null, null, $baseLink.alias))
+            flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           })
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
-          transformedWhere.push(...kv) && keyValComparisons[j + 1] ? transformedWhere.push('and') : null,
+          transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
         )
       } else if (token.ref && token.param) {
-        transformedWhere.push({ ...token })
+        transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
-        transformedWhere.push({ ...token })
+        transformedTokenStream.push({ ...token })
       } else {
         // expand `struct = null | struct2`
         const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
@@ -1050,7 +1148,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               cds.error(`The operator "${next}" is not supported for structure comparison`)
             const newTokens = expandComparison(token, ops, rhs)
             const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
-            transformedWhere.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
+            transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
             i = indexRhs // jump to next relevant index
           }
         } else {
@@ -1059,13 +1157,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
+            if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
+              const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
+              transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
+              continue
+            }
             const tableAlias = getQuerySourceName(token, $baseLink)
             if (!$baseLink && token.isJoinRelevant) {
-              // t.push(...flatColumns)
               result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
-            } else {
-              // revisit: can we get rid of flatName?
+            } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
+            } else {
+              // if there is no table alias, we might select from an anonymous subquery
+              result.ref = [token.flatName]
             }
           } else if (token.SELECT) {
             result = transformSubquery(token)
@@ -1080,11 +1184,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             })
           }
 
-          transformedWhere.push(result)
+          transformedTokenStream.push(result)
         }
       }
     }
-    return transformedWhere
+    return transformedTokenStream
   }
 
   /**
@@ -1161,8 +1265,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const tableAlias = getQuerySourceName(def, def.ref.length > 1 && first.definition.isAssociation ? first : null)
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
-        return getFlatColumnsFor(leaf.definition, def.ref.slice(0, def.ref.length - 1).join('_'), null, tableAlias)
-      return getFlatColumnsFor(leaf.definition, null, null, tableAlias)
+        return getFlatColumnsFor(leaf.definition, {
+          baseName: def.ref.slice(0, def.ref.length - 1).join('_'),
+          tableAlias,
+        })
+      return getFlatColumnsFor(leaf.definition, { tableAlias })
     }
   }
 
@@ -1573,9 +1680,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       keys.forEach(fk => {
         const { ref, as } = fk
         const elem = getElementForRef(ref, _target) // find the element (the target element of the foreign key) in the target of the (backlink) association
-        const flatParentKeys = getFlatColumnsFor(elem, ref.slice(0, ref.length - 1).join('_')) // it might be a structured element, so expand it into the full parent key tuple
+        const flatParentKeys = getFlatColumnsFor(elem, { baseName: ref.slice(0, ref.length - 1).join('_') }) // it might be a structured element, so expand it into the full parent key tuple
         const flatAssociationName = getFullName(backlink || assoc) // get the name of the (backlink) association
-        const flatForeignKeys = getFlatColumnsFor(elem, flatAssociationName, as) // the name of the (backlink) association is the base of the foreign key tuple, also respect aliased fk.
+        const flatForeignKeys = getFlatColumnsFor(elem, { baseName: flatAssociationName, columnAlias: as }) // the name of the (backlink) association is the base of the foreign key tuple, also respect aliased fk.
 
         for (let i = 0; i < flatForeignKeys.length; i++) {
           if (flipSourceAndTarget) {
@@ -1768,7 +1875,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getCombinedElementAlias(node) {
-      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]][0].index)
+      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index)
     }
   }
 }
@@ -1811,6 +1918,19 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+/**
+ * Assigns the given `element` as non-enumerable property 'element' onto `col`.
+ *
+ * @param {object} col
+ * @param {csn.Element} element
+ */
+function setElementOnColumns(col, element) {
+  Object.defineProperty(col, 'element', {
+    value: element,
+    writable: true,
+  })
 }
 
 const idOnly = ref => ref.id || ref

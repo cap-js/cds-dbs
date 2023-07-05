@@ -167,6 +167,20 @@ describe('wildcard expansion and exclude clause', () => {
     )
   })
 
+  it('inline wildcard does not ignore large binaries', () => {
+    let inlineWildcard = CQL`select from bookshop.Books.twin as Books {
+      ID,
+      struct.{ * }
+    }`
+
+    expect(cqn4sql(inlineWildcard, model)).to.deep.equal(
+      CQL`select from bookshop.Books.twin as Books {
+        Books.ID,
+        Books.struct_deepImage
+      }`,
+    )
+  })
+
   it('MUST transform wildcard into explicit column refs (1)', () => {
     const input = CQL`SELECT from bookshop.Bar { * }`
     const inputClone = JSON.parse(JSON.stringify(input))
