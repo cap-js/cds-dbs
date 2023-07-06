@@ -32,7 +32,7 @@ Subsequent deployments can then re-use the standard deploy mechanism via `$> cds
 
 The above "csn-snapshots" can be implemented via the `mtar`-based approach. At the same time, the same `mtar` can be used for subsequent PostgreSQL deployments (with schema evolution).
 
-Two major steps in addition to enabling the schema evoluation are included in this `mtar`.
+Two major steps in addition to enabling the schema evolution are included in this `mtar`.
 
 1. create local folder `deployer` (any name works)
 2. in `deployer`, create a `package.json` containing
