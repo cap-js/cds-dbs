@@ -21,7 +21,7 @@ class PostgresService extends SQLService {
         testOnBorrow: true,
         acquireTimeoutMillis: 1000,
         destroyTimeoutMillis: 1000,
-        ...this.options.pool
+        ...this.options.pool,
       },
       create: async () => {
         const cr = this.options.credentials || {}
