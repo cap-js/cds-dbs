@@ -17,11 +17,11 @@ class PostgresService extends SQLService {
   get factory() {
     return {
       options: {
-        ...this.options.pool,
         min: 0,
         testOnBorrow: true,
-        acquireTimeoutMillis: (this.options.pool && this.options.pool.acquireTimeoutMillis ) ? this.options.pool.acquireTimeoutMillis:1000,
+        acquireTimeoutMillis: 1000,
         destroyTimeoutMillis: 1000,
+        ...this.options.pool
       },
       create: async () => {
         const cr = this.options.credentials || {}
