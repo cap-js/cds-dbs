@@ -4,10 +4,9 @@ const { Readable } = require('stream')
 
 cds.test(__dirname, 'model.cds')
 
-const readStream = (id, done) => {
-  const { Images } = cds.entities('test')
+const readStream = (id, entity, done) => {
   const file = path.join(__dirname, 'samples/out.jpg')
-  STREAM.from(Images, { ID: id })
+  STREAM.from(entity, { ID: id })
     .column('data')
     .then(stream =>
       stream.pipe(
@@ -304,7 +303,7 @@ describe('new STREAM API', () => {
       .where({ ID: 1 })
       .then(async rowNum => {
         expect(rowNum).toEqual(1)
-        readStream(1, done)
+        readStream(1, Images, done)
       })
   })
 
@@ -317,7 +316,7 @@ describe('new STREAM API', () => {
       .data(stream)
       .then(async rowNum => {
         expect(rowNum).toEqual(1)
-        readStream(1, done)
+        readStream(1, Images, done)
       })
   })
 
@@ -330,7 +329,20 @@ describe('new STREAM API', () => {
       .data(stream)
       .then(async rowNum => {
         expect(rowNum).toEqual(1)
-        readStream(1, done)
+        readStream(1, Images, done)
+      })
+  })
+
+  test('WRITE stream property on view', done => {
+    const { ImagesView } = cds.entities('test')
+    const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+
+    STREAM.into(ImagesView, 1)
+      .column('renamedData')
+      .data(stream)
+      .then(async rowNum => {
+        expect(rowNum).toEqual(1)
+        readStream(1, ImagesView, done)
       })
   })
 
@@ -342,7 +354,7 @@ describe('new STREAM API', () => {
       .data(stream)
       .then(async rowNum => {
         expect(rowNum).toEqual(1)
-        readStream(1, done)
+        readStream(1, Images, done)
       })
   })
 
@@ -354,7 +366,7 @@ describe('new STREAM API', () => {
       .into(Images, 1, 'data')
       .then(async rowNum => {
         expect(rowNum).toEqual(1)
-        readStream(1, done)
+        readStream(1, Images, done)
       })
   })
 })
