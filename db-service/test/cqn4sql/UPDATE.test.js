@@ -110,8 +110,7 @@ describe('UPDATE', () => {
       },
     }
 
-    expect(JSON.stringify(query.UPDATE))
-      .to.deep.eql(JSON.stringify(expected.UPDATE))
+    expect(JSON.stringify(query.UPDATE)).to.deep.eql(JSON.stringify(expected.UPDATE))
   })
 
   // table alias in subquery should address Books instead of bookshop.Books

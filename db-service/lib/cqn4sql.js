@@ -77,7 +77,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       } else {
         if (from) {
           transformedProp.from = transformedFrom
-        } else if(!queryNeedsJoins) {
+        } else if (!queryNeedsJoins) {
           transformedProp.entity = transformedFrom
         }
 
