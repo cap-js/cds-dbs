@@ -70,6 +70,50 @@ describe('UPDATE', () => {
     })
   })
 
+  it('Update with join clause yields proper from clause', () => {
+    const { UPDATE } = cds.ql
+    let u = UPDATE.entity('bookshop.Books').where({ 'author.name': { LIKE: '%Bron%' } })
+    const query = cqn4sql(u)
+    const expected = {
+      UPDATE: {
+        where: [
+          {
+            ref: ['author', 'name'],
+          },
+          'LIKE',
+          {
+            val: '%Bron%',
+          },
+        ],
+        from: {
+          join: 'left',
+          args: [
+            {
+              ref: ['bookshop.Books'],
+              as: 'Books',
+            },
+            {
+              ref: ['bookshop.Authors'],
+              as: 'author',
+            },
+          ],
+          on: [
+            {
+              ref: ['author', 'ID'],
+            },
+            '=',
+            {
+              ref: ['Books', 'author_ID'],
+            },
+          ],
+        },
+      },
+    }
+
+    expect(JSON.stringify(query.UPDATE))
+      .to.deep.eql(JSON.stringify(expected.UPDATE))
+  })
+
   // table alias in subquery should address Books instead of bookshop.Books
   it('UPDATE with where exists expansion', () => {
     const { UPDATE } = cds.ql
