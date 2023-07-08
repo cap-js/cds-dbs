@@ -547,7 +547,7 @@ class HANAService extends SQLService {
         // Simple line splitting would be preferred, but batch execute does not work properly
         // Which makes sending every line separately much slower
         // this.entries = INSERT.entries.map(e => [JSON.stringify(e)])
-        
+
         this.entries = []
         let cur = ['[']
         this.entries.push(cur)
