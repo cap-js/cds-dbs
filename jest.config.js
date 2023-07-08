@@ -1,6 +1,3 @@
-// Currently has to be disabled before starting application (only required for node-hdb)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-
 // arguments that can be used to remove disabled tests
 // Mostly to allow all tests to run when using vscode jest plugin
 const enableMap = {
@@ -21,7 +18,7 @@ const enable = process.argv
   .filter(a => a)
 
 module.exports = {
-  testTimeout: 30 * 1000,
+  transform: {},
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context

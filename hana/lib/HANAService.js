@@ -7,7 +7,7 @@ const cds = require('@sap/cds')
 const collations = require('./collations.json')
 
 const DEBUG = cds.debug('sql|db')
-let HANAVERSION = null
+let HANAVERSION = 0
 
 /**
  * @implements SQLService
@@ -84,6 +84,20 @@ class HANAService extends SQLService {
     }
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
     return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] || null : rows
+  }
+
+  async onINSERT({ query, data }) {
+    // Using runBatch for HANA 2.0 and lower sometimes leads to integer underflow errors
+    // REVISIT: Address runBatch issues in node-hdb and hana-client
+    if (HANAVERSION <= 2) {
+      return super.onINSERT(...arguments)
+    }
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = entries ? await ps.runBatch(entries) : await ps.run()
+    return new this.class.InsertResults(cqn, results)
   }
 
   async onSTREAM(req) {
@@ -527,7 +541,32 @@ class HANAService extends SQLService {
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
-      this.entries = [[JSON.stringify(INSERT.entries)]]
+      // HANA Express does not process large JSON documents
+      // The limit is somewhere between 64KB and 128KB
+      if (HANAVERSION <= 2) {
+        // Simple line splitting would be preferred, but batch execute does not work properly
+        // Which makes sending every line separately much slower
+        // this.entries = INSERT.entries.map(e => [JSON.stringify(e)])
+        
+        this.entries = []
+        let cur = ['[']
+        this.entries.push(cur)
+        INSERT.entries
+          .map(r => JSON.stringify(r))
+          .forEach(r => {
+            if (cur[0].length > 65535) {
+              cur[0] += ']'
+              cur = ['[']
+              this.entries.push(cur)
+            } else if (cur[0].length > 1) {
+              cur[0] += ','
+            }
+            cur[0] += r
+          })
+        cur[0] += ']'
+      } else {
+        this.entries = [[JSON.stringify(INSERT.entries)]]
+      }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
       // Additionally for drivers that did allow for streaming of NVARCHAR they quickly reached size limits
@@ -543,63 +582,33 @@ class HANAService extends SQLService {
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
       )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$[*]' COLUMNS(${extraction}))`)
+      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}))`)
     }
 
     INSERT_rows(q) {
       const { INSERT } = q
-      // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
-      const elements = q.elements || q.target?.elements
-      if (!INSERT.columns && !elements) {
-        throw cds.error`Cannot insert rows without columns or elements`
-      }
-      let columns = INSERT.columns || (elements && ObjectKeys(elements))
-      if (elements) {
-        columns = columns.filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
-      }
-      this.columns = columns
 
-      const inputConverterKey = this.class._convertInput
-      const converter = columns.map((c, i) => {
-        const element = elements?.[c] || {}
-        const type = this.insertType4(element)
-        const extract = `CAST(JSON_VALUE(JSON, '$[${i}]') AS ${type})`
-        const converter = element[inputConverterKey] || (e => e)
-        return `${converter(extract, element)} AS ${this.quote(c)}`
-      })
-
-      // JSON_TABLE([[1],[2],[3]],'$') flattens the nested arrays making it impossible to define the path as '$[n]`
-      // even with STRICT path syntax it still flattens the nested arrays
-      // Therefor the rows are stringified making q.INSERT.entries the preferred format for inserting
-      if (HANAVERSION <= 2) {
-        // HANA Express does not process large JSON documents
-        // The limit is somewhere between 64KB and 128KB
-        // The for this splits up the JSON document into smaller chunks
-        this.entries = []
-        let cur = ['[']
-        this.entries.push(cur)
-        INSERT.rows
-          .map(r => JSON.stringify(JSON.stringify(r)))
-          .forEach(r => {
-            if (cur[0].length > 65535) {
-              cur[0] += ']'
-              cur = ['[']
-              this.entries.push(cur)
-            } else if (cur[0].length > 1) {
-              cur[0] += ','
-            }
-            cur[0] += r
-          })
-        cur[0] += ']'
-      } else {
-        this.entries = [[JSON.stringify(INSERT.rows.map(r => JSON.stringify(r)))]]
+      // Convert the rows into entries to simplify inserting
+      // Tested:
+      // - Array JSON INSERT (1.5x)
+      // - Simple INSERT with reuse onINSERT (2x)
+      // - Simple INSERT with batch onINSERT (1x)
+      // - Object JSON INSERT (1x)
+      // The problem with Simple INSERT is the type mismatch from csv files
+      // Recommendation is to always use entries
+      const columns = INSERT.columns || (elements && ObjectKeys(elements))
+      const entries = new Array(INSERT.rows.length)
+      const rows = INSERT.rows
+      for (let x = 0; x < rows.length; x++) {
+        const row = rows[x]
+        const entry = {}
+        for (let y = 0; y < columns.length; y++) {
+          entry[columns[y]] = row[y]
+        }
+        entries[x] = entry
       }
-
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
-        this.quote(c),
-      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(JSON NVARCHAR(2147483647) PATH '$'))`)
+      INSERT.entries = entries
+      return this.INSERT_entries(q)
     }
 
     UPSERT(q) {
@@ -860,6 +869,7 @@ class HANAService extends SQLService {
     // TypeMap used for the JSON_TABLE column definition
     static InsertTypeMap = {
       ...super.TypeMap,
+      Int16: () => 'INT',
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
       LargeString: () => `NVARCHAR(2147483647)`,
@@ -965,34 +975,9 @@ class HANAService extends SQLService {
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
-      const drops = [
-        `DROP USER ${creds.user} CASCADE;`,
-        `CALL _SYS_DI.DROP_CONTAINER_GROUP('${creds.containerGroup}', _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-      ]
-
-      const creas = [
-        `CREATE USER ${creds.user} PASSWORD ${creds.password} NO FORCE_FIRST_PASSWORD_CHANGE;`,
-        `GRANT USER ADMIN TO ${creds.user};`,
-        `CALL _SYS_DI.CREATE_CONTAINER_GROUP('${creds.containerGroup}', _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-        `CREATE LOCAL TEMPORARY COLUMN TABLE #PRIVILEGES LIKE _SYS_DI.TT_API_PRIVILEGES;`,
-        `INSERT INTO #PRIVILEGES (PRINCIPAL_NAME, PRIVILEGE_NAME, OBJECT_NAME) SELECT '${creds.user}', PRIVILEGE_NAME, OBJECT_NAME FROM _SYS_DI.T_DEFAULT_CONTAINER_GROUP_ADMIN_PRIVILEGES;`,
-        `CALL _SYS_DI.GRANT_CONTAINER_GROUP_API_PRIVILEGES('${creds.containerGroup}', #PRIVILEGES, _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-        `DROP TABLE #PRIVILEGES;`,
-      ]
-
-      const queries = clean ? drops : drops.concat(creas)
-      const errors = []
-      const results = []
-      for (let query of queries) {
-        results.push(
-          await this.exec(query).catch(e => {
-            errors.push(e)
-          }),
-        )
-      }
-      if (errors.length > 1) {
-        throw new Error(`Failed to initialize database:\n${errors.join('\n')}`)
-      }
+      const stmt = await this.dbc.prepare(createContainerDatabase)
+      const res = await stmt.all([creds.user, creds.password, creds.containerGroup, !clean])
+      DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
         // Release table lock
@@ -1025,48 +1010,10 @@ class HANAService extends SQLService {
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
-      const drops = [
-        `CREATE LOCAL TEMPORARY COLUMN TABLE #IGNORE LIKE _SYS_DI.TT_PARAMETERS;`,
-        `INSERT INTO #IGNORE (KEY, VALUE) values ('IGNORE_DEPLOYED', TRUE);`,
-        `INSERT INTO #IGNORE (KEY, VALUE) values ('IGNORE_WORK', TRUE);`,
-        `CALL _SYS_DI#${creds.containerGroup}.DROP_CONTAINER('${creds.schema}', #IGNORE, ?, ?, ?);`,
-        `DROP USER ${creds.user} CASCADE;`,
-      ]
-
-      const creas = [
-        `CREATE USER ${creds.user} PASSWORD ${creds.password} NO FORCE_FIRST_PASSWORD_CHANGE;`,
-        `CALL _SYS_DI#${creds.containerGroup}.CREATE_CONTAINER('${creds.schema}', _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-        `CALL _SYS_DI#${creds.containerGroup}.CONFIGURE_LIBRARIES('${creds.schema}', _SYS_DI.T_DEFAULT_LIBRARIES, _SYS_DI.T_NO_PARAMETERS, ?,?,?);`,
-        `CREATE LOCAL TEMPORARY COLUMN TABLE #PRIVILEGES LIKE _SYS_DI.TT_API_PRIVILEGES;`,
-        `INSERT INTO #PRIVILEGES (PRINCIPAL_NAME, PRIVILEGE_NAME, OBJECT_NAME) SELECT '${creds.user}', PRIVILEGE_NAME, OBJECT_NAME FROM _SYS_DI.T_DEFAULT_CONTAINER_ADMIN_PRIVILEGES;`,
-        `INSERT INTO #PRIVILEGES (PRINCIPAL_NAME, PRIVILEGE_NAME, OBJECT_NAME) SELECT '${creds.user}', PRIVILEGE_NAME, OBJECT_NAME FROM _SYS_DI.T_DEFAULT_CONTAINER_USER_PRIVILEGES;`,
-        `CALL _SYS_DI#${creds.containerGroup}.GRANT_CONTAINER_API_PRIVILEGES('${creds.schema}', #PRIVILEGES, _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-        `DROP TABLE #PRIVILEGES;`,
-        `CREATE LOCAL TEMPORARY COLUMN TABLE #PRIVILEGES LIKE _SYS_DI.TT_SCHEMA_PRIVILEGES;`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'SELECT', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'INSERT', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'UPDATE', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'DELETE', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'EXECUTE', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'CREATE TEMPORARY TABLE', '', '${creds.user}' );`,
-        `INSERT INTO #PRIVILEGES ( PRIVILEGE_NAME, PRINCIPAL_SCHEMA_NAME, PRINCIPAL_NAME ) VALUES ( 'CREATE ANY', '', '${creds.user}' );`,
-        `CALL _SYS_DI#${creds.containerGroup}.GRANT_CONTAINER_SCHEMA_PRIVILEGES('${creds.schema}', #PRIVILEGES, _SYS_DI.T_NO_PARAMETERS, ?, ?, ?);`,
-        `DROP TABLE #PRIVILEGES;`,
-      ]
-
-      const queries = clean ? drops : drops.concat(creas)
-      const errors = []
-      const results = []
-      for (let query of queries) {
-        results.push(
-          await this.exec(query).catch(e => {
-            errors.push(e)
-          }),
-        )
-      }
-      if (errors.length > 2) {
-        throw new Error(`Failed to initialize tenant:\n${errors.join('\n')}`)
-      }
+      const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
+      const res = await stmt.all([creds.user, creds.password, creds.schema, !clean])
+      res && DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
+    } catch (e) {
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
@@ -1076,6 +1023,8 @@ class HANAService extends SQLService {
     this.options.credentials = Object.assign({}, this.options.credentials, creds)
   }
 }
+const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
+const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
 Buffer.prototype.toJSON = function () {
   return this.toString('base64')

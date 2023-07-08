@@ -33,6 +33,11 @@ class HANADriver {
         }
         return { changes }
       },
+      runBatch: async params => {
+        const stmt = await prep
+        const changes = await prom(stmt, 'execBatch')(params)
+        return { changes }
+      },
       get: async params => {
         const stmt = await prep
         return (await prom(stmt, 'exec')(params))[0]

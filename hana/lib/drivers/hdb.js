@@ -45,6 +45,11 @@ class HDBDriver extends driver {
       // Create ResultSet stream from ResultSet iterator
       return Readable.from(rsIterator(rs, one))
     }
+    ret.runBatch = async params => {
+      const stmt = await ret._prep
+      const changes = await prom(stmt, 'exec')(params)
+      return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
+    }
     return ret
   }
 
