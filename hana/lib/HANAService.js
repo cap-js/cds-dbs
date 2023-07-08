@@ -596,6 +596,7 @@ class HANAService extends SQLService {
       // - Object JSON INSERT (1x)
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
+      const elements = q.elements || q.target?.elements
       const columns = INSERT.columns || (elements && ObjectKeys(elements))
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows
@@ -1013,7 +1014,6 @@ class HANAService extends SQLService {
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
       const res = await stmt.all([creds.user, creds.password, creds.schema, !clean])
       res && DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
-    } catch (e) {
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
