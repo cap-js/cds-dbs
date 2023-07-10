@@ -1,4 +1,4 @@
-if [ $HXE_PULL ] then
+if [ $HXE_PULL ]; then
     wait $HXE_PULL;
 fi
 
