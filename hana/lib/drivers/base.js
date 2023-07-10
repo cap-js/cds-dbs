@@ -17,7 +17,13 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(this._native, 'prepare')(sql)
+    const prep = prom(
+      this._native,
+      'prepare',
+    )(sql).then(stmt => {
+      stmt._parentConnection = this._native
+      return stmt
+    })
     return {
       _prep: prep,
       run: async params => {
@@ -144,12 +150,43 @@ const prom = function (dbc, func) {
     return new Promise((resolve, reject) => {
       dbc[func](...args, (err, res, output) => {
         if (err) {
-          return reject(Object.assign(err, stack, { sql: typeof args[0] === 'string' ? args[0] : null }))
+          const sql = typeof args[0] === 'string' && args[0]
+          // Enhance insufficient privilege errors with details
+          if (err.code === 258) {
+            const guid = /'[0-9A-F]{32}'/.exec(err.message)?.[0]
+            const conn = dbc._parentConnection || dbc
+            if (guid && conn && typeof conn.exec === 'function') {
+              const getDetails = `CALL SYS.GET_INSUFFICIENT_PRIVILEGE_ERROR_DETAILS(${guid},?)`
+              return conn.exec(getDetails, (e2, ...details) => {
+                if (e2) return reject(enhanceError(err, stack, sql))
+                const msg = `Error: ${details[details.length - 1].map(formatPrivilegeError).join('\n')}`
+                reject(enhanceError(err, stack, sql, msg))
+              })
+            }
+          }
+          return reject(enhanceError(err, stack, sql))
         }
         resolve(output || res)
       })
     })
   }
+}
+
+/**
+ * Converts the result from GET_INSUFFICIENT_PRIVILEGE_ERROR_DETAILS into human readable error message
+ * @param {Object} row GET_INSUFFICIENT_PRIVILEGE_ERROR_DETAILS result row
+ * @returns {String} What privilege is missing
+ */
+const formatPrivilegeError = function (row) {
+  const GRANT = row.IS_MISSING_GRANT_OPTION === 'TRUE' ? 'GRANT ' : ''
+  return `MISSING ${GRANT}${row.PRIVILEGE} ON ${row.SCHEMA_NAME}.${row.OBJECT_NAME}`
+}
+
+const enhanceError = function (err, stack, sql, message) {
+  return Object.assign(err, stack, {
+    sql,
+    message: message ? message : err.message,
+  })
 }
 
 const handleLevel = function (levels, path, expands) {

@@ -961,7 +961,7 @@ class HANAService extends SQLService {
   async database({ database }, clean = false) {
     if (clean) {
       // Reset back to system credentials
-      this.options.credentials = this.options.credentials.sys
+      this.options.credentials = this.options.credentials.__system__
     }
 
     const creds = {
@@ -989,7 +989,9 @@ class HANAService extends SQLService {
 
         // Update credentials to new Database owner
         await this.disconnect()
-        this.options.credentials = Object.assign({}, this.options.credentials, creds, { sys: this.options.credentials })
+        this.options.credentials = Object.assign({}, this.options.credentials, creds, {
+          __system__: this.options.credentials,
+        })
       }
     }
   }
@@ -999,6 +1001,11 @@ class HANAService extends SQLService {
   // This removes SCHEMA name conflicts when testing in the same system
   // Additionally this allows for deploying using the HDI procedures
   async tenant({ database, tenant }, clean = false) {
+    if (clean) {
+      // Reset back to database credentials
+      this.options.credentials = this.options.credentials.__database__
+    }
+
     const creds = {
       containerGroup: database.toUpperCase(),
       usergroup: `${database}_USERS`.toUpperCase(),
@@ -1020,7 +1027,9 @@ class HANAService extends SQLService {
     }
     // Update credentials to new Tenant owner
     await this.disconnect()
-    this.options.credentials = Object.assign({}, this.options.credentials, creds)
+    this.options.credentials = Object.assign({}, this.options.credentials, creds, {
+      __database__: this.options.credentials,
+    })
   }
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
