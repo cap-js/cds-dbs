@@ -1,3 +1,7 @@
+if [ $HXE_PULL ] then
+    wait $HXE_PULL;
+fi
+
 exists=$(docker images hanaexpress:current -q);
 if [ $exists ]; then
     echo "Using prepared HXE image"
