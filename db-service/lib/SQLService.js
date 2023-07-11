@@ -176,12 +176,7 @@ class SQLService extends DatabaseService {
     const cqn = this.cqn4sql(q)
 
     const cmd = cqn.cmd || Object.keys(cqn)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1, STREAM: 1 }) {
-      if (cmd === 'STREAM' && cqn[cmd].from) {
-        // only resolve stream insert
-        return new this.class.CQN2SQL(this.context).render(cqn, values)
-      }
-
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || cqn.STREAM?.into) {
       let resolvedCqn = resolveView(cqn, this.model, this)
       if (resolvedCqn && resolvedCqn[cmd]._transitions?.[0].target) {
         resolvedCqn = resolvedCqn || cqn
