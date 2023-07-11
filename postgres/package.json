@@ -35,6 +35,7 @@
       "kinds": {
         "sql": {
           "[production]": {
+            "schema_evolution": "auto",
             "kind": "postgres"
           },
           "[pg!]": {
@@ -53,7 +54,8 @@
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"
-          }
+          },
+          "schema_evolution": "auto"
         }
       },
       "db": "sql"
