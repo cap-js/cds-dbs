@@ -46,7 +46,8 @@
               "user": "postgres",
               "password": "postgres",
               "database": "postgres"
-            }
+            },
+            "schema_evolution": "auto"
           }
         },
         "postgres": {
