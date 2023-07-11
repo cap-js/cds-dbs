@@ -111,7 +111,4 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-
-
-
 })
