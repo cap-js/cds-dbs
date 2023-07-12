@@ -35,7 +35,6 @@
       "kinds": {
         "sql": {
           "[production]": {
-            "schema_evolution": "auto",
             "kind": "postgres"
           },
           "[pg!]": {
@@ -46,8 +45,7 @@
               "user": "postgres",
               "password": "postgres",
               "database": "postgres"
-            },
-            "schema_evolution": "auto"
+            }
           }
         },
         "postgres": {
