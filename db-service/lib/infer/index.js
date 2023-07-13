@@ -216,6 +216,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         } else throw new Error('A filter can only be provided when navigating along associations')
       }
     })
+    // const { definition } = arg.$refLinks[arg.$refLinks - 1]
   }
 
   /**
@@ -656,15 +657,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         joinTree.mergeColumn(column)
       }
 
-
-      function resolveCalculatedElement(element, column) {
-        const {ref,val,xpr} = element.value
-        if(ref)
-          inferQueryElement(element.value, false)
-        if(xpr)
-          attachRefLinksToArg(element.value, {definition: element.parent, target: element.parent})
-      }
-
       /**
        * Resolves and processes the inline attribute of a column in a database query.
        *
@@ -790,6 +782,16 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           err.push(` did you mean ${$combinedElements[step].map(ta => `"${ta.index || ta.as}.${step}"`).join(',')}?`)
         throw new Error(err)
       }
+    }
+
+    function resolveCalculatedElement(element, column) {
+      const {ref,val,xpr,func} = element.value
+      if(ref)
+        inferQueryElement(element.value, false)
+      if(xpr)
+        attachRefLinksToArg(element.value, {definition: element.parent, target: element.parent})
+      if(func)
+        element.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
     }
 
     /**

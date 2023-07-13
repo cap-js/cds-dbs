@@ -436,22 +436,24 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
   }
 
-  function resolveCalculatedElement(column) {
+  function resolveCalculatedElement(column, omitAlias = false) {
     const { $refLinks } = column
-    const leafArt = $refLinks[$refLinks.length - 1].definition
-    const { value } = leafArt
+    const { value } = $refLinks[$refLinks.length - 1].definition
+    const {ref,val,xpr,func} = value
+
     const baseLink = column.isJoinRelevant
       ? [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       : null
     let res
-    if (value.ref) {
+    if (ref) {
       res = getTransformedColumns([value])[0]
-      res.as = column.as || column.flatName
-      return res
     }
-    if (value.xpr) {
-      res = { xpr: getTransformedTokenStream(value.xpr, baseLink)}
+    if (xpr) {
+      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
     }
+    if (func)
+      res = { args: getTransformedTokenStream(value.args), func: value.func }
+    if (!omitAlias) res.as = column.as || column.flatName
     return res
   }
 
@@ -1179,6 +1181,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
+            const { definition } = token.$refLinks[token.$refLinks.length - 1]
+            if (definition.value) {
+              const calculatedElement = resolveCalculatedElement(token, true)
+              transformedTokenStream.push(calculatedElement)
+              continue
+            }
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
               const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))

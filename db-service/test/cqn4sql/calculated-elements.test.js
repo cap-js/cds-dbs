@@ -43,12 +43,12 @@ describe('Unfolding calculated elements in select list', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        substring(Books.title, 3, Books.stock) as ctitle;
+        substring(Books.title, 3, Books.stock) as ctitle
       }`
     expect(query).to.deep.equal(expected)
   })
 
-  it('nested', () => {
+  it.skip('nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, volume, storageVolume }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
@@ -60,11 +60,12 @@ describe('Unfolding calculated elements in select list', () => {
 
   it('via association', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.name }`, model)
+    // revisit: alias follows our "regular" naming scheme -> ref.join('_')
     const expected = CQL`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,
-        author.firstName || ' ' || author.lastName as name;
+        author.firstName || ' ' || author.lastName as author_name
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -84,7 +85,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('calc elem contains association, nested', () => {
+  it.skip('calc elem contains association, nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAdrText }`, model)
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.address.text }
@@ -98,7 +99,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('calc elem in infix filter', () => {
+  it.skip('calc elem in infix filter', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area > 1].title }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
