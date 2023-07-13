@@ -35,7 +35,7 @@ entity Books {
   authorName = author.name;
   authorAdrText = author.addressText;
 
-  ca3 = f.ca; // F:ca is a calculated element with an assoc path
+  // ca3 = f.ca; // F:ca is a calculated element with an assoc path
 
 }
 

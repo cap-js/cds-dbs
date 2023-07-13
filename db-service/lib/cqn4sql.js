@@ -304,7 +304,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (col.expand) {
+      if (col.$refLinks?.[col.$refLinks.length - 1].definition.value) {
+        const calcElement = resolveCalculatedElement(col)
+        transformedColumns.push(calcElement)
+      } else if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
@@ -431,6 +434,25 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
     }
+  }
+
+  function resolveCalculatedElement(column) {
+    const { $refLinks } = column
+    const leafArt = $refLinks[$refLinks.length - 1].definition
+    const { value } = leafArt
+    const baseLink = column.isJoinRelevant
+      ? [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
+      : null
+    let res
+    if (value.ref) {
+      res = getTransformedColumns([value])[0]
+      res.as = column.as || column.flatName
+      return res
+    }
+    if (value.xpr) {
+      res = { xpr: getTransformedTokenStream(value.xpr, baseLink)}
+    }
+    return res
   }
 
   /**

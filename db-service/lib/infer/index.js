@@ -627,7 +627,12 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               }
               if (queryElements[elementName] !== undefined)
                 throw new Error(`Duplicate definition of element “${elementName}”`)
-              queryElements[elementName] = getCopyWithAnnos(column, leafArt)
+              const element = getCopyWithAnnos(column, leafArt)
+              queryElements[elementName] = element
+            }
+
+            if(leafArt.value) {
+              resolveCalculatedElement(leafArt, column)
             }
           }
         }
@@ -649,6 +654,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (!inExists && !virtual && isColumnJoinRelevant(column, firstStepIsSelf)) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column)
+      }
+
+
+      function resolveCalculatedElement(element, column) {
+        const {ref,val,xpr} = element.value
+        if(ref)
+          inferQueryElement(element.value, false)
+        if(xpr)
+          attachRefLinksToArg(element.value, {definition: element.parent, target: element.parent})
       }
 
       /**
