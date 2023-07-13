@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CDS database service for SQLite",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -23,10 +23,11 @@
     "test": "jest --silent"
   },
   "dependencies": {
+    "@cap-js/db-service": "^1.0.1",
     "better-sqlite3": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=6.8.0"
+    "@sap/cds": ">=7"
   },
   "cds": {
     "requires": {

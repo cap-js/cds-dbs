@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CDS base database service",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -24,7 +24,7 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "@sap/cds": ">=6.8.0"
+    "@sap/cds": ">=7"
   },
   "license": "SEE LICENSE"
 }

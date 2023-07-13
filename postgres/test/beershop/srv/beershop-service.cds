@@ -1,5 +1,6 @@
 using {csw} from '../db/schema';
 
+@path: '/beershop'
 service BeershopService {
 
   entity Beers               as projection on csw.Beers;

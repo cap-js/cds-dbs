@@ -7,7 +7,7 @@
   var { server } = await cds.test('@capire/bookshop'),
     { Books, Authors } = cds.entities
   await INSERT.into(Books).entries({ title: 'Unwritten Book' })
-  await INSERT.into(Authors).entries({ name: 'Upcomming Author' })
+  await INSERT.into(Authors).entries({ name: 'Upcoming Author' })
   await SELECT`from ${Books} { title as book, author.name as author, genre.name as genre }`
   await SELECT`from ${Authors} { books.title as book, name as author, books.genre.name as genre }`
   await SELECT`from ${Books} { title as book, author[ID<170].name as author, genre.name as genre }`

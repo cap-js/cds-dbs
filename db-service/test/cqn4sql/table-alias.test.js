@@ -215,6 +215,122 @@ describe('table alias access', () => {
     })
   })
 
+  describe('replace $self references', () => {
+    it('refer to other query element', () => {
+      const q = CQL`SELECT from bookshop.Books {
+      Books.title,
+      title as title2,
+      dedication as struct,
+      1 + 1 as expression,
+      42 as value,
+
+      $self.dedication2 as dedication3,
+      $self.struct.text as dedication,
+      $self.dedication as dedication2,
+      $self.expression as selfXpr,
+      $self.value as selfVal,
+    }`
+      const transformed = cqn4sql(q, model)
+
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+      Books.title,
+      Books.title as title2,
+      Books.dedication_addressee_ID as struct_addressee_ID,
+      Books.dedication_text as struct_text,
+      Books.dedication_sub_foo as struct_sub_foo,
+      Books.dedication_dedication as struct_dedication,
+      1 + 1 as expression,
+      42 as value,
+
+      Books.dedication_text as dedication3,
+      Books.dedication_text as dedication,
+      Books.dedication_text as dedication2,
+      1 + 1 as selfXpr,
+      42 as selfVal
+    }`)
+    })
+    it('late replace join relevant paths', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            Authors.name as author,
+            $self.book as dollarSelfBook,
+            books.title as book,
+          } group by $self.book
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+          Authors.name as author,
+          books.title as dollarSelfBook,
+          books.title as book
+        } group by books.title
+       `,
+      )
+    })
+    it('in aggregation', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+            years_between(dateOfBirth, dateOfDeath) as age
+          }
+          group by $self.author, $self.xpr
+          order by $self.author, $self.xpr
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+          years_between(Authors.dateOfBirth, Authors.dateOfDeath) as age
+        }
+        group by Authors.name, 1+1
+        order by Authors.name, 1+1
+       `,
+      )
+    })
+    it('in having', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          having $self.xpr = 2
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        having (1+1) = 2
+       `,
+      )
+    })
+    it('in where', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors {
+            name as author,
+            1+1 as xpr,
+          }
+          where 2 / $self.xpr = 1
+         `,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Authors as Authors {
+          Authors.name as author,
+          1+1 as xpr,
+        }
+        where 2 / (1+1) = 1
+       `,
+      )
+    })
+  })
+
   describe('in ORDER BY', () => {
     // - Name resolution in ORDER BY --------------------------------------------------------------
     // --- HANA -----------------------------------------------------------------------------------
@@ -537,9 +653,100 @@ describe('table alias access', () => {
       )
     })
     it('explicit alias for FROM subquery', () => {
-      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID, Books.stock }) as B { ID, B.stock }`, model)
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            ID, Books.stock, Books.dedication
+          }) as B { ID, B.stock, B.dedication }`,
+        model,
+      )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as B { B.ID, B.stock }`,
+        CQL`SELECT from (
+              SELECT from bookshop.Books as Books {
+                Books.ID,
+                Books.stock,
+                Books.dedication_addressee_ID,
+                Books.dedication_text,
+                Books.dedication_sub_foo,
+                Books.dedication_dedication
+              }
+            ) as B {
+              B.ID,
+              B.stock,
+              B.dedication_addressee_ID,
+              B.dedication_text,
+              B.dedication_sub_foo,
+              B.dedication_dedication
+            }`,
+      )
+    })
+    it('wildcard expansion of subquery in from ignores assocs', () => {
+      let query = cqn4sql(CQL`SELECT from ( SELECT from bookshop.Orders ) as O`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Orders as Orders {
+            Orders.ID,
+          }
+        ) as O {
+          O.ID,
+        }`,
+      )
+    })
+    it('no alias for function args or expressions on top of anonymous subquery', () => {
+      let query = cqn4sql(
+        CQL`SELECT from ( SELECT from bookshop.Orders ) {
+          sum(ID) as foo,
+          ID + 42 as anotherFoo
+        }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Orders as Orders {
+            Orders.ID
+          }
+        ) {
+          sum(ID) as foo,
+          ID + 42 as anotherFoo
+        }`,
+      )
+    })
+    it('wildcard expansion for subquery in FROM', () => {
+      // REVISIT: order not stable, move "ID" to top of columns in subquery in from
+      let query = cqn4sql(
+        CQL`SELECT from (
+          SELECT from bookshop.Books {
+            sum(stock) as totalStock,
+            ID,
+            Books.stock,
+            Books.dedication,
+            Books.author
+          }
+         ) as B`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`SELECT from (
+          SELECT from bookshop.Books as Books {
+            sum(Books.stock) as totalStock,
+            Books.ID,
+            Books.stock, 
+            Books.dedication_addressee_ID,
+            Books.dedication_text,
+            Books.dedication_sub_foo,
+            Books.dedication_dedication,
+            Books.author_ID
+          }
+        ) as B {
+          B.totalStock,
+          B.ID,
+          B.stock,
+          B.dedication_addressee_ID,
+          B.dedication_text,
+          B.dedication_sub_foo,
+          B.dedication_dedication,
+          B.author_ID
+        }`,
       )
     })
 
