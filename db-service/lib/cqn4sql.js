@@ -70,13 +70,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
       // The already transformed `where` clause is then glued together with the resulting subqueries.
       const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+      const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
       if (inferred.SELECT) {
         transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
       } else {
         if (from) {
           transformedProp.from = transformedFrom
-        } else {
+        } else if (!queryNeedsJoins) {
           transformedProp.entity = transformedFrom
         }
 
@@ -94,7 +95,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
 
-      if (inferred.joinTree && !inferred.joinTree.isInitial) {
+      if (queryNeedsJoins) {
         transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
       }
     }
