@@ -36,10 +36,14 @@ class PostgresService extends SQLService {
           database: cr.dbname || cr.database,
           schema: cr.schema,
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
-          ssl: cr.sslrootcert && {
-            rejectUnauthorized: false,
-            ca: cr.sslrootcert,
-          },
+          // from pg driver docs:
+          // passed directly to node.TLSSocket, supports all tls.connect options
+          ssl:
+            cr.ssl /* enable pg module setting to connect to Azure postgres */ ||
+            (cr.sslrootcert && {
+              rejectUnauthorized: false,
+              ca: cr.sslrootcert,
+            }),
         }
         const dbc = new Client(credentials)
         await dbc.connect()
