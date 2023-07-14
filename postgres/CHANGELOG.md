@@ -4,6 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version x.x.x - yyyy-MM-dd
+
+### Added
+
+- connectivity to Azure PostGreSQL
+
 ## Version 1.0.1 - 2023-07-03
 
 ### Added
