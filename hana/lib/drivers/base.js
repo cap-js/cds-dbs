@@ -41,8 +41,8 @@ class HANADriver {
       },
       runBatch: async params => {
         const stmt = await prep
-        const changes = await prom(stmt, 'execBatch')(params)
-        return { changes }
+        const changes = await prom(stmt, 'exec')(params)
+        return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
       },
       get: async params => {
         const stmt = await prep
