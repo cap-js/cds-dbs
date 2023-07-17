@@ -70,6 +70,19 @@ describe('UPDATE', () => {
     })
   })
 
+  // we do not really understand a token stream such as a where clause,
+  // hence we cannot easily rewrite a path expression into a `where exists` subquery
+  // for the moment, we should issue a proper error instead of dumping.
+  it('Update with join clause is rejected', () => {
+    const { UPDATE } = cds.ql
+    let u = UPDATE.entity('bookshop.Books').where(
+      `author.name LIKE '%Bron%' or ( author.name LIKE '%King' and title = 'The Dark Tower') and stock >= 15`,
+    )
+    expect(() => cqn4sql(u)).to.throw(
+      'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
+    )
+  })
+
   // table alias in subquery should address Books instead of bookshop.Books
   it('UPDATE with where exists expansion', () => {
     const { UPDATE } = cds.ql
