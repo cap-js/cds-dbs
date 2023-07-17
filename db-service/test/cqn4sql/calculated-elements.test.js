@@ -85,7 +85,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('calc elem contains association, nested', () => {
+  it('calc elem contains association, nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAdrText }`, model)
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.address.text }

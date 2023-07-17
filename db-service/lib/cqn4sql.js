@@ -441,12 +441,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const { value } = $refLinks[$refLinks.length - 1].definition
     const {ref,val,xpr,func} = value
 
-    const baseLink = column.isJoinRelevant
-      ? [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      : null
+    const baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
+
     let res
     if (ref) {
-      res = getTransformedColumns([value])[0]
+      [res] = getTransformedTokenStream([value], baseLink)
     }
     if (xpr) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
