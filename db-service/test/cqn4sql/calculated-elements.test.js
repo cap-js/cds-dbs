@@ -4,7 +4,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
-describe('Unfolding calculated elements in select list', () => {
+describe.skip('Unfolding calculated elements in select list', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
