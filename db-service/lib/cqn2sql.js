@@ -146,7 +146,7 @@ class CQN2SQLRenderer {
     if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
     // Expand cannot work without an inferred query
-    if (expand && q.target) sql = this.SELECT_expand(q, sql)
+    if (expand && q.elements) sql = this.SELECT_expand(q, sql)
     return (this.sql = sql)
   }
 
