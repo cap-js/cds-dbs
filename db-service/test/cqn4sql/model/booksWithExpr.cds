@@ -33,6 +33,8 @@ entity Books {
   // -- with paths
   authorLastName = author.lastName;
   authorName = author.name;
+  authorFullName = author.firstName || ' ' || author.lastName;
+  authorFullNameWithAddress = authorFullName || ' ' || authorAdrText;
   authorAdrText = author.addressText;
 
   // ca3 = f.ca; // F:ca is a calculated element with an assoc path

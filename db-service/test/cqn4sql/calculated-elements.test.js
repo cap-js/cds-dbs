@@ -84,6 +84,32 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('calc elem contains associations in xpr', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorFullName }`, model)
+    // intermediate:
+    // SELECT from booksCalc.Books { ID, author.name, author.lastName }
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        author.firstName || ' ' || author.lastName as authorFullName,
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('calc elem contains other calculated element in xpr with nested joins', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorFullNameWithAddress }`, model)
+    // intermediate:
+    // SELECT from booksCalc.Books { ID, author.name, author.lastName }
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+      left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+      {
+        Books.ID,
+        (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city)
+         as authorFullNameWithAddress,
+      }`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem contains association, nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAdrText }`, model)

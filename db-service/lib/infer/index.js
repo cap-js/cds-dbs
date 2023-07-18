@@ -800,20 +800,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         attachRefLinksToArg(calcElement.value, { definition: calcElement.parent, target: calcElement.parent }, true)
         // column is now fully linked, now we need to find out if we need to merge it into the join tree
         // for that, we calculate all paths from a calc element and merge them into the join tree
-        const paths = getPathsFromCalcElement(calcElement.value)
-        paths.forEach(p => {
-          const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
-          if (calcElementIsJoinRelevant) {
-            if (!calcElement.value.isColumnJoinRelevant)
-              Object.defineProperty(calcElement.value, 'isJoinRelevant', { value: true })
-            joinTree.mergeColumn(p)
-          }
-        })
+        mergePathsIntoJoinTree(calcElement.value)
       }
       if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
 
-      function getPathsFromCalcElement(e, basePath = null) {
-        const paths = []
+      function mergePathsIntoJoinTree(e, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
 
         if (e.ref) {
@@ -825,25 +816,34 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             }
           })
           const leafOfCalculatedElementRef = e.$refLinks[e.$refLinks.length - 1].definition
-          if (leafOfCalculatedElementRef.value)
-            paths.push(...getPathsFromCalcElement(leafOfCalculatedElementRef.value, basePath))
-          else paths.push(basePath)
+          if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
+
+          mergePathIfNecessary(basePath, e)
         } else if (e.xpr) {
           e.xpr.forEach(step => {
             if (step.ref) {
+              const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               step.$refLinks.forEach((link, i) => {
                 const { definition } = link
                 if (definition.value) {
-                  const subPaths = getPathsFromCalcElement(definition.value)
+                  mergePathsIntoJoinTree(definition.value)
                 } else {
-                  paths.push({ $refLinks: [...basePath.$refLinks, link], ref: [...basePath.ref, step.ref[i]] })
+                  subPath.$refLinks.push(link)
+                  subPath.ref.push(step.ref[i])
                 }
               })
+              mergePathIfNecessary(subPath, step)
             }
           })
         }
 
-        return paths
+        function mergePathIfNecessary(p, step) {
+          const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
+          if (calcElementIsJoinRelevant) {
+            if (!calcElement.value.isColumnJoinRelevant) Object.defineProperty(step, 'isJoinRelevant', { value: true })
+            joinTree.mergeColumn(p)
+          }
+        }
       }
     }
 
