@@ -201,6 +201,7 @@ describe('infer elements', () => {
       let { Books, Receipt } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
+      // eslint-disable-next-line no-unused-vars
       const { image, ...BooksElementsWithoutBlob } = Books.elements
       expect(inferred.elements).to.deep.equal({ ...BooksElementsWithoutBlob, ...Receipt.elements }) // combined elements
     })
@@ -211,6 +212,7 @@ describe('infer elements', () => {
       let { Books, Receipt } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
+      // eslint-disable-next-line no-unused-vars
       const { image, ...BooksElementsWithoutBlob } = Books.elements
       expect(inferred.elements).to.deep.equal({ ...BooksElementsWithoutBlob, ...Receipt.elements }) // combined elements
     })
@@ -424,6 +426,7 @@ describe('infer elements', () => {
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
       // blobs are not part of the query elements
+      // eslint-disable-next-line no-unused-vars
       const { image, ...BooksElementsWithoutBlob } = Books.elements
       expect(inferred.elements).to.deep.equal(BooksElementsWithoutBlob)
     })
@@ -433,6 +436,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       // blobs are not part of the query elements
+      // eslint-disable-next-line no-unused-vars
       const { image, ...BooksElementsWithoutBlob } = Books.elements
       expect(inferred.elements).to.deep.equal(BooksElementsWithoutBlob)
     })
@@ -463,7 +467,8 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred).to.have.nested.property('sources.Books', Books)
-      let { image, ...expectedElements } = JSON.parse(JSON.stringify(Books.elements)) // if not copied, the next lines would spoil Books.elements
+      // eslint-disable-next-line no-unused-vars
+      let { image, ...expectedElements } = Books.elements
       Object.assign(expectedElements, {
         ID: {},
         price: {},

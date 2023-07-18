@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CDS base database service",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
