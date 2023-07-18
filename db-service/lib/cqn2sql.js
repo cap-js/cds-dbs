@@ -145,7 +145,8 @@ class CQN2SQLRenderer {
     if (!_empty((x = orderBy))) sql += ` ORDER BY ${this.orderBy(x, localized)}`
     if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
-    if (expand) sql = this.SELECT_expand(q, sql)
+    // Expand cannot work without an inferred query
+    if (expand && q.target) sql = this.SELECT_expand(q, sql)
     return (this.sql = sql)
   }
 
@@ -526,6 +527,7 @@ class CQN2SQLRenderer {
   }
 
   column_name(col) {
+    if (coll === '*') cds.error`Query was not inferred and includes '*' in the columns. For which there is no name available.`
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
   }
 
