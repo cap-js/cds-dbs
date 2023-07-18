@@ -204,35 +204,45 @@ class SQLService extends DatabaseService {
 
   /**
    * Used to execute simple SQL statement like BEGIN, COMMIT, ROLLBACK
+   * @param {string} sql
+   * @returns {Promise<any>} The result of the query
    */
-  // eslint-disable-next-line no-unused-vars
   async exec(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 }
 
-/** Interface of prepared statement objects as returned by {@link SQLService#prepare} */
+/** 
+ * Interface of prepared statement objects as returned by {@link SQLService#prepare}
+ * @class
+ * @interface
+ */
 class PreparedStatement {
-  // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
    * @param {[]|{}} binding_params
    */
-  async run(/*binding_params*/) {} // eslint-disable-line no-unused-vars
+  async run(binding_params) {
+    binding_params
+    return 0
+  }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
    * @param {[]|{}} binding_params
    */
-  async get(/*binding_params*/) {
+  async get(binding_params) {
+    binding_params
     return {}
-  } // eslint-disable-line no-unused-vars
+  }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
    * @param {[]|{}} binding_params
    */
-  async all(/*binding_params*/) {
+  async all(binding_params) {
+    binding_params
     return [{}]
-  } // eslint-disable-line no-unused-vars
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
@@ -285,4 +295,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-module.exports = Object.assign(SQLService, { _target_name4 })
+Object.assign(SQLService, { _target_name4 })
+module.exports = SQLService

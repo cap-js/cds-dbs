@@ -12,12 +12,17 @@ class DatabaseService extends cds.Service {
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
+   * @abstract
+   * @type {import('./factory').Factory}
    */
   get factory() {
     throw '2b overriden in subclass'
   }
   pools = { _factory: this.factory }
 
+  /**
+   * @returns {boolean} whether this service is multi tenant enabled
+   */
   get isMultitenant() {
     return 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
   }
@@ -116,6 +121,13 @@ class DatabaseService extends cds.Service {
     await pool.clear()
   }
 
+  /**
+   * Runs a Query on the database service
+   * @param {import("@sap/cds/apis/cqn").Query} query 
+   * @param {any} data 
+   * @param  {...any} etc 
+   * @returns {Promise<any>}
+   */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)
     if (data !== undefined && typeof query === 'string' && typeof data !== 'object') data = [data, ...etc]

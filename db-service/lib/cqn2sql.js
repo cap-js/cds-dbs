@@ -14,11 +14,23 @@ const DEBUG = (() => {
 })()
 
 class CQN2SQLRenderer {
+  /**
+   * Creates a new CQN2SQL instance for processing a query
+   * @constructor
+   * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
+   */
   constructor(context) {
+    /**
+     * @type {import('@sap/cds/apis/services').ContextProperties}
+     */
     this.context = cds.context || context
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
+
+  /**
+   * Initializes the class one first creation to link types to data converters
+   */
   static _init() {
     const _add_mixins = (aspect, mixins) => {
       const fqn = this.name + aspect
@@ -37,8 +49,17 @@ class CQN2SQLRenderer {
     this._init = () => {} // makes this a noop for subsequent calls
   }
 
+  /**
+   * Renders incoming query into SQL and generates binding values
+   * @param {import('./infer/cqn').Query} q CQN query to be rendered
+   * @param {any[]|undefined} vars Values to be used for params
+   * @returns {CQN2SQLRenderer}
+   */
   render(q, vars) {
     const cmd = q.cmd || Object.keys(q)[0] // SELECT, INSERT, ...
+    /**
+     * @type {string} the rendered SQL string
+     */
     this.sql = '' // to have it as first property for debugging
     this.values = [] // prepare values, filled in by subroutines
     this[cmd]((this.cqn = q)) // actual sql rendering happens here
@@ -51,12 +72,21 @@ class CQN2SQLRenderer {
     return this
   }
 
+  /**
+   * Links the incoming query with the current service model
+   * @param {import('./infer/cqn').Query} q
+   * @returns {import('./infer/cqn').Query}
+   */
   infer(q) {
     return q.target ? q : cds_infer(q)
   }
 
   // CREATE Statements ------------------------------------------------
 
+  /**
+   * Renders a CREATE query into generic SQL
+   * @param {import('./infer/cqn').CREATE} q
+   */
   CREATE(q) {
     const { target } = q,
       { query } = target
@@ -71,6 +101,11 @@ class CQN2SQLRenderer {
     return
   }
 
+  /**
+   * Renders a column clause for the given elements
+   * @param {import('./infer/cqn').elements} elements
+   * @returns {string} SQL
+   */
   CREATE_elements(elements) {
     let sql = ''
     for (let e in elements) {
@@ -82,11 +117,21 @@ class CQN2SQLRenderer {
     return sql.slice(0, -2)
   }
 
+  /**
+   * Renders a column definition for the given element
+   * @param {import('./infer/cqn').element} element
+   * @returns {string} SQL
+   */
   CREATE_element(element) {
     const type = this.type4(element)
     if (type) return this.quote(element.name) + ' ' + type
   }
 
+  /**
+   * Renders the SQL type definition for the given element
+   * @param {import('./infer/cqn').element} element
+   * @returns {string}
+   */
   type4(element) {
     if (!element._type) element = cds.builtin.types[element.type] || element
     const fn = element[this.class._sqlType]
@@ -120,6 +165,10 @@ class CQN2SQLRenderer {
 
   // DROP Statements ------------------------------------------------
 
+  /**
+   * Renders a DROP query into generic SQL
+   * @param {import('./infer/cqn').DROP} q
+   */
   DROP(q) {
     const { target } = q
     const isView = target.query || target.projection
@@ -128,6 +177,10 @@ class CQN2SQLRenderer {
 
   // SELECT Statements ------------------------------------------------
 
+  /**
+   * Renders a SELECT statement into generic SQL
+   * @param {import('./infer/cqn').SELECT} q
+   */
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
     if (!expand) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
@@ -149,12 +202,23 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
+  /**
+   * Renders a column clause into generic SQL
+   * @param {import('./infer/cqn').SELECT} param0
+   * @returns {string} SQL
+   */
   SELECT_columns({ SELECT }) {
     // REVISIT: We don't have to run x.as through this.column_name(), do we?
     if (!SELECT.columns) return '*'
     return SELECT.columns.map(x => this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : ''))
   }
 
+  /**
+   * Renders a JSON select around the provided SQL statement
+   * @param {import('./infer/cqn').SELECT} param0
+   * @param {string} sql
+   * @returns {string} SQL
+   */
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
     if (!elements) return sql
@@ -183,6 +247,11 @@ class CQN2SQLRenderer {
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
+  /**
+   * Renders a SELECT column expression into generic SQL
+   * @param {import('./infer/cqn').col} x
+   * @returns {string} SQL
+   */
   column_expr(x) {
     if (x.func && !x.as) x.as = x.func
     if (x?.element?.['@cds.extension']) {
@@ -193,6 +262,11 @@ class CQN2SQLRenderer {
     return sql
   }
 
+  /**
+   * Renders a FROM clause into generic SQL
+   * @param {import('./infer/cqn').source} from
+   * @returns {string} SQL
+   */
   from(from) {
     const { ref, as } = from,
       _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
@@ -208,18 +282,38 @@ class CQN2SQLRenderer {
     }
   }
 
+  /**
+   * Renders a WHERE clause into generic SQL
+   * @param {import('./infer/cqn').predicate} xpr
+   * @returns {string} SQL
+   */
   where(xpr) {
     return this.xpr({ xpr })
   }
 
+  /**
+   * Renders a HAVING clause into generic SQL
+   * @param {import('./infer/cqn').predicate} xpr
+   * @returns {string} SQL
+   */
   having(xpr) {
     return this.xpr({ xpr })
   }
 
+  /**
+   * Renders a groupBy clause into generic SQL
+   * @param {import('./infer/cqn').expr[]} clause
+   * @returns {string[] | string} SQL
+   */
   groupBy(clause) {
     return clause.map(c => this.expr(c))
   }
 
+  /**
+   * Renders an orderBy clause into generic SQL
+   * @param {import('./infer/cqn').ordering_term[]} orderBy
+   * @returns {string[] | string} SQL
+   */
   orderBy(orderBy, localized) {
     return orderBy.map(
       localized
@@ -231,6 +325,12 @@ class CQN2SQLRenderer {
     )
   }
 
+  /**
+   * Renders an limit clause into generic SQL
+   * @param {import('./infer/cqn').limit} param0
+   * @returns {string} SQL
+   * @throws {Error} When no rows are defined
+   */
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
     return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
@@ -238,6 +338,11 @@ class CQN2SQLRenderer {
 
   // INSERT Statements ------------------------------------------------
 
+  /**
+   * Renders an INSERT query into generic SQL
+   * @param {import('./infer/cqn').INSERT} q
+   * @returns {string} SQL
+   */
   INSERT(q) {
     const { INSERT } = q
     return INSERT.entries
@@ -251,6 +356,11 @@ class CQN2SQLRenderer {
       : cds.error`Missing .entries, .rows, or .values in ${q}`
   }
 
+  /**
+   * Renders an INSERT query with entries property
+   * @param {import('./infer/cqn').INSERT} q
+   * @returns {string} SQL
+   */
   INSERT_entries(q) {
     const { INSERT } = q
     const entity = this.name(q.target?.name || INSERT.into.ref[0])
@@ -294,6 +404,11 @@ class CQN2SQLRenderer {
     }) SELECT ${extraction} FROM json_each(?)`)
   }
 
+  /**
+   * Renders an INSERT query with rows property
+   * @param {import('./infer/cqn').INSERT} q
+   * @returns {string} SQL
+   */
   INSERT_rows(q) {
     const { INSERT } = q
     const entity = this.name(q.target?.name || INSERT.into.ref[0])
@@ -322,11 +437,21 @@ class CQN2SQLRenderer {
     }) SELECT ${extraction} FROM json_each(?)`)
   }
 
+  /**
+   * Renders an INSERT query with values property
+   * @param {import('./infer/cqn').INSERT} q
+   * @returns {string} SQL
+   */
   INSERT_values(q) {
     let { columns, values } = q.INSERT
     return this.INSERT_rows({ __proto__: q, INSERT: { __proto__: q.INSERT, columns, rows: [values] } })
   }
 
+  /**
+   * Renders an INSERT query from SELECT query
+   * @param {import('./infer/cqn').INSERT} q
+   * @returns {string} SQL
+   */
   INSERT_select(q) {
     const { INSERT } = q
     const entity = this.name(q.target.name)
@@ -342,6 +467,12 @@ class CQN2SQLRenderer {
     return this.sql
   }
 
+  /**
+   * Wraps the provided SQL expression for output processing
+   * @param {import('./infer/cqn').element} element
+   * @param {string} expr
+   * @returns {string} SQL
+   */
   output_converter4(element, expr) {
     const fn = element?.[this.class._convertOutput]
     return fn?.(expr, element) || expr
@@ -355,6 +486,11 @@ class CQN2SQLRenderer {
 
   // UPSERT Statements ------------------------------------------------
 
+  /**
+   * Renders an UPSERT query into generic SQL
+   * @param {import('./infer/cqn').UPDATE} q
+   * @returns {string} SQL
+   */
   UPSERT(q) {
     let { UPSERT } = q,
       sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
@@ -376,6 +512,11 @@ class CQN2SQLRenderer {
 
   // UPDATE Statements ------------------------------------------------
 
+  /**
+   * Renders an UPDATE query into generic SQL
+   * @param {import('./infer/cqn').UPDATE} q
+   * @returns {string} SQL
+   */
   UPDATE(q) {
     const {
         UPDATE: { entity, with: _with, data, where },
@@ -414,6 +555,11 @@ class CQN2SQLRenderer {
 
   // DELETE Statements ------------------------------------------------
 
+  /**
+   * Renders a DELETE query into generic SQL
+   * @param {import('./infer/cqn').DELETE} param0
+   * @returns {string} SQL
+   */
   DELETE({ DELETE: { from, where } }) {
     let sql = `DELETE FROM ${this.from(from)}`
     if (where) sql += ` WHERE ${this.where(where)}`
@@ -422,6 +568,11 @@ class CQN2SQLRenderer {
 
   // STREAM Statement -------------------------------------------------
 
+  /**
+   * Renders a STREAM query into generic SQL
+   * @param {import('./infer/cqn').STREAM} q
+   * @returns {string} SQL
+   */
   STREAM(q) {
     let { from, into, where, column, data } = q.STREAM
     let x, sql
@@ -443,6 +594,12 @@ class CQN2SQLRenderer {
 
   // Expression Clauses ---------------------------------------------
 
+  /**
+   * Renders an expression object into generic SQL
+   * @param {import('./infer/cqn').expr} x
+   * @returns {string} SQL
+   * @throws {Error} When an unknown un supported expression is provided
+   */
   expr(x) {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
@@ -456,6 +613,11 @@ class CQN2SQLRenderer {
     else throw cds.error`Unsupported expr: ${x}`
   }
 
+  /**
+   * Renders an list of expression objects into generic SQL
+   * @param {import('./infer/cqn').xpr} param0
+   * @returns {string} SQL
+   */
   xpr({ xpr }) {
     return xpr
       .map((x, i) => {
@@ -467,21 +629,44 @@ class CQN2SQLRenderer {
       .join(' ')
   }
 
+  /**
+   * Renders an operation into generic SQL
+   * @param {string} x The current operator string
+   * @param {Number} i Current index of the operator inside the xpr
+   * @param {import('./infer/cqn').predicate[]} xpr The parent xpr in which the operator is used
+   * @returns {string} The correct operator string
+   */
   operator(x, i, xpr) {
     if (x === '=' && xpr[i + 1]?.val === null) return 'is'
     if (x === '!=') return 'is not'
     else return x
   }
 
+  /**
+   * Renders an argument place holder into the SQL for prepared statements
+   * @param {import('./infer/cqn').ref} param0
+   * @returns {string} SQL
+   * @throws {Error} When an unsupported ref definition is provided
+   */
   param({ ref }) {
     if (ref.length > 1) throw cds.error`Unsupported nested ref parameter: ${ref}`
     return ref[0] === '?' ? '?' : `:${ref}`
   }
 
+  /**
+   * Renders a ref into generic SQL
+   * @param {import('./infer/cqn').ref} param0
+   * @returns {string} SQL
+   */
   ref({ ref }) {
     return ref.map(r => this.quote(r)).join('.')
   }
 
+  /**
+   * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
+   * @param {import('./infer/cqn').val} param0
+   * @returns {string} SQL
+   */
   val({ val }) {
     switch (typeof val) {
       case 'function':
@@ -504,36 +689,76 @@ class CQN2SQLRenderer {
   }
 
   static Functions = require('./cql-functions')
+  /**
+   * Renders a function call into mapped SQL definitions from the Functions definition
+   * @param {import('./infer/cqn').func} param0
+   * @returns {string} SQL
+   */
   func({ func, args }) {
     args = (args || []).map(e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
     return this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
   }
 
+  /**
+   * Renders a list into generic SQL
+   * @param {import('./infer/cqn').list} param0
+   * @returns {string} SQL
+   */
   list({ list }) {
     return `(${list.map(e => this.expr(e))})`
   }
 
+  /**
+   * Renders a Regular Expression into its string representation
+   * @param {RegExp} o
+   * @returns {string} SQL
+   */
   regex(o) {
     if (is_regexp(o)) return o.source
   }
 
+  /**
+   * Renders the object as a JSON string in generic SQL
+   * @param {Object} o
+   * @returns {string} SQL
+   */
   json(o) {
-    return JSON.stringify(o)
+    return this.string(JSON.stringify(o))
   }
 
+  /**
+   * Renders a javascript string into a generic SQL string
+   * @param {string} s
+   * @returns {string} SQL
+   */
   string(s) {
     return `'${s.replace(/'/g, "''")}'`
   }
 
+  /**
+   * Calculates the effect column name
+   * @param {import('./infer/cqn').col} col
+   * @returns {string} explicit/implicit column alias
+   */
   column_name(col) {
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
   }
 
+  /**
+   * Calculates the Database name of the given name
+   * @param {string|import('./infer/cqn').ref} name
+   * @returns {string} Database name
+   */
   name(name) {
     return (name.id || name).replace(/\./g, '_')
   }
 
   static ReservedWords = {}
+  /**
+   * Ensures that the given identifier is properly quoted when required by the database
+   * @param {string} s
+   * @returns {string} SQL
+   */
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
@@ -541,6 +766,13 @@ class CQN2SQLRenderer {
     return s
   }
 
+  /**
+   * Convers the columns array into an array of SQL expressions that extract the correct value from inserted JSON data
+   * @param {Object[]} columns
+   * @param {import('./infer/cqn').elements} elements
+   * @param {Boolean} isUpdate
+   * @returns {string[]} Array of SQL expressions for processing input JSON data
+   */
   managed(columns, elements, isUpdate = false) {
     const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
     const inputConverterKey = this.class._convertInput
@@ -602,4 +834,8 @@ const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.item
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
-module.exports = Object.assign((q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m), { class: CQN2SQLRenderer })
+module.exports = {
+  valueof: (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m),
+  class: CQN2SQLRenderer,
+  classDefinition: CQN2SQLRenderer // class is a reserved typescript word
+}
