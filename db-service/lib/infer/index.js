@@ -656,6 +656,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const virtual = (leafArt.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
       if (!inExists && !virtual && !inCalcElement && isColumnJoinRelevant(column, firstStepIsSelf)) {
+        if (originalQuery.UPDATE)
+          throw cds.error(
+            'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
+          )
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column, $baseLink)
       }

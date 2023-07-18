@@ -17,11 +17,11 @@ class PostgresService extends SQLService {
   get factory() {
     return {
       options: {
-        ...this.options.pool,
         min: 0,
         testOnBorrow: true,
         acquireTimeoutMillis: 1000,
         destroyTimeoutMillis: 1000,
+        ...this.options.pool,
       },
       create: async () => {
         const cr = this.options.credentials || {}
@@ -52,8 +52,8 @@ class PostgresService extends SQLService {
 
   url4() {
     // TODO: Maybe log which database and which user? Be more robust against missing properties?
-    let { host, port } = this.options?.credentials || this.options || {}
-    return host + ':' + (port || 5432)
+    let { host, hostname, port } = this.options?.credentials || this.options || {}
+    return (hostname || host) + ':' + (port || 5432)
   }
 
   async set(variables) {
