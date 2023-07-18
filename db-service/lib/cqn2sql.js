@@ -527,7 +527,8 @@ class CQN2SQLRenderer {
   }
 
   column_name(col) {
-    if (coll === '*') cds.error`Query was not inferred and includes '*' in the columns. For which there is no name available.`
+    if (coll === '*')
+      cds.error`Query was not inferred and includes '*' in the columns. For which there is no column name available.`
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
   }
 
