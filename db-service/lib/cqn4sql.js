@@ -436,22 +436,22 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
   }
 
-  function resolveCalculatedElement(column, omitAlias = false) {
+  function resolveCalculatedElement(column, omitAlias = false, baseLink = null) {
     const { $refLinks } = column
     const { value } = $refLinks[$refLinks.length - 1].definition
-    const {ref,val,xpr,func} = value
+    const { ref, val, xpr, func } = value
 
-    const baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
+    baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation) || baseLink
 
     let res
     if (ref) {
-      [res] = getTransformedTokenStream([value], baseLink)
+      ;[res] = getTransformedTokenStream([value], baseLink)
     }
     if (xpr) {
-      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+      const foo = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+      res = foo
     }
-    if (func)
-      res = { args: getTransformedTokenStream(value.args), func: value.func }
+    if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
     if (!omitAlias) res.as = column.as || column.flatName
     return res
   }
@@ -1182,7 +1182,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (token.ref) {
             const { definition } = token.$refLinks[token.$refLinks.length - 1]
             if (definition.value) {
-              const calculatedElement = resolveCalculatedElement(token, true)
+              const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
               transformedTokenStream.push(calculatedElement)
               continue
             }
@@ -1501,11 +1501,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         each.ref[0] in { $self: true, $projection: true } ? getParentEntity(assoc) : target,
       ),
     )
-
-    function getParentEntity(element) {
-      if (element.kind === 'entity') return element
-      else return getParentEntity(element.parent)
-    }
   }
 
   /**
@@ -1947,6 +1942,11 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+function getParentEntity(element) {
+  if (element.kind === 'entity') return element
+  else return getParentEntity(element.parent)
 }
 
 /**

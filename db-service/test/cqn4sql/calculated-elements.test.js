@@ -48,12 +48,12 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('nested', () => {
+  it('nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, volume, storageVolume }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        (length * width) * height as volume,
-        stock * ((length * width) * height) as storageVolume
+        (Books.length * Books.width) * Books.height as volume,
+        Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -99,16 +99,16 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('calc elem in infix filter', () => {
+  it('calc elem in infix filter', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area > 1].title }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
     const expected = CQL`SELECT from booksCalc.Authors as Authors
-      left outer join booksCalc.Boods as books on ( books.author_ID = author.ID )
-        AND ( ( books.length * books.width ) > 1 )
+      left outer join booksCalc.Books as books on books.author_ID = Authors.ID
+        AND ( books.length * books.width ) > 1
       {
         Authors.ID,
-        books.title
+        books.title as books_title
       }`
     expect(query).to.deep.equal(expected)
   })
