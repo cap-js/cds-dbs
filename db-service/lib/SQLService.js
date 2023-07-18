@@ -213,7 +213,7 @@ class SQLService extends DatabaseService {
   }
 }
 
-/** 
+/**
  * Interface of prepared statement objects as returned by {@link SQLService#prepare}
  * @class
  * @interface

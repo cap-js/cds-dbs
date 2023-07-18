@@ -123,9 +123,9 @@ class DatabaseService extends cds.Service {
 
   /**
    * Runs a Query on the database service
-   * @param {import("@sap/cds/apis/cqn").Query} query 
-   * @param {any} data 
-   * @param  {...any} etc 
+   * @param {import("@sap/cds/apis/cqn").Query} query
+   * @param {any} data
+   * @param  {...any} etc
    * @returns {Promise<any>}
    */
   run(query, data, ...etc) {

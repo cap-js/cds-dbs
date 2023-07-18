@@ -837,5 +837,5 @@ const _empty = a => !a || a.length === 0
 module.exports = {
   valueof: (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m),
   class: CQN2SQLRenderer,
-  classDefinition: CQN2SQLRenderer // class is a reserved typescript word
+  classDefinition: CQN2SQLRenderer, // class is a reserved typescript word
 }
