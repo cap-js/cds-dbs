@@ -450,7 +450,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     let res
     if (ref) {
-      ;[res] = getTransformedTokenStream([value], baseLink)
+      res = getTransformedTokenStream([value], baseLink)[0]
     } else if (xpr) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
     } else if (val) {
