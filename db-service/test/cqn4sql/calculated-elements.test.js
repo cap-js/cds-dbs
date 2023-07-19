@@ -241,8 +241,6 @@ describe.skip('Unfolding calculated elements in other places', () => {
 
 // ? calc elem at several places in one query (select, where, order ...) ?
 
-// TODO: localized
-
 describe.skip('Unfolding calculated elements ... misc', () => {
   let model
   beforeAll(async () => {
@@ -254,4 +252,36 @@ describe.skip('Unfolding calculated elements ... misc', () => {
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
     expect(query).to.deep.equal(expected)
   })
+})
+
+describe.skip('Unfolding calculated elements and localized', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+  })
+
+  it('presence of localized element should not affect unfolding', () => {
+    const q = CQL`SELECT from booksCalc.LBooks { ID, title, area }`
+    q.SELECT.localized = true
+    let query = cqn4sql(q, model)
+    const expected = CQL`SELECT from localized.booksCalc.LBooks as LBooks {
+        LBooks.ID,
+        LBooks.title,
+        LBooks.length * LBooks.width as area
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('calculated element refers to localized element', () => {
+    const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
+    q.SELECT.localized = true
+    let query = cqn4sql(q, model)
+    const expected = CQL`SELECT from localized.booksCalc.LBooks as LBooks {
+        LBooks.ID,
+        LBooks.title,
+        substring(LBooks.title, 3, 3) as ctitle
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
 })

@@ -5,8 +5,6 @@ entity Books {
   title : String;
   author : Association to Authors;
 
-  a : Integer;
-  b : Integer;
   length : Decimal;
   width : Decimal;
   height : Decimal;
@@ -51,4 +49,15 @@ entity Addresses {
 
   text = street || ', ' || city;
   num2 = number * 2;
+}
+
+entity LBooks {
+  key ID : Integer;
+
+  title : localized String;
+  ctitle = substring(title, 3, 3);  // requires compiler 4.1
+
+  length : Decimal;
+  width : Decimal;
+  area : Decimal = length * width;
 }
