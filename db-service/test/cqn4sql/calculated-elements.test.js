@@ -190,7 +190,7 @@ describe('Unfolding calculated elements in other places', () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
   })
 
-  it+('in where', () => {
+  it('in where', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID } where area < 13`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID }
       where (Books.length * Books.width) < 13
