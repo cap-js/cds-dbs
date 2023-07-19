@@ -663,7 +663,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(column, $baseLink)
       }
-      if (leafArt.value) {
+      if (leafArt.value && !leafArt.value.stored) {
         resolveCalculatedElement(leafArt, column)
       }
 

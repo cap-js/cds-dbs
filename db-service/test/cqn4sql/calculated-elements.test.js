@@ -175,13 +175,13 @@ describe('Unfolding calculated elements in select list', () => {
   })
 })
 
-describe.skip('Unfolding calculated elements in other places', () => {
+describe('Unfolding calculated elements in other places', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
   })
 
-  it('in where', () => {
+  it+('in where', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID } where area < 13`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID }
       where (Books.length * Books.width) < 13
@@ -214,12 +214,12 @@ describe.skip('Unfolding calculated elements in other places', () => {
 
   it('in filter in path in FROM', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
-    const expected = CQL`SELECT from booksCalc.Books as Books {
-      Books.ID
-    } where (Books.stock * ((Books.length * Books.width) * Books.height)) < 4
-        and exists (select 1 from booksCalc.Authors as Authors 
+    const expected = CQL`SELECT from booksCalc.Books as books {
+      books.ID
+    } where exists (select 1 from booksCalc.Authors as Authors 
                       where Authors.ID = books.author_ID
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
+                        and (books.stock * ((books.length * books.width) * books.height)) < 4
     `
     expect(query).to.deep.equal(expected)
   })
@@ -227,7 +227,7 @@ describe.skip('Unfolding calculated elements in other places', () => {
 
 // ? calc elem at several places in one query (select, where, order ...) ?
 
-describe.skip('Unfolding calculated elements ... misc', () => {
+describe('Unfolding calculated elements ... misc', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
@@ -240,10 +240,11 @@ describe.skip('Unfolding calculated elements ... misc', () => {
   })
 })
 
-describe.skip('Unfolding calculated elements and localized', () => {
+describe('Unfolding calculated elements and localized', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
   })
 
   it('presence of localized element should not affect unfolding', () => {
@@ -255,6 +256,7 @@ describe.skip('Unfolding calculated elements and localized', () => {
         LBooks.title,
         LBooks.length * LBooks.width as area
       }`
+    expected.SELECT.localized = true
     expect(query).to.deep.equal(expected)
   })
 
@@ -267,6 +269,7 @@ describe.skip('Unfolding calculated elements and localized', () => {
         LBooks.title,
         substring(LBooks.title, 3, 3) as ctitle
       }`
+    expected.SELECT.localized = true
     expect(query).to.deep.equal(expected)
   })
 })

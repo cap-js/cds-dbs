@@ -294,6 +294,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
   }
 
+  function isCalculatedOnRead(def) {
+    return def?.value && !def.value.stored
+  }
+
   /**
    * Walks over a list of columns (ref's, xpr, subqueries, val), applies flattening on structured types and expands wildcards.
    *
@@ -305,7 +309,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (col.$refLinks?.[col.$refLinks.length - 1].definition.value) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col)
         transformedColumns.push(calcElement)
       } else if (col.expand) {
@@ -750,7 +754,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const res = []
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
-      if (col.isJoinRelevant) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+        const calcElement = resolveCalculatedElement(col, true)
+        res.push(calcElement)
+      } else if (col.isJoinRelevant) {
         const tableAlias$refLink = getQuerySourceName(col)
         const transformedColumn = {
           ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
@@ -1182,7 +1189,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
             const { definition } = token.$refLinks[token.$refLinks.length - 1]
-            if (definition.value) {
+            if (isCalculatedOnRead(definition)) {
               const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
               transformedTokenStream.push(calculatedElement)
               continue
