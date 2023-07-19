@@ -1,7 +1,5 @@
 namespace booksCalc;
 
-
-
 entity Books {
   key ID : Integer;
   title : String;
@@ -15,9 +13,7 @@ entity Books {
   stock : Integer;
   price : Decimal;
 
-
   // ---
-
   stock2 = stock;
   ctitle = substring(title, 3, stock);
 
@@ -30,9 +26,6 @@ entity Books {
   authorLastName = author.lastName;
   authorName = author.name;
   authorAdrText = author.addressText;
-
-
-
 }
 
 entity Authors {
@@ -45,26 +38,16 @@ entity Authors {
 
   name : String = firstName || ' ' || lastName;
 
-  bigBooksTitle = books[area > 22].title;
-
-
-  m : Integer;
-  n : Integer;
-  // ---
-  c = m + n;
-
   addressText = address.text;
+  addressTextFilter = address[num2 > 17].text;
 }
 
 entity Addresses {
   key ID : Integer;
   street : String;
   city : String;
+  number : Integer;
 
   text = street || ', ' || city;
-
-  x : Integer;
-  y : Integer;
-  // ---
-  c = x + y;
+  num2 = number * 2;
 }

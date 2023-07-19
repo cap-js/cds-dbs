@@ -160,7 +160,7 @@ describe.skip('Unfolding calculated elements in select list', () => {
   it('calc elem contains association, nested', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAdrText }`, model)
     // intermediate:
-    // SELECT from booksCalc.Books { ID, author.address.text }
+    // SELECT from booksCalc.Books { ID, author.address.{street || ', ' || city} }
     const expected = CQL`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
       left outer join booksCalc.Addresses as address on address.ID = author.address_ID
