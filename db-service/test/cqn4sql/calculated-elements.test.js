@@ -283,5 +283,4 @@ describe.skip('Unfolding calculated elements and localized', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-
 })
