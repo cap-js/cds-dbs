@@ -258,6 +258,7 @@ describe.skip('Unfolding calculated elements and localized', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
   })
 
   it('presence of localized element should not affect unfolding', () => {
