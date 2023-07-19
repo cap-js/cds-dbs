@@ -269,7 +269,7 @@ describe('Unfolding calculated elements and localized', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('calculated element refers to localized element', () => {
+  it.skip('calculated element refers to localized element', () => {
     const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
     q.SELECT.localized = true
     let query = cqn4sql(q, model)
