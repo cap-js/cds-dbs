@@ -115,8 +115,11 @@ describe.skip('Unfolding calculated elements in select list', () => {
   })
 
   it('via two association paths', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area,
-                                                                books[stock>5].area as a2}`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area,
+                                                                books[stock>5].area as a2}`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Authors as Authors
       left outer join booksCalc.Books as books  on books.author_ID  = Authors.ID and books.stock  < 5
       left outer join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
@@ -127,7 +130,7 @@ describe.skip('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-    
+
   it('in filter', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area >17].title`, model)
     // intermediate:
@@ -186,8 +189,6 @@ describe.skip('Unfolding calculated elements in select list', () => {
   })
 })
 
-
-
 describe.skip('Unfolding calculated elements in other places', () => {
   let model
   beforeAll(async () => {
@@ -203,8 +204,11 @@ describe.skip('Unfolding calculated elements in other places', () => {
   })
 
   it('in group by & having', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, sum(price) as tprice }
-      group by ctitle having ctitle like 'A%'`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, sum(price) as tprice }
+      group by ctitle having ctitle like 'A%'`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID, sum(Books.price) as tprice
       } group by substring(Books.title, 3, Books.stock)
@@ -233,15 +237,11 @@ describe.skip('Unfolding calculated elements in other places', () => {
     `
     expect(query).to.deep.equal(expected)
   })
-
 })
-
 
 // ? calc elem at several places in one query (select, where, order ...) ?
 
-
 // TODO: localized
-
 
 describe.skip('Unfolding calculated elements ... misc', () => {
   let model
@@ -254,6 +254,4 @@ describe.skip('Unfolding calculated elements ... misc', () => {
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
     expect(query).to.deep.equal(expected)
   })
-
 })
-
