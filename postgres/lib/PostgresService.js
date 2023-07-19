@@ -81,11 +81,10 @@ class PostgresService extends SQLService {
 
       ...(!this._initalCollateCheck
         ? [
-            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';`))
+            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en-x-icu';`))
               .all([])
               .then(resp => {
                 this._initalCollateCheck = true
-                if (resp.find(row => row.collname === 'en_US')) return
                 if (resp.find(row => row.collname === 'en-x-icu'))
                   this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
                 // REVISIT throw error when there is no collated libary found
@@ -178,26 +177,31 @@ class PostgresService extends SQLService {
   }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
-    orderBy(orderBy, localized) {
+    _orderBy(orderBy, localized, locale) {
       return orderBy.map(
         localized
           ? c =>
               this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
+              (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
               (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
 
+    orderBy(orderBy, localized) {
+      // best-effort locale expansion (example: 'de' -> 'de_DE')
+      const locale =
+        this.context.locale === 'en'
+          ? 'en_US'
+          : this.context.locale.length === 2
+          ? `${this.context.locale}_${this.context.locale.toUpperCase()}`
+          : this.context.locale
+      return this._orderBy(orderBy, localized, locale)
+    }
+
     orderByICU(orderBy, localized) {
-      return orderBy.map(
-        localized
-          ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      return this._orderBy(orderBy, localized, locale)
     }
 
     from(from) {
