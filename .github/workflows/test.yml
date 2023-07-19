@@ -46,5 +46,4 @@ jobs:
           git add -A &&
           git commit -m "✨prettier✨" &&
           git push
-      - run: cds --version
       - run: npm run test:all
