@@ -230,10 +230,10 @@ describe.skip('Unfolding calculated elements in other places', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
     const expected = CQL`SELECT from booksCalc.Books as books {
       Books.ID
-    } where (Books.stock * ((Books.length * Books.width) * Books.height)) < 4
-        and exists (select 1 from booksCalc.Authors as Authors 
+    } where exists (select 1 from booksCalc.Authors as Authors 
                       where Authors.ID = books.author_ID
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
+                        and (Books.stock * ((Books.length * Books.width) * Books.height)) < 4
     `
     expect(query).to.deep.equal(expected)
   })
