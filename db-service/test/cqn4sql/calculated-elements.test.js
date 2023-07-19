@@ -85,7 +85,7 @@ describe.skip('Unfolding calculated elements in select list', () => {
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
         (Books.stock * ((Books.length * Books.width) * Books.height))
-          / (Books.length * Books.width) * Books.height as f
+          / ((Books.length * Books.width) * Books.height) as f
       }`
     expect(query).to.deep.equal(expected)
   })
