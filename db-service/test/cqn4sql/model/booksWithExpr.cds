@@ -17,15 +17,11 @@ entity Books {
 
 
   // ---
-  c1 = a + b;
-  c2 : Integer = a + b;
-  c3 = a - b;
 
+  stock2 = stock;
   ctitle = substring(title, 3, stock);
 
   // -- nested
-  cc1 = c1 * c3;
-  cc2 = cc1 / c1;
   area : Decimal = length * width;
   volume : Decimal = area * height;
   storageVolume : Decimal = stock * volume;
@@ -35,7 +31,7 @@ entity Books {
   authorName = author.name;
   authorAdrText = author.addressText;
 
-  // ca3 = f.ca; // F:ca is a calculated element with an assoc path
+
 
 }
 
@@ -48,6 +44,9 @@ entity Authors {
   address : Association to Addresses;
 
   name : String = firstName || ' ' || lastName;
+
+  bigBooksTitle = books[area > 22].title;
+
 
   m : Integer;
   n : Integer;

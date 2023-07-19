@@ -10,6 +10,17 @@ describe.skip('Unfolding calculated elements in select list', () => {
     model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
   })
 
+  // todo: check inferred -> type should survive
+  it('directly', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, stock2 }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID,
+        Books.stock as stock2
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  // todo: check inferred -> type should be there
   it('directly', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, area }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
@@ -18,6 +29,8 @@ describe.skip('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+
+  // test with ce that has no type (for inferred)?
 
   // CDL style cast ?
 
@@ -34,7 +47,7 @@ describe.skip('Unfolding calculated elements in select list', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, round(area, 2) as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        round(Books.length * Books.width,2 ) as f
+        round(Books.length * Books.width, 2) as f
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -48,23 +61,83 @@ describe.skip('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('nested', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, volume, storageVolume }`, model)
+  it('calc elem is function, nested in direct expression', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle || title as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        (length * width) * height as volume,
-        stock * ((length * width) * height) as storageVolume
+        substring(Books.title, 3, Books.stock) || Books.title as f;
       }`
     expect(query).to.deep.equal(expected)
   })
 
-  it('via association', () => {
+  it('nested calc elems', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, volume, storageVolume }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID,
+        (Books.length * Books.width) * Books.height as volume,
+        Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('nested calc elems, nested in direct expression', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, storageVolume / volume as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID,
+        Books.stock * ((Books.length * Books.width) * Books.height)
+          / (Books.length * Books.width) * Books.height as f
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  //
+  // with associations
+  //
+
+  it('via an association path', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.name }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
-      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
-      {
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
         Books.ID,
-        author.firstName || ' ' || author.lastName as name;
+        author.firstName || ' ' || author.lastName as name
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('via an association path, nested in direct expression', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, substring(author.name, 2, stock) as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
+        Books.ID,
+        substring(author.firstName || ' ' || author.lastName, 2, Books.stock) as f
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('via two association paths', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area,
+                                                                books[stock>5].area as a2}`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors
+      left outer join booksCalc.Books as books  on books.author_ID  = Authors.ID and books.stock  < 5
+      left outer join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
+      {
+        Authors.ID,
+        books.length * books.width   as area,
+        books2.length * books2.width as a2
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+    
+  it('in filter', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area >17].title`, model)
+    // intermediate:
+    // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
+    const expected = CQL`SELECT from booksCalc.Authors as Authors
+      left outer join booksCalc.Books as books on  books.author_ID  = Authors.ID
+                                               and (books.length * books.width) > 17
+      {
+        Authors.ID,
+        books.title
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -98,17 +171,25 @@ describe.skip('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('calc elem in infix filter', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area > 1].title }`, model)
+  it('calc elem contains association with filter', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, addressTextFilter }`, model)
     // intermediate:
-    // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
+    // SELECT from booksCalc.Authors { ID, address[number * 2 > 17].{street || ', ' || city}  }
     const expected = CQL`SELECT from booksCalc.Authors as Authors
-      left outer join booksCalc.Boods as books on ( books.author_ID = author.ID )
-        AND ( ( books.length * books.width ) > 1 )
+      left outer join booksCalc.Addresses as address on address.ID = Authors.address_ID
+                                                     and (address.number * 2) > 17
       {
         Authors.ID,
-        books.title
+        address.street || ', ' || address.city as addressTextFilter
       }`
     expect(query).to.deep.equal(expected)
   })
-})
+}
+
+
+// calc elem at several places in one query (select, where, order ...)
+
+// localized
+
+
+// test: calc-on-write not touched
