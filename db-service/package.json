@@ -21,7 +21,7 @@
   "scripts": {
     "prettier": "npx prettier --write .",
     "test": "npx jest --silent",
-    "build": "npx tsc && find lib/ -type f -name '*.d.ts' -exec cp '{}' 'dist/{}' ';'",
+    "build": "npx tsc && find lib/ -type f -name '*.d.ts' -exec cp '{}' 'dist/{}' ';' && cp ts.eslintrc.cjs dist/.eslintrc.cjs && npx eslint ./dist --ext .d.ts",
     "lint": "npx eslint . && npx prettier --check . "
   },
   "dependencies": {},

@@ -478,8 +478,10 @@ class CQN2SQLRenderer {
     return fn?.(expr, element) || expr
   }
 
+  /** @type {import('./converters').Converters} */
   static InputConverters = {} // subclasses to override
 
+  /** @type {import('./converters').Converters} */
   static OutputConverters = {} // subclasses to override
 
   static localized = { String: true, UUID: false }
@@ -719,7 +721,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders the object as a JSON string in generic SQL
-   * @param {Object} o
+   * @param {object} o
    * @returns {string} SQL
    */
   json(o) {
@@ -753,6 +755,7 @@ class CQN2SQLRenderer {
     return (name.id || name).replace(/\./g, '_')
   }
 
+  /** @type {unknown} */
   static ReservedWords = {}
   /**
    * Ensures that the given identifier is properly quoted when required by the database
@@ -768,7 +771,7 @@ class CQN2SQLRenderer {
 
   /**
    * Convers the columns array into an array of SQL expressions that extract the correct value from inserted JSON data
-   * @param {Object[]} columns
+   * @param {object[]} columns
    * @param {import('./infer/cqn').elements} elements
    * @param {Boolean} isUpdate
    * @returns {string[]} Array of SQL expressions for processing input JSON data
@@ -818,6 +821,11 @@ class CQN2SQLRenderer {
     })
   }
 
+  /**
+   * Returns the default value
+   * @param {string} defaultValue
+   * @returns {string}
+   */
   defaultValue(defaultValue = this.context.timestamp.toISOString()) {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
@@ -837,5 +845,5 @@ const _empty = a => !a || a.length === 0
 module.exports = {
   valueof: (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m),
   class: CQN2SQLRenderer,
-  classDefinition: CQN2SQLRenderer // class is a reserved typescript word
+  classDefinition: CQN2SQLRenderer, // class is a reserved typescript word
 }

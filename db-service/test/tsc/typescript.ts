@@ -1,5 +1,4 @@
 import { csn } from '@sap/cds/apis/csn'
-import { SELECT } from '@sap/cds/apis/cqn'
 import { DatabaseService, SQLService, Factory, PreparedStatement, CQN2SQL } from '@cap-js/db-service'
 
 /**
@@ -28,7 +27,9 @@ class Driver {
     return this
   }
 
-  async disconnect(): Promise<void> {}
+  async disconnect(): Promise<void> {
+    return
+  }
 
   async validate(): Promise<boolean> {
     return true
@@ -88,39 +89,140 @@ export class TestSQLDatabaseService extends SQLService {
     return new TestPreparedStatement()
   }
 
-  exec(sql: string): Promise<any> {
+  exec(sql: string): Promise<unknown> {
     return Promise.resolve(sql)
   }
 }
 
-type BindingParameters = {} | []
+type BindingParameters = unknown | unknown[]
 
 class TestPreparedStatement implements PreparedStatement {
-  constructor() {}
-
-  async run(binding_params: BindingParameters): Promise<any> {
+  async run(binding_params: BindingParameters): Promise<number> {
     binding_params
     return 0
   }
 
-  async get(binding_params: BindingParameters): Promise<any> {
+  async get(binding_params: BindingParameters): Promise<unknown> {
     binding_params
     return {}
   }
 
-  async all(binding_params: BindingParameters): Promise<any> {
+  async all(binding_params: BindingParameters): Promise<unknown[]> {
     binding_params
     return []
   }
 }
 
-class TestCQN2SQL extends CQN2SQL {
+export class TestCQN2SQL extends CQN2SQL {
   constructor(context: import('@sap/cds/apis/services').ContextProperties) {
     super(context)
   }
 
-  SELECT(cqn: SELECT): string {
+  SELECT(cqn: any): string {
     cqn
     return ''
   }
 }
+
+// PoC typed SELECT queries and return types
+enum cdsTypes {
+  Integer = 'cds.Integer',
+  String = 'cds.String',
+}
+
+const model: {
+  definitions: Record<
+    string,
+    {
+      elements: Record<
+        string,
+        {
+          key?: boolean
+          type: cdsTypes
+        }
+      >
+    }
+  >
+} = {
+  definitions: {
+    Books: {
+      elements: {
+        ID: {
+          key: true,
+          type: cdsTypes.Integer,
+        },
+        name: {
+          type: cdsTypes.String,
+        },
+      },
+    },
+    Authors: {
+      elements: {
+        ID: {
+          key: true,
+          type: cdsTypes.Integer,
+        },
+        firstname: {
+          type: cdsTypes.String,
+        },
+      },
+    },
+  },
+}
+
+type cdsTypeMap = {
+  [cdsTypes.Integer]: number
+  [cdsTypes.String]: string
+}
+
+type source = keyof (typeof model)['definitions']
+type sourceDefinition<SRC extends keyof (typeof model)['definitions']> = (typeof model)['definitions'][SRC]
+type sourceElements<TARGET extends source> = keyof sourceDefinition<TARGET>['elements']
+type sourceElementRef<TARGET extends source, COL extends sourceElements<TARGET>> = {
+  ref: [COL]
+}
+type sourceElementDefinition<
+  TARGET extends source,
+  COL extends sourceElements<TARGET>,
+> = sourceDefinition<TARGET>['elements'][COL]
+type sourceElementResult<TARGET extends source, COL extends sourceElements<TARGET>> = {
+  // REVISIT: The cdsTypeMap for some reason does not resolve the exact type instead returns a union of all possible types
+  [key in COL]: cdsTypeMap[sourceElementDefinition<TARGET, COL>['type']]
+}
+
+class SELECT<TARGET extends source, COLS extends sourceElements<TARGET>> {
+  from = <SRC extends source>(x: SRC): SELECT<SRC, COLS> => {
+    return this
+  }
+  columns = <COL extends sourceElements<TARGET>>(x: sourceElementRef<TARGET, COL>[]): SELECT<TARGET, COL> => {
+    return this
+  }
+  then = <RET extends sourceElementResult<TARGET, COLS>>(
+    resolve: (ret: RET) => void,
+    reject: (error: Error) => void,
+  ): void => {
+    try {
+      // This is not a real solution, but it would work in javascript
+      resolve({ ID: 1 } as any)
+    } catch (e) {
+      reject(new Error('oops'))
+    }
+  }
+}
+
+const sel = new SELECT()
+
+const sel1 = sel.from('Authors')
+const sel2 = sel1.columns([{ ref: ['firstname'] }, { ref: ['ID'] }])
+const sel3 = sel1.columns([{ ref: ['ID'] }])
+;(async () => {
+  const res2 = await sel2
+  const ID2 = res2.ID
+  const firstname2 = res2.firstname
+
+  const res3 = await sel3
+  const ID3 = res3.ID
+
+  console.log(ID2, firstname2)
+  console.log(ID3)
+})()

@@ -159,7 +159,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * @param {string} kind - The type of operation: "INSERT" or "UPSERT".
    *
-   * @returns {Object} - The transformed query with updated `into` clause.
+   * @returns {object} - The transformed query with updated `into` clause.
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
@@ -171,10 +171,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   /**
    * Transforms a stream query, replacing the `where` and `into` clauses after processing.
    *
-   * @param {Object} inferred - The inferred object containing the STREAM query.
-   * @param {Object} transformedQuery - The query object to be transformed.
+   * @param {object} inferred - The inferred object containing the STREAM query.
+   * @param {object} transformedQuery - The query object to be transformed.
    *
-   * @returns {Object} - The transformed query with updated STREAM clauses.
+   * @returns {object} - The transformed query with updated STREAM clauses.
    */
   function transformStreamQuery() {
     const { into, where } = inferred.STREAM
@@ -194,8 +194,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   /**
    * Transforms a search expression to a WHERE clause for a SELECT operation.
    *
-   * @param {Object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {Object} from - The FROM clause of the CQN statement.
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} from - The FROM clause of the CQN statement.
    *
    * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
    *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
@@ -633,7 +633,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * @param {CSN.column} column - The column with the 'expand' property to be transformed into a subquery.
    *
-   * @returns {Object} Returns a subquery correlated with the enclosing query, with added properties `expand:true` and `one:true|false`.
+   * @returns {object} Returns a subquery correlated with the enclosing query, with added properties `expand:true` and `one:true|false`.
    */
   function expandColumn(column) {
     let outerAlias

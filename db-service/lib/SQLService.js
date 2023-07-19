@@ -213,7 +213,7 @@ class SQLService extends DatabaseService {
   }
 }
 
-/** 
+/**
  * Interface of prepared statement objects as returned by {@link SQLService#prepare}
  * @class
  * @interface
@@ -221,7 +221,7 @@ class SQLService extends DatabaseService {
 class PreparedStatement {
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
-   * @param {[]|{}} binding_params
+   * @param {unknown|unknown[]} binding_params
    */
   async run(binding_params) {
     binding_params
@@ -229,7 +229,8 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
-   * @param {[]|{}} binding_params
+   * @param {unknown|unknown[]} binding_params
+   * @returns {Promise<unknown>}
    */
   async get(binding_params) {
     binding_params
@@ -237,7 +238,8 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
-   * @param {[]|{}} binding_params
+   * @param {[unknown|unknown[]} binding_params
+   * @returns {Promise<unknown[]>}
    */
   async all(binding_params) {
     binding_params

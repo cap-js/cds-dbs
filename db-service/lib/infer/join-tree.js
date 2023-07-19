@@ -107,7 +107,7 @@ class JoinTree {
    * For each step, it checks whether it has been seen before. If so, it resets the $refLink to point to the already merged $refLink.
    * If not, it creates a new Node and ensures proper aliasing and foreign key access.
    *
-   * @param {Object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
+   * @param {object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
    * @returns {boolean} - Always returns true, indicating the column has been successfully merged into the join tree.
    */
   mergeColumn(col) {
