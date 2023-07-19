@@ -22,11 +22,9 @@
     "test": "npx jest --silent",
     "lint": "npx eslint . && npx prettier --check . "
   },
+  "dependencies": {},
   "peerDependencies": {
     "@sap/cds": ">=7"
   },
-  "license": "SEE LICENSE",
-  "devDependencies": {
-    "@sap/cds-compiler": "^4.0.2"
-  }
+  "license": "SEE LICENSE"
 }
