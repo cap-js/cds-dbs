@@ -41,6 +41,12 @@ entity Authors {
 
   addressText = address.text;
   addressTextFilter = address[num2 > 17].text;
+
+  IBAN = countryCode || checksum || sortCode  || accountNumber;
+  countryCode = 'DE';
+  checksum: String(2);
+  sortCode: String(8);
+  accountNumber: String(10);
 }
 
 entity Addresses {

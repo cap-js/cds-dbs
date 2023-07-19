@@ -451,12 +451,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     let res
     if (ref) {
       ;[res] = getTransformedTokenStream([value], baseLink)
-    }
-    if (xpr) {
-      const foo = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
-      res = foo
-    }
-    if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
+    } else if (xpr) {
+      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+    } else if (val) {
+      res = { val }
+    } else if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
     if (!omitAlias) res.as = column.as || column.flatName
     return res
   }

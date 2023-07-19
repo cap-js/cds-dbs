@@ -20,6 +20,15 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('simple val', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, IBAN }`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+        Authors.ID,
+        'DE' || Authors.checksum || Authors.sortCode || Authors.accountNumber as IBAN
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
   // todo: check inferred -> type should be there
   it('directly', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, area }`, model)
