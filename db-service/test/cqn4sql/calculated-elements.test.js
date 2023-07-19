@@ -228,7 +228,7 @@ describe.skip('Unfolding calculated elements in other places', () => {
 
   it('in filter in path in FROM', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
-    const expected = CQL`SELECT from booksCalc.Books as Books {
+    const expected = CQL`SELECT from booksCalc.Books as books {
       Books.ID
     } where (Books.stock * ((Books.length * Books.width) * Books.height)) < 4
         and exists (select 1 from booksCalc.Authors as Authors 
