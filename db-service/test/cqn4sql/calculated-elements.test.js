@@ -65,7 +65,7 @@ describe('Unfolding calculated elements in select list', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle || title as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        substring(Books.title, 3, Books.stock) || Books.title as f;
+        substring(Books.title, 3, Books.stock) || Books.title as f
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -84,8 +84,8 @@ describe('Unfolding calculated elements in select list', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, storageVolume / volume as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
-        Books.stock * ((Books.length * Books.width) * Books.height)
-          / (Books.length * Books.width) * Books.height as f
+        (Books.stock * ((Books.length * Books.width) * Books.height))
+          / ((Books.length * Books.width) * Books.height) as f
       }`
     expect(query).to.deep.equal(expected)
   })
