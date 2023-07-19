@@ -184,12 +184,76 @@ describe.skip('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-}
+})
 
 
-// calc elem at several places in one query (select, where, order ...)
 
-// localized
+describe.skip('Unfolding calculated elements in other places', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+  })
+
+  it('in where', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID } where area < 13`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID }
+      where (Books.length * Books.width) < 13
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in group by & having', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, sum(price) as tprice }
+      group by ctitle having ctitle like 'A%'`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID, sum(Books.price) as tprice
+      } group by substring(Books.title, 3, Books.stock)
+        having substring(Books.title, 3, Books.stock) like 'A%'
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in order by', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, title } order by ctitle`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID, Books.title
+      } order by substring(Books.title, 3, Books.stock)
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in filter in path in FROM', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+      Books.ID
+    } where (Books.stock * ((Books.length * Books.width) * Books.height)) < 4
+        and exists (select 1 from booksCalc.Authors as Authors 
+                      where Authors.ID = books.author_ID
+                        and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+})
 
 
-// test: calc-on-write not touched
+// ? calc elem at several places in one query (select, where, order ...) ?
+
+
+// TODO: localized
+
+
+describe.skip('Unfolding calculated elements ... misc', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+  })
+
+  it('calculated element on-write (stored) is not unfolded', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, areaS }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
+    expect(query).to.deep.equal(expected)
+  })
+
+})
+
