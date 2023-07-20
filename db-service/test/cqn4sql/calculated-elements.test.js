@@ -407,7 +407,7 @@ describe('Unfolding calculated elements and localized', () => {
   })
 })
 
-describe.only('Bad Hair Day findings on calculated elements', () => {
+describe('Bad Hair Day findings on calculated elements', () => {
   // this section is a collection of test cases which
   // were the result of an intensive test session of the
   // @sap/cds-compiler team
