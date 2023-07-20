@@ -144,6 +144,24 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('in expression within expand', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Authors {
+      ID,
+      books { stock * area  as f }
+    }`,
+      model,
+    )
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+        Authors.ID,
+        (
+          SELECT from booksCalc.Books as books {
+            books.stock * ( books.length * books.width ) as f
+          } where Authors.ID = books.author_ID
+        ) as books
+      }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
 
   it('in function', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, round(area, 2) as f }`, model)
@@ -385,6 +403,46 @@ describe('Unfolding calculated elements and localized', () => {
         substring(LBooks.title, 3, 3) as ctitle
       }`
     expected.SELECT.localized = true
+    expect(query).to.deep.equal(expected)
+  })
+})
+
+describe.only('Bad Hair Day findings on calculated elements', () => {
+  // this section is a collection of test cases which
+  // were the result of an intensive test session of the
+  // @sap/cds-compiler team
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/calculatedElements/badHairDay').then(cds.linked)
+  })
+  it('navigate over man in the middle', () => {
+    let query = cqn4sql(
+      CQL`SELECT from first.E {
+      cfg
+    }`,
+      model,
+    )
+    const expected = CQL`SELECT from first.E as E
+        left join first.F as f on f.ID = E.f_ID 
+        left join first.G as g on g.ID = f.g_ID {
+          (
+            g.x + g.y
+          ) as cfg
+        }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('infix filter in calc element definition is only relevant for join condition', () => {
+    let query = cqn4sql(
+      CQL`SELECT from second.E {
+      c
+    }`,
+      model,
+    )
+    const expected = CQL`SELECT from second.E as E
+      left join second.F as f on f.ID = E.f_ID and (f.m * f.n) > 2
+    {
+      f.n as c
+    }`
     expect(query).to.deep.equal(expected)
   })
 })
