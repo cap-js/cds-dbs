@@ -7,10 +7,9 @@ const { expect } = cds.test
 describe('Unfolding calculated elements in select list', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
 
-  // todo: check inferred -> type should survive
   it('directly', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, stock2 }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
@@ -18,6 +17,101 @@ describe('Unfolding calculated elements in select list', () => {
         Books.stock as stock2
       }`
     expect(query).to.deep.equal(expected)
+  })
+
+  it('via wildcard without columns', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books excluding { length, width, height, stock, price }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+          left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          Books.ID,
+          Books.title,
+          Books.author_ID,
+
+          Books.stock as stock2,
+          substring(Books.title, 3, Books.stock) as ctitle,
+
+          Books.areaS,
+
+          Books.length * Books.width as area,
+          (Books.length * Books.width) * Books.height as volume,
+          Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('via wildcard', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+          left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          Books.ID,
+          Books.title,
+          Books.author_ID,
+
+          Books.stock as stock2,
+          substring(Books.title, 3, Books.stock) as ctitle,
+
+          Books.areaS,
+
+          Books.length * Books.width as area,
+          (Books.length * Books.width) * Books.height as volume,
+          Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+  it('via wildcard in expand subquery', () => {
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Authors {
+      books { * } excluding { length, width, height, stock, price}
+    } 
+    `,
+      model,
+    )
+
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      (
+        SELECT from booksCalc.Books as books
+          left outer join booksCalc.Authors as author on author.ID = books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          books.ID,
+          books.title,
+          books.author_ID,
+
+          books.stock as stock2,
+          substring(books.title, 3, books.stock) as ctitle,
+
+          books.areaS,
+
+          books.length * books.width as area,
+          (books.length * books.width) * books.height as volume,
+          books.stock * ((books.length * books.width) * books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        } where Authors.ID = books.author_ID
+      ) as books
+    }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it('simple val', () => {
@@ -29,7 +123,6 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  // todo: check inferred -> type should be there
   it('directly', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, area }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
@@ -113,6 +206,16 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('via an association in columns and where', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.name } where author.name like '%Bro%'`, model)
+    // revisit: alias follows our "regular" naming scheme -> ref.join('_')
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
+        Books.ID,
+        author.firstName || ' ' || author.lastName as author_name
+      } where (author.firstName || ' ' || author.lastName) like '%Bro%'`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem contains association', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorName, authorLastName }`, model)
@@ -141,7 +244,10 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('calc elem contains other calculated element in xpr with nested joins', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorFullNameWithAddress }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, authorFullNameWithAddress } where authorFullNameWithAddress = 'foo'`,
+      model,
+    )
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.name, author.lastName }
     const expected = CQL`SELECT from booksCalc.Books as Books
@@ -151,7 +257,7 @@ describe('Unfolding calculated elements in select list', () => {
         Books.ID,
         (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city)
          as authorFullNameWithAddress,
-      }`
+      } where ( (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) ) = 'foo'`
     expect(query).to.deep.equal(expected)
   })
 
@@ -187,7 +293,7 @@ describe('Unfolding calculated elements in select list', () => {
 describe('Unfolding calculated elements in other places', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
 
   it('in where', () => {
@@ -239,10 +345,10 @@ describe('Unfolding calculated elements in other places', () => {
 describe('Unfolding calculated elements ... misc', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
   // Calculated elements on-write are not supported, yet (in entity:“booksCalc.Books”/element:“areaS”)
-  it.skip('calculated element on-write (stored) is not unfolded', () => {
+  it('calculated element on-write (stored) is not unfolded', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, areaS }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
     expect(query).to.deep.equal(expected)
@@ -252,7 +358,7 @@ describe('Unfolding calculated elements ... misc', () => {
 describe('Unfolding calculated elements and localized', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
     model = cds.compile.for.nodejs(model)
   })
 
