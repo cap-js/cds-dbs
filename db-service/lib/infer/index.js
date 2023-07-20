@@ -4,7 +4,6 @@ const cds = require('@sap/cds/lib')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-// REVISIT: we should always return cds.linked elements
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -18,7 +17,6 @@ const cdsTypes = cds.linked({
   },
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
-
 /**
  * @param {CQN|CQL} originalQuery
  * @param {CSN} [model]
@@ -274,6 +272,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
+    // cache for already processed calculated elements
+    const alreadySeenCalcElements = new Set()
+
     let queryElements = {}
     const { columns, where, groupBy, having, orderBy } = _
     if (!columns) {
@@ -793,8 +794,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
-
-    function resolveCalculatedElement(calcElement, column) {
+    function resolveCalculatedElement(calcElement) {
+      if (alreadySeenCalcElements.has(calcElement)) return
+      else alreadySeenCalcElements.add(calcElement)
       const { ref, val, xpr, func } = calcElement.value
       if (ref || xpr) {
         attachRefLinksToArg(calcElement.value, { definition: calcElement.parent, target: calcElement.parent }, true)
@@ -803,10 +805,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         mergePathsIntoJoinTree(calcElement.value)
       }
       if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
-
       function mergePathsIntoJoinTree(e, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
-
         if (e.ref) {
           e.$refLinks.forEach((link, i) => {
             const { definition } = link
@@ -897,15 +897,20 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * if there is not already an element with the same name present.
      */
     function inferElementsFromWildCard() {
+      const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
+
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+          if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
+          if(element.value) {
+            // we might have join relevant calculated elements
+            resolveCalculatedElement(element)
+          }
         })
         return
       }
 
-      const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
       const ambiguousElements = {}
       Object.entries($combinedElements).forEach(([name, tableAliases]) => {
         if (Object.keys(tableAliases).length > 1) {

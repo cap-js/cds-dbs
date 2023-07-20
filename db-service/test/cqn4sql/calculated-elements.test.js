@@ -20,6 +20,32 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('via wildcard', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+          left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          Books.ID,
+          Books.title,
+          Books.author_ID,
+
+          Books.stock as stock2,
+          substring(Books.title, 3, Books.stock) as ctitle,
+
+          Books.length * Books.width as area,
+          (Books.length * Books.width) * Books.height as volume,
+          Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
   it('simple val', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, IBAN }`, model)
     const expected = CQL`SELECT from booksCalc.Authors as Authors {
@@ -113,6 +139,16 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('via an association in columns and where', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.name } where author.name like '%Bro%'`, model)
+    // revisit: alias follows our "regular" naming scheme -> ref.join('_')
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
+        Books.ID,
+        author.firstName || ' ' || author.lastName as author_name
+      } where (author.firstName || ' ' || author.lastName) like '%Bro%'`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem contains association', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorName, authorLastName }`, model)
@@ -141,7 +177,10 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('calc elem contains other calculated element in xpr with nested joins', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorFullNameWithAddress }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, authorFullNameWithAddress } where authorFullNameWithAddress = 'foo'`,
+      model,
+    )
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.name, author.lastName }
     const expected = CQL`SELECT from booksCalc.Books as Books
@@ -151,7 +190,7 @@ describe('Unfolding calculated elements in select list', () => {
         Books.ID,
         (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city)
          as authorFullNameWithAddress,
-      }`
+      } where ( (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) ) = 'foo'`
     expect(query).to.deep.equal(expected)
   })
 

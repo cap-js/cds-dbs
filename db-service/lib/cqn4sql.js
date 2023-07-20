@@ -442,11 +442,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   function resolveCalculatedElement(column, omitAlias = false, baseLink = null) {
-    const { $refLinks } = column
-    const { value } = $refLinks[$refLinks.length - 1].definition
-    const { ref, val, xpr, func } = value
+    let value
 
-    baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation) || baseLink
+    if (column.$refLinks) {
+      const { $refLinks } = column
+      value = $refLinks[$refLinks.length - 1].definition.value
+      baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation) || baseLink
+    } else {
+      value = column.value
+    }
+    const { ref, val, xpr, func } = value
 
     let res
     if (ref) {
@@ -456,7 +461,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     } else if (val) {
       res = { val }
     } else if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
-    if (!omitAlias) res.as = column.as || column.flatName
+    if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
   }
 
@@ -856,6 +861,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // for wildcard on subquery in from, just reference the elements
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
+      } else if (element.value) {
+        wildcardColumns.push(resolveCalculatedElement(element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
         wildcardColumns.push(...flatColumns)
