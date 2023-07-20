@@ -47,6 +47,42 @@ describe('Unfolding calculated elements in select list', () => {
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
+  it('via wildcard in expand subquery', () => {
+    let query = cqn4sql(CQL`
+    SELECT from booksCalc.Authors {
+      books { * } excluding { length, width, height, stock, price}
+    } 
+    `, model)
+    
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      (
+        SELECT from booksCalc.Books as books
+          left outer join booksCalc.Authors as author on author.ID = books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          books.ID,
+          books.title,
+          books.author_ID,
+
+          books.stock as stock2,
+          substring(books.title, 3, books.stock) as ctitle,
+
+          books.areaS,
+
+          books.length * books.width as area,
+          (books.length * books.width) * books.height as volume,
+          books.stock * ((books.length * books.width) * books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        } where Authors.ID = books.author_ID
+      ) as books
+    }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
 
   it('simple val', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, IBAN }`, model)
