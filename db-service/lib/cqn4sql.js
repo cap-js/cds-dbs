@@ -120,7 +120,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard()
+      transformedQuery.SELECT.columns = getColumnsForWildcard(originalQuery.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
