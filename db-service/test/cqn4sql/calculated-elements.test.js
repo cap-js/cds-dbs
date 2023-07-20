@@ -76,12 +76,15 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
   it('via wildcard in expand subquery', () => {
-    let query = cqn4sql(CQL`
+    let query = cqn4sql(
+      CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price}
     } 
-    `, model)
-    
+    `,
+      model,
+    )
+
     const expected = CQL`SELECT from booksCalc.Authors as Authors {
       (
         SELECT from booksCalc.Books as books
