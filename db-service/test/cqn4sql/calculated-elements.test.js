@@ -287,7 +287,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in expand (to-many)', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books { ID, area, volume } }`, model )
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books { ID, area, volume } }`, model)
 
     const expected = CQL`SELECT from booksCalc.Authors as Authors {
       Authors.ID,
