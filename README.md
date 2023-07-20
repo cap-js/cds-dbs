@@ -1,3 +1,5 @@
+[![REUSE status](https://api.reuse.software/badge/github.com/cap-js/cds-dbs)](https://api.reuse.software/info/github.com/cap-js/cds-dbs)
+
 # Welcome to cds-dbs Repo
 
 ## About this project
