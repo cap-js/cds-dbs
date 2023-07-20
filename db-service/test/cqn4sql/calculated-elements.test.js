@@ -7,7 +7,7 @@ const { expect } = cds.test
 describe('Unfolding calculated elements in select list', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
 
   // todo: check inferred -> type should survive
@@ -33,6 +33,8 @@ describe('Unfolding calculated elements in select list', () => {
           Books.stock as stock2,
           substring(Books.title, 3, Books.stock) as ctitle,
 
+          Books.areaS,
+
           Books.length * Books.width as area,
           (Books.length * Books.width) * Books.height as volume,
           Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume,
@@ -55,7 +57,6 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  // todo: check inferred -> type should be there
   it('directly', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, area }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
@@ -226,7 +227,7 @@ describe('Unfolding calculated elements in select list', () => {
 describe('Unfolding calculated elements in other places', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
 
   it('in where', () => {
@@ -278,10 +279,10 @@ describe('Unfolding calculated elements in other places', () => {
 describe('Unfolding calculated elements ... misc', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
   // Calculated elements on-write are not supported, yet (in entity:“booksCalc.Books”/element:“areaS”)
-  it.skip('calculated element on-write (stored) is not unfolded', () => {
+  it('calculated element on-write (stored) is not unfolded', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, areaS }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
     expect(query).to.deep.equal(expected)
@@ -291,7 +292,7 @@ describe('Unfolding calculated elements ... misc', () => {
 describe('Unfolding calculated elements and localized', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/booksWithExpr').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
     model = cds.compile.for.nodejs(model)
   })
 

@@ -38,6 +38,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     inferred.CREATE ||
     inferred.DROP ||
     inferred.STREAM
+
+  // cache for already processed calculated elements
+  const alreadySeenCalcElements = new Set()
+
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
@@ -272,9 +276,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
-    // cache for already processed calculated elements
-    const alreadySeenCalcElements = new Set()
-
     let queryElements = {}
     const { columns, where, groupBy, having, orderBy } = _
     if (!columns) {
@@ -903,7 +904,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
           if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
-          if(element.value) {
+          if (element.value) {
             // we might have join relevant calculated elements
             resolveCalculatedElement(element)
           }

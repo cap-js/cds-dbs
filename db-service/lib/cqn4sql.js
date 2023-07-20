@@ -861,7 +861,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // for wildcard on subquery in from, just reference the elements
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
-      } else if (element.value) {
+      } else if (isCalculatedOnRead(element)) {
         wildcardColumns.push(resolveCalculatedElement(element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
