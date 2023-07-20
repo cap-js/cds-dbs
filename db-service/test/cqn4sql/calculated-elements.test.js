@@ -132,10 +132,6 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  // test with ce that has no type (for inferred)?
-
-  // CDL style cast ?
-
   it('in expression', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, stock * area as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
@@ -217,6 +213,45 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('via an association path, nested in direct expression', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, substring(author.name, 2, stock) as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
+        Books.ID,
+        substring(author.firstName || ' ' || author.lastName, 2, Books.stock) as f
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('via two association paths', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area, books[stock>5].area as a2}`, model,
+    )
+    const expected = CQL`SELECT from booksCalc.Authors as Authors
+      left outer join booksCalc.Books as books  on books.author_ID  = Authors.ID and books.stock  < 5
+      left outer join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
+      {
+        Authors.ID,
+        books.length * books.width   as books_area,
+        books2.length * books2.width as a2
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('in filter', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[area >17].title }`, model)
+    // intermediate:
+    // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
+    const expected = CQL`SELECT from booksCalc.Authors as Authors
+      left outer join booksCalc.Books as books on  books.author_ID  = Authors.ID
+                                               and (books.length * books.width) > 17
+      {
+        Authors.ID,
+        books.title as books_title
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+
   it('calc elem contains association', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorName, authorLastName }`, model)
     // intermediate:
@@ -227,7 +262,6 @@ describe('Unfolding calculated elements in select list', () => {
         Books.ID,
         author.firstName || ' ' || author.lastName as authorName,
         author.lastName as authorLastName
-        
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -340,14 +374,12 @@ describe('Unfolding calculated elements in other places', () => {
   })
 })
 
-// ? calc elem at several places in one query (select, where, order ...) ?
 
 describe('Unfolding calculated elements ... misc', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
-  // Calculated elements on-write are not supported, yet (in entity:“booksCalc.Books”/element:“areaS”)
   it('calculated element on-write (stored) is not unfolded', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, areaS }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books { Books.ID, Books.areaS }`
