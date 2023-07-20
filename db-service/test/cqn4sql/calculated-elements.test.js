@@ -224,9 +224,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via two association paths', () => {
-    let query = cqn4sql(
-      CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area, books[stock>5].area as a2}`, model,
-    )
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, books[stock<5].area, books[stock>5].area as a2}`, model)
     const expected = CQL`SELECT from booksCalc.Authors as Authors
       left outer join booksCalc.Books as books  on books.author_ID  = Authors.ID and books.stock  < 5
       left outer join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
@@ -373,7 +371,6 @@ describe('Unfolding calculated elements in other places', () => {
     expect(query).to.deep.equal(expected)
   })
 })
-
 
 describe('Unfolding calculated elements ... misc', () => {
   let model
