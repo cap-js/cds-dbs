@@ -107,7 +107,7 @@ GROUP BY k
 `
 
     const cPrep = await this.prepare(cSQL)
-    const cResp = [{ k: 'en', v: 'en_US' }] // await cPrep.all([])
+    const cResp = await cPrep.all([])
     if (cResp.length > 0) {
       const collationMap = (this.class.CQN2SQL.prototype.collationMap = cResp.reduce((ret, row) => {
         ret[row.k] = row.v
