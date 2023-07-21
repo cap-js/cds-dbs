@@ -10,7 +10,7 @@ describe('Unfolding calculated elements in select list', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
 
-  it('directly', () => {
+  it('simple reference', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, stock2 }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
