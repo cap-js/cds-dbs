@@ -239,7 +239,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         author.firstName || ' ' || author.lastName as author_name,
-        author.countryCode || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
+        'DE' || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -266,7 +266,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         author.firstName || ' ' || author.lastName as author_name,
-        author.countryCode || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
+        'DE' || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -461,6 +461,23 @@ describe('Unfolding calculated elements in other places', () => {
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
                         and (books.stock * ((books.length * books.width) * books.height)) < 4
     `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it.skip('in a subquery', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books {
+        ID,
+        (select from booksCalc.Authors as A { name }
+           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.title) as f
+      }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID,
+        (select from booksCalc.Authors as A { A.firstName || ' ' || A.lastName as name }
+            where A.ID = Books.author_ID
+            and ('DE' || A.checksum || A.sortCode  || A.accountNumber)
+                 = (Books.length * Books.width) + substring(Books.title, 3, Books.stock)
+        ) as f
+    }`
     expect(query).to.deep.equal(expected)
   })
 })
