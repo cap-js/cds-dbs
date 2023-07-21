@@ -16,7 +16,7 @@ entity Books {
   ctitle = substring(title, 3, stock);
 
   // -- nested
-  // areaS : Decimal = (length * width) stored;
+  areaS : Decimal = (length * width) stored;
   area : Decimal = length * width;
   volume : Decimal = area * height;
   storageVolume : Decimal = stock * volume;
