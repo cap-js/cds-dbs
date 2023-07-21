@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CDS database service for Postgres",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -53,7 +53,8 @@
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"
-          }
+          },
+          "schema_evolution": "auto"
         }
       },
       "db": "sql"
