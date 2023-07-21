@@ -805,7 +805,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // for that, we calculate all paths from a calc element and merge them into the join tree
         mergePathsIntoJoinTree(calcElement.value)
       }
-      if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
+      if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent })) // {func}.args are optional
       function mergePathsIntoJoinTree(e, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
         if (e.ref) {

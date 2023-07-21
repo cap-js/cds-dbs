@@ -464,12 +464,12 @@ describe('Unfolding calculated elements in other places', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('in a subquery', () => {
+  it('in a subquery', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books {
         ID,
         (select from booksCalc.Authors as A { name }
-           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.title) as f
+           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.ctitle) as f
       }`,
       model,
     )

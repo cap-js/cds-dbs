@@ -447,7 +447,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (column.$refLinks) {
       const { $refLinks } = column
       value = $refLinks[$refLinks.length - 1].definition.value
-      baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation) || baseLink
+      // if the first step in the calc elements ref refers to a table alias
+      // it might be a subquery -> we need to propagate the alias to all paths of the calc element
+      baseLink = $refLinks.length > 1 ? $refLinks[0] : baseLink
     } else {
       value = column.value
     }
@@ -460,7 +462,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
     } else if (val) {
       res = { val }
-    } else if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
+    } else if (func) res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
   }

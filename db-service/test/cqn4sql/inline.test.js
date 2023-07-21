@@ -60,7 +60,7 @@ describe('inline', () => {
     }`
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
-  it.only('structural inline expansion with path expression and infix filter at leaf', () => {
+  it('structural inline expansion with path expression and infix filter at leaf', () => {
     let inlineQuery = CQL`select from Department {
       head[job = 'boss'].{
         name
