@@ -418,6 +418,17 @@ describe('Unfolding calculated elements in other places', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('in filter in where exists', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID } where exists books[area < 13]`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors { Authors.ID }
+      where exists (
+        select 1 from booksCalc.Books as books where books.author_ID = Authors.ID
+          and (books.length * books.width) < 13
+      )
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
   it('in group by & having', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { ID, sum(price) as tprice }
