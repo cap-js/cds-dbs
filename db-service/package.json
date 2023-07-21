@@ -22,7 +22,6 @@
     "test": "npx jest --silent",
     "lint": "npx eslint . && npx prettier --check . "
   },
-  "dependencies": {},
   "peerDependencies": {
     "@sap/cds": ">=7"
   },
