@@ -53,7 +53,8 @@
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"
-          }
+          },
+          "schema_evolution": "auto"
         }
       },
       "db": "sql"
