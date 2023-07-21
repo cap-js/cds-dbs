@@ -577,7 +577,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         if (step.where) {
-          const danglingFilter = !(column.ref[i + 1] || column.expand || inExists)
+          const danglingFilter = !(column.ref[i + 1] || column.expand || column.inline || inExists)
           if (!column.$refLinks[i].definition.target || danglingFilter)
             throw new Error(/A filter can only be provided when navigating along associations/)
           if (!column.expand) Object.defineProperty(column, 'isJoinRelevant', { value: true })

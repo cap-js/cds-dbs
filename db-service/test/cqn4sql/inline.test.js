@@ -46,6 +46,34 @@ describe('inline', () => {
     const longResult = cqn4sql(longVersion, model)
     expect(cqn4sql(inlineQuery, model)).to.eql(longResult).to.eql(expected)
   })
+  it('structural inline expansion with path expression and infix filter', () => {
+    let inlineQuery = CQL`select from Department {
+      head[job = 'boss'].office.{
+        floor
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+        and head.job = 'boss'
+    {
+      head.office_floor,
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
+  it.only('structural inline expansion with path expression and infix filter at leaf', () => {
+    let inlineQuery = CQL`select from Department {
+      head[job = 'boss'].{
+        name
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+        and head.job = 'boss'
+    {
+      head.name,
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
 
   it('mixed with expand', () => {
     let queryInlineNotation = CQL`select from Employee {
