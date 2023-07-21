@@ -94,6 +94,13 @@ class PostgresService extends SQLService {
       return
     }
 
+    /**
+     * Selects the first two characters of the collation name as key
+     * Select the smallest collation name as value (could also be max)
+     * Filter the collations by the provider c (libc)
+     * Filters the collation names by /.._../ Where '>' points at the '_' that is an actual '_'
+     * The group by is done by the key column to make sure that only one collation per key is returned
+     */
     const cSQL = `
 SELECT 
   SUBSTRING(collname, 1, 2) AS K,
