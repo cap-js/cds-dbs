@@ -4,7 +4,7 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.X.X - YYYY-MM-DD
+## Version 1.1.0 - tbd
 
 ### Fixed
 
