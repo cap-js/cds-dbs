@@ -79,19 +79,46 @@ class PostgresService extends SQLService {
         ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}";`)]
         : []),
 
-      ...(!this._initalCollateCheck
-        ? [
-            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en-x-icu';`))
-              .all([])
-              .then(resp => {
-                this._initalCollateCheck = true
-                if (resp.find(row => row.collname === 'en-x-icu'))
-                  this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
-                // REVISIT throw error when there is no collated libary found
-              }),
-          ]
-        : []),
+      ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
     ])
+  }
+
+  async _checkCollation() {
+    this._initalCollateCheck = true
+
+    const icuPrep = await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en-x-icu';`)
+    const icuResp = await icuPrep.all([])
+
+    if (icuResp.length > 0) {
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
+      return
+    }
+
+    const cSQL = `
+SELECT 
+  SUBSTRING(collname, 1, 2) AS K,
+  MIN(collname) AS V 
+FROM 
+  pg_collation 
+WHERE 
+  collprovider = 'c' AND 
+  collname LIKE '__>___' ESCAPE '>' 
+GROUP BY k
+`
+
+    const cPrep = await this.prepare(cSQL)
+    const cResp = [{ k: 'en', v: 'en_US' }] // await cPrep.all([])
+    if (cResp.length > 0) {
+      const collationMap = (this.class.CQN2SQL.prototype.collationMap = cResp.reduce((ret, row) => {
+        ret[row.k] = row.v
+        return ret
+      }, {}))
+      collationMap.default = collationMap.en || collationMap[Object.keys(collationMap)[0]]
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByLIBC
+      return
+    }
+
+    // REVISIT: print a warning when no collation is found
   }
 
   prepare(sql) {
@@ -188,20 +215,18 @@ class PostgresService extends SQLService {
       )
     }
 
-    orderBy(orderBy, localized) {
-      // best-effort locale expansion (example: 'de' -> 'de_DE')
-      const locale =
-        this.context.locale === 'en'
-          ? 'en_US'
-          : this.context.locale.length === 2
-          ? `${this.context.locale}_${this.context.locale.toUpperCase()}`
-          : this.context.locale
-      return this._orderBy(orderBy, localized, locale)
+    orderBy(orderBy) {
+      return this._orderBy(orderBy)
     }
 
     orderByICU(orderBy, localized) {
       const locale = `${this.context.locale.replace('_', '-')}-x-icu`
       return this._orderBy(orderBy, localized, locale)
+    }
+
+    orderByLIBC(orderBy, localized) {
+      const locale = this.collationMap[this.context.locale] || this.collationMap.default
+      return this._orderBy(orderBy, localized && locale, locale)
     }
 
     from(from) {
