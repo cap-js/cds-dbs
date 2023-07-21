@@ -465,11 +465,14 @@ describe('Unfolding calculated elements in other places', () => {
   })
 
   it.skip('in a subquery', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
         ID,
         (select from booksCalc.Authors as A { name }
            where A.ID = Books.author.ID and A.IBAN = Books.area + Books.title) as f
-      }`, model)
+      }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
         (select from booksCalc.Authors as A { A.firstName || ' ' || A.lastName as name }
