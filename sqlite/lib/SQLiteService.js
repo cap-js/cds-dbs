@@ -5,9 +5,7 @@ const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 
-
 class SQLiteService extends SQLService {
-
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
@@ -197,7 +195,9 @@ function _not_unique(err, code) {
  * @param {String} e value SQL expression
  * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
  */
-const fixTimeZone = e => // REVISIT: minimize to the neccessary
+const fixTimeZone = (
+  e, // REVISIT: minimize to the neccessary
+) =>
   `(
   SELECT
     CASE

@@ -3,9 +3,7 @@ const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds/lib')
 
-
 class DatabaseService extends cds.Service {
-
   /**
    * Dictionary of connection pools per tenant
    */
@@ -14,9 +12,9 @@ class DatabaseService extends cds.Service {
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
-  */
+   */
   get factory() {
-   throw '2b overriden in subclass'
+    throw '2b overriden in subclass'
   }
 
   /**
@@ -28,10 +26,10 @@ class DatabaseService extends cds.Service {
    * This is used in this.begin() for standard properties
    * like `$user.id` or `$user.locale`.
    */
-  set(variables) { // eslint-disable-line no-unused-vars
+  set(variables) {
+    // eslint-disable-line no-unused-vars
     throw '2b overridden by subclass'
   }
-
 
   /**
    * Acquires a pooled connection and starts a session, including setting
@@ -40,7 +38,6 @@ class DatabaseService extends cds.Service {
    * @returns this
    */
   async begin() {
-
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
     if (!ctx) return this.tx().begin() // REVISIT: Is this correct? When does this happen?
@@ -79,11 +76,12 @@ class DatabaseService extends cds.Service {
    */
   async rollback() {
     if (!this.dbc) return
-    else try {
-      await this.send('ROLLBACK')
-    } finally {
-      this.release()
-    }
+    else
+      try {
+        await this.send('ROLLBACK')
+      } finally {
+        this.release()
+      }
   }
 
   /**
@@ -91,7 +89,7 @@ class DatabaseService extends cds.Service {
    * This is for subclasses to intercept, if required.
    */
   async acquire() {
-    return this.dbc = await this.pool.acquire()
+    return (this.dbc = await this.pool.acquire())
   }
 
   /**
@@ -111,7 +109,6 @@ class DatabaseService extends cds.Service {
     delete this.pools[tenant]
   }
 
-
   /**
    * Infers the given query with this DatabaseService instance's model.
    * In general `this.model` is the same then `cds.model`
@@ -122,7 +119,6 @@ class DatabaseService extends cds.Service {
     return infer(query, this.model)
   }
 
-
   /**
    * DatabaseServices also support passing native query strings to underlying databases.
    */
@@ -132,7 +128,6 @@ class DatabaseService extends cds.Service {
     return super.run(query, data)
   }
 
-
   /**
    * @returns {string} A url-like string used to print log output,
    * e.g., in cds.deploy()
@@ -141,7 +136,6 @@ class DatabaseService extends cds.Service {
     return this.options.credentials?.url || this.options.url
   }
 }
-
 
 DatabaseService.prototype.isDatabaseService = true
 module.exports = DatabaseService
