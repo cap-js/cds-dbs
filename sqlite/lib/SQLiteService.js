@@ -5,15 +5,17 @@ const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 
+
 class SQLiteService extends SQLService {
+
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
-        dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
-        dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('session_context', key => dbc[$session][key])
+        dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -22,24 +24,22 @@ class SQLiteService extends SQLService {
     }
   }
 
+  set(variables) {
+    const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
+    if (!dbc[$session]) dbc[$session] = variables
+    else Object.assign(dbc[$session], variables)
+  }
+
+  release() {
+    this.dbc[$session] = undefined
+    return super.release()
+  }
+
   url4(tenant) {
     let { url, database: db = url } = this.options.credentials || this.options || {}
     if (!db || db === ':memory:') return ':memory:'
     if (tenant) db = db.replace(/\.(db|sqlite)$/, `-${tenant}.$1`)
     return cds.utils.path.resolve(cds.root, db)
-  }
-
-  set(variables) {
-    const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
-    if (!dbc[$session]) {
-      dbc[$session] = variables // initial call from within this.begin()
-      const $super = this._release
-      this._release = function (dbc) {
-        // reset session on release
-        delete dbc[$session]
-        return $super.call(this, dbc)
-      }
-    } else Object.assign(dbc[$session], variables) // subsequent uses from custom code
   }
 
   prepare(sql) {
@@ -197,15 +197,15 @@ function _not_unique(err, code) {
  * @param {String} e value SQL expression
  * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
  */
-const fixTimeZone = e =>
+const fixTimeZone = e => // REVISIT: minimize to the neccessary
   `(
   SELECT
     CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN 
+      WHEN substr(T,length(T),1) = 'Z' THEN
         T
       WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
         substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
+      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN
         T || ':' || '00'
       ELSE T
     END AS T

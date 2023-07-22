@@ -67,7 +67,7 @@ class SQLService extends DatabaseService {
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -161,6 +161,10 @@ class SQLService extends DatabaseService {
     return count
   }
 
+  /**
+   * Helper class for results of INSERTs.
+   * Subclasses may override this.
+   */
   static InsertResults = require('./InsertResults')
 
   /**
@@ -172,20 +176,18 @@ class SQLService extends DatabaseService {
     super(...arguments)
     this.class = new.target // for IntelliSense
   }
-  cqn2sql(q, values) {
-    const cqn = this.cqn4sql(q)
 
-    const cmd = cqn.cmd || Object.keys(cqn)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
-      let resolvedCqn = resolveView(cqn, this.model, this)
-      if (resolvedCqn && resolvedCqn[cmd]._transitions?.[0].target) {
-        resolvedCqn = resolvedCqn || cqn
-        resolvedCqn.target = resolvedCqn?.[cmd]._transitions[0].target || cqn.target
-      }
-      return new this.class.CQN2SQL(this.context).render(resolvedCqn, values)
+  cqn2sql(q, values) {
+    const cmd = q.cmd || Object.keys(q)[0]
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) { // REVISIT: Why not SELECT?
+      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
+      let target = q[cmd]._transitions?.[0].target
+      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(cqn, values)
+    const cqn = this.cqn4sql(q)
+    return new this.class.CQN2SQL(this.context).render(cqn, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
   }
+
   cqn4sql(q) {
     // REVISIT: move this check to cqn4sql?
     if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)

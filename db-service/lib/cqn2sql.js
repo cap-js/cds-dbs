@@ -15,7 +15,7 @@ const DEBUG = (() => {
 
 class CQN2SQLRenderer {
   constructor(context) {
-    this.context = cds.context || context
+    this.context = context || cds.context // REVISIT: Why do we need that? -> Accessing cds.context below should suffice, shouldn't it?
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
@@ -526,7 +526,7 @@ class CQN2SQLRenderer {
   }
 
   column_name(col) {
-    return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
+    return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.func || col.ref.at(-1)
   }
 
   name(name) {
