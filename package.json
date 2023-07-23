@@ -20,7 +20,7 @@
   },
   "scripts": {
     "test": "npx jest --silent",
-    "eslint": "npx eslint ."
+    "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"
 }
