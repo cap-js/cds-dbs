@@ -22,6 +22,13 @@ class SQLiteService extends SQLService {
     }
   }
 
+  url4(tenant) {
+    let { url, database: db = url } = this.options.credentials || this.options || {}
+    if (!db || db === ':memory:') return ':memory:'
+    if (tenant) db = db.replace(/\.(db|sqlite)$/, `-${tenant}.$1`)
+    return cds.utils.path.resolve(cds.root, db)
+  }
+
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
     if (!dbc[$session]) dbc[$session] = variables
@@ -31,13 +38,6 @@ class SQLiteService extends SQLService {
   release() {
     this.dbc[$session] = undefined
     return super.release()
-  }
-
-  url4(tenant) {
-    let { url, database: db = url } = this.options.credentials || this.options || {}
-    if (!db || db === ':memory:') return ':memory:'
-    if (tenant) db = db.replace(/\.(db|sqlite)$/, `-${tenant}.$1`)
-    return cds.utils.path.resolve(cds.root, db)
   }
 
   prepare(sql) {
