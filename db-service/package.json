@@ -18,9 +18,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "prettier": "npx prettier --write .",
-    "test": "npx jest --silent",
-    "lint": "npx eslint . && npx prettier --check . "
+    "test": "npx jest --silent"
   },
   "peerDependencies": {
     "@sap/cds": ">=7"
