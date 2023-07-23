@@ -21,7 +21,7 @@
   },
   "scripts": {
     "setup": "docker-compose -f pg-stack.yml up -d",
-    "test": "npm run setup && jest --silent"
+    "test": "npm run setup && jest --silent --colors"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.0.1",

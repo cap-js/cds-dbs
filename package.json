@@ -19,7 +19,7 @@
     "express": "^4"
   },
   "scripts": {
-    "test": "npx jest --silent",
+    "test": "npx jest --silent --colors",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"
