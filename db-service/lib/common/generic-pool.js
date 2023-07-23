@@ -14,16 +14,17 @@ function _track_connections4(pool) {
     async acquire() {
       const connections = (this._trackedConnections ??= new Set())
       try {
-        this.dbc = await acquire.call(this)
+        let dbc = await acquire.call(this)
+        connections.add((dbc._beginStack = new Error('begin called from:')))
+        return dbc
       } catch (err) {
         // TODO: add acquire timeout error check
         err.stack += `\nActive connections:${connections.size}\n${[...connections].map(e => e.stack).join('\n')}`
         throw err
       }
-      connections.add((this.dbc._beginStack = new Error('begin called from:')))
     },
 
-    release(dbc = this.dbc) {
+    release(dbc) {
       this._trackedConnections?.delete(dbc._beginStack)
       return release.call(this, dbc)
     },

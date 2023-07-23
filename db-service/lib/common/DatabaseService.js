@@ -50,9 +50,11 @@ class DatabaseService extends cds.Service {
     // Setting this.pool as used in this.acquire() and this.release()
     this.pool = this.pools[tenant] ??= new ConnectionPool(this.pools._factory, tenant)
 
-    // Acquire a pooled connection and begin a session
+    // Acquire a pooled connection
+    this.dbc = await this.acquire()
+
+    // Begin a session...
     try {
-      await this.acquire()
       await this.set(new SessionContext(ctx))
       await this.send('BEGIN')
     } catch (e) {
@@ -89,7 +91,7 @@ class DatabaseService extends cds.Service {
    * This is for subclasses to intercept, if required.
    */
   async acquire() {
-    return (this.dbc = await this.pool.acquire())
+    return await this.pool.acquire()
   }
 
   /**
