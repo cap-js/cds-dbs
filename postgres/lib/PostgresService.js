@@ -64,10 +64,10 @@ class PostgresService extends SQLService {
     // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
     const nameMap = {
-      '$user.id': 'CAP.APPLICATIONUSER',
-      '$user.locale': 'CAP.LOCALE',
-      '$valid.from': 'CAP.VALID_FROM',
-      '$valid.to': 'CAP.VALID_TO',
+      '$user.id': 'cap.applicationuser',
+      '$user.locale': 'cap.locale',
+      '$valid.from': 'cap.valid_from',
+      '$valid.to': 'cap.valid_to',
     }
 
     const env = {}

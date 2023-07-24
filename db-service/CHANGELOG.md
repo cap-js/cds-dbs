@@ -4,11 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.X.X - YYYY-MM-DD
+## Version 1.1.0 - tbd
 
 ### Fixed
 
 - `UPDATE` with path expressions do not end up in a dump anymore. Instead, a proper error message is emitted.
+- `SELECT` with plain SQL statements will return correct result regardless of casing.
 
 ## Version 1.0.1 - 2023-07-03
 
