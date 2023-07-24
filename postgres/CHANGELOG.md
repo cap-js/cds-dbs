@@ -6,6 +6,10 @@
 
 ## Version 1.1.0 - tbd
 
+### Added
+
+- connectivity to Azure PostgreSQL
+
 ## Version 1.0.1 - 2023-07-03
 
 ### Added
