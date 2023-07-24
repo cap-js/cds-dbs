@@ -798,7 +798,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     function resolveCalculatedElement(calcElement) {
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
-      const { ref, /* val, */ xpr, func } = calcElement.value
+      const { ref, xpr, func } = calcElement.value
       if (ref || xpr) {
         attachRefLinksToArg(calcElement.value, { definition: calcElement.parent, target: calcElement.parent }, true)
         // column is now fully linked, now we need to find out if we need to merge it into the join tree
