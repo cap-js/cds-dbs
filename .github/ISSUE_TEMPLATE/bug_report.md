@@ -46,7 +46,7 @@ For example...
 
 > Remove the lines not applicable, and fill in versions for remaining ones:
 
-| Your Project Name | https://github.wdf.sap.corp/your/repo |
+| Your Project Name | https://github.com/your/repo |
 |:------------------|---------------------------------------|
 | OData version     | v4 / v2                               |
 | Node.js version   | v18.x.x                               |
