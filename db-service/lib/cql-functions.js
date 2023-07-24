@@ -5,7 +5,7 @@ const StandardFunctions = {
   // length     : (x) => `length(${x})`,
   average: x => `avg(${x})`,
   search: function (ref, arg) {
-    if (!('val' in arg)) throw `SQLite only supports single value arguments for $search`
+    if (!('val' in arg)) throw new Error('SQLite only supports single value arguments for $search')
     const refs = ref.list || [ref],
       { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
