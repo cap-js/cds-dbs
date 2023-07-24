@@ -24,7 +24,7 @@ Avoid code screen shots from your IDE where ever possible, instead use [code mar
 Replace this text with a **clear** and **concise** description of the issue, including examples and links to your content as well as log output.  
 For example... 
 
-> We have a [service](https://github.com/SAP-samples/cloud-cap-samples/blob/e29394eac0a59ef80489f28e9d0954f719e1cafa/bookshop/srv/admin-service.js#L11) defined as follows: 
+> We have a [query](https://github.com/SAP-samples/cloud-cap-samples/blob/e29394eac0a59ef80489f28e9d0954f719e1cafa/bookshop/srv/admin-service.js#L11) defined as follows: 
 
 ```js
  await SELECT.one.from(req.target).columns('max(ID) as ID')
