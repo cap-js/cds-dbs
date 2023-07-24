@@ -197,30 +197,4 @@ function _not_unique(err, code) {
     })
 }
 
-/**
- * Generates SQL statement that allows SQLite to support most of the ISO 8601 timezone syntaxes
- * @example
- * '1970-01-01T00:00:00+0200' -> '1970-01-01T00:00:00+02:00'
- * @example
- * '1970-01-01T00:00:00-02' -> '1970-01-01T00:00:00-02:00'
- * @example
- * '1970-01-01T00:00:00Z' -> '1970-01-01T00:00:00Z'
- * @param {String} e value SQL expression
- * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
- */
-const fixTimeZone = e =>
-  `(
-  SELECT
-    CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN
-        T
-      WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
-        substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN
-        T || ':' || '00'
-      ELSE T
-    END AS T
-  FROM (SELECT (${e}) AS T)
-)`.replace(/\s*\n\s*/g, ' ')
-
 module.exports = SQLiteService
