@@ -797,7 +797,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
     }
     function resolveCalculatedElement(column, baseLink, baseRef) {
-      const calcElement = column.$refLinks?.[column.$refLinks.length-1].definition || column
+      const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
       const { ref, val, xpr, func } = calcElement.value
@@ -805,7 +805,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (ref || xpr) {
         attachRefLinksToArg(calcElement.value, baseLink, true)
         const basePath = { $refLinks: [], ref: [] }
-        if(baseRef) {
+        if (baseRef) {
           basePath.$refLinks.push(baseLink)
           basePath.ref.push(...baseRef)
         }
@@ -813,7 +813,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // for that, we calculate all paths from a calc element and merge them into the join tree
         mergePathsIntoJoinTree(calcElement.value, basePath)
       }
-      if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent })) // {func}.args are optional
+      if (func)
+        calcElement.value.args?.forEach(arg =>
+          inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent }),
+        ) // {func}.args are optional
       function mergePathsIntoJoinTree(e, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
         if (e.ref) {
@@ -849,7 +852,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         function mergePathIfNecessary(p, step) {
           const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
           if (calcElementIsJoinRelevant) {
-            if (!calcElement.value.isColumnJoinRelevant) Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
+            if (!calcElement.value.isColumnJoinRelevant)
+              Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
             joinTree.mergeColumn(p)
           } else {
             // we need to explicitly set the value to false in this case,

@@ -291,7 +291,10 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
   it('expand and inline target same calc element', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.{name, addressText }, author {name, addressText } }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, author.{name, addressText }, author {name, addressText } }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors   as author  on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
@@ -311,7 +314,10 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
   it('expand and inline target same calc element inverted', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author {name, addressText }, author.{name, addressText } }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, author {name, addressText }, author.{name, addressText } }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors   as author  on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID

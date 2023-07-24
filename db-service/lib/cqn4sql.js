@@ -546,7 +546,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (nestedProjection.ref) {
           const augmentedInlineCol = { ...nestedProjection }
           augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
-          if (col.as || nestedProjection.as || nestedProjection.$refLinks[nestedProjection.$refLinks.length -1].definition.value || nestedProjection.isJoinRelevant) {
+          if (
+            col.as ||
+            nestedProjection.as ||
+            nestedProjection.$refLinks[nestedProjection.$refLinks.length - 1].definition.value ||
+            nestedProjection.isJoinRelevant
+          ) {
             augmentedInlineCol.as = nameParts.join('_')
           }
           Object.defineProperties(augmentedInlineCol, {
