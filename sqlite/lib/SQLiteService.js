@@ -6,7 +6,6 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 
 class SQLiteService extends SQLService {
-
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
@@ -58,7 +57,6 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-
     SELECT_columns({ SELECT }) {
       if (!SELECT.columns) return '*'
       const { orderBy } = SELECT
@@ -86,7 +84,8 @@ class SQLiteService extends SQLService {
     }
 
     // Used for INSERT statements
-    static InputConverters = { ...super.InputConverters,
+    static InputConverters = {
+      ...super.InputConverters,
 
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
@@ -99,7 +98,8 @@ class SQLiteService extends SQLService {
       Timestamp: e => `ISO(${e})`,
     }
 
-    static OutputConverters = { ...super.OutputConverters,
+    static OutputConverters = {
+      ...super.OutputConverters,
 
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
@@ -130,7 +130,8 @@ class SQLiteService extends SQLService {
     static Functions = { ...super.Functions }
 
     // Used for CREATE TABLE statements
-    static TypeMap = { ...super.TypeMap,
+    static TypeMap = {
+      ...super.TypeMap,
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
