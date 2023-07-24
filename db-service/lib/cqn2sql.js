@@ -506,7 +506,8 @@ class CQN2SQLRenderer {
   static Functions = require('./cql-functions')
   func({ func, args }) {
     args = (args || []).map(e => {
-      const arg = e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }
+      if (e === '*') return e
+      const arg = { __proto__: e, toString: (x = e) => this.expr(x) }
       if ('xpr' in arg)
         arg.xpr = arg.xpr.map(e => (typeof e === 'string' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
       return arg
