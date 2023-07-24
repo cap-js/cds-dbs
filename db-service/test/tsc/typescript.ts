@@ -125,69 +125,51 @@ export class TestCQN2SQL extends CQN2SQL {
 }
 
 // PoC typed SELECT queries and return types
-enum cdsTypes {
-  Integer = 'cds.Integer',
-  String = 'cds.String',
-}
-
-const model: {
-  definitions: Record<
-    string,
-    {
-      elements: Record<
-        string,
-        {
-          key?: boolean
-          type: cdsTypes
-        }
-      >
-    }
-  >
-} = {
+type model = {
   definitions: {
     Books: {
       elements: {
         ID: {
-          key: true,
-          type: cdsTypes.Integer,
-        },
+          key: true
+          type: 'cds.Integer'
+        }
         name: {
-          type: cdsTypes.String,
-        },
-      },
-    },
+          type: 'cds.String'
+        }
+      }
+    }
     Authors: {
       elements: {
         ID: {
-          key: true,
-          type: cdsTypes.Integer,
-        },
+          key: true
+          type: 'cds.Integer'
+        }
         firstname: {
-          type: cdsTypes.String,
-        },
-      },
-    },
-  },
+          type: 'cds.String'
+        }
+      }
+    }
+  }
 }
 
 type cdsTypeMap = {
-  [cdsTypes.Integer]: number
-  [cdsTypes.String]: string
+  'cds.Integer': number
+  'cds.String': string
 }
 
-type source = keyof (typeof model)['definitions']
-type sourceDefinition<SRC extends keyof (typeof model)['definitions']> = (typeof model)['definitions'][SRC]
+type source = keyof model['definitions']
+type sourceDefinition<SRC extends keyof model['definitions']> = model['definitions'][SRC]
 type sourceElements<TARGET extends source> = keyof sourceDefinition<TARGET>['elements']
 type sourceElementRef<TARGET extends source, COL extends sourceElements<TARGET>> = {
   ref: [COL]
 }
-type sourceElementDefinition<
-  TARGET extends source,
-  COL extends sourceElements<TARGET>,
-> = sourceDefinition<TARGET>['elements'][COL]
+type sourceElementDefinition<TARGET extends source, COL extends sourceElements<TARGET>> = Extract<
+  sourceDefinition<TARGET>['elements'][COL],
+  { type: keyof cdsTypeMap }
+>
 type sourceElementResult<TARGET extends source, COL extends sourceElements<TARGET>> = {
   // REVISIT: The cdsTypeMap for some reason does not resolve the exact type instead returns a union of all possible types
-  [key in COL]: cdsTypeMap[sourceElementDefinition<TARGET, COL>['type']]
+  [key in COL]: cdsTypeMap[sourceElementDefinition<TARGET, key>['type']]
 }
 
 class SELECT<TARGET extends source, COLS extends sourceElements<TARGET>> {
@@ -218,10 +200,15 @@ const sel3 = sel1.columns([{ ref: ['ID'] }])
 ;(async () => {
   const res2 = await sel2
   const ID2 = res2.ID
+  // ^? const ID2: number
   const firstname2 = res2.firstname
+  // ^? const firstname2: string
 
   const res3 = await sel3
   const ID3 = res3.ID
+  // ^? const ID3: number
+  // const firstname3 = res3.firstname // <-- does not exist
+  // ^? const firstname3: any
 
   console.log(ID2, firstname2)
   console.log(ID3)

@@ -24,6 +24,8 @@ class CQN2SQLRenderer {
      * @type {import('@sap/cds/apis/services').ContextProperties}
      */
     this.context = cds.context || context
+    // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well
+    /** @type {CQN2SQLRenderer|unknown} */
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
@@ -52,8 +54,8 @@ class CQN2SQLRenderer {
   /**
    * Renders incoming query into SQL and generates binding values
    * @param {import('./infer/cqn').Query} q CQN query to be rendered
-   * @param {any[]|undefined} vars Values to be used for params
-   * @returns {CQN2SQLRenderer}
+   * @param {unknown[]|undefined} vars Values to be used for params
+   * @returns {CQN2SQLRenderer|unknown}
    */
   render(q, vars) {
     const cmd = q.cmd || Object.keys(q)[0] // SELECT, INSERT, ...
@@ -61,6 +63,7 @@ class CQN2SQLRenderer {
      * @type {string} the rendered SQL string
      */
     this.sql = '' // to have it as first property for debugging
+    /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[cmd]((this.cqn = q)) // actual sql rendering happens here
     if (vars?.length && !this.values.length) this.values = vars
@@ -140,6 +143,9 @@ class CQN2SQLRenderer {
     )
   }
 
+  /** @callback converter */
+
+  /** @type {Object<string,import('@sap/cds/apis/csn').Definition>} */
   static TypeMap = {
     // Utilizing cds.linked inheritance
     String: e => `NVARCHAR(${e.length || 5000})`,
@@ -312,6 +318,7 @@ class CQN2SQLRenderer {
   /**
    * Renders an orderBy clause into generic SQL
    * @param {import('./infer/cqn').ordering_term[]} orderBy
+   * @param {boolean | undefined} localized
    * @returns {string[] | string} SQL
    */
   orderBy(orderBy, localized) {
@@ -372,6 +379,8 @@ class CQN2SQLRenderer {
     const columns = elements
       ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
       : ObjectKeys(INSERT.entries[0])
+
+    /** @type {string[]} */
     this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
 
     const extractions = this.managed(
@@ -843,6 +852,10 @@ const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.item
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
 module.exports = {
+  /**
+   * @param {import('@sap/cds/apis/cqn').CQNQuery} q
+   * @param {import('@sap/cds/apis/csn').CSN} m
+   */
   valueof: (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m),
   class: CQN2SQLRenderer,
   classDefinition: CQN2SQLRenderer, // class is a reserved typescript word

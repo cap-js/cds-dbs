@@ -1,50 +1,92 @@
 'use strict'
 
+// REVISIT: define following unknown types
+
+/**
+ * @typedef {unknown} $refLink
+ */
+
+/**
+ * @typedef {unknown} parent
+ */
+
+/**
+ * @typedef {unknown} where
+ */
+
+/**
+ * @typedef {unknown} children
+ */
+
+/**
+ * @typedef {unknown} queryArtifact
+ */
+
+/**
+ * @typedef {string} alias
+ */
+
+/**
+ * @typedef {Map<alias,Root>} _roots
+ */
+
+/**
+ * @typedef {Object.<string, unknown>} sources
+ */
+
 /**
  * A class representing a Node in the join tree.
- *
- * @property {$refLink} - A reference link to this node.
- * @property {parent} - The parent Node of this node.
- * @property {where} - An optional condition to be applied to this node.
- * @property {children} - A Map of children nodes belonging to this node.
  */
 class Node {
+  /**
+   * @param {$refLink} $refLink
+   * @param {parent} parent
+   * @param {where} where
+   */
   constructor($refLink, parent, where = null) {
+    /** @type {$refLink} - A reference link to this node. */
     this.$refLink = $refLink
+    /** @type {parent} - The parent Node of this node. */
     this.parent = parent
+    /** @type {where} - An optional condition to be applied to this node. */
     this.where = where
+    /** @type {children} - A Map of children nodes belonging to this node. */
     this.children = new Map()
   }
 }
 
 /**
  * A class representing the root of the join tree.
- *
- * @property {queryArtifact} - The artifact used to make the query.
- * @property {alias} - The alias of the artifact.
- * @property {parent} - The parent Node of this root, null for the root Node.
- * @property {children} - A Map of children nodes belonging to this root.
  */
 class Root {
+  /**
+   * @param {[alias, queryArtifact]} querySource 
+   */
   constructor(querySource) {
     const [alias, queryArtifact] = querySource
+    /** @type {queryArtifact} - The artifact used to make the query. */
     this.queryArtifact = queryArtifact
+    /** @type {alias} - The alias of the artifact. */
     this.alias = alias
+    /** @type {parent} - The parent Node of this root, null for the root Node. */
     this.parent = null
+    /** @type {children} - A Map of children nodes belonging to this root. */
     this.children = new Map()
   }
 }
 
 /**
  * A class representing a Join Tree.
- *
- * @property {_roots} - A Map of root nodes.
- * @property {isInitial} - A boolean indicating if the join tree is in its initial state.
- * @property {_queryAliases} - A Map of query aliases, which is used during the association to join translation.
  */
 class JoinTree {
+  /**
+   *
+   * @param {sources} sources
+   */
   constructor(sources) {
+    /** @type {_roots} - A Map of root nodes. */
     this._roots = new Map()
+    /** @type {boolean} - A boolean indicating if the join tree is in its initial state. */
     this.isInitial = true
     /**
      * A map that holds query aliases which are used during the
@@ -53,6 +95,7 @@ class JoinTree {
      *
      * The table aliases are treated case insensitive. The index of each
      * table alias entry, is the capitalized version of the alias.
+     * @type {Map<string, string>}
      */
     this._queryAliases = new Map()
     Object.entries(sources).forEach(entry => {
@@ -82,6 +125,7 @@ class JoinTree {
    * Calculates and adds the next available table alias to the alias map.
    *
    * @param {string} alias - The original alias name.
+   * @param {unknown[]} outerQueries - An array of outer queries.
    * @returns {string} - The next unambiguous table alias.
    */
   addNextAvailableTableAlias(alias, outerQueries) {

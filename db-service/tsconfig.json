@@ -1,5 +1,5 @@
 {
-  "include": ["lib/**/*", "index.js"],
+  "include": ["index.js"],
   "compilerOptions": {
     "allowJs": true,
     "declaration": true,
