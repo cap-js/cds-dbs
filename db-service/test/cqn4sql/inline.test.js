@@ -75,6 +75,22 @@ describe('inline', () => {
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
 
+  it('structural inline expansion back and forth', () => {
+    let inlineQuery = CQL`select from Department {
+      head.department.{
+        costCenter
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+    left join Department as department2 on department2.id = head.department_id
+    {
+      department2.costCenter,
+    }`
+    const res = cqn4sql(inlineQuery, model)
+    expect(res).to.eql(expected)
+  })
+
   it('mixed with expand', () => {
     let queryInlineNotation = CQL`select from Employee {
           office {
