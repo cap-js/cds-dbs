@@ -43,7 +43,6 @@ class DatabaseService extends cds.Service {
     if (!ctx) return this.tx().begin() // REVISIT: Is this correct? When does this happen?
 
     // REVISIT: tenant should be undefined if !this.isMultitenant
-    // REVISIT: This should be a standard property in this.options
     let isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     let tenant = isMultitenant && ctx.tenant
 
