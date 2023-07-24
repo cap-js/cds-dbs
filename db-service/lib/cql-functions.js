@@ -67,8 +67,8 @@ const StandardFunctions = {
   // takes the end of the string of the size of the target and compares it with the target
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string ends with the second string
-   * @param {string} x 
-   * @param {string} y 
+   * @param {string} x
+   * @param {string} y
    * @returns {string}
    */
   endswith: (x, y) => `substr(${x}, length(${x}) + 1 - length(${y})) = ${y}`,

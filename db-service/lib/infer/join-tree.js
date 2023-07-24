@@ -60,7 +60,7 @@ class Node {
  */
 class Root {
   /**
-   * @param {[alias, queryArtifact]} querySource 
+   * @param {[alias, queryArtifact]} querySource
    */
   constructor(querySource) {
     const [alias, queryArtifact] = querySource
