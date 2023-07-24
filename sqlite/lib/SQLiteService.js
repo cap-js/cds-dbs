@@ -6,15 +6,16 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 
 class SQLiteService extends SQLService {
+
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
-        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
         dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -57,6 +58,7 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+
     SELECT_columns({ SELECT }) {
       if (!SELECT.columns) return '*'
       const { orderBy } = SELECT
@@ -84,46 +86,51 @@ class SQLiteService extends SQLService {
     }
 
     // Used for INSERT statements
-    static InputConverters = {
-      ...super.InputConverters,
-      // REVISIT: Why do we need these?:
-      // Date: e => `strftime('%Y-%m-%d',${e})`,
-      // Time: e => `strftime('%H:%M:%S',${e})`,
-      // NOTE: Both, DateTimes and Timestamps are canonicalized to ISO strings with
+    static InputConverters = { ...super.InputConverters,
+
+      // The following allows passing in ISO strings with non-zulu
+      // timezones and converts them into zulu dates and times
+      Date: e => `strftime('%Y-%m-%d',${e})`,
+      Time: e => `strftime('%H:%M:%S',${e})`,
+
+      // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
       DateTime: e => `ISO(${e})`,
       Timestamp: e => `ISO(${e})`,
-      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      // Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
     }
 
-    static OutputConverters = {
-      ...super.OutputConverters,
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`, // REVIEW: ist that correct?
-      // REVISIT: Why do we need that? -> Aren't int64 written to db as strings anyways?
-      Int64: expr => `CAST(${expr} as TEXT)`, // REVISIT: As discussed: please put that on a list of things to revisit later on
-      // REVISIT: Comment why we need the following:
-      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`, // REVISIT: what is that ->'$' doing?
-      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+    static OutputConverters = { ...super.OutputConverters,
+
+      // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
+      // Otherwise they would be added as strings to json_objects.
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
-      // REVISIT: Shouldn't be required as we applied these as InputConverters already
-      // Date: e => `strftime('%Y-%m-%d',${e})`,
-      // Time: e => `strftime('%H:%M:%S',${e})`,
-      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      // Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
-      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`, // This is to return DateTimes without ms
-      DateTime: e => `substr(${e},0,20)||'Z'`, // DateTimes are returned without ms added by InputConverters
-      Timestamp: e => e, // Timestamps are returned with ms, as written by InputConverters
+
+      // SQLite has no booleans so we need to convert 0 and 1
+      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+
+      // DateTimes are returned without ms added by InputConverters
+      DateTime: e => `substr(${e},0,20)||'Z'`,
+
+      // Timestamps are returned with ms, as written by InputConverters.
+      // And as cds.builtin.classes.Timestamp inherits from DateTime we need
+      // to override the DateTime converter above
+      Timestamp: undefined,
+
+      // REVISIT: Comment why we need the following:
+      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // REVISIT: Shouldn't int64 be passed and stored as strings anyways? -> the type should be int46_text
+      Int64: expr => `CAST(${expr} as TEXT)`,
     }
 
     // Used for SQL function expressions
     static Functions = { ...super.Functions }
 
     // Used for CREATE TABLE statements
-    static TypeMap = {
-      ...super.TypeMap,
+    static TypeMap = { ...super.TypeMap,
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
