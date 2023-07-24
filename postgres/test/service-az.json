@@ -1,0 +1,12 @@
+{
+  "credentials": {
+    "host": "some-azure-postgres.postgres.database.azure.com",
+    "port": "5432",
+    "database": "some-db",
+    "user": "wannaberoot",
+    "password": "notimportant",
+    "ssl": true
+  },
+  "dialect": "postgres",
+  "impl": "@cap-js/postgres"
+}
