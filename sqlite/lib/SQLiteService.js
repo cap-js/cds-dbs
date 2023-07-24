@@ -12,6 +12,7 @@ class SQLiteService extends SQLService {
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
+        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
         dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
@@ -85,26 +86,36 @@ class SQLiteService extends SQLService {
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+      // REVISIT: Why do we need these?:
+      // Date: e => `strftime('%Y-%m-%d',${e})`,
+      // Time: e => `strftime('%H:%M:%S',${e})`,
+      // NOTE: Both, DateTimes and Timestamps are canonicalized to ISO strings with
+      // ms precision to allow safe comparisons, also to query {val}s in where clauses
+      DateTime: e => `ISO(${e})`,
+      Timestamp: e => `ISO(${e})`,
+      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
+      // Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
     }
 
     static OutputConverters = {
       ...super.OutputConverters,
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`, // REVIEW: ist that correct?
+      // REVISIT: Why do we need that? -> Aren't int64 written to db as strings anyways?
       Int64: expr => `CAST(${expr} as TEXT)`, // REVISIT: As discussed: please put that on a list of things to revisit later on
+      // REVISIT: Comment why we need the following:
       Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`, // REVISIT: what is that ->'$' doing?
       Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
-      // REVISIT: Timestamp should not loos precision
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+      // REVISIT: Shouldn't be required as we applied these as InputConverters already
+      // Date: e => `strftime('%Y-%m-%d',${e})`,
+      // Time: e => `strftime('%H:%M:%S',${e})`,
+      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
+      // Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+      // DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${e})`, // This is to return DateTimes without ms
+      DateTime: e => `substr(${e},0,20)||'Z'`, // DateTimes are returned without ms added by InputConverters
+      Timestamp: e => e, // Timestamps are returned with ms, as written by InputConverters
     }
 
     // Used for SQL function expressions
@@ -116,7 +127,7 @@ class SQLiteService extends SQLService {
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
-      DateTime: () => 'TIMESTAMP_TEXT',
+      DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
@@ -201,11 +212,11 @@ const fixTimeZone = e =>
   `(
   SELECT
     CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN 
+      WHEN substr(T,length(T),1) = 'Z' THEN
         T
       WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
         substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
+      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN
         T || ':' || '00'
       ELSE T
     END AS T
