@@ -117,7 +117,7 @@ class SQLiteService extends SQLService {
       // to override the DateTime converter above
       Timestamp: undefined,
 
-      // REVISIT: Comment why we need the following:
+      // REVISIT: Why do we need to quote these and then unquote them again?
       Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
@@ -127,7 +127,7 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions }
+    // static Functions = { ...super.Functions }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
