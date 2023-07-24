@@ -21,7 +21,6 @@ Avoid code screen shots from your IDE where ever possible, instead use [code mar
 ### Description of erroneous behaviour 
 
 > Please test with the **latest release version** of the CAP runtime (see links below).
-For CAP Java also set the relevant [logger groups](https://pages.github.tools.sap/cap/docs/java/observability#predefined-loggers) to level [DEBUG](https://pages.github.tools.sap/cap/docs/java/observability#logging-configuration) and attach the log file.
 Replace this text with a **clear** and **concise** description of the issue, including examples and links to your content as well as log output.  
 For example... 
 
