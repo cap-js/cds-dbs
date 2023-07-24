@@ -83,11 +83,13 @@ describe('Bookshop - Read', () => {
   })
 
   test('Search book with multiple values', async () => {
-    const res = await GET('/admin/Books?$search=cat or raven', admin)
-    expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(2)
-    expect(res.data.value.map(v => v.title)).to.include('Catweazle')
-    expect(res.data.value.map(v => v.title)).to.include('The Raven')
+    const or = await GET('/admin/Books?$search=Edgar OR Eyre', admin)
+    expect(or.status).to.be.eq(200)
+    expect(or.data.value.length).to.be.eq(4)
+
+    const and = await GET('/admin/Books?$search=Edgar AND Eyre', admin)
+    expect(and.status).to.be.eq(200)
+    expect(and.data.value.length).to.be.eq(0)
   })
 
   test.skip('Expand Book($count,$top,$orderby)', async () => {
