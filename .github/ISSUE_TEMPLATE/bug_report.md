@@ -31,6 +31,7 @@ For example...
 ```
 
 > When deploying to sqlite we get the following errors: 
+
 ```sh
 ... copy of log output ...
 ```
