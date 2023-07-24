@@ -546,7 +546,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (nestedProjection.ref) {
           const augmentedInlineCol = { ...nestedProjection }
           augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
-          if (col.as || nestedProjection.as || nestedProjection.isJoinRelevant) {
+          if (col.as || nestedProjection.as || nestedProjection.$refLinks[nestedProjection.$refLinks.length -1].definition.value || nestedProjection.isJoinRelevant) {
             augmentedInlineCol.as = nameParts.join('_')
           }
           Object.defineProperties(augmentedInlineCol, {
@@ -1887,7 +1887,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getJoinRelevantAlias(node) {
       return [...node.$refLinks]
         .reverse()
-        .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess).alias
+        .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess)?.alias
     }
 
     function getSelectOrEntityAlias(node) {
