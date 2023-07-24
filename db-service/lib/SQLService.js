@@ -181,7 +181,7 @@ class SQLService extends DatabaseService {
    * @param {string} sql
    */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/.test(sql)
+    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /**
