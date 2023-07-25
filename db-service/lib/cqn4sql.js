@@ -70,13 +70,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
       // The already transformed `where` clause is then glued together with the resulting subqueries.
       const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+      const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
       if (inferred.SELECT) {
         transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
       } else {
         if (from) {
           transformedProp.from = transformedFrom
-        } else {
+        } else if (!queryNeedsJoins) {
           transformedProp.entity = transformedFrom
         }
 
@@ -94,7 +95,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
 
-      if (inferred.joinTree && !inferred.joinTree.isInitial) {
+      if (queryNeedsJoins) {
         transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
       }
     }
@@ -119,7 +120,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard()
+      transformedQuery.SELECT.columns = getColumnsForWildcard(originalQuery.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -293,6 +294,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
   }
 
+  function isCalculatedOnRead(def) {
+    return def?.value && !def.value.stored
+  }
+
   /**
    * Walks over a list of columns (ref's, xpr, subqueries, val), applies flattening on structured types and expands wildcards.
    *
@@ -304,7 +309,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (col.expand) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+        const calcElement = resolveCalculatedElement(col)
+        transformedColumns.push(calcElement)
+      } else if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
@@ -431,6 +439,30 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
     }
+  }
+
+  function resolveCalculatedElement(column, omitAlias = false, baseLink = null) {
+    let value
+
+    if (column.$refLinks) {
+      const { $refLinks } = column
+      value = $refLinks[$refLinks.length - 1].definition.value
+      baseLink = [...column.$refLinks].reverse().find(link => link.definition.isAssociation) || baseLink
+    } else {
+      value = column.value
+    }
+    const { ref, val, xpr, func } = value
+
+    let res
+    if (ref) {
+      res = getTransformedTokenStream([value], baseLink)[0]
+    } else if (xpr) {
+      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+    } else if (val) {
+      res = { val }
+    } else if (func) res = { args: getTransformedTokenStream(value.args), func: value.func }
+    if (!omitAlias) res.as = column.as || column.name || column.flatName
+    return res
   }
 
   /**
@@ -726,7 +758,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const res = []
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
-      if (col.isJoinRelevant) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+        const calcElement = resolveCalculatedElement(col, true)
+        res.push(calcElement)
+      } else if (col.isJoinRelevant) {
         const tableAlias$refLink = getQuerySourceName(col)
         const transformedColumn = {
           ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
@@ -826,6 +861,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // for wildcard on subquery in from, just reference the elements
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
+      } else if (isCalculatedOnRead(element)) {
+        wildcardColumns.push(resolveCalculatedElement(element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
         wildcardColumns.push(...flatColumns)
@@ -1157,6 +1194,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
+            const { definition } = token.$refLinks[token.$refLinks.length - 1]
+            if (isCalculatedOnRead(definition)) {
+              const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
+              transformedTokenStream.push(calculatedElement)
+              continue
+            }
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
               const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
@@ -1472,11 +1515,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         each.ref[0] in { $self: true, $projection: true } ? getParentEntity(assoc) : target,
       ),
     )
-
-    function getParentEntity(element) {
-      if (element.kind === 'entity') return element
-      else return getParentEntity(element.parent)
-    }
   }
 
   /**
@@ -1918,6 +1956,11 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+function getParentEntity(element) {
+  if (element.kind === 'entity') return element
+  else return getParentEntity(element.parent)
 }
 
 /**

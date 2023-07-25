@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CDS database service for Postgres",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
   "repository": {
@@ -60,7 +60,8 @@
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"
-          }
+          },
+          "schema_evolution": "auto"
         }
       },
       "db": "sql"
