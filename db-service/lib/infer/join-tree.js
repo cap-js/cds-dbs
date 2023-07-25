@@ -189,8 +189,9 @@ class JoinTree {
         }
         const child = new Node($refLink, node, where)
         if (child.$refLink.definition.isAssociation) {
-          if (child.where) {
-            // always join relevant
+          if (child.where || col.inline) {
+            // filter is always join relevant
+            // if the column ends up in an `inline` -> each assoc step is join relevant
             child.$refLink.onlyForeignKeyAccess = false
           } else {
             child.$refLink.onlyForeignKeyAccess = true
