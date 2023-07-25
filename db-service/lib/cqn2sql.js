@@ -130,7 +130,7 @@ class CQN2SQLRenderer {
 
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
-    if (!expand) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
+    expand = q.SELECT.expand = expand ?? (has_expands(q) || has_arrays(q))
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -204,7 +204,7 @@ class CQN2SQLRenderer {
         args: [left, right],
         on,
       } = from
-      return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.xpr({ xpr: on })}`
+      return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.where(on)}`
     }
   }
 
@@ -289,7 +289,7 @@ class CQN2SQLRenderer {
       .map(c => c.sql)
 
     this.entries = [[JSON.stringify(INSERT.entries)]]
-    return (this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
     }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -317,7 +317,7 @@ class CQN2SQLRenderer {
     })
 
     this.entries = [[JSON.stringify(INSERT.rows)]]
-    return (this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
     }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -423,21 +423,39 @@ class CQN2SQLRenderer {
   // STREAM Statement -------------------------------------------------
 
   STREAM(q) {
-    let { from, into, where, column, data } = q.STREAM
+    let { from, into, where, column, columns, data } = q.STREAM
     let x, sql
     // reading stream
     if (from) {
       sql = `SELECT`
-      if (!_empty((x = column))) sql += ` ${this.quote(x)}`
+      if (!_empty((x = column))) {
+        this.one = true
+        sql += ` ${this.quote(x)}`
+      } else {
+        const select = cds.ql.SELECT(columns?.length ? columns : ['*']).from(from)
+        select.SELECT.expand = 'root'
+        this.one = !!select.SELECT.one
+        return this.SELECT(select.forSQL())
+      }
       if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
     } else {
       // writing stream
       const entity = this.name(q.target?.name || into.ref[0])
-      sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=?`
+      if (!_empty((x = column))) {
+        data.type = 'binary'
+        sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=${this.param({
+          ref: ['?'],
+          param: true,
+        })}`
+      } else {
+        data.type = 'json'
+        // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
+        sql = this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
+      }
       this.entries = [data]
     }
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
-    if (from) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
+    if (from && column) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     return (this.sql = sql)
   }
 
@@ -498,9 +516,7 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    if (!this.values) return this.string(val)
-    this.values.push(val)
-    return '?'
+    return this.string(val)
   }
 
   static Functions = require('./cql-functions')
@@ -563,10 +579,10 @@ class CQN2SQLRenderer {
       switch (managed) {
         case '$user.id':
         case '$user':
-          managed = this.string(this.context.user.id)
+          managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
           break
         case '$now':
-          managed = this.string(this.context.timestamp.toISOString())
+          managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
           break
         default:
           managed = undefined

@@ -44,11 +44,73 @@ class SQLiteService extends SQLService {
 
   prepare(sql) {
     try {
-      return this.dbc.prepare(sql)
+      const stmt = this.dbc.prepare(sql)
+      stmt._run = stmt.run
+      stmt.run = this._run.bind(stmt)
+      stmt._iterator = this._iterator
+      stmt.stream = this._stream.bind(stmt)
+      return stmt
     } catch (e) {
       e.message += ' in:\n' + (e.sql = sql)
       throw e
     }
+  }
+
+  async _run(binding_params) {
+    for (let i = 0; i < binding_params.length; i++) {
+      const val = binding_params[i]
+      if (Buffer.isBuffer(val)) {
+        binding_params[i] = Buffer.from(val.base64Slice())
+      } else if (typeof val === 'object' && val && val.pipe) {
+        if (val.type === 'binary') val.setEncoding('base64')
+        binding_params[i] = await convStrm.buffer(val)
+      }
+    }
+    return this._run(binding_params)
+  }
+
+  async *_iterator(rs, one) {
+    // Allow for both array and iterator result sets
+    const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
+    if (first.done) return
+    if (one) {
+      yield first.value[0]
+      return
+    }
+
+    yield '['
+    // Print first value as stand alone to prevent comma check inside the loop
+    yield first.value[0]
+    for (const row of rs) {
+      yield `,${row[0]}`
+    }
+    yield ']'
+  }
+
+  async _stream(binding_params, one) {
+    const columns = this.columns()
+    // Stream single blob column
+    if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
+      // Setting result set to raw to keep better-sqlite from doing additional processing
+      this.raw(true)
+      const rows = this.all(binding_params)
+      if (rows.length === 0 || rows[0][0] === null) return null
+      // Buffer.from only applies encoding when the input is a string
+      let raw = Buffer.from(rows[0][0].toString(), 'base64')
+      this.raw(false)
+      return new Readable({
+        read(size) {
+          if (raw.length === 0) return this.push(null)
+          const chunk = raw.slice(0, size)
+          raw = raw.slice(size)
+          this.push(chunk)
+        },
+      })
+    }
+
+    this.raw(true)
+    const rs = this.iterate(binding_params)
+    return Readable.from(this._iterator(rs, one))
   }
 
   exec(sql) {
@@ -141,31 +203,6 @@ class SQLiteService extends SQLService {
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
-  }
-
-  // overrides generic onSTREAM
-  // SQLite doesn't support streaming, the whole data is read from/written into the database
-  async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const stream = entries[0]
-      stream.on('error', () => stream.removeAllListeners('error'))
-      values.unshift((await convStrm.buffer(stream)).toString('base64'))
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    const ps = await this.prepare(sql)
-    let result = await ps.all(values)
-    if (result.length === 0) return
-
-    const val = Object.values(result[0])[0]
-    if (val === null) return val
-    const stream_ = new Readable()
-    stream_.push(Buffer.from(val, 'base64'))
-    stream_.push(null)
-    return stream_
   }
 }
 

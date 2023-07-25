@@ -94,7 +94,7 @@ class SQLService extends DatabaseService {
 
   /** Handler for Stream */
   async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql(req.query)
+    const { one, sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       const stream = entries[0]
@@ -105,10 +105,7 @@ class SQLService extends DatabaseService {
     }
     // reading stream
     const ps = await this.prepare(sql)
-    let result = await ps.all(values)
-    if (result.length === 0) return
-
-    return Object.values(result[0])[0]
+    return ps.stream(values, one)
   }
 
   /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
@@ -127,7 +124,7 @@ class SQLService extends DatabaseService {
   /** Handler for SQL statements which don't have any CQN */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      DEBUG?.(query)
+      DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
@@ -233,6 +230,16 @@ class PreparedStatement {
   async all(/*binding_params*/) {
     return [{}]
   } // eslint-disable-line no-unused-vars
+
+  /**
+   * Executes a prepared SELECT query and returns a stream of the result
+   * @abstract
+   * @param {[]|{}} binding_params The values to be used with the prepared statement
+   * @returns {ReadableStream} A stream of the result
+   */
+  async stream(binding_params) {
+    binding_params
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
