@@ -6,6 +6,10 @@
 
 ## Version 1.1.0 - tbd
 
+### Added
+
+- connectivity to Azure PostgreSQL
+
 ### Fixed
 
 - Order by collation waterfall:
