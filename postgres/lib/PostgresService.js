@@ -36,10 +36,14 @@ class PostgresService extends SQLService {
           database: cr.dbname || cr.database,
           schema: cr.schema,
           sslRequired: cr.sslrootcert && (cr.sslrootcert ?? true),
-          ssl: cr.sslrootcert && {
-            rejectUnauthorized: false,
-            ca: cr.sslrootcert,
-          },
+          // from pg driver docs:
+          // passed directly to node.TLSSocket, supports all tls.connect options
+          ssl:
+            cr.ssl /* enable pg module setting to connect to Azure postgres */ ||
+            (cr.sslrootcert && {
+              rejectUnauthorized: false,
+              ca: cr.sslrootcert,
+            }),
         }
         const dbc = new Client(credentials)
         await dbc.connect()
@@ -60,10 +64,10 @@ class PostgresService extends SQLService {
     // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
     const nameMap = {
-      '$user.id': 'CAP.APPLICATIONUSER',
-      '$user.locale': 'CAP.LOCALE',
-      '$valid.from': 'CAP.VALID_FROM',
-      '$valid.to': 'CAP.VALID_TO',
+      '$user.id': 'cap.applicationuser',
+      '$user.locale': 'cap.locale',
+      '$valid.from': 'cap.valid_from',
+      '$valid.to': 'cap.valid_to',
     }
 
     const env = {}

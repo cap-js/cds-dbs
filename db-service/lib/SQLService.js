@@ -137,7 +137,7 @@ class SQLService extends DatabaseService {
 
   /** Override in subclasses to detect more statements to be called with ps.all() */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/.test(sql)
+    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /** Derives and executes a query to fill in `$count` for given query */

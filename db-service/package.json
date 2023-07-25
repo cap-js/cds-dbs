@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CDS base database service",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -22,7 +22,6 @@
     "test": "npx jest --silent",
     "lint": "npx eslint . && npx prettier --check . "
   },
-  "dependencies": {},
   "peerDependencies": {
     "@sap/cds": ">=7"
   },

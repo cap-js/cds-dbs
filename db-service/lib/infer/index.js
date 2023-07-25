@@ -4,7 +4,6 @@ const cds = require('@sap/cds/lib')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-// REVISIT: we should always return cds.linked elements
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -18,7 +17,6 @@ const cdsTypes = cds.linked({
   },
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
-
 /**
  * @param {CQN|CQL} originalQuery
  * @param {CSN} [model]
@@ -40,6 +38,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     inferred.CREATE ||
     inferred.DROP ||
     inferred.STREAM
+
+  // cache for already processed calculated elements
+  const alreadySeenCalcElements = new Set()
+
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
@@ -177,7 +179,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
               throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
           }
-          arg.$refLinks.push({ definition: e, target: e._target || e })
+          arg.$refLinks.push({ definition: e, target: definition })
           // filter paths are flattened
           // REVISIT: too much augmentation -> better remove flatName..
           Object.defineProperty(arg, 'flatName', { value: ref.join('_'), writable: true })
@@ -188,7 +190,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
       } else {
         const recent = arg.$refLinks[i - 1]
-        const { elements } = recent.target
+        const { elements } = recent.definition._target || recent.definition
         const e = elements[id]
         if (!e) throw new Error(`"${id}" not found in the elements of "${arg.$refLinks[i - 1].definition.name}"`)
         arg.$refLinks.push({ definition: e, target: e._target || e })
@@ -216,6 +218,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         } else throw new Error('A filter can only be provided when navigating along associations')
       }
     })
+    const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
+    if (definition.value) {
+      // nested calculated element
+      attachRefLinksToArg(definition.value, { definition: definition.parent, target }, true)
+    }
   }
 
   /**
@@ -444,7 +451,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      */
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
-      const { inExists, inExpr, inNestedProjection } = context || {}
+      const { inExists, inExpr, inNestedProjection, inCalcElement } = context || {}
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
@@ -486,7 +493,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const elements = definition.elements || definition._target?.elements
             if (elements && id in elements) {
               const element = elements[id]
-              if (!inExists && !inNestedProjection && element.target) {
+              if (!inExists && !inNestedProjection && !inCalcElement && element.target) {
                 // only fk access in infix filter
                 const nextStep = column.ref[1]?.id || column.ref[1]
                 // no unmanaged assoc in infix filter path
@@ -500,7 +507,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 if (nextStep && !(nextStep in element.foreignKeys))
                   throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
               }
-              column.$refLinks.push({ definition: elements[id], target })
+              const resolvableIn = definition.target ? definition._target : target
+              column.$refLinks.push({ definition: elements[id], target: resolvableIn })
             } else {
               stepNotFoundInPredecessor(id, definition.name)
             }
@@ -535,14 +543,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             )
           }
 
+          const target = definition._target || column.$refLinks[i - 1].target
           if (element) {
-            const $refLink = { definition: elements[id], target: column.$refLinks[i - 1].target }
+            const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
             stepNotFoundInColumnList(id)
           } else if (column.ref[0] === '$user' && pseudoPath) {
             // `$user.some.unknown.element` -> no error
-            column.$refLinks.push({ definition: {}, target: column.$refLinks[i - 1].target })
+            column.$refLinks.push({ definition: {}, target })
           } else if (id === '$dummy') {
             // `some.known.element.$dummy` -> no error; used by cds.ql to simulate joins
             column.$refLinks.push({ definition: { name: '$dummy', parent: column.$refLinks[i - 1].target } })
@@ -627,7 +636,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               }
               if (queryElements[elementName] !== undefined)
                 throw new Error(`Duplicate definition of element “${elementName}”`)
-              queryElements[elementName] = getCopyWithAnnos(column, leafArt)
+              const element = getCopyWithAnnos(column, leafArt)
+              queryElements[elementName] = element
             }
           }
         }
@@ -644,15 +654,19 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           return
         }
       }
-      const virtual = (column.$refLinks[column.$refLinks.length - 1].definition.virtual || !isPersisted) && !inExpr
+      const leafArt = column.$refLinks[column.$refLinks.length - 1].definition
+      const virtual = (leafArt.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
-      if (!inExists && !virtual && isColumnJoinRelevant(column, firstStepIsSelf)) {
+      if (!inExists && !virtual && !inCalcElement && isColumnJoinRelevant(column, firstStepIsSelf)) {
         if (originalQuery.UPDATE)
           throw cds.error(
             'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
           )
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
-        joinTree.mergeColumn(column)
+        joinTree.mergeColumn(column, $baseLink)
+      }
+      if (leafArt.value && !leafArt.value.stored) {
+        resolveCalculatedElement(leafArt, column)
       }
 
       /**
@@ -781,6 +795,58 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
+    function resolveCalculatedElement(calcElement) {
+      if (alreadySeenCalcElements.has(calcElement)) return
+      else alreadySeenCalcElements.add(calcElement)
+      const { ref, val, xpr, func } = calcElement.value
+      if (ref || xpr) {
+        attachRefLinksToArg(calcElement.value, { definition: calcElement.parent, target: calcElement.parent }, true)
+        // column is now fully linked, now we need to find out if we need to merge it into the join tree
+        // for that, we calculate all paths from a calc element and merge them into the join tree
+        mergePathsIntoJoinTree(calcElement.value)
+      }
+      if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
+      function mergePathsIntoJoinTree(e, basePath = null) {
+        basePath = basePath || { $refLinks: [], ref: [] }
+        if (e.ref) {
+          e.$refLinks.forEach((link, i) => {
+            const { definition } = link
+            if (!definition.value) {
+              basePath.$refLinks.push(link)
+              basePath.ref.push(e.ref[i])
+            }
+          })
+          const leafOfCalculatedElementRef = e.$refLinks[e.$refLinks.length - 1].definition
+          if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
+
+          mergePathIfNecessary(basePath, e)
+        } else if (e.xpr) {
+          e.xpr.forEach(step => {
+            if (step.ref) {
+              const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+              step.$refLinks.forEach((link, i) => {
+                const { definition } = link
+                if (definition.value) {
+                  mergePathsIntoJoinTree(definition.value)
+                } else {
+                  subPath.$refLinks.push(link)
+                  subPath.ref.push(step.ref[i])
+                }
+              })
+              mergePathIfNecessary(subPath, step)
+            }
+          })
+        }
+
+        function mergePathIfNecessary(p, step) {
+          const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
+          if (calcElementIsJoinRelevant) {
+            if (!calcElement.value.isColumnJoinRelevant) Object.defineProperty(step, 'isJoinRelevant', { value: true })
+            joinTree.mergeColumn(p)
+          }
+        }
+      }
+    }
 
     /**
      * Checks whether or not the `ref` of the given column is join relevant.
@@ -832,15 +898,20 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * if there is not already an element with the same name present.
      */
     function inferElementsFromWildCard() {
+      const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
+
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+          if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
+          if (element.value) {
+            // we might have join relevant calculated elements
+            resolveCalculatedElement(element)
+          }
         })
         return
       }
 
-      const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
       const ambiguousElements = {}
       Object.entries($combinedElements).forEach(([name, tableAliases]) => {
         if (Object.keys(tableAliases).length > 1) {
