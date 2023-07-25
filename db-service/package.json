@@ -2,7 +2,14 @@
   "name": "@cap-js/db-service",
   "version": "1.0.1",
   "description": "CDS base database service",
-  "homepage": "https://cap.cloud.sap/",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
   "keywords": [
     "CAP",
     "CDS"

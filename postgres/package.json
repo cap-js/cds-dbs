@@ -2,7 +2,7 @@
   "name": "@cap-js/postgres",
   "version": "1.0.1",
   "description": "CDS database service for Postgres",
-  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#readme",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
   "repository": {
     "type": "git",
     "url": "https://github.com/cap-js/cds-dbs"
