@@ -663,11 +663,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
           )
         Object.defineProperty(column, 'isJoinRelevant', { value: true })
-        joinTree.mergeColumn(column, $baseLink)
+        joinTree.mergeColumn(column, originalQuery.outerQueries)
       }
       if (leafArt.value && !leafArt.value.stored) {
         const { baseColumn } = context || {} // for an inline we need to pass the base ref
-        resolveCalculatedElement(column, $baseLink, baseColumn?.ref)
+        resolveCalculatedElement(column, $baseLink, baseColumn)
       }
 
       /**
@@ -796,7 +796,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
-    function resolveCalculatedElement(column, baseLink, baseRef) {
+    function resolveCalculatedElement(column, baseLink, baseColumn) {
       const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
@@ -805,9 +805,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (ref || xpr) {
         attachRefLinksToArg(calcElement.value, baseLink, true)
         const basePath = { $refLinks: [], ref: [] }
-        if (baseRef) {
-          basePath.$refLinks.push(baseLink)
-          basePath.ref.push(...baseRef)
+        if (baseColumn) {
+          basePath.$refLinks.push(...baseColumn.$refLinks)
+          basePath.ref.push(...baseColumn.ref)
         }
         // column is now fully linked, now we need to find out if we need to merge it into the join tree
         // for that, we calculate all paths from a calc element and merge them into the join tree
@@ -854,7 +854,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (calcElementIsJoinRelevant) {
             if (!calcElement.value.isColumnJoinRelevant)
               Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
-            joinTree.mergeColumn(p)
+            joinTree.mergeColumn(p, originalQuery.outerQueries)
           } else {
             // we need to explicitly set the value to false in this case,
             // e.g. `SELECT from booksCalc.Books { ID, author.{name }, author {name } }`

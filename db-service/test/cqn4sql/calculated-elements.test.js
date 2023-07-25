@@ -547,7 +547,7 @@ describe('Unfolding calculated elements in other places', () => {
     }`
     expect(query).to.deep.equal(expected)
   })
-  it.skip('in a subquery', () => {
+  it('in a subquery', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books {
         ID,
@@ -602,6 +602,7 @@ describe('Unfolding calculated elements and localized', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  // enable once cds-compiler v4.1 is released
   it.skip('calculated element refers to localized element', () => {
     const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
     q.SELECT.localized = true
