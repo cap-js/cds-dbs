@@ -148,7 +148,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
 }
 
 /**
- * @param {import('@sap/cds/apis/cqn').CQNQuery} query
+ * @param {import('@sap/cds/apis/cqn').Query} query
  * @param {import('@sap/cds/apis/csn').Definition} target
  */
 const getExpandForDeep = (query, target) => {
@@ -167,7 +167,7 @@ const getExpandForDeep = (query, target) => {
 }
 
 /**
- * @param {import('@sap/cds/apis/cqn').CQNQuery} query
+ * @param {import('@sap/cds/apis/cqn').Query} query
  * @param {unknown[]} dbData
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns
@@ -199,7 +199,7 @@ const _hasManagedElements = target => {
 /**
  * @param {unknown[]} diff
  * @param {import('@sap/cds/apis/csn').Definition} target
- * @returns {import('@sap/cds/apis/cqn').CQNQuery[]}
+ * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
 const _getDeepQueries = (diff, target) => {
   const queries = []

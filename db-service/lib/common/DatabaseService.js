@@ -55,7 +55,7 @@ class DatabaseService extends cds.Service {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').CQNQuery} q
+   * @param {import('@sap/cds/apis/cqn').Query} q
    * @param {import('@sap/cds/apis/csn').CSN} m
    * @returns {import('../infer/cqn').Query}
    */
@@ -151,9 +151,9 @@ class DatabaseService extends cds.Service {
   /**
    * Runs a Query on the database service
    * @param {import("@sap/cds/apis/cqn").Query} query
-   * @param {any} data
-   * @param  {...any} etc
-   * @returns {Promise<any>}
+   * @param {unknown} data
+   * @param  {...unknown} etc
+   * @returns {Promise<unknown>}
    */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)

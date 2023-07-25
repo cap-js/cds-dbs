@@ -851,12 +851,11 @@ const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.item
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
-module.exports = {
-  /**
-   * @param {import('@sap/cds/apis/cqn').CQNQuery} q
-   * @param {import('@sap/cds/apis/csn').CSN} m
-   */
-  valueof: (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m),
-  class: CQN2SQLRenderer,
-  classDefinition: CQN2SQLRenderer, // class is a reserved typescript word
-}
+
+/**
+ * @param {import('@sap/cds/apis/cqn').Query} q
+ * @param {import('@sap/cds/apis/csn').CSN} m
+ */
+module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
+module.exports.class = CQN2SQLRenderer
+module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word

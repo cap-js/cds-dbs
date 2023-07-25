@@ -226,7 +226,7 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').CQNQuery} q
+   * @param {import('@sap/cds/apis/cqn').Query} q
    * @param {unknown} values
    * @returns {typeof SQLService.CQN2SQL}
    */
@@ -246,7 +246,7 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').CQNQuery} q
+   * @param {import('@sap/cds/apis/cqn').Query} q
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {

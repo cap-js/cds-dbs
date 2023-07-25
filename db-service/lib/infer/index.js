@@ -18,7 +18,7 @@ const cdsTypes = cds.linked({
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 /**
- * @param {import('@sap/cds/apis/cqn').CQNQuery|string} originalQuery
+ * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
