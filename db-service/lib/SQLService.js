@@ -89,7 +89,12 @@ class SQLService extends DatabaseService {
   /** Handler for UPDATE */
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
-    if (!req.query.UPDATE.data && !req.query.UPDATE.with && !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])) return 0
+    if (
+      !req.query.UPDATE.data &&
+      !req.query.UPDATE.with &&
+      !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
+    )
+      return 0
     return this.onSIMPLE(req)
   }
 
