@@ -447,13 +447,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (column.$refLinks) {
       const { $refLinks } = column
       value = $refLinks[$refLinks.length - 1].definition.value
-      if(column.$refLinks.length > 1) {
-        baseLink = [...$refLinks]
-        .reverse()
-        .find($refLink => $refLink.definition.isAssociation)
-        // if there is no association in the path, the table alias is the base link
-        // TA might refer to subquery -> we need to propagate the alias to all paths of the calc element
-        ||column.$refLinks[0]
+      if (column.$refLinks.length > 1) {
+        baseLink =
+          [...$refLinks].reverse().find($refLink => $refLink.definition.isAssociation) ||
+          // if there is no association in the path, the table alias is the base link
+          // TA might refer to subquery -> we need to propagate the alias to all paths of the calc element
+          column.$refLinks[0]
       }
     } else {
       value = column.value
