@@ -129,28 +129,24 @@ class CQN2SQLRenderer {
   // SELECT Statements ------------------------------------------------
 
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
-    if (!expand) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct } = q.SELECT
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
-    let x,
-      sql = `SELECT`
+    let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
-    if (!_empty((x = columns))) sql += ` ${x}`
-    if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
-    if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
-    if (!_empty((x = groupBy))) sql += ` GROUP BY ${this.groupBy(x)}`
-    if (!_empty((x = having))) sql += ` HAVING ${this.having(x)}`
-    if (!_empty((x = orderBy))) sql += ` ORDER BY ${this.orderBy(x, localized)}`
-    if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
-    else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
-    if (expand) sql = this.SELECT_expand(q, sql)
-    return (this.sql = sql)
+    if (!_empty(columns)) sql += ` ${columns}`
+    if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
+    if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
+    if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
+    if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, q.SELECT.localized)}`
+    if (limit) sql += ` LIMIT ${this.limit(limit)}`
+    else if (one) sql += ` LIMIT 1`
+    return (this.sql = !expand ? sql : this.SELECT_expand(q, sql))
   }
 
   SELECT_columns({ SELECT }) {
-    // REVISIT: We don't have to run x.as through this.column_name(), do we?
     if (!SELECT.columns) return '*'
     return SELECT.columns.map(x => this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : ''))
   }
@@ -597,9 +593,6 @@ Buffer.prototype.toJSON = function () {
 }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
-const has_expands = q => q.SELECT.columns?.some(c => c.SELECT?.expand)
-const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.items)
-
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
 module.exports = Object.assign((q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m), { class: CQN2SQLRenderer })

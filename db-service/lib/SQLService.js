@@ -58,16 +58,14 @@ class SQLService extends DatabaseService {
 
   /** Handler for SELECT */
   async onSELECT({ query, data }) {
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
-    query.SELECT.expand = 'root'
+    query.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -276,6 +274,7 @@ cds.extend(cds.ql.Query).with(
       return this.flat(cqn)
     }
     toSQL() {
+      if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
       let { sql, values } = (cds.db || sqls).cqn2sql(this)
       return { sql, values } // skipping .cqn property
     }
