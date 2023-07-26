@@ -3,11 +3,12 @@ const cds = require('@sap/cds/lib'),
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { STREAM } = require('@sap/cds/lib/ql/cds-ql')
 
 class SQLService extends DatabaseService {
   init() {
-    this.on(['SELECT'], this.transformStreamFromCQN)
-    this.on(['UPDATE'], this.transformStreamIntoCQN)
+    this.on(['SELECT'], this.transformStreamFromCQN) // REVISIT: This should have been done by protocol adapter
+    this.on(['UPDATE'], this.transformStreamIntoCQN) // REVISIT: This should have been done by protocol adapter
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
@@ -21,23 +22,40 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
+  // REVISIT: This should be done by protocol adapters
   async transformStreamFromCQN({ query }, next) {
     if (!query._streaming) return next()
-    const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
-    if (query.SELECT.where) cqn.STREAM.where = query.SELECT.where
-    const stream = await this.run(cqn)
-    return stream && { value: stream }
+    const { from, columns, where } = query.SELECT
+    const stream = await this.run(
+      STREAM.from(from).column(columns[0].ref[0]).where(where)
+    )
+    return stream && { value: stream } // REVISIT: why do we return {value:stream} instead of just stream?
   }
 
+  // REVISIT: This should be done by protocol adapters
   async transformStreamIntoCQN({ query, data, target }, next) {
+    // REVISIT: Optimized impl:
+    for (let e in data) if (data[e].pipe) { // REVISIT: Where does the .pipe property come from?
+      const { entity, where } = query.UPDATE
+      const queries = [ STREAM(data[e]).into(entity).column(e).where(where)  ]
+      if (Object.keys(data).length > 1) {
+        // Write additional data with a standard update...
+        const d = { ...data }; delete d[e]
+        queries.push( UPDATE(entity).with(d).where(where) )
+      }
+      return await this.run(queries) // in parallel
+    }
+    return next() // not a stream case
+    // But again: don't do that here at all, but in protocol adapter
+
     let col, type, etag
     const elements = query._target?.elements || target?.elements
     if (!elements) next()
     for (const key in elements) {
       const element = elements[key]
-      if (element['@Core.MediaType'] && data[key]?.pipe) col = key
-      if (element['@Core.IsMediaType'] && data[key]) type = key
-      if (element['@odata.etag'] && data[key]) etag = key
+      if (element['@Core.MediaType'] && data[key]?.pipe) col = key // REVISIT: that should not be done on DB layer
+      if (element['@Core.IsMediaType'] && data[key]) type = key // REVISIT: that should not be done on DB layer
+      if (element['@odata.etag'] && data[key]) etag = key // REVISIT: that should not be done on DB layer
     }
 
     if (!col) return next()
@@ -88,7 +106,7 @@ class SQLService extends DatabaseService {
 
   /** Handler for UPDATE */
   async onUPDATE(req) {
-    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0
+    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0 // REVISIT: Who is sending such updates? -> fix it there please!
     return this.onSIMPLE(req)
   }
 
@@ -98,8 +116,8 @@ class SQLService extends DatabaseService {
     // writing stream
     if (req.query.STREAM.into) {
       const stream = entries[0]
-      stream.on('error', () => stream.removeAllListeners('error'))
-      values.unshift(stream)
+      stream.on('error', () => stream.removeAllListeners('error')) // REVISIT: Why do we do this?
+      values.unshift(stream) // REVISIT: looks like a hidden API to cqn2sql
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
