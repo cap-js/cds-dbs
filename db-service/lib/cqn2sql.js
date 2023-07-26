@@ -146,14 +146,20 @@ class CQN2SQLRenderer {
     if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
     // Expand cannot work without an inferred query
-    if (expand && q.elements) sql = this.SELECT_expand(q, sql)
+    if (expand) {
+      if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
+      sql = this.SELECT_expand(q, sql)
+    }
     return (this.sql = sql)
   }
 
   SELECT_columns({ SELECT }) {
     // REVISIT: We don't have to run x.as through this.column_name(), do we?
     if (!SELECT.columns) return '*'
-    return SELECT.columns.map(x => this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : ''))
+    return SELECT.columns.map(x => {
+      if (x === '*') return x
+      return this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : '')
+    })
   }
 
   SELECT_expand({ SELECT, elements }, sql) {
@@ -540,7 +546,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s + '"'
+    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
