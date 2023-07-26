@@ -9,6 +9,7 @@
 ### Fixed
 
 - `UPDATE` with path expressions do not end up in a dump anymore. Instead, a proper error message is emitted.
+- `UPDATE` is only noop if it does not include an element annotated with `@cds.on.update`.
 - `SELECT` with plain SQL statements will return correct result regardless of casing.
 
 ## Version 1.0.1 - 2023-07-03
