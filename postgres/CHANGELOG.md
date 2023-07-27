@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.1.0 - tbd
+
+### Added
+
+- connectivity to Azure PostgreSQL
+
+### Fixed
+
+- Order by collation waterfall:
+  1. ICU
+  2. best-effort mapping (`xx` -> `xx_YY`, where `xx_YY` is the first match)
+  3. without collation
+
 ## Version 1.0.1 - 2023-07-03
 
 ### Added

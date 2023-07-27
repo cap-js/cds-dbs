@@ -1,31 +1,22 @@
 namespace booksCalc;
 
-
-
 entity Books {
   key ID : Integer;
   title : String;
   author : Association to Authors;
 
-  a : Integer;
-  b : Integer;
   length : Decimal;
   width : Decimal;
   height : Decimal;
   stock : Integer;
   price : Decimal;
 
-
   // ---
-  c1 = a + b;
-  c2 : Integer = a + b;
-  c3 = a - b;
-
+  stock2 = stock;
   ctitle = substring(title, 3, stock);
 
   // -- nested
-  cc1 = c1 * c3;
-  cc2 = cc1 / c1;
+  areaS : Decimal = (length * width) stored;
   area : Decimal = length * width;
   volume : Decimal = area * height;
   storageVolume : Decimal = stock * volume;
@@ -33,10 +24,9 @@ entity Books {
   // -- with paths
   authorLastName = author.lastName;
   authorName = author.name;
+  authorFullName = author.firstName || ' ' || author.lastName;
+  authorFullNameWithAddress = authorFullName || ' ' || authorAdrText;
   authorAdrText = author.addressText;
-
-  // ca3 = f.ca; // F:ca is a calculated element with an assoc path
-
 }
 
 entity Authors {
@@ -49,23 +39,33 @@ entity Authors {
 
   name : String = firstName || ' ' || lastName;
 
-  m : Integer;
-  n : Integer;
-  // ---
-  c = m + n;
-
   addressText = address.text;
+  addressTextFilter = address[num2 > 17].text;
+
+  IBAN = countryCode || checksum || sortCode  || accountNumber;
+  countryCode = 'DE';
+  checksum: String(2);
+  sortCode: String(8);
+  accountNumber: String(10);
 }
 
 entity Addresses {
   key ID : Integer;
   street : String;
   city : String;
+  number : Integer;
 
   text = street || ', ' || city;
+  num2 = number * 2;
+}
 
-  x : Integer;
-  y : Integer;
-  // ---
-  c = x + y;
+entity LBooks {
+  key ID : Integer;
+
+  title : localized String;
+  // ctitle = substring(title, 3, 3);  // requires compiler 4.1
+
+  length : Decimal;
+  width : Decimal;
+  area : Decimal = length * width;
 }
