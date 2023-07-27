@@ -9,6 +9,7 @@
 ### Fixed
 
 - `UPDATE` with path expressions do not end up in a dump anymore. Instead, a proper error message is emitted.
+- `SELECT` with `'*'` that is not expanded creates now a clearer error when the column name is required.
 - `SELECT` with plain SQL statements will return correct result regardless of casing.
 
 ## Version 1.0.1 - 2023-07-03
