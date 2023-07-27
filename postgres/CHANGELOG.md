@@ -16,6 +16,8 @@
   1. ICU
   2. best-effort mapping (`xx` -> `xx_YY`, where `xx_YY` is the first match)
   3. without collation
+- More stable configuration of `schema_evolution = 'auto'`.
+- Log `hostname` preferrably during deployment.
 
 ### Changed
 
