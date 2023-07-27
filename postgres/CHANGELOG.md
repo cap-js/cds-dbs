@@ -18,6 +18,7 @@
   3. without collation
 - More stable configuration of `schema_evolution = 'auto'`.
 - Log `hostname` preferrably during deployment.
+- Allow overriding of pool configuration.
 
 ### Changed
 
