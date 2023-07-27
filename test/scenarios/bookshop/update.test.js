@@ -28,13 +28,13 @@ describe('Bookshop - Update', () => {
   test('programmatic update without body incl. managed', async () => {
     const { modifiedAt } = await cds.db.run(cds.ql.SELECT.from('sap.capire.bookshop.Books', { ID: 251 }))
     const affectedRows = await cds.db.run(cds.ql.UPDATE('sap.capire.bookshop.Books', { ID: 251 }))
-    expect(affectedRows).to.be(1)
-    const { modifiedAt: updated } = await cds.db.run(cds.ql.SELECT.from('sap.capire.bookshop.Books', { ID: 251 }))
-    expect(updated).not.to.be.eq(modifiedAt)
+    expect(affectedRows).to.be.eq(1)
+    const { modifiedAt: newModifiedAt } = await cds.db.run(cds.ql.SELECT.from('sap.capire.bookshop.Books', { ID: 251 }))
+    expect(newModifiedAt).not.to.be.eq(modifiedAt)
   })
 
   test('programmatic update without body excl. managed', async () => {
     const affectedRows = await cds.db.run(cds.ql.UPDATE('sap.capire.bookshop.Genres', { ID: 10 }))
-    expect(affectedRows).to.be(0)
+    expect(affectedRows).to.be.eq(0)
   })
 })
