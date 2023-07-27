@@ -10,6 +10,7 @@
 
 - `UPDATE` with path expressions do not end up in a dump anymore. Instead, a proper error message is emitted.
 - `SELECT` with plain SQL statements will return correct result regardless of casing.
+- View resolving for streams
 
 ## Version 1.0.1 - 2023-07-03
 
