@@ -145,14 +145,21 @@ class CQN2SQLRenderer {
     if (!_empty((x = orderBy))) sql += ` ORDER BY ${this.orderBy(x, localized)}`
     if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
-    if (expand) sql = this.SELECT_expand(q, sql)
+    // Expand cannot work without an inferred query
+    if (expand) {
+      if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
+      sql = this.SELECT_expand(q, sql)
+    }
     return (this.sql = sql)
   }
 
   SELECT_columns({ SELECT }) {
     // REVISIT: We don't have to run x.as through this.column_name(), do we?
     if (!SELECT.columns) return '*'
-    return SELECT.columns.map(x => this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : ''))
+    return SELECT.columns.map(x => {
+      if (x === '*') return x
+      return this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : '')
+    })
   }
 
   SELECT_expand({ SELECT, elements }, sql) {
@@ -526,6 +533,8 @@ class CQN2SQLRenderer {
   }
 
   column_name(col) {
+    if (col === '*')
+      cds.error`Query was not inferred and includes '*' in the columns. For which there is no column name available.`
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
   }
 
@@ -537,7 +546,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s + '"'
+    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
