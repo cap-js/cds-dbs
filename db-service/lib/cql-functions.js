@@ -133,9 +133,10 @@ const StandardFunctions = {
   /**
    * Generates SQL statement that produces the rounded value of a given number
    * @param {string} x
+   * @param {string} p precision
    * @returns {string}
    */
-  round: x => `round(${x})`,
+  round: (x, p) => `round(${x}${p ? `,${p}` : ''})`,
 
   // Date and Time Functions
   /**
