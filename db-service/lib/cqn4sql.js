@@ -446,17 +446,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getTransformedColumn(col) {
-      if (col.SELECT) {
-        if (isLocalized(inferred.target)) col.SELECT.localized = true
-        if (!col.SELECT.from.as) {
-          const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-            getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
-            originalQuery.outerQueries,
-          )
-          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
-        }
-        return transformSubquery(col)
-      } else if (col.xpr) {
+      if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }
       } else if (col.func) {
         return {
