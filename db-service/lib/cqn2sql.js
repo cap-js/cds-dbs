@@ -138,7 +138,7 @@ class CQN2SQLRenderer {
       sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty((x = columns))) sql += ` ${x}`
-    if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
+    if (!_empty((x = from))) sql += ` FROM ${this.from(x, q)}`
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
     if (!_empty((x = groupBy))) sql += ` GROUP BY ${this.groupBy(x)}`
     if (!_empty((x = having))) sql += ` HAVING ${this.having(x)}`
@@ -200,10 +200,47 @@ class CQN2SQLRenderer {
     return sql
   }
 
-  from(from) {
+  from(from, q) {
     const { ref, as } = from,
       _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
-    if (ref) return _aliased(this.quote(this.name(ref[0])))
+    if (ref) {
+      const localized = q?.SELECT?.localized
+      const target = from.target?.query || from.$refLinks?.[0]?.target || cds.model?.definitions[ref[0]]
+      if (!target?.query && !(localized && target.$localized)) {
+        return _aliased(this.quote(this.name(target?.name || ref[0])))
+      }
+
+      const alias = as || ref.at(-1)
+      const subQuery = cds.ql.clone(target.query || cds.ql.SELECT.from(target.name))
+      subQuery.SELECT.from = { ...subQuery.SELECT.from, as: alias }
+      subQuery.SELECT.columns = subQuery.SELECT.columns ? [...subQuery.SELECT.columns] : ['*']
+      q?.SELECT.columns?.forEach(col => {
+        if (localized && col?.element?.localized) {
+          subQuery.SELECT.columns.push({
+            as: col.as || col.ref.at(-1),
+            func: 'coalesce',
+            args: [
+              {
+                ref: [
+                  col.ref[0],
+                  {
+                    id: 'texts',
+                    where: [{ ref: ['locale'] }, '=', { func: 'session_context', args: [{ val: '$user.locale' }] }],
+                  },
+                  ...col.ref.slice(1),
+                ],
+              },
+              { ref: col.ref },
+            ],
+          })
+        }
+        if (col?.element?.['@Core.MediaType']) {
+          subQuery.SELECT.columns.push(col)
+        }
+      })
+      // REVISIT: ensure to call cqn4sql with the correct model
+      return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
+    }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) {
       const {
