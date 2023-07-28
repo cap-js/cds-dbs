@@ -8,7 +8,7 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
+  const { expect, GET, POST, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
