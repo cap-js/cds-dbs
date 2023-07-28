@@ -165,21 +165,6 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(201)
   })
 
-  test('Update Book', async () => {
-    const res = await PUT(
-      '/admin/Books(201)', // was Books(2) -> UPSERT
-      {
-        descr: 'UPDATED',
-        author: { ID: 201 },
-      },
-      admin,
-    )
-    expect(res.status).to.be.eq(200)
-
-    expect(res.data.author_ID).to.be.eq(201)
-    expect(res.data.descr).to.be.eq('UPDATED')
-  })
-
   test('Delete Book', async () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)

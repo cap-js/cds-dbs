@@ -76,9 +76,6 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
-    query.SELECT.expand = 'root'
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
@@ -117,7 +114,13 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onUPDATE(req) {
-    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0
+    // noop if not a touch for @cds.on.update
+    if (
+      !req.query.UPDATE.data &&
+      !req.query.UPDATE.with &&
+      !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
+    )
+      return 0
     return this.onSIMPLE(req)
   }
 
@@ -232,6 +235,11 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(q, values) {
     const cqn = this.cqn4sql(q)
+
+    // REVISIT: disable this for queries like (SELECT 1)
+    // Will return multiple rows with objects inside
+    // Only enable expand when the query is inferred
+    if (cqn.SELECT && cqn.elements) cqn.SELECT.expand = cqn.SELECT.expand ?? 'root'
 
     const cmd = cqn.cmd || Object.keys(cqn)[0]
     if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {

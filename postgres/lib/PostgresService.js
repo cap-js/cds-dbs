@@ -83,20 +83,53 @@ class PostgresService extends SQLService {
         ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}";`)]
         : []),
 
-      ...(!this._initalCollateCheck
-        ? [
-            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';`))
-              .all([])
-              .then(resp => {
-                this._initalCollateCheck = true
-                if (resp.find(row => row.collname === 'en_US')) return
-                if (resp.find(row => row.collname === 'en-x-icu'))
-                  this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
-                // REVISIT throw error when there is no collated libary found
-              }),
-          ]
-        : []),
+      ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
     ])
+  }
+
+  async _checkCollation() {
+    this._initalCollateCheck = true
+
+    const icuPrep = await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en-x-icu';`)
+    const icuResp = await icuPrep.all([])
+
+    if (icuResp.length > 0) {
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
+      return
+    }
+
+    /**
+     * Selects the first two characters of the collation name as key
+     * Select the smallest collation name as value (could also be max)
+     * Filter the collations by the provider c (libc)
+     * Filters the collation names by /.._../ Where '>' points at the '_' that is an actual '_'
+     * The group by is done by the key column to make sure that only one collation per key is returned
+     */
+    const cSQL = `
+SELECT 
+  SUBSTRING(collname, 1, 2) AS K,
+  MIN(collname) AS V 
+FROM 
+  pg_collation 
+WHERE 
+  collprovider = 'c' AND 
+  collname LIKE '__>___' ESCAPE '>' 
+GROUP BY k
+`
+
+    const cPrep = await this.prepare(cSQL)
+    const cResp = await cPrep.all([])
+    if (cResp.length > 0) {
+      const collationMap = (this.class.CQN2SQL.prototype.collationMap = cResp.reduce((ret, row) => {
+        ret[row.k] = row.v
+        return ret
+      }, {}))
+      collationMap.default = collationMap.en || collationMap[Object.keys(collationMap)[0]]
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByLIBC
+      return
+    }
+
+    // REVISIT: print a warning when no collation is found
   }
 
   prepare(sql) {
@@ -182,26 +215,29 @@ class PostgresService extends SQLService {
   }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
-    orderBy(orderBy, localized) {
+    _orderBy(orderBy, localized, locale) {
       return orderBy.map(
         localized
           ? c =>
               this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
+              (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
               (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
 
+    orderBy(orderBy) {
+      return this._orderBy(orderBy)
+    }
+
     orderByICU(orderBy, localized) {
-      return orderBy.map(
-        localized
-          ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      return this._orderBy(orderBy, localized, locale)
+    }
+
+    orderByLIBC(orderBy, localized) {
+      const locale = this.collationMap[this.context.locale] || this.collationMap.default
+      return this._orderBy(orderBy, localized && locale, locale)
     }
 
     from(from) {
