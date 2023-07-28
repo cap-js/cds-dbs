@@ -555,9 +555,7 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    if (!this.values) return this.string(val)
-    this.values.push(val)
-    return '?'
+    return this.string(val)
   }
 
   static Functions = require('./cql-functions')
