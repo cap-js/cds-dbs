@@ -332,6 +332,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleRef(col)
       } else if (col === '*') {
         handleWildcard(columns)
+      } else if (col.SELECT) {
+        handleSubquery(col)
       } else {
         handleDefault(col)
       }
@@ -340,8 +342,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const c = transformedColumns[i]
       if (typeof c === 'function') {
         const res = c()
-        transformedColumns.splice(i, 1, ...res)
-        i += res.length-1
+        if (res.length !== undefined) {
+          transformedColumns.splice(i, 1, ...res)
+          i += res.length - 1
+        } else {
+          transformedColumns.splice(i, 1, res)
+        }
       }
     }
 
@@ -350,6 +356,22 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     return transformedColumns
+
+    function handleSubquery(col) {
+      if (isLocalized(inferred.target)) col.SELECT.localized = true
+      if (!col.SELECT.from.as) {
+        const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
+          getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
+          originalQuery.outerQueries,
+        )
+        Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+      }
+      transformedColumns.push(() => {
+        const res = transformSubquery(col)
+        if (col.as) res.as = col.as
+        return res
+      })
+    }
 
     function handleExpand(col) {
       const { $refLinks } = col
