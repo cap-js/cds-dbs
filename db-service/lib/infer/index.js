@@ -18,9 +18,9 @@ const cdsTypes = cds.linked({
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 /**
- * @param {CQN|CQL} originalQuery
- * @param {CSN} [model]
- * @returns {InferredCQN} = q with .target and .elements
+ * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
+ * @param {import('@sap/cds/apis/csn').CSN} [model]
+ * @returns {import('./cqn').Query} = q with .target and .elements
  */
 function infer(originalQuery, model = cds.context?.model || cds.model) {
   if (!model) cds.error('Please specify a model')
@@ -136,11 +136,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * next 'ref' step should be looked up.
    *
    *
-   * @param {Object} arg - The argument object that will be augmented with additional properties.
+   * @param {object} arg - The argument object that will be augmented with additional properties.
    *                        It must contain a 'ref' property, which is an array representing the steps to be processed.
    *                        Optionally, it can also contain an 'xpr' property, which is also processed recursively.
    *
-   * @param {Object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
+   * @param {object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
    *                             resolved. It's needed for infix filter / expand columns. It must contain a 'definition'
    *                             property, which is an object representing the base environment.
    *
@@ -234,7 +234,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * Each entry in the `$combinedElements` dictionary maps from the element name
    * to an array of objects containing the index and table alias where the element can be found.
    *
-   * @returns {Object} The `$combinedElements` dictionary, which maps element names to an array of objects
+   * @returns {object} The `$combinedElements` dictionary, which maps element names to an array of objects
    *                   containing the index and table alias where the element can be found.
    */
   function inferCombinedElements() {
@@ -271,9 +271,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * Also walks over other `ref`s in the query, validates them, and attaches `$refLinks`.
    * This includes handling `where`, infix filters within column `refs`, or other `csn` paths.
    *
-   * @param {Object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
+   * @param {object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
    *                                   to an array of objects containing the index and table alias where the element can be found.
-   * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
+   * @returns {object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
@@ -672,9 +672,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       /**
        * Resolves and processes the inline attribute of a column in a database query.
        *
-       * @param {Object} col - The column object with properties: `inline` and `$refLinks`.
+       * @param {object} col - The column object with properties: `inline` and `$refLinks`.
        * @param {string} [namePrefix=col.as || col.flatName] - Prefix for naming new columns. Defaults to `col.as` or `col.flatName`.
-       * @returns {Object} - An object with resolved and processed inline column definitions.
+       * @returns {object} - An object with resolved and processed inline column definitions.
        *
        * Procedure:
        * 1. Iterate through `inline` array. For each `inlineCol`:
@@ -728,8 +728,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       /**
        * Resolves a query column which has an `expand` property.
        *
-       * @param {Object} col - The column object with properties: `expand` and `$refLinks`.
-       * @returns {Object} - A `cds.struct` object with expanded column definitions.
+       * @param {object} col - The column object with properties: `expand` and `$refLinks`.
+       * @returns {object} - A `cds.struct` object with expanded column definitions.
        *
        * Procedure:
        * - if `$leafLink` is an association, constructs an `expandSubquery` and infers a new query structure.

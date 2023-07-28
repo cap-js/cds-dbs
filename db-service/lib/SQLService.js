@@ -4,6 +4,19 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
+/**
+ * @callback next
+ * @param {Error} param0
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * @callback Handler
+ * @param {import('@sap/cds/apis/services').Request} param0
+ * @param {next} param1
+ * @returns {Promise<unknown>}
+ */
+
 class SQLService extends DatabaseService {
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
@@ -21,6 +34,7 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
+  /** @type {Handler} */
   async transformStreamFromCQN({ query }, next) {
     if (!query._streaming) return next()
     const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
@@ -29,6 +43,7 @@ class SQLService extends DatabaseService {
     return stream && { value: stream }
   }
 
+  /** @type {Handler} */
   async transformStreamIntoCQN({ query, data, target }, next) {
     let col, type, etag
     const elements = query._target?.elements || target?.elements
@@ -56,7 +71,10 @@ class SQLService extends DatabaseService {
     return result
   }
 
-  /** Handler for SELECT */
+  /**
+   * Handler for SELECT
+   * @type {Handler}
+   */
   async onSELECT({ query, data }) {
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
@@ -67,6 +85,10 @@ class SQLService extends DatabaseService {
     return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
+  /**
+   * Handler for INSERT
+   * @type {Handler}
+   */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
@@ -75,6 +97,10 @@ class SQLService extends DatabaseService {
     return new this.class.InsertResults(cqn, results)
   }
 
+  /**
+   * Handler for UPSERT
+   * @type {Handler}
+   */
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
@@ -83,7 +109,10 @@ class SQLService extends DatabaseService {
     return results.reduce((lastValue, currentValue) => (lastValue += currentValue.changes), 0)
   }
 
-  /** Handler for UPDATE */
+  /**
+   * Handler for UPDATE
+   * @type {Handler}
+   */
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
@@ -95,7 +124,10 @@ class SQLService extends DatabaseService {
     return this.onSIMPLE(req)
   }
 
-  /** Handler for Stream */
+  /**
+   * Handler for Stream
+   * @type {Handler}
+   */
   async onSTREAM(req) {
     const { sql, values, entries } = this.cqn2sql(req.query)
     // writing stream
@@ -114,20 +146,29 @@ class SQLService extends DatabaseService {
     return Object.values(result[0])[0]
   }
 
-  /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
+  /**
+   * Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN
+   * @type {Handler}
+   */
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     return (await ps.run(values)).changes
   }
 
-  /** Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN */
+  /**
+   * Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN
+   * @type {Handler}
+   */
   async onEVENT({ event }) {
     DEBUG?.(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
-  /** Handler for SQL statements which don't have any CQN */
+  /**
+   * Handler for SQL statements which don't have any CQN
+   * @type {Handler}
+   */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
       DEBUG?.(query)
@@ -138,12 +179,20 @@ class SQLService extends DatabaseService {
     } else return next()
   }
 
-  /** Override in subclasses to detect more statements to be called with ps.all() */
+  /**
+   *  Override in subclasses to detect more statements to be called with ps.all()
+   * @param {string} sql
+   */
   hasResults(sql) {
     return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
-  /** Derives and executes a query to fill in `$count` for given query */
+  /**
+   * Derives and executes a query to fill in `$count` for given query
+   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {unknown[]} ret - Results of the original query
+   * @returns {Promise<number>}
+   */
   async count(query, ret) {
     if (ret) {
       const { one, limit: _ } = query.SELECT,
@@ -171,10 +220,19 @@ class SQLService extends DatabaseService {
    * Subclasses commonly override this.
    */
   static CQN2SQL = require('./cqn2sql').class
-  constructor() {
-    super(...arguments)
+
+  /** @param {unknown[]} args */
+  constructor(...args) {
+    super(...args)
+    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
+
+  /**
+   * @param {import('@sap/cds/apis/cqn').Query} q
+   * @param {unknown} values
+   * @returns {typeof SQLService.CQN2SQL}
+   */
   cqn2sql(q, values) {
     const cqn = this.cqn4sql(q)
 
@@ -194,6 +252,11 @@ class SQLService extends DatabaseService {
     }
     return new this.class.CQN2SQL(this.context).render(cqn, values)
   }
+
+  /**
+   * @param {import('@sap/cds/apis/cqn').Query} q
+   * @returns {import('./infer/cqn').Query}
+   */
   cqn4sql(q) {
     // REVISIT: move this check to cqn4sql?
     if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
@@ -212,35 +275,47 @@ class SQLService extends DatabaseService {
 
   /**
    * Used to execute simple SQL statement like BEGIN, COMMIT, ROLLBACK
+   * @param {string} sql
+   * @returns {Promise<unknown>} The result of the query
    */
-  // eslint-disable-next-line no-unused-vars
   async exec(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 }
 
-/** Interface of prepared statement objects as returned by {@link SQLService#prepare} */
+/**
+ * Interface of prepared statement objects as returned by {@link SQLService#prepare}
+ * @class
+ * @interface
+ */
 class PreparedStatement {
-  // eslint-disable-line no-unused-vars
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
-   * @param {[]|{}} binding_params
+   * @param {unknown|unknown[]} binding_params
    */
-  async run(/*binding_params*/) {} // eslint-disable-line no-unused-vars
+  async run(binding_params) {
+    binding_params
+    return 0
+  }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
-   * @param {[]|{}} binding_params
+   * @param {unknown|unknown[]} binding_params
+   * @returns {Promise<unknown>}
    */
-  async get(/*binding_params*/) {
+  async get(binding_params) {
+    binding_params
     return {}
-  } // eslint-disable-line no-unused-vars
+  }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
-   * @param {[]|{}} binding_params
+   * @param {unknown|unknown[]} binding_params
+   * @returns {Promise<unknown[]>}
    */
-  async all(/*binding_params*/) {
+  async all(binding_params) {
+    binding_params
     return [{}]
-  } // eslint-disable-line no-unused-vars
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
@@ -293,4 +368,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-module.exports = Object.assign(SQLService, { _target_name4 })
+Object.assign(SQLService, { _target_name4 })
+module.exports = SQLService

@@ -12,12 +12,16 @@ const USAGE_SAMPLE = async () => {
 }
 
 module.exports = class InsertResult {
+  /**
+   * @param {import('@sap/cds/apis/cqn').INSERT} query
+   * @param {unknown[]} results
+   */
   constructor(query, results) {
     this.query = query
     this.results = results
   }
 
-  /*
+  /**
    * Lazy access to auto-generated keys.
    */
   get [iterator]() {
@@ -70,8 +74,9 @@ module.exports = class InsertResult {
     })
   }
 
-  /*
+  /**
    * the number of inserted (root) entries or the number of affectedRows in case of INSERT into SELECT
+   * @return {number}
    */
   get affectedRows() {
     const { INSERT: _ } = this.query
@@ -79,16 +84,28 @@ module.exports = class InsertResult {
     else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
   }
 
-  /*
+  /**
    * for checks such as res > 2
+   * @return {number}
    */
   valueOf() {
     return this.affectedRows
   }
 
+  /**
+   * The last id of the auto incremented key column
+   * @param {unknown[]} result
+   * @returns {number}
+   */
   insertedRowId4(result) {
     return result.lastID
   }
+
+  /**
+   * Number of affected rows
+   * @param {unknown[]} result
+   * @returns {number}
+   */
   affectedRows4(result) {
     return result.changes
   }

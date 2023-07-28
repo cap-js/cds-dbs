@@ -41,6 +41,16 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
   }
 }
 
+/**
+ * @callback nextCallback
+ * @param {Error|undefined} error
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * @param {import('@sap/cds/apis/services').Request} req
+ * @param {nextCallback} next
+ */
 module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
