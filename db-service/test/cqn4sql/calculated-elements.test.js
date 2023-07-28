@@ -257,7 +257,8 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in subquery, using the same calc element - not join relevant in subquery', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
       ID,
       (
         SELECT from booksCalc.Authors {
@@ -267,7 +268,9 @@ describe('Unfolding calculated elements in select list', () => {
         }
       ) as sub,
       author.books.author.{name, IBAN, addressText },
-    }`, model)
+    }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
       left outer join booksCalc.Books as books2 on books2.author_ID = author.ID
