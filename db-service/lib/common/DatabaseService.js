@@ -3,6 +3,8 @@ const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds/lib')
 
+/** @typedef {unknown} DatabaseDriver */
+
 class DatabaseService extends cds.Service {
   /**
    * Dictionary of connection pools per tenant
@@ -12,6 +14,8 @@ class DatabaseService extends cds.Service {
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
+   * @abstract
+   * @type {import('./factory').Factory<DatabaseDriver>}
    */
   get factory() {
     throw '2b overriden in subclass'
@@ -102,6 +106,9 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
+  /**
+   * @param {string} tenant
+   */
   async disconnect(tenant) {
     const pool = this.pools[tenant]
     if (!pool) return

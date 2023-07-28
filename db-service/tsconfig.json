@@ -1,0 +1,13 @@
+{
+  "include": ["index.js"],
+  "compilerOptions": {
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "strict": true,
+    "types": ["jest"],
+    "declarationMap": true,
+    "skipLibCheck": true
+  }
+}
