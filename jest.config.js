@@ -17,7 +17,9 @@ const enable = process.argv
   .filter(a => a)
 
 module.exports = {
-  reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
+  reporters: process.env.CI
+    ? ['github-actions', 'summary', '<rootDir>/test/compliance/reporter.js']
+    : ['default', '<rootDir>/test/compliance/reporter.js'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context
     '<rootDir>/test/',

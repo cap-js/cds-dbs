@@ -1,12 +1,17 @@
+const msg = require('./message.js').bind(null, 'date')
+
 module.exports = [
   {
+    '<': msg(`Does not support 'NULL'`),
     date: null,
   },
   {
+    '<': msg(`Does not support '1970-01-01'`),
     date: '1970-01-01',
   },
   {
     // HANA supports up-to 9999-12-31
+    '<': msg(`Does not support '9999-12-31'`),
     date: '9999-12-31',
   },
   /* Ignoring transformations

@@ -110,12 +110,19 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   CREATE_elements(elements) {
+    const keys = []
     let sql = ''
     for (let e in elements) {
       const definition = elements[e]
       if (definition.isAssociation) continue
+      if (definition.key) {
+        keys.push(e)
+      }
       const s = this.CREATE_element(definition)
       if (s) sql += `${s}, `
+    }
+    if (keys.length) {
+      sql += `PRIMARY KEY(${keys}), `
     }
     return sql.slice(0, -2)
   }
@@ -393,7 +400,7 @@ class CQN2SQLRenderer {
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
-      !!q.UPSERT,
+      false,
     )
     const extraction = extractions
       .map(c => {
@@ -516,10 +523,11 @@ class CQN2SQLRenderer {
     if (!keys) return (this.sql = sql) // REVISIT: We should converge q.target and q._target
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
 
-    let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns
-      .filter(c => !keys.includes(c))
-      .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    const updateColumns = this.managed(
+      this.columns.filter(c => !keys.includes(c)).map(c => ({ name: c, sql: `excluded.${this.quote(c)}` })),
+      q.elements || q.target?.elements,
+      true,
+    ).map(c => `${this.quote(c.name)}=${c.sql}`)
 
     keys = keys.map(k => this.quote(k))
     const conflict = updateColumns.length

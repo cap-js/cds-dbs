@@ -1,5 +1,8 @@
 const cds = require('../cds.js')
 
+// Set all HANA function tests to optional
+const test = global.test.optional
+
 describe('functions', () => {
   const { expect, data } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
