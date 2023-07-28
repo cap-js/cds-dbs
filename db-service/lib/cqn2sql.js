@@ -246,7 +246,7 @@ class CQN2SQLRenderer {
             ],
           })
         }
-        if (col?.element?.['@Core.MediaType']) {
+        if (col?.element?.type === 'cds.LargeBinary') {
           subQuery.SELECT.columns.push(col)
         }
       })
