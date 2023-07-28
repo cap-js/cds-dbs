@@ -115,6 +115,57 @@ describe('wildcard expansion and exclude clause', () => {
       }`,
     )
   })
+  // TODO
+  it.skip('MUST respect smart wildcard rules -> subquery replacement after star', () => {
+    const input = CQL`SELECT from bookshop.Bar { *, (SELECT from bookshop.Bar {ID}) as structure }`
+    let query = cqn4sql(input, model)
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Bar as Bar {
+        Bar.ID,
+        Bar.stock,
+        (SELECT from bookshop.Bar as Bar2 {Bar2.ID}) as structure,
+        Bar.nested_foo_x,
+        Bar.nested_bar_a,
+        Bar.nested_bar_b,
+        Bar.note,
+        Bar.createdAt,
+        Bar.struct1_foo,
+        Bar.nested1_foo_x
+      }`,
+    )
+  })
+  // TODO
+  it.skip('expand after wildcard replaces assoc from wildcard expansion', () => {
+    // "author.name as author" will replace the "author" association from Books -> no fk here
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          (
+            SELECT from bookshop.Authors as author {
+              author.name
+            } where Books.author_ID = author.ID
+          ) as author,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
 
   it('path expression after wildcard replaces assoc from wildcard expansion', () => {
     // "author.name as author" will replace the "author" association from Books -> no fk here

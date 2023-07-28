@@ -436,6 +436,7 @@ describe('Flattening', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books {
           (SELECT address from bookshop.Authors where ID > Books.ID) as authorColumn,
+
           (SELECT from bookshop.Genres as G {
             (SELECT address from bookshop.Authors as genreAuthor where ID > Books.ID and G.ID = 42) as AuthorInG,
           }) as genreColumn
