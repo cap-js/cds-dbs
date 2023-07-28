@@ -580,7 +580,7 @@ describe('Unfolding calculated elements in other places', () => {
     }`
     expect(query).to.deep.equal(expected)
   })
-  it('in a subquery', () => {
+  it('in a subquery calc element is join relevant', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books {
         ID,
