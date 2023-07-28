@@ -216,18 +216,30 @@ class CQN2SQLRenderer {
       subQuery.SELECT.columns = subQuery.SELECT.columns ? [...subQuery.SELECT.columns] : ['*']
       q?.SELECT.columns?.forEach(col => {
         if (localized && col?.element?.localized) {
-          subQuery.SELECT.columns.push({
-            as: col.as || col.ref.at(-1),
+          // Get column alias and ensure it is not defined on this projection level
+          const colAlias = this.column_name(col)
+          let index = subQuery.SELECT.columns.findIndex(c => c !== '*' && this.column_name(c) === colAlias)
+          if (index < 0) {
+            index = subQuery.SELECT.columns.length
+          } else {
+            // Use projection column definition
+            col = subQuery.SELECT.columns[index]
+          }
+
+          // Replace column with localized coalesce
+          subQuery.SELECT.columns.splice(index, 1, {
+            as: colAlias,
             func: 'coalesce',
             args: [
               {
                 ref: [
-                  col.ref[0],
+                  // Walk down the path expression to inject the texts filter for the specific column
+                  ...col.ref.slice(0, -1),
                   {
                     id: 'texts',
                     where: [{ ref: ['locale'] }, '=', { func: 'session_context', args: [{ val: '$user.locale' }] }],
                   },
-                  ...col.ref.slice(1),
+                  ...col.ref.slice(-1),
                 ],
               },
               { ref: col.ref },
@@ -238,8 +250,13 @@ class CQN2SQLRenderer {
           subQuery.SELECT.columns.push(col)
         }
       })
-      // REVISIT: ensure to call cqn4sql with the correct model
-      return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
+      try {
+        // REVISIT: ensure to call cqn4sql with the correct model
+        return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
+      } catch (e) {
+        subQuery
+        debugger
+      }
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) {
