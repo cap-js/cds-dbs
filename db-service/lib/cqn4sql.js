@@ -1850,7 +1850,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns the flat name of the element
    */
   function getFullName(node, name = node.name) {
-    if (node.parent.kind === 'entity') return name
+    if (!node.parent || node.parent.kind === 'entity') return name
 
     return getFullName(node.parent, `${node.parent.name}_${name}`)
   }

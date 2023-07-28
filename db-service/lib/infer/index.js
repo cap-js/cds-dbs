@@ -256,6 +256,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @param {csn.Element} element
    */
   function setElementOnColumns(col, element) {
+    if(col.element) return
+
     Object.defineProperty(col, 'element', {
       value: element,
       writable: true,
