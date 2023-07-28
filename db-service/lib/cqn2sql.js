@@ -230,7 +230,7 @@ class CQN2SQLRenderer {
    */
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
-    if (!elements) return sql  // REVISIT: Above we say this is an error condition, but here we say it's ok?
+    if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
       // REVISIT: can be removed when alias handling is resolved properly
@@ -262,7 +262,7 @@ class CQN2SQLRenderer {
     ///////////////////////////////////////////////////////////////////////////////////////
     // REVISIT: that should move out of here!
     if (x?.element?.['@cds.extension']) {
-      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${ x.as || x.element.name }`
+      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
     }
     ///////////////////////////////////////////////////////////////////////////////////////
     let sql = this.expr(x)
@@ -272,7 +272,7 @@ class CQN2SQLRenderer {
   }
 
   column_alias4(x) {
-    return typeof x.as === 'string' && x.as || x.func
+    return (typeof x.as === 'string' && x.as) || x.func
   }
 
   /**
@@ -286,7 +286,7 @@ class CQN2SQLRenderer {
     if (ref) return _aliased(this.quote(this.name(ref[0])))
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) {
-      const [ left, right ] = from.args
+      const [left, right] = from.args
       return `${this.from(left)} ${from.join} JOIN ${this.from(right)} ON ${this.xpr({ xpr: from.on })}`
     }
   }
@@ -755,7 +755,8 @@ class CQN2SQLRenderer {
    * @returns {string} explicit/implicit column alias
    */
   column_name(col) {
-    if (col === '*') // REVISIT: When could this ever happen? I think this is only about that irrealistic test whech uses column_name to implement SELECT_columns. We should eliminate column_name as its only used and designed for use in SELECT_expand, isn't it?
+    if (col === '*')
+      // REVISIT: When could this ever happen? I think this is only about that irrealistic test whech uses column_name to implement SELECT_columns. We should eliminate column_name as its only used and designed for use in SELECT_expand, isn't it?
       cds.error`Query was not inferred and includes '*' in the columns. For which there is no column name available.`
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.func || col.ref.at(-1)
   }
