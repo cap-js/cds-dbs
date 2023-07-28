@@ -56,25 +56,18 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-    SELECT_columns({ SELECT }) {
-      if (!SELECT.columns) return '*'
-      const { orderBy } = SELECT
-      const orderByMap = {}
-      // Collect all orderBy columns that should be taken from the SELECT.columns
-      if (Array.isArray(orderBy))
-        orderBy?.forEach(o => {
-          if (o.ref?.length === 1) {
-            orderByMap[o.ref[0]] = true
-          }
-        })
-      return SELECT.columns.map(x => {
-        if (x === '*') return x
-        const alias = this.column_name(x)
-        // Check whether the column alias should be added
-        const xpr = this.column_expr(x)
-        const needsAlias = (typeof x.as === 'string' && x.as) || orderByMap[alias]
-        return `${xpr}${needsAlias ? ` as ${this.quote(alias)}` : ''}`
-      })
+
+    column_alias4(x) {
+      let alias = super.column_alias4(x)
+      return alias || this.orderByMap[
+        alias = ('val' in x && x.val + '') || x.func || x.ref?.at(-1)
+      ] && alias
+    }
+
+    get orderByMap() {
+      const obm = {}
+      this.cqn.SELECT?.orderBy?.forEach(o => o.ref?.length === 1 && (obm[o.ref[0]] = true))
+      return super.orderByMap = obm
     }
 
     operator(x, i, xpr) {
@@ -202,11 +195,11 @@ const fixTimeZone = e =>
   `(
   SELECT
     CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN 
+      WHEN substr(T,length(T),1) = 'Z' THEN
         T
       WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
         substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
+      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN
         T || ':' || '00'
       ELSE T
     END AS T
