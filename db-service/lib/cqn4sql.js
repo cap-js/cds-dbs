@@ -318,7 +318,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
           continue
         }
-        handleExpand(col)
+        transformedColumns.push(() => {
+          return handleExpand(col)
+        })
       } else if (col.inline) {
         handleInline(col)
       } else if (col.ref) {
@@ -334,6 +336,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleDefault(col)
       }
     }
+    for (let i = 0; i <= transformedColumns.length; i++) {
+      const c = transformedColumns[i]
+      if (typeof c === 'function') {
+        const res = c()
+        transformedColumns.splice(i, 1, ...res)
+        i += res.length-1
+      }
+    }
 
     if (transformedColumns.length === 0 && columns.length) {
       handleEmptyColumns(columns)
@@ -343,14 +353,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function handleExpand(col) {
       const { $refLinks } = col
+      const res = []
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
-        transformedColumns.push(expandedSubqueryColumn)
+        res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
         const expandCols = nestedProjectionOnStructure(col, 'expand')
-        transformedColumns.push(...expandCols)
+        res.push(...expandCols)
       }
+      return res
     }
 
     function handleInline(col) {

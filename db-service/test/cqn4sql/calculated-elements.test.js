@@ -326,7 +326,7 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
-  it.skip('expand and inline target same calc element inverted', () => {
+  it('expand and inline target same calc element inverted', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { ID, author {name, addressText }, author.{name, addressText } }`,
       model,

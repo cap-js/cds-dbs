@@ -802,6 +802,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       else alreadySeenCalcElements.add(calcElement)
       const { ref, xpr, func } = calcElement.value
       if (ref || xpr) {
+        baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
         attachRefLinksToArg(calcElement.value, baseLink, true)
         const basePath = { $refLinks: [], ref: [] }
         if (baseColumn) {
