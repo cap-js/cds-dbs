@@ -4,19 +4,7 @@ const cds = require('@sap/cds/lib')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const cdsTypes = cds.linked({
-  definitions: {
-    Timestamp: { type: 'cds.Timestamp' },
-    DateTime: { type: 'cds.DateTime' },
-    Date: { type: 'cds.Date' },
-    Time: { type: 'cds.Time' },
-    String: { type: 'cds.String' },
-    Decimal: { type: 'cds.Decimal' },
-    Integer: { type: 'cds.Integer' },
-    Boolean: { type: 'cds.Boolean' },
-  },
-}).definitions
-for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
+const cdsTypes = require('./cdsTypes')
 /**
  * @param {CQN|CQL} originalQuery
  * @param {CSN} [model]
