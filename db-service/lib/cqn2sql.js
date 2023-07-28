@@ -250,13 +250,9 @@ class CQN2SQLRenderer {
           subQuery.SELECT.columns.push(col)
         }
       })
-      try {
-        // REVISIT: ensure to call cqn4sql with the correct model
-        return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
-      } catch (e) {
-        subQuery
-        debugger
-      }
+
+      // REVISIT: ensure to call cqn4sql with the correct model
+      return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) {
