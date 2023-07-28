@@ -2,10 +2,8 @@
 
 exports[`function contains complex 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ifnull(instr((Foo.a,Foo.b),?),0)",
-  "values": [
-    "5",
-  ],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ifnull(instr((Foo.a,Foo.b),'5'),0)",
+  "values": [],
 }
 `;
 
