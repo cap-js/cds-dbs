@@ -16,6 +16,7 @@
   ],
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "lib",
     "CHANGELOG.md"
@@ -26,11 +27,16 @@
   },
   "scripts": {
     "prettier": "npx prettier --write .",
-    "test": "npx jest --silent",
+    "test": "npm run build && npx jest --silent",
+    "build": "tsc && find lib/ -type f -name '*.d.ts' -exec cp '{}' 'dist/{}' ';' && cp ts.eslintrc.cjs dist/.eslintrc.cjs && npx eslint ./dist --ext .d.ts",
     "lint": "npx eslint . && npx prettier --check . "
   },
   "peerDependencies": {
     "@sap/cds": ">=7"
   },
-  "license": "SEE LICENSE"
+  "license": "SEE LICENSE",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "typescript": "^5.1.6"
+  }
 }
