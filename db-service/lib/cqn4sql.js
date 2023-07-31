@@ -438,7 +438,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       let transformedColumn = getTransformedColumn(col)
       if (col.as) transformedColumn.as = col.as
 
-      const replaceWith = transformedColumns.findIndex(t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as)
+      const replaceWith = transformedColumns.findIndex(
+        t => (t.as || t.ref?.[t.ref.length - 1]) === transformedColumn.as,
+      )
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
@@ -1919,7 +1921,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     function getJoinRelevantAlias(node) {
       return [...node.$refLinks]
         .reverse()
-        .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess)?.alias
+        .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess).alias
     }
 
     function getSelectOrEntityAlias(node) {
