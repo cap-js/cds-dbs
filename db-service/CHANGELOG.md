@@ -12,7 +12,7 @@
 - `UPDATE` is only noop if it does not include an element annotated with `@cds.on.update`.
 - `SELECT` with `'*'` that is not expanded creates now a clearer error when the column name is required.
 - `SELECT` with plain SQL statements will return correct result regardless of casing.
-- View resolving for streams
+- View resolving for streams.
 
 ## Version 1.0.1 - 2023-07-03
 
