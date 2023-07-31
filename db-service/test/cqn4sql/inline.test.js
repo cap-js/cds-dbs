@@ -46,6 +46,19 @@ describe('inline', () => {
     const longResult = cqn4sql(longVersion, model)
     expect(cqn4sql(inlineQuery, model)).to.eql(longResult).to.eql(expected)
   })
+  it('inline expansion with path expression', () => {
+    let inlineQuery = CQL`select from Employee {
+      department.{
+        name
+      }
+    }`
+    let expected = CQL`select from Employee as Employee
+    left join Department as department on department.id = Employee.department_id
+    {
+      department.name as department_name
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
   it('structural inline expansion with path expression and infix filter', () => {
     let inlineQuery = CQL`select from Department {
       head[job = 'boss'].office.{
@@ -56,7 +69,7 @@ describe('inline', () => {
     left join Employee as head on head.id = Department.head_id
         and head.job = 'boss'
     {
-      head.office_floor,
+      head.office_floor as head_office_floor,
     }`
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
@@ -70,7 +83,7 @@ describe('inline', () => {
     left join Employee as head on head.id = Department.head_id
         and head.job = 'boss'
     {
-      head.name,
+      head.name as head_name,
     }`
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
@@ -85,7 +98,7 @@ describe('inline', () => {
     left join Employee as head on head.id = Department.head_id
     left join Department as department2 on department2.id = head.department_id
     {
-      department2.costCenter,
+      department2.costCenter as head_department_costCenter,
     }`
     const res = cqn4sql(inlineQuery, model)
     expect(res).to.eql(expected)
@@ -101,7 +114,7 @@ describe('inline', () => {
     left join Employee as head on head.id = Department.head_id
     left join Department as department2 on department2.id = head.department_id
     {
-      department2.costCenter,
+      department2.costCenter as head_department_costCenter,
     }`
     const res = cqn4sql(inlineQuery, model)
     expect(res).to.eql(expected)

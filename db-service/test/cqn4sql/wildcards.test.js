@@ -166,6 +166,34 @@ describe('wildcard expansion and exclude clause', () => {
         }
       `)
   })
+  it.skip('inline after wildcard replaces assoc from wildcard expansion', () => {
+    // "author.name as author" will replace the "author" association from Books -> no fk here
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author.{name} }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        left join bookshop.Authors as author on Books.author_ID = author
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          author.name as author_name,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
 
   it('path expression after wildcard replaces assoc from wildcard expansion', () => {
     // "author.name as author" will replace the "author" association from Books -> no fk here

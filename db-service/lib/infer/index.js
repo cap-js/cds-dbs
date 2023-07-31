@@ -451,7 +451,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      */
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
-      const { inExists, inExpr, inNestedProjection, inCalcElement } = context || {}
+      const { inExists, inExpr, inNestedProjection, inCalcElement, baseColumn } = context || {}
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
@@ -657,16 +657,21 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const leafArt = column.$refLinks[column.$refLinks.length - 1].definition
       const virtual = (leafArt.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
-      if (!inExists && !virtual && !inCalcElement && isColumnJoinRelevant(column, firstStepIsSelf)) {
-        if (originalQuery.UPDATE)
-          throw cds.error(
-            'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
-          )
-        Object.defineProperty(column, 'isJoinRelevant', { value: true })
-        joinTree.mergeColumn(column, originalQuery.outerQueries)
+      if (!inExists && !virtual && !inCalcElement) {
+        // for a ref inside an `inline` we need to consider the column `ref` which has the `inline` prop
+        const colWithBase = baseColumn
+          ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
+          : column
+        if (isColumnJoinRelevant(colWithBase, $baseLink)) {
+          if (originalQuery.UPDATE)
+            throw cds.error(
+              'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
+            )
+          Object.defineProperty(column, 'isJoinRelevant', { value: true })
+          joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
+        }
       }
       if (leafArt.value && !leafArt.value.stored) {
-        const { baseColumn } = context || {} // for an inline we need to pass the base ref
         resolveCalculatedElement(column, $baseLink, baseColumn)
       }
 
@@ -875,7 +880,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * @param {object} column the column with the `ref` to check for join relevance
      * @returns {boolean} true if the column ref needs to be merged into a join tree
      */
-    function isColumnJoinRelevant(column) {
+    function isColumnJoinRelevant(column, baseLink) {
       let fkAccess = false
       let assoc = null
       for (let i = 0; i < column.ref.length; i++) {
