@@ -343,22 +343,23 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleDefault(col)
       }
     }
+    // subqueries are processed in the end
     for (let i = 0; i <= transformedColumns.length; i++) {
       const c = transformedColumns[i]
       if (typeof c === 'function') {
         const res = c() || [] // target of expand / subquery could also be skipped -> no result
-        const replaceWith = res.as
-          ? transformedColumns.findIndex(t => (t.as || t.ref?.[t.ref.length - 1]) === res.as)
-          : -1
-        if (replaceWith === -1) transformedColumns.splice(i, 1, res)
-        else {
-          transformedColumns.splice(replaceWith, 1, res)
-          transformedColumns.splice(i, 1)
-        }
-
         if (res.length !== undefined) {
           transformedColumns.splice(i, 1, ...res)
           i += res.length - 1
+        } else {
+          const replaceWith = res.as
+            ? transformedColumns.findIndex(t => (t.as || t.ref?.[t.ref.length - 1]) === res.as)
+            : -1
+          if (replaceWith === -1) transformedColumns.splice(i, 1, res)
+          else {
+            transformedColumns.splice(replaceWith, 1, res)
+            transformedColumns.splice(i, 1)
+          }
         }
       }
     }
