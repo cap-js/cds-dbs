@@ -76,6 +76,8 @@ class SQLiteService extends SQLService {
     if (first.done) return
     if (one) {
       yield first.value[0]
+      // Close result set to release database connection
+      rs.return()
       return
     }
 
