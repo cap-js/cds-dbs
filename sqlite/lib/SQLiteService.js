@@ -131,6 +131,7 @@ class SQLiteService extends SQLService {
           }
         })
       return SELECT.columns.map(x => {
+        if (x === '*') return x
         const alias = this.column_name(x)
         // Check whether the column alias should be added
         const xpr = this.column_expr(x)

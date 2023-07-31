@@ -8,22 +8,38 @@ function Pool(factory, tenant) {
 }
 const { createPool } = require('@sap/cds-foss').pool
 
+/** @typedef {unknown} DatabaseDriver */
+
 class DatabaseService extends cds.Service {
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
+   * @abstract
+   * @type {import('./factory').Factory<DatabaseDriver>}
    */
   get factory() {
     throw '2b overriden in subclass'
   }
   pools = { _factory: this.factory }
 
+  /**
+   * @returns {boolean} whether this service is multi tenant enabled
+   */
   get isMultitenant() {
     return 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
   }
 
   /**
-   * Set one or more session context variables like so:
+   * @typedef {Object} DefaultSessionVariables
+   * @property {string} '$user.id'
+   * @property {string} '$user.locale'
+   * @property {string} '$valid.from'
+   * @property {string} '$valid.to'
+   */
+
+  /**
+   * Set one or more session context variables
+   * @example
    * ```js
    * const tx = cds.db.tx()
    * tx.set({
@@ -31,16 +47,25 @@ class DatabaseService extends cds.Service {
    *   '$user.role': 'admin'
    * })
    * ```
+   * @param {unknown|DefaultSessionVariables} variables
    */
-  // eslint-disable-next-line no-unused-vars
   set(variables) {
+    variables
     throw '2b overridden by subclass'
   }
 
+  /**
+   * @param {import('@sap/cds/apis/cqn').Query} q
+   * @param {import('@sap/cds/apis/csn').CSN} m
+   * @returns {import('../infer/cqn').Query}
+   */
   infer(q, m = this.model) {
     return infer(q, m)
   }
 
+  /**
+   * @returns {Promise<DatabaseService>}
+   */
   async begin() {
     const ctx = this.context
     if (!ctx) return this.tx().begin()
@@ -49,6 +74,7 @@ class DatabaseService extends cds.Service {
     const connections = pool._trackedConnections
     let dbc
     try {
+      /** @type {DatabaseDriver} */
       dbc = this.dbc = await pool.acquire()
     } catch (err) {
       // TODO: add acquire timeout error check
@@ -57,6 +83,9 @@ class DatabaseService extends cds.Service {
     }
     this._beginStack = new Error('begin called from:')
     connections.push(this)
+    /**
+     * @param {DatabaseDriver} dbc
+     */
     this._release = async dbc => {
       await pool.release(dbc)
       connections.splice(connections.indexOf(this), 1)
@@ -112,6 +141,9 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
+  /**
+   * @param {string} tenant
+   */
   async disconnect(tenant) {
     const pool = this.pools[tenant]
     if (pool) delete this.pools[tenant]
@@ -120,17 +152,36 @@ class DatabaseService extends cds.Service {
     await pool.clear()
   }
 
+  /**
+   * Runs a Query on the database service
+   * @param {import("@sap/cds/apis/cqn").Query} query
+   * @param {unknown} data
+   * @param  {...unknown} etc
+   * @returns {Promise<unknown>}
+   */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)
     if (data !== undefined && typeof query === 'string' && typeof data !== 'object') data = [data, ...etc]
     return super.run(query, data)
   }
 
-  url4(/*tenant*/) {
-    // eslint-disable-line no-unused-vars
+  /**
+   * Generated the database url for the given tenant
+   * @param {string} tenant
+   * @returns {string}
+   */
+  url4(tenant) {
+    tenant
     let { url } = this.options?.credentials || this.options || {}
     return url
   }
+
+  /**
+   * Old name of url4
+   * @deprecated
+   * @param {string} tenant
+   * @returns {string}
+   */
   getDbUrl(tenant) {
     return this.url4(tenant)
   } // REVISIT: Remove after cds v6.7
