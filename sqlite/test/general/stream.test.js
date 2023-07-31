@@ -16,7 +16,7 @@ const readStream = async id => {
   await checkSize(stream)
 }
 
-describe.skip('STREAM', () => {
+describe('STREAM', () => {
   cds.test(__dirname, 'model.cds')
 
   describe('cds.stream', () => {

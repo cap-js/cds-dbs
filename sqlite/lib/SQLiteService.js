@@ -45,18 +45,19 @@ class SQLiteService extends SQLService {
   prepare(sql) {
     try {
       const stmt = this.dbc.prepare(sql)
-      stmt._run = stmt.run
-      stmt.run = this._run.bind(stmt)
-      stmt._iterator = this._iterator
-      stmt.stream = this._stream.bind(stmt)
-      return stmt
+      return {
+        run: (..._) => this._run(stmt, ..._),
+        get: (..._) => stmt.get(..._),
+        all: (..._) => stmt.all(..._),
+        stream: (..._) => this._stream(stmt, ..._),
+      }
     } catch (e) {
       e.message += ' in:\n' + (e.sql = sql)
       throw e
     }
   }
 
-  async _run(binding_params) {
+  async _run(stmt, binding_params) {
     for (let i = 0; i < binding_params.length; i++) {
       const val = binding_params[i]
       if (Buffer.isBuffer(val)) {
@@ -66,7 +67,7 @@ class SQLiteService extends SQLService {
         binding_params[i] = await convStrm.buffer(val)
       }
     }
-    return this._run(binding_params)
+    return stmt.run(binding_params)
   }
 
   async *_iterator(rs, one) {
@@ -87,17 +88,17 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  async _stream(binding_params, one) {
-    const columns = this.columns()
+  async _stream(stmt, binding_params, one) {
+    const columns = stmt.columns()
     // Stream single blob column
     if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
       // Setting result set to raw to keep better-sqlite from doing additional processing
-      this.raw(true)
-      const rows = this.all(binding_params)
+      stmt.raw(true)
+      const rows = stmt.all(binding_params)
       if (rows.length === 0 || rows[0][0] === null) return null
       // Buffer.from only applies encoding when the input is a string
       let raw = Buffer.from(rows[0][0].toString(), 'base64')
-      this.raw(false)
+      stmt.raw(false)
       return new Readable({
         read(size) {
           if (raw.length === 0) return this.push(null)
@@ -108,8 +109,8 @@ class SQLiteService extends SQLService {
       })
     }
 
-    this.raw(true)
-    const rs = this.iterate(binding_params)
+    stmt.raw(true)
+    const rs = stmt.iterate(binding_params)
     return Readable.from(this._iterator(rs, one))
   }
 
