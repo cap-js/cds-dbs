@@ -8,7 +8,7 @@
 
 ### Added
 
-- Connectivity to Azure PostgreSQL
+- Connectivity to Azure PostgreSQL.
 
 ### Fixed
 

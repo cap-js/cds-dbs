@@ -8,7 +8,7 @@
 
 ### Changed
 
-- Updated minimum required version of `@cap-js/db-service` 
+- Updated minimum required version of `@cap-js/db-service`.
 
 ## Version 1.0.1 - 2023-07-03
 
