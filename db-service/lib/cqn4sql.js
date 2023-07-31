@@ -1009,8 +1009,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
-      // must be processed later
-      if (replacedBy.expand || replacedBy.elements) return [{ as: baseName }]
+      // will be replaced after other columns are transformed
+      if (replacedBy.expand) return [{ as: baseName }]
 
       return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
     }
