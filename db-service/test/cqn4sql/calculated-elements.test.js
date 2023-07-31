@@ -464,7 +464,10 @@ describe('Unfolding calculated elements in select list', () => {
   })
   // TODO
   it.skip('replacement for calculated element is considered for wildcard expansion', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors as author on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
