@@ -133,8 +133,7 @@ describe('wildcard expansion and exclude clause', () => {
       }`,
     )
   })
-  // TODO
-  it.skip('MUST respect smart wildcard rules -> subquery replacement after star', () => {
+  it('MUST respect smart wildcard rules -> subquery replacement after star', () => {
     const input = CQL`SELECT from bookshop.Bar { *, (SELECT from bookshop.Bar {ID}) as structure }`
     let query = cqn4sql(input, model)
     expect(query).to.deep.equal(
@@ -152,10 +151,9 @@ describe('wildcard expansion and exclude clause', () => {
         }`,
     )
   })
-  // TODO
-  it.skip('expand after wildcard replaces assoc from wildcard expansion', () => {
+  it('expand after wildcard replaces assoc from wildcard expansion', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         {
           Books.createdAt,
           Books.createdBy,

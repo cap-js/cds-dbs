@@ -319,7 +319,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           continue
         }
         transformedColumns.push(() => {
-          return handleExpand(col)
+          const expandResult = handleExpand(col)
+          if (expandResult.length > 1) {
+            return expandResult
+          } else {
+            return expandResult[0]
+          }
         })
       } else if (col.inline) {
         handleInline(col)
@@ -341,12 +346,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     for (let i = 0; i <= transformedColumns.length; i++) {
       const c = transformedColumns[i]
       if (typeof c === 'function') {
-        const res = c()
+        const res = c() || [] // target of expand / subquery could also be skipped -> no result
+        const replaceWith = res.as ? transformedColumns.findIndex(t => (t.as || t.ref?.[t.ref.length - 1]) === res.as) : -1
+        if (replaceWith === -1) transformedColumns.splice(i, 1, res)
+        else {
+          transformedColumns.splice(replaceWith, 1, res)
+          transformedColumns.splice(i, 1)
+        }
+
         if (res.length !== undefined) {
           transformedColumns.splice(i, 1, ...res)
           i += res.length - 1
-        } else {
-          transformedColumns.splice(i, 1, res)
         }
       }
     }
@@ -996,6 +1006,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (replacedBy.isJoinRelevant)
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
+
+      // must be processed later
+      if (replacedBy.expand || replacedBy.elements) return [{ as: baseName }]
 
       return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
     }
