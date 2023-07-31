@@ -592,40 +592,62 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   STREAM(q) {
-    let { from, into, where, column, columns, data } = q.STREAM
-    let x, sql
-    // reading stream
-    if (from) {
-      sql = `SELECT`
-      if (!_empty((x = column))) {
-        this.one = true
-        sql += ` ${this.quote(x)}`
-      } else {
-        const select = cds.ql.SELECT(columns?.length ? columns : ['*']).from(from)
-        select.SELECT.expand = 'root'
-        this.one = !!select.SELECT.one
-        return this.SELECT(select.forSQL())
-      }
-      if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
+    const { STREAM } = q
+    return STREAM.from
+      ? this.STREAM_from(q)
+      : STREAM.into
+      ? this.STREAM_into(q)
+      : cds.error`Missing .form or .into in ${q}`
+  }
+
+  /**
+   * Renders a STREAM.into query into generic SQL
+   * @param {import('./infer/cqn').STREAM} q
+   * @returns {string} SQL
+   */
+  STREAM_into(q) {
+    const { into, column, where, data } = q.STREAM
+
+    let sql
+    if (!_empty(column)) {
+      data.type = 'binary'
+      sql = this.UPDATE(
+        cds.ql
+          .UPDATE(into)
+          .with({ [column]: data })
+          .where(where),
+      )
     } else {
-      // writing stream
-      const entity = this.name(q.target?.name || into.ref[0])
-      if (!_empty((x = column))) {
-        data.type = 'binary'
-        sql = `UPDATE ${this.quote(entity)}${into.as ? ` AS ${into.as}` : ``} SET ${this.quote(column)}=${this.param({
-          ref: ['?'],
-          param: true,
-        })}`
-      } else {
-        data.type = 'json'
-        // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-        sql = this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
-      }
-      this.entries = [data]
+      data.type = 'json'
+      // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
+      sql = this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
+      this.values = [data]
     }
-    if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
-    if (from && column) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
+
     return (this.sql = sql)
+  }
+
+  /**
+   * Renders a STREAM.from query into generic SQL
+   * @param {import('./infer/cqn').STREAM} q
+   * @returns {string} SQL
+   */
+  STREAM_from(q) {
+    const { column, from, where, columns } = q.STREAM
+
+    const select = cds.ql
+      .SELECT(column ? [column] : columns)
+      .from(from)
+      .where(where)
+      .limit(column ? 1 : undefined)
+
+    if (column) {
+      this.one = true
+    } else {
+      select.SELECT.expand = 'root'
+      this.one = !!from.SELECT?.one
+    }
+    return this.SELECT(select.forSQL())
   }
 
   // Expression Clauses ---------------------------------------------
@@ -716,6 +738,10 @@ class CQN2SQLRenderer {
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
+        if (val instanceof require('stream').Readable) {
+          this.values.push(val)
+          return '?'
+        }
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }

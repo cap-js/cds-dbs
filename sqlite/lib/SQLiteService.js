@@ -164,6 +164,7 @@ class SQLiteService extends SQLService {
       Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
+      Binary: expr => `${expr} || ''`, // Binary is not allowed in json
       // REVISIT: Timestamp should not loos precision
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
