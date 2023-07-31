@@ -32,7 +32,7 @@
     "lint": "npx eslint . && npx prettier --check . "
   },
   "peerDependencies": {
-    "@sap/cds": ">=7"
+    "@sap/cds": ">=7.1.0"
   },
   "license": "SEE LICENSE",
   "devDependencies": {
