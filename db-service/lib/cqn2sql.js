@@ -130,7 +130,7 @@ class CQN2SQLRenderer {
 
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
-    if (expand !== false) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
+    if (expand == null) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -582,7 +582,7 @@ class CQN2SQLRenderer {
           managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
           break
         case '$now':
-          managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
+          managed = this.func({ func: 'session_context', args: [{ val: '$now' }] })
           break
         default:
           managed = undefined
