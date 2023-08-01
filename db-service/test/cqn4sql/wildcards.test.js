@@ -211,7 +211,6 @@ describe('wildcard expansion and exclude clause', () => {
       `)
   })
   it('xpr after wildcard replaces assoc from wildcard expansion', () => {
-    // "author.name as author" will replace the "author" association from Books -> no fk here
     let query = cqn4sql(CQL`SELECT from bookshop.Books { *, ('Stephen' || 'King') as author }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         {
@@ -238,7 +237,6 @@ describe('wildcard expansion and exclude clause', () => {
       `)
   })
   it('val after wildcard replaces assoc from wildcard expansion', () => {
-    // "author.name as author" will replace the "author" association from Books -> no fk here
     let query = cqn4sql(CQL`SELECT from bookshop.Books { *, 'King' as author }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         {
