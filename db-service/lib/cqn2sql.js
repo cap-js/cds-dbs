@@ -840,7 +840,7 @@ class CQN2SQLRenderer {
    */
   managed(columns, elements, isUpdate = false) {
     const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
-    const {_convertInput} = this.class
+    const { _convertInput } = this.class
     // Ensure that missing managed columns are added
     const requiredColumns = !elements
       ? []
@@ -853,16 +853,15 @@ class CQN2SQLRenderer {
           .map(name => ({ name, sql: 'NULL' }))
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
-
       let element = elements?.[name] || {}
       if (!sql) sql = `value->>'$."${name}"'`
 
-      let val = _managed [element[annotation]?.['=']]
+      let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-
       else if (!isUpdate && element.default) {
         const d = element.default
-        if (d.val !== undefined || d.ref?.[0] === '$now') { // REVISIT: d.ref is not used afterwards
+        if (d.val !== undefined || d.ref?.[0] === '$now') {
+          // REVISIT: d.ref is not used afterwards
           sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${
             this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
           } ELSE ${sql} END)`
@@ -895,8 +894,8 @@ const has_expands = q => q.SELECT.columns?.some(c => c.SELECT?.expand)
 const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.items)
 const _managed = {
   '$user.id': '$user.id',
-  '$user': '$user.id',
-  '$now': '$now',
+  $user: '$user.id',
+  $now: '$now',
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
