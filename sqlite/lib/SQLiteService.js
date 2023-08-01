@@ -56,18 +56,18 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-    column_alias4(x,q) {
-      let alias = super.column_alias4(x,q)
+    column_alias4(x, q) {
+      let alias = super.column_alias4(x, q)
       if (alias) return alias
       if (x.ref) {
         let obm = q._orderByMap
         if (!obm) {
-          Object.defineProperty(q,'_orderByMap',{ value: obm = {} })
+          Object.defineProperty(q, '_orderByMap', { value: (obm = {}) })
           q.SELECT?.orderBy?.forEach(o => {
             if (o.ref?.length === 1) obm[o.ref[0]] = o.ref[0]
           })
         }
-        return obm [x.ref.at(-1)]
+        return obm[x.ref.at(-1)]
       }
     }
 

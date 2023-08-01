@@ -249,9 +249,9 @@ GROUP BY k
       return super.from(from)
     }
 
-    column_alias4(x,q) {
+    column_alias4(x, q) {
       if (x.val) return String(x.val)
-      return super.column_alias4(x,q)
+      return super.column_alias4(x, q)
     }
 
     SELECT_expand({ SELECT }, sql) {

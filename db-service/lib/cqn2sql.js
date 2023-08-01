@@ -219,7 +219,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   SELECT_columns(q) {
-    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x,q))
+    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x, q))
   }
 
   /**
@@ -257,7 +257,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').col} x
    * @returns {string} SQL
    */
-  column_expr(x,q) {
+  column_expr(x, q) {
     if (x === '*') return '*'
     ///////////////////////////////////////////////////////////////////////////////////////
     // REVISIT: that should move out of here!
@@ -266,7 +266,7 @@ class CQN2SQLRenderer {
     }
     ///////////////////////////////////////////////////////////////////////////////////////
     let sql = this.expr(x)
-    let alias = this.column_alias4(x,q)
+    let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
   }
