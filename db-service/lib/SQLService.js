@@ -171,6 +171,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      if (/CREATE VIEW/i.test(query)) return
       DEBUG?.(query)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
@@ -250,6 +251,14 @@ class SQLService extends DatabaseService {
       }
       return new this.class.CQN2SQL(this.context).render(resolvedCqn, values)
     }
+
+    // REVISIT: disable this for queries like (SELECT 1)
+    // Will return multiple rows with objects inside
+    // Only enable expand when the query is inferred
+    if (cqn.SELECT && cqn.elements) {
+      cqn.SELECT.expand = cqn.SELECT.expand ?? 'root'
+    }
+
     return new this.class.CQN2SQL(this.context).render(cqn, values)
   }
 

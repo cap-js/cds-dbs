@@ -197,7 +197,7 @@ class CQN2SQLRenderer {
       sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty((x = columns))) sql += ` ${x}`
-    if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
+    if (!_empty((x = from))) sql += ` FROM ${this.from(x, q)}`
     if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
     if (!_empty((x = groupBy))) sql += ` GROUP BY ${this.groupBy(x)}`
     if (!_empty((x = having))) sql += ` HAVING ${this.having(x)}`
@@ -278,12 +278,63 @@ class CQN2SQLRenderer {
   /**
    * Renders a FROM clause into generic SQL
    * @param {import('./infer/cqn').source} from
+   * @param {import('./infer/cqn').SELECT} q
    * @returns {string} SQL
    */
-  from(from) {
+  from(from, q) {
     const { ref, as } = from,
       _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
-    if (ref) return _aliased(this.quote(this.name(ref[0])))
+    if (ref) {
+      const localized = q?.SELECT?.localized
+      const target = from.target?.query || from.$refLinks?.[0]?.target || cds.model?.definitions[ref[0]]
+      if (!target?.query && !(localized && target.$localized)) {
+        return _aliased(this.quote(this.name(target?.name || ref[0])))
+      }
+
+      const alias = as || ref.at(-1)
+      const subQuery = cds.ql.clone(target.query || cds.ql.SELECT.from(target.name))
+      subQuery.SELECT.from = { ...subQuery.SELECT.from, as: alias }
+      subQuery.SELECT.columns = subQuery.SELECT.columns ? [...subQuery.SELECT.columns] : ['*']
+      q?.SELECT.columns?.forEach(col => {
+        if (localized && col?.element?.localized) {
+          // Get column alias and ensure it is not defined on this projection level
+          const colAlias = this.column_name(col)
+          let index = subQuery.SELECT.columns.findIndex(c => c !== '*' && this.column_name(c) === colAlias)
+          if (index < 0) {
+            index = subQuery.SELECT.columns.length
+          } else {
+            // Use projection column definition
+            col = subQuery.SELECT.columns[index]
+          }
+
+          // Replace column with localized coalesce
+          subQuery.SELECT.columns.splice(index, 1, {
+            as: colAlias,
+            func: 'coalesce',
+            args: [
+              {
+                ref: [
+                  // Walk down the path expression to inject the texts filter for the specific column
+                  ...col.ref.slice(0, -1),
+                  {
+                    id: 'texts',
+                    where: [{ ref: ['locale'] }, '=', { func: 'session_context', args: [{ val: '$user.locale' }] }],
+                  },
+                  ...col.ref.slice(-1),
+                ],
+              },
+              { ref: col.ref },
+            ],
+          })
+        }
+        if (col?.element?.type === 'cds.LargeBinary') {
+          subQuery.SELECT.columns.push(col)
+        }
+      })
+
+      // REVISIT: ensure to call cqn4sql with the correct model
+      return `(${this.SELECT(cqn4sql(subQuery))}) as ${this.quote(alias)}`
+    }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) {
       const {
@@ -701,9 +752,7 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    if (!this.values) return this.string(val)
-    this.values.push(val)
-    return '?'
+    return this.string(val)
   }
 
   static Functions = require('./cql-functions')
