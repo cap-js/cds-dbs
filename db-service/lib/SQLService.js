@@ -242,7 +242,7 @@ class SQLService extends DatabaseService {
     if (cqn.SELECT && cqn.elements) cqn.SELECT.expand = cqn.SELECT.expand ?? 'root'
 
     const cmd = cqn.cmd || Object.keys(cqn)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || cqn.STREAM?.into) {
       let resolvedCqn = resolveView(cqn, this.model, this)
       if (resolvedCqn && resolvedCqn[cmd]._transitions?.[0].target) {
         resolvedCqn = resolvedCqn || cqn
