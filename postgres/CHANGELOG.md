@@ -4,7 +4,7 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.1.0 - 2023-07-31
+## Version 1.1.0 - 2023-08-01
 
 ### Added
 
