@@ -30,7 +30,7 @@
     "test": "jest --silent"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.0.1",
+    "@cap-js/db-service": "^1.1.0",
     "better-sqlite3": "^8"
   },
   "peerDependencies": {
