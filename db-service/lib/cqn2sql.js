@@ -858,7 +858,6 @@ class CQN2SQLRenderer {
 
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-
       // stupid prettier: i wanted to keep this blank line above for a reason!
       else if (!isUpdate && element.default) {
         const d = element.default
