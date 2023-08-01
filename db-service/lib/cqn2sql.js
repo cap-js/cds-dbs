@@ -24,8 +24,8 @@ class CQN2SQLRenderer {
      * @type {import('@sap/cds/apis/services').ContextProperties}
      */
     this.context = cds.context || context
-    // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well
-    /** @type {CQN2SQLRenderer|unknown} */
+    // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well -> ???
+    // /** @type {CQN2SQLRenderer|unknown} */ -> that killed IntelliSense
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
@@ -48,6 +48,8 @@ class CQN2SQLRenderer {
     this._convertInput = _add_mixins(':convertInput', this.InputConverters)
     this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
     this._sqlType = _add_mixins(':sqlType', this.TypeMap)
+    // Have uppercase and lowercase variants of reserved words, to speed up lookups
+    for (let each in this.ReservedWords) this.ReservedWords[each.toLowerCase()] = 1
     this._init = () => {} // makes this a noop for subsequent calls
   }
 
@@ -825,7 +827,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
@@ -838,7 +840,7 @@ class CQN2SQLRenderer {
    */
   managed(columns, elements, isUpdate = false) {
     const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
-    const inputConverterKey = this.class._convertInput
+    const {_convertInput} = this.class
     // Ensure that missing managed columns are added
     const requiredColumns = !elements
       ? []
@@ -851,33 +853,25 @@ class CQN2SQLRenderer {
           .map(name => ({ name, sql: 'NULL' }))
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
-      const element = elements?.[name] || {}
-      let extract = sql ?? `value->>'$."${name}"'`
-      const converter = element[inputConverterKey] || (e => e)
-      let managed = element[annotation]?.['=']
-      switch (managed) {
-        case '$user.id':
-        case '$user':
-          managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
-          break
-        case '$now':
-          managed = this.func({ func: 'session_context', args: [{ val: '$now' }] })
-          break
-        default:
-          managed = undefined
-      }
-      if (!isUpdate) {
+
+      let element = elements?.[name] || {}
+      if (!sql) sql = `value->>'$."${name}"'`
+
+      let val = _managed [element[annotation]?.['=']]
+      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
+
+      else if (!isUpdate && element.default) {
         const d = element.default
-        if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
-          extract = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(
-            d.val,
-          )} ELSE ${extract} END)`
+        if (d.val !== undefined || d.ref?.[0] === '$now') { // REVISIT: d.ref is not used afterwards
+          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${
+            this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
+          } ELSE ${sql} END)`
         }
       }
-      return {
-        name,
-        sql: converter(managed === undefined ? extract : `coalesce(${extract}, ${managed})`, element),
-      }
+
+      let converter = element[_convertInput]
+      if (converter) sql = converter(sql)
+      return { name, sql }
     })
   }
 
@@ -899,6 +893,11 @@ Buffer.prototype.toJSON = function () {
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const has_expands = q => q.SELECT.columns?.some(c => c.SELECT?.expand)
 const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.items)
+const _managed = {
+  '$user.id': '$user.id',
+  '$user': '$user.id',
+  '$now': '$now',
+}
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
