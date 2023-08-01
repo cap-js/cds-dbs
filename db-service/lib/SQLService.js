@@ -91,7 +91,7 @@ class SQLService extends DatabaseService {
    */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     return new this.class.InsertResults(cqn, results)
