@@ -615,15 +615,14 @@ class CQN2SQLRenderer {
     if (!_empty(column)) {
       data.type = 'binary'
       sql = this.UPDATE(
-        cds.ql
-          .UPDATE(into)
+        UPDATE(into)
           .with({ [column]: data })
           .where(where),
       )
     } else {
       data.type = 'json'
       // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-      sql = this.UPSERT(cds.ql.UPSERT([{}]).into(into).forSQL())
+      sql = this.UPSERT(UPSERT([{}]).into(into).forSQL())
       this.values = [data]
     }
 
