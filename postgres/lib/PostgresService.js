@@ -250,7 +250,7 @@ GROUP BY k
     }
 
     column_alias4(x, q) {
-      if (x.val) return String(x.val)
+      if (!x.as && 'val' in x) return String(x.val)
       return super.column_alias4(x, q)
     }
 
