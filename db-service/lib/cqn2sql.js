@@ -273,7 +273,7 @@ class CQN2SQLRenderer {
 
   /**
    * Extracts the column alias from a SELECT column expression
-   * @param {import('./infer/cqn').col} x 
+   * @param {import('./infer/cqn').col} x
    * @returns {string}
    */
   column_alias4(x) {
