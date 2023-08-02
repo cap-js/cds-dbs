@@ -240,7 +240,7 @@ const _getDeepQueries = (diff, target) => {
       queries.push(INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
       queries.push(DELETE.from(target).where(diffEntry))
-    } else if (op === 'update' || (op === undefined && subQueries.length && _hasManagedElements(target))) {
+    } else if (op === 'update' || (op === undefined && _hasManagedElements(target))) {
       // TODO do we need the where here?
       const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)
