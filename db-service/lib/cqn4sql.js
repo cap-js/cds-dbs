@@ -1828,7 +1828,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns true if the given definition shall be localized
    */
   function isLocalized(definition) {
-    return inferred.SELECT?.localized && definition['@cds.localized'] !== false
+    return (
+      inferred.SELECT?.localized &&
+      definition['@cds.localized'] !== false &&
+      !inferred.SELECT.forUpdate &&
+      !inferred.SELECT.forShareLock
+    )
   }
 
   /**

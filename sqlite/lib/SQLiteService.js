@@ -83,6 +83,14 @@ class SQLiteService extends SQLService {
       else return x
     }
 
+    forUpdate() {
+      return ''
+    }
+
+    forShareLock() {
+      return ''
+    }
+
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,

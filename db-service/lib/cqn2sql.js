@@ -188,7 +188,8 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
+      q.SELECT
     if (!expand) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
@@ -204,6 +205,8 @@ class CQN2SQLRenderer {
     if (!_empty((x = orderBy))) sql += ` ORDER BY ${this.orderBy(x, localized)}`
     if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
     else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
+    if (forUpdate) sql += ` ${this.forUpdate(forUpdate)}`
+    else if (forShareLock) sql += ` ${this.forShareLock(forShareLock)}`
     // Expand cannot work without an inferred query
     if (expand) {
       if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
@@ -348,6 +351,32 @@ class CQN2SQLRenderer {
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
     return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
+  }
+
+  /**
+   * Renders an forUpdate clause into generic SQL
+   * @param {import('./infer/cqn').SELECT["SELECT"]["forUpdate"]} update
+   * @returns {string} SQL
+   */
+  forUpdate(update) {
+    const { wait, of } = update
+    let sql = 'FOR UPDATE'
+    if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (typeof wait === 'number') sql += ` WAIT ${wait}`
+    return sql
+  }
+
+  /**
+   * Renders an forShareLock clause into generic SQL
+   * @param {import('./infer/cqn').SELECT["SELECT"]["forShareLock"]} update
+   * @returns {string} SQL
+   */
+  forShareLock(lock) {
+    const { wait, of } = lock
+    let sql = 'FOR SHARE LOCK'
+    if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (typeof wait === 'number') sql += ` WAIT ${wait}`
+    return sql
   }
 
   // INSERT Statements ------------------------------------------------

@@ -221,16 +221,150 @@ describe('SELECT', () => {
     })
   })
 
-  describe('forUpdate', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+  const generalLockTest = lock => {
+    const lock4 = bool => {
+      return lock.clone().where([{ ref: ['bool'] }, '=', { val: bool }])
+    }
+
+    const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
+
+    const setMax = max => {
+      // TODO: Stop leaking resources when changing size
+      let oldMax
+      beforeAll(() => {
+        oldMax = cds.db.pools.undefined._config.max
+        cds.db.pools.undefined._config.max = max
+      })
+
+      afterAll(() => {
+        const pool = cds.db.pools.undefined
+        pool._config.max = oldMax
+        const allObjects = pool._allObjects
+        let toMuch = allObjects.size - oldMax
+        if (toMuch > 0) {
+          for (const obj of allObjects) {
+            if (toMuch-- === 0) break
+            pool._destroy(obj)
+          }
+        }
+      })
+    }
+
+    let oldTimeout
+    beforeAll(() => {
+      oldTimeout = cds.db.pools.undefined._config.acquireTimeoutMillis
+      cds.db.pools.undefined._config.acquireTimeoutMillis = 500
     })
+
+    afterAll(() => {
+      cds.db.pools.undefined._config.acquireTimeoutMillis = oldTimeout
+    })
+
+    describe('pool max = 1', () => {
+      setMax(1)
+      test('two locks on a single table', async () => {
+        let error = false
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await tx2.run(lock4(false))
+
+          await Promise.all([tx2.commit(), tx1.commit()])
+        } catch (e) {
+          error = true
+          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+        }
+        if (!error) throw new Error('Expected deadlock')
+      })
+
+      test('same lock twice on a single table', async () => {
+        let error = false
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
+
+          // Lock false
+          await tx2.run(lock4(false))
+
+          await Promise.all([tx2.commit(), tx1.commit()])
+        } catch (e) {
+          error = true
+          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+        }
+        if (!error) throw new Error('Expected deadlock')
+      })
+    })
+
+    describe('pool max > 1', () => {
+      setMax(2)
+      test('two locks on a single table', async () => {
+        if (isSQLite()) return
+
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await tx2.run(lock4(false))
+
+          await Promise.all([tx2.commit(), tx1.commit()])
+        } catch (e) {
+          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+          throw e
+        }
+      })
+
+      test('same lock twice on a single table', async () =>
+        !isSQLite() &&
+        expect(
+          (async () => {
+            const tx1 = await cds.tx()
+            const tx2 = await cds.tx()
+
+            try {
+              // Lock false
+              await tx1.run(lock4(false))
+
+              // Lock false
+              await tx2.run(lock4(false))
+
+              await Promise.all([tx2.commit(), tx1.commit()])
+            } catch (e) {
+              await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+              throw e
+            }
+          })(),
+        ).rejects)
+    })
+  }
+
+  describe('forUpdate', () => {
+    const lock = SELECT.from('basic.projection.globals').forUpdate({
+      of: ['bool'],
+      wait: 0,
+    })
+
+    generalLockTest(lock)
   })
 
   describe('forShareLock', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    const lock = SELECT.from('basic.projection.globals').forShareLock({
+      of: ['bool'],
+      wait: 0,
     })
+
+    generalLockTest(lock)
   })
 
   describe('search', () => {
