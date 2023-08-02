@@ -11,7 +11,7 @@ const checkSize = async stream => {
   expect(size).toEqual(7891)
 }
 
-const readStream = async (id, entity = cds.entities('test')) => {
+const readStream = async (id, entity = cds.entities('test').Images) => {
   const stream = await STREAM.from(entity, { ID: id }).column('data')
   await checkSize(stream)
 }
