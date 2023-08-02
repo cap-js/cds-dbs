@@ -1,13 +1,11 @@
 const session = require('./session.json')
 const sessionVariableMap = {}
 Object.keys(session).forEach(k => {
-  sessionVariableMap[`'${k}'`] = `'${session[k]}'`
+  sessionVariableMap[k] = `'${session[k]}'`
 })
 
 const StandardFunctions = {
-  session_context: x => {
-    return `current_setting(${sessionVariableMap[x] || x})`
-  },
+  session_context: x => `current_setting(${(typeof x.val === 'string' && sessionVariableMap[x.val]) || x})`,
   countdistinct: x => `count(distinct ${x || '*'})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed

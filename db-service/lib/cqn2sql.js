@@ -414,7 +414,8 @@ class CQN2SQLRenderer {
       .filter(a => a)
       .map(c => c.sql)
 
-    this.entries = [[JSON.stringify(INSERT.entries)]]
+    // Include this.values for placeholders
+    this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
     }) SELECT ${extraction} FROM json_each(?)`)
@@ -745,7 +746,9 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    return this.string(val)
+    if (!this.values) return this.string(val)
+    this.values.push(val)
+    return '?'
   }
 
   static Functions = require('./cql-functions')
