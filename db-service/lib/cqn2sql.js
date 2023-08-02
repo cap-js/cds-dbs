@@ -873,7 +873,7 @@ class CQN2SQLRenderer {
       }
 
       let converter = element[_convertInput]
-      if (converter) sql = converter(sql)
+      if (converter) sql = converter(sql, element)
       return { name, sql }
     })
   }
