@@ -313,8 +313,8 @@ class PreparedStatement {
   /**
    * Executes a prepared SELECT query and returns a stream of the result
    * @abstract
-   * @param {[]|{}} binding_params The values to be used with the prepared statement
-   * @returns {ReadableStream} A stream of the result
+   * @param {unknown|unknown[]} binding_params
+   * @returns {ReadableStream<string|Buffer>} A stream of the result
    */
   async stream(binding_params) {
     binding_params

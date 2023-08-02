@@ -417,6 +417,7 @@ class CQN2SQLRenderer {
       .map(c => c.sql)
 
     // Include this.values for placeholders
+    /** @type {unknown[][]} */
     this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
