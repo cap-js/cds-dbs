@@ -100,7 +100,7 @@ class DatabaseService extends cds.Service {
           return _set(this, '$user.locale', ctx.locale || cds.env.i18n.default_language)
         },
         // REVISIT: should be decided in spec meeting for definitive name
-        get '$now'() {
+        get $now() {
           return _set(this, '$now', (ctx.timestamp || new Date()).toISOString())
         },
         get '$valid.from'() {
