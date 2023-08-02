@@ -11,9 +11,8 @@ const checkSize = async stream => {
   expect(size).toEqual(7891)
 }
 
-const readStream = async id => {
-  const { Images } = cds.entities('test')
-  const stream = await STREAM.from(Images, { ID: id }).column('data')
+const readStream = async (id, entity = cds.entities('test')) => {
+  const stream = await STREAM.from(entity, { ID: id }).column('data')
   await checkSize(stream)
 }
 
@@ -222,6 +221,15 @@ describe('STREAM', () => {
         const changes = await STREAM.into(Images, 1).column('data').data(stream)
         expect(changes).toEqual(1)
         await readStream(1)
+      })
+
+      test('WRITE stream property on view', async () => {
+        const { ImagesView } = cds.entities('test')
+        const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+
+        const changes = await STREAM.into(ImagesView, 1).column('renamedData').data(stream)
+        expect(changes).toEqual(1)
+        await readStream(1, ImagesView)
       })
 
       test('WRITE dataset from json file stream', async () => {
