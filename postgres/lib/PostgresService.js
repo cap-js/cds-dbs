@@ -268,19 +268,24 @@ GROUP BY k
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
-        let col = `${this.string(name)},${this.output_converter4(x.element, queryAlias + '.' + this.quote(name))}`
+        const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
+        let col = `${outputConverter} as ${this.doubleQuote(name)}`
 
         if (x.SELECT?.count) {
           // Return both the sub select and the count for @odata.count
           const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          col += `, '${name}@odata.count',${this.expr(qc)}`
+          col += `,${this.expr(qc)} as ${this.doubleQuote(`${name}@odata.count`)}`
         }
         return col
       })
-      let obj = `json_build_object(${cols})`
+      let obj = `row_to_json(${queryAlias}.*)`
       return `SELECT ${
         SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (${sql}) as ${queryAlias}`
+      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+    }
+
+    doubleQuote(name) {
+      return `"${name.replace(/"/g, '""')}"`
     }
 
     INSERT(q, isUpsert = false) {
