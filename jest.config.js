@@ -17,6 +17,7 @@ const enable = process.argv
   .filter(a => a)
 
 module.exports = {
+  transform: {},
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
   testPathIgnorePatterns: [
     // Exclude compliance tests without database context
