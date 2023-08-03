@@ -253,14 +253,7 @@ GROUP BY k
     SELECT_columns({ SELECT }) {
       // REVISIT: Genres cqn has duplicate ID column
       if (!SELECT.columns) return '*'
-      const unique = {}
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
+      return SELECT.columns.map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
     }
 
     SELECT_expand({ SELECT }, sql) {
