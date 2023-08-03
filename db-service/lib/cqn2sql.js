@@ -14,7 +14,6 @@ const DEBUG = (() => {
 })()
 
 class CQN2SQLRenderer {
-
   constructor() {
     // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well -> ???
     // /** @type {CQN2SQLRenderer|unknown} */ -> that killed IntelliSense

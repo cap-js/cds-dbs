@@ -18,7 +18,6 @@ const cqn4sql = require('./cqn4sql')
  */
 
 class SQLService extends DatabaseService {
-
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
@@ -243,9 +242,9 @@ class SQLService extends DatabaseService {
         resolvedCqn = resolvedCqn || cqn
         resolvedCqn.target = resolvedCqn?.[cmd]._transitions[0].target || cqn.target
       }
-      return (new this.class.CQN2SQL).render(resolvedCqn, values)
+      return new this.class.CQN2SQL().render(resolvedCqn, values)
     }
-    return (new this.class.CQN2SQL).render(cqn, values)
+    return new this.class.CQN2SQL().render(cqn, values)
   }
 
   /**
