@@ -430,11 +430,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
-      const getName = col => col?.as || col?.ref?.at?.(-1)
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
-        const name = getName(flatColumn)
-        if (!transformedColumns.some(inserted => getName(inserted) === name)) transformedColumns.push(flatColumn)
+        const { as } = flatColumn
+        if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
       })
     }
 
