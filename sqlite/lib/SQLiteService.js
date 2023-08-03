@@ -117,12 +117,16 @@ class SQLiteService extends SQLService {
       // to override the DateTime converter above
       Timestamp: undefined,
 
-      // REVISIT: Why do we need to quote these and then unquote them again?
-      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      // Quote Decimal values to lose the least amount of precision
+      // quote turns 9999999999999.999 into  9999999999999.998
+      // || '' turns 9999999999999.999 into 10000000000000.0
+      Decimal: expr => `nullif(quote(${expr}),'NULL')`,
+      // Don't read Float and Double as string as they should be safe numbers
+      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      // Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
 
-      // REVISIT: Shouldn't int64 be passed and stored as strings anyways? -> the type should be int46_text
+      // int64 is stored as native int64 for best comparison
+      // Reading int64 as string to not loose precision
       Int64: expr => `CAST(${expr} as TEXT)`,
     }
 
