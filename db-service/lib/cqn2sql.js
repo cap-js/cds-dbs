@@ -202,8 +202,8 @@ class CQN2SQLRenderer {
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
     if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
+    if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
-    else if (one) sql += ` LIMIT 1`
     // Expand cannot work without an inferred query
     if (expand) {
       if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`

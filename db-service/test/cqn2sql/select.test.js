@@ -251,8 +251,10 @@ describe('cqn2sql', () => {
     })
 
     test('one with additional limit with offset', () => {
+      // Original DB layer expectation is to mix limit and one
+      // One has priority over limit.rows, but limit.offset is still applied
       const { sql } = cqn2sql(cqn.oneWithLimit)
-      expect(sql).toMatchSnapshot()
+      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT 1 OFFSET 5')
     })
   })
 
