@@ -14,16 +14,8 @@ const DEBUG = (() => {
 })()
 
 class CQN2SQLRenderer {
-  /**
-   * Creates a new CQN2SQL instance for processing a query
-   * @constructor
-   * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
-   */
-  constructor(context) {
-    /**
-     * @type {import('@sap/cds/apis/services').ContextProperties}
-     */
-    this.context = cds.context || context
+
+  constructor() {
     // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well -> ???
     // /** @type {CQN2SQLRenderer|unknown} */ -> that killed IntelliSense
     this.class = new.target // for IntelliSense
@@ -883,7 +875,7 @@ class CQN2SQLRenderer {
    * @param {string} defaultValue
    * @returns {string}
    */
-  defaultValue(defaultValue = this.context.timestamp.toISOString()) {
+  defaultValue(defaultValue = cds.context.timestamp.toISOString()) {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
 }
