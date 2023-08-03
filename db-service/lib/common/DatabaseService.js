@@ -99,6 +99,10 @@ class DatabaseService extends cds.Service {
         get '$user.locale'() {
           return _set(this, '$user.locale', ctx.locale || cds.env.i18n.default_language)
         },
+        // REVISIT: should be decided in spec meeting for definitive name
+        get $now() {
+          return _set(this, '$now', (ctx.timestamp || new Date()).toISOString())
+        },
         get '$valid.from'() {
           return _set(this, '$valid.from', ctx._?.['VALID-FROM'] ?? ctx._?.['VALID-AT'] ?? '1970-01-01T00:00:00.000Z')
         },
