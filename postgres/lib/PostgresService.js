@@ -252,9 +252,9 @@ GROUP BY k
     // REVISIT: pg requires alias for {val}
     SELECT_columns({ SELECT }) {
       if (!SELECT.columns) return '*'
-
+      
       // Handle normal SELECT behavior
-      if (!SELECT.expand) {
+      if(!SELECT.expand) {
         // REVISIT: Genres cqn has duplicate ID column
         const unique = {}
         return SELECT.columns
