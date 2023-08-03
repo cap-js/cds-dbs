@@ -247,23 +247,6 @@ GROUP BY k
       return super.column_alias4(x, q)
     }
 
-    SELECT_columns(q) {
-      if (!q.SELECT.columns) return '*'
-      // REVISIT: sflight tests fail without deduplication of columns
-      // The specific column which is defined twice is "DraftAdministrativeData_DraftUUID"
-      const unique = {}
-      // REVISIT: possibly always quote all column aliases
-      // REVISIT: adjust all locations that reference column names (e.g. orderBy)
-      // REVISIT: exclude table alias when selecting from single source
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
-    }
-
     SELECT_expand({ SELECT }, sql) {
       if (!SELECT.columns) return sql
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
