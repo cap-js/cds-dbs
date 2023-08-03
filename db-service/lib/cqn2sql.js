@@ -875,6 +875,7 @@ class CQN2SQLRenderer {
    * @param {string} defaultValue
    * @returns {string}
    */
+  // REVISIT: This is a strange method, also overridden inconsistently in postgres
   defaultValue(defaultValue = cds.context.timestamp.toISOString()) {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
