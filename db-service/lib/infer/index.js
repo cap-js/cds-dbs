@@ -18,9 +18,9 @@ const cdsTypes = cds.linked({
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 /**
- * @param {CQN|CQL} originalQuery
- * @param {CSN} [model]
- * @returns {InferredCQN} = q with .target and .elements
+ * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
+ * @param {import('@sap/cds/apis/csn').CSN} [model]
+ * @returns {import('./cqn').Query} = q with .target and .elements
  */
 function infer(originalQuery, model = cds.context?.model || cds.model) {
   if (!model) cds.error('Please specify a model')
@@ -136,11 +136,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * next 'ref' step should be looked up.
    *
    *
-   * @param {Object} arg - The argument object that will be augmented with additional properties.
+   * @param {object} arg - The argument object that will be augmented with additional properties.
    *                        It must contain a 'ref' property, which is an array representing the steps to be processed.
    *                        Optionally, it can also contain an 'xpr' property, which is also processed recursively.
    *
-   * @param {Object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
+   * @param {object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
    *                             resolved. It's needed for infix filter / expand columns. It must contain a 'definition'
    *                             property, which is an object representing the base environment.
    *
@@ -234,7 +234,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * Each entry in the `$combinedElements` dictionary maps from the element name
    * to an array of objects containing the index and table alias where the element can be found.
    *
-   * @returns {Object} The `$combinedElements` dictionary, which maps element names to an array of objects
+   * @returns {object} The `$combinedElements` dictionary, which maps element names to an array of objects
    *                   containing the index and table alias where the element can be found.
    */
   function inferCombinedElements() {
@@ -271,9 +271,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * Also walks over other `ref`s in the query, validates them, and attaches `$refLinks`.
    * This includes handling `where`, infix filters within column `refs`, or other `csn` paths.
    *
-   * @param {Object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
+   * @param {object} $combinedElements The `$combinedElements` dictionary of the query, which maps element names
    *                                   to an array of objects containing the index and table alias where the element can be found.
-   * @returns {Object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
+   * @returns {object} The inferred `elements` dictionary of the query, which maps element names to their corresponding definitions.
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
@@ -451,7 +451,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      */
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
-      const { inExists, inExpr, inNestedProjection, inCalcElement } = context || {}
+      const { inExists, inExpr, inNestedProjection, inCalcElement, baseColumn } = context || {}
       if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
@@ -577,7 +577,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         if (step.where) {
-          const danglingFilter = !(column.ref[i + 1] || column.expand || inExists)
+          const danglingFilter = !(column.ref[i + 1] || column.expand || column.inline || inExists)
           if (!column.$refLinks[i].definition.target || danglingFilter)
             throw new Error(/A filter can only be provided when navigating along associations/)
           if (!column.expand) Object.defineProperty(column, 'isJoinRelevant', { value: true })
@@ -657,24 +657,30 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const leafArt = column.$refLinks[column.$refLinks.length - 1].definition
       const virtual = (leafArt.virtual || !isPersisted) && !inExpr
       // check if we need to merge the column `ref` into the join tree of the query
-      if (!inExists && !virtual && !inCalcElement && isColumnJoinRelevant(column, firstStepIsSelf)) {
-        if (originalQuery.UPDATE)
-          throw cds.error(
-            'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
-          )
-        Object.defineProperty(column, 'isJoinRelevant', { value: true })
-        joinTree.mergeColumn(column, $baseLink)
+      if (!inExists && !virtual && !inCalcElement) {
+        // for a ref inside an `inline` we need to consider the column `ref` which has the `inline` prop
+        const colWithBase = baseColumn
+          ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
+          : column
+        if (isColumnJoinRelevant(colWithBase, $baseLink)) {
+          if (originalQuery.UPDATE)
+            throw cds.error(
+              'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
+            )
+          Object.defineProperty(column, 'isJoinRelevant', { value: true })
+          joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
+        }
       }
       if (leafArt.value && !leafArt.value.stored) {
-        resolveCalculatedElement(leafArt, column)
+        resolveCalculatedElement(column, $baseLink, baseColumn)
       }
 
       /**
        * Resolves and processes the inline attribute of a column in a database query.
        *
-       * @param {Object} col - The column object with properties: `inline` and `$refLinks`.
+       * @param {object} col - The column object with properties: `inline` and `$refLinks`.
        * @param {string} [namePrefix=col.as || col.flatName] - Prefix for naming new columns. Defaults to `col.as` or `col.flatName`.
-       * @returns {Object} - An object with resolved and processed inline column definitions.
+       * @returns {object} - An object with resolved and processed inline column definitions.
        *
        * Procedure:
        * 1. Iterate through `inline` array. For each `inlineCol`:
@@ -689,7 +695,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const $leafLink = $refLinks[$refLinks.length - 1]
         let elements = {}
         inline.forEach(inlineCol => {
-          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true })
+          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true, baseColumn: col })
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
@@ -728,8 +734,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       /**
        * Resolves a query column which has an `expand` property.
        *
-       * @param {Object} col - The column object with properties: `expand` and `$refLinks`.
-       * @returns {Object} - A `cds.struct` object with expanded column definitions.
+       * @param {object} col - The column object with properties: `expand` and `$refLinks`.
+       * @returns {object} - A `cds.struct` object with expanded column definitions.
        *
        * Procedure:
        * - if `$leafLink` is an association, constructs an `expandSubquery` and infers a new query structure.
@@ -795,17 +801,27 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
-    function resolveCalculatedElement(calcElement) {
+    function resolveCalculatedElement(column, baseLink, baseColumn) {
+      const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
-      const { ref, val, xpr, func } = calcElement.value
+      const { ref, xpr, func } = calcElement.value
       if (ref || xpr) {
-        attachRefLinksToArg(calcElement.value, { definition: calcElement.parent, target: calcElement.parent }, true)
+        baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
+        attachRefLinksToArg(calcElement.value, baseLink, true)
+        const basePath = { $refLinks: [], ref: [] }
+        if (baseColumn) {
+          basePath.$refLinks.push(...baseColumn.$refLinks)
+          basePath.ref.push(...baseColumn.ref)
+        }
         // column is now fully linked, now we need to find out if we need to merge it into the join tree
         // for that, we calculate all paths from a calc element and merge them into the join tree
-        mergePathsIntoJoinTree(calcElement.value)
+        mergePathsIntoJoinTree(calcElement.value, basePath)
       }
-      if (func) calcElement.value.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
+      if (func)
+        calcElement.value.args?.forEach(arg =>
+          inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent }),
+        ) // {func}.args are optional
       function mergePathsIntoJoinTree(e, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
         if (e.ref) {
@@ -841,8 +857,14 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         function mergePathIfNecessary(p, step) {
           const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
           if (calcElementIsJoinRelevant) {
-            if (!calcElement.value.isColumnJoinRelevant) Object.defineProperty(step, 'isJoinRelevant', { value: true })
-            joinTree.mergeColumn(p)
+            if (!calcElement.value.isColumnJoinRelevant)
+              Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
+            joinTree.mergeColumn(p, originalQuery.outerQueries)
+          } else {
+            // we need to explicitly set the value to false in this case,
+            // e.g. `SELECT from booksCalc.Books { ID, author.{name }, author {name } }`
+            // --> for the inline column, the name is join relevant, while for the expand, it is not
+            Object.defineProperty(step, 'isJoinRelevant', { value: false, writable: true })
           }
         }
       }
@@ -858,7 +880,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * @param {object} column the column with the `ref` to check for join relevance
      * @returns {boolean} true if the column ref needs to be merged into a join tree
      */
-    function isColumnJoinRelevant(column) {
+    function isColumnJoinRelevant(column, baseLink) {
       let fkAccess = false
       let assoc = null
       for (let i = 0; i < column.ref.length; i++) {

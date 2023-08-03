@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client } = require('pg')
 const cds = require('@sap/cds/lib')
 const crypto = require('crypto')
+const sessionVariableMap = require('./session.json')
 
 class PostgresService extends SQLService {
   init() {
@@ -61,18 +62,10 @@ class PostgresService extends SQLService {
   }
 
   async set(variables) {
-    // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
-    const nameMap = {
-      '$user.id': 'cap.applicationuser',
-      '$user.locale': 'cap.locale',
-      '$valid.from': 'cap.valid_from',
-      '$valid.to': 'cap.valid_to',
-    }
-
     const env = {}
     for (let name in variables) {
-      env[nameMap[name]] = variables[name]
+      env[sessionVariableMap[name] || name] = variables[name]
     }
 
     return Promise.all([
@@ -83,20 +76,53 @@ class PostgresService extends SQLService {
         ? [this.exec(`SET search_path TO "${this.options?.credentials?.schema}";`)]
         : []),
 
-      ...(!this._initalCollateCheck
-        ? [
-            (await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en_US' OR collname ='en-x-icu';`))
-              .all([])
-              .then(resp => {
-                this._initalCollateCheck = true
-                if (resp.find(row => row.collname === 'en_US')) return
-                if (resp.find(row => row.collname === 'en-x-icu'))
-                  this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
-                // REVISIT throw error when there is no collated libary found
-              }),
-          ]
-        : []),
+      ...(!this._initalCollateCheck ? [this._checkCollation()] : []),
     ])
+  }
+
+  async _checkCollation() {
+    this._initalCollateCheck = true
+
+    const icuPrep = await this.prepare(`SELECT collname FROM pg_collation WHERE collname = 'en-x-icu';`)
+    const icuResp = await icuPrep.all([])
+
+    if (icuResp.length > 0) {
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByICU
+      return
+    }
+
+    /**
+     * Selects the first two characters of the collation name as key
+     * Select the smallest collation name as value (could also be max)
+     * Filter the collations by the provider c (libc)
+     * Filters the collation names by /.._../ Where '>' points at the '_' that is an actual '_'
+     * The group by is done by the key column to make sure that only one collation per key is returned
+     */
+    const cSQL = `
+SELECT 
+  SUBSTRING(collname, 1, 2) AS K,
+  MIN(collname) AS V 
+FROM 
+  pg_collation 
+WHERE 
+  collprovider = 'c' AND 
+  collname LIKE '__>___' ESCAPE '>' 
+GROUP BY k
+`
+
+    const cPrep = await this.prepare(cSQL)
+    const cResp = await cPrep.all([])
+    if (cResp.length > 0) {
+      const collationMap = (this.class.CQN2SQL.prototype.collationMap = cResp.reduce((ret, row) => {
+        ret[row.k] = row.v
+        return ret
+      }, {}))
+      collationMap.default = collationMap.en || collationMap[Object.keys(collationMap)[0]]
+      this.class.CQN2SQL.prototype.orderBy = this.class.CQN2SQL.prototype.orderByLIBC
+      return
+    }
+
+    // REVISIT: print a warning when no collation is found
   }
 
   prepare(sql) {
@@ -182,26 +208,29 @@ class PostgresService extends SQLService {
   }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
-    orderBy(orderBy, localized) {
+    _orderBy(orderBy, localized, locale) {
       return orderBy.map(
         localized
           ? c =>
               this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale}"` : '') +
+              (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
               (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
 
+    orderBy(orderBy) {
+      return this._orderBy(orderBy)
+    }
+
     orderByICU(orderBy, localized) {
-      return orderBy.map(
-        localized
-          ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${this.context.locale.replace('_', '-')}-x-icu"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      return this._orderBy(orderBy, localized, locale)
+    }
+
+    orderByLIBC(orderBy, localized) {
+      const locale = this.collationMap[this.context.locale] || this.collationMap.default
+      return this._orderBy(orderBy, localized && locale, locale)
     }
 
     from(from) {
@@ -217,14 +246,7 @@ class PostgresService extends SQLService {
     SELECT_columns({ SELECT }) {
       // REVISIT: Genres cqn has duplicate ID column
       if (!SELECT.columns) return '*'
-      const unique = {}
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
+      return SELECT.columns.map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
     }
 
     SELECT_expand({ SELECT }, sql) {
@@ -232,19 +254,25 @@ class PostgresService extends SQLService {
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
-        let col = `${this.string(name)},${this.output_converter4(x.element, queryAlias + '.' + this.quote(name))}`
+        const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
+        let col = `${outputConverter} as ${this.doubleQuote(name)}`
 
         if (x.SELECT?.count) {
           // Return both the sub select and the count for @odata.count
           const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          col += `, '${name}@odata.count',${this.expr(qc)}`
+          col += `,${this.expr(qc)} as ${this.doubleQuote(`${name}@odata.count`)}`
         }
         return col
       })
-      let obj = `json_build_object(${cols})`
+      // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
+      let obj = `row_to_json(${queryAlias}.*)`
       return `SELECT ${
         SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (${sql}) as ${queryAlias}`
+      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+    }
+
+    doubleQuote(name) {
+      return `"${name.replace(/"/g, '""')}"`
     }
 
     INSERT(q, isUpsert = false) {

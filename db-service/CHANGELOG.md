@@ -4,12 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.1.0 - tbd
+## Version 1.1.0 - 2023-08-01
 
 ### Fixed
 
 - `UPDATE` with path expressions do not end up in a dump anymore. Instead, a proper error message is emitted.
+- `UPDATE` is only noop if it does not include an element annotated with `@cds.on.update`.
+- `SELECT` with `'*'` that is not expanded creates now a clearer error when the column name is required.
 - `SELECT` with plain SQL statements will return correct result regardless of casing.
+- View resolving for streams.
 
 ## Version 1.0.1 - 2023-07-03
 

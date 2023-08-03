@@ -344,7 +344,6 @@ describe('Unfold expands on associations to special subselects', () => {
       },
     }
 
-    const res = cqn4sql(q)
     const expected = CQL`SELECT from bookshop.Books as Books {
       (
         SELECT from bookshop.Authors as author {
@@ -363,6 +362,8 @@ describe('Unfold expands on associations to special subselects', () => {
         offset 1
       ) as author
     }`
+
+    const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
