@@ -1,0 +1,7 @@
+{
+  "$user.id": "cap.applicationuser",
+  "$user.locale": "cap.locale",
+  "$now": "cap.now",
+  "$valid.from": "cap.valid_from",
+  "$valid.to": "cap.valid_to"
+}
