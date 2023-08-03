@@ -254,6 +254,9 @@ GROUP BY k
       // REVISIT: Genres cqn has duplicate ID column
       if (!SELECT.columns) return '*'
       const unique = {}
+      // REVISIT: possibly always quote all column aliases
+      // REVISIT: adjust all locations that reference column names (e.g. orderBy)
+      // REVISIT: exclude table alias when selecting from single source
       return SELECT.columns
         .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
         .filter(x => {
@@ -278,6 +281,7 @@ GROUP BY k
         }
         return col
       })
+      // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
       let obj = `row_to_json(${queryAlias}.*)`
       return `SELECT ${
         SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
