@@ -292,7 +292,8 @@ class CQN2SQLRenderer {
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) return _aliased(this.quote(this.name(ref[0])))
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
-    if (from.join) return `${this.from(from.args.left)} ${from.join} JOIN ${this.from(from.args.right)} ON ${this.where(from.on)}`
+    if (from.join)
+      return `${this.from(from.args.left)} ${from.join} JOIN ${this.from(from.args.right)} ON ${this.where(from.on)}`
   }
 
   /**
