@@ -67,6 +67,11 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('Expand mixed compositions', async () => {
+    const res = await GET('/admin/E?$expand=d,f', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
   test('Search book', async () => {
     const res = await GET('/admin/Books?$search=cat', admin)
     expect(res.status).to.be.eq(200)
