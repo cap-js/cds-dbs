@@ -251,24 +251,25 @@ GROUP BY k
 
     // REVISIT: pg requires alias for {val}
     SELECT_columns({ SELECT }) {
-      // REVISIT: Genres cqn has duplicate ID column
       if (!SELECT.columns) return '*'
-      const unique = {}
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
-    }
+      
+      // Handle normal SELECT behavior
+      if(!SELECT.expand) {
+        // REVISIT: Genres cqn has duplicate ID column
+        const unique = {}
+        return SELECT.columns
+          .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
+          .filter(x => {
+            if (unique[x]) return false
+            unique[x] = true
+            return true
+          })
+      }
 
-    SELECT_expand({ SELECT }, sql) {
-      if (!SELECT.columns) return sql
-      const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
-      const cols = SELECT.columns.map(x => {
+      // Handle expand SELECT behavior
+      return SELECT.columns.map(x => {
         const name = this.column_name(x)
-        const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
+        const outputConverter = this.output_converter4(x.element, this.column_expr(x))
         let col = `${outputConverter} as ${this.doubleQuote(name)}`
 
         if (x.SELECT?.count) {
@@ -278,10 +279,15 @@ GROUP BY k
         }
         return col
       })
+    }
+
+    SELECT_expand({ SELECT }, sql) {
+      if (!SELECT.columns) return sql
+      const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       let obj = `row_to_json(${queryAlias}.*)`
       return `SELECT ${
         SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+      } as _json_ FROM (${sql}) as ${queryAlias}`
     }
 
     doubleQuote(name) {
