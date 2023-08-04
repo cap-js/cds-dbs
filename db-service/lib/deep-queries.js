@@ -199,6 +199,7 @@ const _hasManagedElements = target => {
 /**
  * @param {unknown[]} diff
  * @param {import('@sap/cds/apis/csn').Definition} target
+ * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
 const _getDeepQueries = (diff, target, root = false) => {
