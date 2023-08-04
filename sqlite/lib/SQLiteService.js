@@ -64,8 +64,10 @@ class SQLiteService extends SQLService {
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
       } else if (typeof val === 'object' && val && val.pipe) {
-        if (val.type === 'binary') val.setEncoding('base64')
+        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
+        // if (val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
+        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
       }
     }
     return stmt.run(binding_params)
@@ -94,7 +96,7 @@ class SQLiteService extends SQLService {
   async _stream(stmt, binding_params, one) {
     const columns = stmt.columns()
     // Stream single blob column
-    if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
+    if (columns.length === 1 && columns[0].name !== '_json_') {
       // Setting result set to raw to keep better-sqlite from doing additional processing
       stmt.raw(true)
       const rows = stmt.all(binding_params)
@@ -181,15 +183,18 @@ class SQLiteService extends SQLService {
       // Timestamps are returned with ms, as written by InputConverters.
       // And as cds.builtin.classes.Timestamp inherits from DateTime we need
       // to override the DateTime converter above
-      Timestamp: undefined,
+      Timestamp: e => `ISO(${e})`,
+      // REVISIT: generic-virtual.test.js expects now to be returned as ISO string
+      // test 'field with current timestamp is correctly formatted' fails otherwise
 
       // Quote Decimal values to lose the least amount of precision
       // quote turns 9999999999999.999 into  9999999999999.998
       // || '' turns 9999999999999.999 into 10000000000000.0
-      Decimal: expr => `nullif(quote(${expr}),'NULL')`,
+      // REVISIT: tests in cds still expect Decimal to be returned as numbers
+      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       // Don't read Float and Double as string as they should be safe numbers
-      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      // Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
 
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision

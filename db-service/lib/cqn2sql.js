@@ -239,7 +239,8 @@ class CQN2SQLRenderer {
       : SELECT.columns.map(x => {
           const name = this.column_name(x)
           // REVISIT: can be removed when alias handling is resolved properly
-          const d = elements[name] || elements[name.substring(1, name.length - 1)]
+          // REVISIT: for some reason not all elements are available in the elements list
+          const d = x.element || elements[name]
           let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
 
           if (x.SELECT?.count) {
@@ -547,12 +548,12 @@ class CQN2SQLRenderer {
     if (data)
       for (let c in data)
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.val({ val: data[c] }) })
+          columns.push({ name: c, sql: this.val({ val: data[c] }) + '' })
         }
     if (_with)
       for (let c in _with)
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.expr(_with[c]) })
+          columns.push({ name: c, sql: this.expr(_with[c]) + '' })
         }
 
     columns = columns.map(c => {
@@ -637,9 +638,11 @@ class CQN2SQLRenderer {
 
     const select = cds.ql
       .SELECT(column ? [column] : columns)
-      .from(from)
       .where(where)
       .limit(column ? 1 : undefined)
+
+    // SELECT.from() does not accept joins
+    select.SELECT.from = from
 
     if (column) {
       this.one = true
@@ -827,7 +830,8 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
+    // Column names like "Order" clash with "ORDER" keyword so toUpperCase is required
+    if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
     return s
   }
 
