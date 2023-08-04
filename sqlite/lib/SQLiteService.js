@@ -192,8 +192,10 @@ class SQLiteService extends SQLService {
       // || '' turns 9999999999999.999 into 10000000000000.0
       // REVISIT: tests in cds still expect Decimal to be returned as numbers
       Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      // Don't read Float and Double as string as they should be safe numbers
-      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      // Don't read Float as string as it should be a safe number
+      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // Without quote 1.7976931348623157e308 is returned as Infinity
       Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
 
       // int64 is stored as native int64 for best comparison
