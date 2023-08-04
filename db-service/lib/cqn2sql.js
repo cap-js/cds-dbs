@@ -2,6 +2,8 @@ const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
+const { Readable } = require('stream')
+
 const DEBUG = (() => {
   let DEBUG = cds.debug('sql-json')
   if (DEBUG) return DEBUG
@@ -744,7 +746,7 @@ class CQN2SQLRenderer {
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof require('stream').Readable) {
+        if (val instanceof Readable) {
           this.values.push(val)
           return '?'
         }
