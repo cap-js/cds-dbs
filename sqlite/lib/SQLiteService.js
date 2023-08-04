@@ -197,7 +197,7 @@ class SQLiteService extends SQLService {
       // tests/_runtime/cds-services/__tests__/integration/with-ql/local-service/assert.test.js
       // tests/_runtime/rest/__tests__/update.test.js
       // tests/_runtime/rest/__tests__/create.test.js
-      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Decimal: expr => `nullif(quote(${expr}),'NULL')`,
       // Don't read Float as string as it should be a safe number
       // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
 
