@@ -189,7 +189,7 @@ const getDeepQueries = (query, dbData, target) => {
     diff = [diff]
   }
 
-  return _getDeepQueries(diff, target)
+  return _getDeepQueries(diff, target, true)
 }
 
 const _hasManagedElements = target => {
@@ -201,7 +201,7 @@ const _hasManagedElements = target => {
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepQueries = (diff, target) => {
+const _getDeepQueries = (diff, target, root = false) => {
   const queries = []
 
   for (const diffEntry of diff) {
@@ -240,7 +240,7 @@ const _getDeepQueries = (diff, target) => {
       queries.push(INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
       queries.push(DELETE.from(target).where(diffEntry))
-    } else if (op === 'update' || (op === undefined && _hasManagedElements(target))) {
+    } else if (op === 'update' || (op === undefined && _hasManagedElements(target) && (root || subQueries.length))) {
       // TODO do we need the where here?
       const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)
