@@ -240,7 +240,7 @@ class CQN2SQLRenderer {
           const name = this.column_name(x)
           // REVISIT: can be removed when alias handling is resolved properly
           // REVISIT: for some reason not all elements are available in the elements list
-          const d = x.element || elements[name]
+          const d = x.element
           let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
 
           if (x.SELECT?.count) {

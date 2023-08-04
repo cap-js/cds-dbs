@@ -394,6 +394,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
+        setElementOnColumns(expandedSubqueryColumn, col.element)
         res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
         const expandCols = nestedProjectionOnStructure(col, 'expand')
