@@ -82,7 +82,7 @@ class SQLService extends DatabaseService {
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   /**
@@ -129,21 +129,15 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql(req.query)
+    const { one, sql, values } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      const stream = entries[0]
-      stream.on('error', () => stream.removeAllListeners('error'))
-      values.unshift(stream)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
     // reading stream
     const ps = await this.prepare(sql)
-    let result = await ps.all(values)
-    if (result.length === 0) return
-
-    return Object.values(result[0])[0]
+    return ps.stream(values, one)
   }
 
   /**
@@ -171,7 +165,7 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      DEBUG?.(query)
+      DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
       if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
@@ -316,6 +310,15 @@ class PreparedStatement {
     binding_params
     return [{}]
   }
+  /**
+   * Executes a prepared SELECT query and returns a stream of the result
+   * @abstract
+   * @param {unknown|unknown[]} binding_params
+   * @returns {ReadableStream<string|Buffer>} A stream of the result
+   */
+  async stream(binding_params) {
+    binding_params
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
@@ -359,6 +362,7 @@ cds.extend(cds.ql.Query).with(
       return this.flat(cqn)
     }
     toSQL() {
+      if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
       let { sql, values } = (cds.db || sqls).cqn2sql(this)
       return { sql, values } // skipping .cqn property
     }
