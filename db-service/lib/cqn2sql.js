@@ -191,21 +191,19 @@ class CQN2SQLRenderer {
    */
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
-    if (expand == null) expand = q.SELECT.expand = has_expands(q) || has_arrays(q)
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
-    let x,
-      sql = `SELECT`
+    let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
-    if (!_empty((x = columns))) sql += ` ${x}`
-    if (!_empty((x = from))) sql += ` FROM ${this.from(x)}`
-    if (!_empty((x = where))) sql += ` WHERE ${this.where(x)}`
-    if (!_empty((x = groupBy))) sql += ` GROUP BY ${this.groupBy(x)}`
-    if (!_empty((x = having))) sql += ` HAVING ${this.having(x)}`
-    if (!_empty((x = orderBy))) sql += ` ORDER BY ${this.orderBy(x, localized)}`
-    if (one) sql += ` LIMIT ${this.limit({ rows: { val: 1 } })}`
-    else if ((x = limit)) sql += ` LIMIT ${this.limit(x)}`
+    if (!_empty(columns)) sql += ` ${columns}`
+    if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
+    if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
+    if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
+    if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
+    if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
+    if (limit) sql += ` LIMIT ${this.limit(limit)}`
     // Expand cannot work without an inferred query
     if (expand) {
       // REVISIT: Why don't we handle that as an error in SELECT_expand?
@@ -894,8 +892,6 @@ Buffer.prototype.toJSON = function () {
 }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
-const has_expands = q => q.SELECT.columns?.some(c => c.SELECT?.expand)
-const has_arrays = q => q.elements && Object.values(q.elements).some(e => e.items)
 const _managed = {
   '$user.id': '$user.id',
   $user: '$user.id',

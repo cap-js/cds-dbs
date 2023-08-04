@@ -344,7 +344,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
     }
     // subqueries are processed in the end
-    for (let i = 0; i <= transformedColumns.length; i++) {
+    for (let i = 0; i < transformedColumns.length; i++) {
       const c = transformedColumns[i]
       if (typeof c === 'function') {
         const res = c() || [] // target of expand / subquery could also be skipped -> no result
@@ -359,6 +359,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else {
             transformedColumns.splice(replaceWith, 1, res)
             transformedColumns.splice(i, 1)
+            // When removing an element, the next element moves to the current index
+            i--
           }
         }
       }
