@@ -192,11 +192,6 @@ class SQLiteService extends SQLService {
       // Quote Decimal values to lose the least amount of precision
       // quote turns 9999999999999.999 into  9999999999999.998
       // || '' turns 9999999999999.999 into 10000000000000.0
-      // REVISIT: tests in cds still expect Decimal to be returned as numbers
-      // tests/_runtime/odata/__tests__/integration/decimals-default.test.js
-      // tests/_runtime/cds-services/__tests__/integration/with-ql/local-service/assert.test.js
-      // tests/_runtime/rest/__tests__/update.test.js
-      // tests/_runtime/rest/__tests__/create.test.js
       Decimal: expr => `nullif(quote(${expr}),'NULL')`,
       // Don't read Float as string as it should be a safe number
       // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
