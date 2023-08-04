@@ -100,7 +100,9 @@ class SQLiteService extends SQLService {
       // Setting result set to raw to keep better-sqlite from doing additional processing
       stmt.raw(true)
       const rows = stmt.all(binding_params)
-      if (rows.length === 0 || rows[0][0] === null) return null
+      // REVISIT: return undefined when no rows are found
+      if (rows.length === 0) return undefined
+      if (rows[0][0] === null) return null
       // Buffer.from only applies encoding when the input is a string
       let raw = Buffer.from(rows[0][0].toString(), 'base64')
       stmt.raw(false)
@@ -191,6 +193,10 @@ class SQLiteService extends SQLService {
       // quote turns 9999999999999.999 into  9999999999999.998
       // || '' turns 9999999999999.999 into 10000000000000.0
       // REVISIT: tests in cds still expect Decimal to be returned as numbers
+      // tests/_runtime/odata/__tests__/integration/decimals-default.test.js
+      // tests/_runtime/cds-services/__tests__/integration/with-ql/local-service/assert.test.js
+      // tests/_runtime/rest/__tests__/update.test.js
+      // tests/_runtime/rest/__tests__/create.test.js
       Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`,
       // Don't read Float as string as it should be a safe number
       // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
