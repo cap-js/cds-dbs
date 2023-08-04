@@ -548,12 +548,12 @@ class CQN2SQLRenderer {
     if (data)
       for (let c in data)
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.val({ val: data[c] }) + '' })
+          columns.push({ name: c, sql: this.val({ val: data[c] }) })
         }
     if (_with)
       for (let c in _with)
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.expr(_with[c]) + '' })
+          columns.push({ name: c, sql: this.expr(_with[c]) })
         }
 
     columns = columns.map(c => {
@@ -735,9 +735,9 @@ class CQN2SQLRenderer {
       case 'undefined':
         return 'NULL'
       case 'boolean':
-        return val
+        return `${val}`
       case 'number':
-        return val // REVISIT for HANA
+        return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
