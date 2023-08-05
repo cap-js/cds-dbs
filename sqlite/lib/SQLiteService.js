@@ -126,25 +126,19 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-    SELECT_columns({ SELECT }) {
-      if (!SELECT.columns) return '*'
-      const { orderBy } = SELECT
-      const orderByMap = {}
-      // Collect all orderBy columns that should be taken from the SELECT.columns
-      if (Array.isArray(orderBy))
-        orderBy?.forEach(o => {
-          if (o.ref?.length === 1) {
-            orderByMap[o.ref[0]] = true
-          }
-        })
-      return SELECT.columns.map(x => {
-        if (x === '*') return x
-        const alias = this.column_name(x)
-        // Check whether the column alias should be added
-        const xpr = this.column_expr(x)
-        const needsAlias = (typeof x.as === 'string' && x.as) || orderByMap[alias]
-        return `${xpr}${needsAlias ? ` as ${this.quote(alias)}` : ''}`
-      })
+    column_alias4(x, q) {
+      let alias = super.column_alias4(x, q)
+      if (alias) return alias
+      if (x.ref) {
+        let obm = q._orderByMap
+        if (!obm) {
+          Object.defineProperty(q, '_orderByMap', { value: (obm = {}) })
+          q.SELECT?.orderBy?.forEach(o => {
+            if (o.ref?.length === 1) obm[o.ref[0]] = o.ref[0]
+          })
+        }
+        return obm[x.ref.at(-1)]
+      }
     }
 
     operator(x, i, xpr) {

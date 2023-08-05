@@ -91,7 +91,7 @@ class SQLService extends DatabaseService {
    */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     return new this.class.InsertResults(cqn, results)
@@ -103,10 +103,11 @@ class SQLService extends DatabaseService {
    */
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
-    return results.reduce((lastValue, currentValue) => (lastValue += currentValue.changes), 0)
+    // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
+    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
   }
 
   /**
@@ -230,8 +231,7 @@ class SQLService extends DatabaseService {
   cqn2sql(q, values) {
     const cqn = this.cqn4sql(q)
 
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
+    // REVISIT: Why did we move that from onSELECT to here?
     // Only enable expand when the query is inferred
     if (cqn.SELECT && cqn.elements) cqn.SELECT.expand = cqn.SELECT.expand ?? 'root'
 
