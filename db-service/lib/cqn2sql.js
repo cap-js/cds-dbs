@@ -50,10 +50,11 @@ class CQN2SQLRenderer {
     this._convertInput = _add_mixins(':convertInput', this.InputConverters)
     this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
     this._sqlType = _add_mixins(':sqlType', this.TypeMap)
-
-    // Have fuzzy variants of reserved words, to speed up lookups?
+    // Have all-uppercase all-lowercase, and capitalized keywords to speed up lookups
     for (let each in this.ReservedWords) {
-      Object.assign(this.ReservedWords, fuzzyKeys(each))
+      // ORDER
+      this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1 // Order
+      this.ReservedWords[each.toLowerCase()] = 1 // order
     }
     this._init = () => {} // makes this a noop for subsequent calls
   }
@@ -898,24 +899,6 @@ Buffer.prototype.toJSON = function () {
 }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
-const fuzzyKeys = str => {
-  const count = Math.pow(2, str.length)
-  const instance = Buffer.from(`"${str}":1,`)
-  const keys = Buffer.allocUnsafe(count * (str.length + 5) + 1)
-  keys[0] = '{'.charCodeAt(0)
-  for (let x = 0; x < count; x++) {
-    instance.copy(keys, x * (str.length + 5) + 1)
-    let i = x * (str.length + 5) + 2
-    let y = x
-    while (y) {
-      if (y & 1) keys[i] += 32
-      y = y >> 1
-      i++
-    }
-  }
-  keys[keys.length - 1] = '}'.charCodeAt(0)
-  return JSON.parse(keys)
-}
 const _managed = {
   '$user.id': '$user.id',
   $user: '$user.id',
