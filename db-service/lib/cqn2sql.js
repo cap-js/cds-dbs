@@ -51,9 +51,10 @@ class CQN2SQLRenderer {
     this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
     this._sqlType = _add_mixins(':sqlType', this.TypeMap)
     // Have all-uppercase all-lowercase, and capitalized keywords to speed up lookups
-    for (let each in this.ReservedWords) {                            // ORDER
-      this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1   // Order
-      this.ReservedWords[each.toLowerCase()] = 1                      // order
+    for (let each in this.ReservedWords) {
+      // ORDER
+      this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1 // Order
+      this.ReservedWords[each.toLowerCase()] = 1 // order
     }
     this._init = () => {} // makes this a noop for subsequent calls
   }
