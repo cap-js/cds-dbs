@@ -1014,10 +1014,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
+      const flatColumns = getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
       // will be replaced after other columns are transformed
-      if (replacedBy.expand) return [{ as: baseName }]
+      // REVISIT: still include foreign keys when replacing an expand column
+      if (replacedBy.expand) return [{ as: baseName }, ...flatColumns]
 
-      return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
+      return flatColumns
     }
 
     csnPath.push(element.name)
