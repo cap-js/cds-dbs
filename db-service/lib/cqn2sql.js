@@ -206,6 +206,7 @@ class CQN2SQLRenderer {
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     // Expand cannot work without an inferred query
     if (expand) {
+      // REVISIT: Why don't we handle that as an error in SELECT_expand?
       if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
       sql = this.SELECT_expand(q, sql)
     }
@@ -217,12 +218,8 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} param0
    * @returns {string} SQL
    */
-  SELECT_columns({ SELECT }) {
-    if (!SELECT.columns) return '*'
-    return SELECT.columns.map(x => {
-      if (x === '*') return x
-      return this.column_expr(x) + (typeof x.as === 'string' ? ' as ' + this.quote(x.as) : '')
-    })
+  SELECT_columns(q) {
+    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x, q))
   }
 
   /**
@@ -233,27 +230,23 @@ class CQN2SQLRenderer {
    */
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
-    if (!elements) return sql
-    let cols = !SELECT.columns
-      ? ['*']
-      : SELECT.columns.map(x => {
-          const name = this.column_name(x)
-          // REVISIT: can be removed when alias handling is resolved properly
-          const d = elements[name] || elements[name.substring(1, name.length - 1)]
-          let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
-
-          if (x.SELECT?.count) {
-            // Return both the sub select and the count for @odata.count
-            const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-            col += `, '$."${name}@odata.count"',${this.expr(qc)}`
-          }
-          return col
-        })
+    if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
+    let cols = SELECT.columns.map(x => {
+      const name = this.column_name(x)
+      // REVISIT: can be removed when alias handling is resolved properly
+      const d = elements[name] || elements[name.substring(1, name.length - 1)]
+      let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
+      if (x.SELECT?.count) {
+        // Return both the sub select and the count for @odata.count
+        const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
+        col += `, '$."${name}@odata.count"',${this.expr(qc)}`
+      }
+      return col
+    })
 
     // Prevent SQLite from hitting function argument limit of 100
-    let colsLength = cols.length
     let obj = "'{}'"
-    for (let i = 0; i < colsLength; i += 48) {
+    for (let i = 0; i < cols.length; i += 48) {
       obj = `json_insert(${obj},${cols.slice(i, i + 48)})`
     }
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
@@ -264,14 +257,27 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').col} x
    * @returns {string} SQL
    */
-  column_expr(x) {
-    if (x.func && !x.as) x.as = x.func
+  column_expr(x, q) {
+    if (x === '*') return '*'
+    ///////////////////////////////////////////////////////////////////////////////////////
+    // REVISIT: that should move out of here!
     if (x?.element?.['@cds.extension']) {
-      x.as = x.as || x.element.name
-      return `extensions__->${this.string('$."' + x.element.name + '"')}`
+      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
     }
+    ///////////////////////////////////////////////////////////////////////////////////////
     let sql = this.expr(x)
+    let alias = this.column_alias4(x, q)
+    if (alias) sql += ' as ' + this.quote(alias)
     return sql
+  }
+
+  /**
+   * Extracts the column alias from a SELECT column expression
+   * @param {import('./infer/cqn').col} x
+   * @returns {string}
+   */
+  column_alias4(x) {
+    return typeof x.as === 'string' ? x.as : x.func
   }
 
   /**
@@ -280,18 +286,12 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   from(from) {
-    const { ref, as } = from,
-      _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
+    const { ref, as } = from
+    const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) return _aliased(this.quote(this.name(ref[0])))
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
-    if (from.join) {
-      const {
-        join,
-        args: [left, right],
-        on,
-      } = from
-      return `${this.from(left)} ${join} JOIN ${this.from(right)} ON ${this.where(on)}`
-    }
+    if (from.join)
+      return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
   }
 
   /**
@@ -804,8 +804,9 @@ class CQN2SQLRenderer {
    */
   column_name(col) {
     if (col === '*')
+      // REVISIT: When could this ever happen? I think this is only about that irrealistic test whech uses column_name to implement SELECT_columns. We should eliminate column_name as its only used and designed for use in SELECT_expand, isn't it?
       cds.error`Query was not inferred and includes '*' in the columns. For which there is no column name available.`
-    return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.ref[col.ref.length - 1]
+    return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.func || col.ref.at(-1)
   }
 
   /**
