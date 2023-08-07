@@ -99,14 +99,14 @@ class PostgresService extends SQLService {
      * The group by is done by the key column to make sure that only one collation per key is returned
      */
     const cSQL = `
-SELECT 
+SELECT
   SUBSTRING(collname, 1, 2) AS K,
-  MIN(collname) AS V 
-FROM 
-  pg_collation 
-WHERE 
-  collprovider = 'c' AND 
-  collname LIKE '__>___' ESCAPE '>' 
+  MIN(collname) AS V
+FROM
+  pg_collation
+WHERE
+  collprovider = 'c' AND
+  collname LIKE '__>___' ESCAPE '>'
 GROUP BY k
 `
 
@@ -242,21 +242,9 @@ GROUP BY k
       return super.from(from)
     }
 
-    // REVISIT: pg requires alias for {val}
-    SELECT_columns({ SELECT }) {
-      // REVISIT: Genres cqn has duplicate ID column
-      if (!SELECT.columns) return '*'
-      const unique = {}
-      // REVISIT: possibly always quote all column aliases
-      // REVISIT: adjust all locations that reference column names (e.g. orderBy)
-      // REVISIT: exclude table alias when selecting from single source
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
+    column_alias4(x, q) {
+      if (!x.as && 'val' in x) return String(x.val)
+      return super.column_alias4(x, q)
     }
 
     SELECT_expand({ SELECT }, sql) {

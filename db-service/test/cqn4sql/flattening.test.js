@@ -153,6 +153,27 @@ describe('Flattening', () => {
           }`)
     })
 
+    it('unfolds managed associations in SELECT clause with foreign keys', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            author,
+            author_ID,
+            coAuthor,
+            coAuthor_ID,
+            genre,
+            genre_ID
+          }`,
+        cds.linked(cds.compile.for.odata(model)),
+      )
+      expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
+            Books.ID,
+            Books.author_ID,
+            Books.coAuthor_ID,
+            Books.genre_ID
+          }`)
+    })
+
     it('unfolds managed associations in SELECT clause also with table alias', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books as genre {

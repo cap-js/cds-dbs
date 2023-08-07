@@ -1063,6 +1063,29 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
+  it('multi expand with star', () => {
+    let expandQuery = CQL`select from Employee {
+        *,
+        department {
+          id,
+          name
+        },
+        assets {
+          id,
+          descr
+        }
+    } excluding { office }`
+    let expected = CQL`SELECT from Employee as Employee {
+        Employee.id,
+        Employee.name,
+        Employee.job,
+        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
+        Employee.department_id,
+        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
+  })
+
   it('structured expand with deep assoc expand', () => {
     let expandQuery = CQL`select from Employee {
       office {

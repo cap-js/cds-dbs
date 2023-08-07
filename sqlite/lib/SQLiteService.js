@@ -14,6 +14,7 @@ class SQLiteService extends SQLService {
         const dbc = new sqlite(database)
         dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
         dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -63,8 +64,10 @@ class SQLiteService extends SQLService {
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
       } else if (typeof val === 'object' && val && val.pipe) {
-        if (val.type === 'binary') val.setEncoding('base64')
+        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
+        // if (val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
+        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
       }
     }
     return stmt.run(binding_params)
@@ -93,11 +96,13 @@ class SQLiteService extends SQLService {
   async _stream(stmt, binding_params, one) {
     const columns = stmt.columns()
     // Stream single blob column
-    if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
+    if (columns.length === 1 && columns[0].name !== '_json_') {
       // Setting result set to raw to keep better-sqlite from doing additional processing
       stmt.raw(true)
       const rows = stmt.all(binding_params)
-      if (rows.length === 0 || rows[0][0] === null) return null
+      // REVISIT: return undefined when no rows are found
+      if (rows.length === 0) return undefined
+      if (rows[0][0] === null) return null
       // Buffer.from only applies encoding when the input is a string
       let raw = Buffer.from(rows[0][0].toString(), 'base64')
       stmt.raw(false)
@@ -121,25 +126,19 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-    SELECT_columns({ SELECT }) {
-      if (!SELECT.columns) return '*'
-      const { orderBy } = SELECT
-      const orderByMap = {}
-      // Collect all orderBy columns that should be taken from the SELECT.columns
-      if (Array.isArray(orderBy))
-        orderBy?.forEach(o => {
-          if (o.ref?.length === 1) {
-            orderByMap[o.ref[0]] = true
-          }
-        })
-      return SELECT.columns.map(x => {
-        if (x === '*') return x
-        const alias = this.column_name(x)
-        // Check whether the column alias should be added
-        const xpr = this.column_expr(x)
-        const needsAlias = (typeof x.as === 'string' && x.as) || orderByMap[alias]
-        return `${xpr}${needsAlias ? ` as ${this.quote(alias)}` : ''}`
-      })
+    column_alias4(x, q) {
+      let alias = super.column_alias4(x, q)
+      if (alias) return alias
+      if (x.ref) {
+        let obm = q._orderByMap
+        if (!obm) {
+          Object.defineProperty(q, '_orderByMap', { value: (obm = {}) })
+          q.SELECT?.orderBy?.forEach(o => {
+            if (o.ref?.length === 1) obm[o.ref[0]] = o.ref[0]
+          })
+        }
+        return obm[x.ref.at(-1)]
+      }
     }
 
     operator(x, i, xpr) {
@@ -151,31 +150,59 @@ class SQLiteService extends SQLService {
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
+
+      // The following allows passing in ISO strings with non-zulu
+      // timezones and converts them into zulu dates and times
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+
+      // Both, DateTimes and Timestamps are canonicalized to ISO strings with
+      // ms precision to allow safe comparisons, also to query {val}s in where clauses
+      DateTime: e => `ISO(${e})`,
+      Timestamp: e => `ISO(${e})`,
     }
 
     static OutputConverters = {
       ...super.OutputConverters,
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`, // REVIEW: ist that correct?
-      Int64: expr => `CAST(${expr} as TEXT)`, // REVISIT: As discussed: please put that on a list of things to revisit later on
-      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`, // REVISIT: what is that ->'$' doing?
-      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
+      // Otherwise they would be added as strings to json_objects.
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
-      Binary: expr => `${expr} || ''`, // Binary is not allowed in json
-      // REVISIT: Timestamp should not loos precision
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+
+      // SQLite has no booleans so we need to convert 0 and 1
+      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+
+      // DateTimes are returned without ms added by InputConverters
+      DateTime: e => `substr(${e},0,20)||'Z'`,
+
+      // Timestamps are returned with ms, as written by InputConverters.
+      // And as cds.builtin.classes.Timestamp inherits from DateTime we need
+      // to override the DateTime converter above
+      Timestamp: e => `ISO(${e})`,
+      // REVISIT: generic-virtual.test.js expects now to be returned as ISO string
+      // test 'field with current timestamp is correctly formatted' fails otherwise
+
+      // Quote Decimal values to lose the least amount of precision
+      // quote turns 9999999999999.999 into  9999999999999.998
+      // || '' turns 9999999999999.999 into 10000000000000.0
+      Decimal: expr => `nullif(quote(${expr}),'NULL')`,
+      // Don't read Float as string as it should be a safe number
+      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // Without quote 1.7976931348623157e308 is returned as Infinity
+      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // int64 is stored as native int64 for best comparison
+      // Reading int64 as string to not loose precision
+      Int64: expr => `CAST(${expr} as TEXT)`,
+
+      // Binary is not allowed in json objects
+      Binary: expr => `${expr} || ''`,
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions }
+    // static Functions = { ...super.Functions }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -183,7 +210,7 @@ class SQLiteService extends SQLService {
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
-      DateTime: () => 'TIMESTAMP_TEXT',
+      DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
@@ -227,31 +254,5 @@ function _not_unique(err, code) {
       code: 400, // FIXME: misusing code as (http) status
     })
 }
-
-/**
- * Generates SQL statement that allows SQLite to support most of the ISO 8601 timezone syntaxes
- * @example
- * '1970-01-01T00:00:00+0200' -> '1970-01-01T00:00:00+02:00'
- * @example
- * '1970-01-01T00:00:00-02' -> '1970-01-01T00:00:00-02:00'
- * @example
- * '1970-01-01T00:00:00Z' -> '1970-01-01T00:00:00Z'
- * @param {String} e value SQL expression
- * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
- */
-const fixTimeZone = e =>
-  `(
-  SELECT
-    CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN 
-        T
-      WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
-        substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
-        T || ':' || '00'
-      ELSE T
-    END AS T
-  FROM (SELECT (${e}) AS T)
-)`.replace(/\s*\n\s*/g, ' ')
 
 module.exports = SQLiteService

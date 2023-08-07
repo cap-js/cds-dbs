@@ -344,7 +344,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
     }
     // subqueries are processed in the end
-    for (let i = 0; i <= transformedColumns.length; i++) {
+    for (let i = 0; i < transformedColumns.length; i++) {
       const c = transformedColumns[i]
       if (typeof c === 'function') {
         const res = c() || [] // target of expand / subquery could also be skipped -> no result
@@ -359,6 +359,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else {
             transformedColumns.splice(replaceWith, 1, res)
             transformedColumns.splice(i, 1)
+            // When removing an element, the next element moves to the current index
+            i--
           }
         }
       }
@@ -392,6 +394,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
+        setElementOnColumns(expandedSubqueryColumn, col.element)
         res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
         const expandCols = nestedProjectionOnStructure(col, 'expand')
@@ -430,10 +433,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
+      const getName = col => col.as || col.ref?.at(-1)
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
-        const { as } = flatColumn
-        if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
+        const name = getName(flatColumn)
+        if (!transformedColumns.some(inserted => getName(inserted) === name)) transformedColumns.push(flatColumn)
       })
     }
 
@@ -1010,10 +1014,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
+      const flatColumns = getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
       // will be replaced after other columns are transformed
-      if (replacedBy.expand) return [{ as: baseName }]
+      // REVISIT: still include foreign keys when replacing an expand column
+      if (replacedBy.expand) return [{ as: baseName }, ...flatColumns]
 
-      return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
+      return flatColumns
     }
 
     csnPath.push(element.name)
