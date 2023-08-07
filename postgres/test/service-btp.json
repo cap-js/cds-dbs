@@ -1,0 +1,12 @@
+{
+  "credentials": {
+    "hostname": "some-btp-postgres.cf10.eu.ondemand.com",
+    "port": "4711",
+    "dbname": "some-db",
+    "username": "btpuser",
+    "password": "notimportant",
+    "sslrootcert": { "who": "cares" }
+  },
+  "dialect": "postgres",
+  "impl": "@cap-js/postgres"
+}

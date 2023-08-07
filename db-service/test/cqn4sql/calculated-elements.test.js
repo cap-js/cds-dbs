@@ -232,7 +232,7 @@ describe('Unfolding calculated elements in select list', () => {
   //
   // inline, expand
   //
-  it.skip('in inline', () => {
+  it('in inline', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.{name, IBAN } }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
@@ -243,8 +243,57 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('in inline back and forth', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.books.author.{name, IBAN } }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+      left outer join booksCalc.Books as books2 on books2.author_ID = author.ID
+      left outer join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+      {
+        Books.ID,
+        author2.firstName || ' ' || author2.lastName as author_books_author_name,
+        'DE' || author2.checksum || author2.sortCode  || author2.accountNumber as author_books_author_IBAN
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('in subquery, using the same calc element - not join relevant in subquery', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
+      ID,
+      (
+        SELECT from booksCalc.Authors {
+          name,
+          IBAN,
+          addressText
+        }
+      ) as sub,
+      author.books.author.{name, IBAN, addressText },
+    }`,
+      model,
+    )
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+      left outer join booksCalc.Books as books2 on books2.author_ID = author.ID
+      left outer join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+      left outer join booksCalc.Addresses as address on address.ID = author2.address_ID
+      {
+        Books.ID,
+        (
+          SELECT from booksCalc.Authors as Authors
+          left outer join booksCalc.Addresses as address2 on address2.ID = Authors.address_ID {
+            Authors.firstName || ' ' || Authors.lastName as name,
+            'DE' || Authors.checksum || Authors.sortCode  || Authors.accountNumber as IBAN,
+            address2.street || ', ' || address2.city as addressText
+          }
+        ) as sub,
+        author2.firstName || ' ' || author2.lastName as author_books_author_name,
+        'DE' || author2.checksum || author2.sortCode  || author2.accountNumber as author_books_author_IBAN,
+        address.street || ', ' || address.city as author_books_author_addressText
+      }`
+    expect(query).to.deep.equal(expected)
+  })
 
-  it.skip('in inline, 2 assocs', () => {
+  it('in inline, 2 assocs', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.{name, addressText } }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, author.{firstName || ' ' || lastName, address.{street || ', ' || city}}}  }
@@ -259,31 +308,82 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('in expand (to-one)', () => {
+  it('in expand (to-one)', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author {name, IBAN } }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
-      left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        (
+          SELECT from booksCalc.Authors as author {
+            author.firstName || ' ' || author.lastName as name,
+            'DE' || author.checksum || author.sortCode  || author.accountNumber as IBAN
+          } where Books.author_ID = author.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('in expand (to-one), 2 assocs', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author {name, addressText } }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      {
+        Books.ID,
+        (
+          SELECT from booksCalc.Authors as author 
+          left join booksCalc.Addresses as address on address.ID = author.address_ID
+          {
+            author.firstName || ' ' || author.lastName as name,
+            address.street || ', ' || address.city as addressText
+          } where Books.author_ID = author.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+  it('expand and inline target same calc element', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, author.{name, addressText }, author {name, addressText } }`,
+      model,
+    )
+    const expected = CQL`SELECT from booksCalc.Books as Books
+          left outer join booksCalc.Authors   as author  on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
       {
         Books.ID,
         author.firstName || ' ' || author.lastName as author_name,
-        'DE' || author.checksum || author.sortCode  || author.accountNumber as author_IBAN
+        address.street || ', ' || address.city as author_addressText,
+        (
+          SELECT from booksCalc.Authors as author2 
+          left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
+          {
+            author2.firstName || ' ' || author2.lastName as name,
+            address2.street || ', ' || address2.city as addressText
+          } where Books.author_ID = author2.ID
+        ) as author
       }`
-    expect(query).to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
-
-  it.skip('in expand (to-one), 2 assocs', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author {name, addressText } }`, model)
-    // intermediate:
-    // SELECT from booksCalc.Authors { ID, author.{firstName || ' ' || lastName, address.{street || ', ' || city}}}  }
+  it('expand and inline target same calc element inverted', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { ID, author {name, addressText }, author.{name, addressText } }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
-      left outer join booksCalc.Authors   as author  on author.ID = Books.author_ID
-      left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+          left outer join booksCalc.Authors   as author  on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
       {
         Books.ID,
+        (
+          SELECT from booksCalc.Authors as author2 
+          left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
+          {
+            author2.firstName || ' ' || author2.lastName as name,
+            address2.street || ', ' || address2.city as addressText
+          } where Books.author_ID = author2.ID
+        ) as author,
         author.firstName || ' ' || author.lastName as author_name,
         address.street || ', ' || address.city as author_addressText
       }`
-    expect(query).to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it('in expand (to-many)', () => {
@@ -347,6 +447,37 @@ describe('Unfolding calculated elements in select list', () => {
 
           Books.stock as stock2,
           substring(Books.title, 3, Books.stock) as ctitle,
+
+          Books.areaS,
+
+          Books.length * Books.width as area,
+          (Books.length * Books.width) * Books.height as volume,
+          Books.stock * ((Books.length * Books.width) * Books.height) as storageVolume,
+
+          author.lastName as authorLastName,
+          author.firstName || ' ' || author.lastName as authorName,
+          author.firstName || ' ' || author.lastName as authorFullName,
+          (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText
+        }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+  // TODO
+  it.skip('replacement for calculated element is considered for wildcard expansion', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`,
+      model,
+    )
+    const expected = CQL`SELECT from booksCalc.Books as Books
+          left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+          left outer join booksCalc.Addresses as address on address.ID = author.address_ID
+        {
+          Books.ID,
+          Books.title,
+          Books.author_ID,
+
+          Books.stock as stock2,
+          (Books.length * Books.width) * Books.height as ctitle,
 
           Books.areaS,
 
@@ -464,18 +595,39 @@ describe('Unfolding calculated elements in other places', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('in a subquery', () => {
+  it('in a subquery', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books {
         ID,
         (select from booksCalc.Authors as A { name }
-           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.title) as f
+           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.ctitle) as f
       }`,
       model,
     )
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
         (select from booksCalc.Authors as A { A.firstName || ' ' || A.lastName as name }
+            where A.ID = Books.author_ID
+            and ('DE' || A.checksum || A.sortCode  || A.accountNumber)
+                 = (Books.length * Books.width) + substring(Books.title, 3, Books.stock)
+        ) as f
+    }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('in a subquery calc element is join relevant', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
+        ID,
+        (select from booksCalc.Authors as A { books.title }
+           where A.ID = Books.author.ID and A.IBAN = Books.area + Books.ctitle) as f
+      }`,
+      model,
+    )
+    const expected = CQL`SELECT from booksCalc.Books as Books {
+        Books.ID,
+        (select from booksCalc.Authors as A
+          left join booksCalc.Books as books2 on books2.author_ID = A.ID
+          { books2.title as books_title }
             where A.ID = Books.author_ID
             and ('DE' || A.checksum || A.sortCode  || A.accountNumber)
                  = (Books.length * Books.width) + substring(Books.title, 3, Books.stock)
@@ -517,6 +669,7 @@ describe('Unfolding calculated elements and localized', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  // enable once cds-compiler v4.1 is released
   it.skip('calculated element refers to localized element', () => {
     const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
     q.SELECT.localized = true

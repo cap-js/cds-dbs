@@ -344,7 +344,6 @@ describe('Unfold expands on associations to special subselects', () => {
       },
     }
 
-    const res = cqn4sql(q)
     const expected = CQL`SELECT from bookshop.Books as Books {
       (
         SELECT from bookshop.Authors as author {
@@ -363,6 +362,8 @@ describe('Unfold expands on associations to special subselects', () => {
         offset 1
       ) as author
     }`
+
+    const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -1060,6 +1061,29 @@ describe('expand on structure part II', () => {
         Employee.office_address_street
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
+  })
+
+  it('multi expand with star', () => {
+    let expandQuery = CQL`select from Employee {
+        *,
+        department {
+          id,
+          name
+        },
+        assets {
+          id,
+          descr
+        }
+    } excluding { office }`
+    let expected = CQL`SELECT from Employee as Employee {
+        Employee.id,
+        Employee.name,
+        Employee.job,
+        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
+        Employee.department_id,
+        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
 
   it('structured expand with deep assoc expand', () => {

@@ -4,6 +4,17 @@ const { _target_name4 } = require('./SQLService')
 
 const handledDeep = Symbol('handledDeep')
 
+/**
+ * @callback nextCallback
+ * @param {Error|undefined} error
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * @param {import('@sap/cds/apis/services').Request} req
+ * @param {nextCallback} next
+ * @returns {Promise<number>}
+ */
 async function onDeep(req, next) {
   const { query } = req
   // REVISIT: req.target does not match the query.INSERT target for path insert
@@ -136,11 +147,16 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
   }
 }
 
+/**
+ * @param {import('@sap/cds/apis/cqn').Query} query
+ * @param {import('@sap/cds/apis/csn').Definition} target
+ */
 const getExpandForDeep = (query, target) => {
   const from = query.DELETE?.from || query.UPDATE?.entity
   const data = query.UPDATE?.data || null
   const where = query.DELETE?.where || query.UPDATE?.where
 
+  /** @type {import("@sap/cds/apis/ql").SELECT<unknown>} */
   const cqn = SELECT.from(from)
   if (where) cqn.SELECT.where = where
 
@@ -150,6 +166,12 @@ const getExpandForDeep = (query, target) => {
   return cqn
 }
 
+/**
+ * @param {import('@sap/cds/apis/cqn').Query} query
+ * @param {unknown[]} dbData
+ * @param {import('@sap/cds/apis/csn').Definition} target
+ * @returns
+ */
 const getDeepQueries = (query, dbData, target) => {
   let queryData
   if (query.INSERT) {
@@ -167,14 +189,20 @@ const getDeepQueries = (query, dbData, target) => {
     diff = [diff]
   }
 
-  return _getDeepQueries(diff, target)
+  return _getDeepQueries(diff, target, true)
 }
 
 const _hasManagedElements = target => {
   return Object.keys(target.elements).filter(elementName => target.elements[elementName]['@cds.on.update']).length > 0
 }
 
-const _getDeepQueries = (diff, target) => {
+/**
+ * @param {unknown[]} diff
+ * @param {import('@sap/cds/apis/csn').Definition} target
+ * @param {boolean} [root=false]
+ * @returns {import('@sap/cds/apis/cqn').Query[]}
+ */
+const _getDeepQueries = (diff, target, root = false) => {
   const queries = []
 
   for (const diffEntry of diff) {
@@ -213,7 +241,7 @@ const _getDeepQueries = (diff, target) => {
       queries.push(INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
       queries.push(DELETE.from(target).where(diffEntry))
-    } else if (op === 'update' || (op === undefined && subQueries.length && _hasManagedElements(target))) {
+    } else if (op === 'update' || (op === undefined && (root || subQueries.length) && _hasManagedElements(target))) {
       // TODO do we need the where here?
       const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)

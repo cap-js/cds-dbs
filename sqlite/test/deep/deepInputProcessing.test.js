@@ -95,8 +95,11 @@ describe('UUID Generation', () => {
         })
     })
 
+    // in the query `select … { *, toOneChild { … } }` the expand actually replaces the
+    // the association `toOneChild` from the wildcard, hence `updated.toOneChild_ID === undefined`
+    // expect(updated.toOneChild.ID).toEqual(updated.toOneChild_ID)
+
     // foreign keys are set correctly (deep)
-    expect(updated.toOneChild.ID).toEqual(updated.toOneChild_ID)
     expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[0].backlink_ID)
     expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[1].backlink_ID)
 
