@@ -290,7 +290,7 @@ GROUP BY k
       return ret === '?' ? `$${this.values.length}` : ret
     }
 
-    operator(x, i, xpr, q) {
+    operator(x, i, xpr) {
       if (x === 'regexp') return '~'
       if (x === '=') return this.operator_has_null(i, xpr) ? 'is not distinct from' : '='
       if (x === '!=') return this.operator_has_null(i, xpr) ? 'is distinct from' : '!='
