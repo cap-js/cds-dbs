@@ -10,6 +10,10 @@ class SessionContext {
   get '$user.locale'() {
     return (super['$user.locale'] = this.ctx.locale || cds.env.i18n.default_language)
   }
+  // REVISIT: should be decided in spec meeting for definitive name
+  get $now() {
+    return super.$now = (this.ctx.timestamp || new Date()).toISOString()
+  }
 }
 
 class TemporalSessionContext extends SessionContext {
