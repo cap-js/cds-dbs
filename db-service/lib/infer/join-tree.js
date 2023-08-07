@@ -154,7 +154,7 @@ class JoinTree {
    * @param {object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
    * @returns {boolean} - Always returns true, indicating the column has been successfully merged into the join tree.
    */
-  mergeColumn(col) {
+  mergeColumn(col, outerQueries = null) {
     if (this.isInitial) this.isInitial = false
     const head = col.$refLinks[0]
     let node = this._roots.get(head.alias)
@@ -196,7 +196,7 @@ class JoinTree {
           } else {
             child.$refLink.onlyForeignKeyAccess = true
           }
-          child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias)
+          child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias, outerQueries)
         }
 
         const foreignKeys = node.$refLink?.definition.foreignKeys
