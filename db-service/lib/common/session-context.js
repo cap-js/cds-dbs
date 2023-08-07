@@ -12,7 +12,7 @@ class SessionContext {
   }
   // REVISIT: should be decided in spec meeting for definitive name
   get $now() {
-    return super.$now = (this.ctx.timestamp || new Date()).toISOString()
+    return (super.$now = (this.ctx.timestamp || new Date()).toISOString())
   }
 }
 
