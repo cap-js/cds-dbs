@@ -64,8 +64,10 @@ class SQLiteService extends SQLService {
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
       } else if (typeof val === 'object' && val && val.pipe) {
-        if (val.type === 'binary') val.setEncoding('base64')
+        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
+        // if (val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
+        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
       }
     }
     return stmt.run(binding_params)
@@ -94,11 +96,13 @@ class SQLiteService extends SQLService {
   async _stream(stmt, binding_params, one) {
     const columns = stmt.columns()
     // Stream single blob column
-    if (columns.length === 1 && columns[0].type === 'BLOB' && columns[0].name !== '_json_') {
+    if (columns.length === 1 && columns[0].name !== '_json_') {
       // Setting result set to raw to keep better-sqlite from doing additional processing
       stmt.raw(true)
       const rows = stmt.all(binding_params)
-      if (rows.length === 0 || rows[0][0] === null) return null
+      // REVISIT: return undefined when no rows are found
+      if (rows.length === 0) return undefined
+      if (rows[0][0] === null) return null
       // Buffer.from only applies encoding when the input is a string
       let raw = Buffer.from(rows[0][0].toString(), 'base64')
       stmt.raw(false)
@@ -175,15 +179,19 @@ class SQLiteService extends SQLService {
       // Timestamps are returned with ms, as written by InputConverters.
       // And as cds.builtin.classes.Timestamp inherits from DateTime we need
       // to override the DateTime converter above
-      Timestamp: undefined,
+      Timestamp: e => `ISO(${e})`,
+      // REVISIT: generic-virtual.test.js expects now to be returned as ISO string
+      // test 'field with current timestamp is correctly formatted' fails otherwise
 
       // Quote Decimal values to lose the least amount of precision
       // quote turns 9999999999999.999 into  9999999999999.998
       // || '' turns 9999999999999.999 into 10000000000000.0
       Decimal: expr => `nullif(quote(${expr}),'NULL')`,
-      // Don't read Float and Double as string as they should be safe numbers
+      // Don't read Float as string as it should be a safe number
       // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      // Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // Without quote 1.7976931348623157e308 is returned as Infinity
+      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
 
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision

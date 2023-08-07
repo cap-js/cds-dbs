@@ -17,7 +17,8 @@ module.exports = class InsertResult {
    * @param {unknown[]} results
    */
   constructor(query, results) {
-    this.query = query
+    // Storing query as non-enumerable property to avoid polluting trace output
+    Object.defineProperty(this, 'query', { value: query })
     this.results = results
   }
 
