@@ -1,7 +1,14 @@
-exports.testPathIgnorePatterns = [
-  'test/scenarios/sflight/integration.test.js', // REVISIT: is that test being run anywhere?
-  'postgres',
-]
+const pipeline = !!process.env.CI
 
-// REVISIT: What do these reporters give us?
-// if (process.env.CI) exports.reporters = ['github-actions', 'summary']
+exports.transform = {} // Fixes debugging
+
+// Ignore inherited tests that encounter tuple errors
+if (!pipeline)
+  exports.testPathIgnorePatterns = [
+    '<rootDir>/postgres/test/timezone.test.js',
+    '<rootDir>/postgres/test/service.test.js',
+    '<rootDir>/postgres/test/service-types.test.js',
+    '<rootDir>/postgres/test/service-admin.test.js',
+    '<rootDir>/postgres/test/odata-string-functions.test.js',
+  ]
+if (pipeline) exports.reporters = ['github-actions', 'summary']

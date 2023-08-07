@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "npx jest --silent --colors",
+    "setup": "cd postgres && npm run setup",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"

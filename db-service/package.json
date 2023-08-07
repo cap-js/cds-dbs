@@ -25,9 +25,6 @@
     "node": ">=16",
     "npm": ">=8"
   },
-  "scripts": {
-    "test": "npx jest --silent"
-  },
   "peerDependencies": {
     "@sap/cds": ">=7.1.1"
   },

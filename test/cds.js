@@ -91,14 +91,14 @@ module.exports.test = Object.setPrototypeOf(function () {
     }
   ret.data.autoIsolation(true)
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     if (ret.data._autoIsolation && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
-  })
+  }, 30 * 1000)
 
-  global.after(async () => {
+  global.afterAll(async () => {
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
