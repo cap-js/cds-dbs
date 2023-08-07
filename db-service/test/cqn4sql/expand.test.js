@@ -1080,6 +1080,7 @@ describe('expand on structure part II', () => {
         Employee.name,
         Employee.job,
         (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
+        Employee.department_id,
         (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
     }`
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)

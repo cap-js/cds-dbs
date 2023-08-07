@@ -2,6 +2,8 @@ const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
+const { Readable } = require('stream')
+
 const DEBUG = (() => {
   let DEBUG = cds.debug('sql-json')
   if (DEBUG) return DEBUG
@@ -48,8 +50,12 @@ class CQN2SQLRenderer {
     this._convertInput = _add_mixins(':convertInput', this.InputConverters)
     this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
     this._sqlType = _add_mixins(':sqlType', this.TypeMap)
-    // Have uppercase and lowercase variants of reserved words, to speed up lookups
-    for (let each in this.ReservedWords) this.ReservedWords[each.toLowerCase()] = 1
+    // Have all-uppercase all-lowercase, and capitalized keywords to speed up lookups
+    for (let each in this.ReservedWords) {
+      // ORDER
+      this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1 // Order
+      this.ReservedWords[each.toLowerCase()] = 1 // order
+    }
     this._init = () => {} // makes this a noop for subsequent calls
   }
 
@@ -233,9 +239,7 @@ class CQN2SQLRenderer {
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      // REVISIT: can be removed when alias handling is resolved properly
-      const d = elements[name] || elements[name.substring(1, name.length - 1)]
-      let col = `'$."${name}"',${this.output_converter4(d, this.quote(name))}`
+      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
@@ -637,9 +641,11 @@ class CQN2SQLRenderer {
 
     const select = cds.ql
       .SELECT(column ? [column] : columns)
-      .from(from)
       .where(where)
       .limit(column ? 1 : undefined)
+
+    // SELECT.from() does not accept joins
+    select.SELECT.from = from
 
     if (column) {
       this.one = true
@@ -732,13 +738,13 @@ class CQN2SQLRenderer {
       case 'undefined':
         return 'NULL'
       case 'boolean':
-        return val
+        return `${val}`
       case 'number':
-        return val // REVISIT for HANA
+        return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof require('stream').Readable) {
+        if (val instanceof Readable) {
           this.values.push(val)
           return '?'
         }
@@ -828,6 +834,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
+    // Column names like "Order" clash with "ORDER" keyword so toUpperCase is required
     if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
     return s
   }
