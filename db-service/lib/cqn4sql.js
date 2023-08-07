@@ -1251,6 +1251,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
             const { definition } = token.$refLinks[token.$refLinks.length - 1]
+            // Add definition to result
+            setElementOnColumns(result, definition)
             if (isCalculatedOnRead(definition)) {
               const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
               transformedTokenStream.push(calculatedElement)

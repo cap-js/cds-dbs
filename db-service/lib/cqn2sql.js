@@ -695,9 +695,34 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-    if (x === '!=') return 'is not'
+    if (x === '=') return this.operator_has_null(i, xpr) ? 'is' : '='
+    if (x === '!=') return this.operator_has_null(i, xpr) ? 'is not' : '!='
     else return x
+  }
+
+  /**
+   * Tests if the operator could contain a null value
+   * @param {Number} i Current index of the operator inside the xpr
+   * @param {import('./infer/cqn').predicate[]} xpr The parent xpr in which the operator is used
+   * @returns {boolean}
+   */
+  operator_has_null(i, xpr) {
+    let left = xpr[i - 1]
+    let right = xpr[i + 1]
+
+    // When there is no expression abort
+    if (!left || !right) return true
+
+    left = left.element || left.val
+    right = right.element || right.val
+
+    // When the type is not known abort
+    // Also catches when the val is null
+    if (!left || !right) return true
+
+    left = left.key || left.notNull || left != null
+    right = right.key || right.notNull || left != null
+    return left && right
   }
 
   /**

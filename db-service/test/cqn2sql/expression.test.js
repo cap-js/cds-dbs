@@ -48,7 +48,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null = Foo.x/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null is Foo.x/i)
   })
 
   // We should never have supported that!
@@ -140,7 +140,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is not 5/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is 7 or Foo.x is not 5/i)
   })
 
   // We don't have to support that

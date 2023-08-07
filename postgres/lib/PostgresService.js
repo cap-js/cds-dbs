@@ -290,11 +290,11 @@ GROUP BY k
       return ret === '?' ? `$${this.values.length}` : ret
     }
 
-    operator(x) {
+    operator(x, i, xpr, q) {
       if (x === 'regexp') return '~'
-      if (x === '=') return 'is not distinct from'
-      if (x === '!=') return 'is distinct from'
-      else return x
+      if (x === '=') return this.operator_has_null(i, xpr) ? 'is not distinct from' : '='
+      if (x === '!=') return this.operator_has_null(i, xpr) ? 'is distinct from' : '!='
+      return x
     }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
