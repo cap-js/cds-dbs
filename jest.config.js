@@ -16,7 +16,7 @@ const enable = process.argv
   })
   .filter(a => a)
 
-  console.log(process.env)
+console.log(process.env)
 
 module.exports = {
   transform: {},
