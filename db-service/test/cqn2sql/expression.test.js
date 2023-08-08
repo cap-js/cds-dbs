@@ -173,9 +173,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x != 5) or (Foo.x is NULL)',
-    )
+    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x != 5) or (Foo.x is NULL)')
   })
 
   test('ref is like pattern', () => {
