@@ -2,7 +2,7 @@ const cds = require('@sap/cds/lib')
 
 class SessionContext {
   constructor(ctx) {
-    this.ctx = ctx
+    Object.defineProperty(this, 'ctx', { value: ctx })
   }
   get '$user.id'() {
     return (super['$user.id'] = this.ctx.user?.id || 'anonymous')
