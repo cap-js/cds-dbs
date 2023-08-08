@@ -1,7 +1,4 @@
 {
   "impl": "@cap-js/db-edge",
-  "databases": [
-    "sqlite",
-    "postgres"
-  ]
+  "databases": ["sqlite", "postgres"]
 }
