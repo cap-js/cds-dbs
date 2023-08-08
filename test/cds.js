@@ -27,6 +27,7 @@ cdsTest.constructor.prototype.in = function () {
   global.before(() => {
     orgIn.apply(this, arguments)
   })
+  return orgIn.apply(this, arguments)
 }
 
 // REVISIT: move this logic into cds when stabilized
@@ -112,3 +113,8 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   return ret
 }, cdsTest.constructor.prototype)
+
+// Release cds._context for garbage collection
+global.afterEach(() => {
+  cds._context.disable()
+})
