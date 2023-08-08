@@ -64,8 +64,16 @@ class PostgresService extends SQLService {
   async set(variables) {
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
     const env = {}
+
+    // Check all properties on the variables object
     for (let name in variables) {
       env[sessionVariableMap[name] || name] = variables[name]
+    }
+
+    // Explicitly check for the default session variable properties
+    // As they are getters and not own properties of the object
+    for (let name in sessionVariableMap) {
+      if (variables[name]) env[sessionVariableMap[name]] = variables[name]
     }
 
     return Promise.all([

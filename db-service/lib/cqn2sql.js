@@ -22,12 +22,7 @@ class CQN2SQLRenderer {
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
   constructor(context) {
-    /**
-     * @type {import('@sap/cds/apis/services').ContextProperties}
-     */
-    this.context = cds.context || context
-    // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well -> ???
-    // /** @type {CQN2SQLRenderer|unknown} */ -> that killed IntelliSense
+    this.context = context || cds.context // REVISIT: Why do we need that? -> Accessing cds.context below should suffice, shouldn't it?
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
