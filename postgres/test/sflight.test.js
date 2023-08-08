@@ -1,3 +1,3 @@
 describe('postgres', () => {
-  require('../../test/scenarios/sflight/read.test')
+  require('../../test/scenarios/sflight')
 })
