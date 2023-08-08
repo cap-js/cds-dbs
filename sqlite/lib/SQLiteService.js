@@ -142,9 +142,12 @@ class SQLiteService extends SQLService {
     }
 
     operator(x, i, xpr) {
-      if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-      if (x === '!=') return 'is not'
-      else return x
+      let y = super.operator(x, i, xpr)
+      if (y !== x) return y
+      // Convert into SQLite NULL compliant operators
+      if (x === '=') return this.operator_has_null(i, xpr) ? 'IS' : '='
+      if (x === '!=') return this.operator_has_null(i, xpr) ? 'IS NOT' : '!='
+      return x
     }
 
     // Used for INSERT statements

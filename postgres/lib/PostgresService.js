@@ -291,7 +291,10 @@ GROUP BY k
     }
 
     operator(x, i, xpr) {
+      let y = super.operator(x, i, xpr)
+      if (y !== x) return y
       if (x === 'regexp') return '~'
+      // Convert into Postgres NULL compliant operators
       if (x === '=') return this.operator_has_null(i, xpr) ? 'is not distinct from' : '='
       if (x === '!=') return this.operator_has_null(i, xpr) ? 'is distinct from' : '!='
       return x

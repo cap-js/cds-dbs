@@ -12,7 +12,7 @@ exports[`cqn2sql ONE one results in limit 1 1`] = `"SELECT Foo.a,Foo.b,Foo.c FRO
 
 exports[`cqn2sql ORDER BY ORDER BY alias 1`] = `"SELECT Foo.a,Foo.b,count(Foo.x) as count1 FROM Foo as Foo ORDER BY count1 ASC"`;
 
-exports[`cqn2sql WHERE EXISTS with nested EXISTS 1`] = `"SELECT T2.ID,T2.a,T2.b,T2.c,T2.x FROM Foo as T2 WHERE exists (SELECT 1 FROM Books as T1 WHERE T1.ID is 1 and exists (SELECT 1 FROM Foo2 as T0 WHERE T0.ID is 11 and T1.ID is T0.a) and T2.ID is T1.ID)"`;
+exports[`cqn2sql WHERE EXISTS with nested EXISTS 1`] = `"SELECT T2.ID,T2.a,T2.b,T2.c,T2.x FROM Foo as T2 WHERE exists (SELECT 1 FROM Books as T1 WHERE T1.ID = 1 and exists (SELECT 1 FROM Foo2 as T0 WHERE T0.ID = 11 and T1.ID = T0.a) and T2.ID = T1.ID)"`;
 
 exports[`cqn2sql WHERE entries where one column holds entries smaller than 9 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x < 9"`;
 
@@ -20,14 +20,14 @@ exports[`cqn2sql WHERE entries where one column holds entries which are in list 
 
 exports[`cqn2sql WHERE entries where with int reference and param true 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is :7",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = :7",
   "values": [],
 }
 `;
 
 exports[`cqn2sql WHERE entries where with place holder 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID is ?",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = ?",
   "values": [],
 }
 `;
@@ -36,11 +36,11 @@ exports[`cqn2sql WHERE select with a nested select in a complex where 1`] = `"SE
 
 exports[`cqn2sql WHERE select with a nested select in where 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.x IN (SELECT Foo.a FROM Foo as Foo WHERE Foo.x < 9)"`;
 
-exports[`cqn2sql WHERE where with partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is 9)"`;
+exports[`cqn2sql WHERE where with partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x = 9)"`;
 
-exports[`cqn2sql WHERE where with two partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x + 9) is 9"`;
+exports[`cqn2sql WHERE where with two partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x + 9) = 9"`;
 
-exports[`cqn2sql WHERE with contains with multiple arguments 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.a is 0 and ifnull(instr((Foo.a,Foo.b,Foo.c,Foo.x),?),0)"`;
+exports[`cqn2sql WHERE with contains with multiple arguments 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.a = 0 and ifnull(instr((Foo.a,Foo.b,Foo.c,Foo.x),?),0)"`;
 
 exports[`cqn2sql WHERE with contains with one column in where clause 1`] = `
 {
@@ -53,7 +53,7 @@ exports[`cqn2sql WHERE with contains with one column in where clause 1`] = `
 
 exports[`cqn2sql WHERE with list of values 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.a,Foo.b,1) is (Foo.c,?,Foo.x)",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.a,Foo.b,1) = (Foo.c,?,Foo.x)",
   "values": [
     "d",
   ],
@@ -74,7 +74,7 @@ exports[`cqn2sql complex combinations AS, sub query 1`] = `"SELECT Foo.a,Foo.b a
 
 exports[`cqn2sql complex combinations Exists in object mode in complex where 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID is ? and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id is not ?) or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name is not ?) )",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = ? and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id != ?) or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name != ?) )",
   "values": [
     "123",
     "",
@@ -83,22 +83,22 @@ exports[`cqn2sql complex combinations Exists in object mode in complex where 1`]
 }
 `;
 
-exports[`cqn2sql complex combinations WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET 1`] = `"SELECT Foo.x + 1 as foo1,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.ID is 111 GROUP BY Foo.x HAVING Foo.x < 9 ORDER BY c ASC LIMIT 11 OFFSET 22"`;
+exports[`cqn2sql complex combinations WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET 1`] = `"SELECT Foo.x + 1 as foo1,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.ID = 111 GROUP BY Foo.x HAVING Foo.x < 9 ORDER BY c ASC LIMIT 11 OFFSET 22"`;
 
 exports[`cqn2sql functions new notation in filter with 1 arg new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.c) is ?",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.c) = ?",
   "values": [
     "name",
   ],
 }
 `;
 
-exports[`cqn2sql functions new notation in filter with 2 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c is Foo.a||Foo.b"`;
+exports[`cqn2sql functions new notation in filter with 2 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = Foo.a||Foo.b"`;
 
 exports[`cqn2sql functions new notation in filter with 3 arg new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c is ?||Foo.a||?",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = ?||Foo.a||?",
   "values": [
     "Existing",
     "!",
@@ -110,7 +110,7 @@ exports[`cqn2sql functions new notation in filter with asterisk as arg new notat
 
 exports[`cqn2sql functions new notation in filter with nested functions new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.a) is lower(upper(trim(?))) and length(trim(?)) is Foo.b",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.a) = lower(upper(trim(?))) and length(trim(?)) = Foo.b",
   "values": [
     "   existing name  ",
     "  name",
@@ -118,13 +118,13 @@ exports[`cqn2sql functions new notation in filter with nested functions new nota
 }
 `;
 
-exports[`cqn2sql functions new notation in filter with subselect as function param 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID is any((SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.a is 1))"`;
+exports[`cqn2sql functions new notation in filter with subselect as function param 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = any((SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.a = 1))"`;
 
 exports[`cqn2sql functions new notation in orderby with 1 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo ORDER BY lower(Foo.c) DESC"`;
 
 exports[`cqn2sql quoted column aliases select with simple subselect and column aliases 1`] = `"SELECT Foo.a,Foo.b as B,1 as C,Foo.x + 2 as D,(SELECT Foo2.a,Foo2.b as B,false as False,Foo2.x + 2 as Xpr FROM Foo as Foo2) as E FROM Foo as Foo"`;
 
-exports[`cqn2sql quoted column aliases select with subselect in exists and column aliases 1`] = `"SELECT T2.id,T2.version,T2.parent_ID FROM Author as T2 WHERE exists (SELECT 1 as One,T1.code as Xpr1 FROM Books as T1 WHERE T1.ID is 1 and exists (SELECT 3 as Three,T0.x + 1 as Xpr2 FROM Foo as T0 WHERE T0.ID is 11 and T1.ID is T0.b))"`;
+exports[`cqn2sql quoted column aliases select with subselect in exists and column aliases 1`] = `"SELECT T2.id,T2.version,T2.parent_ID FROM Author as T2 WHERE exists (SELECT 1 as One,T1.code as Xpr1 FROM Books as T1 WHERE T1.ID = 1 and exists (SELECT 3 as Three,T0.x + 1 as Xpr2 FROM Foo as T0 WHERE T0.ID = 11 and T1.ID = T0.b))"`;
 
 exports[`cqn2sql quoted column aliases select with subselect with in and column aliases 1`] = `
 {

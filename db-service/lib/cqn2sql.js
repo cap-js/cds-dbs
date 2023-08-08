@@ -701,9 +701,10 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    if (x === '=') return this.operator_has_null(i, xpr) ? 'is' : '='
-    if (x === '!=') return this.operator_has_null(i, xpr) ? 'is not' : '!='
-    else return x
+    // Convert into ANSI SQL NULL operators
+    if (x === '=' && xpr[i + 1]?.val === null) return 'is'
+    if (x === '!=' && xpr[i + 1]?.val === null) return 'is not'
+    return x
   }
 
   /**
@@ -726,9 +727,9 @@ class CQN2SQLRenderer {
     // Also catches when the val is null
     if (!left || !right) return true
 
-    left = left.key || left.notNull || left != null
-    right = right.key || right.notNull || left != null
-    return left && right
+    left = !(left.key || left.notNull)
+    right = !(right.key || right.notNull)
+    return left || right
   }
 
   /**
