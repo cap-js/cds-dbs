@@ -16,6 +16,8 @@ const enable = process.argv
   })
   .filter(a => a)
 
+  console.log(process.env)
+
 module.exports = {
   transform: {},
   reporters: process.env.CI ? ['github-actions', 'summary'] : ['default'],
