@@ -6,6 +6,7 @@
   "workspaces": [
     "db-service",
     "postgres",
+    "db-edge",
     "sqlite"
   ],
   "devDependencies": {
