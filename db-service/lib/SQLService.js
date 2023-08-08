@@ -208,6 +208,10 @@ class SQLService extends DatabaseService {
     return count
   }
 
+  /**
+   * Helper class for results of INSERTs.
+   * Subclasses may override this.
+   */
   static InsertResults = require('./InsertResults')
 
   /**
@@ -224,27 +228,21 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').Query} q
+   * @param {import('@sap/cds/apis/cqn').Query} query
    * @param {unknown} values
    * @returns {typeof SQLService.CQN2SQL}
    */
-  cqn2sql(q, values) {
-    const cqn = this.cqn4sql(q)
+  cqn2sql(query, values) {
+    let q = this.cqn4sql(query)
+    if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
 
-    // REVISIT: Why did we move that from onSELECT to here?
-    // Only enable expand when the query is inferred
-    if (cqn.SELECT && cqn.elements) cqn.SELECT.expand = cqn.SELECT.expand ?? 'root'
-
-    const cmd = cqn.cmd || Object.keys(cqn)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || cqn.STREAM?.into) {
-      let resolvedCqn = resolveView(cqn, this.model, this)
-      if (resolvedCqn && resolvedCqn[cmd]._transitions?.[0].target) {
-        resolvedCqn = resolvedCqn || cqn
-        resolvedCqn.target = resolvedCqn?.[cmd]._transitions[0].target || cqn.target
-      }
-      return new this.class.CQN2SQL().render(resolvedCqn, values)
+    let cmd = q.cmd || Object.keys(q)[0]
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
+      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
+      let target = q[cmd]._transitions?.[0].target
+      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL().render(cqn, values)
+    return new (this.class.CQN2SQL).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
   }
 
   /**

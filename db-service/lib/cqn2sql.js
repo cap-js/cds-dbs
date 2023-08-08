@@ -16,9 +16,12 @@ const DEBUG = (() => {
 })()
 
 class CQN2SQLRenderer {
+  /**
+   * Creates a new CQN2SQL instance for processing a query
+   * @constructor
+   * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
+   */
   constructor() {
-    // REVISIT: find a way to make CQN2SQLRenderer work in SQLService as well -> ???
-    // /** @type {CQN2SQLRenderer|unknown} */ -> that killed IntelliSense
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
