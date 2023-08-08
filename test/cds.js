@@ -116,5 +116,5 @@ module.exports.test = Object.setPrototypeOf(function () {
 
 // Release cds._context for garbage collection
 global.afterEach(() => {
-  cds._context.disable()
+  module.exports._context.disable()
 })
