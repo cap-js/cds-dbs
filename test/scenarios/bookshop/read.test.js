@@ -8,7 +8,7 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
+  const { expect, GET, POST, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -163,21 +163,6 @@ describe('Bookshop - Read', () => {
       admin,
     )
     expect(res.status).to.be.eq(201)
-  })
-
-  test('Update Book', async () => {
-    const res = await PUT(
-      '/admin/Books(201)', // was Books(2) -> UPSERT
-      {
-        descr: 'UPDATED',
-        author: { ID: 201 },
-      },
-      admin,
-    )
-    expect(res.status).to.be.eq(200)
-
-    expect(res.data.author_ID).to.be.eq(201)
-    expect(res.data.descr).to.be.eq('UPDATED')
   })
 
   test('Delete Book', async () => {

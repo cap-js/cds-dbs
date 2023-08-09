@@ -120,7 +120,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard()
+      transformedQuery.SELECT.columns = getColumnsForWildcard(originalQuery.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -159,7 +159,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * @param {string} kind - The type of operation: "INSERT" or "UPSERT".
    *
-   * @returns {Object} - The transformed query with updated `into` clause.
+   * @returns {object} - The transformed query with updated `into` clause.
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
@@ -171,10 +171,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   /**
    * Transforms a stream query, replacing the `where` and `into` clauses after processing.
    *
-   * @param {Object} inferred - The inferred object containing the STREAM query.
-   * @param {Object} transformedQuery - The query object to be transformed.
+   * @param {object} inferred - The inferred object containing the STREAM query.
+   * @param {object} transformedQuery - The query object to be transformed.
    *
-   * @returns {Object} - The transformed query with updated STREAM clauses.
+   * @returns {object} - The transformed query with updated STREAM clauses.
    */
   function transformStreamQuery() {
     const { into, where } = inferred.STREAM
@@ -194,8 +194,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   /**
    * Transforms a search expression to a WHERE clause for a SELECT operation.
    *
-   * @param {Object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {Object} from - The FROM clause of the CQN statement.
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} from - The FROM clause of the CQN statement.
    *
    * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
    *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
@@ -294,6 +294,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
   }
 
+  function isCalculatedOnRead(def) {
+    return def?.value && !def.value.stored
+  }
+
   /**
    * Walks over a list of columns (ref's, xpr, subqueries, val), applies flattening on structured types and expands wildcards.
    *
@@ -305,13 +309,23 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (col.expand) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+        const calcElement = resolveCalculatedElement(col)
+        transformedColumns.push(calcElement)
+      } else if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           transformedColumns.push(...getTransformedColumns([dollarSelfReplacement]))
           continue
         }
-        handleExpand(col)
+        transformedColumns.push(() => {
+          const expandResult = handleExpand(col)
+          if (expandResult.length > 1) {
+            return expandResult
+          } else {
+            return expandResult[0]
+          }
+        })
       } else if (col.inline) {
         handleInline(col)
       } else if (col.ref) {
@@ -323,8 +337,32 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         handleRef(col)
       } else if (col === '*') {
         handleWildcard(columns)
+      } else if (col.SELECT) {
+        handleSubquery(col)
       } else {
         handleDefault(col)
+      }
+    }
+    // subqueries are processed in the end
+    for (let i = 0; i < transformedColumns.length; i++) {
+      const c = transformedColumns[i]
+      if (typeof c === 'function') {
+        const res = c() || [] // target of expand / subquery could also be skipped -> no result
+        if (res.length !== undefined) {
+          transformedColumns.splice(i, 1, ...res)
+          i += res.length - 1
+        } else {
+          const replaceWith = res.as
+            ? transformedColumns.findIndex(t => (t.as || t.ref?.[t.ref.length - 1]) === res.as)
+            : -1
+          if (replaceWith === -1) transformedColumns.splice(i, 1, res)
+          else {
+            transformedColumns.splice(replaceWith, 1, res)
+            transformedColumns.splice(i, 1)
+            // When removing an element, the next element moves to the current index
+            i--
+          }
+        }
       }
     }
 
@@ -334,16 +372,35 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     return transformedColumns
 
+    function handleSubquery(col) {
+      if (isLocalized(inferred.target)) col.SELECT.localized = true
+      if (!col.SELECT.from.as) {
+        const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
+          getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
+          originalQuery.outerQueries,
+        )
+        Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+      }
+      transformedColumns.push(() => {
+        const res = transformSubquery(col)
+        if (col.as) res.as = col.as
+        return res
+      })
+    }
+
     function handleExpand(col) {
       const { $refLinks } = col
+      const res = []
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
-        transformedColumns.push(expandedSubqueryColumn)
+        setElementOnColumns(expandedSubqueryColumn, col.element)
+        res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
         const expandCols = nestedProjectionOnStructure(col, 'expand')
-        transformedColumns.push(...expandCols)
+        res.push(...expandCols)
       }
+      return res
     }
 
     function handleInline(col) {
@@ -376,10 +433,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
+      const getName = col => col.as || col.ref?.at(-1)
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
-        const { as } = flatColumn
-        if (!(as && transformedColumns.some(inserted => inserted?.as === as))) transformedColumns.push(flatColumn)
+        const name = getName(flatColumn)
+        if (!transformedColumns.some(inserted => getName(inserted) === name)) transformedColumns.push(flatColumn)
       })
     }
 
@@ -397,7 +455,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       let transformedColumn = getTransformedColumn(col)
       if (col.as) transformedColumn.as = col.as
 
-      const replaceWith = transformedColumns.findIndex(t => (t.as || t.ref[t.ref.length - 1]) === transformedColumn.as)
+      const replaceWith = transformedColumns.findIndex(
+        t => (t.as || t.ref?.[t.ref.length - 1]) === transformedColumn.as,
+      )
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
@@ -405,17 +465,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     }
 
     function getTransformedColumn(col) {
-      if (col.SELECT) {
-        if (isLocalized(inferred.target)) col.SELECT.localized = true
-        if (!col.SELECT.from.as) {
-          const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-            getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
-            originalQuery.outerQueries,
-          )
-          Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
-        }
-        return transformSubquery(col)
-      } else if (col.xpr) {
+      if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }
       } else if (col.func) {
         return {
@@ -432,6 +482,36 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
       throw new cds.error('Queries must have at least one non-virtual column')
     }
+  }
+
+  function resolveCalculatedElement(column, omitAlias = false, baseLink = null) {
+    let value
+
+    if (column.$refLinks) {
+      const { $refLinks } = column
+      value = $refLinks[$refLinks.length - 1].definition.value
+      if (column.$refLinks.length > 1) {
+        baseLink =
+          [...$refLinks].reverse().find($refLink => $refLink.definition.isAssociation) ||
+          // if there is no association in the path, the table alias is the base link
+          // TA might refer to subquery -> we need to propagate the alias to all paths of the calc element
+          column.$refLinks[0]
+      }
+    } else {
+      value = column.value
+    }
+    const { ref, val, xpr, func } = value
+
+    let res
+    if (ref) {
+      res = getTransformedTokenStream([value], baseLink)[0]
+    } else if (xpr) {
+      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+    } else if (val) {
+      res = { val }
+    } else if (func) res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
+    if (!omitAlias) res.as = column.as || column.name || column.flatName
+    return res
   }
 
   /**
@@ -513,7 +593,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (nestedProjection.ref) {
           const augmentedInlineCol = { ...nestedProjection }
           augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
-          if (col.as || nestedProjection.as || nestedProjection.isJoinRelevant) {
+          if (
+            col.as ||
+            nestedProjection.as ||
+            nestedProjection.$refLinks[nestedProjection.$refLinks.length - 1].definition.value ||
+            nestedProjection.isJoinRelevant
+          ) {
             augmentedInlineCol.as = nameParts.join('_')
           }
           Object.defineProperties(augmentedInlineCol, {
@@ -633,7 +718,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * @param {CSN.column} column - The column with the 'expand' property to be transformed into a subquery.
    *
-   * @returns {Object} Returns a subquery correlated with the enclosing query, with added properties `expand:true` and `one:true|false`.
+   * @returns {object} Returns a subquery correlated with the enclosing query, with added properties `expand:true` and `one:true|false`.
    */
   function expandColumn(column) {
     let outerAlias
@@ -727,7 +812,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     const res = []
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
-      if (col.isJoinRelevant) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+        const calcElement = resolveCalculatedElement(col, true)
+        res.push(calcElement)
+      } else if (col.isJoinRelevant) {
         const tableAlias$refLink = getQuerySourceName(col)
         const transformedColumn = {
           ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
@@ -827,6 +915,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // for wildcard on subquery in from, just reference the elements
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
+      } else if (isCalculatedOnRead(element)) {
+        wildcardColumns.push(resolveCalculatedElement(element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
         wildcardColumns.push(...flatColumns)
@@ -924,7 +1014,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // we need to provide the correct table alias
         tableAlias = getQuerySourceName(replacedBy)
 
-      return getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
+      const flatColumns = getFlatColumnsFor(replacedBy, { baseName, columnAlias: replacedBy.as, tableAlias }, csnPath)
+      // will be replaced after other columns are transformed
+      // REVISIT: still include foreign keys when replacing an expand column
+      if (replacedBy.expand) return [{ as: baseName }, ...flatColumns]
+
+      return flatColumns
     }
 
     csnPath.push(element.name)
@@ -1158,6 +1253,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
+            const { definition } = token.$refLinks[token.$refLinks.length - 1]
+            if (isCalculatedOnRead(definition)) {
+              const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
+              transformedTokenStream.push(calculatedElement)
+              continue
+            }
             if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
               const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
@@ -1473,11 +1574,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         each.ref[0] in { $self: true, $projection: true } ? getParentEntity(assoc) : target,
       ),
     )
-
-    function getParentEntity(element) {
-      if (element.kind === 'entity') return element
-      else return getParentEntity(element.parent)
-    }
   }
 
   /**
@@ -1839,7 +1935,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (node.isJoinRelevant) {
       return getJoinRelevantAlias(node)
     }
-
     return getSelectOrEntityAlias(node) || getCombinedElementAlias(node)
     function getBaseLinkAlias($baseLink) {
       return $baseLink.alias
@@ -1919,6 +2014,11 @@ function hasLogicalOr(tokenStream) {
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
   return index != -1 ? str.substring(index + 1) : str
+}
+
+function getParentEntity(element) {
+  if (element.kind === 'entity') return element
+  else return getParentEntity(element.parent)
 }
 
 /**

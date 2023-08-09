@@ -4,7 +4,21 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
+/**
+ * @callback next
+ * @param {Error} param0
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * @callback Handler
+ * @param {import('@sap/cds/apis/services').Request} param0
+ * @param {next} param1
+ * @returns {Promise<unknown>}
+ */
+
 class SQLService extends DatabaseService {
+
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
@@ -21,6 +35,7 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
+  /** @type {Handler} */
   async transformStreamFromCQN({ query }, next) {
     if (!query._streaming) return next()
     const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
@@ -29,6 +44,7 @@ class SQLService extends DatabaseService {
     return stream && { value: stream }
   }
 
+  /** @type {Handler} */
   async transformStreamIntoCQN({ query, data, target }, next) {
     let col, type, etag
     const elements = query._target?.elements || target?.elements
@@ -56,49 +72,68 @@ class SQLService extends DatabaseService {
     return result
   }
 
-  /** Handler for SELECT */
+  /**
+   * Handler for SELECT
+   * @type {Handler}
+   */
   async onSELECT({ query, data }) {
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
-    query.SELECT.expand = 'root'
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
     if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
+  /**
+   * Handler for INSERT
+   * @type {Handler}
+   */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     return new this.class.InsertResults(cqn, results)
   }
 
+  /**
+   * Handler for UPSERT
+   * @type {Handler}
+   */
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
-    return results.reduce((lastValue, currentValue) => (lastValue += currentValue.changes), 0)
+    // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
+    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
   }
 
-  /** Handler for UPDATE */
+  /**
+   * Handler for UPDATE
+   * @type {Handler}
+   */
   async onUPDATE(req) {
-    if (!req.query.UPDATE.data && !req.query.UPDATE.with) return 0
+    // noop if not a touch for @cds.on.update
+    if (
+      !req.query.UPDATE.data &&
+      !req.query.UPDATE.with &&
+      !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
+    )
+      return 0
     return this.onSIMPLE(req)
   }
 
-  /** Handler for Stream */
+  /**
+   * Handler for Stream
+   * @type {Handler}
+   */
   async onSTREAM(req) {
-    const { one, sql, values, entries } = this.cqn2sql(req.query)
+    const { one, sql, values } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      const stream = entries[0]
-      values.unshift(stream)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
@@ -107,20 +142,29 @@ class SQLService extends DatabaseService {
     return ps.stream(values, one)
   }
 
-  /** Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN */
+  /**
+   * Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN
+   * @type {Handler}
+   */
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     return (await ps.run(values)).changes
   }
 
-  /** Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN */
+  /**
+   * Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN
+   * @type {Handler}
+   */
   async onEVENT({ event }) {
     DEBUG?.(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
   }
 
-  /** Handler for SQL statements which don't have any CQN */
+  /**
+   * Handler for SQL statements which don't have any CQN
+   * @type {Handler}
+   */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
       DEBUG?.(query, data)
@@ -131,12 +175,20 @@ class SQLService extends DatabaseService {
     } else return next()
   }
 
-  /** Override in subclasses to detect more statements to be called with ps.all() */
+  /**
+   *  Override in subclasses to detect more statements to be called with ps.all()
+   * @param {string} sql
+   */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/.test(sql)
+    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
-  /** Derives and executes a query to fill in `$count` for given query */
+  /**
+   * Derives and executes a query to fill in `$count` for given query
+   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {unknown[]} ret - Results of the original query
+   * @returns {Promise<number>}
+   */
   async count(query, ret) {
     if (ret) {
       const { one, limit: _ } = query.SELECT,
@@ -158,6 +210,10 @@ class SQLService extends DatabaseService {
     return count ?? COUNT
   }
 
+  /**
+   * Helper class for results of INSERTs.
+   * Subclasses may override this.
+   */
   static InsertResults = require('./InsertResults')
 
   /**
@@ -165,26 +221,37 @@ class SQLService extends DatabaseService {
    * Subclasses commonly override this.
    */
   static CQN2SQL = require('./cqn2sql').class
-  constructor() {
-    super(...arguments)
+
+  /** @param {unknown[]} args */
+  constructor(...args) {
+    super(...args)
+    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
-  cqn2sql(q, values) {
-    const cqn = this.cqn4sql(q)
 
-    const cmd = cqn.cmd || Object.keys(cqn)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
-      let resolvedCqn = resolveView(cqn, this.model, this)
-      if (resolvedCqn && resolvedCqn[cmd]._transitions?.[0].target) {
-        resolvedCqn = resolvedCqn || cqn
-        resolvedCqn.target = resolvedCqn?.[cmd]._transitions[0].target || cqn.target
-      }
-      return new this.class.CQN2SQL(this.context).render(resolvedCqn, values)
+  /**
+   * @param {import('@sap/cds/apis/cqn').Query} query
+   * @param {unknown} values
+   * @returns {typeof SQLService.CQN2SQL}
+   */
+  cqn2sql(query, values) {
+    let q = this.cqn4sql(query)
+    if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
+
+    let cmd = q.cmd || Object.keys(q)[0]
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
+      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
+      let target = q[cmd]._transitions?.[0].target
+      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(cqn, values)
+    return new this.class.CQN2SQL(this.context).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
   }
+
+  /**
+   * @param {import('@sap/cds/apis/cqn').Query} q
+   * @returns {import('./infer/cqn').Query}
+   */
   cqn4sql(q) {
-    // REVISIT: move this check to cqn4sql?
     if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
     return cqn4sql(q, this.model)
   }
@@ -203,9 +270,8 @@ class SQLService extends DatabaseService {
 
   /**
    * Used to execute simple SQL statement like BEGIN, COMMIT, ROLLBACK
-   * @abstract
-   * @param {string} sql The SQL String to be executed
-   * @returns {Promise<any>} The result from the database driver
+   * @param {string} sql
+   * @returns {Promise<unknown>} The result of the query
    */
   async exec(sql) {
     sql
@@ -213,21 +279,27 @@ class SQLService extends DatabaseService {
   }
 }
 
-/** Interface of prepared statement objects as returned by {@link SQLService#prepare} */
+/**
+ * Interface of prepared statement objects as returned by {@link SQLService#prepare}
+ * @class
+ * @interface
+ */
 class PreparedStatement {
+
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
    * @abstract
-   * @param {[]|{}} binding_params The values to be used with the prepared statement
+   * @param {unknown|unknown[]} binding_params
    */
   async run(binding_params) {
     binding_params
-    return { changes: 1 }
+    return 0
   }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
    * @abstract
-   * @param {[]|{}} binding_params The values to be used with the prepared statement
+   * @param {unknown|unknown[]} binding_params
+   * @returns {Promise<unknown>}
    */
   async get(binding_params) {
     binding_params
@@ -236,7 +308,8 @@ class PreparedStatement {
   /**
    * Executes a prepared SELECT query and returns an array of all rows
    * @abstract
-   * @param {[]|{}} binding_params The values to be used with the prepared statement
+   * @param {unknown|unknown[]} binding_params
+   * @returns {Promise<unknown[]>}
    */
   async all(binding_params) {
     binding_params
@@ -245,8 +318,8 @@ class PreparedStatement {
   /**
    * Executes a prepared SELECT query and returns a stream of the result
    * @abstract
-   * @param {[]|{}} binding_params The values to be used with the prepared statement
-   * @returns {ReadableStream} A stream of the result
+   * @param {unknown|unknown[]} binding_params
+   * @returns {ReadableStream<string|Buffer>} A stream of the result
    */
   async stream(binding_params) {
     binding_params
@@ -264,29 +337,26 @@ const _target_name4 = q => {
     q.CREATE?.entity ||
     q.DROP?.entity ||
     q.STREAM?.from ||
-    q.STREAM?.into ||
-    undefined
-  if (target?.SET?.op === 'union') throw new cds.error('”UNION” based queries are not supported')
+    q.STREAM?.into
+  if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
 }
 
 const _unquirked = q => {
-  if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
+  if (!q) return q
+  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
+  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
+  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
+  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
+  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
+  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
+  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
 }
 
-const sqls = new (class extends SQLService {
-  get factory() {
-    return null
-  }
-})()
+const sqls = new class extends SQLService { get factory() { return null } }
 cds.extend(cds.ql.Query).with(
   class {
     forSQL() {
@@ -294,6 +364,7 @@ cds.extend(cds.ql.Query).with(
       return this.flat(cqn)
     }
     toSQL() {
+      if (this.SELECT) this.SELECT.expand = 'root' // Enforces using json functions always for top-level SELECTS
       let { sql, values } = (cds.db || sqls).cqn2sql(this)
       return { sql, values } // skipping .cqn property
     }
@@ -303,7 +374,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-/**
- * @type {SQLService}
- */
-module.exports = Object.assign(SQLService, { _target_name4 })
+Object.assign(SQLService, { _target_name4 })
+module.exports = SQLService

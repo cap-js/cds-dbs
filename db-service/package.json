@@ -1,14 +1,22 @@
 {
   "name": "@cap-js/db-service",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CDS base database service",
-  "homepage": "https://cap.cloud.sap/",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
   "keywords": [
     "CAP",
     "CDS"
   ],
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "lib",
     "CHANGELOG.md"
@@ -17,14 +25,12 @@
     "node": ">=16",
     "npm": ">=8"
   },
-  "scripts": {
-    "prettier": "npx prettier --write .",
-    "test": "npx jest --silent",
-    "lint": "npx eslint . && npx prettier --check . "
-  },
-  "dependencies": {},
   "peerDependencies": {
-    "@sap/cds": ">=7"
+    "@sap/cds": ">=7.1.1"
   },
-  "license": "SEE LICENSE"
+  "license": "SEE LICENSE",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "typescript": "^5.1.6"
+  }
 }
