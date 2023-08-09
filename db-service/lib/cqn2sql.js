@@ -706,8 +706,9 @@ class CQN2SQLRenderer {
     }
   }
 
-  get is_() { return 'is' }
-  get is_not_() { return 'is not' }
+  // ANSI does not have IS and IS NOT as operators
+  get is_() { return '=' }
+  get is_not_() { return '!=' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements

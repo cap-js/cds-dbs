@@ -207,6 +207,9 @@ class SQLiteService extends SQLService {
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
+    get is_() { return 'is' }
+    get is_not_() { return 'is not' }
+
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
   }
 
