@@ -700,9 +700,12 @@ class CQN2SQLRenderer {
     if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_not_
     return x
     function _not_null(operand) {
-      if (!operand) return
-      const element = operand.element
-      return element?.key || element?.notNull || operand.val != null
+      if (!operand) return false
+      if (operand.val != null) return true // non-null values are not null
+      let element = operand.element
+      if (!element) return false
+      if (element.key) return true // primary keys usually should not be null
+      if (element.notNull) return true // not null elements cannot be null
     }
   }
 
