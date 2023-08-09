@@ -701,8 +701,8 @@ class CQN2SQLRenderer {
     return x
     function _not_null(operand) {
       if (!operand) return
-      operand = operand.element || operand.val
-      return operand?.key || operand?.notNull
+      const element = operand.element
+      return element?.key || element?.notNull || operand.val != null
     }
   }
 

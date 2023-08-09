@@ -82,7 +82,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 != 6/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 <> 6/i)
   })
 
   test('ref != ref', () => {
