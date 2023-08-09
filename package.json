@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test": "npm run setup && CDS_JEST_MEM_FIX=1 npx jest --silent --colors",
-    "setup": "cd postgres && npm run setup",
+    "setup": "cd postgres && npm run setup && cd ../hana && npm run setup",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"
