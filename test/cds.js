@@ -27,6 +27,7 @@ cdsTest.constructor.prototype.in = function () {
   global.before(() => {
     orgIn.apply(this, arguments)
   })
+  return orgIn.apply(this, arguments)
 }
 
 // REVISIT: move this logic into cds when stabilized
@@ -91,14 +92,14 @@ module.exports.test = Object.setPrototypeOf(function () {
     }
   ret.data.autoIsolation(true)
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     if (ret.data._autoIsolation && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
-  })
+  }, 30 * 1000)
 
-  global.after(async () => {
+  global.afterAll(async () => {
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
@@ -112,3 +113,8 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   return ret
 }, cdsTest.constructor.prototype)
+
+// Release cds._context for garbage collection
+global.afterEach(() => {
+  module.exports._context.disable()
+})

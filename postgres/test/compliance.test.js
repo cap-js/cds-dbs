@@ -1,3 +1,3 @@
 describe('postgres', () => {
-  require('../../test')
+  require('../../test/compliance')
 })
