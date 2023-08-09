@@ -124,6 +124,7 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+
     column_alias4(x, q) {
       let alias = super.column_alias4(x, q)
       if (alias) return alias
@@ -137,15 +138,6 @@ class SQLiteService extends SQLService {
         }
         return obm[x.ref.at(-1)]
       }
-    }
-
-    operator(x, i, xpr) {
-      let y = super.operator(x, i, xpr)
-      if (y !== x) return y
-      // Convert into SQLite NULL compliant operators
-      if (x === '=') return this.operator_has_null(i, xpr) ? 'IS' : '='
-      if (x === '!=') return this.operator_has_null(i, xpr) ? 'IS NOT' : '!='
-      return x
     }
 
     // Used for INSERT statements

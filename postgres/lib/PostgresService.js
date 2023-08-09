@@ -302,11 +302,10 @@ GROUP BY k
       let y = super.operator(x, i, xpr)
       if (y !== x) return y
       if (x === 'regexp') return '~'
-      // Convert into Postgres NULL compliant operators
-      if (x === '=') return this.operator_has_null(i, xpr) ? 'is not distinct from' : '='
-      if (x === '!=') return this.operator_has_null(i, xpr) ? 'is distinct from' : '!='
-      return x
     }
+
+    get is_() { return 'is not distinct from' }
+    get is_not_() { return 'is distinct from' }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)

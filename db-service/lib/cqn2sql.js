@@ -696,36 +696,18 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    // Convert into ANSI SQL NULL operators
-    if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-    if (x === '!=' && xpr[i + 1]?.val === null) return 'is not'
+    if (x === '=')  return xpr[i + 1]?.val === null ? 'is'     : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '='  : this.is_
+    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_not_
     return x
+    function _not_null(operand) {
+      if (!operand) return
+      operand = operand.element || operand.val
+      return operand?.key || operand?.notNull
+    }
   }
 
-  /**
-   * Tests if the operator could contain a null value
-   * @param {Number} i Current index of the operator inside the xpr
-   * @param {import('./infer/cqn').predicate[]} xpr The parent xpr in which the operator is used
-   * @returns {boolean}
-   */
-  operator_has_null(i, xpr) {
-    let left = xpr[i - 1]
-    let right = xpr[i + 1]
-
-    // When there is no expression abort
-    if (!left || !right) return true
-
-    left = left.element || left.val
-    right = right.element || right.val
-
-    // When the type is not known abort
-    // Also catches when the val is null
-    if (!left || !right) return true
-
-    left = !(left.key || left.notNull)
-    right = !(right.key || right.notNull)
-    return left || right
-  }
+  get is_() { return 'is' }
+  get is_not_() { return 'is not' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements
