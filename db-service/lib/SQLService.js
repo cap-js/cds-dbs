@@ -18,6 +18,7 @@ const cqn4sql = require('./cqn4sql')
  */
 
 class SQLService extends DatabaseService {
+
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
@@ -250,7 +251,6 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    // REVISIT: move this check to cqn4sql?
     if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
     return cqn4sql(q, this.model)
   }
@@ -282,6 +282,7 @@ class SQLService extends DatabaseService {
  * @interface
  */
 class PreparedStatement {
+
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
    * @param {unknown|unknown[]} binding_params
@@ -330,29 +331,26 @@ const _target_name4 = q => {
     q.CREATE?.entity ||
     q.DROP?.entity ||
     q.STREAM?.from ||
-    q.STREAM?.into ||
-    undefined
-  if (target?.SET?.op === 'union') throw new cds.error('”UNION” based queries are not supported')
+    q.STREAM?.into
+  if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
 }
 
 const _unquirked = q => {
-  if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
+  if (!q) return q
+  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
+  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
+  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
+  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
+  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
+  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
+  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
 }
 
-const sqls = new (class extends SQLService {
-  get factory() {
-    return null
-  }
-})()
+const sqls = new class extends SQLService { get factory() { return null } }
 cds.extend(cds.ql.Query).with(
   class {
     forSQL() {
