@@ -12,8 +12,8 @@ class SQLiteService extends SQLService {
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
-        dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
-        dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('session_context', key => dbc[$session][key])
+        dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
@@ -32,15 +32,13 @@ class SQLiteService extends SQLService {
 
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
-    if (!dbc[$session]) {
-      dbc[$session] = variables // initial call from within this.begin()
-      const $super = this._release
-      this._release = function (dbc) {
-        // reset session on release
-        delete dbc[$session]
-        return $super.call(this, dbc)
-      }
-    } else Object.assign(dbc[$session], variables) // subsequent uses from custom code
+    if (!dbc[$session]) dbc[$session] = variables
+    else Object.assign(dbc[$session], variables)
+  }
+
+  release() {
+    this.dbc[$session] = undefined
+    return super.release()
   }
 
   prepare(sql) {
