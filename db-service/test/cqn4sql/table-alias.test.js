@@ -865,6 +865,24 @@ describe('table alias access', () => {
             }`,
       )
     })
+    it('in nested correlated subqueries, table alias may be shadowed', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+              (SELECT from bookshop.Authors {
+                books.title
+              } where name = Books.title) as foo
+            }`,
+        model,
+      )
+      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books {
+              (SELECT from bookshop.Authors as Authors
+                  left join bookshop.Books as books2  on books2.author_ID = Authors.ID {
+                books2.title as books_title
+              } where Authors.name = Books.title) as foo
+            }`,
+      )
+    })
 
     it('in nested correlated subqueries, table alias may be shadowed (2)', () => {
       expect(() =>

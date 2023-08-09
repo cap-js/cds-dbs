@@ -19,8 +19,6 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # run with oldest supported node version
-        # the expectation being that the new version is backwards compatible
         node: [16]
 
     steps:
@@ -29,22 +27,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
-      - name: 'install'
-        run: npm ci
-      - name: 'lint'
-        run: npm run lint
-      - name: auto prettier
-        if: failure()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm run lint:eslint &&
-          npm run prettier &&
-          gh pr checkout ${{ github.event.pull_request.number }} &&
-          git config user.email "$(git show -s --format='%ae')" &&
-          git config user.name "$(git show -s --format='%an')" &&
-          git add -A &&
-          git commit -m "✨prettier✨" &&
-          git push
-      - run: cd db-service && npm run build
-      - run: npm run test:all
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test

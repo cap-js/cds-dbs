@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const { Client } = require('pg')
 const cds = require('@sap/cds/lib')
 const crypto = require('crypto')
+const sessionVariableMap = require('./session.json')
 
 class PostgresService extends SQLService {
   init() {
@@ -61,18 +62,18 @@ class PostgresService extends SQLService {
   }
 
   async set(variables) {
-    // REVISIT: remove when all environment variables are aligned
     // RESTRICTIONS: 'Custom parameter names must be two or more simple identifiers separated by dots.'
-    const nameMap = {
-      '$user.id': 'cap.applicationuser',
-      '$user.locale': 'cap.locale',
-      '$valid.from': 'cap.valid_from',
-      '$valid.to': 'cap.valid_to',
+    const env = {}
+
+    // Check all properties on the variables object
+    for (let name in variables) {
+      env[sessionVariableMap[name] || name] = variables[name]
     }
 
-    const env = {}
-    for (let name in variables) {
-      env[nameMap[name]] = variables[name]
+    // Explicitly check for the default session variable properties
+    // As they are getters and not own properties of the object
+    for (let name in sessionVariableMap) {
+      if (variables[name]) env[sessionVariableMap[name]] = variables[name]
     }
 
     return Promise.all([
@@ -106,14 +107,14 @@ class PostgresService extends SQLService {
      * The group by is done by the key column to make sure that only one collation per key is returned
      */
     const cSQL = `
-SELECT 
+SELECT
   SUBSTRING(collname, 1, 2) AS K,
-  MIN(collname) AS V 
-FROM 
-  pg_collation 
-WHERE 
-  collprovider = 'c' AND 
-  collname LIKE '__>___' ESCAPE '>' 
+  MIN(collname) AS V
+FROM
+  pg_collation
+WHERE
+  collprovider = 'c' AND
+  collname LIKE '__>___' ESCAPE '>'
 GROUP BY k
 `
 
@@ -249,18 +250,9 @@ GROUP BY k
       return super.from(from)
     }
 
-    // REVISIT: pg requires alias for {val}
-    SELECT_columns({ SELECT }) {
-      // REVISIT: Genres cqn has duplicate ID column
-      if (!SELECT.columns) return '*'
-      const unique = {}
-      return SELECT.columns
-        .map(x => `${this.column_expr(x)} as ${this.quote(this.column_name(x))}`)
-        .filter(x => {
-          if (unique[x]) return false
-          unique[x] = true
-          return true
-        })
+    column_alias4(x, q) {
+      if (!x.as && 'val' in x) return String(x.val)
+      return super.column_alias4(x, q)
     }
 
     SELECT_expand({ SELECT }, sql) {
@@ -268,19 +260,25 @@ GROUP BY k
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
-        let col = `${this.string(name)},${this.output_converter4(x.element, queryAlias + '.' + this.quote(name))}`
+        const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
+        let col = `${outputConverter} as ${this.doubleQuote(name)}`
 
         if (x.SELECT?.count) {
           // Return both the sub select and the count for @odata.count
           const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          col += `, '${name}@odata.count',${this.expr(qc)}`
+          col += `,${this.expr(qc)} as ${this.doubleQuote(`${name}@odata.count`)}`
         }
         return col
       })
-      let obj = `json_build_object(${cols})`
+      // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
+      let obj = `row_to_json(${queryAlias}.*)`
       return `SELECT ${
         SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (${sql}) as ${queryAlias}`
+      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+    }
+
+    doubleQuote(name) {
+      return `"${name.replace(/"/g, '""')}"`
     }
 
     INSERT(q, isUpsert = false) {

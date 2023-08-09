@@ -19,4 +19,9 @@ service test {
         key ID   : Integer;
             data : LargeBinary @Core.MediaType: 'image/jpeg';
     }
+
+    entity ImagesView as projection on Images {
+        *,
+        data as renamedData
+    }
 }

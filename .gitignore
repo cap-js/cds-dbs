@@ -131,3 +131,6 @@ dist
 
 # Mac
 .DS_Store
+
+# NPM
+.npmrc
