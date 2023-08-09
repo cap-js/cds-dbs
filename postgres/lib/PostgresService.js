@@ -299,9 +299,8 @@ GROUP BY k
     }
 
     operator(x, i, xpr) {
-      let y = super.operator(x, i, xpr)
-      if (y !== x) return y
       if (x === 'regexp') return '~'
+      else return super.operator(x, i, xpr)
     }
 
     get is_() { return 'is not distinct from' }
