@@ -35,7 +35,7 @@ cdsTest.constructor.prototype.in = function () {
 module.exports.test = Object.setPrototypeOf(function () {
   let ret
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     try {
       const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
       const serviceDefinitionPath = testSource + 'test/service.json'
@@ -49,12 +49,12 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   ret = cdsTest(...arguments)
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     // Setup isolation after cds has prepare the project (e.g. cds.model)
     if (ret.data._autoIsolation) {
       await ret.data.isolate()
     }
-  })
+  }, 30 * 1000)
 
   const cds = ret.cds
 
