@@ -20,7 +20,6 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "npm run setup && jest --silent",
     "setup": "npm run setup:hce || npm run setup:hxe",
     "setup:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "setup:hxe": "cd ./tools/docker/hxe/ && ./start.sh"

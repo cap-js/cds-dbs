@@ -2,8 +2,10 @@
 
 exports[`expressions ref is between two range 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x regexp '/\\d/'",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x regexp ?",
+  "values": [
+    "/\\d/",
+  ],
 }
 `;
 
@@ -16,8 +18,10 @@ exports[`expressions ref is in list of sub select 1`] = `
 
 exports[`expressions ref is like pattern 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x like '%123'",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x like ?",
+  "values": [
+    "%123",
+  ],
 }
 `;
 

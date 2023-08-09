@@ -242,8 +242,11 @@ describe('STREAM', () => {
         const out1000 = fs.createWriteStream(path.join(__dirname, 'samples/1000.png'))
         const out1001 = fs.createWriteStream(path.join(__dirname, 'samples/1001.png'))
 
-        ;(await STREAM.from(Images, { ID: 1000 }).column('data')).pipe(out1000)
-        ;(await STREAM.from(Images, { ID: 1001 }).column('data')).pipe(out1001)
+        const in1000 = await STREAM.from(Images, { ID: 1000 }).column('data')
+        const in1001 = await STREAM.from(Images, { ID: 1001 }).column('data')
+
+        in1000.pipe(out1000)
+        in1001.pipe(out1001)
 
         const wrap = stream =>
           new Promise((resolve, reject) => {

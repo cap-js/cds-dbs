@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -347,6 +348,7 @@ class HANAService extends SQLService {
         q.SELECT.expand = expand
         q.SELECT._one = one
         q.SELECT.count = count
+        Object.defineProperty(q, 'elements', { value: orgQuery.elements })
         // Set new query as root cqn
         if (expand === 'root') {
           this.cqn = q
@@ -390,7 +392,7 @@ class HANAService extends SQLService {
                   structures.push(x)
                   return false
                 }
-                let xpr = this.column_expr(x)
+                let xpr = this.expr(x)
                 const converter = x.element?.[this.class._convertOutput] || (e => e)
                 return `${converter(xpr)} as "${this.column_name(x).replace(/"/g, '""')}"`
               }
@@ -398,9 +400,7 @@ class HANAService extends SQLService {
                 if (x === '*') return '*'
                 // means x is a sub select expand
                 if (x.elements) return false
-                let xpr = this.column_expr(x)
-                const sql = x.as ? `${xpr} as ${this.quote(this.column_name(x))}` : xpr
-                return sql
+                return this.column_expr(x)
               },
         )
         .filter(a => a)
@@ -496,6 +496,7 @@ class HANAService extends SQLService {
           }
           this.extractForeignKeys(subQuery.SELECT.where, alias, foreignKeys)
           subQuery.SELECT.where = undefined
+          Object.defineProperty(subQuery, 'elements', { val: c.elements })
           this.SELECT(subQuery)
         }
       })
@@ -671,6 +672,30 @@ class HANAService extends SQLService {
 
     having(xpr) {
       return this.xpr({ xpr }, ' = TRUE')
+    }
+
+    // REVISIT: fix passing query parameters
+    val({ val }) {
+      switch (typeof val) {
+        case 'function':
+          throw new Error('Function values not supported.')
+        case 'undefined':
+          return 'NULL'
+        case 'boolean':
+          return `${val}`
+        case 'number':
+          return `${val}` // REVISIT for HANA
+        case 'object':
+          if (val === null) return 'NULL'
+          if (val instanceof Date) return `'${val.toISOString()}'`
+          if (val instanceof Readable) {
+            this.values.push(val)
+            return '?'
+          }
+          if (Buffer.isBuffer(val)) val = val.toString('base64')
+          else val = this.regex(val) || this.json(val)
+      }
+      return this.string(val)
     }
 
     xpr({ xpr, _internal }, caseSuffix = '') {

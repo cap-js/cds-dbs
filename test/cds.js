@@ -113,7 +113,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     delete cds.db
     delete cds.model
     global.cds.resolve.cache = {}
-  })
+  }, 30 * 1000)
 
   return ret
 }, cdsTest.constructor.prototype)

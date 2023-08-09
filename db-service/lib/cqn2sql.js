@@ -98,10 +98,13 @@ class CQN2SQLRenderer {
     const { target } = q,
       { query } = target
     const name = this.name(target.name)
+    // Don't allow place holders inside views
+    delete this.values
     this.sql =
       !query || target['@cds.persistence.table']
         ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
         : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
+    this.values = []
     return
   }
 
@@ -744,7 +747,9 @@ class CQN2SQLRenderer {
         if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
-    return this.string(val)
+    if (!this.values) return this.string(val)
+    this.values.push(val)
+    return '?'
   }
 
   static Functions = require('./cql-functions')

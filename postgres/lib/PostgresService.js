@@ -365,6 +365,11 @@ GROUP BY k
       return ref[0] === '?' ? `$${this._paramCount++}` : `:${ref}`
     }
 
+    val(val) {
+      const ret = super.val(val)
+      return ret === '?' ? `$${this.values.length}` : ret
+    }
+
     operator(x) {
       if (x === 'regexp') return '~'
       if (x === '=') return 'is not distinct from'
@@ -411,14 +416,14 @@ GROUP BY k
       // REVISIT: Remove that with upcomming fixes in cds.linked
       Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Binary: e => `CAST(${e} as bytea)`,
-      LargeBinary: e => `CAST(${e} as bytea)`,
+      Binary: e => `DECODE(${e},'base64')`,
+      LargeBinary: e => `DECODE(${e},'base64')`,
     }
 
     static OutputConverters = {
       ...super.OutputConverters,
-      Binary: e => e,
-      LargeBinary: e => e,
+      Binary: e => `ENCODE(${e},'base64')`,
+      LargeBinary: e => `ENCODE(${e},'base64')`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
@@ -510,7 +515,9 @@ GROUP BY k
 
 class QueryStream extends Query {
   constructor(config, one) {
-    if (!one) config.rows = 1000
+    // REVISIT: currently when setting the row chunk size
+    // it results in an inconsistent connection state
+    // if (!one) config.rows = 1000
     super(config)
 
     this._one = one || config.one

@@ -40,19 +40,23 @@ exports[`cqn2sql WHERE where with partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,
 
 exports[`cqn2sql WHERE where with two partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x + 9) = 9"`;
 
-exports[`cqn2sql WHERE with contains with multiple arguments 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.a = 0 and ifnull(instr((Foo.a,Foo.b,Foo.c,Foo.x),'z'),0)"`;
+exports[`cqn2sql WHERE with contains with multiple arguments 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.a = 0 and ifnull(instr((Foo.a,Foo.b,Foo.c,Foo.x),?),0)"`;
 
 exports[`cqn2sql WHERE with contains with one column in where clause 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ifnull(instr((Foo.b),'5'),0)",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ifnull(instr((Foo.b),?),0)",
+  "values": [
+    "5",
+  ],
 }
 `;
 
 exports[`cqn2sql WHERE with list of values 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.a,Foo.b,1) = (Foo.c,'d',Foo.x)",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.a,Foo.b,1) = (Foo.c,?,Foo.x)",
+  "values": [
+    "d",
+  ],
 }
 `;
 
@@ -70,8 +74,12 @@ exports[`cqn2sql complex combinations AS, sub query 1`] = `"SELECT Foo.a,Foo.b a
 
 exports[`cqn2sql complex combinations Exists in object mode in complex where 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = '123' and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id is not '') or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name is not '') )",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = ? and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id is not ?) or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name is not ?) )",
+  "values": [
+    "123",
+    "",
+    "",
+  ],
 }
 `;
 
@@ -79,8 +87,10 @@ exports[`cqn2sql complex combinations WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, 
 
 exports[`cqn2sql functions new notation in filter with 1 arg new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.c) = 'name'",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.c) = ?",
+  "values": [
+    "name",
+  ],
 }
 `;
 
@@ -88,8 +98,11 @@ exports[`cqn2sql functions new notation in filter with 2 arg new notation 1`] = 
 
 exports[`cqn2sql functions new notation in filter with 3 arg new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = 'Existing'||Foo.a||'!'",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = ?||Foo.a||?",
+  "values": [
+    "Existing",
+    "!",
+  ],
 }
 `;
 
@@ -97,8 +110,11 @@ exports[`cqn2sql functions new notation in filter with asterisk as arg new notat
 
 exports[`cqn2sql functions new notation in filter with nested functions new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.a) = lower(upper(trim('   existing name  '))) and length(trim('  name')) = Foo.b",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.a) = lower(upper(trim(?))) and length(trim(?)) = Foo.b",
+  "values": [
+    "   existing name  ",
+    "  name",
+  ],
 }
 `;
 
@@ -112,8 +128,10 @@ exports[`cqn2sql quoted column aliases select with subselect in exists and colum
 
 exports[`cqn2sql quoted column aliases select with subselect with in and column aliases 1`] = `
 {
-  "sql": "SELECT Foo.a as A,'abc' as ABC,Foo.x + 1 as Xpr1 FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo.a as B,Foo.x - 4 as Xpr2 FROM Foo as Foo WHERE Foo.x < 9)",
-  "values": [],
+  "sql": "SELECT Foo.a as A,? as ABC,Foo.x + 1 as Xpr1 FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo.a as B,Foo.x - 4 as Xpr2 FROM Foo as Foo WHERE Foo.x < 9)",
+  "values": [
+    "abc",
+  ],
 }
 `;
 
