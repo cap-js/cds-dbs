@@ -30,8 +30,8 @@ class DatabaseService extends cds.Service {
    * This is used in this.begin() for standard properties
    * like `$user.id` or `$user.locale`.
    */
-  async set(variables) {
-    variables
+  // eslint-disable-next-line no-unused-vars
+  set(variables) {
     throw '2b overridden by subclass'
   }
 

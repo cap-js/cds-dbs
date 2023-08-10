@@ -27,25 +27,25 @@ class CQN2SQLRenderer {
     this.class._init() // is a noop for subsequent calls
   }
 
+  static _add_mixins (aspect, mixins) {
+    const fqn = this.name + aspect
+    const types = cds.builtin.types
+    for (let each in mixins) {
+      const def = types[each]
+      if (!def) continue
+      Object.defineProperty(def, fqn, { value: mixins[each] })
+    }
+    return fqn
+  }
+
   /**
    * Initializes the class one first creation to link types to data converters
    */
   static _init() {
-    const _add_mixins = (aspect, mixins) => {
-      const fqn = this.name + aspect
-      const types = cds.builtin.types
-      for (let each in mixins) {
-        const def = types[each]
-        if (!def) continue
-        Object.defineProperty(def, fqn, { value: mixins[each] })
-      }
-      return fqn
-    }
-    this._localized = _add_mixins(':localized', this.localized)
-    this._convertInput = _add_mixins(':convertInput', this.InputConverters)
-    this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
-    this._sqlType = _add_mixins(':sqlType', this.TypeMap)
-    this._insertType = _add_mixins(':insertType', this.InsertTypeMap)
+    this._localized = this._add_mixins(':localized', this.localized)
+    this._convertInput = this._add_mixins(':convertInput', this.InputConverters)
+    this._convertOutput = this._add_mixins(':convertOutput', this.OutputConverters)
+    this._sqlType = this._add_mixins(':sqlType', this.TypeMap)
     // Have all-uppercase all-lowercase, and capitalized keywords to speed up lookups
     for (let each in this.ReservedWords) {
       // ORDER
