@@ -2,6 +2,8 @@ const pipeline = !!process.env.CI
 
 exports.transform = {} // Fixes debugging
 
+exports.testPathIgnorePatterns = [] // allows to modify by script
+
 // Ignore inherited tests that encounter tuple errors
 if (!pipeline)
   exports.testPathIgnorePatterns = [
@@ -11,4 +13,5 @@ if (!pipeline)
     '<rootDir>/postgres/test/service-admin.test.js',
     '<rootDir>/postgres/test/odata-string-functions.test.js',
   ]
+
 if (pipeline) exports.reporters = ['github-actions', 'summary']
