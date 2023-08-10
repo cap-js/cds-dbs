@@ -82,7 +82,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 is not 6/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 <> 6/i)
   })
 
   test('ref != ref', () => {
@@ -93,7 +93,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is not Foo.a/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x != Foo.a/i)
     // Note: test before was that, which is wrong:
     // sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x != Foo.a',
   })
@@ -107,7 +107,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null IS NOT Foo.x/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null != Foo.x/i)
   })
 
   test('ref != 5', () => {
@@ -118,7 +118,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is not 5/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x != 5/i)
   })
 
   test('ref <> 5', () => {
@@ -140,7 +140,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is not 5/i)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x != 5/i)
   })
 
   // We don't have to support that
@@ -153,7 +153,7 @@ describe('expressions', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 is not Foo.x',
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 != Foo.x',
       values: [],
     })
   })
@@ -173,9 +173,7 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is not 5) or (Foo.x is NULL)',
-    )
+    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x != 5) or (Foo.x is NULL)')
   })
 
   test('ref is like pattern', () => {
