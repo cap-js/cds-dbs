@@ -1,8 +1,7 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/cap-js/cds-dbs)](https://api.reuse.software/info/github.com/cap-js/cds-dbs)
 
-# Welcome to cds-dbs Repo
+# Welcome to the @cap-js/cds-dbs Monorepo
 
-## About this project
 
 This is a monorepo for our SQL Database Services.
 
