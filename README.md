@@ -11,6 +11,10 @@ Each of the subfolders is published as individual npm module.
 
 Documentation can be found at [cap.cloud.sap](https://cap.cloud.sap/docs/guides/databases).
 
+## Requirements
+
+See [Getting Started](https://cap.cloud.sap/docs/get-started) on how to jumpstart your development and grow as you go with SAP Cloud Application Programming Model.
+
 ## Support, Feedback, Contributing
 
 This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
