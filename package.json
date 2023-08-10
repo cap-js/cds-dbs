@@ -19,8 +19,7 @@
     "express": "^4"
   },
   "scripts": {
-    "test": "npm run setup && CDS_JEST_MEM_FIX=1 npx jest --silent --colors",
-    "setup": "cd postgres && npm run setup",
+    "test": "npm start -w postgres && CDS_JEST_MEM_FIX=1 npx jest --silent --colors",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"
