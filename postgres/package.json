@@ -27,7 +27,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "setup": "docker-compose -f pg-stack.yml up -d"
+    "start": "docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.1.0",

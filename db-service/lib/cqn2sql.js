@@ -697,10 +697,27 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-    if (x === '!=') return 'is not'
-    else return x
+    if (x === '=')  return xpr[i + 1]?.val === null ? 'is'     : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '='  : this.is_
+    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_not_
+    return x
+    function _not_null(operand) {
+      if (!operand) return false
+      if (operand.val != null) return true // non-null values are not null
+
+      // REVISIT: The below cannot be merged yet due to a glitch in cqn4sql
+      // which erroneously assigns the definition of Genre.ID as element to
+      // the column Genre.parent_ID, and the like
+      //
+      // let element = operand.element
+      // if (!element) return false
+      // if (element.key) return true // primary keys usually should not be null
+      // if (element.notNull) return true // not null elements cannot be null
+    }
   }
+
+  // ANSI does not have IS and IS NOT as operators
+  get is_() { return '=' }
+  get is_not_() { return '!=' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements

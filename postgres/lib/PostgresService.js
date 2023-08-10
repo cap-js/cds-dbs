@@ -370,12 +370,13 @@ GROUP BY k
       return ret === '?' ? `$${this.values.length}` : ret
     }
 
-    operator(x) {
+    operator(x, i, xpr) {
       if (x === 'regexp') return '~'
-      if (x === '=') return 'is not distinct from'
-      if (x === '!=') return 'is distinct from'
-      else return x
+      else return super.operator(x, i, xpr)
     }
+
+    get is_() { return 'is not distinct from' }
+    get is_not_() { return 'is distinct from' }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
