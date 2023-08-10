@@ -702,15 +702,10 @@ class CQN2SQLRenderer {
     function _not_null(operand) {
       if (!operand) return false
       if (operand.val != null) return true // non-null values are not null
-
-      // REVISIT: The below cannot be merged yet due to a glitch in cqn4sql
-      // which erroneously assigns the definition of Genre.ID as element to
-      // the column Genre.parent_ID, and the like
-      //
-      // let element = operand.element
-      // if (!element) return false
-      // if (element.key) return true // primary keys usually should not be null
-      // if (element.notNull) return true // not null elements cannot be null
+      let element = operand.element
+      if (!element) return false
+      if (element.key) return true // primary keys usually should not be null
+      if (element.notNull) return true // not null elements cannot be null
     }
   }
 
