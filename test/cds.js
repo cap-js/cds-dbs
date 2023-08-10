@@ -39,6 +39,8 @@ module.exports.test = Object.setPrototypeOf(function () {
     try {
       const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
+      cds.env.requires.sqlite = require('@cap-js/sqlite/test/service.json')
+      cds.env.requires.postgres = require('@cap-js/postgres/test/service.json')
     } catch (e) {
       // Default to sqlite for packages without their own service
       cds.env.requires.db = require('@cap-js/sqlite/test/service.json')
@@ -106,6 +108,8 @@ module.exports.test = Object.setPrototypeOf(function () {
     // Clean cache
     delete cds.services._pending.db
     delete cds.services.db
+    delete cds.services.sqlite
+    delete cds.services.postgres
     delete cds.db
     delete cds.model
     global.cds.resolve.cache = {}
