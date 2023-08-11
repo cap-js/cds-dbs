@@ -208,6 +208,7 @@ class SQLiteService extends SQLService {
     }
 
     get is_distinct_from_() { return 'is not' }
+    get is_not_distinct_from_() { return 'is' }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
   }

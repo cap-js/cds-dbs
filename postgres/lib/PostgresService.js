@@ -303,8 +303,6 @@ GROUP BY k
       else return super.operator(x, i, xpr)
     }
 
-    get is_distinct_from_() { return 'is distinct from' }
-
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }

@@ -696,18 +696,23 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    // Translate != to IS NOT NULL, IS DISTINCT FROM, or <> operator
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_distinct_from_
 
-    // Translate = to IS NULL, or =
-    if (x === '=')  return xpr[i + 1]?.val === null ? 'is' : '='
-    // IMPORTANT: We intentionally do not translate to IS NOT DISTINCT FROM,
-    // as that would only NULL IS NULL cases, but change many ON conditions
-    // predicates to use IS NOT DISTINCT FROM instead of =, with detrimental
-    // impact on performance
+    // Translate = to IS NULL for rhs operand being NULL literal
+    if (x === '=')  return xpr[i+1]?.val === null ? 'is' : '='
 
-    return x
-    function _not_null(operand) {
+    // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
+    // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
+    if (x === '==') return xpr[i+1]?.val === null ? 'is' : _not_null(i-1) && _not_null(i+1) ? '=' : this.is_not_distinct_from_
+
+    // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
+    // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
+    if (x === '!=') return xpr[i+1]?.val === null ? 'is not' : _not_null(i-1) && _not_null(i+1) ? '<>' : this.is_distinct_from_
+
+    else return x
+
+    /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
+    function _not_null(i) {
+      const operand = xpr[i]
       if (!operand) return false
       if (operand.val != null) return true // non-null values are not null
 
@@ -722,8 +727,8 @@ class CQN2SQLRenderer {
     }
   }
 
-  // ANSI does not have IS DISTINCT FROM predicates
-  get is_distinct_from_() { return '!=' }
+  get is_distinct_from_() { return 'is distinct from' }
+  get is_not_distinct_from_() { return 'is not distinct from' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements
