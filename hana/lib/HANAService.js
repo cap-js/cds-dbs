@@ -237,7 +237,7 @@ class HANAService extends SQLService {
 
     static _init() {
       this._insertType = this._add_mixins(':insertType', this.InsertTypeMap)
-      return super.init()
+      return super._init()
     }
 
     SELECT(q) {

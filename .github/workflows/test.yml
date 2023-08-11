@@ -72,6 +72,7 @@ jobs:
           IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
           { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
           echo "HXE_PULL=$!" >> $GITHUB_OUTPUT
+          wait
 
       # testing
       - run: npm test
