@@ -75,6 +75,6 @@ jobs:
           wait
 
       # testing
-      - run: npm test
+      - run: npm test -- --runInBand
         env:
           HXE_PULL: ${{ steps.pull-hxe.outputs.HXE_PULL }}
