@@ -696,8 +696,16 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    if (x === '=')  return xpr[i + 1]?.val === null ? 'is'     : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '='  : this.is_
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_not_
+    // Translate != to IS NOT NULL, IS DISTINCT FROM, or <> operator
+    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_distinct_from_
+
+    // Translate = to IS NULL, or =
+    if (x === '=')  return xpr[i + 1]?.val === null ? 'is' : '='
+    // IMPORTANT: We intentionally do not translate to IS NOT DISTINCT FROM,
+    // as that would only NULL IS NULL cases, but change many ON conditions
+    // predicates to use IS NOT DISTINCT FROM instead of =, with detrimental
+    // impact on performance
+
     return x
     function _not_null(operand) {
       if (!operand) return false
@@ -714,9 +722,8 @@ class CQN2SQLRenderer {
     }
   }
 
-  // ANSI does not have IS and IS NOT as operators
-  get is_() { return '=' }
-  get is_not_() { return '!=' }
+  // ANSI does not have IS DISTINCT FROM predicates
+  get is_distinct_from_() { return '!=' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements
