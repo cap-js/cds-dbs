@@ -89,6 +89,27 @@ describe('assign element onto columns with flat model', () => {
     // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(Books.elements.author_ID)
   })
+  it('within expand, the key in the target is attached, not the foreign key', () => {
+    let query = cqn4sql(CQL`
+      SELECT from bookshop.Books {
+        ID,
+        author {
+          ID
+        }
+      }
+    `, model)
+    const expected = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        (SELECT from bookshop.Authors as author {
+          author.ID
+        } where Books.author_ID = author.ID) as author
+    }
+    `
+    const { Authors } = model.entities
+    expect(JSON.parse(JSON.stringify(query))).to.deep.eql(expected)
+    // foreign key is part of flat model
+    expect(query.SELECT.columns[1].SELECT.columns[0]).to.have.property('element').that.eqls(Authors.elements.ID)
+  })
 
   it('foreign key is adjacent to its association in flat model with multiple foreign keys', () => {
     let query = cqn4sql(CQL`
