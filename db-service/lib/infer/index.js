@@ -662,7 +662,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const colWithBase = baseColumn
           ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
           : column
-        if (isColumnJoinRelevant(colWithBase, $baseLink)) {
+        if (isColumnJoinRelevant(colWithBase)) {
           if (originalQuery.UPDATE)
             throw cds.error(
               'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
