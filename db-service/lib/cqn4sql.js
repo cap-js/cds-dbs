@@ -1072,7 +1072,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
-          setElementOnColumns(flatColumn, fkElement)
+          // in a flat model, we must assign the foreign key rather than the key in the target
+          const flatForeignKey = model.definitions[element.parent.name]?.elements[fkBaseName]
+
+          setElementOnColumns(flatColumn, flatForeignKey || fkElement)
           Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
           flatColumns.push(flatColumn)
         }
