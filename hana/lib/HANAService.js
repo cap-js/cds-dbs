@@ -234,6 +234,12 @@ class HANAService extends SQLService {
   }
 
   static CQN2SQL = class CQN2HANA extends SQLService.CQN2SQL {
+
+    static _init() {
+      this._insertType = this._add_mixins(':insertType', this.InsertTypeMap)
+      return super.init()
+    }
+
     SELECT(q) {
       // Collect all queries and blob columns of all queries
       this.temporary = this.temporary || []
