@@ -107,7 +107,7 @@ describe('assign element onto columns with flat model', () => {
     `
     const { Authors } = model.entities
     expect(JSON.parse(JSON.stringify(query))).to.deep.eql(expected)
-    // foreign key is part of flat model
+
     expect(query.SELECT.columns[1].SELECT.columns[0]).to.have.property('element').that.eqls(Authors.elements.ID)
   })
 
