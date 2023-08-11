@@ -1,4 +1,4 @@
-describe.skip('hana', () => {
+describe('hana', () => {
   // REVISIT: fix streaming SQL syntax errors
-  require('../../test/scenarios/bookshop/stream.test')
+  require('../../sqlite/test/general/stream.test')
 })

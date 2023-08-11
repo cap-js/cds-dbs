@@ -1,7 +1,7 @@
 const { Readable, Stream } = require('stream')
 
 const hdb = require('@sap/hana-client')
-const hdbStream = require('@sap/hana-client/extension/Stream')
+const { StringDecoder } = require('string_decoder')
 const { driver, prom, handleLevel } = require('./base')
 
 const streamUnsafe = false
@@ -44,7 +44,7 @@ class HANAClientDriver extends driver {
         if (rs.getRowCount() === 0) return null
         await prom(rs, 'next')()
         if (rs.isNull(0)) return null
-        return hdbStream.createLobStream(rs, 0, {})
+        return Readable.from(streamBlob(rs, 0, 'binary'))
       }
       return Readable.from(rsIterator(rs, one))
     }
@@ -84,10 +84,8 @@ class HANAClientDriver extends driver {
   }
 }
 
-const useGetData = true
 async function* rsIterator(rs, one) {
   const next = prom(rs, 'next') // () => rs.next()
-  const getValues = prom(rs, 'getValues')
   const getValue = prom(rs, 'getValue') // nr => rs.getValue(nr)
   const getData = prom(rs, 'getData') // (nr, pos, buf, zero, bufSize) => rs.getData(nr, pos, buf, zero, bufSize) //
   const levels = [
@@ -99,8 +97,7 @@ async function* rsIterator(rs, one) {
     },
   ]
 
-  const binaryBufferSize = 1 << 16
-  const binaryBuffer = new Buffer.alloc(binaryBufferSize)
+  const binaryBuffer = new Buffer.alloc(1 << 16)
 
   const blobColumns = {}
   rs.getColumnInfo()
@@ -116,9 +113,8 @@ async function* rsIterator(rs, one) {
   let buffer = ''
   // Load next row of the result set (starts before the first row)
   while (await next()) {
-    const values = await (useGetData
-      ? Promise.all([getValue(0), getValue(1), getValue(2)])
-      : getValues({ asArray: true }))
+    const values = await Promise.all([getValue(0), getValue(1), getValue(2)])
+
     const [path, _blobs, _expands] = values
     const expands = JSON.parse(_expands)
     const blobs = JSON.parse(_blobs)
@@ -126,21 +122,17 @@ async function* rsIterator(rs, one) {
     yield handleLevel(levels, path, expands)
 
     let hasProperties = false
-    if (useGetData) {
-      let jsonPosition = 0
-      while (true) {
-        const read = await getData(3, jsonPosition, binaryBuffer, 0, binaryBufferSize)
-        if (read < binaryBufferSize) {
-          if (read > 2) hasProperties = true
-          // Pipe json stream.slice(0,-1) removing the } to keep the object open
-          yield binaryBuffer.slice(0, read - 1)
-          break
-        }
-        jsonPosition += read
-        yield binaryBuffer
+    let jsonPosition = 0
+    while (true) {
+      const read = await getData(3, jsonPosition, binaryBuffer, 0, binaryBuffer.byteLength)
+      if (read < binaryBuffer.byteLength) {
+        if (read > 2) hasProperties = true
+        // Pipe json stream.slice(0,-1) removing the } to keep the object open
+        yield binaryBuffer.slice(0, read - 1).toString('utf-8')
+        break
       }
-    } else {
-      yield values[3].slice(0, -1)
+      jsonPosition += read
+      yield binaryBuffer.toString('utf-8')
     }
 
     for (const key of Object.keys(blobs)) {
@@ -158,22 +150,15 @@ async function* rsIterator(rs, one) {
       yield buffer
       buffer = ''
 
-      if (useGetData) {
-        let blobPosition = 0
-        while (true) {
-          // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-          const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBufferSize)
-          blobPosition += read
-          if (read < binaryBufferSize) {
-            yield binaryBuffer.slice(0, read).toString('base64')
-            break
-          }
-          yield binaryBuffer.toString('base64')
-        }
-      } else {
-        yield values[columnIndex]
+      for await (const chunk of streamBlob(rs, columnIndex, 'base64', binaryBuffer)) {
+        yield chunk
       }
       buffer += '"'
+    }
+
+    if (buffer) {
+      yield buffer
+      buffer = ''
     }
 
     const level = levels[levels.length - 1]
@@ -186,6 +171,30 @@ async function* rsIterator(rs, one) {
     .map(l => l.suffix)
     .join('')
   yield buffer
+}
+
+async function* streamBlob(rs, columnIndex, encoding, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
+  const getData = prom(rs, 'getData')
+
+  const decoder = new StringDecoder(encoding)
+
+  let blobPosition = 0
+
+  while (true) {
+    // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
+    let start = 0
+    const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
+    if (blobPosition === 0 && binaryBuffer.slice(0, 7).toString() === 'base64,') {
+      start = 7
+    }
+    blobPosition += read
+    if (read < binaryBuffer.byteLength) {
+      yield decoder.write(binaryBuffer.slice(start, read))
+      break
+    }
+    yield decoder.write(binaryBuffer.slice(start).toString('base64'))
+  }
+  yield decoder.end()
 }
 
 async function* rowsIterator(rows, cols) {

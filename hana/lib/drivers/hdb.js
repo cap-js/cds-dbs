@@ -1,6 +1,8 @@
 const { Readable, PassThrough, Stream } = require('stream')
+const { StringDecoder } = require('string_decoder')
 
 const hdb = require('hdb')
+const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
 
@@ -131,8 +133,9 @@ async function* rsIterator(rs, one) {
       if (bytesLeft < length) {
         // Copy leftover bytes
         if (encoding) {
-          // TODO: ensure that slice size is divisible by 3 to prevent filler =
-          const encoded = Buffer.from(this.buffer.slice(this.reading).toString(encoding))
+          let slice = Buffer.from(iconv.decode(this.buffer.slice(this.reading), 'cesu8'), 'binary')
+          this.prefetchDecodedSize = slice.byteLength
+          const encoded = Buffer.from(encoding.write(slice))
           if (this.writing + encoded.byteLength > this.buffer.byteLength) {
             this.yields.push(this.buffer.slice(0, this.writing))
             this.yields.push(encoded)
@@ -156,16 +159,19 @@ async function* rsIterator(rs, one) {
           this.buffer = next.value
           this.reading = 0
           this.writing = 0
-          return this.write(length)
+          return this.write(length, encoding)
         })
       }
       if (encoding) {
-        const encoded = Buffer.from(this.buffer.slice(this.reading).toString(encoding))
+        let slice = Buffer.from(iconv.decode(this.buffer.slice(this.reading, this.reading + length), 'cesu8'), 'binary')
+        this.prefetchDecodedSize = slice.byteLength
+        const encoded = Buffer.from(encoding.write(slice))
         const nextWriting = this.writing + encoded.byteLength
-        if (nextWriting > this.buffer.byteLength || nextWriting > this.reading) {
+        const nextReading = this.reading + length
+        if (nextWriting > this.buffer.byteLength || nextWriting > nextReading) {
           this.yields.push(this.buffer.slice(0, this.writing))
           this.yields.push(encoded)
-          this.buffer = this.buffer.slice(this.reading)
+          this.buffer = this.buffer.slice(nextReading)
           this.reading = 0
           this.writing = 0
         } else {
@@ -235,7 +241,7 @@ async function* rsIterator(rs, one) {
       hasProperties = true
       state.inject(`${JSON.stringify(blobColumn)}:`)
 
-      const blobLength = readBlob(state, 'base64')
+      const blobLength = readBlob(state, new StringDecoder('base64'))
       if (typeof blobLength !== 'number') await blobLength
     }
 
@@ -329,6 +335,7 @@ const readBlob = function (state, encoding) {
   let hasMore = length < byteLength
   const skipLast = !encoding && !hasMore
   const preFetchRead = skipLast ? length - 1 : length
+  state.prefetchDecodedSize = length
   const write = state.write(preFetchRead, encoding)
   if (skipLast) {
     state.read(1)
@@ -336,6 +343,7 @@ const readBlob = function (state, encoding) {
 
   const after = () => {
     if (encoding) {
+      state.inject(encoding.end())
       state.inject('"')
     }
     return byteLength
@@ -347,14 +355,15 @@ const readBlob = function (state, encoding) {
         state.rs._connection.readLob(
           {
             locatorId: locatorId,
-            offset: length,
+            // REVISIT: identify why large binaries are a byte to long
+            offset: state.prefetchDecodedSize + 1 || length,
             length: 1 << 16,
           },
           (err, data) => {
             if (err) return reject(err)
             const isLast = data.readLobReply.isLast
-            const chunk = isLast && !encoding ? data.readLobReply.chunk.slice(0, -1) : data.readLobReply.chunk
-            state.inject(encoding ? chunk.toString(encoding) : chunk)
+            let chunk = isLast && !encoding ? data.readLobReply.chunk.slice(0, -1) : data.readLobReply.chunk
+            state.inject(encoding ? encoding.write(chunk) : chunk)
             if (isLast) {
               hasMore = false
             }
@@ -366,7 +375,7 @@ const readBlob = function (state, encoding) {
     return after()
   }
 
-  if (write) {
+  if (write?.then) {
     return write.then(next)
   }
 

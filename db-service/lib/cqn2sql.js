@@ -612,11 +612,11 @@ class CQN2SQLRenderer {
     let sql
     if (!_empty(column)) {
       data.type = 'binary'
-      sql = this.UPDATE(
-        UPDATE(into)
-          .with({ [column]: data })
-          .where(where),
-      )
+      const update = UPDATE(into)
+        .with({ [column]: data })
+        .where(where)
+      Object.defineProperty(update, 'target', { value: q.target })
+      sql = this.UPDATE(update)
     } else {
       data.type = 'json'
       // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT

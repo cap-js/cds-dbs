@@ -102,16 +102,14 @@ class HANAService extends SQLService {
   }
 
   async onSTREAM(req) {
-    let { cqn, sql, values, entries, temporary, blobs } = this.cqn2sql(req.query)
+    let { cqn, sql, values, temporary, blobs } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
-      const stream = entries[0]
-      values.unshift(stream)
       const ps = await this.prepare(sql)
       return (await ps.run(values)).changes
     }
     // reading stream
-    if (temporary) {
+    if (temporary?.length) {
       // Full SELECT CQN support streaming
       sql = this.wrapTemporary(temporary, blobs)
     }
@@ -832,7 +830,8 @@ class HANAService extends SQLService {
 
       return [...columns, ...requiredColumns].map(({ name, sql }) => {
         const element = elements?.[name] || {}
-        const converter = element[inputConverterKey] || (e => e)
+        // Don't apply input converters for place holders
+        const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
         let managed = element[annotation]?.['=']
         switch (managed) {
           case '$user.id':
@@ -907,7 +906,10 @@ class HANAService extends SQLService {
     // HANA JSON_TABLE function does not support BOOLEAN types
     static InputConverters = {
       ...super.InputConverters,
-      Binary: e => `BASE64_DECODE(${e})`,
+      // REVISIT: BASE64_DECODE has stopped working
+      // Unable to convert NVARCHAR to UTF8
+      // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
+      Binary: e => `CONCAT('base64,',${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
     }
 
