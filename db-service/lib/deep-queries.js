@@ -44,6 +44,11 @@ async function onDeep(req, next) {
 const hasDeep = (query, target) => {
   if (handledDeep in query) return
   if (query.DELETE) {
+    // REVISIT: Resolve view does not support from.join
+    // But deep delete is capable of handling this query
+    // Therefor this has to return true to prevent resolve view
+    // from being called and throwing an error
+    if (!query.DELETE.from.ref) return true
     for (let c in target?.compositions) return true
     return false
   }
