@@ -891,7 +891,7 @@ class CQN2SQLRenderer {
       }
 
       let converter = element[_convertInput]
-      if (converter) sql = converter(sql, element)
+      if (converter && !(sql === '?' || sql[0] === '$')) sql = converter(sql, element)
       return { name, sql }
     })
   }
