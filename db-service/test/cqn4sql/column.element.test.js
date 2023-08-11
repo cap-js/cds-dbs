@@ -85,8 +85,8 @@ describe('assign element onto columns with flat model', () => {
     `
     const { Books } = model.entities
     expect(query).to.deep.eql(expected)
-    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(Books.elements['ID'])
-    // foreign key part is part of flat model
+    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(Books.elements.ID)
+    // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(Books.elements.author_ID)
   })
 
@@ -107,10 +107,11 @@ describe('assign element onto columns with flat model', () => {
     `
     const { AssocWithStructuredKey } = model.entities
     expect(query).to.deep.eql(expected)
-    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements['ID'])
-    // foreign key part is part of flat model
+    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.ID)
+    // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf)
     expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)
+
     expect(query.SELECT.columns[3]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_second)
   })
 
@@ -130,8 +131,8 @@ describe('assign element onto columns with flat model', () => {
     `
     const { TestPublisher } = model.entities
     expect(query).to.deep.eql(expected)
-    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(TestPublisher.elements['ID'])
-    // foreign key part is part of flat model
+    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(TestPublisher.elements.ID)
+    // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(TestPublisher.elements.publisherRenamedKey_notID)
   })
 })
