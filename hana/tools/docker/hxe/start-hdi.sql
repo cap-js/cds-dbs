@@ -26,7 +26,7 @@ BEGIN
     SELECT schema_name,table_name FROM m_cs_tables WHERE loaded != 'NO';
 
   FOR cur_row AS c_cursor1(v_isbn) DO
-    EXEC 'UNLOAD ' || :cur_row.schema_name || '.' || :cur_row.table_name;
+    EXEC 'UNLOAD ' || :cur_row.schema_name || '.' || :cur_row.table_name || ' DELETE PERSISTENT MEMORY';
   END FOR;
 END;
 
