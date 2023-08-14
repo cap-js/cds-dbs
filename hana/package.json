@@ -24,10 +24,11 @@
     "setup:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "setup:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
-  "dependencies": {},
+  "dependencies": {
+    "hdb": "^0.19.5"
+  },
   "peerDependencies": {
-    "hdb": "^0.19.5",
-    "@sap/hana-client": "^2.16.26",
+    "@sap/hana-client": ">=2",
     "@sap/cds": ">=7"
   },
   "cds": {

@@ -176,7 +176,7 @@ async function* rsIterator(rs, one) {
 async function* streamBlob(rs, columnIndex, encoding, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
   const getData = prom(rs, 'getData')
 
-  const decoder = new StringDecoder(encoding)
+  let decoder = new StringDecoder(encoding)
 
   let blobPosition = 0
 
@@ -185,6 +185,10 @@ async function* streamBlob(rs, columnIndex, encoding, binaryBuffer = Buffer.allo
     let start = 0
     const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
     if (blobPosition === 0 && binaryBuffer.slice(0, 7).toString() === 'base64,') {
+      decoder = {
+        write: encoding === 'base64' ? c => c : chunk => Buffer.from(chunk.toString(), 'base64'),
+        end: () => Buffer.allocUnsafe(0),
+      }
       start = 7
     }
     blobPosition += read
