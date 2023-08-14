@@ -1,0 +1,16 @@
+{
+  "impl": "@cap-js/hana",
+  "credentials": {
+    "user": "SYSTEM",
+    "password": "Manager1",
+    "host": "localhost",
+    "port": "30041",
+    "useTLS": true,
+    "encrypt": true,
+    "sslValidateCertificate": false,
+    "disableCloudRedirect": true,
+
+    "driver": "hdb",
+    "driver": "hana-client"
+  }
+}
