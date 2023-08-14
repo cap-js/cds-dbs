@@ -710,10 +710,11 @@ class HANAService extends SQLService {
         // These operators are not allowed in column expressions
         '>': null,
         '<': null,
-        '>=': true,
-        '<=': true,
-        '!<': false,
-        '!>': false,
+        '<>': null,
+        '>=': null,
+        '<=': null,
+        '!<': null,
+        '!>': null,
       }
 
       if (!_internal) {
