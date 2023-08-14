@@ -375,9 +375,6 @@ GROUP BY k
       else return super.operator(x, i, xpr)
     }
 
-    get is_() { return 'is not distinct from' }
-    get is_not_() { return 'is distinct from' }
-
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }
