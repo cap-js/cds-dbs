@@ -1124,7 +1124,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * Expand `exists <assoc>` into `WHERE EXISTS` subqueries, apply flattening to `ref`s.
    * Recursively apply `cqn4sql` to query expressions found in the token stream.
    *
-   * @param {object[]} _xpr - The token stream to transform. Each token in the stream is an
+   * @param {object[]} tokenStream - The token stream to transform. Each token in the stream is an
    *                                 object representing a CQN construct such as a column, an operator,
    *                                 or a subquery.
    * @param {object} [$baseLink=null] - The context in which the `ref`s in the token stream are resolvable.
@@ -1133,14 +1133,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *                                    Here, the $baseLink for `anotherAssoc` would be `assoc`.
    * @returns {object[]} - The transformed token stream.
    */
-  function getTransformedTokenStream(_xpr, $baseLink = null) {
+  function getTransformedTokenStream(tokenStream, $baseLink = null) {
     const transformedTokenStream = []
-    for (let i = 0; i < _xpr.length; i++) {
-      const x = _xpr[i]
-      if (x === 'exists') {
-        transformedTokenStream.push(x)
+    for (let i = 0; i < tokenStream.length; i++) {
+      const token = tokenStream[i]
+      if (token === 'exists') {
+        transformedTokenStream.push(token)
         const whereExistsSubSelects = []
-        const { ref, $refLinks } = _xpr[i + 1]
+        const { ref, $refLinks } = tokenStream[i + 1]
         if (!ref) continue
         if (ref[0] in { $self: true, $projection: true })
           cds.error(`Unexpected "${ref[0]}" following "exists", remove it or add a table alias instead`)
@@ -1183,10 +1183,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         transformedTokenStream[i + 1] = whereExists
         // skip newly created subquery from being iterated
         i += 1
-      } else if (x.list) {
-        if (x.list.length === 0) {
+      } else if (token.list) {
+        if (token.list.length === 0) {
           // replace `[not] in <empty list>` to harmonize behavior across dbs
-          const precedingTwoTokens = _xpr.slice(i - 2, i)
+          const precedingTwoTokens = tokenStream.slice(i - 2, i)
           const firstPrecedingToken =
             typeof precedingTwoTokens[0] === 'string' ? precedingTwoTokens[0].toLowerCase() : ''
           const secondPrecedingToken =
@@ -1200,9 +1200,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedTokenStream.push({ list: getTransformedTokenStream(x.list) })
+          transformedTokenStream.push({ list: getTransformedTokenStream(token.list) })
         }
-      } else if (_xpr.length === 1 && x.val && $baseLink) {
+      } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
         const def = $baseLink.definition._target || $baseLink.definition
         const keys = def.keys // use key aspect on entity
@@ -1216,25 +1216,25 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           })
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
-        flatKeys.forEach(c => keyValComparisons.push([...[c, '=', x]]))
+        flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
           transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
         )
-      } else if (x.ref && x.param) {
-        transformedTokenStream.push({ ...x })
-      } else if (pseudos.elements[x.ref?.[0]]) {
-        transformedTokenStream.push({ ...x })
+      } else if (token.ref && token.param) {
+        transformedTokenStream.push({ ...token })
+      } else if (pseudos.elements[token.ref?.[0]]) {
+        transformedTokenStream.push({ ...token })
       } else {
         // expand `struct = null | struct2`
-        const { definition } = x.$refLinks?.[x.$refLinks.length - 1] || {}
-        const next = _xpr[i + 1]
+        const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
+        const next = tokenStream[i + 1]
         if (allOps.some(([firstOp]) => firstOp === next) && (definition?.elements || definition?.keys)) {
           const ops = [next]
           let indexRhs = i + 2
-          let rhs = _xpr[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
+          let rhs = tokenStream[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
           if (allOps.some(([, secondOp]) => secondOp === rhs)) {
             ops.push(rhs)
-            rhs = _xpr[i + 3]
+            rhs = tokenStream[i + 3]
             indexRhs += 1
           }
           if (
@@ -1245,45 +1245,45 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           ) {
             if (notSupportedOps.some(([firstOp]) => firstOp === next))
               cds.error(`The operator "${next}" is not supported for structure comparison`)
-            const newTokens = expandComparison(x, ops, rhs)
-            const needXpr = Boolean(_xpr[i - 1] || _xpr[indexRhs + 1])
+            const newTokens = expandComparison(token, ops, rhs)
+            const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
             transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
             i = indexRhs // jump to next relevant index
           }
         } else {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
-          assertNoStructInXpr(x, $baseLink)
+          assertNoStructInXpr(token, $baseLink)
 
-          let result = is_regexp(x?.val) ? x : copy(x) // REVISIT: too expensive! //
-          if (x.ref) {
-            const { definition } = x.$refLinks[x.$refLinks.length - 1]
+          let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
+          if (token.ref) {
+            const { definition } = token.$refLinks[token.$refLinks.length - 1]
             // Add definition to result
             setElementOnColumns(result, definition)
             if (isCalculatedOnRead(definition)) {
-              const calculatedElement = resolveCalculatedElement(x, true, $baseLink)
+              const calculatedElement = resolveCalculatedElement(token, true, $baseLink)
               transformedTokenStream.push(calculatedElement)
               continue
             }
-            if (x.ref.length > 1 && x.ref[0] === '$self' && !x.$refLinks[0].definition.kind) {
-              const dollarSelfReplacement = [calculateDollarSelfColumn(x, true)]
+            if (token.ref.length > 1 && token.ref[0] === '$self' && !token.$refLinks[0].definition.kind) {
+              const dollarSelfReplacement = [calculateDollarSelfColumn(token, true)]
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
               continue
             }
-            const tableAlias = getQuerySourceName(x, $baseLink)
-            if (!$baseLink && x.isJoinRelevant) {
-              result.ref = [tableAlias, getFullName(x.$refLinks[x.$refLinks.length - 1].definition)]
+            const tableAlias = getQuerySourceName(token, $baseLink)
+            if (!$baseLink && token.isJoinRelevant) {
+              result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
             } else if (tableAlias) {
-              result.ref = [tableAlias, x.flatName]
+              result.ref = [tableAlias, token.flatName]
             } else {
               // if there is no table alias, we might select from an anonymous subquery
-              result.ref = [x.flatName]
+              result.ref = [token.flatName]
             }
-          } else if (x.SELECT) {
-            result = transformSubquery(x)
-          } else if (x.xpr) {
-            result.xpr = getTransformedTokenStream(x.xpr, $baseLink)
-          } else if (x.func && x.args) {
-            result.args = x.args.map(t => {
+          } else if (token.SELECT) {
+            result = transformSubquery(token)
+          } else if (token.xpr) {
+            result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
+          } else if (token.func && token.args) {
+            result.args = token.args.map(t => {
               if (!t.val)
                 // this must not be touched
                 return getTransformedTokenStream([t], $baseLink)[0]
