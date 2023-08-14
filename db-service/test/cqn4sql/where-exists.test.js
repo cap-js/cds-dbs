@@ -1242,11 +1242,16 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 
   it('MUST ... two EXISTS both on same path in where', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or genre.children[code = 'DEF']`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as book { book.ID }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.genre_ID = genre.ID )
-          AND EXISTS ( SELECT 1 from bookshop.Genres as parent where parent.ID = genre.parent_ID )
-      `)
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
+    WHERE EXISTS ( // first genre.children exists
+      SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
+        and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
+    )
+    or  EXISTS (  // second genre.children exists
+      SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID 
+      and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
+    )`)
   })
 })
 
