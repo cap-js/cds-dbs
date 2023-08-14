@@ -31,4 +31,4 @@ BEGIN
 END;
 
 -- Configure maximum memory allocation to 8192MiB as this does not translate to physical memory
-ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'system') SET ('memorymanager', 'global_allocation_limit') = '8192' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'system') SET ('memorymanager', 'global_allocation_limit') = '10240' WITH RECONFIGURE;
