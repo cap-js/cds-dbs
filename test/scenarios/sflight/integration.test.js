@@ -1,6 +1,6 @@
 const childProcess = require('child_process')
 const path = require('path')
-const cds = require('../../../test/cds')
+const cds = require('../../cds')
 
 const sflightPath = require.resolve('@capire/sflight/package.json').slice(0, -13)
 
