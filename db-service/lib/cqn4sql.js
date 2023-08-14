@@ -9,7 +9,7 @@ const infer = require('./infer')
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
  * If there are at least two leaf elements and if there are tokens before or after the recognized pattern, we enclose the resulting condition in parens (...)
  */
-const eqOps = [['is'], ['='], ['==']]
+const eqOps = [['is'], ['='] /* ['=='] */]
 /**
  * For operators of <notEqOps>, do the same but use or instead of and.
  * This ensures that not struc == <value> is the same as struc != <value>.
@@ -1381,12 +1381,19 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   function assertNoStructInXpr(token, inInfixFilter = false) {
-    if (!inInfixFilter && token.$refLinks?.at(-1).definition.target)
-      // REVISIT: let this through if not requested otherwise
-      throw new Error("An association can't be used as a value in an expression")
-    if (isStructured(token.$refLinks?.at(-1).definition))
-      // REVISIT: let this through if not requested otherwise
-      throw new Error("A structured element can't be used as a value in an expression")
+    if (!inInfixFilter && token.$refLinks?.[token.$refLinks.length - 1].definition.target)
+      // revisit: let this through if not requested otherwise
+      rejectAssocInExpression()
+    if (isStructured(token.$refLinks?.[token.$refLinks.length - 1].definition))
+      // revisit: let this through if not requested otherwise
+      rejectStructInExpression()
+
+    function rejectAssocInExpression() {
+      throw new Error(/An association can't be used as a value in an expression/)
+    }
+    function rejectStructInExpression() {
+      throw new Error(/A structured element can't be used as a value in an expression/)
+    }
   }
 
   /**
