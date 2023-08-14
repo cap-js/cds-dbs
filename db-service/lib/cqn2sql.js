@@ -567,7 +567,6 @@ class CQN2SQLRenderer {
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where(where)}`
-    console.log(sql,this.values)
     return (this.sql = sql)
   }
 
