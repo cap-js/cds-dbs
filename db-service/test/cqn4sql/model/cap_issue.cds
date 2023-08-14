@@ -1,5 +1,5 @@
 aspect cuid: {
-    ID: Int16;
+    key ID: Int16;
 }
 entity Foo : cuid {
    owner : Composition of many Owner on owner.foo = $self;
