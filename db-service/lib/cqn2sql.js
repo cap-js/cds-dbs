@@ -27,24 +27,25 @@ class CQN2SQLRenderer {
     this.class._init() // is a noop for subsequent calls
   }
 
+  static _add_mixins (aspect, mixins) {
+    const fqn = this.name + aspect
+    const types = cds.builtin.types
+    for (let each in mixins) {
+      const def = types[each]
+      if (!def) continue
+      Object.defineProperty(def, fqn, { value: mixins[each] })
+    }
+    return fqn
+  }
+
   /**
    * Initializes the class one first creation to link types to data converters
    */
   static _init() {
-    const _add_mixins = (aspect, mixins) => {
-      const fqn = this.name + aspect
-      const types = cds.builtin.types
-      for (let each in mixins) {
-        const def = types[each]
-        if (!def) continue
-        Object.defineProperty(def, fqn, { value: mixins[each] })
-      }
-      return fqn
-    }
-    this._localized = _add_mixins(':localized', this.localized)
-    this._convertInput = _add_mixins(':convertInput', this.InputConverters)
-    this._convertOutput = _add_mixins(':convertOutput', this.OutputConverters)
-    this._sqlType = _add_mixins(':sqlType', this.TypeMap)
+    this._localized = this._add_mixins(':localized', this.localized)
+    this._convertInput = this._add_mixins(':convertInput', this.InputConverters)
+    this._convertOutput = this._add_mixins(':convertOutput', this.OutputConverters)
+    this._sqlType = this._add_mixins(':sqlType', this.TypeMap)
     // Have all-uppercase all-lowercase, and capitalized keywords to speed up lookups
     for (let each in this.ReservedWords) {
       // ORDER
@@ -536,23 +537,21 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const {
-        UPDATE: { entity, with: _with, data, where },
-      } = q,
-      elements = q.target?.elements
+    const { entity, with: _with, data, where } = q.UPDATE
+    const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
+
     let columns = []
-    if (data)
-      for (let c in data)
+    if (data) _add (data, val => this.val({val}))
+    if (_with) _add (_with, x => this.expr(x))
+    function _add (data, sql4) {
+      for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.val({ val: data[c] }) })
+          columns.push({ name: c, sql: sql4(data[c]) })
         }
-    if (_with)
-      for (let c in _with)
-        if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.expr(_with[c]) })
-        }
+      }
+    }
 
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) {
@@ -611,11 +610,11 @@ class CQN2SQLRenderer {
     let sql
     if (!_empty(column)) {
       data.type = 'binary'
-      sql = this.UPDATE(
-        UPDATE(into)
-          .with({ [column]: data })
-          .where(where),
-      )
+      const update = UPDATE(into)
+        .with({ [column]: data })
+        .where(where)
+      Object.defineProperty(update, 'target', { value: q.target })
+      sql = this.UPDATE(update)
     } else {
       data.type = 'json'
       // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
@@ -696,27 +695,34 @@ class CQN2SQLRenderer {
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
-    if (x === '=')  return xpr[i + 1]?.val === null ? 'is'     : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '='  : this.is_
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(xpr[i-1]) && _not_null(xpr[i+1]) ? '<>' : this.is_not_
-    return x
-    function _not_null(operand) {
+
+    // Translate = to IS NULL for rhs operand being NULL literal
+    if (x === '=')  return xpr[i+1]?.val === null ? 'is' : '='
+
+    // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
+    // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
+    if (x === '==') return xpr[i+1]?.val === null ? 'is' : _not_null(i-1) && _not_null(i+1) ? '=' : this.is_not_distinct_from_
+
+    // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
+    // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
+    if (x === '!=') return xpr[i+1]?.val === null ? 'is not' : _not_null(i-1) && _not_null(i+1) ? '<>' : this.is_distinct_from_
+
+    else return x
+
+    /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
+    function _not_null(i) {
+      const operand = xpr[i]
       if (!operand) return false
       if (operand.val != null) return true // non-null values are not null
-
-      // REVISIT: The below cannot be merged yet due to a glitch in cqn4sql
-      // which erroneously assigns the definition of Genre.ID as element to
-      // the column Genre.parent_ID, and the like
-      //
-      // let element = operand.element
-      // if (!element) return false
-      // if (element.key) return true // primary keys usually should not be null
-      // if (element.notNull) return true // not null elements cannot be null
+      let element = operand.element
+      if (!element) return false
+      if (element.key) return true // primary keys usually should not be null
+      if (element.notNull) return true // not null elements cannot be null
     }
   }
 
-  // ANSI does not have IS and IS NOT as operators
-  get is_() { return '=' }
-  get is_not_() { return '!=' }
+  get is_distinct_from_() { return 'is distinct from' }
+  get is_not_distinct_from_() { return 'is not distinct from' }
 
   /**
    * Renders an argument place holder into the SQL for prepared statements
@@ -890,7 +896,7 @@ class CQN2SQLRenderer {
       }
 
       let converter = element[_convertInput]
-      if (converter) sql = converter(sql, element)
+      if (converter && !(sql[0] === '$')) sql = converter(sql, element)
       return { name, sql }
     })
   }
