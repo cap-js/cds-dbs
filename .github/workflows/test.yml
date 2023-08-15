@@ -75,3 +75,5 @@ jobs:
       - run: npm test -ws
         env:
           FORCE_COLOR: true
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
