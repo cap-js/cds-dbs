@@ -537,23 +537,21 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const {
-        UPDATE: { entity, with: _with, data, where },
-      } = q,
-      elements = q.target?.elements
+    const { entity, with: _with, data, where } = q.UPDATE
+    const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
+
     let columns = []
-    if (data)
-      for (let c in data)
+    if (data) _add (data, val => this.val({val}))
+    if (_with) _add (_with, x => this.expr(x))
+    function _add (data, sql4) {
+      for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.val({ val: data[c] }) })
+          columns.push({ name: c, sql: sql4(data[c]) })
         }
-    if (_with)
-      for (let c in _with)
-        if (!elements || (c in elements && !elements[c].virtual)) {
-          columns.push({ name: c, sql: this.expr(_with[c]) })
-        }
+      }
+    }
 
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) {
@@ -903,7 +901,7 @@ class CQN2SQLRenderer {
       }
 
       let converter = element[_convertInput]
-      if (converter && !(sql === '?' || sql[0] === '$')) sql = converter(sql, element)
+      if (converter && !(sql[0] === '$')) sql = converter(sql, element)
       return { name, sql }
     })
   }
