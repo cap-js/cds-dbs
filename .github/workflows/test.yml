@@ -74,7 +74,7 @@ jobs:
           IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
 
       # testing
-      - run: npm test -ws
+      - run: npm test -ws -- --maxWorkers=1
         env:
           FORCE_COLOR: true
           TAG: ${{ steps.find-hxe.outputs.TAG }}
