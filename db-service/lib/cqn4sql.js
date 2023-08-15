@@ -1606,10 +1606,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     } else if (on) {
       res = calculateOnCondition(on)
       if (assocRefLink.alias !== assocRefLink.definition.name)
-        res.forEach(r => {
-          if (r.ref && r.ref[0] === assocRefLink.definition.name) 
+        for (let r of res) {
+          if (r.ref?.[0] === assocRefLink.definition.name) 
             r.ref[0] = assocRefLink.alias
-        })
+        }
     }
     return res
 
