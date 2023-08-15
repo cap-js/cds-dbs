@@ -35,10 +35,12 @@ cdsTest.constructor.prototype.in = function () {
 module.exports.test = Object.setPrototypeOf(function () {
   let ret
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     try {
-      const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
+      const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
+      const serviceDefinitionPath = testSource + 'test/service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
+      require(testSource + 'cds-plugin')
     } catch (e) {
       // Default to sqlite for packages without their own service
       cds.env.requires.db = require('@cap-js/sqlite/test/service.json')
@@ -47,14 +49,16 @@ module.exports.test = Object.setPrototypeOf(function () {
 
   ret = cdsTest(...arguments)
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     // Setup isolation after cds has prepare the project (e.g. cds.model)
     if (ret.data._autoIsolation) {
       await ret.data.isolate()
     }
-  })
+  }, 30 * 1000)
 
   const cds = ret.cds
+
+  let isolate = null
 
   ret.data.isolate =
     ret.data.isolate ||
@@ -67,7 +71,7 @@ module.exports.test = Object.setPrototypeOf(function () {
         const hash = createHash('sha1')
         const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
         hash.update(isolateName)
-        const isolate = {
+        isolate = {
           // Create one database for each overall test execution
           database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
           // Create one tenant for each test suite
@@ -109,7 +113,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     delete cds.db
     delete cds.model
     global.cds.resolve.cache = {}
-  })
+  }, 30 * 1000)
 
   return ret
 }, cdsTest.constructor.prototype)

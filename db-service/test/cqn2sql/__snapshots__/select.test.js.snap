@@ -74,7 +74,7 @@ exports[`cqn2sql complex combinations AS, sub query 1`] = `"SELECT Foo.a,Foo.b a
 
 exports[`cqn2sql complex combinations Exists in object mode in complex where 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = ? and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id <> ?) or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name != ?) )",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.ID = ? and ( exists (SELECT Author.id FROM Author as Author WHERE Author.id is distinct from ?) or exists (SELECT Foo2.ID FROM Foo2 as Foo2 WHERE Foo2.name is distinct from ?) )",
   "values": [
     "123",
     "",

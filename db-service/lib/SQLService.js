@@ -196,8 +196,9 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
+    // REVISIT: made uppercase count because of HANA reserved word quoting
     const cq = cds.ql.clone(query, {
-      columns: [{ func: 'count' }],
+      columns: [{ func: 'count', as: 'COUNT' }],
       localized: false,
       expand: false,
       limit: 0,
@@ -205,8 +206,8 @@ class SQLService extends DatabaseService {
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)
-    const { count } = await ps.get(values)
-    return count
+    const { count, COUNT } = await ps.get(values)
+    return count ?? COUNT
   }
 
   /**
@@ -251,17 +252,19 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
+    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
     return cqn4sql(q, this.model)
   }
 
   /**
    * Returns a Promise which resolves to a prepared statement object with
    * `{run,get,all}` signature as specified in {@link PreparedStatement}.
+   * @abstract
+   * @param {string} sql The SQL String to be prepared
    * @returns {PreparedStatement}
    */
-  // eslint-disable-next-line no-unused-vars
-  async prepare(/*sql*/) {
+  async prepare(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 
@@ -285,6 +288,7 @@ class PreparedStatement {
 
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    */
   async run(binding_params) {
@@ -293,6 +297,7 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    * @returns {Promise<unknown>}
    */
@@ -302,6 +307,7 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    * @returns {Promise<unknown[]>}
    */
