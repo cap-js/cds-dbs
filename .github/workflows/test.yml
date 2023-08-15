@@ -69,7 +69,7 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
           TAG=${{ steps.find-hxe.outputs.TAG }};
           IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
-          { npm start -w hana } &
+          { npm start -w hana; } &
 
       # testing
       - run: npm test -ws
