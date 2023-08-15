@@ -5,8 +5,8 @@
   "author": "SAP SE (https://www.sap.com)",
   "workspaces": [
     "db-service",
-    "postgres",
     "sqlite",
+    "postgres",
     "hana"
   ],
   "devDependencies": {
@@ -22,7 +22,7 @@
     "express": "^4"
   },
   "scripts": {
-    "test": "npm start -w postgres && npm run setup -w hana && CDS_JEST_MEM_FIX=1 npx jest --silent --colors",
+    "test": "CDS_JEST_MEM_FIX=1 npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"

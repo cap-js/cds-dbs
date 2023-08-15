@@ -20,9 +20,10 @@
     "npm": ">=8"
   },
   "scripts": {
-    "setup": "npm run setup:hce || npm run setup:hxe",
-    "setup:hce": "cd ./tools/docker/hce/ && ./start.sh",
-    "setup:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
+    "test": "npm start && jest --silent",
+    "start": "npm run start:hce || npm run start:hxe",
+    "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
+    "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
     "hdb": "^0.19.5"
