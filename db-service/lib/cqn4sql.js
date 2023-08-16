@@ -1689,7 +1689,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               lhs.$refLinks[0].definition ===
               getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
             )
-              result[i].ref = [result[i].ref[0], lhs.ref.slice(1).join('_')]
+              result[i].ref = [assocRefLink.alias, lhs.ref.slice(1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
             else if (lhs.$refLinks[0].definition.target) result[i].ref = [result[i].ref.join('_')]
