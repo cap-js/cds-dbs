@@ -168,6 +168,31 @@ describe('wildcard expansion and exclude clause', () => {
               author.name
             } where Books.author_ID = author.ID
           ) as author,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
+  it('expand after wildcard combines assoc from wildcard expansion', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
           Books.author_ID,
           Books.coAuthor_ID,
           Books.genre_ID,
@@ -179,6 +204,11 @@ describe('wildcard expansion and exclude clause', () => {
           Books.dedication_sub_foo,
           Books.dedication_dedication,
           Books.coAuthor_ID_unmanaged,
+          (
+            SELECT from bookshop.Authors as author {
+              author.name
+            } where Books.author_ID = author.ID
+          ) as author
         }
       `)
   })
