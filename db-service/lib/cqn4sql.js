@@ -910,7 +910,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     Object.keys(inferred.$combinedElements).forEach(k => {
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
-      debugger
       // ignore FK for odata csn / ignore blobs from wildcard expansion
       if (isManagedAssocInFlatMode(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
       // for wildcard on subquery in from, just reference the elements
