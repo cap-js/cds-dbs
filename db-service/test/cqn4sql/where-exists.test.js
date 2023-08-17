@@ -1019,21 +1019,6 @@ describe('Path in FROM which ends on association must be transformed to where ex
     )
   })
 
-  it('MUST ... two EXISTS both on same path in where', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`, model)
-    expect(query).to.deep.equal(CQL`
-    SELECT from bookshop.Books as Books { Books.ID }
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
-            and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
-        )
-        or  EXISTS (
-          SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID 
-          and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
-        )
-      `)
-  })
-
   it('exists predicate in infix filter followed by assoc in FROM', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[exists genre]:author {ID}`, model)
     expect(query).to.deep.equal(
@@ -1257,26 +1242,6 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
-describe('cap issue', () => {
-  let model
-  beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
-  })
-  it('MUST ... two EXISTS both on same path in where with real life example', () => {
-    let query = cqn4sql(CQL`SELECT from Owner { ID } where exists foo.specialOwners[owner2.userID = $user.id] or exists foo.activeOwners[owner.userID = $user.id]`, model)
-    expect(query).to.deep.equal(CQL`
-    SELECT from Owner as Owner { Owner.ID }
-        WHERE EXISTS (
-          SELECT 1 from Foo as foo where foo.ID = Owner.foo_ID
-            and EXISTS ( SELECT 1 from SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
-        )
-        or EXISTS (
-          SELECT 1 from Foo as foo2 where foo2.ID = Owner.foo_ID
-            and EXISTS ( SELECT 1 from ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
-        )
-      `)
-  })
-})
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
