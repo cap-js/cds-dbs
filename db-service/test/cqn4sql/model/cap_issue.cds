@@ -1,9 +1,5 @@
-service MyService {
-
-   
-
-}
-
+// here we gather special scenarios which came up through tickets
+// which are not easily reproducible by our standard models
 aspect cuid : {
    key ID : Int16;
 }
