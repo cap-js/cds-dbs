@@ -1261,18 +1261,26 @@ describe('cap issue', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
   })
   it('MUST ... two EXISTS both on same path in where with real life example', () => {
-    let query = cqn4sql(CQL`SELECT from Owner { ID } where exists foo.specialOwners[owner2.userID = $user.id] or exists foo.activeOwners[owner.userID = $user.id]`, model)
+    const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
+    cqn.SELECT.localized = true
+    let query = cqn4sql(cqn, model)
     expect(query).to.deep.equal(CQL`
-    SELECT from Owner as Owner { Owner.ID }
+    SELECT from localized.Boo as boos { boos.ID }
         WHERE EXISTS (
-          SELECT 1 from Foo as foo where foo.ID = Owner.foo_ID
-            and EXISTS ( SELECT 1 from SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
-        )
-        or EXISTS (
-          SELECT 1 from Foo as foo2 where foo2.ID = Owner.foo_ID
-            and EXISTS ( SELECT 1 from ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+          SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
+        ) and
+        (
+          EXISTS (
+            SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from localized.SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
+          )
+          or EXISTS (
+            SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from localized.ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+          )
         )
       `)
   })
