@@ -181,7 +181,7 @@ describe('wildcard expansion and exclude clause', () => {
         }
       `)
   })
-  it('expand after wildcard combines assoc from wildcard expansion', () => {
+  it('expand after wildcard combines assoc from wildcard expansion (flat mode)', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, cds.compile.for.nodejs(model))
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books
         {
