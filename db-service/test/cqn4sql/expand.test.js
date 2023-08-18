@@ -1021,7 +1021,6 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     `
-    // q.SELECT.localized = true
     let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
       SELECT from Collaborations as Collaborations {
