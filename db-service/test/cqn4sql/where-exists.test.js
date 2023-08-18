@@ -19,6 +19,18 @@ describe('EXISTS predicate in where', () => {
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
         )`)
     })
+    it('MUST ... two EXISTS both on same path in where', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`, model)
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
+          and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
+      )
+      or  EXISTS (
+        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID 
+        and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
+      )`)
+    })
     it('exists predicate for assoc combined with path expression in xpr', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where exists author and ((author.name + 's') = 'Schillers')`,
@@ -1265,6 +1277,50 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
+describe('cap issue', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
+  })
+  it('MUST ... two EXISTS both on same path in where with real life example', () => {
+    // make sure that in a localized scenario, all aliases
+    // are properly replaced in the on-conditions.
+
+    // the issue here was that we had a where condition like
+    // `where exists foo[id=1] or exists foo[id=2]`
+    // with `foo` being an association `foo : Association to one Foo on foo.ID = foo_ID;`.
+    // While building up the where exists subqueries, we calculate unique table aliases for `foo`,
+    // which results in a table alias `foo2` for the second condition of the initial where clause.
+    // Now, if we incorporate the on-condition into the where clause of the second where exists subquery,
+    // we must replace the table alias `foo` from the on-condition with `foo2`.
+
+    // the described scenario didn't work because in a localized scenario, the localized `foo`
+    // association (pointing to `localized.Foo`) was compared to the non-localized version
+    // of the association (pointing to `Foo`) and hence, the alias was not properly replaced
+    const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
+    cqn.SELECT.localized = true
+    let query = cqn4sql(cqn, model)
+    // cleanup
+    delete cqn.SELECT.localized
+    expect(query).to.deep.equal(CQL`
+    SELECT from localized.Boo as boos { boos.ID }
+        WHERE EXISTS (
+          SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
+        ) and
+        (
+          EXISTS (
+            SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from localized.SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
+          )
+          or EXISTS (
+            SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from localized.ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+          )
+        )
+      `)
+  })
+})
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
