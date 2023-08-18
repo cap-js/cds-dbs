@@ -8,7 +8,6 @@ describe('Unfold expands on structure', () => {
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-
   it('supports nested projections for structs', () => {
     let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee } }`
     let transformed = cqn4sql(query)
@@ -1061,6 +1060,29 @@ describe('expand on structure part II', () => {
         Employee.office_address_street
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
+  })
+
+  it.only('nested expand with multiple conditions', async () => {
+    // innermost expand on association with backlink plus additional condition
+    // must be properly linked
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id,
+        leads {
+          id
+        },
+        subCollaborations {
+          id,
+          leads {
+            id
+          }
+        }
+      }
+    `
+    // q.SELECT.localized = true
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+    console.log(transformed)
   })
 
   it('multi expand with star', () => {
