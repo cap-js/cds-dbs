@@ -1278,6 +1278,8 @@ describe('cap issue', () => {
     const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
     cqn.SELECT.localized = true
     let query = cqn4sql(cqn, model)
+    // cleanup
+    delete cqn.SELECT.localized
     expect(query).to.deep.equal(CQL`
     SELECT from localized.Boo as boos { boos.ID }
         WHERE EXISTS (
