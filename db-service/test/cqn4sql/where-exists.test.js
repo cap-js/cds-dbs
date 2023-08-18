@@ -651,6 +651,29 @@ describe('EXISTS predicate in infix filter', () => {
       { Books.ID, children.descr as genre_children_descr }`,
     )
   })
+  it('reject non foreign key access in infix filter', async () => {
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id
+      }
+       where exists leads[ participant.scholar_userID = $user.id ]
+    `
+    // maybe in the future this could be something like this
+    const futureExpectation = CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id
+      } where exists (
+        SELECT 1 from CollaborationLeads as leads
+          left join CollaborationParticipants as participant on participant.ID = leads.participant_id
+          where (leads.collaboration_id = Collaborations.id)
+            and leads.isLead = true
+            and participant.scholar_userID = $user.id
+      )
+    `
+    expect(() => { cqn4sql(q, cds.compile.for.nodejs(model)) })
+      .to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
+  })
 })
 
 /**
