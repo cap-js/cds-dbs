@@ -1003,6 +1003,47 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
     })
   })
+  it('nested expand with multiple conditions', async () => {
+    // innermost expand on association with backlink plus additional condition
+    // must be properly linked
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id,
+        leads {
+          id
+        },
+        subCollaborations {
+          id,
+          leads {
+            id
+          }
+        }
+      }
+    `
+    // q.SELECT.localized = true
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id,
+        (
+          SELECT from CollaborationLeads as leads {
+            leads.id
+          } where ( Collaborations.id = leads.collaboration_id ) and leads.isLead = true
+        ) as leads,
+        (
+          SELECT from SubCollaborations as subCollaborations {
+            subCollaborations.id,
+            (
+              SELECT from SubCollaborationAssignments as leads2 {
+                leads2.id
+              } where ( subCollaborations.id = leads2.subCollaboration_id ) and leads2.isLead = true
+            ) as leads
+          } where Collaborations.id = subCollaborations.collaboration_id
+        ) as subCollaborations
+      }
+    `)
+  })
 })
 
 // the tests in here are a copy of the tests in `./inline.test.js`
@@ -1060,29 +1101,6 @@ describe('expand on structure part II', () => {
         Employee.office_address_street
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
-  })
-
-  it.only('nested expand with multiple conditions', async () => {
-    // innermost expand on association with backlink plus additional condition
-    // must be properly linked
-    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
-    const q = CQL`
-      SELECT from Collaborations {
-        id,
-        leads {
-          id
-        },
-        subCollaborations {
-          id,
-          leads {
-            id
-          }
-        }
-      }
-    `
-    // q.SELECT.localized = true
-    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
-    console.log(transformed)
   })
 
   it('multi expand with star', () => {
