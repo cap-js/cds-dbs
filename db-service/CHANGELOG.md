@@ -9,6 +9,7 @@
 ### Fixed
 
 - no more type error which occured in some cases for deeply nested `expand`s.
+- path expression traversing non-foreign-key fields within infix filters are now properly rejected for `exists` predicates
 
 ## Version 1.1.0 - 2023-08-01
 
