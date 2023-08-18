@@ -1043,6 +1043,29 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     `)
   })
+  it('cap issue', async () => {
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id
+      }
+       where exists leads[ participant.scholar_userID = $user.id ]
+    `
+    const expected = CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id
+      } where exists (
+        SELECT 1 from CollaborationLeads as leads
+          left join CollaborationParticipants as participant on participant.ID = leads.participant_id
+          where (leads.collaboration_id = Collaborations.id)
+            and leads.isLead = true
+            and participant.scholar_userID = $user.id
+      )
+    `
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+        
+    expect(transformed).to.deep.eql(expected)
+  })
 })
 
 // the tests in here are a copy of the tests in `./inline.test.js`
