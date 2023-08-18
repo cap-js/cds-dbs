@@ -8,7 +8,6 @@ describe('Unfold expands on structure', () => {
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-
   it('supports nested projections for structs', () => {
     let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee } }`
     let transformed = cqn4sql(query)
@@ -1003,6 +1002,46 @@ describe('Unfold expands on associations to special subselects', () => {
         }`
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
     })
+  })
+  it('nested expand with multiple conditions', async () => {
+    // innermost expand on association with backlink plus additional condition
+    // must be properly linked
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id,
+        leads {
+          id
+        },
+        subCollaborations {
+          id,
+          leads {
+            id
+          }
+        }
+      }
+    `
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id,
+        (
+          SELECT from CollaborationLeads as leads {
+            leads.id
+          } where ( Collaborations.id = leads.collaboration_id ) and leads.isLead = true
+        ) as leads,
+        (
+          SELECT from SubCollaborations as subCollaborations {
+            subCollaborations.id,
+            (
+              SELECT from SubCollaborationAssignments as leads2 {
+                leads2.id
+              } where ( subCollaborations.id = leads2.subCollaboration_id ) and leads2.isLead = true
+            ) as leads
+          } where Collaborations.id = subCollaborations.collaboration_id
+        ) as subCollaborations
+      }
+    `)
   })
 })
 
