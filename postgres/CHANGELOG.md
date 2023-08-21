@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.X.X - 2023-MM-DD
+
+### Added
+
+- Reserved words from <https://www.postgresql.org/docs/current/sql-keywords-appendix.html> are now used to automatically
+  escape reserved words which are used as identifier.
+
 ## Version 1.1.0 - 2023-08-01
 
 ### Added
