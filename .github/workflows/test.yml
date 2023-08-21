@@ -58,23 +58,24 @@ jobs:
       - name: Build HXE image
         if: ${{ steps.find-hxe.outputs.BUILD_HXE == 'true' }}
         run: |
-          TAG=${{ steps.find-hxe.outputs.TAG }};
-          IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
           DOCKER_BUILDKIT=1 docker build -t $IMAGE_ID:$TAG ./hana/tools/docker/hxe;
           docker push $IMAGE_ID:$TAG;
-      # Pull the latest HXE image when not building it
-      - name: Pull HXE image
-        id: pull-hxe
+        env:
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+      # Star the latest HXE image in the background
+      - name: Start HXE image
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
-          TAG=${{ steps.find-hxe.outputs.TAG }};
-          IMAGE_ID=${{ steps.find-hxe.outputs.IMAGE_ID }};
-          { docker pull $IMAGE_ID:$TAG; docker tag $IMAGE_ID:$TAG hanaexpress:current; } &
-          echo "HXE_PULL=$!" >> $GITHUB_OUTPUT
-          wait
+          { npm start -w hana; } &
+        env:
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
 
       # testing
-      - run: npm test -- --runInBand
+      - run: npm test -ws -- --maxWorkers=1
         env:
-          HXE_PULL: ${{ steps.pull-hxe.outputs.HXE_PULL }}
+          FORCE_COLOR: true
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}

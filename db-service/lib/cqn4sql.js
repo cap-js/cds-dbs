@@ -1627,6 +1627,34 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           continue
         }
         const rhs = result[i + 2]
+        if (rhs?.ref || lhs.ref) {
+          // if we have refs on each side of the comparison, we might need to perform tuple expansion
+          // or flatten the structures
+          const refLinkFaker = thing => {
+            const { ref } = thing
+            const assocHost = getParentEntity(assocRefLink.definition)
+            Object.defineProperty(thing, '$refLinks', {
+              value: [],
+              writable: true,
+            })
+            ref.reduce((prev, res, i) => {
+              if (res === '$self')
+                // next is resolvable in entity
+                return prev
+              const definition = prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
+              const target = getParentEntity(definition)
+              thing.$refLinks[i] = { definition, target, alias: definition.name }
+              return prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
+            }, assocHost)
+          }
+
+          // comparison in on condition needs to be expanded...
+          // re-use existing algorithm for that
+          // we need to fake some $refLinks for that to work though...
+          lhs?.ref && !lhs.$refLinks && refLinkFaker(lhs)
+          rhs?.ref && !rhs.$refLinks && refLinkFaker(rhs)
+        }
+
         let backlink
         if (rhs?.ref && lhs?.ref) {
           if (lhs?.ref?.length === 1 && lhs.ref[0] === '$self')
@@ -1640,32 +1668,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else {
-            // if we have refs on each side of the comparison, we might need to perform tuple expansion
-            // or flatten the structures
-            // REVISIT: this whole section needs a refactoring, it is too complex and some edge cases may still be not considered...
-            const refLinkFaker = thing => {
-              const { ref } = thing
-              const assocHost = getParentEntity(assocRefLink.definition)
-              Object.defineProperty(thing, '$refLinks', {
-                value: [],
-                writable: true,
-              })
-              ref.reduce((prev, res, i) => {
-                if (res === '$self')
-                  // next is resolvable in entity
-                  return prev
-                const definition = prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
-                const target = getParentEntity(definition)
-                thing.$refLinks[i] = { definition, target, alias: definition.name }
-                return prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
-              }, assocHost)
-            }
-
-            // comparison in on condition needs to be expanded...
-            // re-use existing algorithm for that
-            // we need to fake some $refLinks for that to work though...
-            lhs?.ref && refLinkFaker(lhs)
-            rhs?.ref && refLinkFaker(rhs)
             const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
             const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
             if (lhsLeafArt?.target || rhsLeafArt?.target) {
@@ -1689,7 +1691,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               lhs.$refLinks[0].definition ===
               getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
             )
-              result[i].ref = [result[i].ref[0], lhs.ref.slice(1).join('_')]
+              result[i].ref = [assocRefLink.alias, lhs.ref.slice(1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
             else if (lhs.$refLinks[0].definition.target) result[i].ref = [result[i].ref.join('_')]

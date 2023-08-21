@@ -1,4 +1,7 @@
-docker cp ./start-hdi.sql hxe_hana_1:/usr/sap/HXE/start-hdi.sql
+until docker cp ./start-hdi.sql hxe_hana_1:/usr/sap/HXE/start-hdi.sql
+do
+  sleep 1
+done
 
 docker exec hxe_hana_1 bash -c "until /check_hana_health -n -e ready-status > /dev/null; do sleep 1; done;"
 echo "HANA has started"

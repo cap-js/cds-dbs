@@ -54,7 +54,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     if (ret.data._autoIsolation) {
       await ret.data.isolate()
     }
-  }, 30 * 1000)
+  })
 
   const cds = ret.cds
 
@@ -101,7 +101,7 @@ module.exports.test = Object.setPrototypeOf(function () {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
-  }, 30 * 1000)
+  })
 
   global.afterAll(async () => {
     // Clean database connection pool
@@ -113,7 +113,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     delete cds.db
     delete cds.model
     global.cds.resolve.cache = {}
-  }, 30 * 1000)
+  })
 
   return ret
 }, cdsTest.constructor.prototype)
