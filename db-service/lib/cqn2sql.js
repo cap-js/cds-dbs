@@ -809,7 +809,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   json(o) {
-    return this.string(JSON.stringify(o))
+    return JSON.stringify(o)
   }
 
   /**
