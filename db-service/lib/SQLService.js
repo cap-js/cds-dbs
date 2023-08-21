@@ -156,10 +156,8 @@ class SQLService extends DatabaseService {
       if (compositions) {
         // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
         let { from, where } = req.query.DELETE
-        if (where) from = { ref:
-          typeof from === 'string' ? [ { id: from, where } ] :
-          [ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where } ]
-        }
+        if (typeof from === 'string') from = { ref: [from] }
+        if (where) from = { ref: [ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where } ] }
         // Process compositions depth-first
         for (let c of Object.values(compositions)) {
           if (c._target['@cds.persistence.skip'] === true) continue
