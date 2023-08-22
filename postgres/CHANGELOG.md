@@ -6,7 +6,7 @@
 
 ## Version 1.X.X - 2023-MM-DD
 
-### Added
+### Fixed
 
 - Reserved words from <https://www.postgresql.org/docs/current/sql-keywords-appendix.html> are now used to automatically
   escape reserved words which are used as identifier.
