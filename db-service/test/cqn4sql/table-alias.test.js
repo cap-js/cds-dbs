@@ -17,6 +17,21 @@ describe('table alias access', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID }`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
+    it.skip('escaped identifier does not hurt', () => {
+      let query = cqn4sql(
+        CQL`
+      SELECT FROM bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      } where $self.group = 'foo'`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      } where ![FROM].title = 'foo' 
+      `)
+    })
 
     it('omits alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
