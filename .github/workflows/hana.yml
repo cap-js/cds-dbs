@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Node.js ${{ matrix.node }}
+    name: HANA Node.js ${{ matrix.node }}
 
     strategy:
       fail-fast: true
