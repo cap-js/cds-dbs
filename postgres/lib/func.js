@@ -3,7 +3,7 @@ const session = require('./session.json')
 const StandardFunctions = {
   session_context: x => {
     let sql = `current_setting('${ session[x.val] || x.val }')`
-    if (x?.val === '$now') sql += '::timestamp'
+    if (x.val === '$now') sql += '::timestamp'
     return sql
   },
   countdistinct: x => `count(distinct ${x || '*'})`,
