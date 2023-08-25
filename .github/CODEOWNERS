@@ -1,1 +1,21 @@
 * @BobdenOs @David-Kunz @patricebender @danjoa @gregorwolf @johannes-vogel @vobu @stewsk @sebastianesch @sjvans
+
+db-service/lib/cqn4sql.js @patricebender @stewsk
+db-service/test/cqn4sql/ @patricebender @stewsk
+
+db-service/lib/infer/**.js @patricebender @stewsk
+db-service/test/cds-infer/ @patricebender @stewsk
+
+db-service/lib/InsertResults.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/SQLService.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/converters.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/cql-functions.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/cqn2sql.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/deep-queries.js @BobdenOs @johannes-vogel @danjoa
+db-service/lib/fill-in-keys.js @BobdenOs @johannes-vogel @danjoa
+
+db-service/test/cqn2sql/**.js @BobdenOs @johannes-vogel @danjoa
+db-service/test/deep/**.js @BobdenOs @johannes-vogel @danjoa
+db-service/test/etc/**.js @BobdenOs @johannes-vogel @danjoa
+db-service/test/tsc/**.js @BobdenOs @johannes-vogel @danjoa
+db-service/test/index.js @BobdenOs @johannes-vogel @danjoa
