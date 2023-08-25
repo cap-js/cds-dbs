@@ -8,7 +8,7 @@ const StandardFunctions = {
     z
       ? `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
       : `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end )`,
-  count: x => `count(${x || '*'})`,
+  count: x => `count${(x?.xpr && x) || (x && `(${x})`) || '(*)'}`,
   average: x => `avg(${x})`,
   contains: (...args) => `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
   search: function (ref, arg) {
