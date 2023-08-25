@@ -51,7 +51,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  count: x => `count(${x || '*'})`,
+  count: x => `count${(x?.xpr && x ) || (x && `(${x})`) || '(*)'}`,
   /**
    * Generates SQL statement that produces the number of distinct values of a given expression
    * @param {string} x
