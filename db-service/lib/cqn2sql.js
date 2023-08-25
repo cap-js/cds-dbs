@@ -742,7 +742,7 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     return ref.map(r => this.quote(r)).join('.')
-  }
+      }
 
   /**
    * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
@@ -765,8 +765,8 @@ class CQN2SQLRenderer {
         if (val instanceof Readable) {
           this.values.push(val)
           return '?'
-        }
-        if (Buffer.isBuffer(val)) val = val.toString('base64')
+    }
+if (Buffer.isBuffer(val)) val = val.toString('base64')
         else val = this.regex(val) || this.json(val)
     }
     if (!this.values) return this.string(val)
@@ -882,9 +882,12 @@ class CQN2SQLRenderer {
       let element = elements?.[name] || {}
       if (!sql) sql = `value->>'$."${name}"'`
 
+      let converter = element[_convertInput]
+      if (converter) sql = converter(sql, element)
+
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-      // stupid prettier: i wanted to keep this blank line above for a reason!
+
       else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
@@ -895,8 +898,6 @@ class CQN2SQLRenderer {
         }
       }
 
-      let converter = element[_convertInput]
-      if (converter && !(sql[0] === '$')) sql = converter(sql, element)
       return { name, sql }
     })
   }
