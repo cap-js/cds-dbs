@@ -1,19 +1,39 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/cap-js/cds-dbs)](https://api.reuse.software/info/github.com/cap-js/cds-dbs)
 
-# Welcome to cds-dbs Repo
+# Welcome to the @cap-js/cds-dbs Monorepo
 
-## About this project
 
-This is a monorepo for our SQL Database Services. 
+This is a monorepo for our SQL Database Services.
 
-It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [sqlite](./sqlite/) and [postgres](./postgres/).  
+It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [sqlite](./sqlite/) and [postgres](./postgres/).
 Each of the subfolders is published as individual npm module.
 
 Documentation can be found at [cap.cloud.sap](https://cap.cloud.sap/docs/guides/databases).
 
-## Support, Feedback, Contributing
+## Prerequisites
 
-This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+See [Getting Started](https://cap.cloud.sap/docs/get-started) on how to jumpstart your development and grow as you go with [SAP Cloud Application Programming Model](https://cap.cloud.sap).
+
+## Setup
+
+In general, all you need to do is to install one of the database packages, as follows:
+
+Using SQLite for development:
+
+```sh
+npm add @cap-js/sqlite -D
+```
+
+Learn more about setup and usage in the [respective database guides](https://cap.cloud.sap/docs/guides/databases).
+
+
+## Support
+
+This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues).
+
+## Contribution
+
+Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
 
 ## Code of Conduct
 

@@ -1,3 +1,3 @@
 describe('sqlite', () => {
-  require('../../test')
+  require('../../test/compliance')
 })

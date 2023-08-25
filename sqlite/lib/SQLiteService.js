@@ -124,6 +124,7 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+
     column_alias4(x, q) {
       let alias = super.column_alias4(x, q)
       if (alias) return alias
@@ -137,12 +138,6 @@ class SQLiteService extends SQLService {
         }
         return obm[x.ref.at(-1)]
       }
-    }
-
-    operator(x, i, xpr) {
-      if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-      if (x === '!=') return 'is not'
-      else return x
     }
 
     // Used for INSERT statements
@@ -199,6 +194,9 @@ class SQLiteService extends SQLService {
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
+
+    get is_distinct_from_() { return 'is not' }
+    get is_not_distinct_from_() { return 'is' }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
   }
