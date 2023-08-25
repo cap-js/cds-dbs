@@ -548,7 +548,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
         Object.defineProperties(dollarSelfColumn, {
           flatName: {
-            value: dollarSelfColumn.ref.join('_'),
+            value: referencedColumn.$refLinks[0].definition.kind === 'entity' ?  dollarSelfColumn.ref.slice(1).join('_') : dollarSelfColumn.ref.join('_'),
           },
           isJoinRelevant: {
             value: referencedColumn.isJoinRelevant,
