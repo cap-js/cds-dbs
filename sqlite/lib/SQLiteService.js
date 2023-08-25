@@ -179,26 +179,9 @@ class SQLiteService extends SQLService {
       // to override the DateTime converter above
       Timestamp: undefined,
 
-      // Timestamp: e => `ISO(${e})`,
-      // REVISIT: generic-virtual.test.js expects now to be returned as ISO string
-      // test 'field with current timestamp is correctly formatted' fails otherwise
-
-      // Quote Decimal values to lose the least amount of precision
-      // quote turns 9999999999999.999 into  9999999999999.998
-      // || '' turns 9999999999999.999 into 10000000000000.0
-      // But it causes INSERT '9999999999999.999' to return as '10000000000000'
-      // Decimal: expr => `nullif(quote(${expr}),'NULL')`,
-
-      // Don't read Float as string as it should be a safe number
-      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-
-      // Without quote 1.7976931348623157e308 is returned as Infinity
-      // -> Same is the case with this output converter
-      // Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
-      // Int64: expr => `CAST(${expr} as TEXT)`,
+      Int64: expr => `CAST(${expr} as TEXT)`,
 
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
