@@ -27,7 +27,7 @@ exports[`.update set overwrites data 1`] = `
 
 exports[`.update test with entity and values with operators 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name=?,a=(Foo2.a - 1)",
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name=?,a=Foo2.a - 1",
   "values": [
     "'asd'",
   ],

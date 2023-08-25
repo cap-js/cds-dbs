@@ -39,7 +39,8 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.join('||'),
+  concat: (...args) => args.map(a => `(${a})`).join('||'), // More brackets
+  // concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join('||'), // Possible errors
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args
@@ -51,7 +52,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  count: x => `count${(x?.xpr && x ) || (x && `(${x})`) || '(*)'}`,
+  count: x => `count(${x || '*'})`,
   /**
    * Generates SQL statement that produces the number of distinct values of a given expression
    * @param {string} x
