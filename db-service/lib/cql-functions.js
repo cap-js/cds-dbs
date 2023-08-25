@@ -1,3 +1,11 @@
+const knownSessionValues = {
+  "$user.id": "'$user.id'",
+  "$user.locale":"'$user.locale'",
+  "$now": "'$now'",
+  "$valid.from": "'$valid.from'",
+  "$valid.to": "'$valid.to'"
+}
+
 const StandardFunctions = {
 
 
@@ -245,6 +253,13 @@ const StandardFunctions = {
       )
     ) * 86400
   )`,
+
+  /**
+   * Generates SQL statement that calls the session_context function with the given parameter
+   * @param {string} x session variable name or SQL expression
+   * @returns {string}
+   */
+  session_context: x => `session_context(${(typeof x.val === 'string' && knownSessionValues[x.val]) || x})`,
 }
 
 const HANAFunctions = {
