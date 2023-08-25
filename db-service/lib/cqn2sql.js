@@ -767,7 +767,8 @@ class CQN2SQLRenderer {
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough
     }
-    this.values.push(val)
+    if (!this.values) return this.string(val)
+    else this.values.push(val)
     return '?'
   }
 

@@ -694,8 +694,7 @@ class HANAService extends SQLService {
           else val = JSON.stringify(val)
         case 'string': // eslint-disable-line no-fallthrough
       }
-      this.values.push(val)
-      return '?'
+      return this.string(val)
     }
 
     xpr({ xpr, _internal }, caseSuffix = '') {
