@@ -7,10 +7,6 @@ const knownSessionValues = {
 }
 
 const StandardFunctions = {
-
-
-  session_context: x => `session_context('${x.val}')`,
-
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
   // String and Collection Functions
@@ -259,6 +255,7 @@ const StandardFunctions = {
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
+  // REVISIT: does that really avoid SQL injection?
   session_context: x => `session_context(${(typeof x.val === 'string' && knownSessionValues[x.val]) || x})`,
 }
 
