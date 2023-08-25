@@ -741,7 +741,7 @@ class CQN2SQLRenderer {
   ref({ ref }) {
     switch (ref[0]) {
       case '$now': return this.func({ func: 'session_context', args: [{ val: '$now' }]})
-      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      case '$user':
       case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
       default: return ref.map(r => this.quote(r)).join('.')
     }
