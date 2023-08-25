@@ -741,8 +741,13 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   ref({ ref }) {
-    return ref.map(r => this.quote(r)).join('.')
-      }
+    switch (ref[0]) {
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now' }]})
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      default: return ref.map(r => this.quote(r)).join('.')
+    }
+  }
 
   /**
    * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
