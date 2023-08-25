@@ -27,6 +27,27 @@ describe('expressions', () => {
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
   })
+  it.only('ref, String operator and value', () => {
+    const cqn = {
+      SELECT: {
+        from: { ref: ['Foo'] },
+        columns: [
+          {
+            func: 'concat',
+            args: [
+              { val: 2023 },
+              {
+                xpr: [{ val: 8 }, '*', { val: 2 }, '-', { val: 0 }],
+              },
+            ],
+            as: 'something',
+          },
+        ],
+      },
+    }
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toMatchSnapshot()
+  })
 
   test('ref = null', () => {
     const cqn = {
@@ -140,7 +161,9 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is distinct from 5/i)
+    expect(sql).toMatch(
+      /SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is distinct from 5/i,
+    )
   })
 
   // We don't have to support that
@@ -173,7 +196,9 @@ describe('expressions', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from 5) or (Foo.x is NULL)')
+    expect(sql).toEqual(
+      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from 5) or (Foo.x is NULL)',
+    )
   })
 
   test('ref is like pattern', () => {
