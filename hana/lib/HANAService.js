@@ -678,28 +678,24 @@ class HANAService extends SQLService {
       return this.xpr({ xpr }, ' = TRUE')
     }
 
-    // REVISIT: fix passing query parameters
+    // REVISIT: why is that a complete copy from the base class?
     val({ val }) {
       switch (typeof val) {
-        case 'function':
-          throw new Error('Function values not supported.')
-        case 'undefined':
-          return 'NULL'
-        case 'boolean':
-          return `${val}`
-        case 'number':
-          return `${val}` // REVISIT for HANA
+        case 'function': throw new Error('Function values not supported.')
+        case 'undefined': return 'NULL'
+        case 'boolean': return `${val}`
+        case 'number': return `${val}` // REVISIT for HANA
         case 'object':
           if (val === null) return 'NULL'
           if (val instanceof Date) return `'${val.toISOString()}'`
-          if (val instanceof Readable) {
-            this.values.push(val)
-            return '?'
-          }
-          if (Buffer.isBuffer(val)) val = val.toString('base64')
-          else val = this.regex(val) || this.json(val)
+          if (val instanceof Readable) ; // go on with default below
+          else if (Buffer.isBuffer(val)) val = val.toString('base64')
+          else if (is_regexp(val)) val = val.source
+          else val = JSON.stringify(val)
+        case 'string': // eslint-disable-line no-fallthrough
       }
-      return this.string(val)
+      this.values.push(val)
+      return '?'
     }
 
     xpr({ xpr, _internal }, caseSuffix = '') {
