@@ -11,7 +11,7 @@ exports[`function contains complex 1`] = `
 
 exports[`function fn with .xpr as argument 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE round(Foo.x - 100,3)",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE round((Foo.x - 100),3)",
   "values": [],
 }
 `;
