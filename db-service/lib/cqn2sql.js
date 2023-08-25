@@ -664,7 +664,7 @@ class CQN2SQLRenderer {
     if ('param' in x) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
-    if ('xpr' in x) return wrap(this.xpr(x))
+    if ('xpr' in x) return wrap(`(${this.xpr(x)})`)
     if ('func' in x) return wrap(this.func(x))
     if ('list' in x) return wrap(this.list(x))
     if ('SELECT' in x) return wrap(`(${this.SELECT(x)})`)
