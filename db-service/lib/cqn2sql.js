@@ -862,7 +862,7 @@ class CQN2SQLRenderer {
       if (!sql) sql = `value->>'$."${name}"'`
 
       let converter = element[_convertInput]
-      if (converter) sql = converter(sql, element)
+      if (converter && sql[0] !== '$') sql = converter(sql, element)
 
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
