@@ -554,11 +554,9 @@ class CQN2SQLRenderer {
     }
 
     columns = columns.map(c => {
-      if (q.elements?.[c.name]?.['@cds.extension']) {
-        return {
-          name: 'extensions__',
-          sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
-        }
+      if (q.elements?.[c.name]?.['@cds.extension']) return {
+        name: 'extensions__',
+        sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
       }
       return c
     })
@@ -756,25 +754,19 @@ class CQN2SQLRenderer {
    */
   val({ val }) {
     switch (typeof val) {
-      case 'function':
-        throw new Error('Function values not supported.')
-      case 'undefined':
-        return 'NULL'
-      case 'boolean':
-        return `${val}`
-      case 'number':
-        return `${val}` // REVISIT for HANA
+      case 'function': throw new Error('Function values not supported.')
+      case 'undefined': return 'NULL'
+      case 'boolean': return `${val}`
+      case 'number': return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) {
-          this.values.push(val)
-          return '?'
+        if (val instanceof Readable) ; // go on with default below
+        else if (Buffer.isBuffer(val)) val = val.toString('base64')
+        else if (is_regexp(val)) val = val.source
+        else val = JSON.stringify(val)
+      case 'string': // eslint-disable-line no-fallthrough
     }
-if (Buffer.isBuffer(val)) val = val.toString('base64')
-        else val = this.regex(val) || this.json(val)
-    }
-    if (!this.values) return this.string(val)
     this.values.push(val)
     return '?'
   }
@@ -800,25 +792,7 @@ if (Buffer.isBuffer(val)) val = val.toString('base64')
   }
 
   /**
-   * Renders a Regular Expression into its string representation
-   * @param {RegExp} o
-   * @returns {string} SQL
-   */
-  regex(o) {
-    if (is_regexp(o)) return o.source
-  }
-
-  /**
-   * Renders the object as a JSON string in generic SQL
-   * @param {object} o
-   * @returns {string} SQL
-   */
-  json(o) {
-    return JSON.stringify(o)
-  }
-
-  /**
-   * Renders a javascript string into a generic SQL string
+   * Renders a javascript string into a SQL string literal
    * @param {string} s
    * @returns {string} SQL
    */
