@@ -151,32 +151,22 @@ class SQLService extends DatabaseService {
 
   get onDELETE() {
     return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
-    async function deep_delete (/** @type {Request} */ req, root) {
-      let {compositions} = req.target, { queries=[], depth=0 } = req
+    async function deep_delete (/** @type {Request} */ req) {
+      let { compositions } = req.target, { depth=0 } = req
       if (compositions) {
         // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
         let { from, where } = req.query.DELETE
-        if (typeof from === 'string') from = { ref: [from] }
-        if (where) from = { ref: [ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where } ] }
-        // Process compositions depth-first
-        for (let c of Object.values(compositions)) {
-          if (c._target['@cds.persistence.skip'] === true) continue
-          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) continue
-          this.onDELETE({ target: c._target, queries, depth, query: {
-            // CQL`DELETE from Foo[pred]:comp1.comp2...`
-            DELETE: { from: {ref:[ ...from.ref, c.name ]} },
-          }})
-        }
+        if (typeof from === 'string') from = {ref:[ from ]}
+        if (where) from = {ref:[ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where }]}
+        // Process child compositions depth-first
+        await Promise.all (Object.values(compositions).map(c => {
+          if (c._target['@cds.persistence.skip'] === true) return
+          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) return
+          let query = DELETE.from ({ref:[ ...from.ref, c.name ]}) // CQL`DELETE from Foo[pred]:comp1.comp2...`
+          return this.onDELETE({ query, depth, target: c._target })
+        }))
       }
-      // Collect all queries depth-first
-      queries.push (req.query)
-
-      // Finally run all queries
-      if (root) {
-        let affected = await Promise.all(queries.map(q => this.onSIMPLE({query:q})))
-        return affected.reduce((p,n)=>p+n)
-        // return affected.at(-1) //> former behaviour
-      }
+      return await this.onSIMPLE(req)
     }
   }
 
