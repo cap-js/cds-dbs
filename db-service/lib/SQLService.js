@@ -166,7 +166,7 @@ class SQLService extends DatabaseService {
           return this.onDELETE({ query, depth, target: c._target })
         }))
       }
-      return await this.onSIMPLE(req)
+      return this.onSIMPLE(req)
     }
   }
 
