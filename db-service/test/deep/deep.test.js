@@ -4,9 +4,11 @@ cds.env.features.recursion_depth = 2
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
 
 let model
+
+cds.test('serve', __dirname + '/deep.cds')
+
 beforeAll(async () => {
-  model = await cds.load(__dirname + '/deep.cds')
-  model = cds.linked(model)
+  model = cds.model
 })
 
 describe('test deep query generation', () => {
@@ -807,6 +809,63 @@ describe('test deep query generation', () => {
 
       expectedInserts.forEach(insert => {
         expect(deepQueries).toContainEqual(insert)
+      })
+    })
+
+    test('backlink keys are properly propagated', async () => {
+      const entity = model.definitions['keyAssocs.Header']
+      const insert = INSERT.into(entity).entries({
+        uniqueName: 'PR1',
+        realm: 'dummy',
+        l1s: [
+          {
+            number: 1,
+            l2s: [
+              {
+                percentage: 50.0,
+              },
+              {
+                percentage: 50.0,
+              },
+            ],
+          },
+        ],
+      })
+
+      await cds.db.run(insert)
+      // ensure keys are generated and propagated
+       const dbState = await cds.db.run(
+        SELECT.one.from(
+          entity,
+          (h) => { h`.*`, h.l1s(
+            (l1) => { l1`.*`, l1.l2s('*') }
+          )
+       })
+        .where({uniqueName: "PR1", realm: "dummy" })
+       )
+      expect(dbState).toMatchObject({
+        uniqueName: 'PR1',
+        realm: 'dummy',
+        l1s: [
+          {
+            ID: expect.any(String),
+            header_uniqueName: 'PR1',
+            header_realm: 'dummy',
+            l2s: [
+              {
+                ID: expect.any(String),
+                header_uniqueName: 'PR1',
+                header_realm: 'dummy'
+              },
+              {
+                ID: expect.any(String),
+                l1_ID: expect.any(String),
+                l1_header_uniqueName: 'PR1',
+                l1_header_realm: 'dummy'
+              },
+            ],
+          },
+        ],
       })
     })
   })
