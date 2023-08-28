@@ -25,6 +25,11 @@ entity string {
     blob   : LargeString; // NCLOB: Unicode binary (max size 2 GiB)
 }
 
+entity binary {
+    binary : Binary;
+    largeBinary   : LargeBinary; // BLOB: Binary large object (max size 2 GiB)
+}
+
 // ISO Date format (1970-01-01)
 entity date {
     date : Date;

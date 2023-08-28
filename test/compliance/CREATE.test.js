@@ -170,6 +170,8 @@ describe('CREATE', () => {
                   // Extract data set
                   const sel = await tx.run({
                     SELECT: {
+                      // Select all expected columns as '*' does not work for largeBinary
+                      columns: Object.keys(expect).map(k => ({ ref: [k] })),
                       from: { ref: [table] },
                     },
                   })
@@ -179,8 +181,12 @@ describe('CREATE', () => {
 
                   Object.keys(expect).forEach(k => {
                     const msg = `Ensure that the Database echos correct data back, property ${k} does not match expected result.`
-                    if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {
-                      assert.equal(result[k].compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
+                    if (expect[k] instanceof Buffer) {
+                      if (!(result[k] instanceof Buffer) && typeof result[k] === 'object') {
+                        assert.fail(`Result is not a Buffer compatible type "${k}"`)
+                      }
+                      const resBuffer = Buffer.from(result[k])
+                      assert.equal(resBuffer.compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
                     } else if (typeof expect[k] === 'object' && expect[k]) {
                       assert.deepEqual(result[k], expect[k], msg)
                     } else {
