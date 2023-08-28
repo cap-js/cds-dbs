@@ -873,7 +873,7 @@ class CQN2SQLRenderer {
       : Object.keys(elements)
           .filter(
             e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual)) &&
+              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
               !columns.find(c => c.name === e),
           )
           .map(name => ({ name, sql: 'NULL' }))
