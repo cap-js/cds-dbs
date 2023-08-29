@@ -814,7 +814,8 @@ describe('test deep query generation', () => {
 
     test('backlink keys are properly propagated', async () => {
       const entity = model.definitions['keyAssocs.Header']
-      const insert = INSERT.into(entity).entries({
+
+      const entry = {
         uniqueName: 'PR1',
         realm: 'dummy',
         l1s: [
@@ -830,43 +831,53 @@ describe('test deep query generation', () => {
             ],
           },
         ],
-      })
+      }
+
+      const insert = INSERT.into(entity).entries(entry)
 
       await cds.db.run(insert)
+
+      const root = { uniqueName: entry.uniqueName, realm: entry.realm }
+
       // ensure keys are generated and propagated
-       const dbState = await cds.db.run(
-        SELECT.one.from(
-          entity,
-          (h) => { h`.*`, h.l1s(
-            (l1) => { l1`.*`, l1.l2s('*') }
-          )
-       })
-        .where({uniqueName: "PR1", realm: "dummy" })
-       )
-      expect(dbState).toMatchObject({
-        uniqueName: 'PR1',
-        realm: 'dummy',
-        l1s: [
-          {
-            ID: expect.any(String),
-            header_uniqueName: 'PR1',
-            header_realm: 'dummy',
-            l2s: [
-              {
-                ID: expect.any(String),
-                header_uniqueName: 'PR1',
-                header_realm: 'dummy'
-              },
-              {
-                ID: expect.any(String),
-                l1_ID: expect.any(String),
-                l1_header_uniqueName: 'PR1',
-                l1_header_realm: 'dummy'
-              },
-            ],
-          },
-        ],
-      })
+      const dbState = await cds.db.run(
+        SELECT.one
+          .from(entity, h => {
+            h`.*`,
+              h.l1s(l1 => {
+                l1`.*`, l1.l2s('*')
+              })
+          })
+          .where(root),
+      )
+
+      const l1s = dbState.l1s
+      const l2s = l1s[0].l2s
+
+      expect(dbState).toMatchObject(root)
+
+      expect(l1s).toMatchObject([
+        {
+          ID: expect.any(String),
+          header_realm: entry.realm,
+          header_uniqueName: entry.uniqueName,
+        },
+      ])
+
+      expect(l2s).toMatchObject([
+        {
+          ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: 'dummy',
+          l1_header_uniqueName: 'PR1',
+        },
+        {
+          ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
+        },
+      ])
     })
   })
 })
