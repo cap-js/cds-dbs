@@ -6,6 +6,10 @@
 
 ## Version 1.X.X - 2023-MM-DD
 
+### Added
+
+- support for calculated elements on read.
+
 ### Fixed
 
 - resolved a type error which occured in some cases for deeply nested `expand`s.
