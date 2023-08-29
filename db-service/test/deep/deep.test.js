@@ -868,8 +868,8 @@ describe('test deep query generation', () => {
         {
           ID: expect.any(String),
           l1_ID: l1s[0].ID,
-          l1_header_realm: 'dummy',
-          l1_header_uniqueName: 'PR1',
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
         },
         {
           ID: expect.any(String),
