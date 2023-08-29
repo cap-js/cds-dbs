@@ -843,6 +843,8 @@ describe('test deep query generation', () => {
        })
         .where({uniqueName: "PR1", realm: "dummy" })
        )
+
+      const l1_ID = dbState.l1s[0].ID;
       expect(dbState).toMatchObject({
         uniqueName: 'PR1',
         realm: 'dummy',
@@ -854,12 +856,13 @@ describe('test deep query generation', () => {
             l2s: [
               {
                 ID: expect.any(String),
-                header_uniqueName: 'PR1',
-                header_realm: 'dummy'
+                l1_ID,
+                l1_header_uniqueName: 'PR1',
+                l1_header_realm: 'dummy'
               },
               {
                 ID: expect.any(String),
-                l1_ID: expect.any(String),
+                l1_ID,
                 l1_header_uniqueName: 'PR1',
                 l1_header_realm: 'dummy'
               },
