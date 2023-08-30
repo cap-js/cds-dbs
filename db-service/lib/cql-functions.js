@@ -39,8 +39,8 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.map(a => `(${a})`).join('||'), // More brackets
-  // concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join('||'), // Possible errors?
+  // concat: (...args) => args.map(a => `(${a})`).join('||'), // More brackets
+  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join('||'), // Possible errors?
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args

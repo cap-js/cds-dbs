@@ -48,7 +48,7 @@ exports[`expressions ref list with one ref is in list of sub select 1`] = `
 
 exports[`expressions ref, String operator and value 1`] = `
 {
-  "sql": "SELECT (2023)||(8 * 2 - 0) as something FROM Foo as Foo",
+  "sql": "SELECT 2023||(8 * 2 - 0) as something FROM Foo as Foo",
   "values": [],
 }
 `;

@@ -94,11 +94,11 @@ exports[`cqn2sql functions new notation in filter with 1 arg new notation 1`] = 
 }
 `;
 
-exports[`cqn2sql functions new notation in filter with 2 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = (Foo.a)||(Foo.b)"`;
+exports[`cqn2sql functions new notation in filter with 2 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = Foo.a||Foo.b"`;
 
 exports[`cqn2sql functions new notation in filter with 3 arg new notation 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = (?)||(Foo.a)||(?)",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.c = ?||Foo.a||?",
   "values": [
     "Existing",
     "!",
