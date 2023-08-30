@@ -24,6 +24,24 @@ describe('Bookshop - Update', () => {
     expect(res.data.author_ID).to.be.eq(201)
     expect(res.data.descr).to.be.eq('UPDATED')
   })
+  test('Update array of', async () => {
+    // create book
+    const insert = INSERT.into('sap.capire.bookshop.Books')
+      .columns(['ID', 'footers'])
+      .values([150, ['one']])
+    await cds.run(insert)
+
+    const update = await PUT(
+      '/admin/Books(150)', // UPSERT new footnotes
+      {
+        descr: 'UPDATED',
+        footnotes: ['one', 'two']
+      },
+      admin,
+    )
+    expect(update.status).to.be.eq(200)
+    expect(update.data.footnotes).to.be.eql(['one', 'two'])
+  })
 
   test('programmatic update without body incl. managed', async () => {
     const { modifiedAt } = await cds.db.run(cds.ql.SELECT.from('sap.capire.bookshop.Books', { ID: 251 }))
