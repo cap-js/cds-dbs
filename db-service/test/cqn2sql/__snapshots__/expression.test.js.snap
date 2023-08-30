@@ -46,7 +46,6 @@ exports[`expressions ref list with one ref is in list of sub select 1`] = `
 }
 `;
 
-
 exports[`expressions with complex xpr 1`] = `
 {
   "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x < 9) AND (Foo.x > 1)",
