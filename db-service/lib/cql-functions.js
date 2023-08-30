@@ -40,6 +40,7 @@ const StandardFunctions = {
    * @returns {string}
    */
   concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+  
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args
