@@ -27,7 +27,7 @@ describe('expressions', () => {
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
   })
-  it.only('ref, String operator and value', () => {
+  xtest('ref, String operator and value', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
