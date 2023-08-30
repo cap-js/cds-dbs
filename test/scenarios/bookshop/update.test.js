@@ -27,7 +27,7 @@ describe('Bookshop - Update', () => {
   test('Update array of', async () => {
     // create book
     const insert = INSERT.into('sap.capire.bookshop.Books')
-      .columns(['ID', 'footers'])
+      .columns(['ID', 'footnotes'])
       .values([150, ['one']])
     await cds.run(insert)
 
