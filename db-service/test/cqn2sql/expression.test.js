@@ -27,27 +27,6 @@ describe('expressions', () => {
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toMatchSnapshot()
   })
-  xtest('ref, String operator and value', () => {
-    const cqn = {
-      SELECT: {
-        from: { ref: ['Foo'] },
-        columns: [
-          {
-            func: 'concat',
-            args: [
-              { val: 2023 },
-              {
-                xpr: [{ val: 8 }, '*', { val: 2 }, '-', { val: 0 }],
-              },
-            ],
-            as: 'something',
-          },
-        ],
-      },
-    }
-    const { sql, values } = cqn2sql(cqn)
-    expect({ sql, values }).toMatchSnapshot()
-  })
 
   test('ref = null', () => {
     const cqn = {
