@@ -255,7 +255,7 @@ const StandardFunctions = {
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context(${(typeof x.val === 'string' && knownSessionValues[x.val]) || x})`,
+  session_context: x => `session_context('${x.val}')`,
 }
 
 const HANAFunctions = {
