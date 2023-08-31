@@ -22,7 +22,7 @@ class CQN2SQLRenderer {
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
   constructor(srv) {
-    this.context = srv.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
+    this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
