@@ -49,6 +49,28 @@ entity ProjChild as projection on BaseChild {
   text as rText
 }
 
+service keyAssocs {
+    entity Header {
+    key uniqueName : String(50);
+    key realm      : String(50);
+        l1s  : Composition of many L1 on l1s.header = $self;
+}
+
+
+entity L1 {
+    key ID: UUID;
+    key header              : Association to Header;
+        number              : Integer;
+        l2s    : Composition of many L2 on l2s.l1 = $self;
+}
+
+entity L2 {
+    key ID: UUID;
+    key l1    : Association to L1;
+        percentage  : Double;
+}
+}
+
 service bla {
     entity RootUUID {
         key ID         : UUID;
