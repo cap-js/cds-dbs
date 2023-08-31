@@ -39,7 +39,8 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.join('||'),
+  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+  
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args
@@ -255,7 +256,7 @@ const StandardFunctions = {
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context(${(typeof x.val === 'string' && knownSessionValues[x.val]) || x})`,
+  session_context: x => `session_context('${x.val}')`,
 }
 
 const HANAFunctions = {
