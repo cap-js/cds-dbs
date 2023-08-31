@@ -23,6 +23,28 @@ describe('function', () => {
     // result -> instr((Foo.a,Foo.b),?)"
   })
 
+  test('wrap xpr in concat functions in parentheses', () => {
+    const cqn = {
+      SELECT: {
+        from: { ref: ['Foo'] },
+        columns: [
+          {
+            func: 'concat',
+            args: [
+              { val: 2023 },
+              {
+                xpr: [{ val: 8 }, '*', { val: 2 }, '-', { val: 0 }],
+              },
+            ],
+            as: 'something',
+          },
+        ],
+      },
+    }
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toMatchSnapshot()
+  })
+
   xtest('contains complex', () => {
     const cqn = {
       SELECT: {

@@ -493,11 +493,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const elements = definition.elements || definition._target?.elements
             if (elements && id in elements) {
               const element = elements[id]
-              if (!inExists && !inNestedProjection && !inCalcElement && element.target) {
+              if (!inNestedProjection && !inCalcElement && element.target) {
                 // only fk access in infix filter
                 const nextStep = column.ref[1]?.id || column.ref[1]
                 // no unmanaged assoc in infix filter path
-                if (element.on)
+                if (!inExists && element.on)
                   throw new Error(
                     `"${element.name}" in path "${column.ref
                       .map(idOnly)
@@ -662,7 +662,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const colWithBase = baseColumn
           ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
           : column
-        if (isColumnJoinRelevant(colWithBase, $baseLink)) {
+        if (isColumnJoinRelevant(colWithBase)) {
           if (originalQuery.UPDATE)
             throw cds.error(
               'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
