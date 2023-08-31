@@ -15,3 +15,10 @@ exports[`function fn with .xpr as argument 1`] = `
   "values": [],
 }
 `;
+
+exports[`function wrap xpr in concat functions in parentheses 1`] = `
+{
+  "sql": "SELECT 2023 || (8 * 2 - 0) as something FROM Foo as Foo",
+  "values": [],
+}
+`;
