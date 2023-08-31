@@ -183,7 +183,13 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    // static Functions = { ...super.Functions }
+    static Functions = { ...super.Functions,
+      // Ensure ISO strings are returned for date/time functions
+      current_timestamp: () => 'ISO(current_timestamp)',
+      // SQLite doesn't support arguments for current_date and current_time
+      current_date: () => 'current_date',
+      current_time: () => 'current_time',
+    }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
