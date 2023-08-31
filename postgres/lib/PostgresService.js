@@ -298,12 +298,12 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = `${cds.context.locale.replace('_', '-')}-x-icu`
+      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
       return this._orderBy(orderBy, localized, locale)
     }
 
     orderByLIBC(orderBy, localized) {
-      const locale = this.collationMap[cds.context.locale] || this.collationMap.default
+      const locale = this.collationMap[this.context.locale] || this.collationMap.default
       return this._orderBy(orderBy, localized && locale, locale)
     }
 
