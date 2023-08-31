@@ -16,7 +16,7 @@ db-service/lib/cqn2sql.js @BobdenOs
 db-service/lib/deep-queries.js @BobdenOs
 db-service/lib/fill-in-keys.js @BobdenOs
 
-db-service/test/cqn2sql/**.js @BobdenOs
+db-service/test/cqn2sql/** @BobdenOs
 db-service/test/deep/**.js @BobdenOs
 db-service/test/etc/**.js @BobdenOs
 db-service/test/tsc/**.js @BobdenOs
