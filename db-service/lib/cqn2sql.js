@@ -434,14 +434,11 @@ class CQN2SQLRenderer {
     if (!INSERT.columns && !elements) {
       throw cds.error`Cannot insert rows without columns or elements`
     }
-    let columns = INSERT.columns || (elements && ObjectKeys(elements))
-    if (elements) {
-      columns = columns.filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
-    }
+    let columns = INSERT.columns || (elements && ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation))
     this.columns = columns.map(c => this.quote(c))
 
     const inputConverterKey = this.class._convertInput
-    const extraction = columns.map((c, i) => {
+    const extraction = columns.map((c,i) => {
       const element = elements?.[c] || {}
       const extract = `value->>'$[${i}]'`
       const converter = element[inputConverterKey] || (e => e)
