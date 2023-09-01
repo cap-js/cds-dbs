@@ -12,9 +12,9 @@
 
 ### Fixed
 
-- resolved a type error which occured in some cases for deeply nested `expand`s.
-- path expression traversing non-foreign-key fields within infix filters are now properly rejected for `exists` predicates.
-- CQL functions: In the `args` of the `concat` function an `xpr` is now wrapped in parentheses.
+- resolved a type error which occured in some cases for deeply nested `expand`s. #173
+- path expression traversing non-foreign-key fields within infix filters are now properly rejected for `exists` predicates. #181
+- CQL functions: In the `args` of the `concat` function an `xpr` is now wrapped in parentheses. #196
 
 ## Version 1.1.0 - 2023-08-01
 
