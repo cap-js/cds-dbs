@@ -7,8 +7,9 @@ describe('datetime handling', () => {
     let res
     const payload = { dt: '2020-12-31T01:02:03Z', int: 4711}
     res = await cds.db.run(INSERT.into('DateTimeEntity').entries(payload))
+    res = await cds.db.run(SELECT.one.from('DateTimeEntity').where({dt: new Date(dt).toISOString() })) // this finds the value but shouldn't
+    expect(res).toMatchObject(payload)
     res = await cds.db.run(SELECT.one.from('DateTimeEntity').where({dt: payload.dt})) // this returns undefined
-    res = await cds.db.run(SELECT.one.from('DateTimeEntity').where({dt: '2020-12-31T01:02:03.000Z'})) // this finds the value but shouldn't
     expect(res).toMatchObject(payload)
   })
 })
