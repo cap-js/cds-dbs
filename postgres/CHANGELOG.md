@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- [Reserved words](https://www.postgresql.org/docs/current/sql-keywords-appendix.html) are now used to automatically
+- [Reserved words](https://www.postgresql.org/docs/current/sql-keywords-appendix.html) are now used to automatically. #178
   escape reserved words which are used as identifier.
 
 ## Version 1.1.0 - 2023-08-01
