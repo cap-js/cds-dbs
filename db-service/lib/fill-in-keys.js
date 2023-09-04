@@ -23,6 +23,11 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
     }
 
     if (elements[element].is2one || elements[element].is2many) {
+      // propagate own foreign keys to propagate further to sub data
+      propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
+        deleteAssocs: true,
+      })
+
       let subData = data[element]
       if (subData) {
         if (!Array.isArray(subData)) {
@@ -33,10 +38,6 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
           generateUUIDandPropagateKeys(elements[element]._target, sub, 'CREATE')
         }
       }
-
-      propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
-        deleteAssocs: true,
-      })
     }
   }
 }

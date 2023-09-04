@@ -21,8 +21,8 @@ class CQN2SQLRenderer {
    * @constructor
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
-  constructor(context) {
-    this.context = context || cds.context // REVISIT: Why do we need that? -> Accessing cds.context below should suffice, shouldn't it?
+  constructor(srv) {
+    this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
   }
@@ -434,14 +434,11 @@ class CQN2SQLRenderer {
     if (!INSERT.columns && !elements) {
       throw cds.error`Cannot insert rows without columns or elements`
     }
-    let columns = INSERT.columns || (elements && ObjectKeys(elements))
-    if (elements) {
-      columns = columns.filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
-    }
+    let columns = INSERT.columns || (elements && ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation))
     this.columns = columns.map(c => this.quote(c))
 
     const inputConverterKey = this.class._convertInput
-    const extraction = columns.map((c, i) => {
+    const extraction = columns.map((c,i) => {
       const element = elements?.[c] || {}
       const extract = `value->>'$[${i}]'`
       const converter = element[inputConverterKey] || (e => e)
@@ -906,6 +903,7 @@ class CQN2SQLRenderer {
    * @param {string} defaultValue
    * @returns {string}
    */
+  // REVISIT: This is a strange method, also overridden inconsistently in postgres
   defaultValue(defaultValue = this.context.timestamp.toISOString()) {
     return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
   }
