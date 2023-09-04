@@ -688,7 +688,10 @@ class HANAService extends SQLService {
         case 'object':
           if (val === null) return 'NULL'
           if (val instanceof Date) return `'${val.toISOString()}'`
-          if (val instanceof Readable) ; // go on with default below
+          if (val instanceof Readable){
+            this.values.push(val)
+            return '?'
+          }
           else if (Buffer.isBuffer(val)) val = val.toString('base64')
           else if (is_regexp(val)) val = val.source
           else val = JSON.stringify(val)
