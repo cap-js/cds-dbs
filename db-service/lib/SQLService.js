@@ -249,7 +249,8 @@ class SQLService extends DatabaseService {
       let target = q[cmd]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
+    let cqn2sql = new this.class.CQN2SQL(this)
+    return cqn2sql.render(q, values)
   }
 
   /**
