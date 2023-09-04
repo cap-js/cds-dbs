@@ -35,6 +35,21 @@ class DatabaseService extends cds.Service {
     throw '2b overridden by subclass'
   }
 
+  init() {
+    this.on(['*'], this.onRequest)
+    return super.init()
+  }
+
+  /**
+   * Handler for SELECT
+   * @type {Handler}
+   */
+  async onRequest(req, next) {
+    const prom = next()
+    this.activeQueries.push(prom)
+    return prom
+  }
+
   /**
    * Acquires a pooled connection and starts a session, including setting
    * session context like `$user.id` or `$user.locale`, and starting a
@@ -55,6 +70,7 @@ class DatabaseService extends cds.Service {
 
     // Acquire a pooled connection
     this.dbc = await this.acquire()
+    this.activeQueries = []
 
     // Begin a session...
     try {
@@ -83,6 +99,7 @@ class DatabaseService extends cds.Service {
     if (!this.dbc) return
     else
       try {
+        await Promise.allSettled(this.activeQueries)
         await this.send('ROLLBACK')
       } finally {
         this.release()
