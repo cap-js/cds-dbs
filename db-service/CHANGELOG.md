@@ -19,6 +19,7 @@
 - Make `UPDATE` and `ofarray` typed column compatible. #184
 - Ensure that `INSERT` with `rows` always inserts into the correct column. #193
 - Allow `DateTime` columns to compare against their returned value. #206
+- Deep Insert using backlink associations as key #199.
 
 ## Version 1.1.0 - 2023-08-01
 
