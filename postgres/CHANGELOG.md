@@ -6,9 +6,14 @@
 
 ## Version 1.X.X - 2023-MM-DD
 
+### Added
+
+- Reduced the usage of `is not distinct [not] from`. #157
+
 ### Fixed
 
 - [Reserved words](https://www.postgresql.org/docs/current/sql-keywords-appendix.html) are now used to automatically escape reserved words which are used as identifier. #178
+- Remove column count limitation. #150
 
 ## Version 1.1.0 - 2023-08-01
 
