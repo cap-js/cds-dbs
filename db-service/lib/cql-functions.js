@@ -1,11 +1,3 @@
-const knownSessionValues = {
-  "$user.id": "'$user.id'",
-  "$user.locale":"'$user.locale'",
-  "$now": "'$now'",
-  "$valid.from": "'$valid.from'",
-  "$valid.to": "'$valid.to'"
-}
-
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
