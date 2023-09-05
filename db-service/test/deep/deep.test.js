@@ -13,8 +13,7 @@ beforeAll(async () => {
 
 describe('test deep query generation', () => {
   describe('deep expand', () => {
-    // SKIPPED because that test is testing obsolete internal implementation of deep delete
-    test.skip('Deep DELETE with to-one all data provided', () => {
+    test('Deep DELETE with to-one all data provided', () => {
       const query = getExpandForDeep(DELETE.from(model.definitions.Root).where({ ID: 1 }), model.definitions.Root)
       expect(query).toEqual({
         SELECT: {
@@ -672,7 +671,7 @@ describe('test deep query generation', () => {
       })
     })
 
-    test.skip('works with recursive and stops after getting to the same level 2 times', () => {
+    test('works with recursive and stops after getting to the same level 2 times', () => {
       const query = getExpandForDeep(
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
         model.definitions.Recursive,
