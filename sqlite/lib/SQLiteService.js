@@ -141,7 +141,8 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
-      if (/\d{4}-\d{2}-\d{2}T[0-2]\d:[0-5]{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      // intercept DateTime values and convert to Date objects to compare ISO Strings
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
       return super.val(v)
     }
 
