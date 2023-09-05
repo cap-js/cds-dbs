@@ -8,7 +8,7 @@
 
 ### Added
 
-- support for calculated elements on read.
+- support for calculated elements on read. #113 #123
 - support for managed associations with default values. #193
 
 ### Fixed
