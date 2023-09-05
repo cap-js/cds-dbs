@@ -140,6 +140,12 @@ class SQLiteService extends SQLService {
       }
     }
 
+    val(v) {
+      // intercept DateTime values and convert to Date objects to compare ISO Strings
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      return super.val(v)
+    }
+
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,

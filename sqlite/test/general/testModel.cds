@@ -74,6 +74,11 @@ entity DBDeepEntity {
                      on children.parentRename = ID;
 }
 
+entity DateTimeEntity {
+  key dt: DateTime;
+  int: Integer;
+}
+
 entity FProjDeep  as projection on DBDeepEntity {
   ID         as IDRename,
   parent     as parentRename,
