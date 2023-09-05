@@ -185,6 +185,11 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
