@@ -4,12 +4,16 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
-/** @typedef {import('@sap/cds/apis/services').Request} Request */
+/**
+ * @callback next
+ * @param {Error} param0
+ * @returns {Promise<unknown>}
+ */
 
 /**
  * @callback Handler
- * @param {Request} req
- * @param {(err? : Error) => {Promise<unknown>}} next
+ * @param {import('@sap/cds/apis/services').Request} param0
+ * @param {next} param1
  * @returns {Promise<unknown>}
  */
 
@@ -18,14 +22,13 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
     this.on(['UPDATE'], this.onUPDATE)
-    this.on(['DELETE'], this.onDELETE)
-    this.on(['CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
+    this.on(['DELETE', 'CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
     this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
@@ -149,27 +152,6 @@ class SQLService extends DatabaseService {
     return (await ps.run(values)).changes
   }
 
-  get onDELETE() {
-    return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
-    async function deep_delete (/** @type {Request} */ req) {
-      let { compositions } = req.target, { depth=0 } = req
-      if (compositions) {
-        // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
-        let { from, where } = req.query.DELETE
-        if (typeof from === 'string') from = {ref:[ from ]}
-        if (where) from = {ref:[ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where }]}
-        // Process child compositions depth-first
-        await Promise.all (Object.values(compositions).map(c => {
-          if (c._target['@cds.persistence.skip'] === true) return
-          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) return
-          let query = DELETE.from ({ref:[ ...from.ref, c.name ]}) // CQL`DELETE from Foo[pred]:comp1.comp2...`
-          return this.onDELETE({ query, depth, target: c._target })
-        }))
-      }
-      return this.onSIMPLE(req)
-    }
-  }
-
   /**
    * Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN
    * @type {Handler}
@@ -185,6 +167,11 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)

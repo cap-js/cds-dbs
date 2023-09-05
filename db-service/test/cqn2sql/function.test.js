@@ -206,6 +206,6 @@ describe('function', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date()')
+    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date')
   })
 })
