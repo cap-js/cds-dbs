@@ -9,12 +9,16 @@
 ### Added
 
 - support for calculated elements on read.
+- support for managed associations with default values. #193
 
 ### Fixed
 
 - resolved a type error which occured in some cases for deeply nested `expand`s. #173
 - path expression traversing non-foreign-key fields within infix filters are now properly rejected for `exists` predicates. #181
 - CQL functions: In the `args` of the `concat` function an `xpr` is now wrapped in parentheses. #196
+- Make `UPDATE` and `ofarray` typed column compatible. #184
+- Ensure that `INSERT` with `rows` always inserts into the correct column. #193
+- Allow `DateTime` columns to compare against their returned value. #206
 
 ## Version 1.1.0 - 2023-08-01
 
