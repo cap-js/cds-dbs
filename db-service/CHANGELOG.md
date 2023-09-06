@@ -4,12 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Version 1.X.X - 2023-MM-DD
+## Version 1.2.0 - 2023-09-06
 
 ### Added
 
 - support for calculated elements on read. #113 #123
 - support for managed associations with default values. #193
+- introduced new operator `==` which translates to `IS NOT DISTINCT FROM`. #164
 
 ### Fixed
 
