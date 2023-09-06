@@ -75,66 +75,75 @@ describe('DELETE', () => {
     let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup')
     const query = cqn4sql(d)
 
-    const expected = JSON.parse(`{
-        "DELETE": {
-          "from": {
-            "ref": [
-              "bookshop.AccessGroups"
-            ],
-            "as": "accessGroup"
-          },
-          "where": [
-            "exists",
-            {
-              "SELECT": {
-                "from": {
-                  "ref": [
-                    "bookshop.Reproduce"
-                  ],
-                  "as": "Reproduce"
-                },
-                "columns": [
-                  {
-                    "val": 1
-                  }
+    const expected = {
+      "DELETE": {
+        "from": {
+          "ref": [
+            "bookshop.AccessGroups"
+          ],
+          "as": "accessGroup"
+        },
+        "where": [
+          "exists",
+          {
+            "SELECT": {
+              "from": {
+                "ref": [
+                  "bookshop.Reproduce"
                 ],
-                "where": [
-                  {
-                    "ref": [
-                      "Reproduce",
-                      "author_ID"
-                    ]
-                  },
-                  "=",
-                  { val: null },
-                  "and",
-                  {
-                    "ref": [
-                      "Reproduce",
-                      "ID"
-                    ]
-                  },
-                  "=",
-                  { val: 99 },"and",
-                  {
-                    "ref": [
-                      "accessGroup",
-                      "ID"
-                    ]
-                  },
-                  "=",
-                  {
-                    "ref": [
-                      "Reproduce",
-                      "accessGroup_ID"
-                    ]
-                  }
-                ]
-              }
+                "as": "Reproduce"
+              },
+              "columns": [
+                {
+                  "val": 1
+                }
+              ],
+              "where": [
+                {
+                  "ref": [
+                    "Reproduce",
+                    "accessGroup_ID"
+                  ]
+                },
+                "=",
+                {
+                  "ref": [
+                    "accessGroup",
+                    "ID"
+                  ]
+                },
+                "and",
+                {
+                  "xpr": [
+                    {
+                      "ref": [
+                        "Reproduce",
+                        "author_ID"
+                      ]
+                    },
+                    "=",
+                    {
+                      "val": null
+                    }
+                  ]
+                },
+                "and",
+                {
+                  "ref": [
+                    "Reproduce",
+                    "ID"
+                  ]
+                },
+                "=",
+                {
+                  "val": 99
+                }
+              ]
             }
-          ]
-        }
-      }`)
+          }
+        ]
+      }
+    }
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
 })

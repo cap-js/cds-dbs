@@ -164,6 +164,7 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  accessGroup : Composition of AccessGroups;
 }
 entity Intermediate {
   key ID: Integer;
