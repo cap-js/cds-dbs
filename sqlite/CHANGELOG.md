@@ -6,6 +6,9 @@
 
 ## Version 1.2.0 - 2023-09-06
 
+### Changed
+
+- `cds.Decimal` and `cds.Float` return numbers instead of strings
 
 ## Version 1.1.0 - 2023-08-01
 
