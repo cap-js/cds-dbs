@@ -167,6 +167,11 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
@@ -244,7 +249,8 @@ class SQLService extends DatabaseService {
       let target = q[cmd]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
+    let cqn2sql = new this.class.CQN2SQL(this)
+    return cqn2sql.render(q, values)
   }
 
   /**
