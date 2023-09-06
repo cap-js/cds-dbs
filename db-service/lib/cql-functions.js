@@ -1,11 +1,3 @@
-const knownSessionValues = {
-  "$user.id": "'$user.id'",
-  "$user.locale":"'$user.locale'",
-  "$now": "'$now'",
-  "$valid.from": "'$valid.from'",
-  "$valid.to": "'$valid.to'"
-}
-
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
@@ -40,7 +32,7 @@ const StandardFunctions = {
    * @returns {string}
    */
   concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
-  
+
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args
@@ -148,6 +140,11 @@ const StandardFunctions = {
   round: (x, p) => `round(${x}${p ? `,${p}` : ''})`,
 
   // Date and Time Functions
+
+  current_date: p => p ? `current_date(${p})`: 'current_date',
+  current_time: p => p ? `current_time(${p})`: 'current_time',
+  current_timestamp: p => p ? `current_timestamp(${p})`: 'current_timestamp',
+
   /**
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
