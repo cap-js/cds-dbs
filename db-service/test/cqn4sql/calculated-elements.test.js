@@ -614,6 +614,24 @@ describe('Unfolding calculated elements in other places', () => {
     }`
     expect(query).to.deep.equal(expected)
   })
+  it.skip('in a function, args are join relevant', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
+      ID,
+      authorAge
+    }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        years_between( author.sortCode, author.sortCode ) as authorAge
+      }
+    `
+    expect(query).to.deep.equal(expected)
+  })
   it('in a subquery calc element is join relevant', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books {
