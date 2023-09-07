@@ -63,7 +63,7 @@ entity LBooks {
   key ID : Integer;
 
   title : localized String;
-  // ctitle = substring(title, 3, 3);  // requires compiler 4.1
+  ctitle = substring(title, 3, 3);  // requires compiler 4.1
 
   length : Decimal;
   width : Decimal;
