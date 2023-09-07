@@ -4,9 +4,11 @@ cds.env.features.recursion_depth = 2
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
 
 let model
+
+cds.test('serve', __dirname + '/deep.cds')
+
 beforeAll(async () => {
-  model = await cds.load(__dirname + '/deep.cds')
-  model = cds.linked(model)
+  model = cds.model
 })
 
 describe('test deep query generation', () => {
@@ -809,6 +811,74 @@ describe('test deep query generation', () => {
       expectedInserts.forEach(insert => {
         expect(deepQueries).toContainEqual(insert)
       })
+    })
+
+    test('backlink keys are properly propagated', async () => {
+      const entity = model.definitions['keyAssocs.Header']
+
+      const entry = {
+        uniqueName: 'PR1',
+        realm: 'dummy',
+        l1s: [
+          {
+            number: 1,
+            l2s: [
+              {
+                percentage: 50.0,
+              },
+              {
+                percentage: 50.0,
+              },
+            ],
+          },
+        ],
+      }
+
+      const insert = INSERT.into(entity).entries(entry)
+
+      await cds.db.run(insert)
+
+      const root = { uniqueName: entry.uniqueName, realm: entry.realm }
+
+      // ensure keys are generated and propagated
+      const dbState = await cds.db.run(
+        SELECT.one
+          .from(entity, h => {
+            h`.*`,
+              h.l1s(l1 => {
+                l1`.*`, l1.l2s('*')
+              })
+          })
+          .where(root),
+      )
+
+      const l1s = dbState.l1s
+      const l2s = l1s[0].l2s
+
+      expect(dbState).toMatchObject(root)
+
+      expect(l1s).toMatchObject([
+        {
+          ID: expect.any(String),
+          header_realm: entry.realm,
+          header_uniqueName: entry.uniqueName,
+        },
+      ])
+
+      expect(l2s).toMatchObject([
+        {
+          ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
+        },
+        {
+          ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
+        },
+      ])
     })
   })
 })

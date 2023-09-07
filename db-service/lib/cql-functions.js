@@ -31,7 +31,8 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.join('||'),
+  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
    * @param  {...string} args
@@ -139,6 +140,11 @@ const StandardFunctions = {
   round: (x, p) => `round(${x}${p ? `,${p}` : ''})`,
 
   // Date and Time Functions
+
+  current_date: p => p ? `current_date(${p})`: 'current_date',
+  current_time: p => p ? `current_time(${p})`: 'current_time',
+  current_timestamp: p => p ? `current_timestamp(${p})`: 'current_timestamp',
+
   /**
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
@@ -241,6 +247,13 @@ const StandardFunctions = {
       )
     ) * 86400
   )`,
+
+  /**
+   * Generates SQL statement that calls the session_context function with the given parameter
+   * @param {string} x session variable name or SQL expression
+   * @returns {string}
+   */
+  session_context: x => `session_context('${x.val}')`,
 }
 
 const HANAFunctions = {

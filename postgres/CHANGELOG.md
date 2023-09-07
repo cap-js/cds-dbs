@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.2.0 - 2023-09-06
+
+### Added
+
+- Reduced the usage of `is not distinct [not] from`. #157
+
+### Fixed
+
+- [Reserved words](https://www.postgresql.org/docs/current/sql-keywords-appendix.html) are now used to automatically escape reserved words which are used as identifier. #178
+- Remove column count limitation. #150
+
 ## Version 1.1.0 - 2023-08-01
 
 ### Added
