@@ -4,6 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.2.1 - 2023-09-08
+
+### Fixed
+
+- Association expansion in infix filters. #213
+
 ## Version 1.2.0 - 2023-09-06
 
 ### Added
