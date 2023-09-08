@@ -430,7 +430,8 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorName,
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
-          address.street || ', ' || address.city as authorAdrText
+          address.street || ', ' || address.city as authorAdrText,
+          years_between( author.sortCode, author.sortCode ) as authorAge
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -458,12 +459,13 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorName,
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
-          address.street || ', ' || address.city as authorAdrText
+          address.street || ', ' || address.city as authorAdrText,
+          years_between( author.sortCode, author.sortCode ) as authorAge
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
-  // TODO
-  it.skip('replacement for calculated element is considered for wildcard expansion', () => {
+
+  it('replacement for calculated element is considered for wildcard expansion', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`,
       model,
@@ -489,7 +491,8 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorName,
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
-          address.street || ', ' || address.city as authorAdrText
+          address.street || ', ' || address.city as authorAdrText,
+          years_between( author.sortCode, author.sortCode ) as authorAge
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -527,7 +530,9 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorName,
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
-          address.street || ', ' || address.city as authorAdrText
+          address.street || ', ' || address.city as authorAdrText,
+
+          years_between( author.sortCode, author.sortCode ) as authorAge
         } where Authors.ID = books.author_ID
       ) as books
     }`
@@ -612,6 +617,24 @@ describe('Unfolding calculated elements in other places', () => {
                  = (Books.length * Books.width) + substring(Books.title, 3, Books.stock)
         ) as f
     }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('in a function, args are join relevant', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
+      ID,
+      authorAge
+    }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        years_between( author.sortCode, author.sortCode ) as authorAge
+      }
+    `
     expect(query).to.deep.equal(expected)
   })
   it('in a subquery calc element is join relevant', () => {

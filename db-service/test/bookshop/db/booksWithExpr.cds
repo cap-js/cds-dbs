@@ -27,6 +27,8 @@ entity Books {
   authorFullName = author.firstName || ' ' || author.lastName;
   authorFullNameWithAddress = authorFullName || ' ' || authorAdrText;
   authorAdrText = author.addressText;
+
+  authorAge: Integer = years_between( author.sortCode, author.sortCode );
 }
 
 entity Authors {
