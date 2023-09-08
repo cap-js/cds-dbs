@@ -672,7 +672,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
       if (leafArt.value && !leafArt.value.stored) {
-        resolveCalculatedElement(column, $baseLink, baseColumn)
+        linkCalculatedElement(column, $baseLink, baseColumn)
       }
 
       /**
@@ -801,7 +801,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
-    function resolveCalculatedElement(column, baseLink, baseColumn) {
+    function linkCalculatedElement(column, baseLink, baseColumn) {
       const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
@@ -940,8 +940,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
           if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
           if (element.value) {
-            // we might have join relevant calculated elements
-            resolveCalculatedElement(element)
+            linkCalculatedElement(element)
           }
         })
         return
@@ -956,6 +955,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         if (exclude(name) || name in queryElements) return true
         const element = tableAliases[0].tableAlias.elements[name]
         if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+        if (element.value) {
+          linkCalculatedElement(element)
+        }
       })
 
       if (Object.keys(ambiguousElements).length > 0) throwAmbiguousWildcardError()

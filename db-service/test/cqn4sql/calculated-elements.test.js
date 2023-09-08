@@ -464,8 +464,8 @@ describe('Unfolding calculated elements in select list', () => {
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
-  // TODO
-  it.skip('replacement for calculated element is considered for wildcard expansion', () => {
+
+  it('replacement for calculated element is considered for wildcard expansion', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`,
       model,

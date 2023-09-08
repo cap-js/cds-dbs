@@ -123,16 +123,4 @@ describe('Pseudo Variables', () => {
       '"$whatever" not found in the elements of "bookshop.Books"',
     )
   })
-
-  // it.skip('$user', () => {})
-  // it.skip('$user.id', () => {})
-  // it.skip('$user.locale', () => {})
-  // it.skip('$user.<attr>', () => {})
-  // it.skip('$tenant', () => {}) //?
-  // it.skip('$now', () => {})
-  // it.skip('$at', () => {})
-  // it.skip('$from, $to', () => {})
-
-  // $search maybe via external mechanism
-  // --> would be smart to do before path resolving
 })
