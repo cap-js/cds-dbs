@@ -157,7 +157,17 @@ class SQLService extends DatabaseService {
         // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
         let { from, where } = req.query.DELETE
         if (typeof from === 'string') from = {ref:[ from ]}
-        if (where) from = {ref:[ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where }]}
+        if (where) {
+          const filtered = from.ref.at(-1)
+          from = { ref: [...from.ref.slice(0, -1)] }
+          // Apply the where predicate to the last path segment
+          if (typeof filtered === 'string') from.ref.push({ id: filtered, where })
+          // Merge with existing where predicates
+          else from.ref.push({
+            ...filtered,
+            where: filtered.where ? [{ xpr: filtered.where }, 'and', { xpr: where }] : where
+          })
+        }
         // Process child compositions depth-first
         await Promise.all (Object.values(compositions).map(c => {
           if (c._target['@cds.persistence.skip'] === true) return
