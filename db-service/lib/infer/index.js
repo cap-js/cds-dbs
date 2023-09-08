@@ -814,30 +814,43 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           basePath.$refLinks.push(...baseColumn.$refLinks)
           basePath.ref.push(...baseColumn.ref)
         }
-        // column is now fully linked, now we need to find out if we need to merge it into the join tree
-        // for that, we calculate all paths from a calc element and merge them into the join tree
         mergePathsIntoJoinTree(calcElement.value, basePath)
       }
       if (func)
-        calcElement.value.args?.forEach(arg =>
-          inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent }),
-        ) // {func}.args are optional
-      function mergePathsIntoJoinTree(e, basePath = null) {
+        calcElement.value.args?.forEach(arg => {
+          inferQueryElement(
+            arg,
+            false,
+            { definition: calcElement.parent, target: calcElement.parent },
+            { inCalcElement: true },
+          ),
+          
+          mergePathsIntoJoinTree(arg)
+        }) // {func}.args are optional
+      
+      /**
+       * Calculates all paths from a given ref and merges them into the join tree.
+       * Recursively walks into refs of calculated elements.
+       * 
+       * @param {object} arg with a ref and sibling $refLinks
+       * @param {object} basePath with a ref and sibling $refLinks, used for recursion
+       */
+      function mergePathsIntoJoinTree(arg, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
-        if (e.ref) {
-          e.$refLinks.forEach((link, i) => {
+        if (arg.ref) {
+          arg.$refLinks.forEach((link, i) => {
             const { definition } = link
             if (!definition.value) {
               basePath.$refLinks.push(link)
-              basePath.ref.push(e.ref[i])
+              basePath.ref.push(arg.ref[i])
             }
           })
-          const leafOfCalculatedElementRef = e.$refLinks[e.$refLinks.length - 1].definition
+          const leafOfCalculatedElementRef = arg.$refLinks[arg.$refLinks.length - 1].definition
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
-          mergePathIfNecessary(basePath, e)
-        } else if (e.xpr) {
-          e.xpr.forEach(step => {
+          mergePathIfNecessary(basePath, arg)
+        } else if (arg.xpr) {
+          arg.xpr.forEach(step => {
             if (step.ref) {
               const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               step.$refLinks.forEach((link, i) => {
