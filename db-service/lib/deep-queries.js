@@ -21,7 +21,7 @@ async function onDeep(req, next) {
 
   // REVISIT: req.target does not match the query.INSERT target for path insert
   // const target = query.sources[Object.keys(query.sources)[0]]
-  if (!this.model?.definitions[_target_name4(req.query)])  return next()
+  if (!this.model?.definitions[_target_name4(req.query)]) return next()
 
   const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
@@ -101,7 +101,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
     const seen = elementMap.get(fqn)
     if (seen && seen >= DEEP_DELETE_MAX_RECURSION_DEPTH) {
       // recursion -> abort
-      return
+      return expandColumns
     }
 
     let expandColumn = expandColumns.find(expandColumn => expandColumn.ref[0] === composition.name)
@@ -136,6 +136,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
       _calculateExpandColumns(composition._target, compositionData, expandColumn.expand, newElementMap)
     }
   }
+  return expandColumns
 }
 
 /**

@@ -151,34 +151,32 @@ class SQLService extends DatabaseService {
 
   get onDELETE() {
     return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
-    async function deep_delete (/** @type {Request} */ req, root) {
-      let {compositions} = req.target, { queries=[], depth=0 } = req
+    async function deep_delete (/** @type {Request} */ req) {
+      let { compositions } = req.target, { depth=0 } = req
       if (compositions) {
         // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
         let { from, where } = req.query.DELETE
-        if (where) from = { ref:
-          typeof from === 'string' ? [ { id: from, where } ] :
-          [ ...from.ref.slice(0,-1), { id: from.ref.at(-1), where } ]
+        if (typeof from === 'string') from = {ref:[ from ]}
+        if (where) {
+          const filtered = from.ref.at(-1)
+          from = { ref: [...from.ref.slice(0, -1)] }
+          // Apply the where predicate to the last path segment
+          if (typeof filtered === 'string') from.ref.push({ id: filtered, where })
+          // Merge with existing where predicates
+          else from.ref.push({
+            ...filtered,
+            where: filtered.where ? [{ xpr: filtered.where }, 'and', { xpr: where }] : where
+          })
         }
-        // Process compositions depth-first
-        for (let c of Object.values(compositions)) {
-          if (c._target['@cds.persistence.skip'] === true) continue
-          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) continue
-          this.onDELETE({ target: c._target, queries, depth, query: {
-            // CQL`DELETE from Foo[pred]:comp1.comp2...`
-            DELETE: { from: {ref:[ ...from.ref, c.name ]} },
-          }})
-        }
+        // Process child compositions depth-first
+        await Promise.all (Object.values(compositions).map(c => {
+          if (c._target['@cds.persistence.skip'] === true) return
+          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) return
+          let query = DELETE.from ({ref:[ ...from.ref, c.name ]}) // CQL`DELETE from Foo[pred]:comp1.comp2...`
+          return this.onDELETE({ query, depth, target: c._target })
+        }))
       }
-      // Collect all queries depth-first
-      queries.push (req.query)
-
-      // Finally run all queries
-      if (root) {
-        let affected = await Promise.all(queries.map(q => this.onSIMPLE({query:q})))
-        return affected.reduce((p,n)=>p+n)
-        // return affected.at(-1) //> former behaviour
-      }
+      return this.onSIMPLE(req)
     }
   }
 
@@ -197,6 +195,11 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
@@ -274,7 +277,8 @@ class SQLService extends DatabaseService {
       let target = q[cmd]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
+    let cqn2sql = new this.class.CQN2SQL(this)
+    return cqn2sql.render(q, values)
   }
 
   /**

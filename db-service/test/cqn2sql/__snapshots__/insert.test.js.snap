@@ -22,6 +22,17 @@ exports[`insert insert only test with insert rows into columns 1`] = `
 }
 `;
 
+exports[`insert insert only test with insert rows without columns 1`] = `
+{
+  "entries": [
+    [
+      "[["BookSupplUUID",47.11,"toBooking_UUID","toTravel_UUID"]]",
+    ],
+  ],
+  "sql": "INSERT INTO BookingSupplement (BookSupplUUID,Price,to_Booking_BookingUUID,to_Travel_TravelUUID) SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]',value->>'$[3]' FROM json_each(?)",
+}
+`;
+
 exports[`insert insert only test with insert values into columns 1`] = `
 {
   "entries": [

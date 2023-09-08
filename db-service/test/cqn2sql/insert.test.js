@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
 beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  cds.model = await cds.load(__dirname + '/testModel').then(cds.compile.for.nodejs)
 })
 
 describe('insert', () => {
@@ -30,6 +30,19 @@ describe('insert', () => {
           rows: [
             [1, "'asd'", 2],
             [9, "mmm'", 77],
+          ],
+        },
+      }
+      const { sql, entries } = cqn2sql(cqnInsert)
+      expect({ sql, entries }).toMatchSnapshot()
+    })
+
+    test('test with insert rows without columns', () => {
+      const cqnInsert = {
+        INSERT: {
+          into: { ref: ['BookingSupplement'] },
+          rows: [
+            ['BookSupplUUID', 47.11, 'toBooking_UUID', 'toTravel_UUID']
           ],
         },
       }

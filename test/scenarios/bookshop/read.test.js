@@ -39,6 +39,22 @@ describe('Bookshop - Read', () => {
     expect(columns).to.contain('title')
   })
 
+  test('Smart quotation', async () => {
+    const q = CQL`
+      SELECT FROM sap.capire.bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+        ![FROM].author { name as CONSTRAINT } 
+      }
+      where ![FROM].title LIKE '%Wuthering%'
+      order by group
+    `
+    const res = await cds.run(q)
+    expect(res.length).to.be.eq(1)
+    expect(res[0]).to.have.property('group')
+    expect(res[0]).to.have.deep.property('author', { CONSTRAINT: 'Emily Brontë' })
+  })
+
   test('Plain sql', async () => {
     const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
     expect(res.length).to.be.eq(5)

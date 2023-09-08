@@ -1,9 +1,4 @@
-if [ $HXE_PULL ]; then
-    wait $HXE_PULL;
-fi
-
-exists=$(docker images hanaexpress:current -q);
-if [ $exists ]; then
+if [ $IMAGE_ID ] && [ $TAG ]; then
     echo "Using prepared HXE image"
     docker-compose -f ci.yml up -d;
 else
