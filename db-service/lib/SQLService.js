@@ -151,12 +151,12 @@ class SQLService extends DatabaseService {
 
   get onDELETE() {
     return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
-    async function deep_delete (/** @type {Request} */ req) {
-      let { compositions } = req.target, { depth=0 } = req
+    async function deep_delete(/** @type {Request} */ req) {
+      let { compositions } = req.target, { depth = [] } = req
       if (compositions) {
         // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
         let { from, where } = req.query.DELETE
-        if (typeof from === 'string') from = {ref:[ from ]}
+        if (typeof from === 'string') from = { ref: [from] }
         if (where) {
           const filtered = from.ref.at(-1)
           from = { ref: [...from.ref.slice(0, -1)] }
@@ -168,13 +168,21 @@ class SQLService extends DatabaseService {
             where: filtered.where ? [{ xpr: filtered.where }, 'and', { xpr: where }] : where
           })
         }
+
         // Process child compositions depth-first
-        await Promise.all (Object.values(compositions).map(c => {
+        for(const c of Object.values(compositions)) {
           if (c._target['@cds.persistence.skip'] === true) return
-          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) return
-          let query = DELETE.from ({ref:[ ...from.ref, c.name ]}) // CQL`DELETE from Foo[pred]:comp1.comp2...`
-          return this.onDELETE({ query, depth, target: c._target })
-        }))
+          let count = 0
+          for (let i = 0; i < depth.length; i++) {
+            if (depth[i] === c) count++
+            if (count > (c['@depth'] || 3)) return
+          }
+          const query = DELETE.from({ ref: [...from.ref, c.name] }) // CQL`DELETE from Foo[pred]:comp1.comp2...`
+          depth.push(c)
+          // Awaiting the promises to prevent multiple gigabytes of memory being used
+          await this.onDELETE({ query, depth, target: c._target })
+          depth.pop()
+        }
       }
       return this.onSIMPLE(req)
     }
@@ -197,7 +205,7 @@ class SQLService extends DatabaseService {
     if (typeof query === 'string') {
       // REVISIT: this is a hack the target of $now might not be a timestamp or date time
       // Add input converter to CURRENT_TIMESTAMP inside views using $now
-      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+      if (/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
         query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
       }
       DEBUG?.(query, data)
