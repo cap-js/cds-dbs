@@ -235,19 +235,20 @@ class CQN2SQLRenderer {
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
+      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        col += `, '$."${name}@odata.count"',${this.expr(qc)}`
+        return [col, `'${name}@odata.count',${this.expr(qc)}`]
       }
       return col
-    })
+    }).flat()
 
     // Prevent SQLite from hitting function argument limit of 100
-    let obj = "'{}'"
-    for (let i = 0; i < cols.length; i += 48) {
-      obj = `json_insert(${obj},${cols.slice(i, i + 48)})`
+    let obj = ''
+    for (let i = 0; i < cols.length; i += 50) {
+      const n =  `json_object(${cols.slice(i, i + 50)})`
+      obj = obj ? `json_patch(${obj},${n})` : n
     }
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
   }
