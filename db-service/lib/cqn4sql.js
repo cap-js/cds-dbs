@@ -492,7 +492,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (column.$refLinks) {
       const { $refLinks } = column
       value = $refLinks[$refLinks.length - 1].definition.value
-      if ($refLinks.length > 1) {
+      if (column.$refLinks.length > 1) {
         baseLink =
           [...$refLinks].reverse().find($refLink => $refLink.definition.isAssociation) ||
           // if there is no association in the path, the table alias is the base link

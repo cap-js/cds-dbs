@@ -851,6 +851,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
           mergePathIfNecessary(basePath, arg)
+          if (basePath.ref.length === arg.ref.length) {
+            arg.$refLinks.forEach((link, i) => {
+              const mergedPathSegment = basePath.$refLinks[i]
+              if(link.definition === mergedPathSegment.definition && link.alias !== mergedPathSegment.alias)
+                link.alias = mergedPathSegment.alias
+            })
+          }
         } else if (arg.xpr) {
           arg.xpr.forEach(step => {
             if (step.ref) {
@@ -865,6 +872,20 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 }
               })
               mergePathIfNecessary(subPath, step)
+              // if a refLink got reassigned during the merge process
+              // we need to re-adjust the respective alias in the calculated element
+              // itself.
+              // this is the case if a specific path was already seen before and hence
+              // gets a already calculated, unique table alias assigned.
+              if(subPath.$refLinks[basePath.$refLinks.length-1]?.alias !== basePath.$refLinks.at(-1)?.alias) {
+                calcElement.value.$refLinks[basePath.$refLinks.length-1] = subPath.$refLinks[basePath.$refLinks.length-1]
+              } else if (step.ref.length === subPath.ref.length) {
+                step.$refLinks.forEach((link, i) => {
+                  const mergedPathSegment = subPath.$refLinks[i]
+                  if(link.definition === mergedPathSegment.definition && link.alias !== mergedPathSegment.alias)
+                    link.alias = mergedPathSegment.alias
+                })
+              }
             }
           })
         }

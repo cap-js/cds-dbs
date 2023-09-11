@@ -497,13 +497,15 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
-  it.skip('calculated element used in infix filter of other calculated element', () => {
+  it('calculated element used in infix filter of other calculated element', () => {
     let query = cqn4sql(
       CQL`
     SELECT from booksCalc.Books {
       youngAuthorName,
       authorLastName,
-      authorName
+      authorName,
+      authorFullName,
+      authorAge
     } 
     `,
       model,
@@ -517,12 +519,14 @@ describe('Unfolding calculated elements in select list', () => {
         {
           author.firstName || ' ' || author.lastName as youngAuthorName,
           author2.lastName as authorLastName,
-          author2.firstName || ' ' || author2.lastName as authorName
+          author2.firstName || ' ' || author2.lastName as authorName,
+          author2.firstName || ' ' || author2.lastName as authorFullName,
+          years_between( author2.sortCode, author2.sortCode ) as authorAge
         }`
     expect(query).to.deep.equal(expected)
   })
 
-  it.skip('via wildcard in expand subquery include complex calc element', () => {
+  it('via wildcard in expand subquery include complex calc element', () => {
     let query = cqn4sql(
       CQL`
     SELECT from booksCalc.Authors {
