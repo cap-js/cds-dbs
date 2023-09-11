@@ -9,4 +9,41 @@ describe('Bookshop - Delete', () => {
     const affectedRows = await cds.db.run(del)
     expect(affectedRows).to.be.eq(0)
   })
+
+  test('Deep delete works for A->B A->C B->A B->C C->A C->B', async () => {
+    await INSERT.into('sap.capire.bookshop.A').entries([
+      { ID: 999 },
+      { ID: 998 },
+      {
+        ID: 1,
+        toB: {
+          ID: 12,
+          toA: [{ ID: 121 }],
+          toC: [
+            {
+              ID: 123,
+              toB: [
+                {
+                  ID: 1232,
+                  toC: [
+                    {
+                      ID: 12323,
+                      toA: [{ ID: 123231 }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        toC: {
+          ID: 13,
+          toA: [{ ID: 13 }],
+        },
+      },
+    ])
+    const del = DELETE.from('sap.capire.bookshop.A').where('ID = 1')
+    const affectedRows = await cds.db.run(del)
+    expect(affectedRows).to.be.eq(0)
+  })
 })

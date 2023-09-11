@@ -149,35 +149,114 @@ class SQLService extends DatabaseService {
     return (await ps.run(values)).changes
   }
 
-  get onDELETE() {
-    return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
-    async function deep_delete (/** @type {Request} */ req) {
-      let { compositions } = req.target, { depth=0 } = req
+  async onDELETE(/** @type {Request} */ req) {
+    const entities = new Map()
+
+    /**
+     * Calculates all parent relation ships an entity has
+     * @param {import('@sap/cds/apis/csn').Definition} target
+     * @returns {import('./infer/cqn').Query[]}
+     */
+    const deleteEntity = function (target) {
+      const queries = []
+
+      if (entities.get(target)) return queries
+      entities.set(target, queries)
+
+      const { compositions } = target
       if (compositions) {
-        // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
-        let { from, where } = req.query.DELETE
-        if (typeof from === 'string') from = {ref:[ from ]}
-        if (where) {
-          const filtered = from.ref.at(-1)
-          from = { ref: [...from.ref.slice(0, -1)] }
-          // Apply the where predicate to the last path segment
-          if (typeof filtered === 'string') from.ref.push({ id: filtered, where })
-          // Merge with existing where predicates
-          else from.ref.push({
-            ...filtered,
-            where: filtered.where ? [{ xpr: filtered.where }, 'and', { xpr: where }] : where
-          })
+        for (const c of Object.values(compositions)) {
+          const q = UPSERT.into(/* 'temp.' + */ c._target.name).as(SELECT.from({ ref: [target.name, c.name] }))
+          deleteEntity(c._target)
+          entities.get(c._target).push(q)
         }
-        // Process child compositions depth-first
-        await Promise.all (Object.values(compositions).map(c => {
-          if (c._target['@cds.persistence.skip'] === true) return
-          if (c._target === req.target) if (++depth > (c['@depth'] || 3)) return
-          let query = DELETE.from ({ref:[ ...from.ref, c.name ]}) // CQL`DELETE from Foo[pred]:comp1.comp2...`
-          return this.onDELETE({ query, depth, target: c._target })
-        }))
       }
-      return this.onSIMPLE(req)
+
+      return queries
     }
+
+    deleteEntity(req.target)
+
+    /* possible solution to reduce the amount of string replaces for temp tables
+    const definitions = Object.keys(this.model.definitions)
+    this.model = { __proto__: this.model, definitions: { __proto__: this.model.definitions } }
+    definitions.forEach(e => {
+      this.model.definitions['temp.' + e] = { __proto__: this.model.definitions[e], name: 'temp.' + e }
+    })
+    */
+
+    const tempTables = []
+    let childQueries = []
+    const deleteQueries = []
+    for (const target of entities.keys()) {
+      tempTables.push({
+        CREATE: {
+          ...CREATE(/* 'temp.' + */ target.name).CREATE,
+          temp: true,
+        },
+      })
+      deleteQueries.push({
+        DELETE: {
+          from: { ref: [target.name], as: 'main' },
+          where: [
+            'exists',
+            {
+              SELECT: {
+                from: { ref: [/* 'temp.' + */ target.name], as: 'temp' },
+                columns: [{ val: 1 }],
+                where: Object.keys(target.keys)
+                  .map((k, i) => [...(i > 0 ? ['and'] : []), { ref: ['main', k] }, '=', { ref: ['temp', k] }])
+                  .flat(),
+              },
+            },
+          ],
+        },
+      })
+
+      const queries = entities.get(target)
+      childQueries = [...childQueries, ...queries]
+    }
+
+    await Promise.all(
+      tempTables.map(q =>
+        this.exec(this.cqn2sql(q).sql.replace(/CREATE (TEMP(ORARY)?)? TABLE /i, 'CREATE TEMP TABLE TEMP_')),
+      ),
+    )
+
+    const rootQuery = this.cqn2sql(
+      INSERT.into(req.target.name).as(SELECT.from(req.target).where(req.query.DELETE.where)),
+    )
+    rootQuery.sql = rootQuery.sql.replace(/INSERT INTO /i, 'INSERT INTO TEMP_')
+    const root = await (await this.prepare(rootQuery.sql)).run(rootQuery.values)
+
+    if (root.changes === 0) return 0
+
+    const loop = await Promise.all(
+      childQueries.map(q =>
+        this.prepare(
+          this.cqn2sql(q)
+            .sql.replace(/SELECT 1 FROM /i, 'SELECT 1 FROM TEMP_')
+            .replace(/INSERT INTO /i, 'INSERT INTO TEMP_'),
+        ),
+      ),
+    )
+
+    let lastChange = 0
+    let changes
+    while (lastChange !== changes) {
+      lastChange = changes
+      changes = 0
+      for (const q of loop) {
+        const res = await q.run([])
+        changes += res.changes
+      }
+      if (changes === lastChange) break
+    }
+
+    await Promise.all(
+      deleteQueries.map(q => this.exec(this.cqn2sql(q).sql.replace(/SELECT 1 FROM /i, 'SELECT 1 FROM TEMP_'))),
+    )
+    return root.changes
   }
 
   /**

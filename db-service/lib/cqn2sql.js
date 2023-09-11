@@ -98,11 +98,12 @@ class CQN2SQLRenderer {
     const { target } = q,
       { query } = target
     const name = this.name(target.name)
+    const tmp = q.CREATE.temp || q.CREATE.temporary
     // Don't allow place holders inside views
     delete this.values
     this.sql =
       !query || target['@cds.persistence.table']
-        ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
+        ? `CREATE ${tmp ? 'TEMPORARY' : ''} TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
         : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
     this.values = []
     return
@@ -131,7 +132,7 @@ class CQN2SQLRenderer {
    */
   CREATE_element(element) {
     const type = this.type4(element)
-    if (type) return this.quote(element.name) + ' ' + type
+    if (type) return this.quote(element.name) + ' ' + type + (element.key ? ' PRIMARY KEY' : '')
   }
 
   /**
@@ -524,7 +525,7 @@ class CQN2SQLRenderer {
     const conflict = updateColumns.length
       ? `ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
       : `ON CONFLICT(${keys}) DO NOTHING`
-    return (this.sql = `${sql} WHERE true ${conflict}`)
+    return (this.sql = `${sql}${/ WHERE /i.test(sql) ? ' ' : ' WHERE true '}${conflict}`)
   }
 
   // UPDATE Statements ------------------------------------------------
