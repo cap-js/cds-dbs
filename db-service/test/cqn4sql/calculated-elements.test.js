@@ -408,7 +408,7 @@ describe('Unfolding calculated elements in select list', () => {
   //
 
   it('via wildcard without columns', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books excluding { length, width, height, stock, price }`, model)
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books excluding { length, width, height, stock, price, youngAuthorName }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors as author on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
@@ -437,7 +437,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via wildcard', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`, model)
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price, youngAuthorName}`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors as author on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
@@ -467,7 +467,7 @@ describe('Unfolding calculated elements in select list', () => {
 
   it('replacement for calculated element is considered for wildcard expansion', () => {
     let query = cqn4sql(
-      CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price}`,
+      CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price, youngAuthorName }`,
       model,
     )
     const expected = CQL`SELECT from booksCalc.Books as Books
@@ -497,11 +497,80 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
-  it('via wildcard in expand subquery', () => {
+  it.skip('calculated element used in infix filter of other calculated element', () => {
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Books {
+      youngAuthorName,
+      authorLastName,
+      authorName
+    } 
+    `,
+      model,
+    )
+
+    const expected = CQL`
+        SELECT from booksCalc.Books as Books
+        left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+                        and years_between(author.dateOfBirth, author.dateOfDeath) < 50
+        left outer join booksCalc.Authors as author2 on author2.ID = Books.author_ID
+        {
+          author.firstName || ' ' || author.lastName as youngAuthorName,
+          author2.lastName as authorLastName,
+          author2.firstName || ' ' || author2.lastName as authorName
+        }`
+    expect(query).to.deep.equal(expected)
+  })
+
+  it.skip('via wildcard in expand subquery include complex calc element', () => {
     let query = cqn4sql(
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price}
+    } 
+    `,
+      model,
+    )
+
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      (
+        SELECT from booksCalc.Books as books
+        left outer join booksCalc.Authors as author on author.ID = books.author_ID
+                          and years_between(author.dateOfBirth, author.dateOfDeath) < 50
+        left outer join booksCalc.Authors as author2 on author2.ID = books.author_ID
+        left outer join booksCalc.Addresses as address on address.ID = author2.address_ID
+        {
+          books.ID,
+          books.title,
+          books.author_ID,
+
+          books.stock as stock2,
+          substring(books.title, 3, books.stock) as ctitle,
+
+          books.areaS,
+
+          books.length * books.width as area,
+          (books.length * books.width) * books.height as volume,
+          books.stock * ((books.length * books.width) * books.height) as storageVolume,
+
+          author.firstName || ' ' || author.lastName as youngAuthorName,
+          author2.lastName as authorLastName,
+          author2.firstName || ' ' || author2.lastName as authorName,
+          author2.firstName || ' ' || author2.lastName as authorFullName,
+          (author2.firstName || ' ' || author2.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
+          address.street || ', ' || address.city as authorAdrText,
+
+          years_between( author2.sortCode, author2.sortCode ) as authorAge
+        } where Authors.ID = books.author_ID
+      ) as books
+    }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+  it('via wildcard in expand subquery', () => {
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Authors {
+      books { * } excluding { length, width, height, stock, price, youngAuthorName}
     } 
     `,
       model,
@@ -633,6 +702,25 @@ describe('Unfolding calculated elements in other places', () => {
       {
         Books.ID,
         years_between( author.sortCode, author.sortCode ) as authorAge
+      }
+    `
+    expect(query).to.deep.equal(expected)
+  })
+  it('calculated element has other calc element in infix filter', () => {
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books {
+      ID,
+      youngAuthorName
+    }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+                and years_between(author.dateOfBirth, author.dateOfDeath) < 50
+      {
+        Books.ID,
+        author.firstName || ' ' || author.lastName as youngAuthorName
       }
     `
     expect(query).to.deep.equal(expected)

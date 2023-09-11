@@ -154,8 +154,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
-    const { ref, xpr } = arg
+    const { ref, xpr, args } = arg
     if (xpr) xpr.forEach(t => attachRefLinksToArg(t, $baseLink, expandOrExists))
+    if (args) args.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
     ref.forEach((step, i) => {
@@ -752,6 +753,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               columns: expand.filter(c => !c.inline),
             },
           }
+          if(col.excluding) expandSubquery.SELECT.excluding = col.excluding
           if (col.as) expandSubquery.SELECT.as = col.as
           const inferredExpandSubquery = infer(expandSubquery, model)
           const res = $leafLink.definition.is2one
@@ -938,7 +940,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
+          if(exclude(name)) return
+          if (element.type !== 'cds.LargeBinary') queryElements[name] = element
           if (element.value) {
             linkCalculatedElement(element)
           }

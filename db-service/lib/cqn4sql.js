@@ -492,7 +492,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (column.$refLinks) {
       const { $refLinks } = column
       value = $refLinks[$refLinks.length - 1].definition.value
-      if (column.$refLinks.length > 1) {
+      if ($refLinks.length > 1) {
         baseLink =
           [...$refLinks].reverse().find($refLink => $refLink.definition.isAssociation) ||
           // if there is no association in the path, the table alias is the base link
@@ -511,7 +511,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
     } else if (val) {
       res = { val }
-    } else if (func) res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
+    } else if (func) {
+      res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
+    }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
   }
@@ -913,6 +915,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   function getColumnsForWildcard(exclude = [], replace = []) {
     const wildcardColumns = []
     Object.keys(inferred.$combinedElements).forEach(k => {
+      if (exclude.includes(k)) {
+        return
+      }
       const { index, tableAlias } = inferred.$combinedElements[k][0]
       const element = tableAlias.elements[k]
       // ignore FK for odata csn / ignore blobs from wildcard expansion
