@@ -145,7 +145,7 @@ describe('SELECT', () => {
     test('column alias is respected', async () => {
       const cqn = {
         SELECT: {
-          from: { ref: ['basic.projection.string'] },
+          from: { ref: ['pg_tables'] },
           columns: [{val: 42, as: 'my_SuPer_ALIAS'}],
           one: true
         },
