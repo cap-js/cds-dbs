@@ -1,5 +1,6 @@
-### Product owner own everything
-* @danjoa @johannes-vogel @stewsk
+# Product owner own everything
+
+** @danjoa @johannes-vogel @stewsk
 
 db-service/lib/cqn4sql.js @patricebender
 db-service/test/cqn4sql/ @patricebender

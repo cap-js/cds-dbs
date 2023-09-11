@@ -672,7 +672,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
       }
       if (leafArt.value && !leafArt.value.stored) {
-        resolveCalculatedElement(column, $baseLink, baseColumn)
+        linkCalculatedElement(column, $baseLink, baseColumn)
       }
 
       /**
@@ -801,7 +801,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         throw new Error(err)
       }
     }
-    function resolveCalculatedElement(column, baseLink, baseColumn) {
+    function linkCalculatedElement(column, baseLink, baseColumn) {
       const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
@@ -814,30 +814,43 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           basePath.$refLinks.push(...baseColumn.$refLinks)
           basePath.ref.push(...baseColumn.ref)
         }
-        // column is now fully linked, now we need to find out if we need to merge it into the join tree
-        // for that, we calculate all paths from a calc element and merge them into the join tree
         mergePathsIntoJoinTree(calcElement.value, basePath)
       }
       if (func)
-        calcElement.value.args?.forEach(arg =>
-          inferQueryElement(arg, false, { definition: calcElement.parent, target: calcElement.parent }),
-        ) // {func}.args are optional
-      function mergePathsIntoJoinTree(e, basePath = null) {
+        calcElement.value.args?.forEach(arg => {
+          inferQueryElement(
+            arg,
+            false,
+            { definition: calcElement.parent, target: calcElement.parent },
+            { inCalcElement: true },
+          ),
+          
+          mergePathsIntoJoinTree(arg)
+        }) // {func}.args are optional
+      
+      /**
+       * Calculates all paths from a given ref and merges them into the join tree.
+       * Recursively walks into refs of calculated elements.
+       * 
+       * @param {object} arg with a ref and sibling $refLinks
+       * @param {object} basePath with a ref and sibling $refLinks, used for recursion
+       */
+      function mergePathsIntoJoinTree(arg, basePath = null) {
         basePath = basePath || { $refLinks: [], ref: [] }
-        if (e.ref) {
-          e.$refLinks.forEach((link, i) => {
+        if (arg.ref) {
+          arg.$refLinks.forEach((link, i) => {
             const { definition } = link
             if (!definition.value) {
               basePath.$refLinks.push(link)
-              basePath.ref.push(e.ref[i])
+              basePath.ref.push(arg.ref[i])
             }
           })
-          const leafOfCalculatedElementRef = e.$refLinks[e.$refLinks.length - 1].definition
+          const leafOfCalculatedElementRef = arg.$refLinks[arg.$refLinks.length - 1].definition
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
-          mergePathIfNecessary(basePath, e)
-        } else if (e.xpr) {
-          e.xpr.forEach(step => {
+          mergePathIfNecessary(basePath, arg)
+        } else if (arg.xpr) {
+          arg.xpr.forEach(step => {
             if (step.ref) {
               const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               step.$refLinks.forEach((link, i) => {
@@ -927,8 +940,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
           if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
           if (element.value) {
-            // we might have join relevant calculated elements
-            resolveCalculatedElement(element)
+            linkCalculatedElement(element)
           }
         })
         return
@@ -943,6 +955,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         if (exclude(name) || name in queryElements) return true
         const element = tableAliases[0].tableAlias.elements[name]
         if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+        if (element.value) {
+          linkCalculatedElement(element)
+        }
       })
 
       if (Object.keys(ambiguousElements).length > 0) throwAmbiguousWildcardError()
