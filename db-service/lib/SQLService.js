@@ -20,7 +20,6 @@ const cqn4sql = require('./cqn4sql')
 class SQLService extends DatabaseService {
 
   init() {
-    const ret = super.init()
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
@@ -33,7 +32,7 @@ class SQLService extends DatabaseService {
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
     this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
-    return ret
+    return super.init()
   }
 
   /** @type {Handler} */
