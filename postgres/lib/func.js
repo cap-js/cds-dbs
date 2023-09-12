@@ -13,12 +13,12 @@ const StandardFunctions = {
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
 
   // Date and Time Functions
-  year: x => `date_part('year',(${x})::TIMESTAMP)`,
-  month: x => `date_part('month',(${x})::TIMESTAMP)`,
-  day: x => `date_part('day',(${x})::TIMESTAMP)`,
-  hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
-  minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
-  second: x => `date_part('second',(${x})::TIMESTAMP)`,
+  year: x => `date_part('year',${x})`,
+  month: x => `date_part('month',${x})`,
+  day: x => `date_part('day',${x})`,
+  hour: x => `date_part('hour',${x})`,
+  minute: x => `date_part('minute',${x})`,
+  second: x => `date_part('second',${x})`,
 }
 
 const HANAFunctions = {
