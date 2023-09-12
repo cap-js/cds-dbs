@@ -526,6 +526,14 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  // TODO
+  it.skip('where exists cannot leverage calculated elements', () => {
+    // at the leaf of a where exists path, there must be an association
+    // calc elements can't end in an association, hence this does not work, yet.
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)
+    expect(query).to.deep.throw()
+  })
+
   it('via wildcard in expand subquery include complex calc element', () => {
     let query = cqn4sql(
       CQL`
