@@ -18,7 +18,7 @@ if (cds.cli.command === 'build') {
   module.exports = class PostgresBuildTask extends BuildTaskHandler {
 
     static hasTask() {
-        return true // TODO: What to put in here?
+        return cds.requires.db.kind === 'postgres'
     }
 
     static getTask() {
@@ -26,7 +26,7 @@ if (cds.cli.command === 'build') {
     }
 
     async clean() {
-      await rimraf('gen/pg') // TODO: What to put in here?
+      await rimraf('gen/pg')
     }
 
     async build() {
