@@ -310,8 +310,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const col = columns[i]
 
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
-        const calcElement = resolveCalculatedElement(col)
-        transformedColumns.push(calcElement)
+        const name = getName(col)
+        if (!transformedColumns.some(inserted => getName(inserted) === name)) {
+          const calcElement = resolveCalculatedElement(col)
+          transformedColumns.push(calcElement)
+        }
       } else if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -433,7 +436,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
-      const getName = col => col.as || col.ref?.at(-1)
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
         const name = getName(flatColumn)
@@ -548,7 +550,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         dollarSelfColumn.ref = [...referencedColumn.ref, ...dollarSelfColumn.ref.slice(2)]
         Object.defineProperties(dollarSelfColumn, {
           flatName: {
-            value: referencedColumn.$refLinks[0].definition.kind === 'entity' ?  dollarSelfColumn.ref.slice(1).join('_') : dollarSelfColumn.ref.join('_'),
+            value:
+              referencedColumn.$refLinks[0].definition.kind === 'entity'
+                ? dollarSelfColumn.ref.slice(1).join('_')
+                : dollarSelfColumn.ref.join('_'),
           },
           isJoinRelevant: {
             value: referencedColumn.isJoinRelevant,
@@ -916,7 +921,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
       } else if (isCalculatedOnRead(element)) {
-        wildcardColumns.push(resolveCalculatedElement(element))
+        wildcardColumns.push(resolveCalculatedElement(replace.find(r => r.as === k) || element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
         wildcardColumns.push(...flatColumns)
@@ -1242,7 +1247,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           ) {
             if (notSupportedOps.some(([firstOp]) => firstOp === next))
               cds.error(`The operator "${next}" is not supported for structure comparison`)
-            const newTokens = expandComparison(token, ops, rhs)
+            const newTokens = expandComparison(token, ops, rhs, $baseLink)
             const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
             transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
             i = indexRhs // jump to next relevant index
@@ -1301,9 +1306,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @param {object} token with $refLinks
    * @param {string} operator one of allOps
    * @param {object} value either `null` or a column (with `ref` and `$refLinks`)
+   * @param {object} $baseLink optional base `$refLink`, e.g. for infix filters of scoped queries.
+   *                           In the following example, we must pass `bookshop:Reproduce` as $baseLink for `author`:
+   *
+   *                           `DELETE.from('bookshop.Reproduce[author = null]:accessGroup')`
+   *                                                            ^^^^^^
    * @returns {array}
    */
-  function expandComparison(token, operator, value) {
+  function expandComparison(token, operator, value, $baseLink = null) {
     const { definition } = token.$refLinks[token.$refLinks.length - 1]
     let flatRhs
     const result = []
@@ -1366,7 +1376,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (!def.$refLinks) return def
       const leaf = def.$refLinks[def.$refLinks.length - 1]
       const first = def.$refLinks[0]
-      const tableAlias = getQuerySourceName(def, def.ref.length > 1 && first.definition.isAssociation ? first : null)
+      const tableAlias = getQuerySourceName(
+        def,
+        def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink,
+      )
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
@@ -2037,6 +2050,6 @@ function setElementOnColumns(col, element) {
     writable: true,
   })
 }
-
+const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

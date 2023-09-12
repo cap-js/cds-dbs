@@ -145,6 +145,12 @@ class SQLiteService extends SQLService {
       }
     }
 
+    val(v) {
+      // intercept DateTime values and convert to Date objects to compare ISO Strings
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      return super.val(v)
+    }
+
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
@@ -177,19 +183,7 @@ class SQLiteService extends SQLService {
       // Timestamps are returned with ms, as written by InputConverters.
       // And as cds.builtin.classes.Timestamp inherits from DateTime we need
       // to override the DateTime converter above
-      Timestamp: e => `ISO(${e})`,
-      // REVISIT: generic-virtual.test.js expects now to be returned as ISO string
-      // test 'field with current timestamp is correctly formatted' fails otherwise
-
-      // Quote Decimal values to lose the least amount of precision
-      // quote turns 9999999999999.999 into  9999999999999.998
-      // || '' turns 9999999999999.999 into 10000000000000.0
-      Decimal: expr => `nullif(quote(${expr}),'NULL')`,
-      // Don't read Float as string as it should be a safe number
-      // Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-
-      // Without quote 1.7976931348623157e308 is returned as Infinity
-      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+      Timestamp: undefined,
 
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
@@ -200,7 +194,13 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    // static Functions = { ...super.Functions }
+    static Functions = { ...super.Functions,
+      // Ensure ISO strings are returned for date/time functions
+      current_timestamp: () => 'ISO(current_timestamp)',
+      // SQLite doesn't support arguments for current_date and current_time
+      current_date: () => 'current_date',
+      current_time: () => 'current_time',
+    }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
