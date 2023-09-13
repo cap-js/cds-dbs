@@ -1152,11 +1152,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (ref[0] in { $self: true, $projection: true })
           cds.error(`Unexpected "${ref[0]}" following "exists", remove it or add a table alias instead`)
         const firstStepIsTableAlias = ref.length > 1 && ref[0] in inferred.sources
-        if($refLinks.at(-1).definition.value) {
-            const resolved = resolveCalculatedElement(tokenStream[i + 1], true)
-            const foo = getTransformedTokenStream(['exists', resolved.xpr])
-            console.log(resolved)
-        }
         for (let j = 0; j < ref.length; j += 1) {
           let current, next
           const step = ref[j]
