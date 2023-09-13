@@ -753,7 +753,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               columns: expand.filter(c => !c.inline),
             },
           }
-          if(col.excluding) expandSubquery.SELECT.excluding = col.excluding
+          if (col.excluding) expandSubquery.SELECT.excluding = col.excluding
           if (col.as) expandSubquery.SELECT.as = col.as
           const inferredExpandSubquery = infer(expandSubquery, model)
           const res = $leafLink.definition.is2one
@@ -826,14 +826,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             { definition: calcElement.parent, target: calcElement.parent },
             { inCalcElement: true },
           ),
-          
-          mergePathsIntoJoinTree(arg)
+            mergePathsIntoJoinTree(arg)
         }) // {func}.args are optional
-      
+
       /**
        * Calculates all paths from a given ref and merges them into the join tree.
        * Recursively walks into refs of calculated elements.
-       * 
+       *
        * @param {object} arg with a ref and sibling $refLinks
        * @param {object} basePath with a ref and sibling $refLinks, used for recursion
        */
@@ -850,14 +849,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const leafOfCalculatedElementRef = arg.$refLinks[arg.$refLinks.length - 1].definition
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
-          mergePathIfNecessary(basePath, arg)
-          if (basePath.ref.length === arg.ref.length) {
-            arg.$refLinks.forEach((link, i) => {
-              const mergedPathSegment = basePath.$refLinks[i]
-              if(link.definition === mergedPathSegment.definition && link.alias !== mergedPathSegment.alias)
-                link.alias = mergedPathSegment.alias
-            })
-          }
+          mergePathIfNecessary(basePath, arg)         
         } else if (arg.xpr) {
           arg.xpr.forEach(step => {
             if (step.ref) {
@@ -872,20 +864,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 }
               })
               mergePathIfNecessary(subPath, step)
-              // if a refLink got reassigned during the merge process
-              // we need to re-adjust the respective alias in the calculated element
-              // itself.
-              // this is the case if a specific path was already seen before and hence
-              // gets a already calculated, unique table alias assigned.
-              if(subPath.$refLinks[basePath.$refLinks.length-1]?.alias !== basePath.$refLinks.at(-1)?.alias) {
-                calcElement.value.$refLinks[basePath.$refLinks.length-1] = subPath.$refLinks[basePath.$refLinks.length-1]
-              } else if (step.ref.length === subPath.ref.length) {
-                step.$refLinks.forEach((link, i) => {
-                  const mergedPathSegment = subPath.$refLinks[i]
-                  if(link.definition === mergedPathSegment.definition && link.alias !== mergedPathSegment.alias)
-                    link.alias = mergedPathSegment.alias
-                })
-              }
             }
           })
         }
@@ -961,7 +939,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         // only one query source and no overwritten columns
         Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if(exclude(name)) return
+          if (exclude(name)) return
           if (element.type !== 'cds.LargeBinary') queryElements[name] = element
           if (element.value) {
             linkCalculatedElement(element)
