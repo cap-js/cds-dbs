@@ -914,24 +914,23 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getColumnsForWildcard(exclude = [], replace = []) {
     const wildcardColumns = []
-    Object.keys(inferred.$combinedElements).forEach(k => {
-      if (exclude.includes(k)) {
-        return
-      }
-      const { index, tableAlias } = inferred.$combinedElements[k][0]
-      const element = tableAlias.elements[k]
-      // ignore FK for odata csn / ignore blobs from wildcard expansion
-      if (isManagedAssocInFlatMode(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
-      // for wildcard on subquery in from, just reference the elements
-      if (tableAlias.SELECT && !element.elements && !element.target) {
-        wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
-      } else if (isCalculatedOnRead(element)) {
-        wildcardColumns.push(resolveCalculatedElement(replace.find(r => r.as === k) || element))
-      } else {
-        const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
-        wildcardColumns.push(...flatColumns)
-      }
-    })
+    Object.keys(inferred.$combinedElements)
+      .filter(k => !exclude.includes(k))
+      .forEach(k => {
+        const { index, tableAlias } = inferred.$combinedElements[k][0]
+        const element = tableAlias.elements[k]
+        // ignore FK for odata csn / ignore blobs from wildcard expansion
+        if (isManagedAssocInFlatMode(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
+        // for wildcard on subquery in from, just reference the elements
+        if (tableAlias.SELECT && !element.elements && !element.target) {
+          wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
+        } else if (isCalculatedOnRead(element)) {
+          wildcardColumns.push(resolveCalculatedElement(replace.find(r => r.as === k) || element))
+        } else {
+          const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
+          wildcardColumns.push(...flatColumns)
+        }
+      })
     return wildcardColumns
 
     /**
