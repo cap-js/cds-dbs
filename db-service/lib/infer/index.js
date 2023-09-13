@@ -937,10 +937,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
 
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
+        const { elements } = sources[aliases[0]]
         // only one query source and no overwritten columns
-        Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if (exclude(name)) return
-          if (element.type !== 'cds.LargeBinary') queryElements[name] = element
+        Object.keys(elements)
+        .filter(k => !exclude(k))
+        .forEach((k) => {
+          const element = sources[aliases[0]].elements[k]
+          if (element.type !== 'cds.LargeBinary') queryElements[k] = element
           if (element.value) {
             linkCalculatedElement(element)
           }
