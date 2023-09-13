@@ -849,7 +849,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const leafOfCalculatedElementRef = arg.$refLinks[arg.$refLinks.length - 1].definition
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
-          mergePathIfNecessary(basePath, arg)         
+          mergePathIfNecessary(basePath, arg)
         } else if (arg.xpr) {
           arg.xpr.forEach(step => {
             if (step.ref) {
@@ -940,14 +940,14 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const { elements } = sources[aliases[0]]
         // only one query source and no overwritten columns
         Object.keys(elements)
-        .filter(k => !exclude(k))
-        .forEach((k) => {
-          const element = sources[aliases[0]].elements[k]
-          if (element.type !== 'cds.LargeBinary') queryElements[k] = element
-          if (element.value) {
-            linkCalculatedElement(element)
-          }
-        })
+          .filter(k => !exclude(k))
+          .forEach(k => {
+            const element = sources[aliases[0]].elements[k]
+            if (element.type !== 'cds.LargeBinary') queryElements[k] = element
+            if (element.value) {
+              linkCalculatedElement(element)
+            }
+          })
         return
       }
 
