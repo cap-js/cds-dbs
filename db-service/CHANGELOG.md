@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Various fixes for calcualted elements on read. #220 #223 #233
+- Various fixes for calculated elements on read. #220 #223 #233
 
 ## Version 1.2.1 - 2023-09-08
 
