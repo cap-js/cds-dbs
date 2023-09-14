@@ -8,6 +8,12 @@
 
 ### Fixed
 
+- Various fixes for calcualted elements on read. #233
+
+## Version 1.2.1 - 2023-09-08
+
+### Fixed
+
 - Association expansion in infix filters. #213
 
 ## Version 1.2.0 - 2023-09-06
