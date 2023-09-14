@@ -341,7 +341,7 @@ const HANAFunctions = {
    */
   years_between(x, y) {
     return `floor(${this.months_between(x, y)} / 12)`
-  },
+  }
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

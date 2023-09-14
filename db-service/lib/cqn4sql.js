@@ -668,7 +668,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     // everything after the wildcard, is a potential replacement
     // in the wildcard expansion
     const replace = []
-    // we need to absolutefy the refs
+    // we need to make the refs absolute
     col[prop].slice(wildcardIndex + 1).forEach(c => {
       const fakeColumn = { ...c }
       if (fakeColumn.ref) {
@@ -1275,8 +1275,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
               transformedTokenStream.push(...getTransformedTokenStream(dollarSelfReplacement))
               continue
             }
-            const tableAlias = getQuerySourceName(token, $baseLink)
-            if (!$baseLink && token.isJoinRelevant) {
+            // if we have e.g. a calculated element like `books.authorLastName,`
+            // we have effectively a ref ['books', 'author', 'lastName']
+            // in that case, we have a baseLink `books` which we need to resolve the following steps
+            // however, the correct table alias has been assigned to the `author` step
+            // hence we need to ignore the alias of the `$baseLink`
+            const refHasOwnAssoc =
+              token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
+            const tableAlias = getQuerySourceName(token, refHasOwnAssoc || $baseLink)
+            if ((!$baseLink || refHasOwnAssoc) && token.isJoinRelevant) {
               result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
@@ -1952,7 +1959,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if ($baseLink) {
       return getBaseLinkAlias($baseLink)
     }
-
     if (node.isJoinRelevant) {
       return getJoinRelevantAlias(node)
     }

@@ -497,7 +497,44 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
-  it('calculated element used in infix filter of other calculated element', () => {
+  it('calculated elements are join relevant and share same join node indirect', () => {
+    // make sure that if a join was already calculated,
+    // calc elements which can use the same join have
+    // their table aliases properly rewritten to the already
+    // existing join node
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Authors {
+      books.youngAuthorName,
+      books.authorLastName,
+      books.authorName,
+      books.authorFullName,
+      books.authorAge
+    } where books.youngAuthorName = 'King'
+    `,
+      model,
+    )
+
+    const expected = CQL`
+        SELECT from booksCalc.Authors as Authors
+        left outer join booksCalc.Books as books on books.author_ID = Authors.ID
+        left outer join booksCalc.Authors as author on author.ID = books.author_ID
+                        and years_between(author.dateOfBirth, author.dateOfDeath) < 50
+        left outer join booksCalc.Authors as author2 on author2.ID = books.author_ID
+        {
+          author.firstName || ' ' || author.lastName as books_youngAuthorName,
+          author2.lastName as books_authorLastName,
+          author2.firstName || ' ' || author2.lastName as books_authorName,
+          author2.firstName || ' ' || author2.lastName as books_authorFullName,
+          years_between( author2.sortCode, author2.sortCode ) as books_authorAge
+        } where (author.firstName || ' ' || author.lastName) = 'King'`
+    expect(query).to.deep.equal(expected)
+  })
+  it('calculated elements are join relevant and share same join node', () => {
+    // make sure that if a join was already calculated,
+    // calc elements which can use the same join have
+    // their table aliases properly rewritten to the already
+    // existing join node
     let query = cqn4sql(
       CQL`
     SELECT from booksCalc.Books {

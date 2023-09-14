@@ -811,7 +811,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (ref || xpr) {
         baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
         attachRefLinksToArg(calcElement.value, baseLink, true)
-        const basePath = { $refLinks: [], ref: [] }
+        const basePath =
+          column.$refLinks?.length > 1
+            ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
+            : { $refLinks: [], ref: [] }
         if (baseColumn) {
           basePath.$refLinks.push(...baseColumn.$refLinks)
           basePath.ref.push(...baseColumn.ref)
@@ -825,8 +828,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             false,
             { definition: calcElement.parent, target: calcElement.parent },
             { inCalcElement: true },
-          ),
-            mergePathsIntoJoinTree(arg)
+          )
+          const basePath = column.$refLinks?.length > 1 ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) } : { $refLinks: [], ref: [] }
+          mergePathsIntoJoinTree(arg, basePath)
         }) // {func}.args are optional
 
       /**
