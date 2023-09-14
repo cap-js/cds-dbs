@@ -16,7 +16,6 @@ class SQLiteService extends SQLService {
         dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
-        dbc.pragma('foreign_keys = ON')
         return dbc
       },
       destroy: dbc => dbc.close(),
