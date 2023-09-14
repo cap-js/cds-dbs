@@ -12,7 +12,7 @@ describe('negative', () => {
   })
 
   describe('filters', () => {
-    it('filter must not be provided along a structure in column', () => {
+    it('filter must not be provided along a structure in a column', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
         /A filter can only be provided when navigating along associations/,
       )
