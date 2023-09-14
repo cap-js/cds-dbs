@@ -233,16 +233,25 @@ class CQN2SQLRenderer {
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
-    let cols = SELECT.columns.map(x => {
+    
+    // To mix json_object and json_set / json_insert it is required to change the path definition
+    // json_object('a',val,'b',val)
+    // json_set(json_object('a',val),'$."b"',val)
+    let wrap = name => this.string(name)
+
+    const cols = []
+    for(let x of SELECT.columns) {
+      if(cols.length === 49) wrap = name => this.string(`$."${name}"`)
       const name = this.column_name(x)
-      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
+      let col = `${wrap(name)},${this.output_converter4(x.element, this.quote(name))}`
+      cols.push(col)
+
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        return [col, `'${name}@odata.count',${this.expr(qc)}`]
+        cols.push(`${wrap(name + '@odata.count')},${this.expr(qc)}`)
       }
-      return col
-    }).flat()
+    }
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = ''
