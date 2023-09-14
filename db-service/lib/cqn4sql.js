@@ -310,8 +310,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const col = columns[i]
 
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
-        const calcElement = resolveCalculatedElement(col)
-        transformedColumns.push(calcElement)
+        const name = getName(col)
+        if (!transformedColumns.some(inserted => getName(inserted) === name)) {
+          const calcElement = resolveCalculatedElement(col)
+          transformedColumns.push(calcElement)
+        }
       } else if (col.expand) {
         if (col.ref?.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -433,7 +436,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
 
-      const getName = col => col.as || col.ref?.at(-1)
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
         const name = getName(flatColumn)
@@ -919,7 +921,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (tableAlias.SELECT && !element.elements && !element.target) {
         wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
       } else if (isCalculatedOnRead(element)) {
-        wildcardColumns.push(resolveCalculatedElement(element))
+        wildcardColumns.push(resolveCalculatedElement(replace.find(r => r.as === k) || element))
       } else {
         const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
         wildcardColumns.push(...flatColumns)
@@ -2048,6 +2050,6 @@ function setElementOnColumns(col, element) {
     writable: true,
   })
 }
-
+const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
