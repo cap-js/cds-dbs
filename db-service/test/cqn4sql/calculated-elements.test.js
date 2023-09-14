@@ -408,7 +408,10 @@ describe('Unfolding calculated elements in select list', () => {
   //
 
   it('via wildcard without columns', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books excluding { length, width, height, stock, price, youngAuthorName }`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books excluding { length, width, height, stock, price, youngAuthorName }`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors as author on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
@@ -437,7 +440,10 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via wildcard', () => {
-    let query = cqn4sql(CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price, youngAuthorName}`, model)
+    let query = cqn4sql(
+      CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price, youngAuthorName}`,
+      model,
+    )
     const expected = CQL`SELECT from booksCalc.Books as Books
           left outer join booksCalc.Authors as author on author.ID = Books.author_ID
           left outer join booksCalc.Addresses as address on address.ID = author.address_ID
@@ -497,6 +503,39 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
+  it('calculated elements are join relevant and share same join node', () => {
+    // make sure that if a join was already calculated,
+    // calc elements which can use the same join have
+    // their table aliases properly rewritten to the already
+    // existing join node
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Books {
+      youngAuthorName,
+      authorLastName,
+      authorName,
+      authorFullName,
+      authorAge
+    } 
+    `,
+      model,
+    )
+
+    const expected = CQL`
+        SELECT from booksCalc.Books as Books
+        left outer join booksCalc.Authors as author on author.ID = Books.author_ID
+                        and years_between(author.dateOfBirth, author.dateOfDeath) < 50
+        left outer join booksCalc.Authors as author2 on author2.ID = Books.author_ID
+        {
+          author.firstName || ' ' || author.lastName as youngAuthorName,
+          author2.lastName as authorLastName,
+          author2.firstName || ' ' || author2.lastName as authorName,
+          author2.firstName || ' ' || author2.lastName as authorFullName,
+          years_between( author2.sortCode, author2.sortCode ) as authorAge
+        }`
+    expect(query).to.deep.equal(expected)
+  })
+
   it('calculated elements are join relevant and share same join node indirect', () => {
     // make sure that if a join was already calculated,
     // calc elements which can use the same join have
@@ -530,6 +569,7 @@ describe('Unfolding calculated elements in select list', () => {
         } where (author.firstName || ' ' || author.lastName) = 'King'`
     expect(query).to.deep.equal(expected)
   })
+
   it('calculated elements are join relevant and share same join node indirect back and forth', () => {
     // make sure that if a join was already calculated,
     // calc elements which can use the same join have
@@ -563,40 +603,6 @@ describe('Unfolding calculated elements in select list', () => {
           author3.firstName || ' ' || author3.lastName as books_author_books_authorFullName,
           years_between( author3.sortCode, author3.sortCode ) as books_author_books_authorAge
         } where (author2.firstName || ' ' || author2.lastName) = 'King'`
-    expect(query).to.deep.equal(expected)
-  })
-
-
-  it('calculated elements are join relevant and share same join node', () => {
-    // make sure that if a join was already calculated,
-    // calc elements which can use the same join have
-    // their table aliases properly rewritten to the already
-    // existing join node
-    let query = cqn4sql(
-      CQL`
-    SELECT from booksCalc.Books {
-      youngAuthorName,
-      authorLastName,
-      authorName,
-      authorFullName,
-      authorAge
-    } 
-    `,
-      model,
-    )
-
-    const expected = CQL`
-        SELECT from booksCalc.Books as Books
-        left outer join booksCalc.Authors as author on author.ID = Books.author_ID
-                        and years_between(author.dateOfBirth, author.dateOfDeath) < 50
-        left outer join booksCalc.Authors as author2 on author2.ID = Books.author_ID
-        {
-          author.firstName || ' ' || author.lastName as youngAuthorName,
-          author2.lastName as authorLastName,
-          author2.firstName || ' ' || author2.lastName as authorName,
-          author2.firstName || ' ' || author2.lastName as authorFullName,
-          years_between( author2.sortCode, author2.sortCode ) as authorAge
-        }`
     expect(query).to.deep.equal(expected)
   })
 
