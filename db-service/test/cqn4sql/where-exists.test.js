@@ -672,6 +672,7 @@ describe('EXISTS predicate in infix filter', () => {
        where exists leads[ participant.scholar_userID = $user.id ]
     `
     // maybe in the future this could be something like this
+    // eslint-disable-next-line no-unused-vars
     const futureExpectation = CQL`
       SELECT from Collaborations as Collaborations {
         Collaborations.id

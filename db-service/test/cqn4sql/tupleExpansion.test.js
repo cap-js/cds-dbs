@@ -260,6 +260,24 @@ describe('Structural comparison', () => {
       expect(query).to.deep.equal(CQL(expectedQueryString))
     })
   })
+
+  it('expands comparison also in exists subquery', () => {
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
+      let query = cqn4sql(CQL(queryString), model)
+      const expectedQueryString = `
+        SELECT from bookshop.AccessGroups as accessGroup
+        { accessGroup.ID }
+        where exists (
+          SELECT 1 from bookshop.AssocWithStructuredKey as AssocWithStructuredKey
+          where AssocWithStructuredKey.accessGroup_ID = accessGroup.ID and
+              AssocWithStructuredKey.toStructuredKey_struct_mid_leaf        = null and
+              AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf = null and
+              AssocWithStructuredKey.toStructuredKey_second                 = null
+        )
+      `
+      expect(query).to.deep.equal(CQL(expectedQueryString))
+  })
+
   it('compare assocs with multiple keys', () => {
     eqOps.forEach(op => {
       const [first] = op
