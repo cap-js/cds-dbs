@@ -432,7 +432,6 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = INSERT.columns
-    || ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation)
     || cds.error`Cannot insert rows without columns or elements`
 
     const inputConverter = this.class._convertInput
