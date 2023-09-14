@@ -530,6 +530,43 @@ describe('Unfolding calculated elements in select list', () => {
         } where (author.firstName || ' ' || author.lastName) = 'King'`
     expect(query).to.deep.equal(expected)
   })
+  it('calculated elements are join relevant and share same join node indirect back and forth', () => {
+    // make sure that if a join was already calculated,
+    // calc elements which can use the same join have
+    // their table aliases properly rewritten to the already
+    // existing join node
+    let query = cqn4sql(
+      CQL`
+    SELECT from booksCalc.Authors {
+      books.author.books.youngAuthorName,
+      books.author.books.authorLastName,
+      books.author.books.authorName,
+      books.author.books.authorFullName,
+      books.author.books.authorAge
+    } where books.author.books.youngAuthorName = 'King'
+    `,
+      model,
+    )
+
+    const expected = CQL`
+        SELECT from booksCalc.Authors as Authors
+        left outer join booksCalc.Books as books on books.author_ID = Authors.ID
+        left outer join booksCalc.Authors as author on author.ID = books.author_ID
+        left outer join booksCalc.Books as books2 on books2.author_ID = author.ID
+        left outer join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+          and years_between(author2.dateOfBirth, author2.dateOfDeath) < 50
+        left outer join booksCalc.Authors as author3 on author3.ID = books2.author_ID
+        {
+          author2.firstName || ' ' || author2.lastName as books_author_books_youngAuthorName,
+          author3.lastName as books_author_books_authorLastName,
+          author3.firstName || ' ' || author3.lastName as books_author_books_authorName,
+          author3.firstName || ' ' || author3.lastName as books_author_books_authorFullName,
+          years_between( author3.sortCode, author3.sortCode ) as books_author_books_authorAge
+        } where (author2.firstName || ' ' || author2.lastName) = 'King'`
+    expect(query).to.deep.equal(expected)
+  })
+
+
   it('calculated elements are join relevant and share same join node', () => {
     // make sure that if a join was already calculated,
     // calc elements which can use the same join have
