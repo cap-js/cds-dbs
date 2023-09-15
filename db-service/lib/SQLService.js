@@ -171,11 +171,11 @@ class SQLService extends DatabaseService {
 
         // Process child compositions depth-first
         for(const c of Object.values(compositions)) {
-          if (c._target['@cds.persistence.skip'] === true) return
+          if (c._target['@cds.persistence.skip'] === true) break
           let count = 0
           for (let i = 0; i < depth.length; i++) {
             if (depth[i] === c) count++
-            if (count > (c['@depth'] || 3)) return
+            if (count > (c['@depth'] || 3)) break
           }
           const query = DELETE.from({ ref: [...from.ref, c.name] }) // CQL`DELETE from Foo[pred]:comp1.comp2...`
           depth.push(c)
