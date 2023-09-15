@@ -482,7 +482,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function handleEmptyColumns(columns) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
-      throw new cds.error('Queries must have at least one non-virtual column')
+      cds.error('Queries must have at least one non-virtual column')
     }
   }
 
@@ -1221,7 +1221,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           })
         if (flatKeys.length > 1)
-          throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
+          cds.error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
           transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
@@ -1410,10 +1410,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       rejectStructInExpression()
 
     function rejectAssocInExpression() {
-      throw new Error(/An association can't be used as a value in an expression/)
+      cds.error("An association can't be used as a value in an expression")
     }
     function rejectStructInExpression() {
-      throw new Error(/A structured element can't be used as a value in an expression/)
+      cds.error("A structured element can't be used as a value in an expression")
     }
   }
 
@@ -1856,6 +1856,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false) {
     const { definition } = current
     const { definition: nextDefinition } = next
+    if (definition.value || nextDefinition.value) {
+      cds.error(
+        `Unexpected calculated element “${
+          definition.value ? definition.name : nextDefinition.name
+        }” in path preceded by “exists” predicate`,
+      )
+    }
     const on = []
     const fkSource = inWhere ? nextDefinition : definition
     // TODO: use onCondFor()
@@ -1954,7 +1961,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getQuerySourceName(node, $baseLink = null) {
     if (!node || !node.$refLinks || !node.ref) {
-      throw new Error('Invalid node')
+      cds.error('Invalid node')
     }
     if ($baseLink) {
       return getBaseLinkAlias($baseLink)
