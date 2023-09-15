@@ -71,6 +71,13 @@
         }
       },
       "db": "sql"
+    },
+    "build": {
+      "plugins": {
+        "postgres": {
+          "impl": "@cap-js/postgres/lib/build"
+        }
+      }
     }
   },
   "license": "SEE LICENSE"
