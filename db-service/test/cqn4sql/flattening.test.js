@@ -835,17 +835,4 @@ describe('Flattening', () => {
     })
   })
 
-  describe('todo', () => {
-    // ----------------------------------------------------------------------------------
-    // TODO SMW move to suitable place
-
-    // (PB) moved from cds.infer and skipped for now as this doesnt hurt atm..
-    // -> it does hurt because it dumps
-    it.skip('MUST not have infix filters in struct paths', () => {
-      cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
-      expect(() => {
-        cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
-      }).to.throw('A filter can only be provided when navigating along associations')
-    })
-  })
 })
