@@ -1,6 +1,6 @@
 const cds = require('@sap/cds')
 const path = require('path')
-const { rimraf } = cds.utils
+const fs = require('fs')
 let BuildTaskHandler
 try {
   ;({ BuildTaskHandler } = require('@sap/cds-dk/lib/build'))
@@ -23,7 +23,9 @@ module.exports = class PostgresBuildPlugin extends BuildTaskHandler {
   }
 
   async clean() {
-    await rimraf(this.task.dest)
+    if (fs.existsSync(this.task.dest)) {
+      return fs.promises.rm(this.task.dest, {recursive:true})
+    }
   }
 
   async build() {
@@ -31,13 +33,22 @@ module.exports = class PostgresBuildPlugin extends BuildTaskHandler {
     if (!model) {
       return
     }
-    await Promise.all([
-      this.write({
+    const promises = []
+    promises.push(this.write({
         dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
         scripts: { start: 'cds-deploy' },
-      }).to('package.json'),
-      this.write(cds.compile.to.json(model)).to('csn.json'),
-      this.copy('data').to('data'),
-    ])
+      }).to('package.json'))
+    promises.push(this.write(cds.compile.to.json(model)).to('csn.json'))
+
+    let data
+    if (fs.existsSync(path.join(this.task.src, 'data'))) {
+      data = 'data'
+    } else if (fs.existsSync(path.join(this.task.src, 'csv'))) {
+      data = 'csv'
+    }
+    if (data) {
+      promises.push(this.copy(data).to('data'))
+    }
+    return Promise.all(promises)
   }
 }
