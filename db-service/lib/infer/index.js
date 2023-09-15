@@ -154,8 +154,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
-    const { ref, xpr } = arg
+    const { ref, xpr, args } = arg
     if (xpr) xpr.forEach(t => attachRefLinksToArg(t, $baseLink, expandOrExists))
+    if (args) args.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
     ref.forEach((step, i) => {
@@ -752,6 +753,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               columns: expand.filter(c => !c.inline),
             },
           }
+          if (col.excluding) expandSubquery.SELECT.excluding = col.excluding
           if (col.as) expandSubquery.SELECT.as = col.as
           const inferredExpandSubquery = infer(expandSubquery, model)
           const res = $leafLink.definition.is2one
@@ -809,7 +811,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (ref || xpr) {
         baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
         attachRefLinksToArg(calcElement.value, baseLink, true)
-        const basePath = { $refLinks: [], ref: [] }
+        const basePath =
+          column.$refLinks?.length > 1
+            ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
+            : { $refLinks: [], ref: [] }
         if (baseColumn) {
           basePath.$refLinks.push(...baseColumn.$refLinks)
           basePath.ref.push(...baseColumn.ref)
@@ -823,15 +828,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             false,
             { definition: calcElement.parent, target: calcElement.parent },
             { inCalcElement: true },
-          ),
-          
-          mergePathsIntoJoinTree(arg)
+          )
+          const basePath = column.$refLinks?.length > 1 ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) } : { $refLinks: [], ref: [] }
+          mergePathsIntoJoinTree(arg, basePath)
         }) // {func}.args are optional
-      
+
       /**
        * Calculates all paths from a given ref and merges them into the join tree.
        * Recursively walks into refs of calculated elements.
-       * 
+       *
        * @param {object} arg with a ref and sibling $refLinks
        * @param {object} basePath with a ref and sibling $refLinks, used for recursion
        */
@@ -936,13 +941,17 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
 
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
+        const { elements } = sources[aliases[0]]
         // only one query source and no overwritten columns
-        Object.entries(sources[aliases[0]].elements).forEach(([name, element]) => {
-          if (!exclude(name) && element.type !== 'cds.LargeBinary') queryElements[name] = element
-          if (element.value) {
-            linkCalculatedElement(element)
-          }
-        })
+        Object.keys(elements)
+          .filter(k => !exclude(k))
+          .forEach(k => {
+            const element = sources[aliases[0]].elements[k]
+            if (element.type !== 'cds.LargeBinary') queryElements[k] = element
+            if (element.value) {
+              linkCalculatedElement(element)
+            }
+          })
         return
       }
 

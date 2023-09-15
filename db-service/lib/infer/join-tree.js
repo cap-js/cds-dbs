@@ -181,7 +181,10 @@ class JoinTree {
       if (next) {
         // step already seen before
         node = next
-        col.$refLinks[i] = node.$refLink // re-set $refLink to point to already merged $refLink
+        // re-set $refLink to equal the one which got already merged
+        col.$refLinks[i].alias = node.$refLink.alias
+        col.$refLinks[i].definition = node.$refLink.definition
+        col.$refLinks[i].target = node.$refLink.target
       } else {
         if (col.expand && !col.ref[i + 1]) {
           node.$refLink.onlyForeignKeyAccess = false
