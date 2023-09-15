@@ -606,12 +606,26 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('where exists cannot leverage calculated elements', () => {
+  it('exists cannot leverage calculated elements', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)).to.throw(
       'Unexpected calculated element “youngAuthorName” in path preceded by “exists” predicate',
     )
+  })
+
+  it('exists cannot leverage calculated elements in CASE', () => {
+    expect(() =>
+      cqn4sql(
+        CQL`SELECT from booksCalc.Books {
+      ID,
+      case when exists youngAuthorName then 'yes'
+           else 'no'
+      end as x
+     }`,
+        model,
+      ),
+    ).to.throw('Unexpected calculated element “youngAuthorName” in path preceded by “exists” predicate')
   })
 
   it('scoped query cannot leverage calculated elements', () => {
