@@ -410,10 +410,5 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
-const _circular_composition = (visited, target) => new Error(`
-  Transitive circular composition detected:
-  ${visited.join(' > ')} > ${target}
-  These are not supported by deep delete.`
-)
 Object.assign(SQLService, { _target_name4 })
 module.exports = SQLService
