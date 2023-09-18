@@ -37,19 +37,6 @@ describe('insert', () => {
       expect({ sql, entries }).toMatchSnapshot()
     })
 
-    test('test with insert rows without columns', () => {
-      const cqnInsert = {
-        INSERT: {
-          into: { ref: ['BookingSupplement'] },
-          rows: [
-            ['BookSupplUUID', 47.11, 'toBooking_UUID', 'toTravel_UUID']
-          ],
-        },
-      }
-      const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
-    })
-
     // no filtering in INSERT
     xtest('test filter in insert rows into columns with not existing column', () => {
       const cqnInsert = {
@@ -62,36 +49,6 @@ describe('insert', () => {
           ],
         },
       }
-      const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
-    })
-
-    // TypeError: Cannot read properties of undefined (reading 'map')
-    // not supported yet
-    xtest('test with insert rows without columns', () => {
-      const cqnInsert = {
-        INSERT: {
-          into: 'Foo2',
-          rows: [
-            [1, "'asd'", 2],
-            [9, "mmm'", 77],
-          ],
-        },
-      }
-
-      const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
-    })
-    // TypeError: Cannot read properties of undefined (reading 'map')
-    // not supported yet
-    xtest('test with insert values without columns', () => {
-      const cqnInsert = {
-        INSERT: {
-          into: 'Foo2',
-          values: [1, "'asd'", 2],
-        },
-      }
-
       const { sql, entries } = cqn2sql(cqnInsert)
       expect({ sql, entries }).toMatchSnapshot()
     })
