@@ -610,7 +610,14 @@ describe('Unfolding calculated elements in select list', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)).to.throw(
-      'Unexpected calculated element “youngAuthorName” in path preceded by “exists” predicate',
+      `Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”`,
+    )
+  })
+  it('exists cannot leverage calculated elements w/ path expressions', () => {
+    // at the leaf of a where exists path, there must be an association
+    // calc elements can't end in an association, hence this does not work, yet.
+    expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model)).to.throw(
+      'Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”',
     )
   })
 
@@ -625,7 +632,7 @@ describe('Unfolding calculated elements in select list', () => {
      }`,
         model,
       ),
-    ).to.throw('Unexpected calculated element “youngAuthorName” in path preceded by “exists” predicate')
+    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”')
   })
 
   it('scoped query cannot leverage calculated elements', () => {

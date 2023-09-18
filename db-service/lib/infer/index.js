@@ -23,12 +23,12 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
  * @returns {import('./cqn').Query} = q with .target and .elements
  */
 function infer(originalQuery, model = cds.context?.model || cds.model) {
-  if (!model) cds.error('Please specify a model')
+  if (!model) throw new Error('Please specify a model')
   const inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
-  if (originalQuery.SET) cds.error('”UNION” based queries are not supported')
+  if (originalQuery.SET) throw new Error('”UNION” based queries are not supported')
   const _ =
     inferred.SELECT ||
     inferred.INSERT ||
@@ -97,23 +97,23 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     if (ref) {
       const first = ref[0].id || ref[0]
       let target = getDefinition(first, model)
-      if (!target) cds.error(`"${first}" not found in the definitions of your model`)
+      if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
           const next = d.elements[r.id || r]?.elements ? d.elements[r.id || r] : d.elements[r.id || r]?._target
-          if (!next) cds.error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
+          if (!next) throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
           return next
         }, target)
       }
       if (target.kind !== 'entity' && !target._isAssociation)
-        cds.error('Query source must be a an entity or an association')
+        throw new Error('Query source must be a an entity or an association')
 
       attachRefLinksToArg(from) // REVISIT: remove
       const alias =
         from.uniqueSubqueryAlias ||
         from.as ||
         (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
-      if (alias in querySources) cds.error(`Duplicate alias "${alias}"`)
+      if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = target
     } else if (from.args) {
       from.args.forEach(a => inferTarget(a, querySources))
@@ -173,10 +173,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const nextStep = ref[1]?.id || ref[1]
             // no unmanaged assoc in infix filter path
             if (!expandOrExists && e.on)
-              cds.error(`"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`)
+              throw new Error(`"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`)
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
-              cds.error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
+              throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
           }
           arg.$refLinks.push({ definition: e, target: definition })
           // filter paths are flattened
@@ -191,7 +191,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         const recent = arg.$refLinks[i - 1]
         const { elements } = recent.definition._target || recent.definition
         const e = elements[id]
-        if (!e) cds.error(`"${id}" not found in the elements of "${arg.$refLinks[i - 1].definition.name}"`)
+        if (!e) throw new Error(`"${id}" not found in the elements of "${arg.$refLinks[i - 1].definition.name}"`)
         arg.$refLinks.push({ definition: e, target: e._target || e })
       }
       arg.$refLinks[i].alias = !ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
@@ -214,7 +214,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             }
           }
           step.where.forEach(walkTokenStream)
-        } else cds.error('A filter can only be provided when navigating along associations')
+        } else throw new Error('A filter can only be provided when navigating along associations')
       }
     })
     const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
@@ -497,14 +497,14 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 const nextStep = column.ref[1]?.id || column.ref[1]
                 // no unmanaged assoc in infix filter path
                 if (!inExists && element.on)
-                  cds.error(
+                  throw new Error(
                     `"${element.name}" in path "${column.ref
                       .map(idOnly)
                       .join('.')}" must not be an unmanaged association`,
                   )
                 // no non-fk traversal in infix filter
                 if (nextStep && !(nextStep in element.foreignKeys))
-                  cds.error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
+                  throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
               }
               const resolvableIn = definition.target ? definition._target : target
               column.$refLinks.push({ definition: elements[id], target: resolvableIn })
@@ -535,7 +535,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           const element = elements?.[id]
 
           if (firstStepIsSelf && element?.isAssociation) {
-            cds.error(
+            throw new Error(
               `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ ${column.ref.map(
                 idOnly,
               )} ]`,
@@ -578,7 +578,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         if (step.where) {
           const danglingFilter = !(column.ref[i + 1] || column.expand || column.inline || inExists)
           if (!column.$refLinks[i].definition.target || danglingFilter)
-            cds.error('A filter can only be provided when navigating along associations')
+            throw new Error('A filter can only be provided when navigating along associations')
           if (!column.expand) Object.defineProperty(column, 'isJoinRelevant', { value: true })
           // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
           let skipJoinsForFilter = inExists
@@ -634,7 +634,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 else elementName = flatName
               }
               if (queryElements[elementName] !== undefined)
-                cds.error(`Duplicate definition of element “${elementName}”`)
+                throw new Error(`Duplicate definition of element “${elementName}”`)
               const element = getCopyWithAnnos(column, leafArt)
               queryElements[elementName] = element
             }
@@ -663,7 +663,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           : column
         if (isColumnJoinRelevant(colWithBase)) {
           if (originalQuery.UPDATE)
-            cds.error(
+            throw new Error(
               'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
             )
           Object.defineProperty(column, 'isJoinRelevant', { value: true })
@@ -774,11 +774,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       function stepNotFoundInPredecessor(step, def) {
-        cds.error(`"${step}" not found in "${def}"`)
+        throw new Error(`"${step}" not found in "${def}"`)
       }
 
       function stepIsAmbiguous(step) {
-        cds.error(
+        throw new Error(
           `ambiguous reference to "${step}", write ${Object.values($combinedElements[step])
             .map(ta => `"${ta.index}.${step}"`)
             .join(', ')} instead`,
@@ -786,7 +786,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       function stepNotFoundInCombinedElements(step) {
-        cds.error(
+        throw new Error(
           `"${step}" not found in the elements of ${Object.values(sources)
             .map(def => `"${def.name || /* subquery */ def.as}"`)
             .join(', ')}`,
@@ -798,7 +798,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // if the `elt` from a `$self.elt` path is found in the `$combinedElements` -> hint to remove `$self`
         if (step in $combinedElements)
           err.push(` did you mean ${$combinedElements[step].map(ta => `"${ta.index || ta.as}.${step}"`).join(',')}?`)
-        cds.error(err.join(','))
+        throw new Error(err.join(','))
       }
     }
     function linkCalculatedElement(column, baseLink, baseColumn) {
@@ -983,7 +983,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               .join(', ')}`,
           )
         })
-        cds.error(err.join('\n'))
+        throw new Error(err.join('\n'))
       }
     }
 

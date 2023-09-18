@@ -482,7 +482,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function handleEmptyColumns(columns) {
       if (columns.some(c => c.$refLinks?.[c.$refLinks.length - 1].definition.type === 'cds.Composition')) return
-      cds.error('Queries must have at least one non-virtual column')
+      throw new Error('Queries must have at least one non-virtual column')
     }
   }
 
@@ -856,7 +856,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
          * the result.
          */
         if (inOrderBy && flatColumns.length > 1)
-          cds.error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
+          throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
         if (col.nulls) flatColumns[0].nulls = col.nulls
         if (col.sort) flatColumns[0].sort = col.sort
         res.push(...flatColumns)
@@ -1149,7 +1149,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         const { ref, $refLinks } = tokenStream[i + 1]
         if (!ref) continue
         if (ref[0] in { $self: true, $projection: true })
-          cds.error(`Unexpected "${ref[0]}" following "exists", remove it or add a table alias instead`)
+          throw new Error(`Unexpected "${ref[0]}" following "exists", remove it or add a table alias instead`)
         const firstStepIsTableAlias = ref.length > 1 && ref[0] in inferred.sources
         for (let j = 0; j < ref.length; j += 1) {
           let current, next
@@ -1182,6 +1182,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
           const as = getNextAvailableTableAlias(getLastStringSegment(next.alias))
           next.alias = as
+          if (next.definition.value) {
+            throw new Error(
+              `Calculated elements cannot be used in “exists” predicates in: “exists ${
+                tokenStream[i+1].ref.map(idOnly).join('.')
+              }”`,
+            )
+          }
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
         }
 
@@ -1221,7 +1228,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           })
         if (flatKeys.length > 1)
-          cds.error('Filters can only be applied to managed associations which result in a single foreign key')
+          throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
         keyValComparisons.forEach((kv, j) =>
           transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
@@ -1250,7 +1257,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             rhs === 'null'
           ) {
             if (notSupportedOps.some(([firstOp]) => firstOp === next))
-              cds.error(`The operator "${next}" is not supported for structure comparison`)
+              throw new Error(`The operator "${next}" is not supported for structure comparison`)
             const newTokens = expandComparison(token, ops, rhs, $baseLink)
             const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
             transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
@@ -1340,7 +1347,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       //        --> calculate error message or exit early? See test "proper error if structures cannot be compared / too many elements on lhs"
       if (flatRhs.length !== flatLhs.length)
         // make sure we can compare both structures
-        cds.error(
+        throw new Error(
           `Can't compare "${definition.name}" with "${
             value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
@@ -1368,13 +1375,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         // if we still have elements in flatRhs -> those were not found in lhs
         const lhsPath = token.ref.join('.') // original path of the comparison, used in error message
         flatRhs.forEach(t => pathNotFoundErr.push(`Path "${t._csnPath.slice(1).join('.')}" not found in "${lhsPath}"`))
-        cds.error(`Can't compare "${lhsPath}" with "${rhsPath}": ${pathNotFoundErr.join(', ')}`)
+        throw new Error(`Can't compare "${lhsPath}" with "${rhsPath}": ${pathNotFoundErr.join(', ')}`)
       }
     } else {
       // compare with value
       const flatLhs = flattenWithBaseName(token)
       if (flatLhs.length > 1 && value.val !== null && value !== 'null')
-        cds.error(`Can't compare structure "${token.ref.join('.')}" with value "${value.val}"`)
+        throw new Error(`Can't compare structure "${token.ref.join('.')}" with value "${value.val}"`)
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatLhs.forEach((column, i) => {
         result.push(column, ...operator, value)
@@ -1410,10 +1417,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       rejectStructInExpression()
 
     function rejectAssocInExpression() {
-      cds.error("An association can't be used as a value in an expression")
+      throw new Error("An association can't be used as a value in an expression")
     }
     function rejectStructInExpression() {
-      cds.error("A structured element can't be used as a value in an expression")
+      throw new Error("A structured element can't be used as a value in an expression")
     }
   }
 
@@ -1856,13 +1863,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false) {
     const { definition } = current
     const { definition: nextDefinition } = next
-    if (definition.value || nextDefinition.value) {
-      cds.error(
-        `Unexpected calculated element “${
-          definition.value ? definition.name : nextDefinition.name
-        }” in path preceded by “exists” predicate`,
-      )
-    }
     const on = []
     const fkSource = inWhere ? nextDefinition : definition
     // TODO: use onCondFor()
@@ -1961,7 +1961,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getQuerySourceName(node, $baseLink = null) {
     if (!node || !node.$refLinks || !node.ref) {
-      cds.error('Invalid node')
+      throw new Error('Invalid node')
     }
     if ($baseLink) {
       return getBaseLinkAlias($baseLink)
