@@ -703,16 +703,17 @@ class HANAService extends SQLService {
     xpr({ xpr, _internal }, caseSuffix = '') {
       // Maps the compare operators to what to return when both sides are null
       const compareOperators = {
-        '=': true,
+        '==': true,
         '!=': false,
+        // REVISIT: not required for now. application must do case when statement themselves
         // These operators are not allowed in column expressions
-        '>': null,
-        '<': null,
-        '<>': null,
-        '>=': null,
-        '<=': null,
-        '!<': null,
-        '!>': null,
+        // '>': null,
+        // '<': null,
+        // '<>': null,
+        // '>=': null,
+        // '<=': null,
+        // '!<': null,
+        // '!>': null,
       }
 
       if (!_internal) {
@@ -776,10 +777,11 @@ class HANAService extends SQLService {
         else sql.push(this.expr(x))
       }
 
+      // REVISIT: do not intercept case when statements
       // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
-      if (caseSuffix && xpr.length === 1) {
-        sql.push(caseSuffix)
-      }
+      // if (caseSuffix && xpr.length === 1) {
+      //   sql.push(caseSuffix)
+      // }
 
       return `${sql.join(' ')}`
     }
@@ -787,7 +789,7 @@ class HANAService extends SQLService {
     operator(x, i, xpr) {
       // Add "= TRUE" before THEN in case statements
       // As all valid comparators are converted to booleans as SQL specifies
-      if (x in { THEN: 1, then: 1 }) return ` = TRUE ${x}`
+      // if (x in { THEN: 1, then: 1 }) return ` = TRUE ${x}`
       if ((x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) || x === 'regexp') return 'LIKE_REGEXPR'
       else return x
     }
