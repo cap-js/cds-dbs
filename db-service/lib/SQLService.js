@@ -152,37 +152,31 @@ class SQLService extends DatabaseService {
   get onDELETE() {
     return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
     async function deep_delete(/** @type {Request} */ req) {
-      let { compositions } = req.target, { depth = [] } = req
+      let { compositions } = req.target
       if (compositions) {
-        // Transform CQL`DELETE from Foo WHERE pred` into CQL`DELETE from Foo[pred]`
+        // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
         if (typeof from === 'string') from = { ref: [from] }
         if (where) {
-          const filtered = from.ref.at(-1)
-          from = { ref: [...from.ref.slice(0, -1)] }
-          // Apply the where predicate to the last path segment
-          if (typeof filtered === 'string') from.ref.push({ id: filtered, where })
-          // Merge with existing where predicates
-          else from.ref.push({
-            ...filtered,
-            where: filtered.where ? [{ xpr: filtered.where }, 'and', { xpr: where }] : where
-          })
+          let last = from.ref.at(-1)
+          if (last.where) [ last, where ] = [ last.id, [ { xpr: last.where }, 'and', { xpr: where } ] ]
+          from = {ref:[ ...from.ref.slice(0,-1), { id: last, where }]}
         }
-
         // Process child compositions depth-first
-        for(const c of Object.values(compositions)) {
-          if (c._target['@cds.persistence.skip'] === true) break
-          let count = 0
-          for (let i = 0; i < depth.length; i++) {
-            if (depth[i] === c) count++
-            if (count > (c['@depth'] || 3)) break
-          }
-          const query = DELETE.from({ ref: [...from.ref, c.name] }) // CQL`DELETE from Foo[pred]:comp1.comp2...`
-          depth.push(c)
-          // Awaiting the promises to prevent multiple gigabytes of memory being used
-          await this.onDELETE({ query, depth, target: c._target })
-          depth.pop()
-        }
+        let { depth=0, visited=[] } = req
+        visited.push (req.target.name)
+        await Promise.all (Object.values(compositions).map(c => {
+          if (c._target['@cds.persistence.skip'] === true) return
+          if (c._target === req.target) { // the Genre.children case
+            if (++depth > (c['@depth'] || 3)) return
+          } else if (visited.includes(c._target.name)) throw new Error(
+            `Transitive circular composition detected: \n\n`+
+            `  ${visited.join(' > ')} > ${c._target.name} \n\n`+
+            `These are not supported by deep delete.`)
+          // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
+          const query = DELETE.from({ref:[ ...from.ref, c.name ]})
+          return this.onDELETE({ query, depth, visited, target: c._target })
+        }))
       }
       return this.onSIMPLE(req)
     }
@@ -416,5 +410,10 @@ cds.extend(cds.ql.Query).with(
   },
 )
 
+const _circular_composition = (visited, target) => new Error(`
+  Transitive circular composition detected:
+  ${visited.join(' > ')} > ${target}
+  These are not supported by deep delete.`
+)
 Object.assign(SQLService, { _target_name4 })
 module.exports = SQLService
