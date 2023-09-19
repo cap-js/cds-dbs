@@ -1,21 +1,21 @@
 const cds = require('@sap/cds')
 const path = require('path')
 const fs = require('fs')
-let BuildTaskHandler
+let BuildPlugin
 try {
-  ;({ BuildTaskHandler } = require('@sap/cds-dk/lib/build'))
+  ;({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
 } catch (e) {
   if (e.code === 'ENOTFOUND') throw `Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk'`
   else throw e
 }
 
-module.exports = class PostgresBuildPlugin extends BuildTaskHandler {
+module.exports = class PostgresBuildPlugin extends BuildPlugin {
   static hasTask() {
     return cds.requires.db.kind === 'postgres'
   }
 
-  static getTask() {
-    return { for: 'postgres', src: 'db' }
+  static getTaskDefaults() {
+    return { src: cds.env.folders.db }
   }
 
   init() {
