@@ -37,7 +37,7 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
     promises.push(this.write({
         dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
         scripts: { start: 'cds-deploy' },
-      }).to('package.json'))
+      }).to('../package.json'))
     promises.push(this.write(cds.compile.to.json(model)).to('csn.json'))
 
     let data
