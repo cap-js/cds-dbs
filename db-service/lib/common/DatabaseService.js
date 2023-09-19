@@ -85,7 +85,8 @@ class DatabaseService extends cds.Service {
       try {
         await this.send('ROLLBACK')
       } finally {
-        this.release()
+        // Destroy connection as it might be tainted by parallel operations
+        this.destroy()
       }
   }
 
@@ -103,6 +104,14 @@ class DatabaseService extends cds.Service {
    */
   async release() {
     return this.pool.release(this.dbc)
+  }
+
+  /**
+   * Destroys own connection, i.e. tix.dbc, from this.pool
+   * This is for subclasses to intercept, if required.
+   */
+  async destroy() {
+    return this.pool.destroy(this.dbc)
   }
 
   // REVISIT: should happen automatically after a configurable time

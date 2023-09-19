@@ -41,6 +41,11 @@ class SQLiteService extends SQLService {
     return super.release()
   }
 
+  destroy() {
+    // Prevent sqlite in memory database from being destroyed
+    return super.release()
+  }
+
   prepare(sql) {
     try {
       const stmt = this.dbc.prepare(sql)
