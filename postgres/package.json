@@ -75,7 +75,7 @@
     "build": {
       "plugins": {
         "postgres": {
-          "impl": "@cap-js/postgres/lib/build",
+          "impl": "@cap-js/postgres/build",
           "description": "PostgreSQL database build integration"
         }
       }

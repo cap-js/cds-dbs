@@ -3,7 +3,7 @@ const path = require('path')
 const fs = require('fs')
 let BuildPlugin
 try {
-  ;({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
+  ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
 } catch (e) {
   if (e.code === 'ENOTFOUND') throw `Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk'`
   else throw e
