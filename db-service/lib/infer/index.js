@@ -356,7 +356,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
      * If such a token has an infix filter, it is not join relevant, because the filter
      * condition is applied to the generated `exists <subquery>` condition.
      * 
-     * @param {*} tokenStream 
+     * @param {array} tokenStream 
      */
     function walkTokenStream(tokenStream) {
       let skipJoins
