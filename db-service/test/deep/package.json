@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@cap-js/sqlite": "latest"
+  }
+}
