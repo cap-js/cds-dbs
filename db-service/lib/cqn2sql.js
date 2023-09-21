@@ -235,19 +235,20 @@ class CQN2SQLRenderer {
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
+      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        col += `, '$."${name}@odata.count"',${this.expr(qc)}`
+        return [col, `'${name}@odata.count',${this.expr(qc)}`]
       }
       return col
-    })
+    }).flat()
 
     // Prevent SQLite from hitting function argument limit of 100
-    let obj = "'{}'"
-    for (let i = 0; i < cols.length; i += 48) {
-      obj = `json_insert(${obj},${cols.slice(i, i + 48)})`
+    let obj = ''
+    for (let i = 0; i < cols.length; i += 50) {
+      const n =  `json_object(${cols.slice(i, i + 50)})`
+      obj = obj ? `json_patch(${obj},${n})` : n
     }
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
   }
@@ -431,20 +432,18 @@ class CQN2SQLRenderer {
     const entity = this.name(q.target?.name || INSERT.into.ref[0])
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
-    if (!INSERT.columns && !elements) {
-      throw cds.error`Cannot insert rows without columns or elements`
-    }
-    let columns = INSERT.columns || (elements && ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation))
-    this.columns = columns.map(c => this.quote(c))
+    const columns = INSERT.columns
+    || cds.error`Cannot insert rows without columns or elements`
 
-    const inputConverterKey = this.class._convertInput
+    const inputConverter = this.class._convertInput
     const extraction = columns.map((c,i) => {
-      const element = elements?.[c] || {}
       const extract = `value->>'$[${i}]'`
-      const converter = element[inputConverterKey] || (e => e)
-      return converter(extract, element)
+      const element = elements?.[c]
+      const converter = element?.[inputConverter]
+      return converter?.(extract,element) || extract
     })
 
+    this.columns = columns.map(c => this.quote(c))
     this.entries = [[JSON.stringify(INSERT.rows)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
@@ -551,11 +550,9 @@ class CQN2SQLRenderer {
     }
 
     columns = columns.map(c => {
-      if (q.elements?.[c.name]?.['@cds.extension']) {
-        return {
-          name: 'extensions__',
-          sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
-        }
+      if (q.elements?.[c.name]?.['@cds.extension']) return {
+        name: 'extensions__',
+        sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
       }
       return c
     })
@@ -738,7 +735,12 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   ref({ ref }) {
-    return ref.map(r => this.quote(r)).join('.')
+    switch (ref[0]) {
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now' }]})
+      case '$user':
+      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      default: return ref.map(r => this.quote(r)).join('.')
+    }
   }
 
   /**
@@ -748,26 +750,21 @@ class CQN2SQLRenderer {
    */
   val({ val }) {
     switch (typeof val) {
-      case 'function':
-        throw new Error('Function values not supported.')
-      case 'undefined':
-        return 'NULL'
-      case 'boolean':
-        return `${val}`
-      case 'number':
-        return `${val}` // REVISIT for HANA
+      case 'function': throw new Error('Function values not supported.')
+      case 'undefined': return 'NULL'
+      case 'boolean': return `${val}`
+      case 'number': return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) {
-          this.values.push(val)
-          return '?'
-        }
-        if (Buffer.isBuffer(val)) val = val.toString('base64')
-        else val = this.regex(val) || this.json(val)
+        if (val instanceof Readable) ; // go on with default below
+        else if (Buffer.isBuffer(val)) val = val.toString('base64')
+        else if (is_regexp(val)) val = val.source
+        else val = JSON.stringify(val)
+      case 'string': // eslint-disable-line no-fallthrough
     }
     if (!this.values) return this.string(val)
-    this.values.push(val)
+    else this.values.push(val)
     return '?'
   }
 
@@ -792,25 +789,7 @@ class CQN2SQLRenderer {
   }
 
   /**
-   * Renders a Regular Expression into its string representation
-   * @param {RegExp} o
-   * @returns {string} SQL
-   */
-  regex(o) {
-    if (is_regexp(o)) return o.source
-  }
-
-  /**
-   * Renders the object as a JSON string in generic SQL
-   * @param {object} o
-   * @returns {string} SQL
-   */
-  json(o) {
-    return JSON.stringify(o)
-  }
-
-  /**
-   * Renders a javascript string into a generic SQL string
+   * Renders a javascript string into a SQL string literal
    * @param {string} s
    * @returns {string} SQL
    */
@@ -879,9 +858,12 @@ class CQN2SQLRenderer {
       let element = elements?.[name] || {}
       if (!sql) sql = `value->>'$."${name}"'`
 
+      let converter = element[_convertInput]
+      if (converter && sql[0] !== '$') sql = converter(sql, element)
+
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-      // stupid prettier: i wanted to keep this blank line above for a reason!
+
       else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
@@ -892,8 +874,6 @@ class CQN2SQLRenderer {
         }
       }
 
-      let converter = element[_convertInput]
-      if (converter && !(sql[0] === '$')) sql = converter(sql, element)
       return { name, sql }
     })
   }
