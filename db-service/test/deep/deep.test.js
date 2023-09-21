@@ -1,17 +1,14 @@
 const cds = require('../../../test/cds')
+cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
 cds.env.features.recursion_depth = 2
 
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
 
-let model
-
-cds.test('serve', __dirname + '/deep.cds')
-
-beforeAll(async () => {
-  model = cds.model
-})
-
 describe('test deep query generation', () => {
+
+  cds.test()
+  let model; beforeAll(() => model = cds.model)
+
   describe('deep expand', () => {
     test('Deep DELETE with to-one all data provided', () => {
       const query = getExpandForDeep(DELETE.from(model.definitions.Root).where({ ID: 1 }), model.definitions.Root)
