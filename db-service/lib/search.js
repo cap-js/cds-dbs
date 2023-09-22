@@ -1,13 +1,13 @@
 'use strict'
 
-const DRAFT_COLUMNS_UNION = [
-    'IsActiveEntity',
-    'HasActiveEntity',
-    'HasDraftEntity',
-    'DraftAdministrativeData_DraftUUID',
-    'SiblingEntity',
-    'DraftAdministrativeData'
-  ]
+const DRAFT_COLUMNS_UNION = {
+  IsActiveEntity: 1,
+  HasActiveEntity: 1,
+  HasDraftEntity: 1,
+  DraftAdministrativeData_DraftUUID: 1,
+  SiblingEntity: 1,
+  DraftAdministrativeData: 1,
+}
 const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
 
 /**
@@ -15,7 +15,7 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
  * It includes the generated foreign keys from managed associations, structured elements and complex and custom types.
  * As well, it provides the annotations starting with '@' for each column.
  *
- * @param {import('@sap/cds-compiler/lib/api/main').CSN} entity - the csn entity
+ * @param {object} entity - the csn entity
  * @param {object} [options]
  * @param [options.onlyNames=false] - decides if the column name or the csn representation of the column should be returned
  * @param [options.filterDraft=false] - indicates whether the draft columns should be filtered if the entity is draft enabled
@@ -26,7 +26,7 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
  */
 const getColumns = (
   entity,
-  { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false }
+  { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false },
 ) => {
   const skipDraft = filterDraft && entity._isDraftEnabled
   const columns = []
@@ -37,21 +37,13 @@ const getColumns = (
     if (element.isAssociation) continue
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
-    if (skipDraft && each in objectify(DRAFT_COLUMNS_UNION)) continue
+    if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
     if (keysOnly && !element.key) continue
     columns.push(onlyNames ? each : element)
   }
 
   return columns
 }
-
-const objectify = arr =>
-  arr.reduce((acc, cur) => {
-    acc[cur] = 1
-    return acc
-  }, {})
-
-
 
 const _getSearchableColumns = entity => {
   const columnsOptions = { removeIgnore: true, filterVirtual: true }
@@ -115,7 +107,7 @@ const _getSearchableColumns = entity => {
 }
 
 /**
- * @returns {import('../../../types/api').ColumnRefs}
+ * @returns {Array<object>} - array of columns
  */
 const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, alias) => {
   let toBeSearched = []
@@ -162,5 +154,5 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
 
 module.exports = {
   getColumns,
-  computeColumnsToBeSearched
+  computeColumnsToBeSearched,
 }
