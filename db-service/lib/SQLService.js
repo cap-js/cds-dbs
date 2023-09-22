@@ -20,7 +20,7 @@ const cqn4sql = require('./cqn4sql')
 class SQLService extends DatabaseService {
 
   init() {
-    this.on(['SELECT'], this.transformStreamFromCQN)
+    // this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
@@ -77,7 +77,12 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    const { sql, values, cqn } = this.cqn2sql(query, data)
+    const { sql, values, cqn, one } = this.cqn2sql(query, data)
+    if (query._streaming) {
+      const ps = await this.prepare(sql)
+      return ps.stream(values, one)
+    }
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)

@@ -192,6 +192,8 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
+    if (q._streaming) return this.STREAM_from(q)
+
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
@@ -625,7 +627,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   STREAM_from(q) {
-    const { column, from, where, columns } = q.STREAM
+    const { column, from, where, columns } = q.SELECT
 
     const select = cds.ql
       .SELECT(column ? [column] : columns)
@@ -635,12 +637,15 @@ class CQN2SQLRenderer {
     // SELECT.from() does not accept joins
     select.SELECT.from = from
 
+    /*
     if (column) {
       this.one = true
     } else {
       select.SELECT.expand = 'root'
       this.one = !!from.SELECT?.one
-    }
+    } */
+    this.one = true
+
     return this.SELECT(select.forSQL())
   }
 
