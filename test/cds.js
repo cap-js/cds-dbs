@@ -1,4 +1,4 @@
-module.exports = require('@sap/cds/lib')
+const cds = module.exports = require('@sap/cds/lib')
 
 // Adding cds.hana types to cds.builtin.types
 // REVISIT: Where should we put this?
@@ -22,20 +22,21 @@ const cdsTest = module.exports.test
 
 let isolateCounter = 0
 
-const orgIn = cdsTest.constructor.prototype.in
-cdsTest.constructor.prototype.in = function () {
-  global.before(() => {
-    orgIn.apply(this, arguments)
-  })
-  return orgIn.apply(this, arguments)
-}
+// REVISIT: this caused lots of errors -> all is fine when I remove it
+// const orgIn = cdsTest.constructor.prototype.in
+// cdsTest.constructor.prototype.in = function () {
+//   global.before(() => {
+//     orgIn.apply(this, arguments)
+//   })
+//   return orgIn.apply(this, arguments)
+// }
 
 // REVISIT: move this logic into cds when stabilized
 // Overwrite cds.test with autoIsolation logic
 module.exports.test = Object.setPrototypeOf(function () {
   let ret
 
-  global.beforeAll(async () => {
+  global.beforeAll(() => {
     try {
       const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
       const serviceDefinitionPath = testSource + 'test/service.json'
@@ -55,8 +56,6 @@ module.exports.test = Object.setPrototypeOf(function () {
       await ret.data.isolate()
     }
   })
-
-  const cds = ret.cds
 
   let isolate = null
 

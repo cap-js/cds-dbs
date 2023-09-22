@@ -1,7 +1,11 @@
 process.env.cds_requires_db_kind = 'better-sqlite'
 const cds = require('../../cds.js')
-if (cds.env.fiori) cds.env.fiori.lean_draft = true
-else cds.env.features.lean_draft = true
+
+// IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
+beforeAll(() => {
+  if (cds.env.fiori) cds.env.fiori.lean_draft = true
+  else cds.env.features.lean_draft = true
+})
 
 describe('SFlight - Read', () => {
   // Jest require.resolve does not want to find @capire/sflight
