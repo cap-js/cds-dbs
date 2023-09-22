@@ -43,8 +43,8 @@ describe('functions', () => {
       const q = CQL`SELECT from bookshop.Books {
          func1(ID, 'bar').func2(author.name, 'foo') as dotOperator
         } `
-      const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author
-                                              on author.ID = Books.author_ID    
+      const qx = CQL`
+        SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID
         {
           func1(Books.ID, 'bar').func2(author.name, 'foo') as dotOperator
         }`
