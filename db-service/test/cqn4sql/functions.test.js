@@ -19,7 +19,7 @@ describe('functions', () => {
              from bookshop.Authors as author
              where Books.author_ID = author.ID and
              substring(author.placeOfBirth, 0, 2) = 'DE'
-  
+
           ) as author
         }`
       const res = cqn4sql(q)
