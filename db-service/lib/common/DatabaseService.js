@@ -81,12 +81,11 @@ class DatabaseService extends cds.Service {
    */
   async rollback() {
     if (!this.dbc) return
-    else
-      try {
-        await this.send('ROLLBACK')
-      } finally {
-        this.release()
-      }
+    try {
+      await this.send('ROLLBACK')
+    } finally {
+      this.release()
+    }
   }
 
   /**
@@ -102,7 +101,9 @@ class DatabaseService extends cds.Service {
    * This is for subclasses to intercept, if required.
    */
   async release() {
-    return this.pool.release(this.dbc)
+    if (!this.dbc) return
+    await this.pool.release(this.dbc)
+    this.dbc = undefined
   }
 
   // REVISIT: should happen automatically after a configurable time
