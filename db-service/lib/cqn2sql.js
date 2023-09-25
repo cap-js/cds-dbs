@@ -518,6 +518,9 @@ class CQN2SQLRenderer {
       .filter(c => !keys.includes(c))
       .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
+    // temporal data
+    keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
+
     keys = keys.map(k => this.quote(k))
     const conflict = updateColumns.length
       ? `ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
