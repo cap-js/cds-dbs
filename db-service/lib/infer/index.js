@@ -337,34 +337,43 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         inferQueryElement(token, false, $baseLink)
       })
     }
-    if (where) {
-      let skipJoins
-      const walkTokenStream = token => {
-        if (token === 'exists') {
-          // no joins for infix filters along `exists <path>`
-          skipJoins = true
-        } else if (token.xpr) {
-          // don't miss an exists within an expression
-          token.xpr.forEach(walkTokenStream)
-        } else {
-          inferQueryElement(token, false, null, { inExists: skipJoins, inExpr: true })
-          skipJoins = false
-        }
-      }
-      where.forEach(walkTokenStream)
-    }
+
+    // walk over all paths in other query properties
+    if (where)
+      walkTokenStream(where)
     if (groupBy)
-      // link $refLinks
       groupBy.forEach(token => inferQueryElement(token, false))
     if (having)
-      // link $refLinks
-      having.forEach(token => inferQueryElement(token, false))
-    if (_.with)
-      // consider UPDATE.with
+      walkTokenStream(having)
+    if (_.with) // consider UPDATE.with
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
 
     return queryElements
 
+    /**
+     * Recursively drill down into a tokenStream (`where` or `having`) and pass
+     * on the information whether the next token is resolved within an `exists` predicates.
+     * If such a token has an infix filter, it is not join relevant, because the filter
+     * condition is applied to the generated `exists <subquery>` condition.
+     * 
+     * @param {array} tokenStream 
+     */
+    function walkTokenStream(tokenStream) {
+      let skipJoins
+      const processToken = t => {
+        if (t === 'exists') {
+          // no joins for infix filters along `exists <path>`
+          skipJoins = true
+        } else if (t.xpr) {
+          // don't miss an exists within an expression
+          t.xpr.forEach(processToken)
+        } else {
+          inferQueryElement(t, false, null, { inExists: skipJoins, inExpr: true })
+          skipJoins = false
+        }
+      }
+      tokenStream.forEach(processToken)
+    }
     /**
      * Processes references starting with `$self`, which are intended to target other query elements.
      * These `$self` paths must be handled after processing the "regular" columns since they are dependent on other query elements.
