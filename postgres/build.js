@@ -24,7 +24,7 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
 
   async clean() {
     if (fs.existsSync(this.task.dest)) {
-      return fs.promises.rm(this.task.dest, {recursive:true})
+      return fs.promises.rm(this.task.dest, { recursive:true, force:true })
     }
   }
 
