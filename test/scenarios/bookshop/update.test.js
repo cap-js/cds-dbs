@@ -1,5 +1,4 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 const admin = {
   auth: {
@@ -8,7 +7,7 @@ const admin = {
 }
 
 describe('Bookshop - Update', () => {
-  const { expect, PUT } = cds.test(bookshop)
+  const { expect, PUT } = cds.test().in(__dirname, '../../bookshop')
 
   test('Update Book', async () => {
     const res = await PUT(

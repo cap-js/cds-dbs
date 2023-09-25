@@ -1,5 +1,4 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 const admin = {
   auth: {
@@ -8,7 +7,7 @@ const admin = {
 }
 
 describe('Bookshop - Genres', () => {
-  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop, 'test/genres.cds')
+const { expect, GET, POST, PUT, DELETE } = cds.test('serve','test/genres.cds').in(__dirname, '../../bookshop')
 
   test('Delete Genres', async () => {
     const body = require('./genres.json')

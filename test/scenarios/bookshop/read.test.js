@@ -1,5 +1,4 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 const admin = {
   auth: {
@@ -8,7 +7,7 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, DELETE } = cds.test(bookshop)
+  const { expect, GET, POST, DELETE } = cds.test().in(__dirname, '../../bookshop')
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -44,7 +43,7 @@ describe('Bookshop - Read', () => {
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
-        ![FROM].author { name as CONSTRAINT } 
+        ![FROM].author { name as CONSTRAINT }
       }
       where ![FROM].title LIKE '%Wuthering%'
       order by group
