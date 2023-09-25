@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname + '/bookshop')
+const { expect } = cds.test
 const _inferred = require('../../lib/infer')
 
 describe('nested projections', () => {
