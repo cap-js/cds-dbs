@@ -4,6 +4,9 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
+/** @typedef {import('./prepared-statement').PreparedStatement} PreparedStatement */
+/** @typedef {import('@sap/cds/apis/services').Request} Request */
+
 /**
  * @callback next
  * @param {Error} param0
@@ -267,7 +270,7 @@ class SQLService extends DatabaseService {
    * `{run,get,all}` signature as specified in {@link PreparedStatement}.
    * @abstract
    * @param {string} sql The SQL String to be prepared
-   * @returns {PreparedStatement}
+   * @returns {Promise<PreparedStatement>}
    */
   async prepare(sql) {
     sql
@@ -284,54 +287,6 @@ class SQLService extends DatabaseService {
     throw '2b overridden by subclass'
   }
 }
-
-/**
- * Interface of prepared statement objects as returned by {@link SQLService#prepare}
- * @class
- * @interface
- */
-class PreparedStatement {
-
-  /**
-   * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
-   * @abstract
-   * @param {unknown|unknown[]} binding_params
-   */
-  async run(binding_params) {
-    binding_params
-    return 0
-  }
-  /**
-   * Executes a prepared SELECT query and returns a single/first row only
-   * @abstract
-   * @param {unknown|unknown[]} binding_params
-   * @returns {Promise<unknown>}
-   */
-  async get(binding_params) {
-    binding_params
-    return {}
-  }
-  /**
-   * Executes a prepared SELECT query and returns an array of all rows
-   * @abstract
-   * @param {unknown|unknown[]} binding_params
-   * @returns {Promise<unknown[]>}
-   */
-  async all(binding_params) {
-    binding_params
-    return [{}]
-  }
-  /**
-   * Executes a prepared SELECT query and returns a stream of the result
-   * @abstract
-   * @param {unknown|unknown[]} binding_params
-   * @returns {ReadableStream<string|Buffer>} A stream of the result
-   */
-  async stream(binding_params) {
-    binding_params
-  }
-}
-SQLService.prototype.PreparedStatement = PreparedStatement
 
 const _target_name4 = q => {
   const target =

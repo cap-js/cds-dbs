@@ -910,4 +910,3 @@ const _empty = a => !a || a.length === 0
  */
 module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
 module.exports.class = CQN2SQLRenderer
-module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word
