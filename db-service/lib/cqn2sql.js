@@ -535,7 +535,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const { entity, with: _with, data, where } = q.UPDATE
+    const { entity, with: _with, data, where } = q.UPDATE    
     const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
@@ -579,48 +579,6 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  // STREAM Statement -------------------------------------------------
-
-  /**
-   * Renders a STREAM query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM(q) {
-    const { STREAM } = q
-    return STREAM.from
-      ? this.STREAM_from(q)
-      : STREAM.into
-      ? this.STREAM_into(q)
-      : cds.error`Missing .form or .into in ${q}`
-  }
-
-  /**
-   * Renders a STREAM.into query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_into(q) {
-    const { into, column, where, data } = q.STREAM
-
-    let sql
-    if (!_empty(column)) {
-      data.type = 'binary'
-      const update = UPDATE(into)
-        .with({ [column]: data })
-        .where(where)
-      Object.defineProperty(update, 'target', { value: q.target })
-      sql = this.UPDATE(update)
-    } else {
-      data.type = 'json'
-      // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-      sql = this.UPSERT(UPSERT([{}]).into(into).forSQL())
-      this.values = [data]
-    }
-
-    return (this.sql = sql)
-  }
-
   /**
    * Renders a STREAM.from query into generic SQL
    * @param {import('./infer/cqn').STREAM} q
@@ -637,6 +595,7 @@ class CQN2SQLRenderer {
     // SELECT.from() does not accept joins
     select.SELECT.from = from
 
+    // REVISIT; Is it still needed? Ask Bob
     /*
     if (column) {
       this.one = true

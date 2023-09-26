@@ -232,6 +232,31 @@ class SQLiteService extends SQLService {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
   }
+
+  _convertStreamValues(values) {
+    let any
+    values.forEach((v, i) => {
+      if (v && typeof v.pipe === 'function') {
+        any = values[i] = new Promise(resolve => {
+          const chunks = []
+          v.on('data', chunk => chunks.push(chunk))
+          v.on('end', () => resolve(Buffer.concat(chunks)))
+          v.on('error', () => {
+            v.removeAllListeners('error')
+            v.push(null)
+          })
+        })
+      }
+    })
+    return any ? Promise.all(values) : values
+  }
+
+  async onSIMPLE({ query, data }) {
+    const { sql, values } = this.cqn2sql(query, data)
+    let ps = await this.prepare(sql)
+    const vals = await this._convertStreamValues(values)
+    return (await ps.run(vals)).changes
+  }
 }
 
 // function _not_null (err) {

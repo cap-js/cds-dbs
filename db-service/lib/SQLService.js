@@ -20,8 +20,6 @@ const cqn4sql = require('./cqn4sql')
 class SQLService extends DatabaseService {
 
   init() {
-    // this.on(['SELECT'], this.transformStreamFromCQN)
-    this.on(['UPDATE'], this.transformStreamIntoCQN)
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
@@ -29,19 +27,9 @@ class SQLService extends DatabaseService {
     this.on(['UPSERT'], this.onUPSERT)
     this.on(['UPDATE'], this.onUPDATE)
     this.on(['DELETE', 'CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
-    this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
-    this.on(['STREAM'], this.onSTREAM)
+    this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)    
     this.on(['*'], this.onPlainSQL)
     return super.init()
-  }
-
-  /** @type {Handler} */
-  async transformStreamFromCQN({ query }, next) {
-    if (!query._streaming) return next()
-    const cqn = STREAM.from(query.SELECT.from).column(query.SELECT.columns[0].ref[0])
-    if (query.SELECT.where) cqn.STREAM.where = query.SELECT.where
-    const stream = await this.run(cqn)
-    return stream && { value: stream }
   }
 
   /** @type {Handler} */
@@ -129,22 +117,6 @@ class SQLService extends DatabaseService {
     )
       return 0
     return this.onSIMPLE(req)
-  }
-
-  /**
-   * Handler for Stream
-   * @type {Handler}
-   */
-  async onSTREAM(req) {
-    const { one, sql, values } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    const ps = await this.prepare(sql)
-    return ps.stream(values, one)
   }
 
   /**
