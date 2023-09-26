@@ -579,6 +579,7 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
+  // REVISIT: Remove or rewrite this method
   /**
    * Renders a STREAM.from query into generic SQL
    * @param {import('./infer/cqn').STREAM} q

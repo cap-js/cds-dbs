@@ -32,34 +32,6 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  /** @type {Handler} */
-  async transformStreamIntoCQN({ query, data, target }, next) {
-    let col, type, etag
-    const elements = query._target?.elements || target?.elements
-    if (!elements) next()
-    for (const key in elements) {
-      const element = elements[key]
-      if (element['@Core.MediaType'] && data[key]?.pipe) col = key
-      if (element['@Core.IsMediaType'] && data[key]) type = key
-      if (element['@odata.etag'] && data[key]) etag = key
-    }
-
-    if (!col) return next()
-
-    const cqn = STREAM.into(query.UPDATE.entity).column(col).data(data[col])
-    if (query.UPDATE.where) cqn.STREAM.where = query.UPDATE.where
-    const result = await this.run(cqn)
-    if (type || etag) {
-      const d = { ...data }
-      delete d[col]
-      const cqn = UPDATE.entity(query.UPDATE.entity).with(d)
-      if (query.UPDATE.where) cqn.UPDATE.where = query.UPDATE.where
-      await this.run(cqn)
-    }
-
-    return result
-  }
-
   /**
    * Handler for SELECT
    * @type {Handler}
@@ -221,7 +193,7 @@ class SQLService extends DatabaseService {
     if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
 
     let cmd = q.cmd || Object.keys(q)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
+    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
       let target = q[cmd]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
@@ -318,9 +290,7 @@ const _target_name4 = q => {
     q.UPDATE?.entity ||
     q.DELETE?.from ||
     q.CREATE?.entity ||
-    q.DROP?.entity ||
-    q.STREAM?.from ||
-    q.STREAM?.into
+    q.DROP?.entity
   if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
