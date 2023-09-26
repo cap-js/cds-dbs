@@ -34,7 +34,7 @@ const getColumns = (
 
   for (const each in elements) {
     const element = elements[each]
-    if (element.isAssociation) continue
+    // if (element.isAssociation) continue
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
     if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
@@ -57,6 +57,7 @@ const _getSearchableColumns = entity => {
   }
 
   let atLeastOneColumnIsSearchable = false
+  const deepSearchCandidates = []
 
   // build a map of columns annotated with the @cds.search annotation
   for (const key of cdsSearchKeys) {
@@ -65,7 +66,7 @@ const _getSearchableColumns = entity => {
     // REVISIT: for now, exclude search using path expression, as deep search is not currently
     // supported
     if (columnName.includes('.')) {
-      continue
+      deepSearchCandidates.push({ ref: columnName.split('.') })
     }
 
     const annotationKey = `${cdsSearchTerm}.${columnName}`
@@ -95,12 +96,17 @@ const _getSearchableColumns = entity => {
     )
   })
 
-  // if the @cds.search annotation is provided -->
-  // Early return to ignore the interpretation of the @Search.defaultSearchElement
-  // annotation when an entity is annotated with the @cds.search annotation.
-  // The @cds.search annotation overrules the @Search.defaultSearchElement annotation.
-  if (cdsSearchKeys.length > 0) {
-    return searchableColumns.map(column => column.name)
+  if (deepSearchCandidates.length) {
+    deepSearchCandidates.forEach(c => {
+      const element = c.ref.reduce((resolveIn, curr) => {
+        const next = resolveIn.elements?.[curr] || resolveIn._target.elements[curr]
+        return next
+      }, entity)
+      if (element?.type === DEFAULT_SEARCHABLE_TYPE) {
+        const path = c.ref.join('.')
+        searchableColumns.push({name: path})
+      }
+    })
   }
 
   return searchableColumns.map(column => column.name)
@@ -143,7 +149,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
     toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
     if (cqn.SELECT.groupBy) toBeSearched = toBeSearched.filter(tbs => cqn.SELECT.groupBy.some(gb => gb.ref[0] === tbs))
     toBeSearched = toBeSearched.map(c => {
-      const col = { ref: [c] }
+      const col = { ref: [...c.split('.')] }
       if (alias) col.ref.unshift(alias)
       return col
     })
