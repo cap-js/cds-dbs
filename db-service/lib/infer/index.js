@@ -2,6 +2,8 @@
 
 const cds = require('@sap/cds/lib')
 
+const { computeColumnsToBeSearched } = require('../search')
+
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const cdsTypes = cds.linked({
@@ -173,7 +175,9 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const nextStep = ref[1]?.id || ref[1]
             // no unmanaged assoc in infix filter path
             if (!expandOrExists && e.on)
-              throw new Error(`"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`)
+              throw new Error(
+                `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
+              )
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
               throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
@@ -276,7 +280,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
-    const { columns, where, groupBy, having, orderBy } = _
+    const { columns, where, groupBy, having, orderBy, search } = _
     if (!columns) {
       inferElementsFromWildCard(aliases)
     } else {
@@ -362,6 +366,16 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     if (_.with)
       // consider UPDATE.with
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
+    if (search) {
+      const searchTerm = getSearchTerm(inferred.SELECT.search, inferred.SELECT.from, inferred.SELECT.where)
+      if (searchTerm) {
+        searchTerm.args.forEach(arg => inferQueryElement(arg, false))
+        Object.defineProperty(search, 'searchTerm', {
+          writable: true,
+          value: searchTerm,
+        })
+      }
+    }
 
     return queryElements
 
@@ -1097,6 +1111,34 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       const dot = i === 1 && firstStepIsEntity ? ':' : '.' // divide with colon if first step is entity
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
+  }
+  /**
+   * For a given search expression return a function "search" which holds the search expression
+   * as well as the searchable columns as arguments.
+   *
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} from - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|null)} returns either:
+   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+   * - or null, if no searchable columns are found in neither in `@cds.search` or in the target entity itself.
+   */
+  function getSearchTerm(search, from) {
+    const entity = from.$refLinks.at(-1).definition._target || from.$refLinks.at(-1).definition
+    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const contains = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
+      }
+      return contains
+    } else {
+      return null
+    }
   }
 }
 const idOnly = ref => ref.id || ref

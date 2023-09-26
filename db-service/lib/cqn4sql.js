@@ -1,7 +1,6 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
 
@@ -60,11 +59,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const { entity } = queryProp
       const from = queryProp.from
       const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
-      
-      let { where } = queryProp
-      if (inferred.SELECT?.search) {
-        where = transformSearchToWhere(inferred.SELECT.search, inferred.from, where)
-      }
+      const { where } = queryProp
 
       // Transform the existing where, prepend table aliases, and so on...
       if (where) {
@@ -73,10 +68,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
       // The already transformed `where` clause is then glued together with the resulting subqueries.
-      const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+      let { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
       const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
       if (inferred.SELECT) {
+        if (inferred.SELECT.search && inferred.SELECT.search.searchTerm) {
+          const searchTerm = getTransformedTokenStream([inferred.SELECT.search.searchTerm])
+          if(transformedWhere.length)
+            transformedWhere = [asXpr(transformedWhere), 'and', ...searchTerm]
+          else
+            transformedWhere = searchTerm
+        }
         transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
       } else {
         if (from) {
@@ -185,41 +187,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedProp.into = transformedFrom
     transformedQuery.STREAM = transformedProp
     return transformedQuery
-  }
-
-  /**
-   * Transforms a search expression to a WHERE clause for a SELECT operation.
-   *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {object} from - The FROM clause of the CQN statement.
-   *
-   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
-   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
-   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
-   *     If the target entity of the query does not contain searchable elements, the function returns null.
-   *
-   */
-  function transformSearchToWhere(search, from, existingWhere) {
-    const entity = from.$refLinks[0].definition._target || from.$refLinks[0].definition
-    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
-
-      if (existingWhere) {
-        return [asXpr(existingWhere), 'and', contains]
-      } else {
-        return [contains]
-      }
-    } else {
-      return null
-    }
   }
 
   /**
@@ -1180,9 +1147,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           next.alias = as
           if (next.definition.value) {
             throw new Error(
-              `Calculated elements cannot be used in “exists” predicates in: “exists ${
-                tokenStream[i+1].ref.map(idOnly).join('.')
-              }”`,
+              `Calculated elements cannot be used in “exists” predicates in: “exists ${tokenStream[i + 1].ref
+                .map(idOnly)
+                .join('.')}”`,
             )
           }
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))

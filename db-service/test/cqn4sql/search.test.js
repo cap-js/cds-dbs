@@ -112,12 +112,13 @@ describe('Replace attribute search by search predicate', () => {
       {
         books.ID,
       } where (
-        exists(
+        exists (
           SELECT 1 from bookshop.Authors as Authors
           where Authors.ID = books.author_ID
         )
-      ) and
-      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
+      )
+      and
+        search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y'))`,
       )
     })
   })
@@ -128,7 +129,7 @@ describe('Replace attribute search by search predicate', () => {
       model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
     })
 
-    it.only('one string element with one search element', () => {
+    it('one string element with one search element', () => {
       // WithStructuredKey is the only entity with only one string element in the model ...
       let query = CQL`SELECT from search.Books { ID, title }`
       query.SELECT.search = [{ val: 'x' }]
@@ -136,13 +137,12 @@ describe('Replace attribute search by search predicate', () => {
       let res = cqn4sql(query, model)
       // single val is stored as val directly, not as expr with val
       const expected = CQL`
-      SELECT from search.Books as Books left join search.Authors as author on Books.author_ID = author.ID
+      SELECT from search.Books as Books left join search.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,
         Books.title
     } where search(author.name, 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
-
   })
 })
