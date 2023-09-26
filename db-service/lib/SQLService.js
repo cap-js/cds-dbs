@@ -170,7 +170,7 @@ class SQLService extends DatabaseService {
       // REVISIT: this is a hack the target of $now might not be a timestamp or date time
       // Add input converter to CURRENT_TIMESTAMP inside views using $now
       if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
-        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+        query = query.replace(/CURRENT_TIMESTAMP/gi, "STRFTIME('%Y-%m-%dT%H:%M:%fZ','NOW')")
       }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
