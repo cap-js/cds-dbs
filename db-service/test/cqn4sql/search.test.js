@@ -186,5 +186,18 @@ describe('Replace attribute search by search predicate', () => {
     } where search((Authors.note, (address.street || ' ' || address.zip || '' || address.city)), 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
+
+    it('search calculated element only if explicitly requested', () => {
+      let query = CQL`SELECT from search.CalculatedAddressesWithoutAnno as Address { Address.ID }`
+      query.SELECT.search = [{ val: 'x' }]
+
+      let res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT from search.CalculatedAddressesWithoutAnno as Address
+      {
+        Address.ID
+    } where search((Address.city), 'x')`
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
   })
 })

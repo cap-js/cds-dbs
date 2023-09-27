@@ -34,7 +34,6 @@ const getColumns = (
 
   for (const each in elements) {
     const element = elements[each]
-    // if (element.isAssociation) continue
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
     if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
@@ -81,6 +80,9 @@ const _getSearchableColumns = entity => {
     // the element is searchable if it is annotated with the @cds.search, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
     if (annotatedColumnValue) return true
+
+    // calculated elements are only searchable if requested through `@cds.search` 
+    if(column.value) return false
 
     // if at least one element is explicitly annotated as searchable, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`

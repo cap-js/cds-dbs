@@ -62,8 +62,14 @@ entity AuthorsSearchCalculatedAddress : Authors {
 }
 
 @cds.search: {
-  city: false
+  city: false,
+  calculatedAddress: true
 }
 entity CalculatedAddresses : Addresses {
+  calculatedAddress: String = street || ' ' || zip || '' || city
+}
+
+// calculated elements are not searchable by default
+entity CalculatedAddressesWithoutAnno : Addresses {
   calculatedAddress: String = street || ' ' || zip || '' || city
 }
