@@ -441,20 +441,18 @@ class CQN2SQLRenderer {
     const entity = this.name(q.target?.name || INSERT.into.ref[0])
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
-    if (!INSERT.columns && !elements) {
-      throw cds.error`Cannot insert rows without columns or elements`
-    }
-    let columns = INSERT.columns || (elements && ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation))
-    this.columns = columns.map(c => this.quote(c))
+    const columns = INSERT.columns
+    || cds.error`Cannot insert rows without columns or elements`
 
-    const inputConverterKey = this.class._convertInput
+    const inputConverter = this.class._convertInput
     const extraction = columns.map((c,i) => {
-      const element = elements?.[c] || {}
       const extract = `value->>'$[${i}]'`
-      const converter = element[inputConverterKey] || (e => e)
-      return converter(extract, element)
+      const element = elements?.[c]
+      const converter = element?.[inputConverter]
+      return converter?.(extract,element) || extract
     })
 
+    this.columns = columns.map(c => this.quote(c))
     this.entries = [[JSON.stringify(INSERT.rows)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
