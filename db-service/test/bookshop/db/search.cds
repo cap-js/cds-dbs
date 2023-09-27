@@ -1,8 +1,5 @@
 namespace search;
 
-@cds.search: {
-    author.name
-}
 entity Books {
   key ID : Integer;
   title: String;
@@ -12,8 +9,18 @@ entity Books {
   coAuthorUnmanaged: Association to Authors on coAuthorUnmanaged.ID = coAuthor_ID_unmanaged;
 }
 
+@cds.search: {
+    author.lastName
+}
+entity BooksSeachAuthorName: Books {}
+
+// search through all searchable fields in the author
+@cds.search: { author }
+entity BooksSeachAuthor: Books {}
+
 entity Authors {
   key ID : Integer;
-  name: String;
+  lastName: String;
+  firstName: String;
   books: Association to Books on books.author = $self;
 }

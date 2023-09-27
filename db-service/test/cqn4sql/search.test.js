@@ -3,7 +3,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
-describe('Replace attribute search by search predicate', () => {
+describe.only('Replace attribute search by search predicate', () => {
   describe('basic search', () => {
     let model
     beforeAll(async () => {
@@ -130,18 +130,30 @@ describe('Replace attribute search by search predicate', () => {
     })
 
     it('one string element with one search element', () => {
-      // WithStructuredKey is the only entity with only one string element in the model ...
-      let query = CQL`SELECT from search.Books { ID, title }`
+      let query = CQL`SELECT from search.BooksSeachAuthorName { ID, title }`
       query.SELECT.search = [{ val: 'x' }]
 
       let res = cqn4sql(query, model)
-      // single val is stored as val directly, not as expr with val
       const expected = CQL`
-      SELECT from search.Books as Books left join search.Authors as author on author.ID = Books.author_ID
+      SELECT from search.BooksSeachAuthorName as BooksSeachAuthorName left join search.Authors as author on author.ID = BooksSeachAuthorName.author_ID
+      {
+        BooksSeachAuthorName.ID,
+        BooksSeachAuthorName.title
+    } where search(author.lastName, 'x')`
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
+
+    it('search all searchable fields in target', () => {
+      let query = CQL`SELECT from search.BooksSeachAuthor as Books { ID, title }`
+      query.SELECT.search = [{ val: 'x' }]
+
+      let res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT from search.BooksSeachAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,
         Books.title
-    } where search(author.name, 'x')`
+    } where search((author.lastName, author.firstName), 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
   })
