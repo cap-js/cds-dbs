@@ -8,23 +8,7 @@ describe('functions', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-  describe('functions without arguments', () => {
-    it('function in filter in order by', () => {
-      let query = {
-        SELECT: {
-          from: { ref: ['bookshop.Books'] },
-          columns: [{ ref: ['ID'] }],
-          where: [{ func: 'current_date' }, '=', { val: 'today' }],
-        },
-      }
-      let expected = CQL`
-        SELECT Books.ID from bookshop.Books as Books
-       where current_date = 'today'
-      `
-
-      let result = cqn4sql(query, model)
-      expect(result).to.deep.equal(expected)
-    })
+  describe('general', () => {
     it('function in filter of expand', () => {
       const q = CQL`SELECT from bookshop.Books {
           author[substring(placeOfBirth, 0, 2) = 'DE'] { name }
@@ -54,6 +38,37 @@ describe('functions', () => {
         )`
       const res = cqn4sql(q)
       expect(res).to.deep.equal(qx)
+    })
+    it('function with dot operator', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         func1(ID, 'bar').func2(author.name, 'foo') as dotOperator
+        } `
+      const qx = CQL`
+        SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          func1(Books.ID, 'bar').func2(author.name, 'foo') as dotOperator
+        }`
+      const res = cqn4sql(q)
+      expect(res).to.deep.equal(qx)
+    })
+  })
+
+  describe('without arguments', () => {
+    it('function in filter in order by', () => {
+      let query = {
+        SELECT: {
+          from: { ref: ['bookshop.Books'] },
+          columns: [{ ref: ['ID'] }],
+          where: [{ func: 'current_date' }, '=', { val: 'today' }],
+        },
+      }
+      let expected = CQL`
+        SELECT Books.ID from bookshop.Books as Books
+       where current_date = 'today'
+      `
+
+      let result = cqn4sql(query, model)
+      expect(result).to.deep.equal(expected)
     })
   })
 })
