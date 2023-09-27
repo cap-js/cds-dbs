@@ -234,31 +234,30 @@ class CQN2SQLRenderer {
     if (!SELECT.columns) return sql
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
     
-    // To mix json_object and json_set / json_insert it is required to change the path definition
-    // json_object('a',val,'b',val)
-    // json_set(json_object('a',val),'$."b"',val)
-    let wrap = name => this.string(name)
-
-    const cols = []
-    for(let x of SELECT.columns) {
-      if(cols.length === 49) wrap = name => this.string(`$."${name}"`)
+    let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      let col = `${wrap(name)},${this.output_converter4(x.element, this.quote(name))}`
-      cols.push(col)
-
+      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        cols.push(`${wrap(name + '@odata.count')},${this.expr(qc)}`)
+        return [col, `'${name}@odata.count',${this.expr(qc)}`]
       }
-    }
+      return col
+    }).flat()
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = ''
-    for (let i = 0; i < cols.length; i += 50) {
-      const n =  `json_object(${cols.slice(i, i + 50)})`
-      obj = obj ? `json_patch(${obj},${n})` : n
-    }
+
+    if(cols.length < 50) obj =  `json_object(${cols.slice(0, 50)})`
+    else {
+      const chunks = []
+      for (let i = 0; i < cols.length; i += 50) {
+        chunks.push(`json_object(${cols.slice(i, i + 50)})`)
+      }
+      obj = `json_merge(${chunks})`
+    } 
+
+
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
