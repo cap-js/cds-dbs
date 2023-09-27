@@ -79,6 +79,16 @@ entity DateTimeEntity {
   int: Integer;
 }
 
+entity TimestampEntity {
+  key ID : Integer;
+  ts     : Timestamp;
+}
+
+entity TimestampView as projection on TimestampEntity {
+  *,
+  $now as now : Timestamp
+}
+
 entity FProjDeep  as projection on DBDeepEntity {
   ID         as IDRename,
   parent     as parentRename,
@@ -86,6 +96,7 @@ entity FProjDeep  as projection on DBDeepEntity {
   otherName2 as otherName2Rename,
   children   as childrenRename
 }
+
 service RenameService @(path:'/rename') {
   entity SProjDeep as projection on FProjDeep;
 }
