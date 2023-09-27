@@ -4,11 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+### Version 1.3.0 - tbd
+
+### Added
+
+- `cds build` is now natively supported in `@cap-js/postgres`. Thus, a `cds build` will automatically generate deployment artifacts for Postgres-enabled projects.
+
 ## Version 1.2.1 - 2023-09-08
 
 ### Changed
 
-- Bump minimum required version of `@cap-js/db-service` 
+- Bump minimum required version of `@cap-js/db-service`
 
 ## Version 1.2.0 - 2023-09-06
 
@@ -49,7 +55,7 @@
 
 ### Changed
 
-- Updated minimum required version of `@cap-js/db-service` 
+- Updated minimum required version of `@cap-js/db-service`
 
 ## Version 1.0.0 - 2023-06-23
 
