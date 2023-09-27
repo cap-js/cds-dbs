@@ -30,3 +30,34 @@ entity Genres : sap.common.CodeList {
   parent   : Association to Genres;
   children : Composition of many Genres on children.parent = $self;
 }
+
+entity A : managed {
+  key ID  : Integer;
+      B   : Integer;
+      toB : Composition of many B
+              on toB.ID = $self.B;
+      C   : Integer;
+      toC : Composition of many C
+              on toC.ID = $self.C;
+}
+
+entity B : managed {
+  key ID  : Integer;
+      A   : Integer;
+      toA : Composition of many A
+              on toA.ID = $self.A;
+
+      C   : Integer;
+      toC : Composition of many C
+              on toC.ID = $self.C;
+}
+
+entity C : managed {
+  key ID  : Integer;
+      A   : Integer;
+      toA : Composition of many A
+              on toA.ID = $self.A;
+      B   : Integer;
+      toB : Composition of many B
+              on toB.ID = $self.B;
+}
