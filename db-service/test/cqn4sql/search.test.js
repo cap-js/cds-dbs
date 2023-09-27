@@ -3,7 +3,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
-describe.only('Replace attribute search by search predicate', () => {
+describe('Replace attribute search by search predicate', () => {
   describe('basic search', () => {
     let model
     beforeAll(async () => {
@@ -154,6 +154,36 @@ describe.only('Replace attribute search by search predicate', () => {
         Books.ID,
         Books.title
     } where search((author.lastName, author.firstName), 'x')`
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
+
+    it('search only some searchable fields via multiple association paths', () => {
+      let query = CQL`SELECT from search.BooksSeachAuthorAndAddress as Books { ID, title }`
+      query.SELECT.search = [{ val: 'x' }]
+
+      let res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT from search.BooksSeachAuthorAndAddress as Books
+        left join search.AuthorsSearchAddresses as authorWithAddress on authorWithAddress.ID = Books.authorWithAddress_ID
+        left join search.Addresses as address on address.ID = authorWithAddress.address_ID
+      {
+        Books.ID,
+        Books.title
+    } where search((authorWithAddress.note, address.city), 'x')`
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
+
+    it('search calculated element via path expression', () => {
+      let query = CQL`SELECT from search.AuthorsSearchCalculatedAddress as Authors { lastName }`
+      query.SELECT.search = [{ val: 'x' }]
+
+      let res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT from search.AuthorsSearchCalculatedAddress as Authors
+          left join search.CalculatedAddresses as address on address.ID = Authors.address_ID
+      {
+        Authors.lastName
+    } where search((Authors.note, (address.street || ' ' || address.zip || '' || address.city)), 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
   })

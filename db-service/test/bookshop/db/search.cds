@@ -24,3 +24,46 @@ entity Authors {
   firstName: String;
   books: Association to Books on books.author = $self;
 }
+
+// search over multiple associations
+@cds.search: { authorWithAddress }
+entity BooksSeachAuthorAndAddress: Books {
+  authorWithAddress: Association to AuthorsSearchAddresses;
+}
+
+@cds.search: {
+  address,
+  note
+}
+entity AuthorsSearchAddresses : Authors {
+  note: String;
+  address: Association to Addresses;
+}
+
+@cds.search: {
+  street: false
+}
+entity Addresses {
+  key ID: Integer;
+  street: String;
+  city: String;
+  zip: Integer;
+}
+
+// search with calculated elements
+
+@cds.search: {
+  address,
+  note
+}
+entity AuthorsSearchCalculatedAddress : Authors {
+  note: String;
+  address: Association to CalculatedAddresses;
+}
+
+@cds.search: {
+  city: false
+}
+entity CalculatedAddresses : Addresses {
+  calculatedAddress: String = street || ' ' || zip || '' || city
+}
