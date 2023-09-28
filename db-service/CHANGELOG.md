@@ -9,6 +9,7 @@
 ### Fixed
 
 - Various fixes for calculated elements on read. #220 #223 #233
+- Don't release to pool connections twice. #243
 
 ## Version 1.2.1 - 2023-09-08
 
