@@ -1389,7 +1389,7 @@ describe('comparisons of associations in on condition of elements needs to be ex
   })
 })
 
-describe.only('Sanity checks for `exists` predicate', () => {
+describe('Sanity checks for `exists` predicate', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
