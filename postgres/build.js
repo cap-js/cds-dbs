@@ -1,3 +1,5 @@
+const cds = require('@sap/cds')
+
 let BuildPlugin
 try {
   ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
