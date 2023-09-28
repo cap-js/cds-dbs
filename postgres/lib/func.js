@@ -19,6 +19,15 @@ const StandardFunctions = {
   hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
   minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
   second: x => `date_part('second',(${x})::TIMESTAMP)`,
+
+  search: function (ref, arg) {
+    if (!('val' in arg)) {
+      console.log(JSON.stringify(arg))
+    }
+    const refs = ref.list || [ref],
+      { toString } = ref
+    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
+  },
 }
 
 const HANAFunctions = {
