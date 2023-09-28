@@ -512,7 +512,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                       .join('.')}" must not be an unmanaged association`,
                   )
                 // no non-fk traversal in infix filter
-                if (nextStep && !(nextStep in element.foreignKeys))
+                if (nextStep && element.foreignKeys && !(nextStep in element.foreignKeys))
                   throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
               }
               const resolvableIn = definition.target ? definition._target : target
