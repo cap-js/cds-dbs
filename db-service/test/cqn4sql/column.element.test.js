@@ -2,9 +2,10 @@
 // for convenience, we attach a non-enumerable property 'element' onto each column with a ref
 // this property holds the corresponding csn definition to which the column refers
 
-const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname + '/../bookshop')
+
+const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
+const cqn4sql = require('../../lib/cqn4sql')
 
 describe('assign element onto columns', () => {
   let model

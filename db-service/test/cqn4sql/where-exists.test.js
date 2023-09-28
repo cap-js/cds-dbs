@@ -19,6 +19,28 @@ describe('EXISTS predicate in where', () => {
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
         )`)
     })
+    it('exists predicate after having', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } group by ID having exists author`, model)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books { Books.ID }
+         GROUP BY Books.ID
+         HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+         )`)
+    })
+    it('exists predicate after having with infix filter', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`, model)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books { Books.ID }
+         GROUP BY Books.ID
+         HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 42
+         )`)
+    })
     it('MUST ... two EXISTS both on same path in where', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
