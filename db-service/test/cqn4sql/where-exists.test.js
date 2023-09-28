@@ -1396,7 +1396,7 @@ describe('Sanity checks for `exists` predicate', () => {
   })
   it('rejects $self following exists predicate', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
-      'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]',
+      'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]',
     )
   })
 

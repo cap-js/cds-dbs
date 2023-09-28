@@ -547,7 +547,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             throw new Error(
               `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ ${column.ref.map(
                 idOnly,
-              )} ]`,
+              ).join(', ')} ]`,
             )
           }
 
