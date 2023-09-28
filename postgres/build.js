@@ -1,13 +1,12 @@
-const cds = require('@sap/cds')
-const path = require('path')
-const fs = require('fs')
 let BuildPlugin
 try {
   ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
 } catch (e) {
-  if (e.code === 'ENOTFOUND') throw `Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk'`
+  if (e.code === 'ENOTFOUND') throw `No @sap/cds-dk found. Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk@^7.3.0'`
   else throw e
 }
+
+const { fs, path, rimraf } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends BuildPlugin {
   static hasTask() {
@@ -23,9 +22,7 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
   }
 
   async clean() {
-    if (fs.existsSync(this.task.dest)) {
-      return fs.promises.rm(this.task.dest, { recursive:true, force:true })
-    }
+    await rimraf(this.task.dest)
   }
 
   async build() {
