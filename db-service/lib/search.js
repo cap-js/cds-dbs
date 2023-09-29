@@ -1,13 +1,5 @@
 'use strict'
 
-const DRAFT_COLUMNS_UNION = {
-  IsActiveEntity: 1,
-  HasActiveEntity: 1,
-  HasDraftEntity: 1,
-  DraftAdministrativeData_DraftUUID: 1,
-  SiblingEntity: 1,
-  DraftAdministrativeData: 1,
-}
 const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
 
 /**
@@ -26,9 +18,8 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
  */
 const getColumns = (
   entity,
-  { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false },
+  { removeIgnore = false, filterVirtual = false},
 ) => {
-  const skipDraft = filterDraft && entity._isDraftEnabled
   const columns = []
   const elements = entity.elements
 
@@ -36,9 +27,7 @@ const getColumns = (
     const element = elements[each]
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
-    if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
-    if (keysOnly && !element.key) continue
-    columns.push(onlyNames ? each : element)
+    columns.push(element)
   }
 
   return columns
@@ -132,33 +121,9 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
   // aggregations case
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
-    cqn.SELECT.columns &&
-      cqn.SELECT.columns.forEach(column => {
-        if (column.func) {
-          // exclude $count by SELECT of number of Items in a Collection
-          if (
-            cqn.SELECT.columns.length === 1 &&
-            column.func === 'count' &&
-            (column.as === '_counted_' || column.as === '$count')
-          ) {
-            return
-          }
-
-          toBeSearched.push(column)
-          return
-        }
-
-        const columnRef = column.ref
-        if (columnRef) {
-          if (entity.elements[columnRef[columnRef.length - 1]]?._type !== DEFAULT_SEARCHABLE_TYPE) return
-          column = { ref: [...column.ref] }
-          if (alias) column.ref.unshift(alias)
-          toBeSearched.push(column)
-        }
-      })
+    // REVISIT: No search for aggregation case for the moment
   } else {
     toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
-    if (cqn.SELECT.groupBy) toBeSearched = toBeSearched.filter(tbs => cqn.SELECT.groupBy.some(gb => gb.ref[0] === tbs))
     toBeSearched = toBeSearched.map(c => {
       const col = {ref: [...c.ref]}
       if (alias) col.ref.unshift(alias)

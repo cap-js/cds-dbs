@@ -190,7 +190,7 @@ describe('Replace attribute search by search predicate', () => {
           left join search.CalculatedAddresses as address on address.ID = Authors.address_ID
       {
         Authors.lastName
-    } where search((Authors.note, (address.street || ' ' || address.zip || '' || address.city)), 'x')`
+      } where search((Authors.note, (address.street || ' ' || address.zip || '' || address.city)), 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
 
@@ -206,6 +206,10 @@ describe('Replace attribute search by search predicate', () => {
     } where search((Address.city), 'x')`
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
+  })
+
+  describe('search with aggregation', () => {
+    // TODO
   })
 
   describe('caching searchable fields', () => {
