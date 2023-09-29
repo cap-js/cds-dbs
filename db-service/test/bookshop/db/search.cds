@@ -12,11 +12,11 @@ entity Books {
 @cds.search: {
     author.lastName
 }
-entity BooksSearchAuthorName: Books {}
+entity BooksSeachAuthorName: Books {}
 
 // search through all searchable fields in the author
 @cds.search: { author }
-entity BooksSearchAuthor: Books {}
+entity BooksSeachAuthor: Books {}
 
 entity Authors {
   key ID : Integer;
@@ -27,7 +27,7 @@ entity Authors {
 
 // search over multiple associations
 @cds.search: { authorWithAddress }
-entity BooksSearchAuthorAndAddress: Books {
+entity BooksSeachAuthorAndAddress: Books {
   authorWithAddress: Association to AuthorsSearchAddresses;
 }
 
@@ -63,7 +63,7 @@ entity AuthorsSearchCalculatedAddress : Authors {
 
 @cds.search: {
   city: false,
-  calculatedAddress: true
+  calculatedAddress:
 }
 entity CalculatedAddresses : Addresses {
   calculatedAddress: String = street || ' ' || zip || '' || city
