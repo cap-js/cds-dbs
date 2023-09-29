@@ -1,1 +1,27 @@
-* @BobdenOs @David-Kunz @patricebender @danjoa @gregorwolf @johannes-vogel @vobu @stewsk @sebastianesch @sjvans
+# Product owner own everything
+
+** @danjoa @johannes-vogel @stewsk
+
+db-service/lib/cqn4sql.js @patricebender
+db-service/test/cqn4sql/ @patricebender
+
+db-service/lib/infer/**.js @patricebender
+db-service/test/cds-infer/ @patricebender
+
+db-service/lib/InsertResults.js @BobdenOs
+db-service/lib/converters.d.ts @BobdenOs
+db-service/lib/SQLService.js @BobdenOs
+db-service/lib/converters.js @BobdenOs
+db-service/lib/cql-functions.js @BobdenOs
+db-service/lib/cqn2sql.js @BobdenOs
+db-service/lib/deep-queries.js @BobdenOs
+db-service/lib/fill-in-keys.js @BobdenOs
+
+db-service/test/cqn2sql/** @BobdenOs
+db-service/test/deep/**.js @BobdenOs
+db-service/test/etc/**.js @BobdenOs
+db-service/test/tsc/**.js @BobdenOs
+db-service/test/index.js @BobdenOs
+
+sqlite/ @BobdenOs @patricebender
+postgres/ @BobdenOs @patricebender @gregorwolf @sebastianesch @vobu

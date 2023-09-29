@@ -1,22 +1,23 @@
-process.env.cds_requires_db_kind = 'better-sqlite'
-process.env.cds_requires_auth_kind = 'mocked-auth'
-const cds = require('../../test/cds.js')
-
-if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
-else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
-
-cds.requires.auth.users = {
-  user1: { password: 'user1', roles: ['processor'] },
-  user2: { password: 'user2', roles: ['processor'] },
-}
-
-const { expect, GET, POST, PATCH, DELETE } = cds.test('run', '@capire/sflight')
-const sleep = require('util').promisify(setTimeout)
-
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
+const sleep = require('util').promisify(setTimeout)
+const cds = require('../../test/cds.js')
 
 describe('draft tests', () => {
+
+  const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
+
+  process.env.cds_requires_db_kind = 'better-sqlite'
+  process.env.cds_requires_auth_kind = 'mocked-auth'
+
+  if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
+  else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
+
+  cds.requires.auth.users = {
+    user1: { password: 'user1', roles: ['processor'] },
+    user2: { password: 'user2', roles: ['processor'] },
+  }
+
   beforeEach(async () => {
     cds.env.drafts = undefined
     await Promise.allSettled([

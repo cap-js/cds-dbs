@@ -1,0 +1,22 @@
+version: '3.1'
+
+services:
+  hana:
+    image: hana-master:current
+    restart: always
+    hostname: hcehost
+    command:
+      - --init
+      - role=worker:services=indexserver,dpserver,diserver:database=H00:create
+      - --system-password
+      - text:Manager1
+      - --database-password
+      - text:Manager1
+    ports:
+      # Currently the only port being used is 30041
+      - '30041:30041'
+      # - '30013:30013'
+      # - '30017:30017'
+      # - '30040:30040'
+      # - '30042:30042'
+      # - '30043:30043'

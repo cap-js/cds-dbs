@@ -216,6 +216,31 @@ describe('table alias access', () => {
   })
 
   describe('replace $self references', () => {
+    it('escaped identifier does not hurt', () => {
+      let query = cqn4sql(
+        CQL`
+      SELECT FROM bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      }
+      where $self.group = 'foo'
+      group by $self.group
+      having $self.group = 'foo'
+      order by $self.group
+      `,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      }
+      where ![FROM].title = 'foo' 
+      group by ![FROM].title
+      having ![FROM].title = 'foo' 
+      order by ![FROM].title
+      `)
+    })
     it('refer to other query element', () => {
       const q = CQL`SELECT from bookshop.Books {
       Books.title,

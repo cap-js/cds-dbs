@@ -4,16 +4,12 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
-/**
- * @callback next
- * @param {Error} param0
- * @returns {Promise<unknown>}
- */
+/** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
  * @callback Handler
- * @param {import('@sap/cds/apis/services').Request} param0
- * @param {next} param1
+ * @param {Request} req
+ * @param {(err? : Error) => {Promise<unknown>}} next
  * @returns {Promise<unknown>}
  */
 
@@ -22,13 +18,14 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
-    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
     this.on(['UPDATE'], this.onUPDATE)
-    this.on(['DELETE', 'CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
+    this.on(['DELETE'], this.onDELETE)
+    this.on(['CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
     this.on(['STREAM'], this.onSTREAM)
     this.on(['*'], this.onPlainSQL)
@@ -152,6 +149,39 @@ class SQLService extends DatabaseService {
     return (await ps.run(values)).changes
   }
 
+  get onDELETE() {
+    return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
+    async function deep_delete(/** @type {Request} */ req) {
+      let { compositions } = req.target
+      if (compositions) {
+        // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
+        let { from, where } = req.query.DELETE
+        if (typeof from === 'string') from = { ref: [from] }
+        if (where) {
+          let last = from.ref.at(-1)
+          if (last.where) [ last, where ] = [ last.id, [ { xpr: last.where }, 'and', { xpr: where } ] ]
+          from = {ref:[ ...from.ref.slice(0,-1), { id: last, where }]}
+        }
+        // Process child compositions depth-first
+        let { depth=0, visited=[] } = req
+        visited.push (req.target.name)
+        await Promise.all (Object.values(compositions).map(c => {
+          if (c._target['@cds.persistence.skip'] === true) return
+          if (c._target === req.target) { // the Genre.children case
+            if (++depth > (c['@depth'] || 3)) return
+          } else if (visited.includes(c._target.name)) throw new Error(
+            `Transitive circular composition detected: \n\n`+
+            `  ${visited.join(' > ')} > ${c._target.name} \n\n`+
+            `These are not supported by deep delete.`)
+          // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
+          const query = DELETE.from({ref:[ ...from.ref, c.name ]})
+          return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+        }))
+      }
+      return this.onSIMPLE(req)
+    }
+  }
+
   /**
    * Handler for BEGIN, COMMIT, ROLLBACK, which don't have any CQN
    * @type {Handler}
@@ -167,6 +197,11 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
+      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
@@ -196,8 +231,9 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
+    // REVISIT: made uppercase count because of HANA reserved word quoting
     const cq = cds.ql.clone(query, {
-      columns: [{ func: 'count' }],
+      columns: [{ func: 'count', as: 'COUNT' }],
       localized: false,
       expand: false,
       limit: 0,
@@ -205,8 +241,8 @@ class SQLService extends DatabaseService {
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)
-    const { count } = await ps.get(values)
-    return count
+    const { count, COUNT } = await ps.get(values)
+    return count ?? COUNT
   }
 
   /**
@@ -243,7 +279,8 @@ class SQLService extends DatabaseService {
       let target = q[cmd]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
-    return new this.class.CQN2SQL(this.context).render(q, values) // REVISIT: Why do we need to pass in this.context? -> using cds.context down there should be fine, isn't it?
+    let cqn2sql = new this.class.CQN2SQL(this)
+    return cqn2sql.render(q, values)
   }
 
   /**
@@ -251,17 +288,19 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
+    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
     return cqn4sql(q, this.model)
   }
 
   /**
    * Returns a Promise which resolves to a prepared statement object with
    * `{run,get,all}` signature as specified in {@link PreparedStatement}.
+   * @abstract
+   * @param {string} sql The SQL String to be prepared
    * @returns {PreparedStatement}
    */
-  // eslint-disable-next-line no-unused-vars
-  async prepare(/*sql*/) {
+  async prepare(sql) {
+    sql
     throw '2b overridden by subclass'
   }
 
@@ -285,6 +324,7 @@ class PreparedStatement {
 
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    */
   async run(binding_params) {
@@ -293,6 +333,7 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns a single/first row only
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    * @returns {Promise<unknown>}
    */
@@ -302,6 +343,7 @@ class PreparedStatement {
   }
   /**
    * Executes a prepared SELECT query and returns an array of all rows
+   * @abstract
    * @param {unknown|unknown[]} binding_params
    * @returns {Promise<unknown[]>}
    */

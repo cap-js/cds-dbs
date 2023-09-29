@@ -1,0 +1,28 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+  hana:
+    image: ${IMAGE_ID}:${TAG}
+    restart: always
+    hostname: buildkitsandbox
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    #sysctls:
+    #  - kernel.shmmax=1073741824
+    #  - net.ipv4.ip_local_port_range='60000 65535'
+    #  - kernel.shmmni=4096
+    #  - kernel.shmall=8388608
+    ports:
+      # Currently the only port being used is 39041
+      - '30041:39041'
+      # - '30013:39013'
+      # - '30015:39015'
+      # - '30041-30045:39041-39045'
+      # - '1128-1129:1128-1129'
+      # - '50013-50014:59013-59014'
+      # - '30030-30033:39030-39033'
+      # - '51000-51060:51000-51060'
+      # - '53075:53075'
