@@ -11,7 +11,7 @@ try {
 const { fs, path, rimraf } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends BuildPlugin {
-  static hasTask() {
+  static hasTask() { // REVISIT: should be unnecessary -> plugin mechanism knows what to pull
     return cds.requires.db.kind === 'postgres'
   }
 
