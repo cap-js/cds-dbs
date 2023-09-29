@@ -4,7 +4,7 @@ let BuildPlugin
 try {
   ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
 } catch (e) {
-  if (e.code === 'ENOTFOUND') throw `No @sap/cds-dk found. Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk@^7.3.0'`
+  if (e.code === 'ENOTFOUND') throw `No build plugin mechanism for @sap/cds-dk found. Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk@^7.3.0'`
   else throw e
 }
 
