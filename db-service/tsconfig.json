@@ -1,5 +1,4 @@
 {
-  "include": ["index.js"],
   "compilerOptions": {
     "allowJs": true,
     "declaration": true,

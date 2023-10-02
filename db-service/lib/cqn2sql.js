@@ -57,7 +57,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders incoming query into SQL and generates binding values
-   * @param {import('./infer/cqn').Query} q CQN query to be rendered
+   * @param {import('../types/cqn').Query} q CQN query to be rendered
    * @param {unknown[]|undefined} vars Values to be used for params
    * @returns {CQN2SQLRenderer|unknown}
    */
@@ -81,8 +81,8 @@ class CQN2SQLRenderer {
 
   /**
    * Links the incoming query with the current service model
-   * @param {import('./infer/cqn').Query} q
-   * @returns {import('./infer/cqn').Query}
+   * @param {import('../types/cqn').Query} q
+   * @returns {import('../types/cqn').Query}
    */
   infer(q) {
     return q.target ? q : cds_infer(q)
@@ -92,7 +92,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a CREATE query into generic SQL
-   * @param {import('./infer/cqn').CREATE} q
+   * @param {import('../types/cqn').CREATE} q
    */
   CREATE(q) {
     const { target } = q,
@@ -110,7 +110,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a column clause for the given elements
-   * @param {import('./infer/cqn').elements} elements
+   * @param {import('../types/cqn').elements} elements
    * @returns {string} SQL
    */
   CREATE_elements(elements) {
@@ -126,7 +126,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a column definition for the given element
-   * @param {import('./infer/cqn').element} element
+   * @param {import('../types/cqn').element} element
    * @returns {string} SQL
    */
   CREATE_element(element) {
@@ -136,7 +136,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders the SQL type definition for the given element
-   * @param {import('./infer/cqn').element} element
+   * @param {import('../types/cqn').element} element
    * @returns {string}
    */
   type4(element) {
@@ -177,7 +177,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a DROP query into generic SQL
-   * @param {import('./infer/cqn').DROP} q
+   * @param {import('../types/cqn').DROP} q
    */
   DROP(q) {
     const { target } = q
@@ -189,7 +189,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a SELECT statement into generic SQL
-   * @param {import('./infer/cqn').SELECT} q
+   * @param {import('../types/cqn').SELECT} q
    */
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
@@ -217,7 +217,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a column clause into generic SQL
-   * @param {import('./infer/cqn').SELECT} param0
+   * @param {import('../types/cqn').SELECT} param0
    * @returns {string} SQL
    */
   SELECT_columns(q) {
@@ -226,7 +226,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a JSON select around the provided SQL statement
-   * @param {import('./infer/cqn').SELECT} param0
+   * @param {import('../types/cqn').SELECT} param0
    * @param {string} sql
    * @returns {string} SQL
    */
@@ -255,7 +255,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a SELECT column expression into generic SQL
-   * @param {import('./infer/cqn').col} x
+   * @param {import('../types/cqn').col} x
    * @returns {string} SQL
    */
   column_expr(x, q) {
@@ -274,7 +274,7 @@ class CQN2SQLRenderer {
 
   /**
    * Extracts the column alias from a SELECT column expression
-   * @param {import('./infer/cqn').col} x
+   * @param {import('../types/cqn').col} x
    * @returns {string}
    */
   column_alias4(x) {
@@ -283,7 +283,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a FROM clause into generic SQL
-   * @param {import('./infer/cqn').source} from
+   * @param {import('../types/cqn').source} from
    * @returns {string} SQL
    */
   from(from) {
@@ -297,7 +297,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a WHERE clause into generic SQL
-   * @param {import('./infer/cqn').predicate} xpr
+   * @param {import('../types/cqn').predicate} xpr
    * @returns {string} SQL
    */
   where(xpr) {
@@ -306,7 +306,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a HAVING clause into generic SQL
-   * @param {import('./infer/cqn').predicate} xpr
+   * @param {import('../types/cqn').predicate} xpr
    * @returns {string} SQL
    */
   having(xpr) {
@@ -315,7 +315,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a groupBy clause into generic SQL
-   * @param {import('./infer/cqn').expr[]} clause
+   * @param {import('../types/cqn').expr[]} clause
    * @returns {string[] | string} SQL
    */
   groupBy(clause) {
@@ -324,7 +324,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an orderBy clause into generic SQL
-   * @param {import('./infer/cqn').ordering_term[]} orderBy
+   * @param {import('../types/cqn').ordering_term[]} orderBy
    * @param {boolean | undefined} localized
    * @returns {string[] | string} SQL
    */
@@ -341,7 +341,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an limit clause into generic SQL
-   * @param {import('./infer/cqn').limit} param0
+   * @param {import('../types/cqn').limit} param0
    * @returns {string} SQL
    * @throws {Error} When no rows are defined
    */
@@ -354,7 +354,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an INSERT query into generic SQL
-   * @param {import('./infer/cqn').INSERT} q
+   * @param {import('../types/cqn').INSERT} q
    * @returns {string} SQL
    */
   INSERT(q) {
@@ -372,7 +372,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an INSERT query with entries property
-   * @param {import('./infer/cqn').INSERT} q
+   * @param {import('../types/cqn').INSERT} q
    * @returns {string} SQL
    */
   INSERT_entries(q) {
@@ -424,7 +424,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an INSERT query with rows property
-   * @param {import('./infer/cqn').INSERT} q
+   * @param {import('../types/cqn').INSERT} q
    * @returns {string} SQL
    */
   INSERT_rows(q) {
@@ -452,7 +452,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an INSERT query with values property
-   * @param {import('./infer/cqn').INSERT} q
+   * @param {import('../types/cqn').INSERT} q
    * @returns {string} SQL
    */
   INSERT_values(q) {
@@ -462,7 +462,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an INSERT query from SELECT query
-   * @param {import('./infer/cqn').INSERT} q
+   * @param {import('../types/cqn').INSERT} q
    * @returns {string} SQL
    */
   INSERT_select(q) {
@@ -482,7 +482,7 @@ class CQN2SQLRenderer {
 
   /**
    * Wraps the provided SQL expression for output processing
-   * @param {import('./infer/cqn').element} element
+   * @param {import('../types/cqn').element} element
    * @param {string} expr
    * @returns {string} SQL
    */
@@ -503,7 +503,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an UPSERT query into generic SQL
-   * @param {import('./infer/cqn').UPDATE} q
+   * @param {import('../types/cqn').UPDATE} q
    * @returns {string} SQL
    */
   UPSERT(q) {
@@ -529,7 +529,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an UPDATE query into generic SQL
-   * @param {import('./infer/cqn').UPDATE} q
+   * @param {import('../types/cqn').UPDATE} q
    * @returns {string} SQL
    */
   UPDATE(q) {
@@ -568,7 +568,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a DELETE query into generic SQL
-   * @param {import('./infer/cqn').DELETE} param0
+   * @param {import('../types/cqn').DELETE} param0
    * @returns {string} SQL
    */
   DELETE({ DELETE: { from, where } }) {
@@ -581,7 +581,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a STREAM query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
+   * @param {import('../types/cqn').STREAM} q
    * @returns {string} SQL
    */
   STREAM(q) {
@@ -595,7 +595,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a STREAM.into query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
+   * @param {import('../types/cqn').STREAM} q
    * @returns {string} SQL
    */
   STREAM_into(q) {
@@ -621,7 +621,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a STREAM.from query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
+   * @param {import('../types/cqn').STREAM} q
    * @returns {string} SQL
    */
   STREAM_from(q) {
@@ -648,7 +648,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an expression object into generic SQL
-   * @param {import('./infer/cqn').expr} x
+   * @param {import('../types/cqn').expr} x
    * @returns {string} SQL
    * @throws {Error} When an unknown un supported expression is provided
    */
@@ -667,7 +667,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an list of expression objects into generic SQL
-   * @param {import('./infer/cqn').xpr} param0
+   * @param {import('../types/cqn').xpr} param0
    * @returns {string} SQL
    */
   xpr({ xpr }) {
@@ -685,7 +685,7 @@ class CQN2SQLRenderer {
    * Renders an operation into generic SQL
    * @param {string} x The current operator string
    * @param {Number} i Current index of the operator inside the xpr
-   * @param {import('./infer/cqn').predicate[]} xpr The parent xpr in which the operator is used
+   * @param {import('../types/cqn').predicate[]} xpr The parent xpr in which the operator is used
    * @returns {string} The correct operator string
    */
   operator(x, i, xpr) {
@@ -720,7 +720,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders an argument place holder into the SQL for prepared statements
-   * @param {import('./infer/cqn').ref} param0
+   * @param {import('../types/cqn').ref} param0
    * @returns {string} SQL
    * @throws {Error} When an unsupported ref definition is provided
    */
@@ -731,7 +731,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a ref into generic SQL
-   * @param {import('./infer/cqn').ref} param0
+   * @param {import('../types/cqn').ref} param0
    * @returns {string} SQL
    */
   ref({ ref }) {
@@ -745,7 +745,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
-   * @param {import('./infer/cqn').val} param0
+   * @param {import('../types/cqn').val} param0
    * @returns {string} SQL
    */
   val({ val }) {
@@ -771,7 +771,7 @@ class CQN2SQLRenderer {
   static Functions = require('./cql-functions')
   /**
    * Renders a function call into mapped SQL definitions from the Functions definition
-   * @param {import('./infer/cqn').func} param0
+   * @param {import('../types/cqn').func} param0
    * @returns {string} SQL
    */
   func({ func, args }) {
@@ -781,7 +781,7 @@ class CQN2SQLRenderer {
 
   /**
    * Renders a list into generic SQL
-   * @param {import('./infer/cqn').list} param0
+   * @param {import('../types/cqn').list} param0
    * @returns {string} SQL
    */
   list({ list }) {
@@ -799,7 +799,7 @@ class CQN2SQLRenderer {
 
   /**
    * Calculates the effect column name
-   * @param {import('./infer/cqn').col} col
+   * @param {import('../types/cqn').col} col
    * @returns {string} explicit/implicit column alias
    */
   column_name(col) {
@@ -811,7 +811,7 @@ class CQN2SQLRenderer {
 
   /**
    * Calculates the Database name of the given name
-   * @param {string|import('./infer/cqn').ref} name
+   * @param {string|import('../types/cqn').ref} name
    * @returns {string} Database name
    */
   name(name) {
@@ -836,7 +836,7 @@ class CQN2SQLRenderer {
   /**
    * Convers the columns array into an array of SQL expressions that extract the correct value from inserted JSON data
    * @param {object[]} columns
-   * @param {import('./infer/cqn').elements} elements
+   * @param {import('../types/cqn').elements} elements
    * @param {Boolean} isUpdate
    * @returns {string[]} Array of SQL expressions for processing input JSON data
    */

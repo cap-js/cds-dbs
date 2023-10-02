@@ -1,29 +1,27 @@
 'use strict'
 
-// REVISIT: define following unknown types
-
 /**
- * @typedef {unknown} $refLink
+ * @typedef {Inferred.$refLinks} $refLink
  */
 
 /**
- * @typedef {unknown} parent
+ * @typedef {Node} parent a node in the join tree which has children and a parent itself
  */
 
 /**
- * @typedef {unknown} where
+ * @typedef {Inferred.tokenStream} where
  */
 
 /**
- * @typedef {unknown} children
+ * @typedef {Node[]} children
  */
 
 /**
- * @typedef {unknown} queryArtifact
+ * @typedef {CSN.Artifact} queryArtifact
  */
 
 /**
- * @typedef {string} alias
+ * @typedef {string} alias unique table alias for the given note
  */
 
 /**
@@ -31,7 +29,7 @@
  */
 
 /**
- * @typedef {Object.<string, unknown>} sources
+ * @typedef {Object.<string, CSN.Artifact>} sources map a table alias to it's respective csn artifact
  */
 
 /**
@@ -39,18 +37,14 @@
  */
 class Node {
   /**
-   * @param {$refLink} $refLink
-   * @param {parent} parent
-   * @param {where} where
+   * @param {Inferred.$refLink} $refLink
+   * @param {Node} parent
+   * @param {Inferred.tokenStream} where
    */
   constructor($refLink, parent, where = null) {
-    /** @type {$refLink} - A reference link to this node. */
     this.$refLink = $refLink
-    /** @type {parent} - The parent Node of this node. */
     this.parent = parent
-    /** @type {where} - An optional condition to be applied to this node. */
     this.where = where
-    /** @type {children} - A Map of children nodes belonging to this node. */
     this.children = new Map()
   }
 }
@@ -125,7 +119,7 @@ class JoinTree {
    * Calculates and adds the next available table alias to the alias map.
    *
    * @param {string} alias - The original alias name.
-   * @param {unknown[]} outerQueries - An array of outer queries.
+   * @param {CSN.Query[]} outerQueries - An array of outer queries.
    * @returns {string} - The next unambiguous table alias.
    */
   addNextAvailableTableAlias(alias, outerQueries) {
@@ -151,7 +145,8 @@ class JoinTree {
    * For each step, it checks whether it has been seen before. If so, it resets the $refLink to point to the already merged $refLink.
    * If not, it creates a new Node and ensures proper aliasing and foreign key access.
    *
-   * @param {object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
+   * @param {Inferred.Column} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
+   * @param {CSN.Query[]} outerQueries
    * @returns {boolean} - Always returns true, indicating the column has been successfully merged into the join tree.
    */
   mergeColumn(col, outerQueries = null) {

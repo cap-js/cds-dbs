@@ -285,7 +285,7 @@ class SQLService extends DatabaseService {
 
   /**
    * @param {import('@sap/cds/apis/cqn').Query} q
-   * @returns {import('./infer/cqn').Query}
+   * @returns {import('../types/cqn').Query}
    */
   cqn4sql(q) {
     if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
