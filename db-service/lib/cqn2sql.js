@@ -192,8 +192,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    if (q._streaming) return this.STREAM_from(q)
-
+    if (q._streaming) q.SELECT.one = true
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
@@ -577,36 +576,6 @@ class CQN2SQLRenderer {
     let sql = `DELETE FROM ${this.from(from)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
-  }
-
-  // REVISIT: Remove or rewrite this method
-  /**
-   * Renders a STREAM.from query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_from(q) {
-    const { column, from, where, columns } = q.SELECT
-
-    const select = cds.ql
-      .SELECT(column ? [column] : columns)
-      .where(where)
-      .limit(column ? 1 : undefined)
-
-    // SELECT.from() does not accept joins
-    select.SELECT.from = from
-
-    // REVISIT; Is it still needed? Ask Bob
-    /*
-    if (column) {
-      this.one = true
-    } else {
-      select.SELECT.expand = 'root'
-      this.one = !!from.SELECT?.one
-    } */
-    this.one = true
-
-    return this.SELECT(select.forSQL())
   }
 
   // Expression Clauses ---------------------------------------------
