@@ -38,7 +38,7 @@ class SQLService extends DatabaseService {
    */
   async onSELECT({ query, data }) {
     const { sql, values, cqn, one } = this.cqn2sql(query, data)
-    // REVISIT: How to identify streaming ??? How to handle multiple largebinaries ???
+    // REVISIT: How to identify streaming ??? 
     if (query.SELECT.columns?.[0].element?.type === 'cds.LargeBinary') {
       const ps = await this.prepare(sql)
       return ps.stream(values, one)
@@ -191,6 +191,7 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
+    // REVISIT: How to identify streaming ??? 
     if (q.SELECT && q.elements && query.SELECT.columns?.[0].element?.type !== 'cds.LargeBinary') q.SELECT.expand = q.SELECT.expand ?? 'root'
 
     let cmd = q.cmd || Object.keys(q)[0]
