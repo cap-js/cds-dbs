@@ -8,7 +8,7 @@ try {
   else throw e
 }
 
-const { fs, path, rimraf } = cds.utils
+const { fs, path, rimraf, write, mkdirp } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends BuildPlugin {
   static hasTask() { // REVISIT: should be unnecessary -> plugin mechanism knows what to pull
@@ -20,7 +20,7 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
   }
 
   init() {
-    this.task.dest = cds.env.build.target === '.' ? path.join(this.task.dest, 'gen/pg') : path.join(this.task.dest, 'pg')
+    this.task.dest = cds.env.build.target === '.' ? path.join('gen','pg') : path.join('gen', 'pg')
   }
 
   async clean() {
@@ -32,12 +32,13 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
     if (!model) {
       return
     }
+
     const promises = []
     promises.push(this.write({
         dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
         scripts: { start: 'cds-deploy' },
-      }).to('../package.json'))
-    promises.push(this.write(cds.compile.to.json(model)).to('csn.json'))
+      }).to('package.json'))
+    promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
 
     let data
     if (fs.existsSync(path.join(this.task.src, 'data'))) {
@@ -46,7 +47,7 @@ module.exports = class PostgresBuildPlugin extends BuildPlugin {
       data = 'csv'
     }
     if (data) {
-      promises.push(this.copy(data).to('data'))
+      promises.push(this.copy(data).to(path.join('db', 'data')))
     }
     return Promise.all(promises)
   }
