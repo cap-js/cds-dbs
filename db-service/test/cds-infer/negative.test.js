@@ -1,8 +1,9 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
+
+const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('negative', () => {
@@ -95,6 +96,7 @@ describe('negative', () => {
 
     it('$self reference is not found in the query elements with subquery -> cds.infer hints alternatives', () => {
       let query = CQL`SELECT from (select from bookshop.Books) as Foo { $self.author }`
+      // _inferred(query)
       // wording? select list not optimal, did you mean to refer to bookshop.Books?
       expect(() => _inferred(query)).to.throw(
         /"author" not found in the columns list of query, did you mean "Foo.author"?/, // revisit: error message
@@ -113,9 +115,9 @@ describe('negative', () => {
 
     it('scoped query does not end in queryable artifact', () => {
       let query = CQL`SELECT from bookshop.Books:name { * }` // name does not exist
-      expect(() => _inferred(query)).to.throw(/No association "name" in entity "bookshop.Books"/)
+      expect(() => _inferred(query)).to.throw(/No association “name” in entity “bookshop.Books”/)
       let fromEndsWithScalar = CQL`SELECT from bookshop.Books:title { * }`
-      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association "title" in entity "bookshop.Books"/)
+      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association “title” in entity “bookshop.Books”/)
     })
 
     // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)
