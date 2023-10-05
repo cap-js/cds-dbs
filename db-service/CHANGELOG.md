@@ -6,10 +6,16 @@
 
 ## Version 1.X.X - 2023-MM-DD
 
+### Changed
+
+- `INSERT.into(...).rows/values()` is not allowed anymore without specifying `.columns(...)`. #209
+- Deep deletion uses correlated subqueries instead of materializing the to be deleted object before. #212
+
 ### Fixed
 
 - Various fixes for calculated elements on read. #220 #223 #233
 - Don't release to pool connections twice. #243
+- Syntax error in `matchesPattern` function. #237
 
 ## Version 1.2.1 - 2023-09-08
 
