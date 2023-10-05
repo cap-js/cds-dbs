@@ -35,7 +35,13 @@
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7"
+    "@sap/cds": ">=7",
+    "@sap/cds-dk": ">=7"
+  },
+  "peerDependenciesMeta": {
+    "cds-dk": {
+      "optional": true
+    }
   },
   "cds": {
     "requires": {
