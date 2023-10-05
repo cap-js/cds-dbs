@@ -9,8 +9,11 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
  *
  * @param {object} entity - the csn entity
  * @param {object} [options]
+ * @param [options.onlyNames=false] - decides if the column name or the csn representation of the column should be returned
+ * @param [options.filterDraft=false] - indicates whether the draft columns should be filtered if the entity is draft enabled
  * @param [options.removeIgnore=false]
  * @param [options.filterVirtual=false]
+ * @param [options.keysOnly=false]
  * @returns {Array<object>} - array of columns
  */
 const getColumns = (
