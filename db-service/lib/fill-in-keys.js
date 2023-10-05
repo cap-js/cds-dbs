@@ -62,7 +62,7 @@ module.exports = async function fill_in_keys(req, next) {
   }
 
   // REVISIT no input processing for INPUT with rows/values
-  if (req.event !== 'DELETE' && !(req.query.INSERT?.rows || req.query.INSERT?.values)) {
+  if (!(req.query.INSERT?.rows || req.query.INSERT?.values)) {
     if (Array.isArray(req.data)) {
       for (const d of req.data) {
         generateUUIDandPropagateKeys(req.target, d, req.event)
