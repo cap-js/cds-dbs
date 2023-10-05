@@ -254,6 +254,7 @@ class CQN2SQLRenderer {
       for (let i = 0; i < cols.length; i += 50) {
         chunks.push(`json_object(${cols.slice(i, i + 50)})`)
       }
+      // REVISIT: json_merge is a user defined function, bad performance!
       obj = `json_merge(${chunks})`
     } 
 
