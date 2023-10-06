@@ -28,7 +28,8 @@ describe('EXISTS predicate in where', () => {
          GROUP BY Books.ID
          HAVING EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
-         )`)
+         )`,
+      )
     })
     it('exists predicate after having with infix filter', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`, model)
@@ -39,10 +40,14 @@ describe('EXISTS predicate in where', () => {
          GROUP BY Books.ID
          HAVING EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 42
-         )`)
+         )`,
+      )
     })
     it('MUST ... two EXISTS both on same path in where', () => {
-      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`, model)
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`,
+        model,
+      )
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
       WHERE EXISTS (
         SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
@@ -67,11 +72,6 @@ describe('EXISTS predicate in where', () => {
       WHERE EXISTS (
         SELECT 1 from bookshop.Authors as author2 where author2.ID = Books.author_ID
         ) and ((author.name + 's') = 'Schillers')`)
-    })
-    it('rejects $self following exists predicate', () => {
-      expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]',
-      )
     })
 
     it('handles simple where exists with implicit table alias', () => {
@@ -706,8 +706,9 @@ describe('EXISTS predicate in infix filter', () => {
             and participant.scholar_userID = $user.id
       )
     `
-    expect(() => { cqn4sql(q, cds.compile.for.nodejs(model)) })
-      .to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
+    expect(() => {
+      cqn4sql(q, cds.compile.for.nodejs(model))
+    }).to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
   })
 })
 
@@ -1385,5 +1386,43 @@ describe('comparisons of associations in on condition of elements needs to be ex
       )
     `
     expect(query).to.eql(expected)
+  })
+})
+
+describe('Sanity checks for `exists` predicate', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+  })
+  it('rejects $self following exists predicate', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
+      'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]',
+    )
+  })
+
+  it('rejects non assoc following exists predicate', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[exists name].name as author }`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc following exists predicate in scoped query', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books:author[exists name] { ID }`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc following exists predicate in where', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists author[exists name]`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc at leaf of path following exists predicate', () => {
+    expect(() =>
+      cqn4sql(CQL`SELECT from bookshop.Books { ID, author[exists books.title].name as author }`, model),
+    ).to.throw(
+      'Expecting path “books.title” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
   })
 })

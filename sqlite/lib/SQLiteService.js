@@ -15,6 +15,7 @@ class SQLiteService extends SQLService {
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
+        dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) => args.join('').replace(/}{/g, ','))
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
