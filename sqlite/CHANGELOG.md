@@ -6,9 +6,9 @@
 
 ## Version 1.3.0 - 2023-10-05
 
-### Changed
+### Fixed 
 
-- Updated minimum required version of `@cap-js/db-service` 
+- `CURRENT_TIMESTAMP` in view definition preserves the timezone. #254 
 
 ## Version 1.2.1 - 2023-09-08
 
