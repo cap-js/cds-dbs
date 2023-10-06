@@ -159,6 +159,34 @@ describe('SELECT', () => {
       })
     })
 
+    test('expand to many with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Authors'] },
+          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all null values are returned and as json format
+      assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
+    })
+
+    test('expand to one with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Books'] },
+          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all null values are returned and as json format
+      assert.strictEqual(Object.keys(res[0].author).length, 200)
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await assert.rejects(
         cds.run(CQL`
