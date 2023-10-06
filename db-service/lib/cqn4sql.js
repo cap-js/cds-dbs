@@ -1152,6 +1152,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 .join('.')}”`,
             )
           }
+          if (!next.definition.target) {
+            throw new Error(
+              `Expecting path “${tokenStream[i + 1].ref
+                .map(idOnly)
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
+                next.definition.type
+              }”`,
+            )
+          }
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
         }
 

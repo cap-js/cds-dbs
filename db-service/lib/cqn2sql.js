@@ -233,6 +233,7 @@ class CQN2SQLRenderer {
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
+    
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
       let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
@@ -246,10 +247,18 @@ class CQN2SQLRenderer {
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = ''
-    for (let i = 0; i < cols.length; i += 50) {
-      const n =  `json_object(${cols.slice(i, i + 50)})`
-      obj = obj ? `json_patch(${obj},${n})` : n
-    }
+
+    if(cols.length < 50) obj =  `json_object(${cols.slice(0, 50)})`
+    else {
+      const chunks = []
+      for (let i = 0; i < cols.length; i += 50) {
+        chunks.push(`json_object(${cols.slice(i, i + 50)})`)
+      }
+      // REVISIT: json_merge is a user defined function, bad performance!
+      obj = `json_merge(${chunks})`
+    } 
+
+
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
