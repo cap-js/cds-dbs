@@ -1,6 +1,5 @@
 const cds = require('../cds.js')
 
-
 describe('datetime handling', () => {
   cds.test(__dirname + '/resources')
   test('datetime elements as key', async () => {

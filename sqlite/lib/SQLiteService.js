@@ -123,6 +123,17 @@ class SQLiteService extends SQLService {
     return this.dbc.exec(sql)
   }
 
+  onPlainSQL({ query, data }, next) {
+    if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if (/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, "STRFTIME('%Y-%m-%dT%H:%M:%fZ','NOW')")
+      }
+    }
+    return super.onPlainSQL({ query, data }, next)
+  }
+
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
 
     column_alias4(x, q) {
