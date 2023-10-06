@@ -169,7 +169,7 @@ describe('SELECT', () => {
       }
 
       const res = await cds.run(cqn)
-      // ensure that all null values are returned and as json format
+      // ensure that all values are returned in json format
       assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
     })
 
@@ -183,7 +183,7 @@ describe('SELECT', () => {
       }
 
       const res = await cds.run(cqn)
-      // ensure that all null values are returned and as json format
+      // ensure that all values are returned in json format
       assert.strictEqual(Object.keys(res[0].author).length, 200)
     })
 
