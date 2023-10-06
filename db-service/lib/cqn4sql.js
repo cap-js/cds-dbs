@@ -1184,8 +1184,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           next.alias = as
           if (next.definition.value) {
             throw new Error(
-              `Calculated elements cannot be used in “exists” predicates in: “exists ${
-                tokenStream[i+1].ref.map(idOnly).join('.')
+              `Calculated elements cannot be used in “exists” predicates in: “exists ${tokenStream[i + 1].ref
+                .map(idOnly)
+                .join('.')}”`,
+            )
+          }
+          if (!next.definition.target) {
+            throw new Error(
+              `Expecting path “${tokenStream[i + 1].ref
+                .map(idOnly)
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
+                next.definition.type
               }”`,
             )
           }
