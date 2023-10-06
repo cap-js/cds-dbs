@@ -141,6 +141,24 @@ describe('SELECT', () => {
       assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
     })
 
+    test('select 200 null columns', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: new Array(200).fill().map((_, i) => ({ as: `null${i}`, val: null })),
+        },
+      }
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      // ensure that all null values are returned
+      assert.strictEqual(Object.keys(res[0]).length, 200)
+      res[0]
+      cqn.SELECT.columns.forEach((c) => {
+        assert.strictEqual(res[0][c.as], null)
+      })
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await assert.rejects(
         cds.run(CQL`

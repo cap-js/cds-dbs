@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.3.0 - 2023-10-05
+
+### Changed
+
+- `INSERT.into(...).rows/values()` is not allowed anymore without specifying `.columns(...)`. #209
+- Deep deletion uses correlated subqueries instead of materializing the to be deleted object before. #212
+
+### Fixed
+
+- Various fixes for calculated elements on read. #220 #223 #233
+- Don't release to pool connections twice. #243
+- Syntax error in `matchesPattern` function. #237
+- SELECTs with more than 50 columns does not return `null` values. #238
+
 ## Version 1.2.1 - 2023-09-08
 
 ### Fixed
