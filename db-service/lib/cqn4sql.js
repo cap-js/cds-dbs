@@ -155,6 +155,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
+   * TEST COMMENT
    * Transforms a query object for INSERT or UPSERT operations by modifying the `into` clause.
    *
    * @param {string} kind - The type of operation: "INSERT" or "UPSERT".
