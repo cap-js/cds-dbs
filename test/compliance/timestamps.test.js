@@ -1,8 +1,8 @@
-const cds = require('../../../test/cds.js')
+const cds = require('../cds.js')
 
-cds.test(__dirname, 'testModel.cds')
 
 describe('datetime handling', () => {
+  cds.test(__dirname + '/resources')
   test('datetime elements as key', async () => {
     let res
     const payload = { dt: '2020-12-31T01:02:03Z', int: 4711}
