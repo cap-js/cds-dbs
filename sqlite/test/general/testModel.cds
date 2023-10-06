@@ -74,11 +74,6 @@ entity DBDeepEntity {
                      on children.parentRename = ID;
 }
 
-entity DateTimeEntity {
-  key dt: DateTime;
-  int: Integer;
-}
-
 entity FProjDeep  as projection on DBDeepEntity {
   ID         as IDRename,
   parent     as parentRename,
@@ -86,6 +81,7 @@ entity FProjDeep  as projection on DBDeepEntity {
   otherName2 as otherName2Rename,
   children   as childrenRename
 }
+
 service RenameService @(path:'/rename') {
   entity SProjDeep as projection on FProjDeep;
 }
