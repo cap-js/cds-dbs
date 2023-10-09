@@ -5,5 +5,5 @@ if (!cds.env.fiori.lean_draft) {
 }
 
 if (cds.cli.command === 'build') {
-  module.exports = require('./build')
+  module.exports = require('./lib/build')
 }
