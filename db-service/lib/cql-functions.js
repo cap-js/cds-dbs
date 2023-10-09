@@ -15,11 +15,23 @@ const StandardFunctions = {
    */
   average: x => `avg(${x})`,
   /**
+   * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
+   * @param {string} ref
+   * @param {string} arg
+   * @returns {string}
+   */
+  search: function (ref, arg) {
+    if (!('val' in arg)) throw `Only single value arguments are allowed for $search`
+    const refs = ref.list || [ref],
+      { toString } = ref
+    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
+  },
+  /**
    * Generates SQL statement that produces a string with all provided strings concatenated
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+  concat: (...args) => args.map(a => (a.xpr ? `(${a})` : a)).join(' || '),
 
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
@@ -129,9 +141,9 @@ const StandardFunctions = {
 
   // Date and Time Functions
 
-  current_date: p => p ? `current_date(${p})`: 'current_date',
-  current_time: p => p ? `current_time(${p})`: 'current_time',
-  current_timestamp: p => p ? `current_timestamp(${p})`: 'current_timestamp',
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
 
   /**
    * Generates SQL statement that produces the year of a given timestamp
@@ -329,7 +341,7 @@ const HANAFunctions = {
    */
   years_between(x, y) {
     return `floor(${this.months_between(x, y)} / 12)`
-  }
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
