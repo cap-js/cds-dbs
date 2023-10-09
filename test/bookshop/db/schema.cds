@@ -61,3 +61,23 @@ entity C : managed {
       toB : Composition of many B
               on toB.ID = $self.B;
 }
+
+entity D {
+  key ID  : Integer;
+}
+entity E {
+  key ID: Integer;
+  d: Association to D not null;
+}
+
+entity E_View as projection on E {
+  key ID,
+  d.ID as dID
+}
+entity F_View as select from D mixin {
+  es : Composition of many E_View
+              on es.dID = $self.ID;
+  } into {
+    key ID,
+    es
+  };

@@ -45,4 +45,10 @@ describe('Bookshop - Delete', () => {
     const del = DELETE.from('sap.capire.bookshop.A').where('ID = 1')
     await expect(cds.db.run(del)).to.be.eventually.rejectedWith('Transitive circular composition detected')
   })
+
+  test('Deep delete works for composition mixins with flattened foreign keys', async () => {
+    const del = DELETE.from('sap.capire.bookshop.F_View[ID = 4711]')
+    const affectedRows = await cds.db.run(del)
+    expect(affectedRows).to.be.eq(0)
+  })
 })
