@@ -1,4 +1,11 @@
+const session = require('./session.json')
+
 const StandardFunctions = {
+  session_context: x => {
+    let sql = `current_setting('${ session[x.val] || x.val }')`
+    if (x.val === '$now') sql += '::timestamp'
+    return sql
+  },
   countdistinct: x => `count(distinct ${x || '*'})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed

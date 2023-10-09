@@ -1,8 +1,15 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "CDS database service for Postgres",
-  "homepage": "https://cap.cloud.sap/",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
   "keywords": [
     "CAP",
     "CDS",
@@ -20,15 +27,21 @@
     "npm": ">=8"
   },
   "scripts": {
-    "setup": "docker-compose -f pg-stack.yml up -d",
-    "test": "npm run setup && jest --silent"
+    "test": "npm start && jest --silent",
+    "start": "docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.0.1",
+    "@cap-js/db-service": "^1.3.0",
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7"
+    "@sap/cds": ">=7",
+    "@sap/cds-dk": ">=7"
+  },
+  "peerDependenciesMeta": {
+    "cds-dk": {
+      "optional": true
+    }
   },
   "cds": {
     "requires": {

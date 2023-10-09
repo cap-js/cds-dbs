@@ -23,6 +23,11 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
     }
 
     if (elements[element].is2one || elements[element].is2many) {
+      // propagate own foreign keys to propagate further to sub data
+      propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
+        deleteAssocs: true,
+      })
+
       let subData = data[element]
       if (subData) {
         if (!Array.isArray(subData)) {
@@ -33,14 +38,20 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
           generateUUIDandPropagateKeys(elements[element]._target, sub, 'CREATE')
         }
       }
-
-      propagateForeignKeys(element, data, elements[element]._foreignKeys, elements[element].isComposition, {
-        deleteAssocs: true,
-      })
     }
   }
 }
 
+/**
+ * @callback nextCallback
+ * @param {Error|undefined} error
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * @param {import('@sap/cds/apis/services').Request} req
+ * @param {nextCallback} next
+ */
 module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
@@ -51,7 +62,7 @@ module.exports = async function fill_in_keys(req, next) {
   }
 
   // REVISIT no input processing for INPUT with rows/values
-  if (req.event !== 'DELETE' && !(req.query.INSERT?.rows || req.query.INSERT?.values)) {
+  if (!(req.query.INSERT?.rows || req.query.INSERT?.values)) {
     if (Array.isArray(req.data)) {
       for (const d of req.data) {
         generateUUIDandPropagateKeys(req.target, d, req.event)

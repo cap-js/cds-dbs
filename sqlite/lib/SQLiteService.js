@@ -12,8 +12,10 @@ class SQLiteService extends SQLService {
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
-        dbc.function('SESSION_CONTEXT', key => dbc[$session][key])
-        dbc.function('REGEXP', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('session_context', key => dbc[$session][key])
+        dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
+        dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) => args.join('').replace(/}{/g, ','))
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -31,84 +33,181 @@ class SQLiteService extends SQLService {
 
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
-    if (!dbc[$session]) {
-      dbc[$session] = variables // initial call from within this.begin()
-      const $super = this._release
-      this._release = function (dbc) {
-        // reset session on release
-        delete dbc[$session]
-        return $super.call(this, dbc)
-      }
-    } else Object.assign(dbc[$session], variables) // subsequent uses from custom code
+    if (!dbc[$session]) dbc[$session] = variables
+    else Object.assign(dbc[$session], variables)
+  }
+
+  release() {
+    this.dbc[$session] = undefined
+    return super.release()
   }
 
   prepare(sql) {
     try {
-      return this.dbc.prepare(sql)
+      const stmt = this.dbc.prepare(sql)
+      return {
+        run: (..._) => this._run(stmt, ..._),
+        get: (..._) => stmt.get(..._),
+        all: (..._) => stmt.all(..._),
+        stream: (..._) => this._stream(stmt, ..._),
+      }
     } catch (e) {
       e.message += ' in:\n' + (e.sql = sql)
       throw e
     }
   }
 
+  async _run(stmt, binding_params) {
+    for (let i = 0; i < binding_params.length; i++) {
+      const val = binding_params[i]
+      if (Buffer.isBuffer(val)) {
+        binding_params[i] = Buffer.from(val.base64Slice())
+      } else if (typeof val === 'object' && val && val.pipe) {
+        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
+        // if (val.type === 'binary') val.setEncoding('base64')
+        binding_params[i] = await convStrm.buffer(val)
+        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
+      }
+    }
+    return stmt.run(binding_params)
+  }
+
+  async *_iterator(rs, one) {
+    // Allow for both array and iterator result sets
+    const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
+    if (first.done) return
+    if (one) {
+      yield first.value[0]
+      // Close result set to release database connection
+      rs.return()
+      return
+    }
+
+    yield '['
+    // Print first value as stand alone to prevent comma check inside the loop
+    yield first.value[0]
+    for (const row of rs) {
+      yield `,${row[0]}`
+    }
+    yield ']'
+  }
+
+  async _stream(stmt, binding_params, one) {
+    const columns = stmt.columns()
+    // Stream single blob column
+    if (columns.length === 1 && columns[0].name !== '_json_') {
+      // Setting result set to raw to keep better-sqlite from doing additional processing
+      stmt.raw(true)
+      const rows = stmt.all(binding_params)
+      // REVISIT: return undefined when no rows are found
+      if (rows.length === 0) return undefined
+      if (rows[0][0] === null) return null
+      // Buffer.from only applies encoding when the input is a string
+      let raw = Buffer.from(rows[0][0].toString(), 'base64')
+      stmt.raw(false)
+      return new Readable({
+        read(size) {
+          if (raw.length === 0) return this.push(null)
+          const chunk = raw.slice(0, size)
+          raw = raw.slice(size)
+          this.push(chunk)
+        },
+      })
+    }
+
+    stmt.raw(true)
+    const rs = stmt.iterate(binding_params)
+    return Readable.from(this._iterator(rs, one))
+  }
+
   exec(sql) {
     return this.dbc.exec(sql)
   }
 
+  onPlainSQL({ query, data }, next) {
+    if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if (/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, "STRFTIME('%Y-%m-%dT%H:%M:%fZ','NOW')")
+      }
+    }
+    return super.onPlainSQL({ query, data }, next)
+  }
+
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-    SELECT_columns({ SELECT }) {
-      if (!SELECT.columns) return '*'
-      const { orderBy } = SELECT
-      const orderByMap = {}
-      // Collect all orderBy columns that should be taken from the SELECT.columns
-      if (Array.isArray(orderBy))
-        orderBy?.forEach(o => {
-          if (o.ref?.length === 1) {
-            orderByMap[o.ref[0]] = true
-          }
-        })
-      return SELECT.columns.map(x => {
-        const alias = this.column_name(x)
-        // Check whether the column alias should be added
-        const xpr = this.column_expr(x)
-        const needsAlias = (typeof x.as === 'string' && x.as) || orderByMap[alias]
-        return `${xpr}${needsAlias ? ` as ${this.quote(alias)}` : ''}`
-      })
+
+    column_alias4(x, q) {
+      let alias = super.column_alias4(x, q)
+      if (alias) return alias
+      if (x.ref) {
+        let obm = q._orderByMap
+        if (!obm) {
+          Object.defineProperty(q, '_orderByMap', { value: (obm = {}) })
+          q.SELECT?.orderBy?.forEach(o => {
+            if (o.ref?.length === 1) obm[o.ref[0]] = o.ref[0]
+          })
+        }
+        return obm[x.ref.at(-1)]
+      }
     }
 
-    operator(x, i, xpr) {
-      if (x === '=' && xpr[i + 1]?.val === null) return 'is'
-      if (x === '!=') return 'is not'
-      else return x
+    val(v) {
+      // intercept DateTime values and convert to Date objects to compare ISO Strings
+      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      return super.val(v)
     }
 
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
+
+      // The following allows passing in ISO strings with non-zulu
+      // timezones and converts them into zulu dates and times
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+
+      // Both, DateTimes and Timestamps are canonicalized to ISO strings with
+      // ms precision to allow safe comparisons, also to query {val}s in where clauses
+      DateTime: e => `ISO(${e})`,
+      Timestamp: e => `ISO(${e})`,
     }
 
     static OutputConverters = {
       ...super.OutputConverters,
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`, // REVIEW: ist that correct?
-      Int64: expr => `CAST(${expr} as TEXT)`, // REVISIT: As discussed: please put that on a list of things to revisit later on
-      Decimal: expr => `nullif(quote(${expr}),'NULL')->'$'`, // REVISIT: what is that ->'$' doing?
-      Float: expr => `nullif(quote(${expr}),'NULL')->'$'`,
-      Double: expr => `nullif(quote(${expr}),'NULL')->'$'`,
+
+      // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
+      // Otherwise they would be added as strings to json_objects.
       struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
       array: expr => `${expr}->'$'`,
-      // REVISIT: Timestamp should not loos precision
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
-      DateTime: e => `strftime('%Y-%m-%dT%H:%M:%SZ',${fixTimeZone(e)})`,
-      Timestamp: e => `strftime('%Y-%m-%dT%H:%M:%fZ',${fixTimeZone(e)})`,
+
+      // SQLite has no booleans so we need to convert 0 and 1
+      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+
+      // DateTimes are returned without ms added by InputConverters
+      DateTime: e => `substr(${e},0,20)||'Z'`,
+
+      // Timestamps are returned with ms, as written by InputConverters.
+      // And as cds.builtin.classes.Timestamp inherits from DateTime we need
+      // to override the DateTime converter above
+      Timestamp: undefined,
+
+      // int64 is stored as native int64 for best comparison
+      // Reading int64 as string to not loose precision
+      Int64: expr => `CAST(${expr} as TEXT)`,
+
+      // Binary is not allowed in json objects
+      Binary: expr => `${expr} || ''`,
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions }
+    static Functions = { ...super.Functions,
+      // Ensure ISO strings are returned for date/time functions
+      current_timestamp: () => 'ISO(current_timestamp)',
+      // SQLite doesn't support arguments for current_date and current_time
+      current_date: () => 'current_date',
+      current_time: () => 'current_time',
+    }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -116,9 +215,12 @@ class SQLiteService extends SQLService {
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',
-      DateTime: () => 'TIMESTAMP_TEXT',
+      DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
+
+    get is_distinct_from_() { return 'is not' }
+    get is_not_distinct_from_() { return 'is' }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
   }
@@ -142,31 +244,6 @@ class SQLiteService extends SQLService {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
   }
-
-  // overrides generic onSTREAM
-  // SQLite doesn't support streaming, the whole data is read from/written into the database
-  async onSTREAM(req) {
-    const { sql, values, entries } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const stream = entries[0]
-      stream.on('error', () => stream.removeAllListeners('error'))
-      values.unshift((await convStrm.buffer(stream)).toString('base64'))
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    const ps = await this.prepare(sql)
-    let result = await ps.all(values)
-    if (result.length === 0) return
-
-    const val = Object.values(result[0])[0]
-    if (val === null) return val
-    const stream_ = new Readable()
-    stream_.push(Buffer.from(val, 'base64'))
-    stream_.push(null)
-    return stream_
-  }
 }
 
 // function _not_null (err) {
@@ -185,31 +262,5 @@ function _not_unique(err, code) {
       code: 400, // FIXME: misusing code as (http) status
     })
 }
-
-/**
- * Generates SQL statement that allows SQLite to support most of the ISO 8601 timezone syntaxes
- * @example
- * '1970-01-01T00:00:00+0200' -> '1970-01-01T00:00:00+02:00'
- * @example
- * '1970-01-01T00:00:00-02' -> '1970-01-01T00:00:00-02:00'
- * @example
- * '1970-01-01T00:00:00Z' -> '1970-01-01T00:00:00Z'
- * @param {String} e value SQL expression
- * @returns {String} SQL statement that ensures that the value has the valid ISO timezone for SQLite
- */
-const fixTimeZone = e =>
-  `(
-  SELECT
-    CASE
-      WHEN substr(T,length(T),1) = 'Z' THEN 
-        T
-      WHEN substr(T,length(T) - 4,1) = '-' OR substr(T,length(T) - 4,1) = '+' THEN
-        substr(T,0,length(T) - 1) || ':' || substr(T,length(T) - 1)
-      WHEN substr(T,length(T) - 2,1) = '-' OR substr(T,length(T) - 2,1) = '+' THEN 
-        T || ':' || '00'
-      ELSE T
-    END AS T
-  FROM (SELECT (${e}) AS T)
-)`.replace(/\s*\n\s*/g, ' ')
 
 module.exports = SQLiteService

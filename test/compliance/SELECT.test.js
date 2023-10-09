@@ -128,6 +128,65 @@ describe('SELECT', () => {
       assert.equal(res[2].xpr, false)
     })
 
+    test('select 200 columns', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: new Array(200).fill().map((_, i) => ({ as: `${i}`, val: i })),
+        },
+      }
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
+    })
+
+    test('select 200 null columns', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: new Array(200).fill().map((_, i) => ({ as: `null${i}`, val: null })),
+        },
+      }
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      // ensure that all null values are returned
+      assert.strictEqual(Object.keys(res[0]).length, 200)
+      res[0]
+      cqn.SELECT.columns.forEach((c) => {
+        assert.strictEqual(res[0][c.as], null)
+      })
+    })
+
+    test('expand to many with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Authors'] },
+          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
+    })
+
+    test('expand to one with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Books'] },
+          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(Object.keys(res[0].author).length, 200)
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await assert.rejects(
         cds.run(CQL`

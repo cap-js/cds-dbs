@@ -54,6 +54,35 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql(cqn.selectWithCSN)
       expect(sql).toMatchSnapshot()
     })
+
+    test('with select from non existent entity with star wildcard', () => {
+      expect(() => {
+        let q = cqn.selectNonExistent
+        // Skip cqn4sql as infer requires the entity to exist
+        const render = q => new cqn2sql.class().render(q)
+        const { sql } = render(q)
+        expect(sql).toMatchSnapshot()
+        q = cds.ql.clone(q)
+        q.SELECT.expand = 'root'
+        render(q) // throws
+      }).toThrowError('Query was not inferred and includes expand. For which the metadata is missing.')
+    })
+
+    test('with select from non existent entity with star wildcard (extended)', () => {
+      expect(() => {
+        const customCqn2sql = class extends cqn2sql.class {
+          SELECT_columns({ SELECT }) {
+            return SELECT.columns.map(x => `${this.quote(this.column_name(x))}`)
+          }
+        }
+        const q = cqn.selectNonExistent
+        // Skip cqn4sql as infer requires the entity to exist
+        const render = q => new customCqn2sql().render(q)
+        render(q) // throws
+      }).toThrowError(
+        `Query was not inferred and includes '*' in the columns. For which there is no column name available.`,
+      )
+    })
   })
 
   describe('WHERE', () => {
@@ -222,8 +251,10 @@ describe('cqn2sql', () => {
     })
 
     test('one with additional limit with offset', () => {
+      // Original DB layer expectation is to mix limit and one
+      // One has priority over limit.rows, but limit.offset is still applied
       const { sql } = cqn2sql(cqn.oneWithLimit)
-      expect(sql).toMatchSnapshot()
+      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT 1 OFFSET 5')
     })
   })
 

@@ -1,6 +1,6 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, PUT } = cds.test(__dirname, 'model.cds')
+const { POST, PUT, sleep } = cds.test(__dirname, 'model.cds')
 
 describe('Managed thingies', () => {
   test('INSERT execute on db only', async () => {
@@ -25,7 +25,7 @@ describe('Managed thingies', () => {
   test('UPSERT execute on db only', async () => {
     // UPSERT behaves like UPDATE for managed, so insert annotated fields should not be filled
     const db = await cds.connect.to('db')
-    return db.tx(async () => {
+    return db.run(async () => {
       // REVISIT: Why do we allow overriding managed elements here?
       // provided values for managed annotated fields should be kept on DB level if provided
       await UPSERT.into('test.foo').entries({ ID: 3, modifiedBy: 'samuel' })
@@ -42,12 +42,14 @@ describe('Managed thingies', () => {
       ])
 
       const { modifiedAt } = result[0]
+      expect(modifiedAt).toEqual(cds.context.timestamp.toISOString())
 
-      const now = new Date()
-      const date1 = new Date(modifiedAt)
+      await sleep(11) // ensure some ms are passed
+      const modified = new Date(modifiedAt).getTime()
+      const now = Date.now()
 
-      expect(now.getTime() - date1.getTime()).toBeGreaterThan(0)
-      expect(now.getTime() - date1.getTime()).toBeLessThan(10 * 1000) // 10s
+      expect(now - modified).toBeGreaterThan(0)
+      expect(now - modified).toBeLessThan(10 * 1000) // 10s
     })
   })
 
@@ -67,11 +69,12 @@ describe('Managed thingies', () => {
     const { createdAt, modifiedAt } = resPost.data
     expect(createdAt).toEqual(modifiedAt)
 
-    const now = new Date()
-    const date1 = new Date(createdAt)
+    await sleep(11) // ensure some ms are passed
+    const now = Date.now()
+    const created = new Date(createdAt).getTime()
 
-    expect(now.getTime() - date1.getTime()).toBeGreaterThan(0)
-    expect(now.getTime() - date1.getTime()).toBeLessThan(10 * 1000) // 10s
+    expect(now - created).toBeGreaterThan(0)
+    expect(now - created).toBeLessThan(10 * 1000) // 10s
   })
 
   test('on update is filled', async () => {
@@ -92,10 +95,10 @@ describe('Managed thingies', () => {
     const { createdAt, modifiedAt } = resUpdate.data
     expect(createdAt).not.toEqual(modifiedAt)
 
-    const insertTime = new Date(createdAt)
-    const updateTime = new Date(modifiedAt)
+    const insertTime = new Date(createdAt).getTime()
+    const updateTime = new Date(modifiedAt).getTime()
 
-    expect(updateTime.getTime()).toBeGreaterThan(insertTime.getTime())
+    expect(updateTime).toBeGreaterThan(insertTime)
   })
 
   test('managed attributes are shared within a transaction', async () => {
