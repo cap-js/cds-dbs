@@ -15,18 +15,6 @@ const StandardFunctions = {
    */
   average: x => `avg(${x})`,
   /**
-   * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
-   * @param {string} ref
-   * @param {string} arg
-   * @returns {string}
-   */
-  search: function (ref, arg) {
-    if (!('val' in arg)) throw `SQLite only supports single value arguments for $search`
-    const refs = ref.list || [ref],
-      { toString } = ref
-    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
-  },
-  /**
    * Generates SQL statement that produces a string with all provided strings concatenated
    * @param  {...string} args
    * @returns {string}

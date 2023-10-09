@@ -19,6 +19,19 @@ const StandardFunctions = {
   hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
   minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
   second: x => `date_part('second',(${x})::TIMESTAMP)`,
+
+  /**
+   * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
+   * @param {string} ref
+   * @param {string} arg
+   * @returns {string}
+   */
+  search: function (ref, arg) {
+    if (!('val' in arg)) throw `$search with multiple values is not supported for postgres`
+    const refs = ref.list || [ref],
+      { toString } = ref
+    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
+  },
 }
 
 const HANAFunctions = {
