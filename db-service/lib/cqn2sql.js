@@ -259,7 +259,7 @@ class CQN2SQLRenderer {
     } 
 
 
-    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj.includes('json_merge') ? `json_insert(${obj})` : obj})`} as _json_ FROM (${sql})`
   }
 
   /**
