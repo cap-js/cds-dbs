@@ -1,0 +1,7 @@
+{
+  "packages": {
+    "db-service ": {},
+    "sqlite ": {},
+    "postgres": {}
+  }
+}
