@@ -233,6 +233,7 @@ class CQN2SQLRenderer {
   SELECT_expand({ SELECT, elements }, sql) {
     if (!SELECT.columns) return sql
     if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
+    
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
       let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
@@ -246,11 +247,19 @@ class CQN2SQLRenderer {
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = ''
-    for (let i = 0; i < cols.length; i += 50) {
-      const n =  `json_object(${cols.slice(i, i + 50)})`
-      obj = obj ? `json_patch(${obj},${n})` : n
-    }
-    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
+
+    if(cols.length < 50) obj =  `json_object(${cols.slice(0, 50)})`
+    else {
+      const chunks = []
+      for (let i = 0; i < cols.length; i += 50) {
+        chunks.push(`json_object(${cols.slice(i, i + 50)})`)
+      }
+      // REVISIT: json_merge is a user defined function, bad performance!
+      obj = `json_merge(${chunks})`
+    } 
+
+
+    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj.includes('json_merge') ? `json_insert(${obj})` : obj})`} as _json_ FROM (${sql})`
   }
 
   /**
@@ -432,20 +441,18 @@ class CQN2SQLRenderer {
     const entity = this.name(q.target?.name || INSERT.into.ref[0])
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
-    if (!INSERT.columns && !elements) {
-      throw cds.error`Cannot insert rows without columns or elements`
-    }
-    let columns = INSERT.columns || (elements && ObjectKeys(elements).filter(c => !elements[c].virtual && !elements[c].isAssociation))
-    this.columns = columns.map(c => this.quote(c))
+    const columns = INSERT.columns
+    || cds.error`Cannot insert rows without columns or elements`
 
-    const inputConverterKey = this.class._convertInput
+    const inputConverter = this.class._convertInput
     const extraction = columns.map((c,i) => {
-      const element = elements?.[c] || {}
       const extract = `value->>'$[${i}]'`
-      const converter = element[inputConverterKey] || (e => e)
-      return converter(extract, element)
+      const element = elements?.[c]
+      const converter = element?.[inputConverter]
+      return converter?.(extract,element) || extract
     })
 
+    this.columns = columns.map(c => this.quote(c))
     this.entries = [[JSON.stringify(INSERT.rows)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns

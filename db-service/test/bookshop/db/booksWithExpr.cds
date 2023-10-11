@@ -21,6 +21,9 @@ entity Books {
   volume : Decimal = area * height;
   storageVolume : Decimal = stock * volume;
 
+  // use calc element in infix filter
+  youngAuthorName: String = author[age < 50].name;
+
   // -- with paths
   authorLastName = author.lastName;
   authorName = author.name;
@@ -35,7 +38,12 @@ entity Authors {
   key ID : Integer;
   firstName : String;
   lastName : String;
- 
+  
+  dateOfBirth  : Date;
+  dateOfDeath  : Date;
+  
+  age: Integer = years_between(dateOfBirth, dateOfDeath);
+
   books : Association to many Books on books.author = $self;
   address : Association to Addresses;
 
