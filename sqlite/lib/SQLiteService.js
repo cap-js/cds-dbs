@@ -15,7 +15,9 @@ class SQLiteService extends SQLService {
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
-        dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) => args.join('').replace(/}{/g, ','))
+        dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) =>
+          args.join('').replace(/}{/g, ','),
+        )
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -136,7 +138,6 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
-
     column_alias4(x, q) {
       let alias = super.column_alias4(x, q)
       if (alias) return alias
@@ -201,13 +202,7 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions,
-      // Ensure ISO strings are returned for date/time functions
-      current_timestamp: () => 'ISO(current_timestamp)',
-      // SQLite doesn't support arguments for current_date and current_time
-      current_date: () => 'current_date',
-      current_time: () => 'current_time',
-    }
+    static Functions = { ...super.Functions, ...require('./func') }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -219,8 +214,12 @@ class SQLiteService extends SQLService {
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
-    get is_distinct_from_() { return 'is not' }
-    get is_not_distinct_from_() { return 'is' }
+    get is_distinct_from_() {
+      return 'is not'
+    }
+    get is_not_distinct_from_() {
+      return 'is'
+    }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
   }

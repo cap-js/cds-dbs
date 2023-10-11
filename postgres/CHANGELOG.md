@@ -4,6 +4,10 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+### Version 1.3.1 - 2023-10-10
+
+- `cds build`-relevant files are now correctly packaged into the release. #266
+
 ### Version 1.3.0 - 2023-10-06
 
 ### Added
