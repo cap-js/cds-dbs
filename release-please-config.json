@@ -1,4 +1,5 @@
 {
+  "bootstrap-sha": "52869aaa897d1ad0a4447be456890ee7b6f3a290",
   "packages": {
     "db-service ": {},
     "sqlite ": {},
