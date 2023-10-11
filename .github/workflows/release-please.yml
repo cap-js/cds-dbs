@@ -10,8 +10,10 @@ jobs:
         - uses: google-github-actions/release-please-action@v3
           id: release
           with:
-            release-type: node
-            package-name: test-release-please
+            token: ${{secrets.GITHUB_TOKEN}}
+            command: manifest
+            monorepo-tags: true
+            changelog-types: '[{"type":"feat","section":"Added","hidden":false},{"type":"fix","section":"Fixed","hidden":false}]'
         # The logic below handles the npm publication:
         - uses: actions/checkout@v2
           # these if statements ensure that a publication only occurs when
