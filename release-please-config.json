@@ -3,6 +3,15 @@
   "packages": {
     "db-service": {},
     "sqlite": {},
-    "postgres": {}
-  }
+    "postgres": {},
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "release-type": "node",
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
 }
