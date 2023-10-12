@@ -1,4 +1,13 @@
-# Change Log
+# Changelog
+
+## 1.0.0 (2023-10-12)
+
+
+### Bug Fixes
+
+* test PR to test release-please ([#276](https://github.com/cap-js/cds-dbs/issues/276)) ([2b28804](https://github.com/cap-js/cds-dbs/commit/2b2880476eb3b4922330b3f907ad01735a03cc3e))
+
+## Change Log
 
 - All notable changes to this project are documented in this file.
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
