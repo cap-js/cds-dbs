@@ -12,7 +12,7 @@ const infer = require('./infer')
 const eqOps = [['is'], ['='] /* ['=='] */]
 /**
  * For operators of <notEqOps>, do the same but use or instead of and.
- * This ensures that not struc == <value> is the same as struc != <value>.
+ * This ensures that not struct == <value> is the same as struct != <value>.
  */
 const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
