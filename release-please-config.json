@@ -1,0 +1,8 @@
+{
+  "bootstrap-sha": "2b2880476eb3b4922330b3f907ad01735a03cc3e",
+  "packages": {
+    "db-service": {},
+    "sqlite": {},
+    "postgres": {}
+  }
+}
