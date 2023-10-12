@@ -79,7 +79,10 @@ class SQLService extends DatabaseService {
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
+    if (cqn.SELECT.count) {
+      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+      return _arrayWithCount(rows, await this.count(query, rows))
+    }
     return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
@@ -385,6 +388,15 @@ const _unquirked = q => {
   else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
   else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
+}
+
+function _arrayWithCount(a, count) {
+  const _map = a.map
+  const map = (..._) => _arrayWithCount(_map.call(a, ..._), count)
+  return Object.defineProperties(a, {
+    $count: { value: count, enumerable: false, configurable: true, writable: true },
+    map: { value: map, enumerable: false, configurable: true, writable: true }
+  })
 }
 
 const sqls = new class extends SQLService { get factory() { return null } }
