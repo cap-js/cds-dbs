@@ -1,4 +1,13 @@
-# Change Log
+# Changelog
+
+## [1.3.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.1...db-service-v1.3.2) (2023-10-12)
+
+
+### Bug Fixes
+
+* test PR to test release-please ([#278](https://github.com/cap-js/cds-dbs/issues/278)) ([97925df](https://github.com/cap-js/cds-dbs/commit/97925df8f4721bb222e9e01e73b39c9957572255))
+
+## Change Log
 
 - All notable changes to this project are documented in this file.
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
