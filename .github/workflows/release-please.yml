@@ -33,19 +33,19 @@ jobs:
       - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
         if: ${{ steps.release.outputs.release_created }}
       - name: Publish db-service
-        if: ${{ steps.release.outputs.db-service--release_created }}
+        if: ${{ steps.release.outputs.release_created }} & ${{ steps.release.outputs.db-service--release_created }}
         run: npm publish --workspace db-service --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish sqlite
-        if: ${{ steps.release.outputs.sqlite--release_created }}
+        if: ${{ steps.release.outputs.release_created }} & ${{ steps.release.outputs.sqlite--release_created }}
         run: npm publish --workspace sqlite --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish postgres
-        if: ${{ steps.release.outputs.postgres--release_created }}
+        if: ${{ steps.release.outputs.release_created }} & ${{ steps.release.outputs.postgres--release_created }}
         run: npm publish --workspace postgres --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
