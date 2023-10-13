@@ -255,7 +255,7 @@ class SQLService extends DatabaseService {
    */
   static CQN2SQL = require('./cqn2sql').class
 
-  // REVISIT: There must be a better way
+  // REVISIT: There must be a better way!
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
