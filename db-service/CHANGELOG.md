@@ -9,9 +9,7 @@
 
 ### Fixed
 
-* comment ([#296](https://github.com/cap-js/cds-dbs/issues/296)) ([55dcf46](https://github.com/cap-js/cds-dbs/commit/55dcf46d3771c188a12bf371d6c699fc4432a5c2))
-* comment ([#302](https://github.com/cap-js/cds-dbs/issues/302)) ([f97d295](https://github.com/cap-js/cds-dbs/commit/f97d2953c8ebcc297bcac7d477c6eba9845b5597))
-* preserve $count for result of SELECT queries ([#280](https://github.com/cap-js/cds-dbs/issues/280)) ([23bef24](https://github.com/cap-js/cds-dbs/commit/23bef245e62952a57ed82afcfd238c0b294b2e9e))
+- preserve $count for result of SELECT queries ([#280](https://github.com/cap-js/cds-dbs/issues/280)) ([23bef24](https://github.com/cap-js/cds-dbs/commit/23bef245e62952a57ed82afcfd238c0b294b2e9e))
 
 ## [1.3.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.0...db-service-v1.3.1) (2023-10-10)
 
