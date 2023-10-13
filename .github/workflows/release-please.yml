@@ -29,7 +29,6 @@ jobs:
     
       # debug output
       - run: echo ${{ toJSON(steps.release.outputs) }}
-        if: ${{ steps.release.outputs.releases_created }}
       # Publish packages
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}
