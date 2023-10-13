@@ -1,4 +1,4 @@
-# Change Log
+# Changelog
 
 - All notable changes to this project are documented in this file.
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
@@ -12,7 +12,7 @@
 
 ## Version 1.3.0 - 2023-10-06
 
-### Fixed 
+### Fixed
 
 - `CURRENT_TIMESTAMP` in view definition preserves the timezone. #254 
 
