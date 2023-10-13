@@ -1,0 +1,24 @@
+chore: cleanup `CHANGELOG`s
+
+- Removed disclaimer from `CHANGELOG` and moved this to `README.md`
+- bump `"bootstrap-sha"` to the newest commit, so that release-please can build
+a nice, first release
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Fri Oct 13 10:37:28 2023 +0200
+#
+# On branch main
+# Your branch is ahead of 'origin/main' by 1 commit.
+#   (use "git push" to publish your local commits)
+#
+# Changes to be committed:
+#	modified:   db-service/CHANGELOG.md
+#	modified:   db-service/README.md
+#	modified:   postgres/CHANGELOG.md
+#	modified:   postgres/README.md
+#	modified:   release-please-config.json
+#	modified:   sqlite/CHANGELOG.md
+#	modified:   sqlite/README.md
+#

@@ -15,6 +15,11 @@
       "type": "fix",
       "section": "Fixed",
       "hidden": false
+    },
+    {
+      "type": "deps",
+      "section": "Changed",
+      "hidden": false
     }
   ]
 }
