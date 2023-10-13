@@ -9,6 +9,7 @@ jobs:
         contents: write
         pull-requests: write
     runs-on: ubuntu-latest
+    environment: npm
     steps:
       - uses: google-github-actions/release-please-action@v3
         id: release
