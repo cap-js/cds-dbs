@@ -16,7 +16,8 @@ jobs:
           token: ${{secrets.GITHUB_TOKEN}}
           command: manifest
           monorepo-tags: true
-          changelog-types: '[{"type":"feat","section":"Added","hidden":false},{"type":"fix","section":"Fixed","hidden":false}]'
+      ## debug info
+      - run: echo ${{ steps.release.outputs }}
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
         # these if statements ensure that a publication only occurs when
@@ -29,7 +30,15 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       - run: npm ci
         if: ${{ steps.release.outputs.release_created }}
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-        if: ${{ steps.release.outputs.release_created }}
+      # - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
+      #   ### existing release actions
+      # - run: npm publish --workspace db-service --access public
+      #   if: ${{ contains(steps.release.outputs, 'db-service') }}
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      # - run: npm publish --workspace sqlite --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      # - run: npm publish --workspace postgres --access public
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{secrets.npm_token}}
