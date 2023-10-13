@@ -26,9 +26,7 @@ jobs:
           node-version: 18
           registry-url: 'https://registry.npmjs.org'
         if: ${{ steps.release.outputs.releases_created }}
-    
-      # debug output
-      - run: echo ${{ toJSON(steps.release.outputs) }}
+
       # Publish packages
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}
