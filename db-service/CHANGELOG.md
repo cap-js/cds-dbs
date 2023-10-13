@@ -1,8 +1,4 @@
-# Change Log
-
-- All notable changes to this project are documented in this file.
-- The format is based on [Keep a Changelog](http://keepachangelog.com/).
-- This project adheres to [Semantic Versioning](http://semver.org/).
+# Changelog
 
 ## Version 1.3.1 - 2023-10-10
 
