@@ -79,7 +79,10 @@ class SQLService extends DatabaseService {
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
+    if (cqn.SELECT.count) {
+      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+      return SQLService._arrayWithCount(rows, await this.count(query, rows))
+    }
     return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
@@ -252,6 +255,17 @@ class SQLService extends DatabaseService {
    */
   static CQN2SQL = require('./cqn2sql').class
 
+  // REVISIT: There must be a better way
+  // preserves $count for .map calls on array
+  static _arrayWithCount = function (a, count) {
+    const _map = a.map
+    const map = function (..._) { return SQLService._arrayWithCount(_map.call(a, ..._), count) }
+    return Object.defineProperties(a, {
+      $count: { value: count, enumerable: false, configurable: true, writable: true },
+      map: { value: map, enumerable: false, configurable: true, writable: true }
+    })
+  }
+
   /** @param {unknown[]} args */
   constructor(...args) {
     super(...args)
@@ -386,6 +400,7 @@ const _unquirked = q => {
   else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
 }
+
 
 const sqls = new class extends SQLService { get factory() { return null } }
 cds.extend(cds.ql.Query).with(
