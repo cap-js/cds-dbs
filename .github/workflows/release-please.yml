@@ -17,7 +17,7 @@ jobs:
           command: manifest
           monorepo-tags: true
       ## debug info
-      - run: echo ${{ steps.release.outputs }}
+      - run: echo ${{ toJSON(steps.release.outputs) }}
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
         # these if statements ensure that a publication only occurs when
