@@ -39,7 +39,7 @@
     "@sap/cds-dk": ">=7"
   },
   "peerDependenciesMeta": {
-    "cds-dk": {
+    "@sap/cds-dk": {
       "optional": true
     }
   },
