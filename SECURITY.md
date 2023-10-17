@@ -22,6 +22,10 @@ Please include the requested information listed below (as much as you can provid
   - The location of the affected source code (tag/branch/commit or direct URL)
   - Any particular configuration required to reproduce the issue
   - Step-by-step instructions to reproduce the issue
+
+
+
+
   - Proof-of-concept or exploit code (if possible)
   - Impact of the issue, including how an attacker might exploit the issue
 
