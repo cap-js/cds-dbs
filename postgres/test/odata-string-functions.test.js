@@ -15,7 +15,7 @@ describe('String + Collection functions', () => {
     expect(response.data.value.map(beer => beer.name)).to.include('Lagerbier Hell')
   })
   test('contains', async () => {
-    const response = await GET(`/beershop/Beers?$filter=contains(name,'Lager')`)
+    const response = await GET(`/beershoop/Beers?$filter=contains(name,'Lager')`)
     expect(response.status).to.equal(200)
     expect(response.data.value.map(beer => beer.name)).to.include('Lagerbier Hell')
   })
