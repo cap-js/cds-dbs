@@ -83,7 +83,10 @@ class HANAService extends SQLService {
     if (rows.length) {
       rows = this.parseRows(rows)
     }
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
+    if (cqn.SELECT.count) {
+      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+      return HANAService._arrayWithCount(rows, await this.count(query, rows))
+    }
     return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] || null : rows
   }
 
