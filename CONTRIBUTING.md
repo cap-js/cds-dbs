@@ -36,3 +36,25 @@ The following rule governs code contributions:
 * We use GitHub issues to track bugs and enhancement requests.
 
 * Please provide as much context as possible when you open an issue. The information you provide must be comprehensive enough to reproduce that issue for the assignee.
+
+## Committing
+
+Our commit messages use a simplified form of [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/). This is how our automated release system knows what a given commit means.
+
+```md
+<type>: <description>
+
+[body]
+```
+
+### Commit type prefixes
+
+The `type` can be any of `feat`, `fix` or `chore`.
+
+The prefix is used to calculate the semver release level, and the section of the release notes to place the commit message in.
+
+| **type**  | when to use                         | release level | release note section |
+| --------- | ----------------------------------- | ------------- | -------------------- |
+| feat      | a feature has been added            | `minor`       | **Features**         |
+| fix       | a bug has been patched              | `patch`       | **Bug fixes**        |
+| chore     | any changes that aren't user-facing | none          | none                 |

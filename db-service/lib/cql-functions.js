@@ -35,7 +35,7 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+  concat: (...args) => args.map(a => (a.xpr ? `(${a})` : a)).join(' || '),
 
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
@@ -145,9 +145,9 @@ const StandardFunctions = {
 
   // Date and Time Functions
 
-  current_date: p => p ? `current_date(${p})`: 'current_date',
-  current_time: p => p ? `current_time(${p})`: 'current_time',
-  current_timestamp: p => p ? `current_timestamp(${p})`: 'current_timestamp',
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
 
   /**
    * Generates SQL statement that produces the year of a given timestamp
@@ -345,7 +345,7 @@ const HANAFunctions = {
    */
   years_between(x, y) {
     return `floor(${this.months_between(x, y)} / 12)`
-  }
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

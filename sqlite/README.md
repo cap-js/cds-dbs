@@ -14,7 +14,6 @@ npm add @cap-js/sqlite -D
 
 Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-sqlite).
 
-
 ## Support
 
 This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues).
@@ -22,6 +21,11 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 ## Contribution
 
 Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+
+## Versioning
+
+This library follows [Semantic Versioning](https://semver.org/).
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Code of Conduct
 

@@ -1,12 +1,18 @@
-# Change Log
+# Changelog
 
 - All notable changes to this project are documented in this file.
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.3.1 - 2023-10-10
+
+### Changed
+
+- Updated minimum required version of `@cap-js/db-service`.
+
 ## Version 1.3.0 - 2023-10-06
 
-### Fixed 
+### Fixed
 
 - `CURRENT_TIMESTAMP` in view definition preserves the timezone. #254 
 

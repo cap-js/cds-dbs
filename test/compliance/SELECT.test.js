@@ -299,8 +299,13 @@ describe('SELECT', () => {
   })
 
   describe('count', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('count is preserved with .map', async () => {
+      const query = SELECT.from('complex.Authors')
+      query.SELECT.count = true
+      const result = await query
+      assert.strictEqual(result.$count, 1)
+      const renamed = result.map(row => ({key: row.ID, fullName: row.name}))
+      assert.strictEqual(renamed.$count, 1)
     })
   })
 
