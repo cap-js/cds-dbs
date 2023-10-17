@@ -1,7 +1,8 @@
 const cds = require('../../../test/cds.js')
-const { GET, POST } = cds.test(__dirname, 'model.cds')
 
 describe('temporal', () => {
+  const { GET, POST } = cds.test(__dirname, 'model.cds')
+
   beforeAll(async () => {
     const db = await cds.connect.to('db')
     const { fooTemporal } = db.model.entities('test')
