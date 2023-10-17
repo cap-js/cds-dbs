@@ -12,6 +12,11 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 
 Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
 
+## Versioning
+
+This library follows [Semantic Versioning](https://semver.org/).
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
+
 ## Code of Conduct
 
 We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](CODE_OF_CONDUCT.md) at all times.
