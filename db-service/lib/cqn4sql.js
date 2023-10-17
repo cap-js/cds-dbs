@@ -12,7 +12,7 @@ const infer = require('./infer')
 const eqOps = [['is'], ['='] /* ['=='] */]
 /**
  * For operators of <notEqOps>, do the same but use or instead of and.
- * This ensures that not struc == <value> is the same as struc != <value>.
+ * This ensures that not struct == <value> is the same as struct != <value>.
  */
 const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
@@ -1381,7 +1381,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (flatRhs) {
       const flatLhs = flattenWithBaseName(token)
 
-      //Revisit: Early exit here? We kndow we cant compare the structs, however we do not know exactly why
+      //REVISIT: Early exit here? We kndow we cant compare the structs, however we do not know exactly why
       //        --> calculate error message or exit early? See test "proper error if structures cannot be compared / too many elements on lhs"
       if (flatRhs.length !== flatLhs.length)
         // make sure we can compare both structures
@@ -1448,10 +1448,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
   function assertNoStructInXpr(token, inInfixFilter = false) {
     if (!inInfixFilter && token.$refLinks?.[token.$refLinks.length - 1].definition.target)
-      // revisit: let this through if not requested otherwise
+      // REVISIT: let this through if not requested otherwise
       rejectAssocInExpression()
     if (isStructured(token.$refLinks?.[token.$refLinks.length - 1].definition))
-      // revisit: let this through if not requested otherwise
+      // REVISIT: let this through if not requested otherwise
       rejectStructInExpression()
 
     function rejectAssocInExpression() {

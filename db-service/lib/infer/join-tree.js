@@ -148,7 +148,6 @@ class JoinTree {
    *
    * It begins by inferring the source of the given column, which is the table alias where the column is resolvable.
    * Each step during this process represents a node in the join tree. If a node already exists in the tree, the current step is replaced by the already merged node.
-   * For each step, it checks whether it has been seen before. If so, it resets the $refLink to point to the already merged $refLink.
    * If not, it creates a new Node and ensures proper aliasing and foreign key access.
    *
    * @param {object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
