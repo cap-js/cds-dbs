@@ -141,6 +141,52 @@ describe('SELECT', () => {
       assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
     })
 
+    test('select 200 null columns', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: new Array(200).fill().map((_, i) => ({ as: `null${i}`, val: null })),
+        },
+      }
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      // ensure that all null values are returned
+      assert.strictEqual(Object.keys(res[0]).length, 200)
+      res[0]
+      cqn.SELECT.columns.forEach((c) => {
+        assert.strictEqual(res[0][c.as], null)
+      })
+    })
+
+    test('expand to many with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Authors'] },
+          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
+    })
+
+    test('expand to one with 200 columns', async () => {
+      const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.Books'] },
+          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(Object.keys(res[0].author).length, 200)
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await assert.rejects(
         cds.run(CQL`
@@ -253,8 +299,13 @@ describe('SELECT', () => {
   })
 
   describe('count', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('count is preserved with .map', async () => {
+      const query = SELECT.from('complex.Authors')
+      query.SELECT.count = true
+      const result = await query
+      assert.strictEqual(result.$count, 1)
+      const renamed = result.map(row => ({key: row.ID, fullName: row.name}))
+      assert.strictEqual(renamed.$count, 1)
     })
   })
 

@@ -6,13 +6,11 @@ Welcome to the new Postgres database service for [SAP Cloud Application Programm
 
 In general, all you need to do is to install one of the database packages, as follows:
 
-
 ```sh
 npm add @cap-js/postgres
 ```
 
 Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-postgres).
-
 
 ## Support
 
@@ -21,6 +19,11 @@ This project is open to feature requests/suggestions, bug reports etc. via [GitH
 ## Contribution
 
 Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+
+## Versioning
+
+This library follows [Semantic Versioning](https://semver.org/).
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
 
 ## Code of Conduct
 
