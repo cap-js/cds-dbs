@@ -19,7 +19,7 @@ describe('affected rows', () => {
     // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
     expect(affectedRows == 1).to.be.eq(true)
     // the actual InsertResult looks like this
-    expect(affectedRows).to.deep.include({ affectedRows: 1, results: [{ changes: 1, lastInsertRowid: 5 }] })
+    expect(affectedRows).to.deep.include({ affectedRows: 1, results: [{ changes: 1/*, lastInsertRowid: 5*/ }] }) // lastInsertRowid not available on postgres
   })
 
   test('Update returns affected rows', async () => {
