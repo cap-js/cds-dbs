@@ -29,7 +29,6 @@ Copyright: 2022 SAP SE or an SAP affiliate company and cds-dbs contributors
 License: Apache-2.0
 
 Files:
- postgres/test/beershop/db/init/beershop.sql
  postgres/test/odata-string-functions.test.js
  postgres/test/ql.test.js
  postgres/test/service.test.js
