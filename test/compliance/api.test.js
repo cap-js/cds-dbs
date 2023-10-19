@@ -21,10 +21,10 @@ const { expect } = cds.test(__dirname + '/resources')
   })
 
   test('Update returns affected rows', async () => {
-    const authors = await cds.db.run(SELECT.from('complex.Books'))
+    const { count } = await SELECT.one`count(*)`.from('complex.Books')
     
-    const affectedRows = await cds.db.run(UPDATE.entity('complex.Books').data({title: 'Book'}))
-    expect(affectedRows).to.be.eq(authors.length)
+    const affectedRows = await UPDATE.entity('complex.Books').data({title: 'Book'})
+    expect(affectedRows).to.be.eq(count)
   })
 
   test('Upsert returns affected rows', async () => { 
