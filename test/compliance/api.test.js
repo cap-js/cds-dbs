@@ -28,7 +28,7 @@ const { expect } = cds.test(__dirname + '/resources')
   })
 
   test('Upsert returns affected rows', async () => { 
-    const affectedRows = await cds.db.run(UPSERT.into('complex.Books').entries({ID: 9999999, title: 'Book'}))
+    const affectedRows = await UPSERT.into('complex.Books').entries({ID: 9999999, title: 'Book'})
     expect(affectedRows).to.be.eq(1)
   })
 })
