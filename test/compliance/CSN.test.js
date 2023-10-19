@@ -24,6 +24,9 @@ const addObjectTest = (ctx, obj) => {
     JSON.stringify(
       obj,
       (_, b) => {
+        if (Buffer.isBuffer(b) || b?.type === 'Buffer') {
+          return `Buffer(${b.byteLength || b.data?.length})`
+        }
         if (typeof b === 'function') return `${b}`
         return b
       },
