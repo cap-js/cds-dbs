@@ -7,8 +7,7 @@ describe('affected rows', () => {
 const { expect } = cds.test(__dirname + '/resources')
 
   test('Delete returns affected rows', async () => {
-    const del = DELETE.from('complex.Books').where('ID = 4712')
-    const affectedRows = await cds.db.run(del)
+    const affectedRows = await DELETE.from('complex.Books').where('ID = 4712')
     expect(affectedRows).to.be.eq(0)
   })
 
