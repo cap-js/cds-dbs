@@ -78,7 +78,7 @@ describe('OData to Postgres dialect', () => {
     })
 
     test(' -> Timestamp', async () => {
-      const value = '2012-12-03T07:16:23.5740000Z'
+      const value = '2012-12-03T07:16:23.574Z'
       const response = await POST('/beershop/TypeChecks', {
         type_Timestamp: value,
       })

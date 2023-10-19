@@ -1,151 +1,149 @@
+const SessionContext = require('./session-context')
+const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
-const cds = require('@sap/cds')
+const cds = require('@sap/cds/lib')
 
-function Pool(factory, tenant) {
-  const pool = createPool({ __proto__: factory, create: factory.create.bind(undefined, tenant) }, factory.options)
-  pool._trackedConnections = []
-  return pool
-}
-const { createPool } = require('@sap/cds-foss').pool
+/** @typedef {unknown} DatabaseDriver */
 
 class DatabaseService extends cds.Service {
-  static get deploy() {
-    return (super.deploy = require('../cds-deploy'))
-  }
+  /**
+   * Dictionary of connection pools per tenant
+   */
+  pools = { _factory: this.factory }
 
   /**
    * Return a pool factory + options property as expected by
    * https://github.com/coopernurse/node-pool#createpool.
+   * @abstract
+   * @type {import('./factory').Factory<DatabaseDriver>}
    */
   get factory() {
     throw '2b overriden in subclass'
   }
-  pools = { _factory: this.factory }
-
-  get isMultitenant() {
-    return 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
-  }
 
   /**
    * Set one or more session context variables like so:
-   * ```js
-   * const tx = cds.db.tx()
-   * tx.set({
-   *   '$user.name': 'Alice',
-   *   '$user.role': 'admin'
-   * })
-   * ```
+   *
+   *     const tx = cds.db.tx()
+   *     tx.set({ foo: 'bar' })
+   *
+   * This is used in this.begin() for standard properties
+   * like `$user.id` or `$user.locale`.
    */
   // eslint-disable-next-line no-unused-vars
   set(variables) {
     throw '2b overridden by subclass'
   }
 
-  infer(q, m = this.model) {
-    return infer(q, m)
-  }
-
+  /**
+   * Acquires a pooled connection and starts a session, including setting
+   * session context like `$user.id` or `$user.locale`, and starting a
+   * transaction with `BEGIN`
+   * @returns this
+   */
   async begin() {
+    // We expect tx.begin() being called for an txed db service
     const ctx = this.context
-    if (!ctx) return this.tx().begin()
-    const tenant = this.isMultitenant && ctx.tenant
-    const pool = (this.pools[tenant] ??= new Pool(this.pools._factory, tenant))
-    const connections = pool._trackedConnections
-    let dbc
+    if (!ctx) return this.tx().begin() // REVISIT: Is this correct? When does this happen?
+
+    // REVISIT: tenant should be undefined if !this.isMultitenant
+    let isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
+    let tenant = isMultitenant && ctx.tenant
+
+    // Setting this.pool as used in this.acquire() and this.release()
+    this.pool = this.pools[tenant] ??= new ConnectionPool(this.pools._factory, tenant)
+
+    // Acquire a pooled connection
+    this.dbc = await this.acquire()
+
+    // Begin a session...
     try {
-      dbc = this.dbc = await pool.acquire()
-    } catch (err) {
-      // TODO: add acquire timeout error check
-      err.stack += `\nActive connections:${connections.length}\n${connections.map(c => c._beginStack.stack).join('\n')}`
-      throw err
-    }
-    this._beginStack = new Error('begin called from:')
-    connections.push(this)
-    this._release = async dbc => {
-      await pool.release(dbc)
-      connections.splice(connections.indexOf(this), 1)
-    }
-    try {
-      // Setting session context variables
-      await this.set({
-        get '$user.id'() {
-          return _set(this, '$user.id', ctx.user?.id || 'anonymous')
-        },
-        get '$user.locale'() {
-          return _set(this, '$user.locale', ctx.locale || cds.env.i18n.default_language)
-        },
-        get '$valid.from'() {
-          return _set(
-            this,
-            '$valid.from',
-            ctx._?.['VALID-FROM'] ?? ctx._?.['VALID-AT'] ?? '1970-01-01T00:00:00.0000000Z',
-          )
-        },
-        get '$valid.to'() {
-          return _set(
-            this,
-            '$valid.to',
-            ctx._?.['VALID-TO'] ?? _validTo4(ctx._?.['VALID-AT']) ?? '9999-11-11T22:22:22.0000000Z',
-          )
-        },
-      })
-      // Run BEGIN
+      await this.set(new SessionContext(ctx))
       await this.send('BEGIN')
     } catch (e) {
-      this._release(dbc)
+      this.release()
       throw e
     }
     return this
   }
 
+  /**
+   * Commits a transaction and releases the connection to the pool.
+   */
   async commit() {
-    const dbc = this.dbc
-    if (!dbc) return
+    if (!this.dbc) return
     await this.send('COMMIT')
-    this._release(dbc) // only release on successful commit as otherwise released on rollback
+    this.release() // only release on successful commit as otherwise released on rollback
   }
 
+  /**
+   * Rolls back a transaction and releases the connection to the pool.
+   */
   async rollback() {
-    const dbc = this.dbc
-    if (!dbc) return
+    if (!this.dbc) return
     try {
       await this.send('ROLLBACK')
     } finally {
-      this._release(dbc)
+      this.release()
     }
   }
 
-  // REVISIT: should happen automatically after a configurable time
-  async disconnect(tenant) {
-    const pool = this.pools[tenant]
-    if (pool) delete this.pools[tenant]
-    else return
-    await pool.drain()
-    await pool.clear()
+  /**
+   * Acquires a connection from this.pool, stored into this.dbc
+   * This is for subclasses to intercept, if required.
+   */
+  async acquire() {
+    return await this.pool.acquire()
   }
 
+  /**
+   * Releases own connection, i.e. tix.dbc, from this.pool
+   * This is for subclasses to intercept, if required.
+   */
+  async release() {
+    if (!this.dbc) return
+    await this.pool.release(this.dbc)
+    this.dbc = undefined
+  }
+
+  // REVISIT: should happen automatically after a configurable time
+  /**
+   * @param {string} tenant
+   */
+  async disconnect(tenant) {
+    const pool = this.pools[tenant]
+    if (!pool) return
+    await pool.drain()
+    await pool.clear()
+    delete this.pools[tenant]
+  }
+
+  /**
+   * Infers the given query with this DatabaseService instance's model.
+   * In general `this.model` is the same then `cds.model`
+   * @param {CQN} query - the query to infer
+   * @returns {CQN} the inferred query
+   */
+  infer(query) {
+    return infer(query, this.model)
+  }
+
+  /**
+   * DatabaseServices also support passing native query strings to underlying databases.
+   */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)
     if (data !== undefined && typeof query === 'string' && typeof data !== 'object') data = [data, ...etc]
     return super.run(query, data)
   }
 
+  /**
+   * @returns {string} A url-like string used to print log output,
+   * e.g., in cds.deploy()
+   */
   url4(/*tenant*/) {
-    // eslint-disable-line no-unused-vars
-    let { url } = this.options?.credentials || this.options || {}
-    return url
+    return this.options.credentials?.url || this.options.url
   }
-  getDbUrl(tenant) {
-    return this.url4(tenant)
-  } // REVISIT: Remove after cds v6.7
-}
-
-const _set = (context, variable, value) => {
-  Object.defineProperty(context, variable, { value, configurable: true })
-  return value
-}
-const _validTo4 = validAt => {
-  return validAt?.replace(/(\dZ?)$/, d => parseInt(d[0]) + 1 + d[1] || '')
 }
 
 DatabaseService.prototype.isDatabaseService = true

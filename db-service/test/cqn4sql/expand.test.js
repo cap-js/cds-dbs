@@ -8,7 +8,6 @@ describe('Unfold expands on structure', () => {
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-
   it('supports nested projections for structs', () => {
     let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee } }`
     let transformed = cqn4sql(query)
@@ -344,17 +343,16 @@ describe('Unfold expands on associations to special subselects', () => {
       },
     }
 
-    const res = cqn4sql(q)
     const expected = CQL`SELECT from bookshop.Books as Books {
       (
         SELECT from bookshop.Authors as author {
           author.name
         }
         where Books.author_ID = author.ID and
-            exists ( SELECT 1 from bookshop.Books as books where
-                books.author_ID = author.ID and exists (
+            exists ( SELECT 1 from bookshop.Books as books2 where
+                books2.author_ID = author.ID and exists (
                   SELECT 1 from bookshop.Authors as author2 where
-                    author2.ID = books.author_ID and
+                    author2.ID = books2.author_ID and
                     author2.name = 'King'
                   )
               )
@@ -363,6 +361,8 @@ describe('Unfold expands on associations to special subselects', () => {
         offset 1
       ) as author
     }`
+
+    const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -426,7 +426,7 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO: aliases of outer query needs to be considered
   // still valid sql in this case
-  it.skip('unfold expand, with subquery in expand', () => {
+  it('unfold expand, with subquery in expand', () => {
     const q = CQL`SELECT from bookshop.Books {
       author { name, (select title from bookshop.Books) as book }
     }`
@@ -641,7 +641,7 @@ describe('Unfold expands on associations to special subselects', () => {
     const q = CQL`SELECT from bookshop.Books {
       title,
       author.name,
-      author.books.genre[name = 'foo'] { name }
+      Books.author.books.genre[name = 'foo'] { name }
     }`
     const qx = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -752,8 +752,6 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(res.SELECT.columns[1].SELECT).to.have.property('one').that.equals(true)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
-
-  // once this works: more tests of this kind, adding filters ...
 
   it('unfold nested expands', () => {
     const q = CQL`SELECT from bookshop.Books {
@@ -899,6 +897,81 @@ describe('Unfold expands on associations to special subselects', () => {
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+  describe('anonymous expand', () => {
+    it('scalar elements', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          title,
+          descr,
+          price
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.title as bookInfos_title,
+        Books.descr as bookInfos_descr,
+        Books.price as bookInfos_price
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('scalar elements, structure with renaming and association', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          title,
+          author,
+          dedication.text as widmung,
+          dedication.sub as deep
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.title as bookInfos_title,
+        Books.author_ID as bookInfos_author_ID,
+        Books.dedication_text as bookInfos_widmung,
+        Books.dedication_sub_foo as bookInfos_deep_foo
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('mixed with inline', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          dedication.{
+            *
+          }
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.dedication_addressee_ID as bookInfos_dedication_addressee_ID,
+        Books.dedication_text as bookInfos_dedication_text,
+        Books.dedication_sub_foo as bookInfos_dedication_sub_foo,
+        Books.dedication_dedication as bookInfos_dedication_dedication,
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    it('join relevant association', () => {
+      const q = CQL`SELECT from bookshop.Books {
+        ID,
+        {
+          author.name
+        } as bookInfos
+      }`
+      const qx = CQL`SELECT from bookshop.Books as Books 
+        left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        author.name as bookInfos_author_name,
+      }`
+      const res = cqn4sql(q)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+  })
   describe('comparisons of associations in on condition of elements needs to be expanded', () => {
     let model
     beforeAll(async () => {
@@ -930,8 +1003,47 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
     })
   })
+  it('nested expand with multiple conditions', async () => {
+    // innermost expand on association with backlink plus additional condition
+    // must be properly linked
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id,
+        leads {
+          id
+        },
+        subCollaborations {
+          id,
+          leads {
+            id
+          }
+        }
+      }
+    `
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id,
+        (
+          SELECT from CollaborationLeads as leads {
+            leads.id
+          } where ( Collaborations.id = leads.collaboration_id ) and leads.isLead = true
+        ) as leads,
+        (
+          SELECT from SubCollaborations as subCollaborations {
+            subCollaborations.id,
+            (
+              SELECT from SubCollaborationAssignments as leads2 {
+                leads2.id
+              } where ( subCollaborations.id = leads2.subCollaboration_id ) and leads2.isLead = true
+            ) as leads
+          } where Collaborations.id = subCollaborations.collaboration_id
+        ) as subCollaborations
+      }
+    `)
+  })
 })
-
 // the tests in here are a copy of the tests in `./inline.test.js`
 // and should behave exactly the same.
 // `.inline` and `.expand` on a `struct` are semantically equivalent.
@@ -989,6 +1101,51 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
+  it('multi expand with star - foreign key must survive in flat mode', () => {
+    let expandQuery = CQL`select from Employee {
+        *,
+        department {
+          id,
+          name
+        },
+        assets {
+          id,
+          descr
+        }
+    } excluding { office_floor, office_address_country, office_building, office_room, office_building_id, office_address_city, office_building_id, office_address_street, office_address_country_code, office_address_country_code, office_furniture_chairs,office_furniture_desks }`
+    let expected = CQL`SELECT from Employee as Employee {
+        Employee.id,
+        Employee.name,
+        Employee.job,
+        Employee.department_id,
+        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
+        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(model))))).to.eql(expected)
+  })
+
+  it('multi expand with star but foreign key does not survive in structured mode', () => {
+    let expandQuery = CQL`select from Employee {
+        *,
+        department {
+          id,
+          name
+        },
+        assets {
+          id,
+          descr
+        }
+    } excluding { office }`
+    let expected = CQL`SELECT from Employee as Employee {
+        Employee.id,
+        Employee.name,
+        Employee.job,
+        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
+        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
+  })
+
   it('structured expand with deep assoc expand', () => {
     let expandQuery = CQL`select from Employee {
       office {
@@ -1029,7 +1186,7 @@ describe('expand on structure part II', () => {
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
-  it('deep expand on assoc within strucutre expand', () => {
+  it('deep expand on assoc within structure expand', () => {
     let expandQuery = CQL`select from Employee {
       office {
         floor,
@@ -1217,7 +1374,7 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-  it.skip('wildcard expansion sql style on table alias', () => {
+  it('wildcard expansion sql style on table alias', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*}
     }`
@@ -1240,7 +1397,7 @@ describe('expand on structure part II', () => {
     }`
     expect(cqn4sql(expandQuery)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
-  it.skip('wildcard expansion sql style on table alias - exclude stuff', () => {
+  it('wildcard expansion sql style on table alias - exclude stuff', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*} excluding { office }
     }`
@@ -1257,5 +1414,18 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model))
       .to.eql(expected)
       .to.eql(JSON.parse(JSON.stringify(cqn4sql(regularWildcard)))) // prototype is different
+  })
+  it('wildcard expansion sql style on IMPLICIT table alias - exclude stuff', () => {
+    let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
+      {*} excluding { office } as FOO
+    }`
+    let expected = CQL`select from EmployeeNoUnmanaged as E {
+     E.FOO_id,
+     E.FOO_name,
+     E.FOO_job,
+     E.FOO_department_id
+
+    }`
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 })

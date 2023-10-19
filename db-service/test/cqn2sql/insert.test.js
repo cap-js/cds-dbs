@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
 beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  cds.model = await cds.load(__dirname + '/testModel').then(cds.compile.for.nodejs)
 })
 
 describe('insert', () => {
@@ -49,36 +49,6 @@ describe('insert', () => {
           ],
         },
       }
-      const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
-    })
-
-    // TypeError: Cannot read properties of undefined (reading 'map')
-    // not supported yet
-    xtest('test with insert rows without columns', () => {
-      const cqnInsert = {
-        INSERT: {
-          into: 'Foo2',
-          rows: [
-            [1, "'asd'", 2],
-            [9, "mmm'", 77],
-          ],
-        },
-      }
-
-      const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
-    })
-    // TypeError: Cannot read properties of undefined (reading 'map')
-    // not supported yet
-    xtest('test with insert values without columns', () => {
-      const cqnInsert = {
-        INSERT: {
-          into: 'Foo2',
-          values: [1, "'asd'", 2],
-        },
-      }
-
       const { sql, entries } = cqn2sql(cqnInsert)
       expect({ sql, entries }).toMatchSnapshot()
     })

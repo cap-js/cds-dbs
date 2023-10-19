@@ -1,8 +1,9 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
+
+const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-const { expect } = cds.test.in(__dirname + '/../bookshop')
 const _inferred = require('../../lib/infer')
 
 describe('negative', () => {
@@ -12,7 +13,7 @@ describe('negative', () => {
   })
 
   describe('filters', () => {
-    it('filter must not be provided along a structure in column', () => {
+    it('filter must not be provided along a structure in a column', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
         /A filter can only be provided when navigating along associations/,
       )
@@ -95,6 +96,7 @@ describe('negative', () => {
 
     it('$self reference is not found in the query elements with subquery -> cds.infer hints alternatives', () => {
       let query = CQL`SELECT from (select from bookshop.Books) as Foo { $self.author }`
+      // _inferred(query)
       // wording? select list not optimal, did you mean to refer to bookshop.Books?
       expect(() => _inferred(query)).to.throw(
         /"author" not found in the columns list of query, did you mean "Foo.author"?/, // revisit: error message
@@ -113,9 +115,9 @@ describe('negative', () => {
 
     it('scoped query does not end in queryable artifact', () => {
       let query = CQL`SELECT from bookshop.Books:name { * }` // name does not exist
-      expect(() => _inferred(query)).to.throw(/No association "name" in entity "bookshop.Books"/)
+      expect(() => _inferred(query)).to.throw(/No association “name” in entity “bookshop.Books”/)
       let fromEndsWithScalar = CQL`SELECT from bookshop.Books:title { * }`
-      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association "title" in entity "bookshop.Books"/)
+      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association “title” in entity “bookshop.Books”/)
     })
 
     // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)
@@ -143,7 +145,7 @@ describe('negative', () => {
     })
   })
 
-  describe('ambiguites', () => {
+  describe('ambiguities', () => {
     // same name twice in result set -> error
     // SQL would allow that, but different databases may return different column names
     it('duplicate field name', () => {
@@ -221,6 +223,122 @@ describe('negative', () => {
     })
   })
 
+  describe('path traversals via $self are rejected', () => {
+    it('simple field access', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        author,
+        $self.author.name
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('in order by', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        author
+      } order by $self.author.name`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('in group by', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        author
+      } group by $self.author.name`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('in where', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        author
+      } where $self.author.name = 'King'`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('in xpr', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        author,
+        'bar' + $self.author.name as barAuthor
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('deep field access', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, dedication, addressee, ID ]'
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Books{
+        dedication,
+        $self.dedication.addressee.ID
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('with infix filter', () => {
+      const errorMessage = `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, ID ]`
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Books{
+        author,
+        $self.author[ID = 42].ID as a
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('with inline syntax', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]'
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Books{
+        author,
+        $self.author.{name}
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+    it('with expand syntax', () => {
+      const errorMessage =
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]'
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Books{
+        author,
+        $self.author {name}
+      }`,
+          model,
+        ),
+      ).to.throw(errorMessage)
+    })
+  })
+
   describe('restrictions', () => {
     it('UNION queries are not supported', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books union all select from bookshop.Authors`)).to.throw(
@@ -243,6 +361,24 @@ describe('negative', () => {
           model,
         ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
+    })
+  })
+
+  describe('infix filters', () => {
+    it('rejects non fk traversal in infix filter in from', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
+        /Only foreign keys of "author" can be accessed in infix filter/,
+      )
+    })
+    it('rejects non fk traversal in infix filter in column', () => {
+      expect(() =>
+        _inferred(
+          CQL`SELECT from bookshop.Authors {
+        books[author.name = 'Kurt'].ID as kurtsBooks
+      }`,
+          model,
+        ),
+      ).to.throw(/Only foreign keys of "author" can be accessed in infix filter/)
     })
   })
 })

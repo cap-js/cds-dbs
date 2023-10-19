@@ -23,6 +23,28 @@ describe('function', () => {
     // result -> instr((Foo.a,Foo.b),?)"
   })
 
+  test('wrap xpr in concat functions in parentheses', () => {
+    const cqn = {
+      SELECT: {
+        from: { ref: ['Foo'] },
+        columns: [
+          {
+            func: 'concat',
+            args: [
+              { val: 2023 },
+              {
+                xpr: [{ val: 8 }, '*', { val: 2 }, '-', { val: 0 }],
+              },
+            ],
+            as: 'something',
+          },
+        ],
+      },
+    }
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toMatchSnapshot()
+  })
+
   xtest('contains complex', () => {
     const cqn = {
       SELECT: {
@@ -82,7 +104,7 @@ describe('function', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)',
+      sql: `SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE not ifnull(instr((Foo.b),?),0)`,
       values: ['5'],
     })
   })
@@ -184,6 +206,6 @@ describe('function', () => {
       },
     }
     const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date()')
+    expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date')
   })
 })

@@ -59,6 +59,12 @@ module.exports.selectWithCSN = {
   },
   [Symbol.for('sap.cds.model')]: { test: 'model' },
 }
+module.exports.selectNonExistent = {
+  SELECT: {
+    columns: ['*'],
+    from: { ref: ['¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?'] },
+  },
+}
 
 module.exports.selectWhereCqn = {
   SELECT: {
