@@ -45,6 +45,12 @@ const getColumns = (
   return columns
 }
 
+const _isColumnCalculated = (query, columnName) => {
+  if (!query) return false
+  if (query.SELECT?.columns?.find(col => col.xpr && col.as === columnName)) return true
+  return _isColumnCalculated(query._target?.query, columnName)
+}
+
 const _getSearchableColumns = entity => {
   const columnsOptions = { removeIgnore: true, filterVirtual: true }
   const columns = getColumns(entity, columnsOptions)
@@ -91,7 +97,7 @@ const _getSearchableColumns = entity => {
     return (
       annotatedColumnValue === undefined &&
       column._type === DEFAULT_SEARCHABLE_TYPE &&
-      !entity?.query?.SELECT?.columns?.find(col => col.xpr && col.as === column.name)
+      !_isColumnCalculated(entity?.query, column.name)
     )
   })
 
