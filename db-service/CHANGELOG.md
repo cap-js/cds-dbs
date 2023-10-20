@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.3.3](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.2...db-service-v1.3.3) (2023-10-20)
+
+
+### Fixed
+
+* **search:** check calculated columns at any depth ([#310](https://github.com/cap-js/cds-dbs/issues/310)) ([8fd6153](https://github.com/cap-js/cds-dbs/commit/8fd6153dfcd472a6d95c33faa58c4b3f96f485df))
+
 ## [1.3.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.1...db-service-v1.3.2) (2023-10-13)
 
 
