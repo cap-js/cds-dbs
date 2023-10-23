@@ -4,6 +4,12 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Version 1.3.2 - tbd
+
+### Changed
+
+- Using the new `cds build` plugin API (requires `@sap/cds-dk` 7.3.1)
+
 ## Version 1.3.1 - 2023-10-10
 
 ### Fixed
