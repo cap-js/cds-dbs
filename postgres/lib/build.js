@@ -8,30 +8,13 @@ try {
   else throw e
 }
 
-const { fs, path, rimraf } = cds.utils
+const { fs, path } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends BuildPlugin {
-  static hasTask() { // REVISIT: should be unnecessary -> plugin mechanism knows what to pull
-    return cds.requires.db.kind === 'postgres'
-  }
-
-  static getTaskDefaults() {
-    return { src: cds.env.folders.db }
-  }
-
-  init() {
-    this.task.dest = cds.env.build.target === '.' ? path.join('gen','pg') : path.join('gen', 'pg')
-  }
-
-  async clean() {
-    await rimraf(this.task.dest)
-  }
 
   async build() {
     const model = await this.model()
-    if (!model) {
-      return
-    }
+    if (!model) return
 
     const promises = []
     promises.push(this.write({
