@@ -14,7 +14,7 @@ jobs:
       - uses: google-github-actions/release-please-action@v3
         id: release
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{secrets.CDS_DBS_TOKEN}}
           command: manifest
           monorepo-tags: true
       # The logic below handles the npm publication:
