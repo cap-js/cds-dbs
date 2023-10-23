@@ -1,16 +1,8 @@
 const cds = require('@sap/cds')
 
-let BuildPlugin
-try {
-  ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
-} catch (e) {
-  if (e.code === 'ENOTFOUND') throw `No build plugin mechanism for @sap/cds-dk found. Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk@^7.3.1'`
-  else throw e
-}
-
 const { fs, path } = cds.utils
 
-module.exports = class PostgresBuildPlugin extends BuildPlugin {
+module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
 
   async build() {
     const model = await this.model()
