@@ -74,7 +74,13 @@ jobs:
           IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
 
       # testing
-      - run: npm test -w hana -- --maxWorkers=1
+      - run: OLD_HANA=1 npm test -w hana -- --maxWorkers=1 sflight.test.js
+        env:
+          FORCE_COLOR: true
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+
+      - run: npm test -w hana -- --maxWorkers=1 sflight.test.js
         env:
           FORCE_COLOR: true
           TAG: ${{ steps.find-hxe.outputs.TAG }}
