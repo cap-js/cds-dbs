@@ -995,8 +995,8 @@ class HANAService extends SQLService {
       if (clean) {
         await this.dbc.exec(`ALTER SYSTEM STOP SQLSCRIPT PLAN PROFILER;`)
       } else {
-        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'threshold_duration') = '0' WITH RECONFIGURE;`).catch(e => { debugger })
-        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'enable') = 'false' WITH RECONFIGURE;`).catch(e => { debugger })
+        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'threshold_duration') = '0' WITH RECONFIGURE;`)
+        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'enable') = 'false' WITH RECONFIGURE;`)
         await this.dbc.exec(`ALTER SYSTEM CLEAR SQLSCRIPT PLAN PROFILER;`)
         await this.dbc.exec(`ALTER SYSTEM STOP SQLSCRIPT PLAN PROFILER;`)
       }
