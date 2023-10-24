@@ -8,6 +8,7 @@ class HANADriver {
    */
   constructor(creds) {
     this._creds = creds
+    this._cache = {}
     this.connected = false
   }
 
@@ -17,7 +18,7 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(
+    const prep = this._cache[sql] = this._cache[sql] || prom(
       this._native,
       'prepare',
     )(sql).then(stmt => {
@@ -86,6 +87,7 @@ class HANADriver {
    * @returns {Promise<any>} The result from the database driver
    */
   async exec(sql) {
+    // return (await this.prepare(sql)).all([])
     await this.connected
     return prom(this._native, 'exec')(sql)
   }
@@ -113,6 +115,7 @@ class HANADriver {
   async connect() {
     this.connected = prom(this._native, 'connect')(this._creds)
     return this.connected.then(async () => {
+      if(this._creds.schema) await prom(this._native, 'exec')(`SET SCHEMA ${this._creds.schema}`)
       const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
       const split = version[0].VERSION.split('.')
       this.server = {

@@ -242,10 +242,22 @@ const _getDeepQueries = (diff, target, root = false) => {
     queries.push(...subQueries)
   }
 
-  queries.forEach(q => {
-    Object.defineProperty(q, handledDeep, { value: true })
-  })
+  const inserts = {}
   return queries
+    .map(q => {
+      Object.defineProperty(q, handledDeep, { value: true })
+      if (q.INSERT) {
+        const duplicate = inserts[q.INSERT.into]
+        if (!duplicate) {
+          inserts[q.INSERT.into] = q
+          return q
+        }
+        duplicate.INSERT.entries.push(...q.INSERT.entries)
+        return null
+      }
+      return q
+    })
+    .filter(q => q)
 }
 
 module.exports = {

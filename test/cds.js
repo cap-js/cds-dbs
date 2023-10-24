@@ -100,11 +100,34 @@ module.exports.test = Object.setPrototypeOf(function () {
       ret.data._deployed = cds.deploy(cds.options?.from?.[0] || '*')
       await ret.data._deployed
     }
+
+    const oldHANA = process.env.OLD_HANA === '1'
+    if (oldHANA) {
+      const model = cds.db.model
+
+      delete cds.services._pending.db
+      delete cds.services.db
+      delete cds.db
+      delete cds.model
+      global.cds.resolve.cache = {}
+
+      delete cds.requires.db.impl
+      cds.requires.db.kind = 'hana'
+      cds.requires.db.credentials = ret.credentials
+
+      const db = await cds.connect.to('db')
+      db.model = model
+    }
   })
 
   global.afterAll(async () => {
     // Clean database connection pool
-    await cds.db?.disconnect?.()
+    await cds.disconnect?.()
+
+    if (ret.data._autoIsolation) {
+      // Create new tenant isolation in database
+      await cds.db?.tenant?.(isolate, true)
+    }
 
     // Clean cache
     delete cds.services._pending.db
