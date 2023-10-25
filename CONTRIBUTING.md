@@ -47,7 +47,7 @@ Our commit messages use a simplified form of [conventional commits](https://www.
 [body]
 ```
 
-### Commit type prefixes≥
+### Commit type prefixes
 
 The `type` can be any of `feat`, `fix` or `chore`.
 
