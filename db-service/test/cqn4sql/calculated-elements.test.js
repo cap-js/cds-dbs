@@ -63,7 +63,7 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-  it('calc elem is function', () => {
+  it('calc elem is xpr with multiple functions as args', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeNativePG }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
       left join booksCalc.Authors as author on author.ID = Books.author_ID
