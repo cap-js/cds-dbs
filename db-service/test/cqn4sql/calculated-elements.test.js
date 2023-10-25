@@ -63,7 +63,7 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
-  it.only('calc elem is function', () => {
+  it('calc elem is function', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeNativePG }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
       left join booksCalc.Authors as author on author.ID = Books.author_ID
@@ -444,7 +444,8 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath) as authorAgeNativePG
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -476,7 +477,8 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath) as authorAgeNativePG
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -508,7 +510,8 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath) as authorAgeNativePG
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -691,7 +694,8 @@ describe('Unfolding calculated elements in select list', () => {
           (author2.firstName || ' ' || author2.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
 
-          years_between( author2.sortCode, author2.sortCode ) as authorAge
+          years_between( author2.sortCode, author2.sortCode ) as authorAge,
+          DATE_PART('year', author2.dateOfBirth) - DATE_PART('year', author2.dateOfDeath) as authorAgeNativePG
         } where Authors.ID = books.author_ID
       ) as books
     }`
@@ -732,7 +736,8 @@ describe('Unfolding calculated elements in select list', () => {
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
 
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath) as authorAgeNativePG
         } where Authors.ID = books.author_ID
       ) as books
     }`
