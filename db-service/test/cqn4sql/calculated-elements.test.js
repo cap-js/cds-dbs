@@ -63,6 +63,16 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it.only('calc elem is function', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeNativePG }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath) as authorAgeNativePG
+      }`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem is function, nested in direct expression', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle || title as f }`, model)

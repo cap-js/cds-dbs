@@ -887,6 +887,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 }
               })
               mergePathIfNecessary(subPath, step)
+            } else if(step.args) {
+              step.args.forEach(a => mergePathsIntoJoinTree(a))
             }
           })
         }

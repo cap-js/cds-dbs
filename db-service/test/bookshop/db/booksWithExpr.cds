@@ -32,10 +32,12 @@ entity Books {
   authorAdrText = author.addressText;
 
   authorAge: Integer = years_between( author.sortCode, author.sortCode );
+  authorAgeNativePG: Integer = DATE_PART('year', author.dateOfBirth) - DATE_PART('year', author.dateOfDeath);
 }
 
 entity Authors {
   key ID : Integer;
+
   firstName : String;
   lastName : String;
   
