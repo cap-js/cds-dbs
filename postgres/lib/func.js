@@ -1,5 +1,5 @@
 const session = require('./session.json')
-const cds = require('../../cds')
+const cds = require('@sap/cds/lib')
 
 const StandardFunctions = {
   session_context: x => {
@@ -14,48 +14,29 @@ const StandardFunctions = {
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,  
 
   // Date and Time Functions
-  year: x => {
-    if (isTime(x.val)) throw new cds.error ({
-      message: `Is time but date expected`,
-      code: 400,
-    })
-    return `date_part('year',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
-  },
-  month: x => {
-    if (isTime(x.val)) throw new cds.error ({
-      message: `Is time but date expected`,
-      code: 400,
-    })
-    return `date_part('month',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
-  },
-  day: x => {
-    if (isTime(x.val)) throw new cds.error ({
-      message: `Is time but date expected`,
-      code: 400,
-    })
-    return `date_part('day',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
-  },
-  hour: x => {
-    if (isDate(x.val)) throw new cds.error ({
+  year: x => getTimePart(x, 'year'),
+  month: x => getTimePart(x, 'month'),
+  day: x => getTimePart(x, 'day'),
+  hour: x => getTimePart(x, 'hour'),
+  minute: x => getTimePart(x, 'minute'),
+  second: x => getTimePart(x, 'second'),
+}
+
+const getTimePart = (x, part) => {
+  if ((part === 'hour' || part === 'minute' || part === 'second') && isDate(x.val)) {
+    throw new cds.error({
       message: 'Is date but time expected',
       code: 400,
     })
-    return `date_part('hour',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
-  },
-  minute: x => {
-    if (isDate(x.val)) throw new cds.error ({
-      message: 'Is date but time expected',
+  }
+  if ((part === 'year' || part === 'month' || part === 'day') && isTime(x.val)) {
+    throw new cds.error({
+      message: 'Is time but date expected',
       code: 400,
     })
-    return `date_part('minute',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
-  },
-  second: x => {
-    if (isDate(x.val)) throw new cds.error ({
-      message: 'Is date but time expected',
-      code: 400,
-    })
-    return `date_part('second',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
-  },
+  }
+  const castType = !x.val ? '' : isTime(x.val) ? '::TIME' : '::TIMESTAMP'
+  return `date_part('${part}', ${`${x}${castType}`})`
 }
 
 function isTime(input) {
