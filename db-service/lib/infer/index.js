@@ -873,20 +873,26 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
           mergePathIfNecessary(basePath, arg)
-        } else if (arg.xpr) {
-          arg.xpr.forEach(step => {
+        } else if (arg.xpr || arg.args) {
+          const prop = arg.xpr ? 'xpr' : 'args'
+          arg[prop].forEach(step => {
+            const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
             if (step.ref) {
-              const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               step.$refLinks.forEach((link, i) => {
                 const { definition } = link
                 if (definition.value) {
-                  mergePathsIntoJoinTree(definition.value)
+                  mergePathsIntoJoinTree(definition.value, subPath)
                 } else {
                   subPath.$refLinks.push(link)
                   subPath.ref.push(step.ref[i])
                 }
               })
               mergePathIfNecessary(subPath, step)
+            } else if (step.args || step.xpr) {
+              const nestedProp  = step.xpr ? 'xpr' : 'args'
+              step[nestedProp].forEach(a => {
+                mergePathsIntoJoinTree(a, subPath)
+              })
             }
           })
         }
