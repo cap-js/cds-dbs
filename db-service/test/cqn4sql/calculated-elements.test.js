@@ -73,6 +73,18 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('calc elem is xpr with multiple functions as args - back and forth', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.books.authorAgeNativePG }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      left join booksCalc.Books as books2 on books2.author_ID = author.ID
+      left join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+      {
+        Books.ID,
+        DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) as author_books_authorAgeNativePG
+      }`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem is function, nested in direct expression', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle || title as f }`, model)
@@ -629,9 +641,9 @@ describe('Unfolding calculated elements in select list', () => {
   it('exists cannot leverage calculated elements w/ path expressions', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
-    expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model)).to.throw(
-      'Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”',
-    )
+    expect(() =>
+      cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model),
+    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”')
   })
 
   it('exists cannot leverage calculated elements in CASE', () => {
