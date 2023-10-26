@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET } = cds.test(bookshop)
+ const { expect, GET } = cds.test(bookshop)  
 
   describe('String Functions', () => {
     test('concat', async () => {
@@ -155,6 +155,82 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Date and Time Functions', () => {
+
+    const testCases = [
+      { value: '1970-03-30T01:01:01.000Z', expectedResultPostgres: 5, expectedResult: 5 },
+      { value: 'foo', expectedResultPostgres: `invalid input syntax for type timestamp: "foo"`, expectedResult: 0, },
+    ]
+
+    const testCasesYearMonthDay = [
+      { value: '1970-03-30', expectedResultPostgres: 5, expectedResult: 5 },
+      { value: '03/30/1970', expectedResultPostgres: 5, expectedResult: 0 },
+      { value: '03.30.1970', expectedResultPostgres: 5, expectedResult: 0 },
+      { value: '01:01:01', expectedResultPostgres: `Is time but date expected`, expectedResult: 0 },
+      { value: '1:1:1', expectedResultPostgres: `Is time but date expected`, expectedResult: 0 },
+    ]
+
+    const testCasesHourMinuteSecond = [
+      { value: '1970-03-30', expectedResultPostgres: `Is date but time expected`, expectedResult: 0 },
+      { value: '03/30/1970', expectedResultPostgres: `Is date but time expected`, expectedResult: 0 },
+      { value: '03.30.1970', expectedResultPostgres: `Is date but time expected`, expectedResult: 0 },
+      { value: '01:01:01', expectedResultPostgres: 5, expectedResult: 5 },
+      { value: '1:1:1', expectedResultPostgres: 5, expectedResult: 0 },
+    ]
+
+    test.each([...testCases, ...testCasesYearMonthDay])('where day', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `day(${value}) = 30`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
+    test.each([...testCases, ...testCasesYearMonthDay])('where month', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `month(${value}) = 3`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
+    test.each([...testCases, ...testCasesYearMonthDay])('where year', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `year(${value}) = 1970`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `hour(${value}) = 1`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `minute(${value}) = 1`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where second', async ({ value, expectedResult, expectedResultPostgres }) => {
+      try {
+        const res = await SELECT.from('sap_capire_bookshop_Books').where `second(${value}) = 1`
+        expect(res.length).to.be.eq(cds.env.requires.db.dialect === 'postgres' ? expectedResultPostgres : expectedResult)
+      } catch (e) {
+        expect(e.message).to.be.eq(expectedResultPostgres ? expectedResultPostgres : expectedResult)
+      }      
+    })
+
     // REVISIT: does not seem database relevant
     test.skip('date', () => {})
     test('day', async () => {

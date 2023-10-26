@@ -9,6 +9,7 @@
 ### Fixed
 
 - `cds build`-relevant files are now correctly packaged into the release. #266
+- The time functions are now correctly casted
 
 ## Version 1.3.0 - 2023-10-06
 

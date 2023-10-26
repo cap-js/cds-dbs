@@ -1,4 +1,5 @@
 const session = require('./session.json')
+const cds = require('../../cds')
 
 const StandardFunctions = {
   session_context: x => {
@@ -10,16 +11,63 @@ const StandardFunctions = {
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
-  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
+  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,  
 
   // Date and Time Functions
-  year: x => `date_part('year',(${x})::TIMESTAMP)`,
-  month: x => `date_part('month',(${x})::TIMESTAMP)`,
-  day: x => `date_part('day',(${x})::TIMESTAMP)`,
-  hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
-  minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
-  second: x => `date_part('second',(${x})::TIMESTAMP)`,
+  year: x => {
+    if (isTime(x.val)) throw new cds.error ({
+      message: `Is time but date expected`,
+      code: 400,
+    })
+    return `date_part('year',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
+  },
+  month: x => {
+    if (isTime(x.val)) throw new cds.error ({
+      message: `Is time but date expected`,
+      code: 400,
+    })
+    return `date_part('month',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
+  },
+  day: x => {
+    if (isTime(x.val)) throw new cds.error ({
+      message: `Is time but date expected`,
+      code: 400,
+    })
+    return `date_part('day',${`${x}${!x.val ? '' : '::TIMESTAMP' }`})`
+  },
+  hour: x => {
+    if (isDate(x.val)) throw new cds.error ({
+      message: 'Is date but time expected',
+      code: 400,
+    })
+    return `date_part('hour',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
+  },
+  minute: x => {
+    if (isDate(x.val)) throw new cds.error ({
+      message: 'Is date but time expected',
+      code: 400,
+    })
+    return `date_part('minute',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
+  },
+  second: x => {
+    if (isDate(x.val)) throw new cds.error ({
+      message: 'Is date but time expected',
+      code: 400,
+    })
+    return `date_part('second',${`${x}${!x.val ? '' : (isTime(x.val) ? '::TIME' : '::TIMESTAMP') }`})`
+  },
 }
+
+function isTime(input) {
+  const timePattern = /^(?:\d{2}|\d{1}):(\d{2}|\d{1}):(\d{2}|\d{1})$/
+  return timePattern.test(input)
+}
+
+function isDate(input) {
+  const datePattern = /^(?:(\d{2}|\d{1})\/(\d{2}|\d{1})\/(\d{4})|(\d{2}|\d{1})\.(\d{2}|\d{1})\.(\d{4})|(\d{4})-(\d{2}|\d{1})-(\d{2}|\d{1}))$/
+  return datePattern.test(input)
+}
+
 
 const HANAFunctions = {
   // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
