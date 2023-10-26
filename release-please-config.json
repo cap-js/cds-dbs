@@ -20,6 +20,11 @@
       "type": "deps",
       "section": "Changed",
       "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements",
+      "hidden": false
     }
   ]
 }
