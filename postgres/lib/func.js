@@ -25,14 +25,12 @@ const StandardFunctions = {
 const getTimePart = (x, part) => {
   if ((part === 'hour' || part === 'minute' || part === 'second') && isDate(x.val)) {
     throw new cds.error({
-      message: 'Is date but time expected',
-      code: 400,
+      message: 'Is date but time expected'
     })
   }
   if ((part === 'year' || part === 'month' || part === 'day') && isTime(x.val)) {
     throw new cds.error({
-      message: 'Is time but date expected',
-      code: 400,
+      message: 'Is time but date expected'
     })
   }
   const castType = !x.val ? '' : isTime(x.val) ? '::TIME' : '::TIMESTAMP'
