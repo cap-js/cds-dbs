@@ -33,6 +33,9 @@ entity Books {
 
   authorAge: Integer = years_between( author.sortCode, author.sortCode );
   authorAgeNativePG: Integer = DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth);
+  
+  // calculated element is `xpr` which has subsequent `xpr`
+  authorAgeInDogYears: Integer = ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7;
 }
 
 entity Authors {

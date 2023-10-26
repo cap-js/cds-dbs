@@ -73,6 +73,16 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('calc elem is xpr with nested xpr which has multiple functions as args', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeInDogYears }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
+      }`
+    expect(query).to.deep.equal(expected)
+  })
   it('calc elem is xpr with multiple functions as args - back and forth', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.books.authorAgeNativePG }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books
@@ -457,7 +467,9 @@ describe('Unfolding calculated elements in select list', () => {
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
           years_between( author.sortCode, author.sortCode ) as authorAge,
-          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -490,7 +502,9 @@ describe('Unfolding calculated elements in select list', () => {
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
           years_between( author.sortCode, author.sortCode ) as authorAge,
-          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -523,7 +537,9 @@ describe('Unfolding calculated elements in select list', () => {
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
           years_between( author.sortCode, author.sortCode ) as authorAge,
-          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -707,7 +723,9 @@ describe('Unfolding calculated elements in select list', () => {
           address.street || ', ' || address.city as authorAdrText,
 
           years_between( author2.sortCode, author2.sortCode ) as authorAge,
-          DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) as authorAgeNativePG
+          DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) ) * 7 as authorAgeInDogYears
         } where Authors.ID = books.author_ID
       ) as books
     }`
@@ -749,7 +767,9 @@ describe('Unfolding calculated elements in select list', () => {
           address.street || ', ' || address.city as authorAdrText,
 
           years_between( author.sortCode, author.sortCode ) as authorAge,
-          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         } where Authors.ID = books.author_ID
       ) as books
     }`
