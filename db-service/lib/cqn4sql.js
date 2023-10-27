@@ -99,9 +99,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (inferred.UPDATE) {
           const subquery = {
             SELECT: {
-              from: {
-                ref: transformedFrom.ref,
-              },
+              from: transformedFrom,
               columns: [{ val: 1 }],
               where: [...inferred.UPDATE.where],
             },
