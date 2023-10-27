@@ -681,6 +681,8 @@ class HANAService extends SQLService {
     }
 
     having(xpr) {
+      return this.xpr({ xpr }, ' = TRUE')
+    }
 
 
     xpr({ xpr, _internal }, caseSuffix = '') {
