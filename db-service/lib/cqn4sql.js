@@ -96,17 +96,21 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       if (queryNeedsJoins) {
-        if (inferred.UPDATE) {
+        if (inferred.UPDATE || inferred.DELETE) {
+          const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
           const subquery = {
             SELECT: {
               from: transformedFrom,
               columns: [{ val: 1 }],
-              where: [...inferred.UPDATE.where],
+              where: [...transformedProp.where],
             },
           }
           const transformedSubquery = cqn4sql(subquery)
-          transformedQuery.UPDATE.where = ['exists', transformedSubquery]
-          transformedQuery.UPDATE.entity = transformedFrom
+          transformedQuery[prop].where = ['exists', transformedSubquery]
+          if(prop === 'UPDATE')
+            transformedQuery.UPDATE.entity = transformedFrom
+          else
+            transformedQuery.DELETE.from = transformedFrom
         } else {
           transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
         }
