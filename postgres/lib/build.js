@@ -1,8 +1,11 @@
 const cds = require('@sap/cds')
-
 const { fs, path } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
+
+  static hasTask() {
+    return cds.requires.db?.kind === 'postgres'
+  }
 
   async build() {
     const model = await this.model()
