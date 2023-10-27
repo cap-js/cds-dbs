@@ -25,12 +25,12 @@ const StandardFunctions = {
 const getTimePart = (x, part) => {
   if ((part === 'hour' || part === 'minute' || part === 'second') && isDate(x.val)) {
     throw new cds.error({
-      message: 'Is date but time expected'
+      message: 'Expected "time" but found "date"'
     })
   }
   if ((part === 'year' || part === 'month' || part === 'day') && isTime(x.val)) {
     throw new cds.error({
-      message: 'Is time but date expected'
+      message: 'Expected "date" but found "time"'
     })
   }
   const castType = !x.val ? '' : isTime(x.val) ? '::TIME' : '::TIMESTAMP'
@@ -38,12 +38,13 @@ const getTimePart = (x, part) => {
 }
 
 function isTime(input) {
-  const timePattern = /^(?:\d{2}|\d{1}):(\d{2}|\d{1}):(\d{2}|\d{1})$/
+  const timePattern = /^\d{1,2}:d{1,2}:d{1,2}$/
   return timePattern.test(input)
 }
 
 function isDate(input) {
-  const datePattern = /^(?:(\d{2}|\d{1})\/(\d{2}|\d{1})\/(\d{4})|(\d{2}|\d{1})\.(\d{2}|\d{1})\.(\d{4})|(\d{4})-(\d{2}|\d{1})-(\d{2}|\d{1}))$/
+  //const datePattern = /^(?:(\d{2}|\d{1})\/(\d{2}|\d{1})\/(\d{4})|(\d{2}|\d{1})\.(\d{2}|\d{1})\.(\d{4})|(\d{4})-(\d{2}|\d{1})-(\d{2}|\d{1}))$/
+  const datePattern = /^\d{1,4}-\d{1,2}-\d{1,2}$/
   return datePattern.test(input)
 }
 
