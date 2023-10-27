@@ -70,17 +70,52 @@ describe('UPDATE', () => {
     })
   })
 
-  // we do not really understand a token stream such as a where clause,
-  // hence we cannot easily rewrite a path expression into a `where exists` subquery
-  // for the moment, we should issue a proper error instead of dumping.
-  it('Update with join clause is rejected', () => {
+  it('Update with path expressions in where is handled', () => {
     const { UPDATE } = cds.ql
-    let u = UPDATE.entity('bookshop.Books').where(
+    let u = UPDATE.entity({ ref: ['bookshop.Books'] }).where(
       `author.name LIKE '%Bron%' or ( author.name LIKE '%King' and title = 'The Dark Tower') and stock >= 15`,
     )
-    expect(() => cqn4sql(u)).to.throw(
-      'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
+    // this is how it looks internally in cqn4sql before the subquery is transformed
+    let intermediate = UPDATE.entity('bookshop.Books').where(`
+      exists (SELECT 1 from bookshop.Books as Books
+              where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and title = 'The Dark Tower') and stock >= 15
+            )
+    `)
+    let expected = UPDATE.entity({ ref: ['bookshop.Books'] }).where(`
+    exists (SELECT 1 from bookshop.Books as Books
+              left join bookshop.Authors as author on author.ID = Books.author_ID
+              where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15
+            )
+  `)
+    expected.UPDATE.entity = {
+      as: 'Books',
+      ref: [
+        'bookshop.Books'
+      ]
+    }
+    let res = cqn4sql(u)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+  it('Update with path expressions to many', () => {
+    const { UPDATE } = cds.ql
+    let u = UPDATE.entity({ ref: ['bookshop.Authors'] }).where(
+      `books.title LIKE '%Heights%'`,
     )
+
+    let expected = UPDATE.entity({ ref: ['bookshop.Authors'] }).where(`
+    exists (SELECT 1 from bookshop.Authors as Authors
+              left join bookshop.Books as books on books.author_ID = Authors.ID
+              where books.title LIKE '%Heights%'
+            )
+  `)
+    expected.UPDATE.entity = {
+      as: 'Authors',
+      ref: [
+        'bookshop.Authors'
+      ]
+    }
+    let res = cqn4sql(u)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 
   // table alias in subquery should address Books instead of bookshop.Books

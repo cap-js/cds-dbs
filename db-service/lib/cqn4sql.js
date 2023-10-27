@@ -96,7 +96,22 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       if (queryNeedsJoins) {
-        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+        if (inferred.UPDATE) {
+          const subquery = {
+            SELECT: {
+              from: {
+                ref: transformedFrom.ref,
+              },
+              columns: [{ val: 1 }],
+              where: [...inferred.UPDATE.where],
+            },
+          }
+          const transformedSubquery = cqn4sql(subquery)
+          transformedQuery.UPDATE.where = ['exists', transformedSubquery]
+          transformedQuery.UPDATE.entity = transformedFrom
+        } else {
+          transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+        }
       }
     }
   }
