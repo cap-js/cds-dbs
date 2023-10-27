@@ -8,6 +8,7 @@ class HANADriver {
    */
   constructor(creds) {
     this._creds = creds
+    this._cache = {}
     this.connected = false
   }
 
@@ -17,7 +18,7 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(
+    const prep = this._cache[sql] = this._cache[sql] || prom(
       this._native,
       'prepare',
     )(sql).then(stmt => {
