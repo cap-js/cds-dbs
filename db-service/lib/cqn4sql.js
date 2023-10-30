@@ -98,19 +98,30 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (queryNeedsJoins) {
         if (inferred.UPDATE || inferred.DELETE) {
           const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
+          const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
           const subquery = {
             SELECT: {
-              from: transformedFrom,
+              from: { ...transformedFrom },
               columns: [{ val: 1 }],
               where: [...transformedProp.where],
             },
           }
+          // outer query gets new alias, so that we don't have to replace
+          // references to the table alias in the subquery
+          transformedFrom.as = uniqueSubqueryAlias
+          const queryTarget = Object.values(originalQuery.sources)[0]
+          const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
+          const correlation = { xpr: [] }
+          keys.forEach(k => {
+            correlation.xpr.push(
+              ...[{ ref: [transformedFrom.as, k.name] }, '=', { ref: [subquery.SELECT.from.as, k.name] }],
+            )
+          })
           const transformedSubquery = cqn4sql(subquery)
+          transformedSubquery.SELECT.where.push(...['and', correlation])
           transformedQuery[prop].where = ['exists', transformedSubquery]
-          if(prop === 'UPDATE')
-            transformedQuery.UPDATE.entity = transformedFrom
-          else
-            transformedQuery.DELETE.from = transformedFrom
+          if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
+          else transformedQuery.DELETE.from = transformedFrom
         } else {
           transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
         }

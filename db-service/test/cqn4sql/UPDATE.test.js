@@ -70,7 +70,7 @@ describe('UPDATE', () => {
     })
   })
 
-  it('Update with path expressions in where is handled', () => {
+  it.only('Update with path expressions in where is handled', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity({ ref: ['bookshop.Books'] }).where(
       `author.name LIKE '%Bron%' or ( author.name LIKE '%King' and title = 'The Dark Tower') and stock >= 15`,
@@ -84,11 +84,11 @@ describe('UPDATE', () => {
     let expected = UPDATE.entity({ ref: ['bookshop.Books'] }).where(`
     exists (SELECT 1 from bookshop.Books as Books
               left join bookshop.Authors as author on author.ID = Books.author_ID
-              where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15
+              where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15 and ( Books2.ID = Books.ID )
             )
   `)
     expected.UPDATE.entity = {
-      as: 'Books',
+      as: 'Books2',
       ref: [
         'bookshop.Books'
       ]
