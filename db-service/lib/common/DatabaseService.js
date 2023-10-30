@@ -6,6 +6,12 @@ const cds = require('@sap/cds/lib')
 /** @typedef {unknown} DatabaseDriver */
 
 class DatabaseService extends cds.Service {
+
+  init() {
+    cds.on('shutdown', () => this.disconnect())
+    return super.init()
+  }
+
   /**
    * Dictionary of connection pools per tenant
    */
