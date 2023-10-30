@@ -77,7 +77,7 @@ describe('DELETE', () => {
 
     // this is the final exists subquery
     const subquery = CQL`
-     SELECT 1 from bookshop.Authors as author
+     SELECT author.ID from bookshop.Authors as author
       left join bookshop.Books as books on books.author_ID = author.ID
      where exists (
       SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = author.ID
@@ -89,11 +89,21 @@ describe('DELETE', () => {
             "ref": [
               "bookshop.Authors"
             ],
-            "as": "author"
+            "as": "author2"
           }
         }
       }`)
-    expected.DELETE.where = ['exists', subquery]
+    expected.DELETE.where = [
+      {
+        list: [
+          {
+            ref: ['author2', 'ID'],
+          },
+        ],
+      },
+      'in',
+      subquery,
+    ]
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
 

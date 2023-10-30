@@ -102,7 +102,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           const subquery = {
             SELECT: {
               from: { ...transformedFrom },
-              columns: [{ val: 1 }],
+              columns: [],
               where: [...transformedProp.where],
             },
           }
@@ -111,15 +111,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           transformedFrom.as = uniqueSubqueryAlias
           const queryTarget = Object.values(originalQuery.sources)[0]
           const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
-          const correlation = { xpr: [] }
+          const primaryKey = { list: [] }
           keys.forEach(k => {
-            correlation.xpr.push(
-              ...[{ ref: [transformedFrom.as, k.name] }, '=', { ref: [subquery.SELECT.from.as, k.name] }],
-            )
+            subquery.SELECT.columns.push({ ref: [k.name] })
+            primaryKey.list.push({ ref: [uniqueSubqueryAlias, k.name] })
           })
           const transformedSubquery = cqn4sql(subquery)
-          transformedSubquery.SELECT.where.push(...['and', correlation])
-          transformedQuery[prop].where = ['exists', transformedSubquery]
+          transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
           if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
           else transformedQuery.DELETE.from = transformedFrom
         } else {
