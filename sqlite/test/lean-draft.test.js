@@ -261,11 +261,11 @@ describe('draft tests', () => {
     )
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
-      BeginDate: '2022-07-29',
+      BeginDate: '2023-08-04',
       BookingFee: 90,
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
-      EndDate: '2023-05-26',
+      EndDate: '2024-05-31',
       HasActiveEntity: true,
       // TotalPrice: 5624,
       // TravelID: 32,
@@ -373,11 +373,11 @@ describe('draft tests', () => {
     )
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
-      BeginDate: '2022-07-29',
+      BeginDate: '2023-08-04',
       BookingFee: 90,
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
-      EndDate: '2023-05-26',
+      EndDate: '2024-05-31',
       TotalPrice: 5624,
       TravelID: 32,
       TravelStatus_code: 'O',
@@ -454,11 +454,11 @@ describe('draft tests', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
-      BeginDate: '2023-05-25',
+      BeginDate: '2024-05-30',
       BookingFee: 20,
       CurrencyCode_code: 'USD',
       Description: 'Sightseeing in New York City, New York',
-      EndDate: '2023-05-25',
+      EndDate: '2024-05-30',
       TotalPrice: 7375,
       TravelID: 4133,
       TravelStatus_code: 'A',
@@ -517,11 +517,11 @@ describe('draft tests', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
-      BeginDate: '2022-07-29',
+      BeginDate: '2023-08-04',
       BookingFee: 20,
       CurrencyCode_code: 'USD',
       Description: 'Business Trip for Christine, Pierre',
-      EndDate: '2022-07-29',
+      EndDate: '2023-08-04',
       TotalPrice: 900,
       TravelID: 1,
       TravelStatus_code: 'O',
@@ -592,13 +592,13 @@ describe('draft tests', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
-      BookingDate: '2023-05-08',
+      BookingDate: '2024-05-13',
       BookingID: 1,
       BookingStatus_code: 'N',
       BookingUUID: '3A997221A8E4645C17002DF03754AB66',
       ConnectionID: '0018',
       CurrencyCode_code: 'USD',
-      FlightDate: '2023-05-25',
+      FlightDate: '2024-05-30',
       FlightPrice: 3657,
       to_Carrier_AirlineID: 'GA',
       to_Customer_CustomerID: '000115',
