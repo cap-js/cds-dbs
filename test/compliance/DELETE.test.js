@@ -12,7 +12,7 @@ describe('DELETE', () => {
   })
 
   describe('where', () => {
-    test.skip('path expressions', async () => {
+    test('path expressions', async () => {
       const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
       const selectEmilysBooks = CQL`SELECT * FROM sap.capire.bookshop.Books where author.name = 'Emily Brontë'`
 
