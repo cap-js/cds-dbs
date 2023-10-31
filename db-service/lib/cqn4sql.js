@@ -101,7 +101,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           const subquery = {
             SELECT: {
               from: { ...transformedFrom },
-              columns: [], // we will add the primary keys of the query target as columns
+              columns: [], // primary keys of the query target will be added later
               where: [...transformedProp.where],
             },
           }
