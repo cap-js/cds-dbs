@@ -680,10 +680,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
           : column
         if (isColumnJoinRelevant(colWithBase)) {
-          if (originalQuery.UPDATE)
-            throw new Error(
-              'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
-            )
           Object.defineProperty(column, 'isJoinRelevant', { value: true })
           joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
         }
