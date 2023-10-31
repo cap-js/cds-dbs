@@ -98,26 +98,39 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (queryNeedsJoins) {
         if (inferred.UPDATE || inferred.DELETE) {
           const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
-          const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
           const subquery = {
             SELECT: {
               from: { ...transformedFrom },
-              columns: [],
+              columns: [], // primary keys of the query target will be added later
               where: [...transformedProp.where],
             },
           }
-          // outer query gets new alias, so that we don't have to replace
-          // references to the table alias in the subquery
+          // The alias of the original query is now the alias for the subquery
+          // so that potential references in the where clause to the alias match.
+          // Hence, replace the alias of the original query with the next
+          // available alias, so that each alias is unique.
+          const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
           transformedFrom.as = uniqueSubqueryAlias
+
+          // calculate the primary keys of the target entity, there is always exactly
+          // one query source for UPDATE / DELETE
           const queryTarget = Object.values(originalQuery.sources)[0]
           const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
           const primaryKey = { list: [] }
           keys.forEach(k => {
+            // cqn4sql will add the table alias to the column later, no need to add it here
             subquery.SELECT.columns.push({ ref: [k.name] })
-            primaryKey.list.push({ ref: [uniqueSubqueryAlias, k.name] })
+
+            // add the alias of the main query to the list of primary key references
+            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
           })
+
           const transformedSubquery = cqn4sql(subquery)
+
+          // replace where condition of original query with the transformed subquery
+          // correlate UPDATE / DELETE query with subquery by primary key matches
           transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
+
           if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
           else transformedQuery.DELETE.from = transformedFrom
         } else {
