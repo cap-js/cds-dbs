@@ -1,7 +1,6 @@
 'use strict'
 
 const cds = require('../cds.js')
-const assert = require('assert')
 
 describe('DELETE', () => {
   cds.test(__dirname + '/../bookshop')
