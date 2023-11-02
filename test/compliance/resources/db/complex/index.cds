@@ -12,9 +12,9 @@ entity Authors {
   books  : Association to many Books on books.author = $self;
 }
 
-  @cds.redirection.target: false
-  entity RenameKeys as projection on Books {
-    key ID as foo,
-    author,
-    author.name
-  }
+@cds.redirection.target: false
+entity RenameKeys as projection on Books {
+  key ID as foo,
+  author,
+  author.name
+}
