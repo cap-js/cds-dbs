@@ -38,7 +38,7 @@ const getTimePart = (x, part) => {
 }
 
 function isTime(input) {
-  const timePattern = /^\d{1,2}:d{2}:d{2}$/
+  const timePattern = /^\d{1,2}:d{1,2}:d{1,2}$/
   return timePattern.test(input)
 }
 
