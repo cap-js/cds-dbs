@@ -203,7 +203,7 @@ describe('Bookshop - Functions', () => {
         await SELECT.from('sap_capire_bookshop_Books').where `year(${value}) = 1970`
       } catch (e) {
         reqSuccessfull = false
-        console.log(e)
+        expect(reqSuccessfull).to.be.eq(e)
       }
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
