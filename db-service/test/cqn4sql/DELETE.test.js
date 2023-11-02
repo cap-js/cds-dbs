@@ -69,6 +69,43 @@ describe('DELETE', () => {
       }`)
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
+  it('DELETE with where exists expansion and path expression', () => {
+    cds.model = cds.compile.for.nodejs(cds.model)
+    const { DELETE } = cds.ql
+    let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
+    const query = cqn4sql(d)
+
+    // this is the final exists subquery
+    const subquery = CQL`
+     SELECT author.ID from bookshop.Authors as author
+      left join bookshop.Books as books on books.author_ID = author.ID
+     where exists (
+      SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = author.ID
+     ) and books.title = 'Harry Potter'
+    `
+    const expected = JSON.parse(`{
+      "DELETE": {
+          "from": {
+            "ref": [
+              "bookshop.Authors"
+            ],
+            "as": "author2"
+          }
+        }
+      }`)
+    expected.DELETE.where = [
+      {
+        list: [
+          {
+            ref: ['author2', 'ID'],
+          },
+        ],
+      },
+      'in',
+      subquery,
+    ]
+    expect(query.DELETE).to.deep.equal(expected.DELETE)
+  })
 
   it('DELETE with assoc filter and where exists expansion', () => {
     const { DELETE } = cds.ql
@@ -76,73 +113,57 @@ describe('DELETE', () => {
     const query = cqn4sql(d)
 
     const expected = {
-      "DELETE": {
-        "from": {
-          "ref": [
-            "bookshop.AccessGroups"
-          ],
-          "as": "accessGroup"
+      DELETE: {
+        from: {
+          ref: ['bookshop.AccessGroups'],
+          as: 'accessGroup',
         },
-        "where": [
-          "exists",
+        where: [
+          'exists',
           {
-            "SELECT": {
-              "from": {
-                "ref": [
-                  "bookshop.Reproduce"
-                ],
-                "as": "Reproduce"
+            SELECT: {
+              from: {
+                ref: ['bookshop.Reproduce'],
+                as: 'Reproduce',
               },
-              "columns": [
+              columns: [
                 {
-                  "val": 1
-                }
+                  val: 1,
+                },
               ],
-              "where": [
+              where: [
                 {
-                  "ref": [
-                    "Reproduce",
-                    "accessGroup_ID"
-                  ]
+                  ref: ['Reproduce', 'accessGroup_ID'],
                 },
-                "=",
+                '=',
                 {
-                  "ref": [
-                    "accessGroup",
-                    "ID"
-                  ]
+                  ref: ['accessGroup', 'ID'],
                 },
-                "and",
+                'and',
                 {
-                  "xpr": [
+                  xpr: [
                     {
-                      "ref": [
-                        "Reproduce",
-                        "author_ID"
-                      ]
+                      ref: ['Reproduce', 'author_ID'],
                     },
-                    "=",
+                    '=',
                     {
-                      "val": null
-                    }
-                  ]
+                      val: null,
+                    },
+                  ],
                 },
-                "and",
+                'and',
                 {
-                  "ref": [
-                    "Reproduce",
-                    "ID"
-                  ]
+                  ref: ['Reproduce', 'ID'],
                 },
-                "=",
+                '=',
                 {
-                  "val": 99
-                }
-              ]
-            }
-          }
-        ]
-      }
+                  val: 99,
+                },
+              ],
+            },
+          },
+        ],
+      },
     }
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })

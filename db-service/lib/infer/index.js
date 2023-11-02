@@ -680,10 +680,6 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           ? { ref: [...baseColumn.ref, ...column.ref], $refLinks: [...baseColumn.$refLinks, ...column.$refLinks] }
           : column
         if (isColumnJoinRelevant(colWithBase)) {
-          if (originalQuery.UPDATE)
-            throw new Error(
-              'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
-            )
           Object.defineProperty(column, 'isJoinRelevant', { value: true })
           joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
         }
@@ -873,20 +869,26 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (leafOfCalculatedElementRef.value) mergePathsIntoJoinTree(leafOfCalculatedElementRef.value, basePath)
 
           mergePathIfNecessary(basePath, arg)
-        } else if (arg.xpr) {
-          arg.xpr.forEach(step => {
+        } else if (arg.xpr || arg.args) {
+          const prop = arg.xpr ? 'xpr' : 'args'
+          arg[prop].forEach(step => {
+            const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
             if (step.ref) {
-              const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               step.$refLinks.forEach((link, i) => {
                 const { definition } = link
                 if (definition.value) {
-                  mergePathsIntoJoinTree(definition.value)
+                  mergePathsIntoJoinTree(definition.value, subPath)
                 } else {
                   subPath.$refLinks.push(link)
                   subPath.ref.push(step.ref[i])
                 }
               })
               mergePathIfNecessary(subPath, step)
+            } else if (step.args || step.xpr) {
+              const nestedProp  = step.xpr ? 'xpr' : 'args'
+              step[nestedProp].forEach(a => {
+                mergePathsIntoJoinTree(a, subPath)
+              })
             }
           })
         }
