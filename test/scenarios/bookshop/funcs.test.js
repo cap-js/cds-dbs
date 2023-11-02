@@ -177,7 +177,7 @@ describe('Bookshop - Functions', () => {
       { value: '1:1:1', expectReqToSucceed: true },
     ]
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where day', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesYearMonthDay])('where day %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `day(${value}) = 30`
@@ -187,7 +187,7 @@ describe('Bookshop - Functions', () => {
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where month', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesYearMonthDay])('where month %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `month(${value}) = 3`
@@ -197,7 +197,7 @@ describe('Bookshop - Functions', () => {
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where year', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesYearMonthDay])('where year %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `year(${value}) = 1970`
@@ -207,7 +207,7 @@ describe('Bookshop - Functions', () => {
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `hour(${value}) = 1`
@@ -217,7 +217,7 @@ describe('Bookshop - Functions', () => {
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `minute(${value}) = 1`        
@@ -227,7 +227,7 @@ describe('Bookshop - Functions', () => {
       expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where second', async ({ value, expectReqToSucceed }) => {
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where second %s', async ({ value, expectReqToSucceed }) => {
       let reqSuccessfull = true
       try {
         await SELECT.from('sap_capire_bookshop_Books').where `second(${value}) = 1`
