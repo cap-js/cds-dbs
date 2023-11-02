@@ -4,7 +4,7 @@ service AdminService @(requires:'admin', path:'/admin') {
   entity Authors as projection on my.Authors;
 
   @cds.redirection.target: false
-  entity RenameKeys as projection on Books {
+  entity RenameKeys as projection on my.Books {
     key ID as foo,
     author,
     author.name
