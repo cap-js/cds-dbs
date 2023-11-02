@@ -1,5 +1,4 @@
 const session = require('./session.json')
-const cds = require('@sap/cds/lib')
 
 const StandardFunctions = {
   session_context: x => {
