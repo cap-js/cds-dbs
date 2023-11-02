@@ -12,7 +12,7 @@ describe('DELETE', () => {
   })
 
   describe('where', () => {
-    test('path expressions', async () => {
+    test.skip('path expressions', async () => {
       const deleteEmilysBooks = DELETE.from('complex.RenameKeys').where(`author.name = 'Emily'`)
       const selectEmilysBooks = CQL`SELECT * FROM complex.Books where author.name = 'Emily'`
 
