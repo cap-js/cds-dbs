@@ -3,7 +3,7 @@
 const cds = require('../cds.js')
 
 describe('DELETE', () => {
-  cds.test(__dirname + '/../bookshop')
+  cds.test(__dirname + '/resources')
 
   describe('from', () => {
     test.skip('missing', () => {
@@ -12,9 +12,9 @@ describe('DELETE', () => {
   })
 
   describe('where', () => {
-    test.skip('path expressions', async () => {
-      const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
-      const selectEmilysBooks = CQL`SELECT * FROM sap.capire.bookshop.Books where author.name = 'Emily Brontë'`
+    test('path expressions', async () => {
+      const deleteEmilysBooks = DELETE.from('complex.RenameKeys').where(`author.name = 'Emily'`)
+      const selectEmilysBooks = CQL`SELECT * FROM complex.Books where author.name = 'Emily'`
 
       const beforeDelete = await cds.run(selectEmilysBooks)
       await cds.run(deleteEmilysBooks)
