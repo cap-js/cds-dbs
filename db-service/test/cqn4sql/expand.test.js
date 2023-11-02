@@ -1374,7 +1374,7 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 
-  it.skip('wildcard expansion sql style on table alias', () => {
+  it('wildcard expansion sql style on table alias', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*}
     }`
@@ -1397,7 +1397,7 @@ describe('expand on structure part II', () => {
     }`
     expect(cqn4sql(expandQuery)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
-  it.skip('wildcard expansion sql style on table alias - exclude stuff', () => {
+  it('wildcard expansion sql style on table alias - exclude stuff', () => {
     let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
       E {*} excluding { office }
     }`
@@ -1414,5 +1414,18 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model))
       .to.eql(expected)
       .to.eql(JSON.parse(JSON.stringify(cqn4sql(regularWildcard)))) // prototype is different
+  })
+  it('wildcard expansion sql style on IMPLICIT table alias - exclude stuff', () => {
+    let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
+      {*} excluding { office } as FOO
+    }`
+    let expected = CQL`select from EmployeeNoUnmanaged as E {
+     E.FOO_id,
+     E.FOO_name,
+     E.FOO_job,
+     E.FOO_department_id
+
+    }`
+    expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
 })

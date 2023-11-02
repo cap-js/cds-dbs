@@ -1,0 +1,52 @@
+on:
+  push:
+    branches:
+      - main
+name: release-please
+jobs:
+  release-please:
+    permissions:
+        contents: write
+        pull-requests: write
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          token: ${{secrets.CDS_DBS_TOKEN}}
+          command: manifest
+          monorepo-tags: true
+      # The logic below handles the npm publication:
+      - uses: actions/checkout@v2
+        # these if statements ensure that a publication only occurs when
+        # a new release is created:
+        if: ${{ steps.release.outputs.releases_created }}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+        if: ${{ steps.release.outputs.releases_created }}
+
+      # Publish packages
+      - run: npm ci
+        if: ${{ steps.release.outputs.releases_created }}
+      - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
+        if: ${{ steps.release.outputs.releases_created }}
+      - name: Publish db-service
+        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.db-service--release_created }}
+        run: npm publish --workspace db-service --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish sqlite
+        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.sqlite--release_created }}
+        run: npm publish --workspace sqlite --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish postgres
+        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.postgres--release_created }}
+        run: npm publish --workspace postgres --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}

@@ -18,7 +18,7 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['SELECT'], this.transformStreamFromCQN)
     this.on(['UPDATE'], this.transformStreamIntoCQN)
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT: should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
@@ -79,7 +79,10 @@ class SQLService extends DatabaseService {
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
+    if (cqn.SELECT.count) {
+      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+      return SQLService._arrayWithCount(rows, await this.count(query, rows))
+    }
     return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
@@ -197,11 +200,6 @@ class SQLService extends DatabaseService {
    */
   async onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
-      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
-      // Add input converter to CURRENT_TIMESTAMP inside views using $now
-      if(/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
-        query = query.replace(/CURRENT_TIMESTAMP/gi, 'ISO(CURRENT_TIMESTAMP)')
-      }
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
@@ -256,6 +254,17 @@ class SQLService extends DatabaseService {
    * Subclasses commonly override this.
    */
   static CQN2SQL = require('./cqn2sql').class
+
+  // REVISIT: There must be a better way!
+  // preserves $count for .map calls on array
+  static _arrayWithCount = function (a, count) {
+    const _map = a.map
+    const map = function (..._) { return SQLService._arrayWithCount(_map.call(a, ..._), count) }
+    return Object.defineProperties(a, {
+      $count: { value: count, enumerable: false, configurable: true, writable: true },
+      map: { value: map, enumerable: false, configurable: true, writable: true }
+    })
+  }
 
   /** @param {unknown[]} args */
   constructor(...args) {
@@ -391,6 +400,7 @@ const _unquirked = q => {
   else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
   return q
 }
+
 
 const sqls = new class extends SQLService { get factory() { return null } }
 cds.extend(cds.ql.Query).with(
