@@ -10,7 +10,7 @@ const StandardFunctions = {
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
-  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,  
+  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
 
   // Date and Time Functions
   year: x => `date_part('year', ${getTimestampValue(x)})`,
@@ -23,16 +23,21 @@ const StandardFunctions = {
 
 const getTimeValue = (x) => {
   const castType = !x.val ? '' : isTime(x.val) ? '::TIME' : '::TIMESTAMP'
-  return `${x}${castType}`
+  return `${isString(x.val) ? 'NULL' : x}${castType}`
 }
 
 const getTimestampValue = (x) => {
   const castType = !x.val ? '' : '::TIMESTAMP'
-  return `${isTime(x.val) ? 'NULL' : x}${castType}`
+  return `${isTime(x.val) || isString(x.val) ? 'NULL' : x}${castType}`
 }
 
 function isTime(input) {
   const timePattern = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+  return timePattern.test(input)
+}
+
+function isString(input) {
+  const timePattern = /^[A-Za-z ]+$/
   return timePattern.test(input)
 }
 
