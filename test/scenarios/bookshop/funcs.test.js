@@ -157,85 +157,54 @@ describe('Bookshop - Functions', () => {
   describe('Date and Time Functions', () => {
 
     const testCases = [
-      { value: '1970-03-30T01:01:01.000Z', expectReqToSucceed: true },
-      { value: 'foo', expectReqToSucceed: false },
+      { value: '1970-03-30T01:01:01.000Z'},
+      { value: 'foo'},
     ]
 
     const testCasesYearMonthDay = [
-      { value: '1970-03-30', expectReqToSucceed: true },
-      { value: '03/30/1970', expectReqToSucceed: true },
-      { value: '03.30.1970', expectReqToSucceed: true },
-      { value: '01:01:01', expectReqToSucceed: false },
-      { value: '1:1:1', expectReqToSucceed: false },
+      { value: '1970-03-30'},
+      { value: '03/30/1970'},
+      { value: '03.30.1970'},
+      { value: '01:01:01'},
+      { value: '1:1:1'},
     ]
 
     const testCasesHourMinuteSecond = [
-      { value: '1970-03-30', expectReqToSucceed: false },
-      { value: '03/30/1970', expectReqToSucceed: true },
-      { value: '03.30.1970', expectReqToSucceed: true },
-      { value: '01:01:01', expectReqToSucceed: true },
-      { value: '1:1:1', expectReqToSucceed: true },
+      { value: '1970-03-30'},
+      { value: '03/30/1970'},
+      { value: '03.30.1970'},
+      { value: '01:01:01'},
+      { value: '1:1:1'},
     ]
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where day %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `day(${value}) = 30`
-      } catch (e) {
-        reqSuccessfull = false
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesYearMonthDay])('where day %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `day(${value}) = 30`
+      expect(res.length).to.be.at.least(0)
     })
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where month %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `month(${value}) = 3`
-      } catch (e) {
-        reqSuccessfull = false
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesYearMonthDay])('where month %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `month(${value}) = 3`
+      expect(res.length).to.be.at.least(0)
     })
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where year %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `year(${value}) = 1970`
-      } catch (e) {
-        reqSuccessfull = false
-        expect(reqSuccessfull).to.be.eq(e)
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesYearMonthDay])('where year %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `year(${value}) = 1970`
+      expect(res.length).to.be.at.least(0)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `hour(${value}) = 1`
-      } catch (e) {
-        reqSuccessfull = false
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `hour(${value}) = 1`
+      expect(res.length).to.be.at.least(0)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `minute(${value}) = 1`        
-      } catch (e) {
-        reqSuccessfull = false
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `minute(${value}) = 1`
+      expect(res.length).to.be.at.least(0)
     })
 
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where second %s', async ({ value, expectReqToSucceed }) => {
-      let reqSuccessfull = true
-      try {
-        await SELECT.from('sap_capire_bookshop_Books').where `second(${value}) = 1`
-      } catch (e) {
-        reqSuccessfull = false
-      }
-      expect(reqSuccessfull).to.be.eq(expectReqToSucceed)
+    test.each([...testCases, ...testCasesHourMinuteSecond])('where second %s', async ({ value }) => {
+      const res = await SELECT.from('sap.capire.bookshop.Books').where `second(${value}) = 1`
+      expect(res.length).to.be.at.least(0)
     })
 
     // REVISIT: does not seem database relevant

@@ -14,40 +14,28 @@ const StandardFunctions = {
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,  
 
   // Date and Time Functions
-  year: x => getTimePart(x, 'year'),
-  month: x => getTimePart(x, 'month'),
-  day: x => getTimePart(x, 'day'),
-  hour: x => getTimePart(x, 'hour'),
-  minute: x => getTimePart(x, 'minute'),
-  second: x => getTimePart(x, 'second'),
+  year: x => `date_part('year', ${getTimestampValue(x)})`,
+  month: x => `date_part('month', ${getTimestampValue(x)})`,
+  day: x => `date_part('day', ${getTimestampValue(x)})`,
+  hour: x => `date_part('hour', ${getTimeValue(x)})`,
+  minute: x => `date_part('minute', ${getTimeValue(x)})`,
+  second: x => `date_part('second', ${getTimeValue(x)})`,
 }
 
-const getTimePart = (x, part) => {
-  if ((part === 'hour' || part === 'minute' || part === 'second') && isDate(x.val)) {
-    throw new cds.error({
-      message: 'Expected "time" but found "date"'
-    })
-  }
-  if ((part === 'year' || part === 'month' || part === 'day') && isTime(x.val)) {
-    throw new cds.error({
-      message: 'Expected "date" but found "time"'
-    })
-  }
+const getTimeValue = (x) => {
   const castType = !x.val ? '' : isTime(x.val) ? '::TIME' : '::TIMESTAMP'
-  return `date_part('${part}', ${`${x}${castType}`})`
+  return `${x}${castType}`
+}
+
+const getTimestampValue = (x) => {
+  const castType = !x.val ? '' : '::TIMESTAMP'
+  return `${isTime(x.val) ? 'NULL' : x}${castType}`
 }
 
 function isTime(input) {
-  const timePattern = /^\d{1,2}:d{1,2}:d{1,2}$/
+  const timePattern = /^\d{1,2}:\d{1,2}:\d{1,2}$/
   return timePattern.test(input)
 }
-
-function isDate(input) {
-  //const datePattern = /^(?:(\d{2}|\d{1})\/(\d{2}|\d{1})\/(\d{4})|(\d{2}|\d{1})\.(\d{2}|\d{1})\.(\d{4})|(\d{4})-(\d{2}|\d{1})-(\d{2}|\d{1}))$/
-  const datePattern = /^\d{1,4}-\d{1,2}-\d{1,2}$/
-  return datePattern.test(input)
-}
-
 
 const HANAFunctions = {
   // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
