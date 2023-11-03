@@ -215,6 +215,39 @@ class HANAService extends SQLService {
     return this.dbc.exec(sql)
   }
 
+  async trace(sql, start) {
+    let hash = crypto.createHash("md5")
+    hash.update(sql)
+    hash = hash.digest('hex')
+
+    const expensive = await this.dbc.exec(`
+SELECT
+  OPERATION AS "details",
+  TO_NVARCHAR(STATEMENT_START_TIME, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as "root",
+  TO_NVARCHAR(START_TIME, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as "start",
+  TO_NVARCHAR(ADD_NANO100(START_TIME, DURATION_MICROSEC*10), 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"') as "stop"
+FROM 
+  M_EXPENSIVE_STATEMENTS
+WHERE
+  STATEMENT_EXECUTION_ID=(
+    SELECT
+      STATEMENT_EXECUTION_ID
+    FROM
+      M_EXPENSIVE_STATEMENTS
+    WHERE
+      STATEMENT_HASH='${hash}'
+    LIMIT 1
+  )`)
+    let root
+    expensive.forEach(m => {
+      root = root || new Date(m.root)
+      m.details = ['SAP HANA', '-', m.details]
+      m.start = start + (new Date(m.start) - root)
+      m.stop = start + (new Date(m.stop) - root)
+    })
+    return expensive
+  }
+
   /**
    * HDI specific deploy logic
    * @param {import('@sap/cds/apis/csn').CSN} model The CSN model to be deployed
@@ -1012,6 +1045,16 @@ class HANAService extends SQLService {
     try {
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
+
+      if (clean) {
+        await this.dbc.exec(`ALTER SYSTEM STOP SQLSCRIPT PLAN PROFILER;`)
+      } else {
+        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'threshold_duration') = '0' WITH RECONFIGURE;`)
+        await this.dbc.exec(`ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'System') SET ('expensive_statement', 'enable') = 'true' WITH RECONFIGURE;`)
+        await this.dbc.exec(`ALTER SYSTEM CLEAR SQLSCRIPT PLAN PROFILER;`)
+        await this.dbc.exec(`ALTER SYSTEM START SQLSCRIPT PLAN PROFILER;`)
+        await this.dbc.exec(`ALTER SYSTEM CLEAR SQL PLAN CACHE;`)
+      }
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
       const res = await stmt.all([creds.user, creds.password, creds.containerGroup, !clean])
