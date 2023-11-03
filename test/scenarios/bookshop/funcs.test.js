@@ -127,8 +127,8 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Collection Functions', () => {
-    test.skip('hassubset', () => {})
-    test.skip('hassubsequence', () => {})
+    test.skip('hassubset', () => { })
+    test.skip('hassubsequence', () => { })
   })
 
   describe('Arithmetic Functions', () => {
@@ -156,59 +156,61 @@ describe('Bookshop - Functions', () => {
 
   describe('Date and Time Functions', () => {
 
-    const testCases = [
-      { value: '1970-03-30T01:01:01.000Z'},
-      { value: 'foo'},
+    const types = {
+      invalid: 0,
+      time: 1,
+      date: 2,
+    }
+
+    const toDate = d => new Date(
+      d.type === (types.date | types.time)
+        ? d.value.endsWith('Z') ? d.value : d.value + 'Z'
+        : d.type & types.time
+          ? '1970-01-01T' + d.value + 'Z'
+          : d.type & types.date
+            ? d.value + 'T00:00:00Z'
+            : d.value
+    )
+
+    const data = [
+      { value: '1970-01-02', type: types.date },
+      { value: '1970-01-02T03:04:05', type: types.time | types.date },
+      { value: '03:04:05', type: types.time },
+      { value: 'INVALID', type: types.invalid },
     ]
 
-    const testCasesYearMonthDay = [
-      { value: '1970-03-30'},
-      { value: '03/30/1970'},
-      { value: '03.30.1970'},
-      { value: '01:01:01'},
-      { value: '1:1:1'},
+    const funcs = [
+      { func: 'year', type: types.date, extract: d => new Date(d.value).getUTCFullYear() },
+      { func: 'month', type: types.date, extract: d => toDate(d).getUTCMonth() + 1 },
+      { func: 'day', type: types.date, extract: d => toDate(d).getUTCDate() },
+      { func: 'hour', type: types.time | types.date, extract: d => toDate(d).getUTCHours() },
+      { func: 'minute', type: types.time | types.date, extract: d => toDate(d).getUTCMinutes() },
+      { func: 'second', type: types.time | types.date, extract: d => toDate(d).getUTCSeconds() },
     ]
 
-    const testCasesHourMinuteSecond = [
-      { value: '1970-03-30'},
-      { value: '03/30/1970'},
-      { value: '03.30.1970'},
-      { value: '01:01:01'},
-      { value: '1:1:1'},
-    ]
+    /**
+     * Test every combination of date(/)time function with date(/)time type
+     * year, month and day only accept types that contain a date
+     * hour, minute, second accept all date(/)time types by returning 0
+     */
+    describe.each(funcs)('$func', (func) => {
+      test.each(data)('val $value', async (data) => {
+        const result = data.type ? func.extract(data) : data.value
+        const cqn = SELECT.one(`${func.func}('${data.value}') as result`)
+          .from('sap.capire.bookshop.Books')
+          .where(`${func.func}('${data.value}') = '${result}'`)
 
-    test.each([...testCases, ...testCasesYearMonthDay])('where day %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `day(${value}) = 30`
-      expect(res.length).to.be.at.least(0)
-    })
-
-    test.each([...testCases, ...testCasesYearMonthDay])('where month %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `month(${value}) = 3`
-      expect(res.length).to.be.at.least(0)
-    })
-
-    test.each([...testCases, ...testCasesYearMonthDay])('where year %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `year(${value}) = 1970`
-      expect(res.length).to.be.at.least(0)
-    })
-
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where hour %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `hour(${value}) = 1`
-      expect(res.length).to.be.at.least(0)
-    })
-
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where minute %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `minute(${value}) = 1`
-      expect(res.length).to.be.at.least(0)
-    })
-
-    test.each([...testCases, ...testCasesHourMinuteSecond])('where second %s', async ({ value }) => {
-      const res = await SELECT.from('sap.capire.bookshop.Books').where `second(${value}) = 1`
-      expect(res.length).to.be.at.least(0)
+        if (data.type & func.type) {
+          const res = await cqn
+          expect(res.result).to.eq(result)
+        } else {
+          await expect(cqn).rejected
+        }
+      })
     })
 
     // REVISIT: does not seem database relevant
-    test.skip('date', () => {})
+    test.skip('date', () => { })
     test('day', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=day(1970-01-31T00:00:00.000Z) eq 31&$top=1`)
 
@@ -270,7 +272,7 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
     // REVISIT: does not seem database relevant
-    test.skip('time', () => {})
+    test.skip('time', () => { })
     test.skip('totaloffsetminutes', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
       const res = await GET(
