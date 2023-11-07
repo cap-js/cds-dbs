@@ -117,15 +117,18 @@ class DatabaseService extends cds.Service {
    * @param {string} tenant
    */
   async disconnect(tenant) {
-    const pool = this.pools[tenant]
-    if (!pool) {
-      if (tenant == null)
-        return Promise.all(Object.keys(this.pools).map(t => this.disconnect(t)))
-      return
+    const _disconnect = async tenant => {
+      const pool = this.pools[tenant]
+      if (!pool) {
+        return
+      }
+      await pool.drain()
+      await pool.clear()
+      delete this.pools[tenant]
     }
-    await pool.drain()
-    await pool.clear()
-    delete this.pools[tenant]
+    if (tenant == null)
+      return Promise.all(Object.keys(this.pools).map(_disconnect))
+    return _disconnect(tenant)
   }
 
   /**
