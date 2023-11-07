@@ -718,7 +718,7 @@ class HANAService extends SQLService {
 
       if (!_internal) {
         for (let i = 0; i < xpr.length; i++) {
-          const x = xpr[i]
+          let x = xpr[i]
           if (typeof x === 'string') {
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
@@ -727,13 +727,16 @@ class HANAService extends SQLService {
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
 
+              // Convert == to = in SQL as the case statement handles the nulls
+              if (x === '==') x = '='
+
               const compare = {
                 xpr: [left, x, right],
                 _internal: true,
               }
 
               const expression = {
-                xpr: ['CASE', 'WHEN', compare, 'Then', { val: true }, 'WHEN', 'NOT', compare, 'Then', { val: false }],
+                xpr: ['CASE', 'WHEN', compare, 'THEN', { val: true }, 'WHEN', 'NOT', compare, 'THEN', { val: false }],
                 _internal: true,
               }
 
@@ -748,7 +751,7 @@ class HANAService extends SQLService {
                       xpr: [left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
                       _internal: true,
                     },
-                    'Then',
+                    'THEN',
                     { val: ifNull },
                     'ELSE',
                     { val: !ifNull },
@@ -779,17 +782,18 @@ class HANAService extends SQLService {
 
       // REVISIT: do not intercept case when statements
       // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
-      // if (caseSuffix && xpr.length === 1) {
-      //   sql.push(caseSuffix)
-      // }
+      if (caseSuffix && xpr.length === 1) {
+        sql.push(caseSuffix)
+      }
 
       return `${sql.join(' ')}`
     }
 
     operator(x, i, xpr) {
       // Add "= TRUE" before THEN in case statements
-      // As all valid comparators are converted to booleans as SQL specifies
-      // if (x in { THEN: 1, then: 1 }) return ` = TRUE ${x}`
+      if (x in { THEN: 1, then: 1 } && xpr[i - 1] == 'END') {
+        return ` = TRUE ${x}`
+      }
       if ((x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) || x === 'regexp') return 'LIKE_REGEXPR'
       else return x
     }
