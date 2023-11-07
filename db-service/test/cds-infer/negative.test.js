@@ -226,7 +226,7 @@ describe('negative', () => {
   describe('path traversals via $self are rejected', () => {
     it('simple field access', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,name ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -239,7 +239,7 @@ describe('negative', () => {
     })
     it('in order by', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,name ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -251,7 +251,7 @@ describe('negative', () => {
     })
     it('in group by', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,name ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -263,7 +263,7 @@ describe('negative', () => {
     })
     it('in where', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,name ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -275,7 +275,7 @@ describe('negative', () => {
     })
     it('in xpr', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,name ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, name ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -288,7 +288,7 @@ describe('negative', () => {
     })
     it('deep field access', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,dedication,addressee,ID ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, dedication, addressee, ID ]'
       expect(() =>
         _inferred(
           CQL`SELECT from bookshop.Books{
@@ -300,7 +300,7 @@ describe('negative', () => {
       ).to.throw(errorMessage)
     })
     it('with infix filter', () => {
-      const errorMessage = `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author,ID ]`
+      const errorMessage = `Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author, ID ]`
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books{
@@ -313,7 +313,7 @@ describe('negative', () => {
     })
     it('with inline syntax', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]'
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books{
@@ -326,7 +326,7 @@ describe('negative', () => {
     })
     it('with expand syntax', () => {
       const errorMessage =
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]'
+        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]'
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Books{
