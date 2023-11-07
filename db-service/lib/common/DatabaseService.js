@@ -15,7 +15,7 @@ class DatabaseService extends cds.Service {
   /**
    * Dictionary of connection pools per tenant
    */
-  pools = { _factory: this.factory }
+  pools = Object.setPrototypeOf({}, { _factory: this.factory })
 
   /**
    * Return a pool factory + options property as expected by
