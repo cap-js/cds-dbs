@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { computeColumnsToBeSearched } = require('@sap/cds/libx/_runtime/cds-services/services/utils/columns.js')
+const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
 
@@ -12,7 +12,7 @@ const infer = require('./infer')
 const eqOps = [['is'], ['='] /* ['=='] */]
 /**
  * For operators of <notEqOps>, do the same but use or instead of and.
- * This ensures that not struc == <value> is the same as struc != <value>.
+ * This ensures that not struct == <value> is the same as struct != <value>.
  */
 const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
@@ -96,7 +96,46 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       if (queryNeedsJoins) {
-        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+        if (inferred.UPDATE || inferred.DELETE) {
+          const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
+          const subquery = {
+            SELECT: {
+              from: { ...transformedFrom },
+              columns: [], // primary keys of the query target will be added later
+              where: [...transformedProp.where],
+            },
+          }
+          // The alias of the original query is now the alias for the subquery
+          // so that potential references in the where clause to the alias match.
+          // Hence, replace the alias of the original query with the next
+          // available alias, so that each alias is unique.
+          const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
+          transformedFrom.as = uniqueSubqueryAlias
+
+          // calculate the primary keys of the target entity, there is always exactly
+          // one query source for UPDATE / DELETE
+          const queryTarget = Object.values(originalQuery.sources)[0]
+          const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
+          const primaryKey = { list: [] }
+          keys.forEach(k => {
+            // cqn4sql will add the table alias to the column later, no need to add it here
+            subquery.SELECT.columns.push({ ref: [k.name] })
+
+            // add the alias of the main query to the list of primary key references
+            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
+          })
+
+          const transformedSubquery = cqn4sql(subquery)
+
+          // replace where condition of original query with the transformed subquery
+          // correlate UPDATE / DELETE query with subquery by primary key matches
+          transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
+
+          if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
+          else transformedQuery.DELETE.from = transformedFrom
+        } else {
+          transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+        }
       }
     }
   }
@@ -668,12 +707,24 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     // everything after the wildcard, is a potential replacement
     // in the wildcard expansion
     const replace = []
+
+    const baseRef = col.ref || []
+    const baseRefLinks = col.$refLinks || []
+
+    // column has no ref, then it is an anonymous expand:
+    // select from books { { * } as bar }
+    // only possible if there is exactly one query source
+    if (!baseRef.length) {
+      const [tableAlias, definition] = Object.entries(inferred.sources)[0]
+      baseRef.push(tableAlias)
+      baseRefLinks.push({ definition, source: definition })
+    }
     // we need to make the refs absolute
     col[prop].slice(wildcardIndex + 1).forEach(c => {
       const fakeColumn = { ...c }
       if (fakeColumn.ref) {
-        fakeColumn.ref = [...col.ref, ...fakeColumn.ref]
-        fakeColumn.$refLinks = [...col.$refLinks, ...c.$refLinks]
+        fakeColumn.ref = [...baseRef, ...fakeColumn.ref]
+        fakeColumn.$refLinks = [...baseRefLinks, ...c.$refLinks]
       }
       replace.push(fakeColumn)
     })
@@ -682,15 +733,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       // fake the ref since excluding only has strings
       col.excluding.forEach(c => {
         const fakeColumn = {
-          ref: [...col.ref, c],
+          ref: [...baseRef, c],
         }
         exclude.push(fakeColumn)
       })
     }
 
-    if (col.$refLinks[col.$refLinks.length - 1].definition.kind === 'entity')
-      res.push(...getColumnsForWildcard(exclude, replace))
-    else
+    if (baseRefLinks.at(-1).definition.kind === 'entity') {
+      res.push(...getColumnsForWildcard(exclude, replace, col.as))
+    } else
       res.push(
         ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getQuerySourceName(col) }, [], {
           exclude,
@@ -907,12 +958,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    *
    * Furthermore, foreign keys (FK) for OData CSN and blobs are excluded from the wildcard expansion.
    *
-   * @param {Array} exclude - An optional list of columns to be excluded during the wildcard expansion.
-   * @param {Array} replace - An optional list of columns to replace during the wildcard expansion.
+   * @param {array} exclude - An optional list of columns to be excluded during the wildcard expansion.
+   * @param {array} replace - An optional list of columns to replace during the wildcard expansion.
+   * @param {string} baseName - the explicit alias of the column.
+   * Only possible for anonymous expands on implicit table alias: `select from books { { * } as FOO }`
    *
    * @returns {Array} Returns an array of explicit columns derived from the wildcard.
    */
-  function getColumnsForWildcard(exclude = [], replace = []) {
+  function getColumnsForWildcard(exclude = [], replace = [], baseName = null) {
     const wildcardColumns = []
     Object.keys(inferred.$combinedElements)
       .filter(k => !exclude.includes(k))
@@ -927,7 +980,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         } else if (isCalculatedOnRead(element)) {
           wildcardColumns.push(resolveCalculatedElement(replace.find(r => r.as === k) || element))
         } else {
-          const flatColumns = getFlatColumnsFor(element, { tableAlias: index }, [], { exclude, replace }, true)
+          const flatColumns = getFlatColumnsFor(
+            element,
+            { tableAlias: index, baseName },
+            [],
+            { exclude, replace },
+            true,
+          )
           wildcardColumns.push(...flatColumns)
         }
       })
@@ -969,7 +1028,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * Columns excluded in a wildcard expansion or replaced by other columns are also handled accordingly.
    *
    * @param {object} column - The structured element which needs to be expanded.
-   * @param {string} baseName - The prefixes of the column reference (joined with '_'). Optional.
+   * @param {{
+   *  columnAlias: string
+   *  tableAlias: string
+   *  baseName: string
+   * }} names - configuration object for naming parameters:
+   * columnAlias - The explicit alias which the user has defined for the column.
+   *                               For instance `{ struct.foo as bar}` will be transformed into
+   *                               `{ struct_foo_leaf1 as bar_foo_leaf1, struct_foo_leaf2 as bar_foo_leaf2 }`.
+   * tableAlias - The table alias to prepend to the column name. Optional.
+   * baseName - The prefixes of the column reference (joined with '_'). Optional.
    * @param {string} columnAlias - The explicit alias which the user has defined for the column.
    *                               For instance `{ struct.foo as bar}` will be transformed into
    *                               `{ struct_foo_leaf1 as bar_foo_leaf1, struct_foo_leaf2 as bar_foo_leaf2 }`.
@@ -1352,7 +1420,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (flatRhs) {
       const flatLhs = flattenWithBaseName(token)
 
-      //Revisit: Early exit here? We kndow we cant compare the structs, however we do not know exactly why
+      //REVISIT: Early exit here? We kndow we cant compare the structs, however we do not know exactly why
       //        --> calculate error message or exit early? See test "proper error if structures cannot be compared / too many elements on lhs"
       if (flatRhs.length !== flatLhs.length)
         // make sure we can compare both structures
@@ -1419,10 +1487,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
   function assertNoStructInXpr(token, inInfixFilter = false) {
     if (!inInfixFilter && token.$refLinks?.[token.$refLinks.length - 1].definition.target)
-      // revisit: let this through if not requested otherwise
+      // REVISIT: let this through if not requested otherwise
       rejectAssocInExpression()
     if (isStructured(token.$refLinks?.[token.$refLinks.length - 1].definition))
-      // revisit: let this through if not requested otherwise
+      // REVISIT: let this through if not requested otherwise
       rejectStructInExpression()
 
     function rejectAssocInExpression() {
