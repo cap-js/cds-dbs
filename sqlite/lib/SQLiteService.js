@@ -91,32 +91,34 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  async _stream(stmt, binding_params, one) {
-    const columns = stmt.columns()
-    // Stream single blob column
-    if (columns.length === 1 && columns[0].name !== '_json_') {
-      // Setting result set to raw to keep better-sqlite from doing additional processing
-      stmt.raw(true)
-      const rows = stmt.all(binding_params)
-      // REVISIT: return undefined when no rows are found
-      if (rows.length === 0) return undefined
-      if (rows[0][0] === null) return null
-      // Buffer.from only applies encoding when the input is a string
-      let raw = Buffer.from(rows[0][0].toString(), 'base64')
-      stmt.raw(false)
-      return new Readable({
-        read(size) {
-          if (raw.length === 0) return this.push(null)
-          const chunk = raw.slice(0, size)
-          raw = raw.slice(size)
-          this.push(chunk)
-        },
-      })
-    }
+  _changeToStreams(cqn, rows) {
+    if (!rows.length) return
 
-    stmt.raw(true)
-    const rs = stmt.iterate(binding_params)
-    return Readable.from(this._iterator(rs, one))
+    cqn.SELECT.columns.forEach(col => {
+      const name = col.ref[col.ref.length-1] 
+      if (col.element?.type === 'cds.LargeBinary') {
+        if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
+        else
+          rows.forEach(row => {
+            row[name] = this._stream(row[name])
+          })        
+      }
+    })
+  } 
+
+  // REVISIT: Is not needed anymore ???
+  _stream(val) {
+    if (val === null) return null
+    // Buffer.from only applies encoding when the input is a string
+    let raw = Buffer.from(val.toString(), 'base64')
+    return new Readable({
+      read(size) {
+        if (raw.length === 0) return this.push(null)
+        const chunk = raw.slice(0, size)
+        raw = raw.slice(size)
+        this.push(chunk)
+      },
+    })    
   }
 
   exec(sql) {

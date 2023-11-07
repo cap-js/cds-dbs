@@ -37,18 +37,14 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    const { sql, values, cqn, one } = this.cqn2sql(query, data)
-    // REVISIT: How to identify streaming ??? 
-    if (query.SELECT.columns?.[0].element?.type === 'cds.LargeBinary') {
-      const ps = await this.prepare(sql)
-      return ps.stream(values, one)
-    }
-
+    const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)
+    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)    
+    this._changeToStreams(cqn, rows)
+
     return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
@@ -190,10 +186,8 @@ class SQLService extends DatabaseService {
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
-    let q = this.cqn4sql(query)
-    // REVISIT: How to identify streaming ??? 
-    if (q.SELECT && q.elements && query.SELECT.columns?.[0].element?.type !== 'cds.LargeBinary') q.SELECT.expand = q.SELECT.expand ?? 'root'
-
+    let q = this.cqn4sql(query)    
+    if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
     let cmd = q.cmd || Object.keys(q)[0]
     if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
