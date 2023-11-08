@@ -114,7 +114,7 @@ class SQLiteService extends SQLService {
     return new Readable({
       read(size) {
         if (raw.length === 0) return this.push(null)
-        const chunk = raw.slice(0, size)
+        const chunk = raw.slice(0, size) // REVISIT
         raw = raw.slice(size)
         this.push(chunk)
       },
@@ -238,14 +238,14 @@ class SQLiteService extends SQLService {
   _convertStreamValues(values) {
     let any
     values.forEach((v, i) => {
-      if (v && typeof v.pipe === 'function') {
-        any = values[i] = new Promise(resolve => {
+      if (v instanceof Readable) {
+        any = values[i] = new Promise((resolve, reject) => {
           const chunks = []
           v.on('data', chunk => chunks.push(chunk))
           v.on('end', () => resolve(Buffer.concat(chunks)))
-          v.on('error', () => {
-            v.removeAllListeners('error')
-            v.push(null)
+          v.on('error', err => {
+            v.removeAllListeners('error')            
+            reject(err)
           })
         })
       }

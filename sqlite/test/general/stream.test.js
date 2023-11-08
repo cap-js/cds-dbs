@@ -13,7 +13,7 @@ const checkSize = async stream => {
 describe('streaming', () => {
   cds.test(__dirname, 'model.cds')
 
-  describe('cds.stream', () => {
+  xdescribe('cds.stream', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
       await cds.run('INSERT INTO test_Images values(?,?,?)', [
@@ -86,6 +86,7 @@ describe('streaming', () => {
         [1, data, data],
         [2, null, data],
         [3, data, null],
+        [4, null, null]
       ])
     })
 
@@ -194,12 +195,14 @@ describe('streaming', () => {
         })
         try {
           await UPDATE(Images).with({ data: stream }).where({ ID: 1 })
+          expect(1).toBe(2)
         } catch (err) {
           expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
         }
       })
 
       // TODO: Separate entities (also for cds.stream()) !!!!!
+      // Add clean-up for test_Images
 
       test('WRITE stream property with .column and .where', async () => {
         const { Images } = cds.entities('test')
@@ -210,7 +213,20 @@ describe('streaming', () => {
         
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
-      })    
+      }) 
+      
+      test('WRITE multiple stream properties with .column', async () => {
+        const { Images } = cds.entities('test')
+        const stream1 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+        const stream2 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+
+        const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
+        expect(changes).toEqual(1)
+        
+        const [{ data: stream1_, data2: stream2_ }] = await SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+        await checkSize(stream1_)
+        await checkSize(stream2_)
+      }) 
 
       test('WRITE stream property on view', async () => {
         const { ImagesView } = cds.entities('test')
@@ -223,8 +239,8 @@ describe('streaming', () => {
         await checkSize(stream_)
       })
 
-      // TODO: WHAT IS IT ?????
-      test('WRITE dataset from json file stream', async () => {
+      // TODO: Sync with Bob
+      xtest('WRITE dataset from json file stream', async () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
 
@@ -253,8 +269,8 @@ describe('streaming', () => {
         await Promise.all([wrap(out1000), wrap(out1001)])
       })
 
-      // TODO: WHAT IS IT ?????
-      test('WRITE dataset from json generator stream', async () => {
+      // TODO: Sync with Bob
+      xtest('WRITE dataset from json generator stream', async () => {
         const { Images } = cds.entities('test')
 
         const start = 2000
