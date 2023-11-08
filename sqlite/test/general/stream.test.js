@@ -185,6 +185,60 @@ describe('streaming', () => {
       })
     })
 
+    describe('compat READ', () => {
+      beforeAll(async () => {
+        cds.env.features.compat_stream_cqn = true
+      })
+
+      afterAll(async () => {
+        cds.env.features.compat_stream_cqn = false
+      })      
+
+      test('READ stream property with _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const cqn = SELECT.one.from(Images).columns('data').where({ ID: 1 })
+        cqn._streaming = true
+        const { value: stream } = await cqn
+        await checkSize(stream)
+      })
+
+      test('READ stream property w/o _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const { data: buffer } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
+        expect(buffer.length).toBe(7891)
+      })
+
+      test('READ multiple stream properties with _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const cqn = SELECT.from(Images).columns(['data', 'data2']).where({ ID: 1 })
+        cqn._streaming = true
+        const { value: stream } = await cqn
+        await checkSize(stream)
+      })
+
+      test('RREAD multiple stream properties w/o _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const [{ data: buffer1, ID, data2: buffer2 }] = await SELECT.from(Images).columns(['data', 'ID', 'data2']).where({ ID: 1 })
+        expect(ID.toBe(1))
+        expect(buffer1.length).toBe(7891)
+        expect(buffer2.length).toBe(7891)
+      })      
+
+      test('READ null stream property', async () => {
+        const { Images } = cds.entities('test')
+        const cqn = SELECT.from(Images).columns('data').where({ ID: 2 })
+        cqn._streaming = true
+        const [{ value: stream }] = await cqn
+        expect(stream).toBeNull()
+      })
+
+      test('READ null stream property', async () => {
+        const { Images } = cds.entities('test')
+        const [{ data: stream }] = await SELECT.from(Images).columns('data').where({ ID: 2 })
+        expect(stream).toBeNull()
+      })
+    })
+
     describe('WRITE', () => {
       test('WRITE with incorrect data type results in error', async () => {
         const { Images } = cds.entities('test')
