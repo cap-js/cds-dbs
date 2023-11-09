@@ -13,7 +13,7 @@ const checkSize = async stream => {
 describe('streaming', () => {
   cds.test(__dirname, 'model.cds')
 
-  xdescribe('cds.stream', () => {
+  describe('cds.stream', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
       await cds.run('INSERT INTO test_Images values(?,?,?)', [
@@ -75,6 +75,13 @@ describe('streaming', () => {
     test('READ stream property with column as function in .from', async () => {
       const { Images } = cds.entities('test')
       const stream = await cds.stream().from(Images, 1, a => a.data)
+      await checkSize(stream)
+    })
+
+    test('READ stream property using SELECT CQN', async () => {
+      const { Images } = cds.entities('test')
+      const cqn = SELECT('data').from(Images,1)
+      const stream = await cds.stream(cqn)
       await checkSize(stream)
     })
   })
@@ -260,7 +267,7 @@ describe('streaming', () => {
       // TODO: Separate entities (also for cds.stream()) !!!!!
       // Add clean-up for test_Images
 
-      test('WRITE stream property with .column and .where', async () => {
+      test('WRITE stream property', async () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
@@ -271,12 +278,25 @@ describe('streaming', () => {
         await checkSize(stream_)
       }) 
       
-      test('WRITE multiple stream properties with .column', async () => {
+      test('WRITE multiple stream properties', async () => {
         const { Images } = cds.entities('test')
         const stream1 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
         const stream2 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
+        expect(changes).toEqual(1)
+        
+        const [{ data: stream1_, data2: stream2_ }] = await SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+        await checkSize(stream1_)
+        await checkSize(stream2_)
+      }) 
+
+      test('WRITE multiple blob properties', async () => {
+        const { Images } = cds.entities('test')
+        const blob1 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
+        const blob2 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
+        
+        const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
         expect(changes).toEqual(1)
         
         const [{ data: stream1_, data2: stream2_ }] = await SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
