@@ -226,7 +226,7 @@ describe('streaming', () => {
       test('RREAD multiple stream properties w/o _streaming = true', async () => {
         const { Images } = cds.entities('test')
         const [{ data: buffer1, ID, data2: buffer2 }] = await SELECT.from(Images).columns(['data', 'ID', 'data2']).where({ ID: 1 })
-        expect(ID.toBe(1))
+        expect(ID).toBe(1)
         expect(buffer1.length).toBe(7891)
         expect(buffer2.length).toBe(7891)
       })      
