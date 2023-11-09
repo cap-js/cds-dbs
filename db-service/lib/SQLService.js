@@ -39,8 +39,16 @@ class SQLService extends DatabaseService {
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cqn.SELECT.count) rows.$count = await this.count(query, rows)    
-    this._changeToStreams(cqn, rows)
+    if (cqn.SELECT.count) rows.$count = await this.count(query, rows) 
+    if (cds.env.features.compat_stream_cqn) {
+      if (query._streaming) {
+        this._changeToStreams(cqn, rows, true)
+        // REVISIT: refactor ?
+        return { value: Object.values(rows[0])[0] }
+      } 
+    } else {  
+      this._changeToStreams(cqn, rows)
+    }
 
     return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }

@@ -91,10 +91,16 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  _changeToStreams(cqn, rows) {
+  _changeToStreams(cqn, rows, first) {
     if (!rows.length) return
 
-    cqn.SELECT.columns.forEach(col => {
+    // REVISIT: (1) refactor (2) consider extracting to a method compat
+    if (first) { 
+      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
+      return
+    }
+
+    for (let col of cqn.SELECT.columns) {
       const name = col.ref[col.ref.length-1] 
       if (col.element?.type === 'cds.LargeBinary') {
         if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
@@ -103,10 +109,9 @@ class SQLiteService extends SQLService {
             row[name] = this._stream(row[name])
           })        
       }
-    })
+    }
   } 
 
-  // REVISIT: Is not needed anymore ???
   _stream(val) {
     if (val === null) return null
     // Buffer.from only applies encoding when the input is a string
