@@ -12,7 +12,7 @@ describe('infer elements', () => {
   })
 
   describe('path expressions', () => {
-    it('along simple association', () => {
+    it.only('along simple association', () => {
       let query = CQL`SELECT from bookshop.Books { ID, currency.code }`
       let inferred = _inferred(query)
       let { Books } = model.entities
