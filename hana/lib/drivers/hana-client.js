@@ -19,6 +19,10 @@ class HANAClientDriver extends driver {
     this._native.setAutoCommit(false)
   }
 
+  set(variables) {
+    Object.keys(variables).forEach(k => this._native.setClientInfo(k, variables[k]))
+  }
+
   async prepare(sql) {
     const ret = await super.prepare(sql)
     ret.stream = async (values, one) => {
