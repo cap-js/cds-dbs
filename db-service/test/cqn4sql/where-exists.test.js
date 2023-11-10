@@ -749,6 +749,28 @@ describe('Path in FROM which ends on association must be transformed to where ex
     `)
   })
 
+  it('does handle parent children relation', () => {
+    const originalQuery = CQL`SELECT from bookshop.Genres:parent.children { ID }`
+
+    originalQuery.SELECT.expand = 'root'
+    let query = cqn4sql(originalQuery, model)
+
+    // clean up so that the queries match
+    delete originalQuery.SELECT.expand
+
+    expect(query).to.deep.equal(CQL`
+      SELECT from bookshop.Genres as children { children.ID }
+        where exists (
+          SELECT 1 from bookshop.Genres as parent
+            where parent.ID = children.parent_ID and
+              exists (
+                SELECT 1 from bookshop.Genres as Genres
+                  where Genres.parent_ID = parent.ID
+              )
+        )
+    `)
+  })
+
   //TODO infix filter with association with structured foreign key
 
   //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
