@@ -162,6 +162,15 @@ describe('Bookshop - Read', () => {
     expect(res4[1].title).to.be.eq('dracula')
   })
 
+  test('Path from clause', async () => {
+    const [{ bookCount }] = await cds.run(CQL`SELECT FROM sap.capire.bookshop.Books { count(*) as bookCount }`)
+    const [{ genreCount }] = await cds.run(CQL`SELECT FROM sap.capire.bookshop.Books:genre { count(*) as genreCount }`)
+    // bookCount returns 5
+    // genreCount returns 4, because 2 books have the same genre
+    // The from clause is not converted into a join instead it is a where exists
+    expect(genreCount).to.be.eq(bookCount)
+  })
+
   test.skip('Insert Booky', async () => {
     const res = await POST(
       '/admin/Booky',
