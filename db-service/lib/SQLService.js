@@ -43,8 +43,7 @@ class SQLService extends DatabaseService {
     if (cds.env.features.compat_stream_cqn) {
       if (query._streaming) {
         this._changeToStreams(cqn, rows, true)
-        // REVISIT: refactor ?
-        return { value: Object.values(rows[0])[0] }
+        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
       } 
     } else {  
       this._changeToStreams(cqn, rows)

@@ -101,7 +101,7 @@ class SQLiteService extends SQLService {
     }
 
     for (let col of cqn.SELECT.columns) {
-      const name = col.ref[col.ref.length-1] 
+      const name = col.ref?.[col.ref.length-1] || col
       if (col.element?.type === 'cds.LargeBinary') {
         if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
         else
