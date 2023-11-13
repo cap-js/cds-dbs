@@ -64,12 +64,7 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
-    const columns = Object.keys(variables).map(
-      k => `SET '${k.replace(/'/g, "''")}'='${(variables[k] + '').replace(/'/g, "''")}';`,
-    )
-    const sql = `DO BEGIN ${columns.join('')} END;`
-
-    await this.dbc.exec(sql)
+    this.dbc.set(variables)
   }
 
   async onSELECT({ query, data }) {
