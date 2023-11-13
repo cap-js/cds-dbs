@@ -240,7 +240,7 @@ class HANAService extends SQLService {
       const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
-      if (expand || limit || one || orderBy) {
+      if (expand /* || limit || one || orderBy */) {
         q = cds.ql.clone(q)
         q.SELECT.expand = false
         const { element, elements } = q
