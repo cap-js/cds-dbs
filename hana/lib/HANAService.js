@@ -235,11 +235,15 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.blobs = this.blobs || []
 
+      const orgQuery = q
+
       const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
-      if (expand || limit || one || orderBy || parent) {
+      if (expand || limit || one || orderBy) {
+        q = cds.ql.clone(q)
         q.SELECT.expand = false
+        const { element, elements } = q
 
         // Only enhance columns after output columns are calculated
         /*
@@ -254,7 +258,8 @@ class HANAService extends SQLService {
 
         // TODO: replace with full path calculation
         if (parent) {
-          // columns.push({ ref: [parent, '_path_'], as: '_path_' })
+          if (!columns.find(c => this.column_name(c) === '_path_'))
+            columns.push({ ref: [parent.as, '_path_'], as: '_path_' })
         }
 
         /*
@@ -272,10 +277,17 @@ class HANAService extends SQLService {
         // Insert row number column for reducing or sorting the final result
         const over = { xpr: [] }
         // TODO: replace with full path partitioning
-        if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: [parent.as, '_path_'] })}`)
+        if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_path_'] })}`)
         if (orderBy) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
         const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
-        // q = cds.ql.SELECT(['*', rn]).from(q)
+        q.as = q.SELECT.from.as
+
+        q = cds.ql.SELECT(['*', rn]).from(q)
+        q.as = q.SELECT.from.as
+
+        q = cds.ql.SELECT(columns.filter(c => c.as !== '_path_').map(c => (c.elements ? c : { ref: [this.column_name(c)] }))).from(q)
+        q.elements = elements
+        q.element = element
 
         if (!q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
@@ -286,11 +298,11 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: [parent.as, '_path_'] }, { val: `].${q.element.name}[` }],
+                      args: [{ ref: ['_path_'] }, { val: `].${q.element.name}[` }],
                     },
-                    { func: 'lpad', args: [rn, { val: 6 }, { val: '0' }] },
+                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] },
                   ]
-                  : [{ val: '$[' }, { func: 'lpad', args: [rn, { val: 6 }, { val: '0' }] }],
+                  : [{ val: '$[' }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] }],
               },
             ],
             as: '_path_',
@@ -324,6 +336,7 @@ class HANAService extends SQLService {
         q.SELECT.expand = expand
         q.SELECT._one = one
         q.SELECT.count = count
+        q.src = orgQuery
         // Object.defineProperty(q, 'elements', { value: q.elements })
         // Set new query as root cqn
         if (expand === 'root') {
@@ -345,7 +358,7 @@ class HANAService extends SQLService {
     }
 
     SELECT_columns(q) {
-      const { SELECT } = q
+      const { SELECT, src } = q
       if (!SELECT.columns) return '*'
       const structures = []
       let expands = {}
@@ -360,10 +373,14 @@ class HANAService extends SQLService {
               if (x.elements) {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
-                const parent = cds.ql.clone(q)
+                const parent = cds.ql.clone(src)
                 parent.as = parent.SELECT.from.as
-                parent.SELECT.expand = undefined
-                parent.SELECT.columns = x.element._foreignKeys.map(k => ({ ref: [parent.SELECT.from.as, k.parentElement.name] }))
+                parent.SELECT.expand = true
+                x.element._foreignKeys.forEach(k => {
+                  if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
+                    parent.SELECT.columns.push({ ref: [parent.SELECT.from.as, k.parentElement.name] })
+                  }
+                })
 
                 x.SELECT.from = {
                   join: 'inner',
@@ -374,6 +391,8 @@ class HANAService extends SQLService {
                 x.SELECT.where = undefined
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
+
+                parent.SELECT.expand = true
                 this.SELECT(x)
                 return false
               }
@@ -393,7 +412,7 @@ class HANAService extends SQLService {
                 return false
               }
               const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(xpr)} as "${columnName.replace(/"/g, '""')}"`
+              return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
             : x => {
               if (x === '*') return '*'
@@ -428,7 +447,7 @@ class HANAService extends SQLService {
             })
             .join(' || ')
           jsonColumn = sql.length
-            ? `SUBSTRING(_json_, 1, LENGTH(_json_) - 1) || ${structuresConcat} || '}' as "_json_"`
+            ? `SUBSTRING("_json_", 1, LENGTH("_json_") - 1) || ${structuresConcat} || '}' as "_json_"`
             : `'{' || '${structuresConcat.substring(2)} || '}' as "_json_"`
         }
 
