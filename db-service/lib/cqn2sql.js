@@ -416,6 +416,7 @@ class CQN2SQLRenderer {
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
+    // REVISIT: Add streaming of rows
     this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
       this.columns
