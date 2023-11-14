@@ -90,6 +90,11 @@ class HANADriver {
     return prom(this._native, 'exec')(sql)
   }
 
+  set(variables) {
+    variables
+    throw new Error('Implementation missing')
+  }
+
   /**
    * Commits the current transaction
    */

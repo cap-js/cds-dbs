@@ -26,6 +26,11 @@ class HDBDriver extends driver {
     this.connected = false
   }
 
+  set(variables) {
+    const clientInfo = this._native._connection.getClientInfo()
+    Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+  }
+
   async prepare(sql) {
     const ret = await super.prepare(sql)
     ret.stream = async (values, one) => {

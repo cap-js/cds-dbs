@@ -742,13 +742,13 @@ describe('Flattening', () => {
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID } GROUP BY Books.ID`)
     })
 
-    // (SMW) new TODO what should happen here?
-    // - produce empty GROUP BY clause (cannot be tested easily here)?
-    // - error?
-    // same for ORDER BY
-    it.skip('ignores unmanaged associations in GROUP BY clause, even if it is the only GROUP BY column', () => {
+    it('ignores unmanaged associations in GROUP BY and deletes the clause if it is the only GROUP BY column', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY coAuthorUnmanaged`, model)
-      expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID } GROUP BY x`)
+      expect(JSON.parse(JSON.stringify(query))).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
+    })
+    it('ignores unmanaged associations in ORDER BY and deletes the clause if it is the only ORDER BY column', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY coAuthorUnmanaged`, model)
+      expect(JSON.parse(JSON.stringify(query))).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
     it('rejects unmanaged associations in expressions in GROUP BY clause (1)', () => {
