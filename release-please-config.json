@@ -1,0 +1,30 @@
+{
+  "bootstrap-sha": "97925df8f4721bb222e9e01e73b39c9957572255",
+  "packages": {
+    "db-service": {},
+    "sqlite": {},
+    "postgres": {}
+  },
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Added",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "Fixed",
+      "hidden": false
+    },
+    {
+      "type": "deps",
+      "section": "Changed",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements",
+      "hidden": false
+    }
+  ]
+}

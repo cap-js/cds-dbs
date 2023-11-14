@@ -36,3 +36,35 @@ The following rule governs code contributions:
 * We use GitHub issues to track bugs and enhancement requests.
 
 * Please provide as much context as possible when you open an issue. The information you provide must be comprehensive enough to reproduce that issue for the assignee.
+
+## Committing
+
+Our commit messages use a simplified form of [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/). This is how our automated release system knows what a given commit means.
+
+```md
+<type>: <description>
+
+[body]
+```
+
+### Commit type prefixes
+
+The `type` can be any of `feat`, `fix` or `chore`.
+
+The prefix is used to calculate the semver release level, and the section of the release notes to place the commit message in.
+
+| **type**   | When to Use                          | Release Level | Release Note Section  |
+| ---------- | ----------------------------------- | ------------- | --------------------   |
+| feat       | A feature has been added            | `minor`       | **Added**           |
+| fix        | A bug has been patched              | `patch`       | **Fixed**          |
+| deps        | Changes to the dependencies          | `patch`       | **Changed**          |
+| perf       | Performance improvements            | none          | **Performance Improvements**   |
+| chore      | Any changes that aren't user-facing | none          | none                   |
+| docs       | Documentation updates               | none          | none                   |
+| style      | Code style and formatting changes   | none          | none                   |
+| refactor   | Code refactoring                    | none          | none                   |                |
+| test       | Adding tests or test-related changes| none          | none                   |
+| build      | Build system or tooling changes     | none          | none                   |
+| ci         | Continuous Integration/Deployment    | none          | none                   |
+| revert     | Reverting a previous commit          | none          | none                   |
+| wip        | Work in progress (temporary)        | none          | none                   |

@@ -1,8 +1,35 @@
-# Change Log
+# Changelog
 
 - All notable changes to this project are documented in this file.
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
+
+## [1.3.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.1...db-service-v1.3.2) (2023-10-13)
+
+
+### Fixed
+
+- preserve $count for result of SELECT queries ([#280](https://github.com/cap-js/cds-dbs/issues/280)) ([23bef24](https://github.com/cap-js/cds-dbs/commit/23bef245e62952a57ed82afcfd238c0b294b2e9e))
+
+## [1.3.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.0...db-service-v1.3.1) (2023-10-10)
+
+### Fixed
+
+- Error message for `search` with multiple arguments. #265
+
+## Version 1.3.0 - 2023-10-06
+
+### Changed
+
+- `INSERT.into(...).rows/values()` is not allowed anymore without specifying `.columns(...)`. #209
+- Deep deletion uses correlated subqueries instead of materializing the to be deleted object before. #212
+
+### Fixed
+
+- Various fixes for calculated elements on read. #220 #223 #233
+- Don't release to pool connections twice. #243
+- Syntax error in `matchesPattern` function. #237
+- SELECTs with more than 50 columns does not return `null` values. #238 #261
 
 ## Version 1.2.1 - 2023-09-08
 
