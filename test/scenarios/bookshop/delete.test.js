@@ -46,7 +46,7 @@ describe('Bookshop - Delete', () => {
     await expect(cds.db.run(del)).to.be.eventually.rejectedWith('Transitive circular composition detected')
   })
 
-  test.skip('Delete with path expressions', async () => {
+  test('Delete with path expressions', async () => {
     const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
     const selectEmilysBooks = CQL`SELECT * FROM AdminService.Books where author.name = 'Emily Brontë'`
 
