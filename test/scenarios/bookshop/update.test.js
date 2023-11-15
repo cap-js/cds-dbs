@@ -26,16 +26,14 @@ describe('Bookshop - Update', () => {
   })
   test('Update array of', async () => {
     // create book
-    const insert = INSERT.into('sap.capire.bookshop.Books')
-      .columns(['ID'])
-      .values([150])
+    const insert = INSERT.into('sap.capire.bookshop.Books').columns(['ID']).values([150])
     await cds.run(insert)
 
     const update = await PUT(
       '/admin/Books(150)', // UPSERT new footnotes
       {
         descr: 'UPDATED',
-        footnotes: ['one']
+        footnotes: ['one'],
       },
       admin,
     )
@@ -54,5 +52,16 @@ describe('Bookshop - Update', () => {
   test('programmatic update without body excl. managed', async () => {
     const affectedRows = await cds.db.run(cds.ql.UPDATE('sap.capire.bookshop.Genres', { ID: 10 }))
     expect(affectedRows).to.be.eq(0)
+  })
+
+  test('Update with path expressions', async () => {
+    const updateRichardsBooks = UPDATE.entity('AdminService.RenameKeys')
+      .where(`author.name = 'Richard Carpenter'`)
+      .set('ID = 42')
+    const selectRichardsBooks = CQL`SELECT * FROM AdminService.RenameKeys where author.name = 'Richard Carpenter'`
+
+    await cds.run(updateRichardsBooks)
+    const afterUpdate = await cds.db.run(selectRichardsBooks)
+    expect(afterUpdate[0]).to.have.property('foo').that.equals(42)
   })
 })
