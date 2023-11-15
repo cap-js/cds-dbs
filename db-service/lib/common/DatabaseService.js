@@ -6,10 +6,16 @@ const cds = require('@sap/cds/lib')
 /** @typedef {unknown} DatabaseDriver */
 
 class DatabaseService extends cds.Service {
+
+  init() {
+    cds.on('shutdown', () => this.disconnect())
+    return super.init()
+  }
+
   /**
    * Dictionary of connection pools per tenant
    */
-  pools = { _factory: this.factory }
+  pools = Object.setPrototypeOf({}, { _factory: this.factory })
 
   /**
    * Return a pool factory + options property as expected by
@@ -111,11 +117,18 @@ class DatabaseService extends cds.Service {
    * @param {string} tenant
    */
   async disconnect(tenant) {
-    const pool = this.pools[tenant]
-    if (!pool) return
-    await pool.drain()
-    await pool.clear()
-    delete this.pools[tenant]
+    const _disconnect = async tenant => {
+      const pool = this.pools[tenant]
+      if (!pool) {
+        return
+      }
+      await pool.drain()
+      await pool.clear()
+      delete this.pools[tenant]
+    }
+    if (tenant == null)
+      return Promise.all(Object.keys(this.pools).map(_disconnect))
+    return _disconnect(tenant)
   }
 
   /**
