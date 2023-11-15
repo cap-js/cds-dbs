@@ -1,5 +1,3 @@
-'use strict'
-
 describe('UPDATE', () => {
   describe('entity', () => {
     test.skip('missing', () => {
@@ -8,6 +6,12 @@ describe('UPDATE', () => {
   })
 
   describe('data', () => {
+    test.skip('missing', () => {
+      throw new Error('not supported')
+    })
+  })
+
+  describe('where', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
     })
