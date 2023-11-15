@@ -95,7 +95,7 @@ class HANAService extends SQLService {
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
     // HANA driver supports batch execution
-    const results = entries ? await ps.runBatch(entries) : await ps.run()
+    const results = entries ? await ps.run(entries) : await ps.run()
     return new this.class.InsertResults(cqn, results)
   }
 
@@ -570,7 +570,11 @@ class HANAService extends SQLService {
           })
         cur[0] += ']'
       } else {
-        this.entries = [[JSON.stringify(INSERT.entries)]]
+        this.entries = [
+          INSERT.entries[0] instanceof Readable
+            ? INSERT.entries[0]
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries))
+          ]
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
