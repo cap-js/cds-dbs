@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const crypto = require('crypto')
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
@@ -199,7 +200,7 @@ class HANAService extends SQLService {
   exec(sql) {
     return this.dbc.exec(sql)
   }
-
+  /*
   async trace(sql, start) {
     let hash = crypto.createHash("md5")
     hash.update(sql)
@@ -232,7 +233,7 @@ WHERE
     })
     return expensive
   }
-
+  */
   /**
    * HDI specific deploy logic
    * @param {import('@sap/cds/apis/csn').CSN} model The CSN model to be deployed
