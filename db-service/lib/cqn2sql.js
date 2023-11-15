@@ -423,12 +423,55 @@ class CQN2SQLRenderer {
       .filter(a => a)
       .map(c => c.sql)
 
+    // REVISIT: yield less often
+    const stringify = async function* (entries) {
+      yield '['
+
+      let sep = ''
+      for (const row of entries) {
+        if (!sep) sep = ','
+        else yield sep
+
+        let sepsub = ''
+        yield '{'
+        for (const key in row) {
+
+          if (!sepsub) sepsub = ','
+          else yield sepsub
+
+          yield JSON.stringify(key)
+          yield ':'
+
+          const val = row[key]
+          if (val instanceof Readable) {
+            yield '"'
+
+            // TODO: double check that it works
+            val.setEncoding('base64')
+            for await (const chunk of val) {
+              yield chunk
+            }
+
+            yield '"'
+          } else {
+            yield JSON.stringify(val)
+          }
+        }
+        yield '}'
+      }
+
+      yield ']'
+    }
+
     // Include this.values for placeholders
     /** @type {unknown[][]} */
-    this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+    this.entries = [[...this.values,
+    INSERT.entries instanceof Readable
+      ? INSERT.entries
+      : Readable.from(stringify(INSERT.entries))
+    ]]
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+      }) SELECT ${extraction} FROM json_each(?)`)
   }
 
   /**
