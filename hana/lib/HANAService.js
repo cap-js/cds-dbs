@@ -64,6 +64,10 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
+    // REVISIT: required to be compatible with generated views
+    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
+    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+
     this.dbc.set(variables)
   }
 
@@ -837,19 +841,9 @@ class HANAService extends SQLService {
         const element = elements?.[name] || {}
         // Don't apply input converters for place holders
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
-        let managed = element[annotation]?.['=']
-        switch (managed) {
-          case '$user.id':
-          case '$user':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
-            break
-          case '$now':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
-            break
-          default:
-            managed = undefined
-        }
-
+        const val = _managed[element[annotation]?.['=']]
+        let managed
+        if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
         const type = this.insertType4(element)
         let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
         if (!isUpdate) {
@@ -1073,5 +1067,10 @@ Buffer.prototype.toJSON = function () {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
+const _managed = {
+  '$user.id': '$user.id',
+  $user: '$user.id',
+  $now: '$now',
+}
 
 module.exports = HANAService
