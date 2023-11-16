@@ -874,7 +874,6 @@ class CQN2SQLRenderer {
       if (converter && sql[0] !== '$') sql = converter(sql, element)
 
       let val = _managed[element[annotation]?.['=']]
-        || !isUpdate && (element['@cds.valid.from'] ? '$valid.from' : element['@cds.valid.to'] ? '$valid.to' : null)
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
       else if (!isUpdate && element.default) {
         const d = element.default

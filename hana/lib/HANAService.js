@@ -842,7 +842,6 @@ class HANAService extends SQLService {
         // Don't apply input converters for place holders
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
         const val = _managed[element[annotation]?.['=']]
-          || !isUpdate && (element['@cds.valid.from'] ? '$valid.from' : element['@cds.valid.to'] ? '$valid.to' : null)
         let managed
         if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
         const type = this.insertType4(element)
