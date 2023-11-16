@@ -86,16 +86,15 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-    // Using runBatch for HANA 2.0 and lower sometimes leads to integer underflow errors
-    // REVISIT: Address runBatch issues in node-hdb and hana-client
-    if (HANAVERSION <= 2) {
-      return super.onINSERT(...arguments)
-    }
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
     // HANA driver supports batch execution
-    const results = entries ? await ps.run(entries) : await ps.run()
+    const results = await (entries
+      ? HANAVERSION <= 2
+        ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
+        : ps.run(entries)
+      : ps.run())
     return new this.class.InsertResults(cqn, results)
   }
 
@@ -549,32 +548,13 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        // Simple line splitting would be preferred, but batch execute does not work properly
-        // Which makes sending every line separately much slower
-        // this.entries = INSERT.entries.map(e => [JSON.stringify(e)])
-
-        this.entries = []
-        let cur = ['[']
-        this.entries.push(cur)
-        INSERT.entries
-          .map(r => JSON.stringify(r))
-          .forEach(r => {
-            if (cur[0].length > 65535) {
-              cur[0] += ']'
-              cur = ['[']
-              this.entries.push(cur)
-            } else if (cur[0].length > 1) {
-              cur[0] += ','
-            }
-            cur[0] += r
-          })
-        cur[0] += ']'
+        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e]))]))
       } else {
         this.entries = [
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
             : Readable.from(this.INSERT_entries_stream(INSERT.entries))
-          ]
+        ]
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
