@@ -35,7 +35,7 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
-  return res[0] ?? 0 // TODO what todo with multiple result responses?
+  return res[0] ?? 0
 }
 
 const hasDeep = (q, target) => {
