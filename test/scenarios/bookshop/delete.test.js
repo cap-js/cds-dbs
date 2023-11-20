@@ -46,15 +46,14 @@ describe('Bookshop - Delete', () => {
     await expect(cds.db.run(del)).to.be.eventually.rejectedWith('Transitive circular composition detected')
   })
 
-  test.skip('Delete with path expressions', async () => {
-    const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily'`)
-    const selectEmilysBooks = CQL`SELECT * FROM AdminService.Books where author.name = 'Emily'`
+  test('Delete with path expressions', async () => {
+    const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
+    const selectEmilysBooks = CQL`SELECT * FROM AdminService.Books where author.name = 'Emily Brontë'`
 
     const beforeDelete = await cds.run(selectEmilysBooks)
     await cds.run(deleteEmilysBooks)
     const afterDelete = await cds.run(selectEmilysBooks)
-
-    expect(beforeDelete).toHaveLength(1)
-    expect(afterDelete).toHaveLength(0)
+    expect(beforeDelete).to.have.lengthOf(1)
+    expect(afterDelete).to.have.lengthOf(0)
   })
 })
