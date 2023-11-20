@@ -92,7 +92,7 @@ class HANADriver {
 
   set(variables) {
     variables
-    throw new Error('Implementation missing')
+    throw new Error('Implementation missing "set"')
   }
 
   /**
@@ -138,6 +138,14 @@ class HANADriver {
       this.connected = false
       return prom(this._native, 'disconnect')()
     }
+  }
+
+  /**
+   * Validates that the connection is connected
+   * @returns {Promise<Boolean>}
+   */
+  async validate() {
+    throw new Error('Implementation missing "validate"')
   }
 }
 

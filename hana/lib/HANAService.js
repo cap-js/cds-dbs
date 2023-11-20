@@ -29,11 +29,28 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
+    const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
+    const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     return {
-      options: { max: 1, ...this.options.pool },
-      create: async (/*tenant*/) => {
-        const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
-        const dbc = new driver(this.options.credentials)
+      options: driver.pool // Ignore generic-pool when native pool is available
+        ? { min: 0, max: Number.POSITIVE_INFINITY }
+        : isMultitenant // Restrict pool size when serving multi tenant applications
+          ? {
+            ...this.options.pool,
+            min: 0,
+            max: this.options.pool.max ? Math.min(this.options.pool.max, 100) : 1,
+            testOnBorrow: true
+          }
+          : {
+            max: 1,
+            ...this.options.pool,
+            testOnBorrow: true
+          },
+      create: async (tenant) => {
+        const creds = isMultitenant
+          ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: this.disableCache || false })
+          : this.options.credentials
+        const dbc = new driver(creds)
         await dbc.connect()
         HANAVERSION = dbc.server.major
         return dbc
@@ -52,8 +69,14 @@ class HANAService extends SQLService {
         }
       },
       destroy: dbc => dbc.disconnect(),
-      validate: (/*dbc*/) => true,
+      validate: (dbc) => dbc.validate(),
     }
+  }
+
+  // Overwrite release with destory when @sap/hana-client is used with the native pool
+  get release() {
+    const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
+    return super.release = driver.pool ? super.destroy : super.release
   }
 
   // REVISIT: Add multi tenant credential look up when clarified
@@ -63,12 +86,16 @@ class HANAService extends SQLService {
     return `hana@${host}:${port}${driver ? `(${driver})` : ''}`
   }
 
+  ensureDBC() {
+    return this.dbc || cds.error`Database is disconnected`
+  }
+
   async set(variables) {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
 
-    this.dbc.set(variables)
+    this.ensureDBC().set(variables)
   }
 
   async onSELECT({ query, data }) {
@@ -207,11 +234,11 @@ class HANAService extends SQLService {
 
   // prepare and exec are both implemented inside the drivers
   prepare(sql) {
-    return this.dbc.prepare(sql)
+    return this.ensureDBC().prepare(sql)
   }
 
   exec(sql) {
-    return this.dbc.exec(sql)
+    return this.ensureDBC().exec(sql)
   }
 
   /**
@@ -953,16 +980,16 @@ class HANAService extends SQLService {
     return super.onPlainSQL(req, next)
   }
 
-  onBEGIN() {}
+  onBEGIN() { }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    return this.dbc.commit()
+    return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    return this.dbc.rollback()
+    return this.dbc?.rollback()
   }
 
   // Creates a new database using HDI container groups

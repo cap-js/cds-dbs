@@ -61,6 +61,7 @@ class DatabaseService extends cds.Service {
 
     // Acquire a pooled connection
     this.dbc = await this.acquire()
+    this.dbc.destroy = this.destroy.bind(this)
 
     // Begin a session...
     try {
@@ -108,8 +109,20 @@ class DatabaseService extends cds.Service {
    */
   async release() {
     if (!this.dbc) return
-    await this.pool.release(this.dbc)
+    const dbc = this.dbc
     this.dbc = undefined
+    await this.pool.release(dbc)
+  }
+
+  /**
+   * Destroys own connection, i.e. tix.dbc, from this.pool
+   * This is for subclasses to intercept, if required.
+   */
+  async destroy() {
+    if (!this.dbc) return
+    const dbc = this.dbc
+    this.dbc = undefined
+    await this.pool.destroy(dbc)
   }
 
   // REVISIT: should happen automatically after a configurable time
