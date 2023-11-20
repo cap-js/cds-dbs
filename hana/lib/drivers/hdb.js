@@ -36,6 +36,26 @@ class HDBDriver extends driver {
     return this._native.readyState === 'connected'
   }
 
+  /**
+   * Connects the driver using the provided credentials
+   * @returns {Promise<any>}
+   */
+  async connect() {
+    this.connected = prom(this._native, 'connect')(this._creds)
+    return this.connected.then(async () => {
+      const [version] = await Promise.all([
+        prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"'),
+        this._creds.schema && prom(this._native, 'exec')(`SET SCHEMA ${this._creds.schema}`),
+      ])
+      const split = version[0].VERSION.split('.')
+      this.server = {
+        major: split[0],
+        minor: split[2],
+        patch: split[3],
+      }
+    })
+  }
+
   async prepare(sql) {
     const ret = await super.prepare(sql)
     ret.stream = async (values, one) => {

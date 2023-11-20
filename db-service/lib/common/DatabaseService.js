@@ -50,7 +50,9 @@ class DatabaseService extends cds.Service {
   async begin() {
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
-    if (!ctx) return this.tx().begin() // REVISIT: Is this correct? When does this happen?
+
+    // If .begin is called explicitly it starts a new transaction and executes begin
+    if (!ctx) return this.tx().begin()
 
     // REVISIT: tenant should be undefined if !this.isMultitenant
     let isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
