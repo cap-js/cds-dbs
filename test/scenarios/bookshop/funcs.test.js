@@ -217,6 +217,14 @@ describe('Bookshop - Functions', () => {
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
+    test('date function with null value', async () => {
+      const { result } = await SELECT.one(`day(null) as result`)
+      .from('sap.capire.bookshop.Books')
+
+      expect(result).to.be.null
+    })
+
     test.skip('fractionalseconds', async () => {
       // REVISIT: ERROR: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
       const res = await GET(
