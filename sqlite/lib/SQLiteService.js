@@ -147,6 +147,24 @@ class SQLiteService extends SQLService {
     })    
   }
 
+  _convertStreamValues(values) {
+    let any
+    values.forEach((v, i) => {
+      if (v instanceof Readable) {
+        any = values[i] = new Promise((resolve, reject) => {
+          const chunks = []
+          v.on('data', chunk => chunks.push(chunk))
+          v.on('end', () => resolve(Buffer.concat(chunks)))
+          v.on('error', err => {
+            v.removeAllListeners('error')            
+            reject(err)
+          })
+        })
+      }
+    })
+    return any ? Promise.all(values) : values
+  }
+
   exec(sql) {
     return this.dbc.exec(sql)
   }
@@ -267,31 +285,37 @@ class SQLiteService extends SQLService {
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
-  }
-
-  _convertStreamValues(values) {
-    let any
-    values.forEach((v, i) => {
-      if (v instanceof Readable) {
-        any = values[i] = new Promise((resolve, reject) => {
-          const chunks = []
-          v.on('data', chunk => chunks.push(chunk))
-          v.on('end', () => resolve(Buffer.concat(chunks)))
-          v.on('error', err => {
-            v.removeAllListeners('error')            
-            reject(err)
-          })
-        })
-      }
-    })
-    return any ? Promise.all(values) : values
-  }
+  } 
 
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     const vals = await this._convertStreamValues(values)
     return (await ps.run(vals)).changes
+  }
+
+  async onSELECT({ query, data }) {
+    const { sql, values, cqn } = this.cqn2sql(query, data)
+    let ps = await this.prepare(sql)
+    let rows = await ps.all(values)
+    if (rows.length)
+      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+
+    // REVISIT: where to place?  
+    if (cds.env.features.compat_stream_cqn) {
+      if (query._streaming) {
+        this._changeToStreams(cqn, rows, true)
+        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
+      } 
+    } else {  
+      this._changeToStreams(cqn, rows)
+    }
+    if (cqn.SELECT.count) {
+      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+      return SQLService._arrayWithCount(rows, await this.count(query, rows))
+    }
+
+    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 }
 
