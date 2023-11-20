@@ -13,13 +13,17 @@ const StandardFunctions = {
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
 
   // Date and Time Functions
-  year: x => `date_part('year',(${x})::TIMESTAMP)`,
-  month: x => `date_part('month',(${x})::TIMESTAMP)`,
-  day: x => `date_part('day',(${x})::TIMESTAMP)`,
-  hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
-  minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
-  second: x => `date_part('second',(${x})::TIMESTAMP)`,
+  year: x => `date_part('year', ${castVal(x)})`,
+  month: x => `date_part('month', ${castVal(x)})`,
+  day: x => `date_part('day', ${castVal(x)})`,
+  hour: x => `date_part('hour', ${castVal(x)})`,
+  minute: x => `date_part('minute', ${castVal(x)})`,
+  second: x => `date_part('second', ${castVal(x)})`,
 }
+
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const isVal = x => x && 'val' in x
+const castVal = (x) => `${x}${isVal(x) ? isTime.test(x.val) ? '::TIME' : '::TIMESTAMP' : ''}`
 
 const HANAFunctions = {
   // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
