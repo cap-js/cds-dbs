@@ -39,14 +39,16 @@ class SQLService extends DatabaseService {
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-    if (cds.env.features.compat_stream_cqn) {
-      if (query._streaming) {
-        this._changeToStreams(cqn, rows, true)
-        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
-      } 
-    } else {  
-      // REVISIT: large blobs in memory. Bob?
-      this._changeToStreams(cqn, rows)
+    // REVISIT: move code to sqlite?
+    if (this._changeToStreams) {  
+      if (cds.env.features.compat_stream_cqn) {
+        if (query._streaming) {
+          this._changeToStreams(cqn, rows, true)
+          return rows.length ? { value: Object.values(rows[0])[0] } : undefined
+        } 
+      } else {  
+        this._changeToStreams(cqn, rows)
+      }
     }
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
