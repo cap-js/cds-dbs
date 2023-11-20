@@ -527,6 +527,9 @@ class CQN2SQLRenderer {
       .filter(c => !keys.includes(c))
       .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
+    // temporal data
+    keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
+
     keys = keys.map(k => this.quote(k))
     const conflict = updateColumns.length
       ? `ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
@@ -872,7 +875,6 @@ class CQN2SQLRenderer {
 
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-
       else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {

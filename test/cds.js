@@ -1,8 +1,9 @@
-const cds = module.exports = require('@sap/cds/lib')
+const cds = require('@sap/cds/lib')
+module.exports = cds
 
 // Adding cds.hana types to cds.builtin.types
 // REVISIT: Where should we put this?
-const hana = module.exports.linked({
+const hana = cds.linked({
   definitions: {
     'cds.hana.SMALLDECIMAL': { type: 'cds.Decimal' },
     'cds.hana.SMALLINT': { type: 'cds.Int16' },
@@ -16,9 +17,9 @@ const hana = module.exports.linked({
     'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
   },
 })
-Object.assign(module.exports.builtin.types, hana.definitions)
+Object.assign(cds.builtin.types, hana.definitions)
 
-const cdsTest = module.exports.test
+const cdsTest = cds.test
 
 let isolateCounter = 0
 
@@ -33,8 +34,7 @@ let isolateCounter = 0
 
 // REVISIT: move this logic into cds when stabilized
 // Overwrite cds.test with autoIsolation logic
-module.exports.test = Object.setPrototypeOf(function () {
-  let ret
+cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(() => {
     try {
@@ -48,7 +48,7 @@ module.exports.test = Object.setPrototypeOf(function () {
     }
   })
 
-  ret = cdsTest(...arguments)
+  let ret = cdsTest(...arguments)
 
   global.beforeAll(async () => {
     // Setup isolation after cds has prepare the project (e.g. cds.model)
@@ -119,5 +119,5 @@ module.exports.test = Object.setPrototypeOf(function () {
 
 // Release cds._context for garbage collection
 global.afterEach(() => {
-  module.exports._context.disable()
+  cds._context.disable()
 })
