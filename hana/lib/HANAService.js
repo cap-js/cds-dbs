@@ -99,6 +99,7 @@ class HANAService extends SQLService {
     return new this.class.InsertResults(cqn, results)
   }
 
+  /*
   async onSTREAM(req) {
     let { cqn, sql, values, temporary, blobs } = this.cqn2sql(req.query)
     // writing stream
@@ -115,7 +116,7 @@ class HANAService extends SQLService {
     const stream = await ps.stream(values, cqn.SELECT?.one)
     if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
     return stream
-  }
+  } */
 
   // Allow for running complex expand queries in a single statement
   wrapTemporary(temporary, blobs) {

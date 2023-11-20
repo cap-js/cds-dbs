@@ -86,7 +86,7 @@ describe('streaming', () => {
     })
   })
 
-  describe('STREAM API', () => {
+  describe('Streaming API', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
       await cds.run('INSERT INTO test_Images values(?,?,?)', [
@@ -314,13 +314,17 @@ describe('streaming', () => {
         const [{ renamedData: stream_ }] = await SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
         await checkSize(stream_)
       })
-
-      // TODO: Sync with Bob
-      xtest('WRITE dataset from json file stream', async () => {
+      
+      test('WRITE dataset from json file stream', async () => {
         const { Images } = cds.entities('test')
-        const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
 
-        const changes = await STREAM.into(Images).data(stream)
+        // to be discussed
+        // const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
+        // const changes = await STREAM.into(Images).data(stream)
+
+        const json = JSON.parse(fs.readFileSync(path.join(__dirname, 'samples/data.json')))
+        const changes = await INSERT.into(Images).entries(json)
+
         try {
           expect(changes).toEqual(2)
         } catch (e) {
@@ -330,11 +334,11 @@ describe('streaming', () => {
         const out1000 = fs.createWriteStream(path.join(__dirname, 'samples/1000.png'))
         const out1001 = fs.createWriteStream(path.join(__dirname, 'samples/1001.png'))
 
-        const in1000 = await STREAM.from(Images, { ID: 1000 }).column('data')
-        const in1001 = await STREAM.from(Images, { ID: 1001 }).column('data')
+        const in1000 = await SELECT.one.from(Images, { ID: 1000 }).columns(['data'])
+        const in1001 = await SELECT.one.from(Images, { ID: 1001 }).columns(['data'])
 
-        in1000.pipe(out1000)
-        in1001.pipe(out1001)
+        in1000.data.pipe(out1000)
+        in1001.data.pipe(out1001)
 
         const wrap = stream =>
           new Promise((resolve, reject) => {
@@ -344,9 +348,8 @@ describe('streaming', () => {
 
         await Promise.all([wrap(out1000), wrap(out1001)])
       })
-
-      // TODO: Sync with Bob
-      xtest('WRITE dataset from json generator stream', async () => {
+      
+      test('WRITE dataset from json generator stream', async () => {
         const { Images } = cds.entities('test')
 
         const start = 2000
@@ -364,7 +367,7 @@ describe('streaming', () => {
         }
         const stream = Readable.from(generator())
 
-        const changes = await STREAM.into(Images).data(stream)
+        const changes = await INSERT.into(Images).entries({ data: stream })
         try {
           expect(changes).toEqual(count)
         } catch (e) {
