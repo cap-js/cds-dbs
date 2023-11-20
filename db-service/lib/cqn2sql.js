@@ -70,7 +70,7 @@ class CQN2SQLRenderer {
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[cmd]((this.cqn = q)) // actual sql rendering happens here
-    if (vars?.length && !this.values.length) this.values = vars
+    if (vars?.length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
       this.sql,

@@ -246,6 +246,7 @@ class HANAService extends SQLService {
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const { element, elements } = q
+        if (expand === 'root') this.values = undefined
 
         q = cds.ql.clone(q)
         if (parent) {
@@ -488,6 +489,7 @@ class HANAService extends SQLService {
     }
 
     INSERT_entries(q) {
+      this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
@@ -639,28 +641,6 @@ class HANAService extends SQLService {
 
     having(xpr) {
       return this.xpr({ xpr }, ' = TRUE')
-    }
-
-    // REVISIT: why is that a complete copy from the base class?
-    val({ val }) {
-      switch (typeof val) {
-        case 'function': throw new Error('Function values not supported.')
-        case 'undefined': return 'NULL'
-        case 'boolean': return `${val}`
-        case 'number': return `${val}` // REVISIT for HANA
-        case 'object':
-          if (val === null) return 'NULL'
-          if (val instanceof Date) return `'${val.toISOString()}'`
-          if (val instanceof Readable) {
-            this.values.push(val)
-            return '?'
-          }
-          else if (Buffer.isBuffer(val)) val = val.toString('base64')
-          else if (is_regexp(val)) val = val.source
-          else val = JSON.stringify(val)
-        case 'string': // eslint-disable-line no-fallthrough
-      }
-      return this.string(val)
     }
 
     xpr({ xpr, _internal }, caseSuffix = '') {
