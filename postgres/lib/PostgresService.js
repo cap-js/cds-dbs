@@ -457,6 +457,7 @@ GROUP BY k
         DROP USER IF EXISTS "${creds.user}";
         CREATE GROUP "${creds.usergroup}";
         CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
+        GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
     } catch (e) {
@@ -485,7 +486,7 @@ GROUP BY k
         await this.tx(async tx => {
           // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
           await tx
-            .run(`CREATE USER "${creds.user}" PASSWORD '${creds.password}'`)
+            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
             .catch(e => {
               if (e.code === '42710') return
               throw e
