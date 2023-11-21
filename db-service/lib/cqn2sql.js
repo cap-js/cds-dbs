@@ -434,81 +434,91 @@ class CQN2SQLRenderer {
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
-  // REVISIT: yield less often
   async *INSERT_entries_stream(entries) {
-    yield '['
+    const bufferLimit = 1 << 16
+    let buffer = '['
 
     let sep = ''
     for (const row of entries) {
+      buffer += `${sep}{`
       if (!sep) sep = ','
-      else yield sep
 
       let sepsub = ''
-      yield '{'
       for (const key in row) {
-
+        const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
-        else yield sepsub
-
-        yield JSON.stringify(key)
-        yield ':'
 
         const val = row[key]
         if (val instanceof Readable) {
-          yield '"'
+          buffer += `${keyJSON}"`
 
           // TODO: double check that it works
           val.setEncoding('base64')
           for await (const chunk of val) {
-            yield chunk
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
           }
 
-          yield '"'
+          buffer += '"'
         } else {
-          yield val === undefined ? 'null' : JSON.stringify(val)
+          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
       }
-      yield '}'
+      buffer += '}'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
     }
 
-    yield ']'
+    buffer += ']'
+    yield buffer
   }
 
-  // REVISIT: yield less often
   async *INSERT_rows_stream(entries) {
-    yield '['
+    const bufferLimit = 1 << 16
+    let buffer = '['
 
     let sep = ''
     for (const row of entries) {
+      buffer += `${sep}[`
       if (!sep) sep = ','
-      else yield sep
 
       let sepsub = ''
-      yield '['
       for (let key = 0; key < row.length; key++) {
-
-        if (!sepsub) sepsub = ','
-        else yield sepsub
-
         const val = row[key]
         if (val instanceof Readable) {
-          yield '"'
+          buffer += `${sepsub}"`
 
           // TODO: double check that it works
           val.setEncoding('base64')
           for await (const chunk of val) {
-            yield chunk
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
           }
 
-          yield '"'
+          buffer += '"'
         } else {
-          yield val === undefined ? 'null' : JSON.stringify(val)
+          buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
+
+        if (!sepsub) sepsub = ','
       }
-      yield ']'
+      buffer += ']'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
     }
 
-    yield ']'
+    buffer += ']'
+    yield buffer
   }
 
   /**
