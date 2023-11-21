@@ -1,4 +1,6 @@
 const cds = require('../../../test/cds.js')
+cds.env.features.compat_stream_cqn = true
+
 const { fs, path } = cds.utils
 const { Readable } = require('stream')
 
@@ -105,90 +107,48 @@ describe('streaming', () => {
     // REVISIT: Add test for error while reading stream OR test manually
 
     describe('READ', () => {
-      test('READ stream property with .one .from, .column and .where', async () => {
+      test('READ stream property with _streaming = true', async () => {
         const { Images } = cds.entities('test')
-        const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
+        const cqn = SELECT.one.from(Images).columns('data').where({ ID: 1 })
+        cqn._streaming = true
+        const { value: stream } = await cqn
         await checkSize(stream)
       })
 
-      test('READ stream property with .from, .column and .where', async () => {
+      test('READ stream property w/o _streaming = true', async () => {
         const { Images } = cds.entities('test')
-        const [{ data: stream }] = await SELECT.from(Images).columns('data').where({ ID: 1 })
+        const { data: buffer } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
+        expect(buffer.length).toBe(10524)
+      })
+
+      test('READ multiple stream properties with _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const cqn = SELECT.from(Images).columns(['data', 'data2']).where({ ID: 1 })
+        cqn._streaming = true
+        const { value: stream } = await cqn
         await checkSize(stream)
       })
 
-      test('READ null stream property with .from, .column and .where', async () => {
+      test('RREAD multiple stream properties w/o _streaming = true', async () => {
+        const { Images } = cds.entities('test')
+        const [{ data: buffer1, ID, data2: buffer2 }] = await SELECT.from(Images).columns(['data', 'ID', 'data2']).where({ ID: 1 })
+        expect(ID).toBe(1)
+        expect(buffer1.length).toBe(10524)
+        expect(buffer2.length).toBe(10524)
+      })      
+
+      test('READ null stream property', async () => {
+        const { Images } = cds.entities('test')
+        const cqn = SELECT.from(Images).columns('data').where({ ID: 2 })
+        cqn._streaming = true
+        const { value: stream } = await cqn
+        expect(stream).toBeNull()
+      })
+
+      test('READ null stream property', async () => {
         const { Images } = cds.entities('test')
         const [{ data: stream }] = await SELECT.from(Images).columns('data').where({ ID: 2 })
         expect(stream).toBeNull()
-      })
-      
-      test('READ ID and stream property with .from, .column and .where', async () => {
-        const { Images } = cds.entities('test')
-        const [{ ID, data: stream }] = await SELECT.from(Images).columns(['ID', 'data']).where({ ID: 1 })
-        await checkSize(stream)
-        expect(ID).toEqual(1)
-      })
-
-      test('READ multiple stream properties with .from, .column and .where', async () => {
-        const { Images } = cds.entities('test')
-        const [{ ID, data: stream1, data2: stream2 }] = await SELECT.from(Images).columns(['ID', 'data', 'data2']).where({ ID: 1 })
-        await checkSize(stream1)
-        await checkSize(stream2)
-        expect(ID).toEqual(1)
-      })
-
-      test('READ all entries with stream property with .from, .column ', async () => {
-        const { Images } = cds.entities('test')
-        const [{ ID: ID1, data: stream1, data2: stream2 }, { ID: ID2, data: stream3, data2: stream4 }, { ID: ID3, data: stream5, data2: stream6 }] = await SELECT.from(Images).columns(['ID', 'data', 'data2'])
-        await checkSize(stream1)
-        await checkSize(stream2)        
-        expect(stream3).toBeNull()
-        await checkSize(stream4)
-        await checkSize(stream5)        
-        expect(stream6).toBeNull()
-        expect(ID1).toEqual(1)
-        expect(ID2).toEqual(2)
-        expect(ID3).toEqual(3)        
-      })
-
-      test('READ one ignore stream properties if columns = all', async () => {
-        const { Images } = cds.entities('test')
-        const result = await SELECT.from(Images).where({ ID: 1 })
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
-      })
-
-      test('READ multiple entries ignore stream properties if columns = all', async () => {
-        const { Images } = cds.entities('test')
-        const result = await SELECT.from(Images)
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
-        expect(result[1].ID).toBe(2)
-        expect(result[1].data).toBeUndefined()
-        expect(result[1].data2).toBeUndefined()
-      })
-
-      test('READ ignore stream properties if columns = *', async () => {
-        const { Images } = cds.entities('test')
-        const result = await SELECT.from(Images).columns('*').where({ ID: 1 })
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
-      })
-
-      test('READ all properties from not existing entry', async () => {
-        const { Images } = cds.entities('test')
-        const res = await SELECT.from(Images).columns('*').where({ ID: 15 })
-        expect(res.length).toBe(0)
-      })
-
-      test('READ stream property from not existing entry', async () => {
-        const { Images } = cds.entities('test')
-        const res = await SELECT.from(Images).columns('data').where({ ID: 15 })
-        expect(res.length).toBe(0)
       })
     })
 
