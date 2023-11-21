@@ -173,14 +173,16 @@ describe('streaming', () => {
       // TODO: Separate entities (also for cds.stream()) !!!!!
       // Add clean-up for test_Images
 
-      test('WRITE stream property', async () => {
+      test('WRITE single stream property', async () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
         expect(changes).toEqual(1)
         
-        const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
+        const cqn = SELECT.from(Images).columns('data2').where({ ID: 3 })
+        cqn._streaming = true
+        const { value: stream_ } = await cqn
         await checkSize(stream_)
       }) 
       
@@ -192,9 +194,10 @@ describe('streaming', () => {
         const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
         expect(changes).toEqual(1)
         
-        const [{ data: stream1_, data2: stream2_ }] = await SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
-        await checkSize(stream1_)
-        await checkSize(stream2_)
+        const cqn = SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+        const [{ data: buffer1, data2: buffer2 }] = await cqn
+        expect(buffer1.length).toBe(10524)
+        expect(buffer2.length).toBe(10524)
       }) 
 
       test('WRITE multiple blob properties', async () => {
@@ -205,9 +208,10 @@ describe('streaming', () => {
         const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
         expect(changes).toEqual(1)
         
-        const [{ data: stream1_, data2: stream2_ }] = await SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
-        await checkSize(stream1_)
-        await checkSize(stream2_)
+        const cqn = SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+        const [{ data: buffer1, data2: buffer2 }] = await cqn
+        expect(buffer1.length).toBe(10524)
+        expect(buffer2.length).toBe(10524)
       }) 
 
       test('WRITE stream property on view', async () => {
@@ -217,7 +221,9 @@ describe('streaming', () => {
         const changes = await UPDATE(ImagesView).with({ renamedData: stream }).where({ ID: 1 })
         expect(changes).toEqual(1)
 
-        const [{ renamedData: stream_ }] = await SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
+        const cqn = SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
+        cqn._streaming = true
+        const { value: stream_ } = await cqn
         await checkSize(stream_)
       })
       
@@ -240,11 +246,15 @@ describe('streaming', () => {
         const out1000 = fs.createWriteStream(path.join(__dirname, 'samples/1000.png'))
         const out1001 = fs.createWriteStream(path.join(__dirname, 'samples/1001.png'))
 
-        const in1000 = await SELECT.one.from(Images, { ID: 1000 }).columns(['data'])
-        const in1001 = await SELECT.one.from(Images, { ID: 1001 }).columns(['data'])
+        const cqn1 = SELECT.one.from(Images, { ID: 1000 }).columns(['data'])
+        const cqn2 = SELECT.one.from(Images, { ID: 1001 }).columns(['data'])
+        cqn1._streaming = true
+        cqn2._streaming = true
+        const in1000 = await cqn1
+        const in1001 = await cqn2
 
-        in1000.data.pipe(out1000)
-        in1001.data.pipe(out1001)
+        in1000.value.pipe(out1000)
+        in1001.value.pipe(out1001)
 
         const wrap = stream =>
           new Promise((resolve, reject) => {
