@@ -22,6 +22,19 @@ class HANAClientDriver extends driver {
   constructor(creds) {
     // Enable native @sap/hana-client connection pooling
     creds.pooling = true
+    Object.assign(creds, {
+      // Enables the @sap/hana-client native connection pool implementation
+      pooling: true,
+      poolingCheck: true,
+      maxPoolSize: 100, // TODO: align to options.pool configurations
+      
+      // If communicationTimeout is not set queries will hang for over 10 minutes
+      communicationTimeout: 5000,
+      connectTimeout: 1000,
+      // compress: true, // TODO: test whether having compression enabled makes things faster
+      // statement caches come with a side effect when the database structure changes which does not apply to CAP
+      // statementCacheSize: 100, // TODO: test whether statementCaches make things faster
+    })
 
     // Retain node-hdb credential mappings to @sap/hana-client credential mapping
     for (const m of credentialMappings) {

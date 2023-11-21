@@ -33,7 +33,7 @@ class HANAService extends SQLService {
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     return {
       options: driver.pool // Ignore generic-pool when native pool is available
-        ? { min: 0, max: Number.POSITIVE_INFINITY }
+        ? { min: 0, max: 1000 }
         : isMultitenant // Restrict pool size when serving multi tenant applications
           ? {
             ...this.options.pool,
