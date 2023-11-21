@@ -74,7 +74,7 @@ class SQLService extends DatabaseService {
         any = values[i] = new Promise((resolve, reject) => {
           const chunks = []
           v.on('data', chunk => chunks.push(chunk))
-          v.on('end', () => resolve(Buffer.concat(chunks)))
+          v.on('end', () => resolve(Buffer.concat(chunks).toString('base64')))
           v.on('error', err => {
             v.removeAllListeners('error')            
             reject(err)
