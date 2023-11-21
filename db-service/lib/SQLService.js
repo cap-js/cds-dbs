@@ -236,6 +236,14 @@ class SQLService extends DatabaseService {
       expand: false,
       limit: 0,
       orderBy: 0,
+      groupBy: 0,
+      from: {
+        SELECT: {
+          columns: [{ ref: [query.SELECT.groupBy[0].ref[0]] }],
+          from: query.SELECT.from,
+          groupBy: query.SELECT.groupBy,
+        }
+      }
     })
     const { sql, values } = this.cqn2sql(cq)
     const ps = await this.prepare(sql)
