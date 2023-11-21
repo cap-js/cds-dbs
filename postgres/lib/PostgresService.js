@@ -460,7 +460,7 @@ GROUP BY k
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
     } catch (e) {
-      // Failed to reset database
+            // Failed to reset database
     } finally {
       await this.dbc.end()
       delete this.dbc
@@ -485,7 +485,7 @@ GROUP BY k
         await this.tx(async tx => {
           // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
           await tx
-            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+            .run(`CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}'`)
             .catch(e => {
               if (e.code === '42710') return
               throw e
