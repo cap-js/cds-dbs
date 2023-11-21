@@ -33,11 +33,13 @@ class SQLService extends DatabaseService {
   _changeToStreams(cqn, rows, first) {
     if (!rows.length) return
 
-    // REVISIT: (1) refactor (2) consider extracting to a method compat
+    // REVISIT: (1) refactor (2) consider extracting to a method  (3) compat
     if (first) { 
       rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
       return
     }
+
+    if (!cqn.SELECT.columns) return
 
     for (let col of cqn.SELECT.columns) {
       const name = col.ref?.[col.ref.length-1] || col
