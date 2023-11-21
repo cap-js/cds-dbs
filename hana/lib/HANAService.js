@@ -64,6 +64,10 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
+    // REVISIT: required to be compatible with generated views
+    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
+    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+
     this.dbc.set(variables)
   }
 
@@ -256,6 +260,8 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || limit || one || orderBy) {
+        if (expand === 'root') this.values = undefined
+
         q.SELECT.expand = false
 
         if (expand === 'root') {
@@ -522,6 +528,7 @@ class HANAService extends SQLService {
     }
 
     INSERT_entries(q) {
+      this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
@@ -662,27 +669,6 @@ class HANAService extends SQLService {
       return this.xpr({ xpr }, ' = TRUE')
     }
 
-    // REVISIT: why is that a complete copy from the base class?
-    val({ val }) {
-      switch (typeof val) {
-        case 'function': throw new Error('Function values not supported.')
-        case 'undefined': return 'NULL'
-        case 'boolean': return `${val}`
-        case 'number': return `${val}` // REVISIT for HANA
-        case 'object':
-          if (val === null) return 'NULL'
-          if (val instanceof Date) return `'${val.toISOString()}'`
-          if (val instanceof Readable){
-            this.values.push(val)
-            return '?'
-          }
-          else if (Buffer.isBuffer(val)) val = val.toString('base64')
-          else if (is_regexp(val)) val = val.source
-          else val = JSON.stringify(val)
-        case 'string': // eslint-disable-line no-fallthrough
-      }
-      return this.string(val)
-    }
 
     xpr({ xpr, _internal }, caseSuffix = '') {
       // Maps the compare operators to what to return when both sides are null
@@ -821,19 +807,9 @@ class HANAService extends SQLService {
         const element = elements?.[name] || {}
         // Don't apply input converters for place holders
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
-        let managed = element[annotation]?.['=']
-        switch (managed) {
-          case '$user.id':
-          case '$user':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
-            break
-          case '$now':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
-            break
-          default:
-            managed = undefined
-        }
-
+        const val = _managed[element[annotation]?.['=']]
+        let managed
+        if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
         const type = this.insertType4(element)
         let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
         if (!isUpdate) {
@@ -1057,5 +1033,10 @@ Buffer.prototype.toJSON = function () {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
+const _managed = {
+  '$user.id': '$user.id',
+  $user: '$user.id',
+  $now: '$now',
+}
 
 module.exports = HANAService
