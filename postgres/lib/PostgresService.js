@@ -485,7 +485,7 @@ GROUP BY k
         await this.tx(async tx => {
           // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
           await tx
-            .run(`CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}'`)
+            .run(`CREATE USER "${creds.user}" PASSWORD '${creds.user}'`)
             .catch(e => {
               if (e.code === '42710') return
               throw e
