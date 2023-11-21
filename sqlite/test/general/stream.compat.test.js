@@ -15,7 +15,8 @@ const checkSize = async stream => {
 describe('streaming', () => {
   cds.test(__dirname, 'model.cds')
 
-  describe('cds.stream', () => {
+  // TODO: Un-x after cds is merged
+  xdescribe('cds.stream', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
       await cds.run('INSERT INTO test_Images values(?,?,?)', [
@@ -31,7 +32,8 @@ describe('streaming', () => {
 
     test('READ stream property with .from and .where', async () => {
       const { Images } = cds.entities('test')
-      const stream = await cds.stream('data').from(Images).where({ ID: 1 })
+      const cqn =  cds.stream('data').from(Images).where({ ID: 1 })
+      const stream = await cqn
       await checkSize(stream)
     })
 
