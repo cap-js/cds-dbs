@@ -465,10 +465,47 @@ class CQN2SQLRenderer {
 
           yield '"'
         } else {
-          yield JSON.stringify(val)
+          yield val === undefined ? 'null' : JSON.stringify(val)
         }
       }
       yield '}'
+    }
+
+    yield ']'
+  }
+
+  // REVISIT: yield less often
+  async *INSERT_rows_stream(entries) {
+    yield '['
+
+    let sep = ''
+    for (const row of entries) {
+      if (!sep) sep = ','
+      else yield sep
+
+      let sepsub = ''
+      yield '['
+      for (let key = 0; key < row.length; key++) {
+
+        if (!sepsub) sepsub = ','
+        else yield sepsub
+
+        const val = row[key]
+        if (val instanceof Readable) {
+          yield '"'
+
+          // TODO: double check that it works
+          val.setEncoding('base64')
+          for await (const chunk of val) {
+            yield chunk
+          }
+
+          yield '"'
+        } else {
+          yield val === undefined ? 'null' : JSON.stringify(val)
+        }
+      }
+      yield ']'
     }
 
     yield ']'
@@ -485,21 +522,27 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = INSERT.columns
-    || cds.error`Cannot insert rows without columns or elements`
+      || cds.error`Cannot insert rows without columns or elements`
 
     const inputConverter = this.class._convertInput
-    const extraction = columns.map((c,i) => {
+    const extraction = columns.map((c, i) => {
       const extract = `value->>'$[${i}]'`
       const element = elements?.[c]
       const converter = element?.[inputConverter]
-      return converter?.(extract,element) || extract
+      return converter?.(extract, element) || extract
     })
 
     this.columns = columns.map(c => this.quote(c))
     this.entries = [[JSON.stringify(INSERT.rows)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+
+    this.entries = [[...this.values,
+    INSERT.rows instanceof Readable
+      ? INSERT.rows
+      : Readable.from(this.INSERT_rows_stream(INSERT.rows))
+    ]]
+
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+      }) SELECT ${extraction} FROM json_each(?)`)
   }
 
   /**
