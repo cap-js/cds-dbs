@@ -13,6 +13,7 @@ class PostgresService extends SQLService {
       cds.options.dialect = 'postgres'
     }
     this.kind = 'postgres'
+    this.PROCESS_STREAMING = true
     return super.init(...arguments)
   }
 
@@ -280,69 +281,6 @@ GROUP BY k
 
     return super.onPlainSQL(req, next)
   }
-
-  ///////////////////////////////////////////////////////
-
-  _changeToStreams(cqn, rows, first) {
-    if (!rows.length) return
-
-    // REVISIT: (1) refactor (2) consider extracting to a method compat
-    if (first) { 
-      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
-      return
-    }
-
-    for (let col of cqn.SELECT.columns) {
-      const name = col.ref?.[col.ref.length-1] || col
-      if (col.element?.type === 'cds.LargeBinary') {
-        if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
-        else
-          rows.forEach(row => {
-            row[name] = this._stream(row[name])
-          })        
-      }
-    }
-  } 
-
-  _stream(val) {
-    if (val === null) return null
-    // Buffer.from only applies encoding when the input is a string
-    let raw = Buffer.from(val.toString(), 'base64')
-    return new Readable({
-      read(size) {
-        if (raw.length === 0) return this.push(null)
-        const chunk = raw.slice(0, size) // REVISIT
-        raw = raw.slice(size)
-        this.push(chunk)
-      },
-    })    
-  }
-
-  async onSELECT({ query, data }) {
-    const { sql, values, cqn } = this.cqn2sql(query, data)
-    let ps = await this.prepare(sql)
-    let rows = await ps.all(values)
-    if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
-
-    if (cds.env.features.compat_stream_cqn) {
-      if (query._streaming) {
-        this._changeToStreams(cqn, rows, true)
-        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
-      } 
-    } else {  
-      this._changeToStreams(cqn, rows)
-    }
-    if (cqn.SELECT.count) {
-      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-      return SQLService._arrayWithCount(rows, await this.count(query, rows))
-    }
-
-    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
-  }
-
-
-  ///////////////////////////////////////////////////////
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
     _orderBy(orderBy, localized, locale) {
