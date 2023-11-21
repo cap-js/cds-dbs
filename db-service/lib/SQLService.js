@@ -30,11 +30,11 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  _changeToStreams(cqn, rows, first) {
+  _changeToStreams(cqn, rows, compat) {
     if (!rows.length) return
 
-    // REVISIT: (1) refactor (2) consider extracting to a method  (3) compat
-    if (first) { 
+    // REVISIT: refactor 
+    if (compat) { 
       rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
       return
     }
@@ -60,7 +60,7 @@ class SQLService extends DatabaseService {
     return new Readable({
       read(size) {
         if (raw.length === 0) return this.push(null)
-        const chunk = raw.slice(0, size) // REVISIT
+        const chunk = raw.slice(0, size) // REVISIT: slice
         raw = raw.slice(size)
         this.push(chunk)
       },
