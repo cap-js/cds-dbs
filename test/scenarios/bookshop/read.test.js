@@ -30,6 +30,15 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count with $top=2 and filter', async () => {
+    const res = await GET(
+      `/browse/ListOfBooks?$apply=filter(currency_code eq 'GBP')/groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$skip=0&$top=2`,
+    )
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+    expect(res.data['@odata.count']).to.be.eq(2)
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
