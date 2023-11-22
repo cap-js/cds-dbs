@@ -370,11 +370,11 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = cds.ql.clone(src)
-                parent.as = parent.SELECT.from.as
+                parent.as = parent.SELECT.from.as || parent.SELECT.from.args[0].as
                 parent.SELECT.expand = true
                 x.element._foreignKeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                    parent.SELECT.columns.push({ ref: [parent.SELECT.from.as, k.parentElement.name] })
+                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
                 })
 
