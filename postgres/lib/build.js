@@ -7,10 +7,11 @@ module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
   }
 
   init() {
-    if (this.task.dest === this.task.src) {
-      this.task.dest = path.join(this.task.dest, 'gen/pg')
+    super.init()
+    if (cds.env.build.target === '.') {
+      this.task.dest = path.join(this.task.dest, 'pg')
     } else {
-      this.task.dest = path.resolve(this.task.dest, '../pg')
+      this.task.dest = path.join(this.task.dest, '..', 'pg')
     }
   }
 
