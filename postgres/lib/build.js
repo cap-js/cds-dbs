@@ -8,7 +8,7 @@ module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
 
   init() {
     // different from the default build output structure
-    this.task.dest = path.join(cds.root, 'gen/pg')
+    this.task.dest = path.join(cds.root, cds.env.build.target !== '.' ? cds.env.build.target : 'gen', 'pg')
   }
 
   async build() {
