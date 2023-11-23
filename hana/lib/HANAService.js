@@ -188,7 +188,8 @@ class HANAService extends SQLService {
             })
             break
           } else {
-            level.data.push(data)
+            // REVISIT: identify why sometimes not all parent rows are returned
+            level.data.push?.(data)
             levels.push({
               data: data,
               path: row._path_,
