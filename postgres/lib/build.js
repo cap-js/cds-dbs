@@ -16,10 +16,16 @@ module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
     if (!model) return
 
     const promises = []
-    promises.push(this.write({
-        dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
-        scripts: { start: 'cds-deploy' },
-      }).to('package.json'))
+    if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
+      promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
+    } else {
+      promises.push(
+        this.write({
+          dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
+          scripts: { start: 'cds-deploy' },
+        }).to('package.json'),
+      )
+    }
     promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
 
     let data
