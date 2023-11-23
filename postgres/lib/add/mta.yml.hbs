@@ -1,0 +1,27 @@
+---
+modules:
+  - name: {{appName}}-srv
+    type: {{language}}
+    path: {{& srvPath}}
+    requires:
+      - name: {{appName}}-postgres
+
+  - name: {{appName}}-postgres-deployer
+    type: nodejs
+    path: gen/pg
+    parameters:
+      buildpack: nodejs_buildpack
+      no-route: true
+      no-start: true
+      tasks:
+        - name: deploy-to-postgresql
+          command: npm start
+    requires:
+      - name: {{appName}}-postgres
+
+resources:
+  - name: {{appName}}-postgres
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: postgresql-db
+      service-plan: development
