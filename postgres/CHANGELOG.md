@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.4.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.4.0...postgres-v1.4.1) (2023-11-24)
+
+
+### Fixed
+
+* `cds build` now generates the correct output folder structure for Node.js and Java apps. ([#353](https://github.com/cap-js/cds-dbs/issues/353)) ([875aca4](https://github.com/cap-js/cds-dbs/commit/875aca4f5a0ee71bcfbb13be47d4349970b40605))
+
 ## [1.4.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.3.1...postgres-v1.4.0) (2023-11-20)
 
 
