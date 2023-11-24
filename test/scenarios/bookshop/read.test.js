@@ -30,9 +30,9 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
-  test('Books $count with $top=2 and groupby', async () => {
+  test('Books $count with $top=0 and groupby', async () => {
     const res = await GET(
-      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=2`,
+      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=0`,
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(0)
