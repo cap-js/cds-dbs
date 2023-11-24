@@ -3,6 +3,7 @@ const cds = require('@sap/cds/lib')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
+const { Readable } = require('stream')
 
 class SQLiteService extends SQLService {
   init() {
@@ -120,6 +121,23 @@ class SQLiteService extends SQLService {
     return this.dbc.exec(sql)
   }
 
+  _prepareStreams(values) {
+    let any
+    values.forEach((v, i) => {
+      if (v instanceof Readable) {
+        any = values[i] = convStrm.buffer(v)
+      }
+    })
+    return any ? Promise.all(values) : values
+  }
+
+  async onSIMPLE({ query, data }) {
+    const { sql, values } = this.cqn2sql(query, data)
+    let ps = await this.prepare(sql)
+    const vals = await this._prepareStreams(values)
+    return (await ps.run(vals)).changes
+  }
+
   onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
       // REVISIT: this is a hack the target of $now might not be a timestamp or date time
@@ -148,8 +166,9 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
+      if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
-      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      else if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
       return super.val(v)
     }
 
