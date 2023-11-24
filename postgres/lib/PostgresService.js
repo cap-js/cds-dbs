@@ -195,7 +195,7 @@ GROUP BY k
       values.forEach((value, i) => {
         if (value instanceof Readable) {
           const streamID = query._streams++
-          const isBinary = value.type === 'binary'
+          const isBinary = value.type !== 'json'
           const paramStream = new ParameterStream(query.name, streamID)
           if (isBinary) value.setEncoding('base64')
           value.pipe(paramStream)

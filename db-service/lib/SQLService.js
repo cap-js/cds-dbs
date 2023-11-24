@@ -67,24 +67,6 @@ class SQLService extends DatabaseService {
     })    
   }
 
-  _convertStreamValues(values) {
-    let any
-    values.forEach((v, i) => {
-      if (v instanceof Readable) {
-        any = values[i] = new Promise((resolve, reject) => {
-          const chunks = []
-          v.on('data', chunk => chunks.push(chunk))
-          v.on('end', () => resolve(Buffer.concat(chunks).toString('base64')))
-          v.on('error', err => {
-            v.removeAllListeners('error')            
-            reject(err)
-          })
-        })
-      }
-    })
-    return any ? Promise.all(values) : values
-  }
-
   /**
    * Handler for SELECT
    * @type {Handler}
@@ -162,8 +144,7 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    const vals = this.PROCESS_STREAMING ? await this._convertStreamValues(values) : values
-    return (await ps.run(vals)).changes
+    return (await ps.run(values)).changes
   }
 
   get onDELETE() {
