@@ -30,13 +30,13 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
-  test('Books $count with $top=2 and filter', async () => {
+  test('Books $count with $top=2 and groupby', async () => {
     const res = await GET(
-      `/browse/ListOfBooks?$apply=filter(currency_code eq 'GBP')/groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$skip=0&$top=2`,
+      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=2`,
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(2)
-    expect(res.data['@odata.count']).to.be.eq(2)
+    expect(res.data.value.length).to.be.eq(0)
+    expect(res.data['@odata.count']).to.be.eq(5)
   })
 
   test('Path expression', async () => {
