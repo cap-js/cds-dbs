@@ -62,14 +62,14 @@ class CQN2SQLRenderer {
    * @returns {CQN2SQLRenderer|unknown}
    */
   render(q, vars) {
-    const cmd = q.cmd || Object.keys(q)[0] // SELECT, INSERT, ...
+    const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
     /**
      * @type {string} the rendered SQL string
      */
     this.sql = '' // to have it as first property for debugging
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
-    this[cmd]((this.cqn = q)) // actual sql rendering happens here
+    this[kind]((this.cqn = q)) // actual sql rendering happens here
     if (vars?.length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
@@ -208,9 +208,8 @@ class CQN2SQLRenderer {
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     // Expand cannot work without an inferred query
     if (expand) {
-      // REVISIT: Why don't we handle that as an error in SELECT_expand?
-      if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
-      sql = this.SELECT_expand(q, sql)
+      if ('elements' in q) sql = this.SELECT_expand (q,sql)
+      else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
     return (this.sql = sql)
   }
@@ -230,10 +229,12 @@ class CQN2SQLRenderer {
    * @param {string} sql
    * @returns {string} SQL
    */
-  SELECT_expand({ SELECT, elements }, sql) {
+  SELECT_expand(q, sql) {
+    if (!('elements' in q)) return sql
+
+    const SELECT = q.SELECT
     if (!SELECT.columns) return sql
-    if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
-    
+
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
       let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
@@ -256,7 +257,7 @@ class CQN2SQLRenderer {
       }
       // REVISIT: json_merge is a user defined function, bad performance!
       obj = `json_merge(${chunks})`
-    } 
+    }
 
 
     return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj.includes('json_merge') ? `json_insert(${obj})` : obj})`} as _json_ FROM (${sql})`
