@@ -2,9 +2,13 @@ const cds = require('@sap/cds')
 const { fs, path } = cds.utils
 
 module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
-
   static hasTask() {
     return cds.requires.db?.kind === 'postgres'
+  }
+
+  init() {
+    // different from the default build output structure
+    this.task.dest = path.join(cds.root, cds.env.build.target !== '.' ? cds.env.build.target : 'gen', 'pg')
   }
 
   async build() {
@@ -12,11 +16,17 @@ module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
     if (!model) return
 
     const promises = []
-    promises.push(this.write({
-        dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
-        scripts: { start: 'cds-deploy' },
-      }).to('pg/package.json'))
-    promises.push(this.write(cds.compile.to.json(model)).to(path.join('pg/db', 'csn.json')))
+    if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
+      promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
+    } else {
+      promises.push(
+        this.write({
+          dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
+          scripts: { start: 'cds-deploy' },
+        }).to('package.json'),
+      )
+    }
+    promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
 
     let data
     if (fs.existsSync(path.join(this.task.src, 'data'))) {
@@ -25,7 +35,7 @@ module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
       data = 'csv'
     }
     if (data) {
-      promises.push(this.copy(data).to(path.join('pg/db', 'data')))
+      promises.push(this.copy(data).to(path.join('db', 'data')))
     }
     return Promise.all(promises)
   }
