@@ -280,7 +280,7 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
-    if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
+    if (q.SELECT && 'elements' in q) q.SELECT.expand ??= 'root'
 
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
