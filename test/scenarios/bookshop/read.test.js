@@ -32,7 +32,7 @@ describe('Bookshop - Read', () => {
 
   test('Books $count with $top=1 and groupby', async () => {
     const res = await GET(
-      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=0`,
+      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=1`,
     )
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(1)
