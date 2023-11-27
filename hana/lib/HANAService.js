@@ -21,6 +21,8 @@ class HANAService extends SQLService {
       super.deploy = this.hdiDeploy
     }
 
+    this.PROCESS_STREAMING = true
+
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
