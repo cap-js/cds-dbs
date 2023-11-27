@@ -56,7 +56,7 @@ class SQLService extends DatabaseService {
   _stream(val) {
     if (val === null) return null
     // Buffer.from only applies encoding when the input is a string
-    let raw = Buffer.from(val.toString(), 'base64')
+    let raw = typeof val === 'string' ? Buffer.from(val.toString(), 'base64') : val
     return new Readable({
       read(size) {
         if (raw.length === 0) return this.push(null)
