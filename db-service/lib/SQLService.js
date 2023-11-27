@@ -279,12 +279,12 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
-    if (q.SELECT && q.elements) q.SELECT.expand = q.SELECT.expand ?? 'root'
+    if (q.SELECT && 'elements' in q) q.SELECT.expand ??= 'root'
 
-    let cmd = q.cmd || Object.keys(q)[0]
-    if (cmd in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
+    let kind = q.kind || Object.keys(q)[0]
+    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 } || q.STREAM?.into) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[cmd]._transitions?.[0].target
+      let target = q[kind]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)

@@ -528,7 +528,7 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
 
-    it('$variables in where do not matter for cds.infer', () => {
+    it('$variables in where do not matter for infer', () => {
       let query = CQL`SELECT from bookshop.Bar where createdAt < $now`
       // let query2 = CQL`SELECT from bookshop.Orders where buyer = $user`
       // let query3 = CQL`SELECT from bookshop.Orders where buyer = $user.id`
