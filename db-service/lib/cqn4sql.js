@@ -48,7 +48,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
   let transformedQuery = cds.ql.clone(inferred)
-  const kind = inferred.cmd || Object.keys(inferred)[0]
+  const kind = inferred.kind || Object.keys(inferred)[0]
 
   if (inferred.INSERT || inferred.UPSERT) {
     transformedQuery = transformQueryForInsertUpsert(kind)
