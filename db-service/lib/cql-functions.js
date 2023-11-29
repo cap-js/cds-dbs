@@ -149,37 +149,37 @@ const StandardFunctions = {
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   year: x => `cast( strftime('%Y',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the month of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   month: x => `cast( strftime('%m',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the day of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   day: x => `cast( strftime('%d',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the hours of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   hour: x => `cast( strftime('%H',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the minutes of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   minute: x => `cast( strftime('%M',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the seconds of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   second: x => `cast( strftime('%S',${x}) as Integer )`,
 
   /**

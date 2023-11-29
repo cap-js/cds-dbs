@@ -65,6 +65,12 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
+    // REVISIT: required to be compatible with generated views
+    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
+    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
+    if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
+
     this.dbc.set(variables)
   }
 
@@ -402,11 +408,11 @@ WHERE
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = cds.ql.clone(src)
-                parent.as = parent.SELECT.from.as
+                parent.as = parent.SELECT.from.as || parent.SELECT.from.args[0].as
                 parent.SELECT.expand = true
                 x.element._foreignKeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                    parent.SELECT.columns.push({ ref: [parent.SELECT.from.as, k.parentElement.name] })
+                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
                 })
 
@@ -683,25 +689,25 @@ WHERE
       return this.xpr({ xpr }, ' = TRUE')
     }
 
-
     xpr({ xpr, _internal }, caseSuffix = '') {
       // Maps the compare operators to what to return when both sides are null
       const compareOperators = {
-        '=': true,
+        '==': true,
         '!=': false,
+        // REVISIT: not required for now. application must do case when statement themselves
         // These operators are not allowed in column expressions
-        '>': null,
-        '<': null,
-        '<>': null,
-        '>=': null,
-        '<=': null,
-        '!<': null,
-        '!>': null,
+        // '>': null,
+        // '<': null,
+        // '<>': null,
+        // '>=': null,
+        // '<=': null,
+        // '!<': null,
+        // '!>': null,
       }
 
       if (!_internal) {
         for (let i = 0; i < xpr.length; i++) {
-          const x = xpr[i]
+          let x = xpr[i]
           if (typeof x === 'string') {
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
@@ -710,13 +716,16 @@ WHERE
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
 
+              // Convert == to = in SQL as the case statement handles the nulls
+              if (x === '==') x = '='
+
               const compare = {
                 xpr: [left, x, right],
                 _internal: true,
               }
 
               const expression = {
-                xpr: ['CASE', 'WHEN', compare, 'Then', { val: true }, 'WHEN', 'NOT', compare, 'Then', { val: false }],
+                xpr: ['CASE', 'WHEN', compare, 'THEN', { val: true }, 'WHEN', 'NOT', compare, 'THEN', { val: false }],
                 _internal: true,
               }
 
@@ -731,7 +740,7 @@ WHERE
                       xpr: [left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
                       _internal: true,
                     },
-                    'Then',
+                    'THEN',
                     { val: ifNull },
                     'ELSE',
                     { val: !ifNull },
@@ -760,6 +769,7 @@ WHERE
         else sql.push(this.expr(x))
       }
 
+      // REVISIT: do not intercept case when statements
       // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
       if (caseSuffix && xpr.length === 1) {
         sql.push(caseSuffix)
@@ -770,8 +780,9 @@ WHERE
 
     operator(x, i, xpr) {
       // Add "= TRUE" before THEN in case statements
-      // As all valid comparators are converted to booleans as SQL specifies
-      if (x in { THEN: 1, then: 1 }) return ` = TRUE ${x}`
+      if (x in { THEN: 1, then: 1 } && xpr[i - 1] == 'END') {
+        return ` = TRUE ${x}`
+      }
       if ((x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) || x === 'regexp') return 'LIKE_REGEXPR'
       else return x
     }
@@ -821,19 +832,9 @@ WHERE
         const element = elements?.[name] || {}
         // Don't apply input converters for place holders
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
-        let managed = element[annotation]?.['=']
-        switch (managed) {
-          case '$user.id':
-          case '$user':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.id' }] })
-            break
-          case '$now':
-            managed = this.func({ func: 'session_context', args: [{ val: '$user.now' }] })
-            break
-          default:
-            managed = undefined
-        }
-
+        const val = _managed[element[annotation]?.['=']]
+        let managed
+        if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
         const type = this.insertType4(element)
         let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
         if (!isUpdate) {
@@ -1067,5 +1068,10 @@ Buffer.prototype.toJSON = function () {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
+const _managed = {
+  '$user.id': '$user.id',
+  $user: '$user.id',
+  $now: '$now',
+}
 
 module.exports = HANAService

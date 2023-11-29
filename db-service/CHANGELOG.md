@@ -4,6 +4,24 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.4.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.2...db-service-v1.4.0) (2023-11-20)
+
+
+### Added
+
+* **`UPDATE`/`DELETE`:** Enable path expressions for improved data manipulation ([#325](https://github.com/cap-js/cds-dbs/issues/325)) ([94f0776](https://github.com/cap-js/cds-dbs/commit/94f077661cffad8f137dc692a2cb9b0ae5e4d75b))
+* **temporal data:** add time slice key to conflict clause ([#249](https://github.com/cap-js/cds-dbs/issues/249)) ([67b8edf](https://github.com/cap-js/cds-dbs/commit/67b8edf9b7f6b0fbab0010d7c93ed03a01e103ed))
+* use place holders for update and delete ([#323](https://github.com/cap-js/cds-dbs/issues/323)) ([81472b9](https://github.com/cap-js/cds-dbs/commit/81472b971183f701e401247611310be56745a87a))
+
+
+### Fixed
+
+* align time function behavior ([#322](https://github.com/cap-js/cds-dbs/issues/322)) ([c3ab40a](https://github.com/cap-js/cds-dbs/commit/c3ab40a007c105465349dd2f612178367b8e713a))
+* **calculated elements:** path expressions in `func.args` within `xpr` ([#321](https://github.com/cap-js/cds-dbs/issues/321)) ([cee25e3](https://github.com/cap-js/cds-dbs/commit/cee25e33cf289592a87779cfa34dddc53e467676))
+* Disconnect db service on shutdown ([#327](https://github.com/cap-js/cds-dbs/issues/327)) ([8471bda](https://github.com/cap-js/cds-dbs/commit/8471bda44fc030205abec45b1581b2cf6ed7c800))
+* non-fk access in filter conditions are properly rejected ([#336](https://github.com/cap-js/cds-dbs/issues/336)) ([4c948fe](https://github.com/cap-js/cds-dbs/commit/4c948fecead1de562e1583886516413e131a39aa))
+* **search:** check calculated columns at any depth ([#310](https://github.com/cap-js/cds-dbs/issues/310)) ([8fd6153](https://github.com/cap-js/cds-dbs/commit/8fd6153dfcd472a6d95c33faa58c4b3f96f485df))
+
 ## [1.3.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.1...db-service-v1.3.2) (2023-10-13)
 
 

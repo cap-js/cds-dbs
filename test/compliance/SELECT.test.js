@@ -113,7 +113,7 @@ describe('SELECT', () => {
           from: { ref: ['basic.projection.string'] },
           columns: [
             {
-              xpr: [{ val: 'yes' }, '=', { ref: ['string'] }],
+              xpr: [{ val: 'yes' }, '==', { ref: ['string'] }],
               as: 'xpr',
               cast: { type: 'cds.Boolean' },
             },
