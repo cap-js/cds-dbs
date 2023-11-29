@@ -67,6 +67,8 @@ class HANAService extends SQLService {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
+    if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
 
     this.dbc.set(variables)
   }
@@ -179,7 +181,8 @@ class HANAService extends SQLService {
             })
             break
           } else {
-            level.data.push(data)
+            // REVISIT: identify why sometimes not all parent rows are returned
+            level.data.push?.(data)
             levels.push({
               data: data,
               path: row._path_,
