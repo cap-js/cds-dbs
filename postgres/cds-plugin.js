@@ -16,8 +16,6 @@ cds.add?.register?.('@cap-js/postgres', class PostgresTemplate extends cds.add.P
     return true
   }
 
-  getDependencies() {} // TODO: Rename to requires()
-
   affects() {
     return ['mta', 'helm']
   }
@@ -28,7 +26,7 @@ cds.add?.register?.('@cap-js/postgres', class PostgresTemplate extends cds.add.P
     if (isJava) await cds.add.mvn.add('postgresql')
   }
 
-  async runDependentMerging() {
+  async combine() {
     const project = cds.add.readProject()
     const { hasMta } = project
 
@@ -39,10 +37,10 @@ cds.add?.register?.('@cap-js/postgres', class PostgresTemplate extends cds.add.P
       await cds.add.merge(__dirname, 'lib', 'add', 'mta.yml.hbs').into('mta.yaml', { with: {
         additions: [srv, postgres, postgresDeployer], // REVISIT: rename to upsert
         relationships: [{
-          insert: [postgres, 'name'], // REVISIT: rename to upsert
+          insert: [postgres, 'name'], // REVISIT: rename to upsert?
           into: [srv, 'requires', 'name']
         }, {
-          insert: [postgres, 'name'], // REVISIT: rename to upsert
+          insert: [postgres, 'name'], // REVISIT: rename to upsert?
           into: [postgresDeployer, 'requires', 'name']
         }],
         project
