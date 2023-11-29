@@ -3,7 +3,8 @@
   "packages": {
     "db-service": {},
     "sqlite": {},
-    "postgres": {}
+    "postgres": {},
+    "hana": {}
   },
   "changelog-sections": [
     {
