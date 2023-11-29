@@ -87,14 +87,14 @@ describe('negative', () => {
       expect(() => _inferred(query)).to.throw(/"title" not found in "author"/) // revisit: better error location ""bookshop.Books:author"
     })
 
-    it('$self reference is not found in the query elements -> cds.infer hints alternatives', () => {
+    it('$self reference is not found in the query elements -> infer hints alternatives', () => {
       let query = CQL`SELECT from bookshop.Books { ID, $self.author }`
       expect(() => _inferred(query)).to.throw(
         /"author" not found in the columns list of query, did you mean "Books.author"?/, // revisit: error message
       )
     })
 
-    it('$self reference is not found in the query elements with subquery -> cds.infer hints alternatives', () => {
+    it('$self reference is not found in the query elements with subquery -> infer hints alternatives', () => {
       let query = CQL`SELECT from (select from bookshop.Books) as Foo { $self.author }`
       // _inferred(query)
       // wording? select list not optimal, did you mean to refer to bookshop.Books?
@@ -353,7 +353,7 @@ describe('negative', () => {
     })
 
     it('subquery cant see the scope of enclosing query', () => {
-      // cds.infer does not infer deeply -> cqn4sql calls itself recursively
+      // infer does not infer deeply -> cqn4sql calls itself recursively
       // in case of nested subqueries
       expect(() =>
         cqn4sql(

@@ -54,7 +54,7 @@ describe('EXISTS predicate in where', () => {
           and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
       )
       or  EXISTS (
-        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID 
+        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID
         and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
       )`)
     })
@@ -177,7 +177,7 @@ describe('EXISTS predicate in where', () => {
         cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model),
       ).to.throw(/"books" not found in "books"/)
       // it would work if entity "Books" had a field called "books"
-      // Done by cds.infer
+      // Done by infer
     })
 
     it('MUST fail for unknown field in filter (2)', () => {
