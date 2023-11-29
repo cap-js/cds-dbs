@@ -757,7 +757,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
-  val({ val }) {
+  val({ val, literal }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': return 'NULL'
@@ -772,7 +772,7 @@ class CQN2SQLRenderer {
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough
     }
-    if (!this.values) return this.string(val)
+    if (!this.values || literal) return this.string(val)
     else this.values.push(val)
     return '?'
   }

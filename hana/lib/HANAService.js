@@ -72,10 +72,12 @@ class HANAService extends SQLService {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs } = this.cqn2sql(query, data)
+    const { cqn, temporary, blobs, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, blobs)
-    let rows = await this.exec(sqlScript)
+    let rows = values?.length
+      ? await (await this.prepare(sqlScript)).all(values)
+      : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -332,11 +334,11 @@ WHERE
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_path_'] }, { val: `].${q.element.name}[` }],
+                      args: [{ ref: ['_path_'] }, { literal: 'string', val: `].${q.element.name}[` }],
                     },
-                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] },
+                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { literal: 'number', val: 6 }, { literal: 'string', val: '0' }] },
                   ]
-                  : [{ val: '$[' }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] }],
+                  : [{ literal: 'string', val: '$[' }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { literal: 'number', val: 6 }, { literal: 'string', val: '0' }] }],
               },
             ],
             as: '_path_',
@@ -347,7 +349,7 @@ WHERE
           // Apply row number limits
           q.where(
             one
-              ? [{ ref: ['$$RN$$'] }, '=', { val: 1 }]
+              ? [{ ref: ['$$RN$$'] }, '=', { literal: 'number', val: 1 }]
               : limit.offset?.val
                 ? [
                   { ref: ['$$RN$$'] },
@@ -516,6 +518,14 @@ WHERE
         return val
       })
       return foreignKeys
+    }
+
+    val(val) {
+      const values = this.values
+      this.values = undefined
+      const ret = super.val(val)
+      this.values = values
+      return ret
     }
 
     INSERT_entries(q) {
@@ -926,7 +936,7 @@ WHERE
           q =>
             `EXEC '${q.replace(/'/g, "''").replace(';', '')}${
             // Add "PAGE LOADABLE" for all tables created to use NSE by default and reduce memory consumption
-            /(^|')CREATE TABLE/.test(q) ? ' PAGE LOADABLE' : ''
+            /(^|')CREATE TABLE/.test(q) ? '' : ''
             }';`,
         )
         .join('\n')} END;`
