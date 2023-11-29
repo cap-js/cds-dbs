@@ -4,6 +4,25 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.4.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.4.0...postgres-v1.4.1) (2023-11-24)
+
+
+### Fixed
+
+* `cds build` now generates the correct output folder structure for Node.js and Java apps. ([#353](https://github.com/cap-js/cds-dbs/issues/353)) ([875aca4](https://github.com/cap-js/cds-dbs/commit/875aca4f5a0ee71bcfbb13be47d4349970b40605))
+
+## [1.4.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.3.1...postgres-v1.4.0) (2023-11-20)
+
+
+### Added
+
+* adapt build plugin implementation to new API ([#319](https://github.com/cap-js/cds-dbs/issues/319)) ([aec9966](https://github.com/cap-js/cds-dbs/commit/aec9966e54cd9900f85fe7406cbe38ec5c6fa4b9))
+
+
+### Fixed
+
+* align time function behavior ([#322](https://github.com/cap-js/cds-dbs/issues/322)) ([c3ab40a](https://github.com/cap-js/cds-dbs/commit/c3ab40a007c105465349dd2f612178367b8e713a))
+
 ## [1.3.1](https://github.com/cap-js/cds-dbs/compare/v1.3.0...v1.3.1) (2023-10-10)
 
 ### Fixed
