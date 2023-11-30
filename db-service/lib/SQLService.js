@@ -31,9 +31,9 @@ class SQLService extends DatabaseService {
   }
 
   _changeToStreams(cqn, rows, compat) {
-    if (!rows.length) return
+    if (!rows.length || !Object.keys(rows[0]).length) return
 
-    // REVISIT: refactor 
+    // REVISIT: remove after removing compat_stream_cqn feature flag 
     if (compat) { 
       rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
       return
@@ -60,10 +60,10 @@ class SQLService extends DatabaseService {
     return new Readable({
       read(size) {
         if (raw.length === 0) return this.push(null)
-        const chunk = raw.slice(0, size) // REVISIT: slice
+        const chunk = raw.slice(0, size)
         raw = raw.slice(size)
         this.push(chunk)
-      },
+      }
     })    
   }
 
