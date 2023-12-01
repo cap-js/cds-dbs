@@ -135,12 +135,13 @@ GROUP BY k
   }
 
   prepare(sql) {
-    const query = {
+    // Track queries name for postgres referencing prepare statements
+    // sha1 as it needs to be less then 63 character
+    const sha = crypto.createHash('sha1').update(sql).digest('hex')
+    const query = this._queryCache[sha] = this._queryCache[sha] || {
       _streams: 0,
       text: sql,
-      // Track queries name for postgres referencing prepare statements
-      // sha1 as it needs to be less then 63 characters
-      name: crypto.createHash('sha1').update(sql).digest('hex'),
+      name: sha,
     }
     return {
       run: async values => {

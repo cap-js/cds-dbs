@@ -426,11 +426,16 @@ class CQN2SQLRenderer {
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
-    this.entries = [[...this.values,
-    INSERT.entries[0] instanceof Readable
-      ? INSERT.entries[0]
-      : Readable.from(this.INSERT_entries_stream(INSERT.entries))
-    ]]
+    this.entries = []
+    if (INSERT.entries[0] instanceof Readable) {
+      INSERT.entries[0].type = 'json'
+      this.entries = [[...this.values, INSERT.entries[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -544,13 +549,15 @@ class CQN2SQLRenderer {
     })
 
     this.columns = columns.map(c => this.quote(c))
-    this.entries = [[JSON.stringify(INSERT.rows)]]
 
-    this.entries = [[...this.values,
-    INSERT.rows instanceof Readable
-      ? INSERT.rows
-      : Readable.from(this.INSERT_rows_stream(INSERT.rows))
-    ]]
+    if (INSERT.rows[0] instanceof Readable) {
+      INSERT.rows[0].type = 'json'
+      this.entries = [[...this.values, INSERT.rows[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
 
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
