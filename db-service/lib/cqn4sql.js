@@ -389,7 +389,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     return transformedColumns
 
     function handleSubquery(col) {
-      if (isLocalized(inferred.target)) col.SELECT.localized = true
       if (!col.SELECT.from.as) {
         const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
           getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
@@ -804,7 +803,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
       },
     }
-    if (isLocalized(inferred.target)) subquery.SELECT.localized = true
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
     Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
@@ -920,6 +918,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
+    if (isLocalized(inferred.target)) q.SELECT.localized = true
     return cqn4sql(q, model)
   }
 
