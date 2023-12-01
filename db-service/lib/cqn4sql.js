@@ -946,6 +946,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
+    if (isLocalized(inferred.target)) q.SELECT.localized = true
     return cqn4sql(q, model)
   }
 
