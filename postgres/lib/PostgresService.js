@@ -13,6 +13,7 @@ class PostgresService extends SQLService {
       cds.options.dialect = 'postgres'
     }
     this.kind = 'postgres'
+    this._queryCache = {}
     return super.init(...arguments)
   }
 
