@@ -104,9 +104,7 @@ describe('streaming', () => {
     afterAll(async () => {
       const { Images } = cds.entities('test')
       await DELETE.from(Images)
-    })
-
-    // REVISIT: Add test for error while reading stream OR test manually
+    })    
 
     describe('READ', () => {
       test('READ stream property with _streaming = true', async () => {
