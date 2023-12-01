@@ -172,10 +172,7 @@ describe('streaming', () => {
           expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
         }
       })
-
-      // TODO: Separate entities (also for cds.stream()) !!!!!
-      // Add clean-up for test_Images
-
+      
       test('WRITE single stream property', async () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))

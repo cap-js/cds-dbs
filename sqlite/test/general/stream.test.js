@@ -207,10 +207,7 @@ describe('streaming', () => {
         } catch (err) {
           expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
         }
-      })
-
-      // TODO: Separate entities (also for cds.stream()) !!!!!
-      // Add clean-up for test_Images
+      })      
 
       test('WRITE stream property', async () => {
         const { Images } = cds.entities('test')
