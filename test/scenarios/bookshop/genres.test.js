@@ -39,10 +39,10 @@ describe('Bookshop - Genres', () => {
     // Read after write does not sort the results
     // therefor asynchronious databases might return in different orders
     const sort = (a, b) => {
-      if (!b?.children) return
+      if (!a?.children || !b?.children) return
       const order = b.children.reduce((l, c, i) => { l[c.ID] = i; return l }, {})
-      b.children.sort((a, b) => order[a.ID] - order[b.ID])
-      b.children.forEach((c, i) => sort(c, a.children[i]))
+      a.children.sort((a, b) => order[a.ID] - order[b.ID])
+      a.children.forEach((c, i) => sort(c, b.children[i]))
     }
 
     sort(insertResponse.data, body)
