@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -104,25 +103,6 @@ class HANAService extends SQLService {
     const results = entries ? await ps.runBatch(entries) : await ps.run()
     return new this.class.InsertResults(cqn, results)
   }
-
-  /*
-  async onSTREAM(req) {
-    let { cqn, sql, values, temporary, blobs } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    if (temporary?.length) {
-      // Full SELECT CQN support streaming
-      sql = this.wrapTemporary(temporary, blobs)
-    }
-    const ps = await this.prepare(sql)
-    const stream = await ps.stream(values, cqn.SELECT?.one)
-    if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
-    return stream
-  } */
 
   // Allow for running complex expand queries in a single statement
   wrapTemporary(temporary, blobs) {

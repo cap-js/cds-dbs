@@ -35,7 +35,7 @@ class SQLService extends DatabaseService {
 
     // REVISIT: remove after removing compat_stream_cqn feature flag 
     if (compat) { 
-      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
+      Object.values(rows[0])[0] = this._stream(Object.values(rows[0])[0])
       return
     }
 
