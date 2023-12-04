@@ -36,9 +36,6 @@
     "requires": {
       "kinds": {
         "sql": {
-          "[development]": {
-            "kind": "sqlite"
-          },
           "[production]": {
             "kind": "hana"
           }
