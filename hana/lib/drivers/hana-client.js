@@ -7,7 +7,7 @@ const { driver, prom, handleLevel } = require('./base')
 const streamUnsafe = false
 
 const credentialMappings = [
-  { old: 'schema', new: 'sslValidateCertificate' },
+  { old: 'schema', new: 'currentSchema' },
   { old: 'certificate', new: 'ca' },
   { old: 'encrypt', new: 'useTLS' },
   { old: 'hostname_in_certificate', new: 'sslHostNameInCertificate' },
@@ -21,16 +21,16 @@ class HANAClientDriver extends driver {
    */
   constructor(creds) {
     // Enable native @sap/hana-client connection pooling
-    creds.pooling = true
     Object.assign(creds, {
+      // REVISIT: add pooling related credentials when switching to native pools
       // Enables the @sap/hana-client native connection pool implementation
-      pooling: true,
-      poolingCheck: true,
-      maxPoolSize: 100, // TODO: align to options.pool configurations
-      
+      // pooling: true,
+      // poolingCheck: true,
+      // maxPoolSize: 100, // TODO: align to options.pool configurations
+
       // If communicationTimeout is not set queries will hang for over 10 minutes
-      communicationTimeout: 5000,
-      connectTimeout: 1000,
+      communicationTimeout: 60000,
+      // connectTimeout: 1000,
       // compress: true, // TODO: test whether having compression enabled makes things faster
       // statement caches come with a side effect when the database structure changes which does not apply to CAP
       // statementCacheSize: 100, // TODO: test whether statementCaches make things faster
