@@ -44,9 +44,6 @@
         "hana": {
           "dialect": "hana",
           "impl": "@cap-js/hana"
-        },
-        "hana-cloud": {
-          "kind": "hana"
         }
       },
       "db": "sql"
