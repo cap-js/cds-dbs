@@ -19,34 +19,78 @@ jobs:
           monorepo-tags: true
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
-        # these if statements ensure that a publication only occurs when
-        # a new release is created:
-        if: ${{ steps.release.outputs.releases_created }}
       - uses: actions/setup-node@v1
         with:
           node-version: 18
           registry-url: 'https://registry.npmjs.org'
-        if: ${{ steps.release.outputs.releases_created }}
 
-      # Publish packages
+      # Run tests
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}
+      # test sqlite/postgres/db-service
       - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
         if: ${{ steps.release.outputs.releases_created }}
+      # test hana
+      - name: Find HXE image
+        if: ${{ steps.release.outputs.releases_created }}
+        id: find-hxe
+        run: |
+          TAG="$(sha1sum hana/tools/docker/hxe/* | sha1sum --tag | grep '[^ ]*$' -o)";
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/hanaexpress;
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]');
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT;
+          echo "IMAGE_ID=${IMAGE_ID}" >> $GITHUB_OUTPUT;
+          GHCR_TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64);
+          if
+            curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG | grep "MANIFEST_UNKNOWN";
+          then
+            echo "BUILD_HXE=true" >> $GITHUB_OUTPUT
+          else
+            echo "BUILD_HXE=false" >> $GITHUB_OUTPUT
+          fi;
+      - name: Set up Docker Buildx
+        if: ${{ steps.release.outputs.releases_created && steps.find-hxe.outputs.BUILD_HXE == 'true' }}
+        uses: docker/setup-buildx-action@v2
+      - name: Build HXE image
+        if: ${{ steps.release.outputs.releases_created && steps.find-hxe.outputs.BUILD_HXE == 'true' }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
+          DOCKER_BUILDKIT=1 docker build -t $IMAGE_ID:$TAG ./hana/tools/docker/hxe;
+          docker push $IMAGE_ID:$TAG;
+        env:
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+      - name: Start HXE image
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
+          { npm start -w hana; } &
+        env:
+          TAG: ${{ steps.find-hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+      - run: npm test -w hana -- --maxWorkers=1
+        if: ${{ steps.release.outputs.releases_created }}
+      # Publish packages
       - name: Publish db-service
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.db-service--release_created }}
+        if: ${{ steps.release.outputs.db-service--release_created }}
         run: npm publish --workspace db-service --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish sqlite
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.sqlite--release_created }}
+        if: ${{ steps.release.outputs.sqlite--release_created }}
         run: npm publish --workspace sqlite --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish postgres
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.postgres--release_created }}
+        if: ${{ steps.release.outputs.postgres--release_created }}
         run: npm publish --workspace postgres --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish SAP HANA
+        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.hana--release_created }}
+        run: npm publish --workspace hana --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
