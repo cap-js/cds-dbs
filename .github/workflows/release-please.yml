@@ -19,11 +19,12 @@ jobs:
           monorepo-tags: true
       - name: Only run subsquent steps if a release needs to be published
         run: |
-          if ["${{ steps.release.outputs.releases_created }}"]; then
-            echo "OK proceeding to release"
-          else
+          if [ -z ${{ steps.release.outputs.releases_created }}]
+          then
             echo "No release needs to be published, exiting…"
-            return
+            exit 0
+          else
+            echo "OK proceeding to release"
           fi
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
