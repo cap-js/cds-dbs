@@ -54,7 +54,7 @@ describe('EXISTS predicate in where', () => {
           and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
       )
       or  EXISTS (
-        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID 
+        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID
         and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
       )`)
     })
@@ -177,7 +177,7 @@ describe('EXISTS predicate in where', () => {
         cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model),
       ).to.throw(/"books" not found in "books"/)
       // it would work if entity "Books" had a field called "books"
-      // Done by cds.infer
+      // Done by infer
     })
 
     it('MUST fail for unknown field in filter (2)', () => {
@@ -209,13 +209,21 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it.skip('MUST fail if following managed assoc in filter', () => {
+    it('MUST fail if following managed assoc in filter in where exists', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
           model,
         ),
-      ).to.throw()
+      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+    })
+    it('MUST fail if following managed assoc in filter', () => {
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
+          model,
+        ),
+      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
     })
 
     it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
@@ -230,7 +238,7 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it('MUST handle simple where exists with additional filter, shourcut notation', () => {
+    it('MUST handle simple where exists with additional filter, shortcut notation', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists author[17]`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 17
@@ -894,23 +902,6 @@ describe('Path in FROM which ends on association must be transformed to where ex
       ) AND author.ID = 150`)
   })
 
-  // (PB) new
-  // (SMW) can this be deleted?
-  it.skip('MUST not ... in from clauses with infix filters, ODATA variant w/o mentioning structured key', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.WithStructuredKey as toStructuredKey {
-        toStructuredKey.struct_mid_leaf,
-        toStructuredKey.struct_mid_anotherLeaf,
-        toStructuredKey.second
-      } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocWithStructuredKey as AssocWithStructuredKey where
-        AssocWithStructuredKey.toStructuredKey_struct_mid_leaf = toStructuredKey.struct_mid_leaf and
-        AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf = toStructuredKey.struct_mid_anotherLeaf and
-        AssocWithStructuredKey.toStructuredKey_second = toStructuredKey.second
-      ) AND toStructuredKey.struct_mid_leaf = 42 and
-      toStructuredKey.struct_mid_anotherLeaf = 42 and
-      toStructuredKey.second = 42`)
-  })
 
   // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
   // only shortcut notation is not allowed
@@ -929,15 +920,17 @@ describe('Path in FROM which ends on association must be transformed to where ex
       ) AND items.pos = 2`)
   })
 
-  // (SMW) TODO: check
-  // PB remark -> should `up__ID` be part of the where condition? Should this be an error?
-  //              Usually filters on associations with multiple foreign keys are declined
-  it.skip('MUST ... contain foreign keys of backlink association in on-condition?', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Orders:items[2] {pos}`, model)
-    expect(query).to.throw()
+  // usually, "Filters can only be applied to managed associations which result in a single foreign key"
+  // but because "up__ID" is the foreign key for the backlink association of "items", it is already part of the inner where
+  // `where` condition of the exists subquery. Hence we enable this shortcut notation.
+  it('MUST ... contain foreign keys of backlink association in on-condition?', () => {
+    const query = cqn4sql(CQL`SELECT from bookshop.Orders:items[2] {pos}`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
+      SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID
+    ) and items.pos = 2`)
   })
 
-  it.skip('...', () => {
+  it('same as above but mention key', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Orders:items[pos=2] {pos}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
         SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID

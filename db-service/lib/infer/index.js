@@ -511,20 +511,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             const elements = definition.elements || definition._target?.elements
             if (elements && id in elements) {
               const element = elements[id]
-              if (!inNestedProjection && !inCalcElement && element.target) {
-                // only fk access in infix filter
-                const nextStep = column.ref[1]?.id || column.ref[1]
-                // no unmanaged assoc in infix filter path
-                if (!inExists && element.on)
-                  throw new Error(
-                    `"${element.name}" in path "${column.ref
-                      .map(idOnly)
-                      .join('.')}" must not be an unmanaged association`,
-                  )
-                // no non-fk traversal in infix filter
-                if (nextStep && element.foreignKeys && !(nextStep in element.foreignKeys))
-                  throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
-              }
+              rejectNonFkAccess(element)
               const resolvableIn = definition.target ? definition._target : target
               column.$refLinks.push({ definition: elements[id], target: resolvableIn })
             } else {
@@ -569,6 +556,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
           const target = definition._target || column.$refLinks[i - 1].target
           if (element) {
+            if($baseLink)
+              rejectNonFkAccess(element)
             const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -668,6 +657,29 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               const element = getCopyWithAnnos(column, leafArt)
               queryElements[elementName] = element
             }
+          }
+        }
+
+        /**
+         * Check if the next step in the ref is foreign key of `element`
+         * if not, an error is thrown.
+         * 
+         * @param {CSN.Element} element if this is an association, the next step must be a foreign key of the element.
+         */
+        function rejectNonFkAccess(element) {
+          if (!inNestedProjection && !inCalcElement && element.target) {
+            // only fk access in infix filter
+            const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
+            // no unmanaged assoc in infix filter path
+            if (!inExists && element.on)
+              throw new Error(
+                `"${element.name}" in path "${column.ref
+                  .map(idOnly)
+                  .join('.')}" must not be an unmanaged association`
+              )
+            // no non-fk traversal in infix filter
+            if (nextStep && element.foreignKeys && !(nextStep in element.foreignKeys))
+              throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
           }
         }
       })

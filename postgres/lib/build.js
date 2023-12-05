@@ -1,43 +1,31 @@
 const cds = require('@sap/cds')
+const { fs, path } = cds.utils
 
-let BuildPlugin
-try {
-  ({ BuildPlugin } = require('@sap/cds-dk/lib/build'))
-} catch (e) {
-  if (e.code === 'ENOTFOUND') throw `No build plugin mechanism for @sap/cds-dk found. Please install @sap/cds-dk for development using 'npm i -D @sap/cds-dk@^7.3.0'`
-  else throw e
-}
-
-const { fs, path, rimraf } = cds.utils
-
-module.exports = class PostgresBuildPlugin extends BuildPlugin {
-  static hasTask() { // REVISIT: should be unnecessary -> plugin mechanism knows what to pull
-    return cds.requires.db.kind === 'postgres'
-  }
-
-  static getTaskDefaults() {
-    return { src: cds.env.folders.db }
+module.exports = class PostgresBuildPlugin extends cds.build.BuildPlugin {
+  static hasTask() {
+    return cds.requires.db?.kind === 'postgres'
   }
 
   init() {
-    this.task.dest = cds.env.build.target === '.' ? path.join('gen','pg') : path.join('gen', 'pg')
-  }
-
-  async clean() {
-    await rimraf(this.task.dest)
+    // different from the default build output structure
+    this.task.dest = path.join(cds.root, cds.env.build.target !== '.' ? cds.env.build.target : 'gen', 'pg')
   }
 
   async build() {
     const model = await this.model()
-    if (!model) {
-      return
-    }
+    if (!model) return
 
     const promises = []
-    promises.push(this.write({
-        dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
-        scripts: { start: 'cds-deploy' },
-      }).to('package.json'))
+    if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
+      promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
+    } else {
+      promises.push(
+        this.write({
+          dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
+          scripts: { start: 'cds-deploy' },
+        }).to('package.json'),
+      )
+    }
     promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
 
     let data
