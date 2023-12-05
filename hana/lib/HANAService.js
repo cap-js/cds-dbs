@@ -31,7 +31,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
-    const credentials = this.options.credentials
+    const service = this
     return {
       options: {
         min: 0,
@@ -48,7 +48,7 @@ class HANAService extends SQLService {
         try {
           const creds = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
-            : credentials
+            : service.options.credentials
           const dbc = new driver(creds)
           await dbc.connect()
           HANAVERSION = dbc.server.major
