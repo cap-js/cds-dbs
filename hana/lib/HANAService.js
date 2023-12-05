@@ -39,8 +39,8 @@ class HANAService extends SQLService {
         acquireTimeoutMillis: cds.env.profiles.includes('production') ? 1000 : 10000,
         idleTimeoutMillis: 60000,
         evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool.max || 10) - (this.options.pool.min || 0) / 3),
-        ...this.options.pool,
+        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
+        ...(this.options.pool || {}),
         testOnBorrow: true,
         fifo: false
       },
