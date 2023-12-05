@@ -3,7 +3,10 @@
   "packages": {
     "db-service": {},
     "sqlite": {},
-    "postgres": {}
+    "postgres": {},
+    "hana": {
+      "release-as": "0.0.1"
+    }
   },
   "changelog-sections": [
     {
