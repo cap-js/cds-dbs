@@ -18,10 +18,10 @@ jobs:
           monorepo-tags: true
       - name: Only run subsquent steps if a release needs to be published
         run: |
-          if [ -z ${{ steps.release.outputs.releases_created }}];
+          if [ -z ${{ steps.release.outputs.releases_created }}]
           then
             echo "No release needs to be published, exiting…"
-            return
+            exit 0
           else
             echo "OK proceeding to release"
           fi
