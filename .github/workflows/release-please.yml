@@ -31,6 +31,7 @@ jobs:
       - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
         if: ${{ steps.release.outputs.releases_created }}
       # test hana
+      # TODO: Factor this setup script out
       - name: Find HXE image
         if: ${{ steps.release.outputs.releases_created }}
         id: find-hxe
@@ -70,6 +71,7 @@ jobs:
           IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
       - run: npm test -w hana -- --maxWorkers=1
         if: ${{ steps.release.outputs.releases_created }}
+
       # Publish packages
       - name: Publish db-service
         if: ${{ steps.release.outputs.db-service--release_created }}
@@ -90,7 +92,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish SAP HANA
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.hana--release_created }}
+        if: ${{ steps.release.outputs.hana--release_created }}
         run: npm publish --workspace hana --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
