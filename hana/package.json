@@ -42,10 +42,11 @@
           }
         },
         "hana": {
+          "dialect": "hana",
           "impl": "@cap-js/hana"
         },
         "hana-cloud": {
-          "impl": "@cap-js/hana"
+          "kind": "hana"
         }
       },
       "db": "sql"
