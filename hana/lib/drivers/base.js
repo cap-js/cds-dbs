@@ -230,10 +230,11 @@ const handleLevel = function (levels, path, expands) {
           path: path.slice(0, -6),
           expands,
         })
+      } else {
+        // Current row is on the same level now so incrementing the index
+        // If the index was not 0 it should add a comma
+        if (level.index++) buffer += ','
       }
-      // Current row is on the same level now so incrementing the index
-      // If the index was not 0 it should add a comma
-      if (level.index++) buffer += ','
       levels.push({
         index: 0,
         suffix: '}',
@@ -244,10 +245,12 @@ const handleLevel = function (levels, path, expands) {
     } else {
       // Step up if it is not a child of the current level
       const level = levels.pop()
-      const leftOverExpands = Object.keys(level.expands)
-      // Fill in all missing expands
-      if (leftOverExpands.length) {
-        buffer += leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
+      if (level.suffix === '}') {
+        const leftOverExpands = Object.keys(level.expands)
+        // Fill in all missing expands
+        if (leftOverExpands.length) {
+          buffer += (level.hasProperties ? ',' : '') + leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
+        }
       }
       if (level.suffix) buffer += level.suffix
     }

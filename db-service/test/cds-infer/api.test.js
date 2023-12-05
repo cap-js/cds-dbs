@@ -58,10 +58,10 @@ describe('infer elements', () => {
   })
 
   it('infer without global cds.model', () => {
-    // this would trigger "Error: Please specify a model" if recursive cds.infer calls would not pass down model parameter
+    // this would trigger "Error: Please specify a model" if recursive infer calls would not pass down model parameter
     const keepModel = cds.model
     cds.model = null
-    // subsequent cds.infer calls should always use explicitly passed model parameter
+    // subsequent infer calls should always use explicitly passed model parameter
     let query = CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Books) as triggerRecursiveInfer }`
     let inferred = _inferred(query, model)
     let { Books } = model.entities

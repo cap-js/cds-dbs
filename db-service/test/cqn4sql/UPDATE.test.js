@@ -26,7 +26,7 @@ describe('UPDATE', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').data({ ID: 5, name: 'test' })
     const query = cqn4sql(u, model)
-    expect(query.__proto__.UPDATE.__proto__).to.haveOwnProperty('data')
+    expect(query.UPDATE).to.have.property('data')
   })
   it('xpr in UPDATE with "with" are be considered', () => {
     const { UPDATE } = cds.ql
@@ -101,7 +101,7 @@ describe('UPDATE', () => {
     let u = UPDATE.entity({ ref: ['bookshop.Authors'] }).where(`books.title LIKE '%Heights%'`)
 
     let expected = UPDATE.entity({ ref: ['bookshop.Authors'] })
-    
+
     expected.UPDATE.where = [
       { list: [{ ref: ['Authors2', 'ID'] }] },
       'in',

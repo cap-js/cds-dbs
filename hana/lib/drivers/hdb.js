@@ -60,7 +60,7 @@ class HDBDriver extends driver {
     const ret = await super.prepare(sql)
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
-      const rs = await prom(stmt, 'execute')(values)
+      const rs = await prom(stmt, 'execute')(values || [])
       const cols = rs.metadata
       // If the query only returns a single row with a single blob it is the final stream
       if (cols.length === 1 && cols[0].length === -1) {
@@ -134,6 +134,10 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
+          .catch(e => {
+            // TODO: check whether the error is early close
+            return true
+          })
       }
     },
     ensure(size) {
@@ -256,8 +260,9 @@ async function* rsIterator(rs, one) {
 
     state.inject(handleLevel(levels, path, expands))
 
+    // REVISIT: allow streaming with both NVARCHAR and NCLOB
     // Read and write JSON blob data
-    const jsonLength = readBlob(state)
+    const jsonLength = readString(state, true)
     let hasProperties = (typeof jsonLength === 'number' ? jsonLength : await jsonLength) > 2
 
     for (const blobColumn of nativeBlobs) {
@@ -309,9 +314,9 @@ async function* rsIterator(rs, one) {
   rs.close()
 }
 
-const readString = function (state) {
+const readString = function (state, isJson = false) {
   let ens = state.ensure(1)
-  if (ens) return ens.then(() => readString(state))
+  if (ens) return ens.then(() => readString(state, isJson))
 
   let length = state.buffer[state.reading]
   let offset = 1
@@ -320,21 +325,26 @@ const readString = function (state) {
       throw new Error('Missing stream metadata')
     case 0xf6:
       ens = state.ensure(2)
-      if (ens) return ens.then(() => readString(state))
-      length = state.buffer.readInt16LE(state.reading)
-      offset = 2
+      if (ens) return ens.then(() => readString(state, isJson))
+      length = state.buffer.readInt16LE(state.reading + offset)
+      offset += 2
       break
     case 0xf7:
       ens = state.ensure(4)
-      if (ens) return ens.then(() => readString(state))
-      length = state.buffer.readInt32LE(state.reading)
-      offset = 4
+      if (ens) return ens.then(() => readString(state, isJson))
+      length = state.buffer.readInt32LE(state.reading + offset)
+      offset += 4
       break
     default:
   }
 
   // Read the string value
   state.read(offset)
+  if (isJson) {
+    state.write(length - 1)
+    state.read(1)
+    return length
+  }
   return state.slice(length)
 }
 
