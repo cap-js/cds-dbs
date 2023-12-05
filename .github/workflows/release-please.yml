@@ -17,10 +17,10 @@ jobs:
           command: manifest
           monorepo-tags: true
       - name: log
-        run: echo "${{ steps.release.outputs.releases_created }}"
+        run: echo ${{ steps.release.outputs }}
       - name: Only run subsquent steps if a release needs to be published
         run: |
-          if ["${{ steps.release.outputs.releases_created }}" === ""]; then
+          if ["${{ steps.release.outputs.releases_created }}" !== ""]; then
             echo "OK proceeding to release"
           else
             echo "No release needs to be published, exiting…"
