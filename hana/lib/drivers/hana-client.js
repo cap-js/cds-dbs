@@ -38,7 +38,7 @@ class HANAClientDriver extends driver {
 
     // Retain node-hdb credential mappings to @sap/hana-client credential mapping
     for (const m of credentialMappings) {
-      if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
+      if (m.old in creds) creds[m.new] = creds[m.old]
     }
 
     super(creds)
