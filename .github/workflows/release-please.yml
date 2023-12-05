@@ -19,14 +19,10 @@ jobs:
           monorepo-tags: true
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
-        # these if statements ensure that a publication only occurs when
-        # a new release is created:
-        if: ${{ steps.release.outputs.releases_created }}
       - uses: actions/setup-node@v1
         with:
           node-version: 18
           registry-url: 'https://registry.npmjs.org'
-        if: ${{ steps.release.outputs.releases_created }}
 
       # Run tests
       - run: npm ci
@@ -76,19 +72,19 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
       # Publish packages
       - name: Publish db-service
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.db-service--release_created }}
+        if: ${{ steps.release.outputs.db-service--release_created }}
         run: npm publish --workspace db-service --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish sqlite
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.sqlite--release_created }}
+        if: ${{ steps.release.outputs.sqlite--release_created }}
         run: npm publish --workspace sqlite --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish postgres
-        if: ${{ steps.release.outputs.releases_created && steps.release.outputs.postgres--release_created }}
+        if: ${{ steps.release.outputs.postgres--release_created }}
         run: npm publish --workspace postgres --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
