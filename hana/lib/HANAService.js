@@ -35,7 +35,7 @@ class HANAService extends SQLService {
     return {
       options: {
         min: 0,
-        max: 1,
+        max: 10,
         acquireTimeoutMillis: cds.env.profiles.includes('production') ? 1000 : 10000,
         idleTimeoutMillis: 60000,
         evictionRunIntervalMillis: 100000,
