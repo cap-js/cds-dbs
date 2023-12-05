@@ -22,8 +22,8 @@ jobs:
           if ["${{ steps.release.outputs.releases_created }}"]; then
             echo "OK proceeding to release"
           else
-            echo "No release needs to be published, exit action"
-            exit 1
+            echo "No release needs to be published, exiting…"
+            return
           fi
       # The logic below handles the npm publication:
       - uses: actions/checkout@v2
