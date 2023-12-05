@@ -42,7 +42,6 @@
           }
         },
         "hana": {
-          "dialect": "hana",
           "impl": "@cap-js/hana"
         }
       },
