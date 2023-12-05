@@ -17,7 +17,7 @@ jobs:
           command: manifest
           monorepo-tags: true
       - name: log
-        run: echo toJSON(${{ steps.release.outputs }})
+        run: echo ${{ toJSON(steps.release.outputs) }}
       - name: Only run subsquent steps if a release needs to be published
         run: |
           if ["${{ steps.release.outputs.releases_created }}" !== ""]; then
