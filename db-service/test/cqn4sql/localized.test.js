@@ -92,7 +92,6 @@ describe('localized', () => {
                       BPLocalized.title,
                     }`)
   })
-  // TODO dont shadow query alias
   it('performs simple replacement of ref within subquery', () => {
     const q = CQL`SELECT from bookshop.Books {ID, title, (SELECT title from bookshop.Books) as foo}`
     q.SELECT.localized = true
@@ -104,6 +103,19 @@ describe('localized', () => {
                       Books.title,
                       (SELECT Books2.title from localized.bookshop.Books as Books2) as foo
                     }`)
+  })
+  it('performs simple replacement of ref within subquery in from', () => {
+    const q = CQL`SELECT from (SELECT Books.title from bookshop.Books) as foo { foo.title }`
+    q.SELECT.localized = true
+    let query = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`
+        SELECT from (
+            SELECT Books.title from localized.bookshop.Books as Books
+          ) as foo
+        {
+          foo.title,
+        }`
+    )
   })
   it('performs no replacement of ref within subquery if main query has ”@cds.localized: false”', () => {
     const q = CQL`SELECT from bookshop.BP {ID, title, (SELECT title from bookshop.Books) as foo}`

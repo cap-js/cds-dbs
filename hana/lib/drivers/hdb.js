@@ -22,6 +22,7 @@ class HDBDriver extends driver {
     super(creds)
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
+    this._native.on('close', () => this.destroy?.())
 
     this.connected = false
   }
@@ -29,6 +30,10 @@ class HDBDriver extends driver {
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
     Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+  }
+
+  async validate() {
+    return this._native.readyState === 'connected'
   }
 
   /**
