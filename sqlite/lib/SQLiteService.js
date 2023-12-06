@@ -7,7 +7,6 @@ const { Readable } = require('stream')
 
 class SQLiteService extends SQLService {
   init() {
-    this.PROCESS_STREAMING = true
     return super.init(...arguments)
   }
 

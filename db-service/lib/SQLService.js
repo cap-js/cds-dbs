@@ -42,7 +42,7 @@ class SQLService extends DatabaseService {
     if (!cqn.SELECT.columns) return
 
     for (let col of cqn.SELECT.columns) {
-      const name = col.ref?.[col.ref.length-1] || col
+      const name = col.ref?.[col.ref.length - 1] || col
       if (col.element?.type === 'cds.LargeBinary') {
         if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
         else
@@ -72,21 +72,20 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
+    query.SELECT.expand = 'root'
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
-    if (this.PROCESS_STREAMING) {
-      if (cds.env.features.compat_stream_cqn) {
-        if (query._streaming) {
-          this._changeToStreams(cqn, rows, true)
-          return rows.length ? { value: Object.values(rows[0])[0] } : undefined
-        } 
-      } else {  
-        this._changeToStreams(cqn, rows)
+    if (cds.env.features.compat_stream_cqn) {
+      if (query._streaming) {
+        this._changeToStreams(cqn, rows, true)
+        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
       }
+    } else {
+      this._changeToStreams(cqn, rows)
     }
 
     if (cqn.SELECT.count) {
@@ -274,8 +273,6 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
-    if (q.SELECT && 'elements' in q) q.SELECT.expand ??= 'root'
-
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?

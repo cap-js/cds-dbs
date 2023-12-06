@@ -116,6 +116,13 @@ describe('streaming', () => {
         await checkSize(stream)
       })
 
+      test('READ stream property with odata $mediaContentType', async () => {
+        const { Images } = cds.entities('test')
+        const { data: stream, '$mediaContentType': val } = await SELECT.one.from(Images).columns('data', {val: 'image/jpeg', as: '$mediaContentType'}).where({ ID: 1 })
+        await checkSize(stream)
+        expect(val).toEqual('image/jpeg')
+      })
+
       test('READ null stream property with .from, .column and .where', async () => {
         const { Images } = cds.entities('test')
         const [{ data: stream }] = await SELECT.from(Images).columns('data').where({ ID: 2 })
