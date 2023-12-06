@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.4.0...db-service-v1.5.0) (2023-12-06)
+
+
+### Added
+
+* Improved connection pool for HANAService ([#349](https://github.com/cap-js/cds-dbs/issues/349)) ([1c284e6](https://github.com/cap-js/cds-dbs/commit/1c284e69cccd76daad52249c0462bc62aa4d11a8))
+
+
+### Fixed
+
+* **localized:** `ref`s in subqueries in `from` are translated ([#366](https://github.com/cap-js/cds-dbs/issues/366)) ([cfe4897](https://github.com/cap-js/cds-dbs/commit/cfe489715db0854d30b90b7f13c024e6e90be497))
+* wrong odata count in filter with groupby ([#352](https://github.com/cap-js/cds-dbs/issues/352)) ([70690a1](https://github.com/cap-js/cds-dbs/commit/70690a1a13e72bfbb66f03bf315d3f2d48672bf6))
+
 ## [1.4.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.3.2...db-service-v1.4.0) (2023-11-20)
 
 

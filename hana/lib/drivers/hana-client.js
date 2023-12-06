@@ -6,14 +6,41 @@ const { driver, prom, handleLevel } = require('./base')
 
 const streamUnsafe = false
 
+const credentialMappings = [
+  { old: 'schema', new: 'currentSchema' },
+  { old: 'certificate', new: 'ca' },
+  { old: 'encrypt', new: 'useTLS' },
+  { old: 'hostname_in_certificate', new: 'sslHostNameInCertificate' },
+  { old: 'validate_certificate', new: 'sslValidateCertificate' },
+]
+
 class HANAClientDriver extends driver {
   /**
    * Instantiates the HANAClientDriver class
    * @param {import('./base').Credentials} creds The credentials for the HANAClientDriver instance
    */
   constructor(creds) {
-    // REVISIT: make sure to map all credential properties for hana-client
-    creds.currentSchema = creds.schema
+    // Enable native @sap/hana-client connection pooling
+    creds = Object.assign({}, creds, {
+      // REVISIT: add pooling related credentials when switching to native pools
+      // Enables the @sap/hana-client native connection pool implementation
+      // pooling: true,
+      // poolingCheck: true,
+      // maxPoolSize: 100, // TODO: align to options.pool configurations
+
+      // If communicationTimeout is not set queries will hang for over 10 minutes
+      communicationTimeout: 60000,
+      // connectTimeout: 1000,
+      // compress: true, // TODO: test whether having compression enabled makes things faster
+      // statement caches come with a side effect when the database structure changes which does not apply to CAP
+      // statementCacheSize: 100, // TODO: test whether statementCaches make things faster
+    })
+
+    // Retain node-hdb credential mappings to @sap/hana-client credential mapping
+    for (const m of credentialMappings) {
+      if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
+    }
+
     super(creds)
     this._native = hdb.createConnection(creds)
     this._native.setAutoCommit(false)
@@ -55,6 +82,10 @@ class HANAClientDriver extends driver {
     return ret
   }
 
+  async validate() {
+    return this._native.state() === 'connected'
+  }
+
   _extractStreams(values) {
     // Removes all streams from the values and replaces them with a placeholder
     if (!Array.isArray(values)) return { values: [], streams: [] }
@@ -87,6 +118,8 @@ class HANAClientDriver extends driver {
     }
   }
 }
+
+HANAClientDriver.pool = true
 
 async function* rsIterator(rs, one) {
   const next = prom(rs, 'next') // () => rs.next()
