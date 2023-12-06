@@ -21,7 +21,7 @@ class HANAClientDriver extends driver {
    */
   constructor(creds) {
     // Enable native @sap/hana-client connection pooling
-    Object.assign(creds, {
+    creds = Object.assign({}, creds, {
       // REVISIT: add pooling related credentials when switching to native pools
       // Enables the @sap/hana-client native connection pool implementation
       // pooling: true,
