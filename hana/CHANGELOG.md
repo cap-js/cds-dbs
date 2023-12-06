@@ -6,4 +6,4 @@
 
 ## 0.0.1 (2023-12-06)
 
-- Initial release
+- Initial alpha release
