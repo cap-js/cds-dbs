@@ -30,21 +30,25 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  _changeToStreams(cqn, rows, compat) {
+  _changeToStreams(columns, rows, one, compat) {
+    if (!rows || !columns) return
+    if (!Array.isArray(rows)) rows = [rows]
     if (!rows.length || !Object.keys(rows[0]).length) return
 
     // REVISIT: remove after removing compat_stream_cqn feature flag 
     if (compat) { 
       rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
       return
-    }
+    }   
 
-    if (!cqn.SELECT.columns) return
-
-    for (let col of cqn.SELECT.columns) {
-      const name = col.ref?.[col.ref.length - 1] || col
-      if (col.element?.type === 'cds.LargeBinary') {
-        if (cqn.SELECT.one) rows[0][name] = this._stream(rows[0][name])
+    for (let col of columns) {
+      const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
+      if (col.element.isAssociation) {
+        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
+        else
+          rows.forEach(row => { this._changeToStreams(col.SELECT.columns, row[name], false, compat) }) 
+      } else if (col.element?.type === 'cds.LargeBinary') {
+        if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
@@ -81,11 +85,11 @@ class SQLService extends DatabaseService {
 
     if (cds.env.features.compat_stream_cqn) {
       if (query._streaming) {
-        this._changeToStreams(cqn, rows, true)
+        this._changeToStreams(cqn.SELECT.columns, rows, true, true)
         return rows.length ? { value: Object.values(rows[0])[0] } : undefined
       }
     } else {
-      this._changeToStreams(cqn, rows)
+      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
     }
 
     if (cqn.SELECT.count) {
