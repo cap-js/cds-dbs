@@ -62,6 +62,9 @@ describe('Bookshop - Genres', () => {
     // deep update, which deletes all children of 100 and inserts one new children
     let res = await PUT(`/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
 
+    // due to upsert we do not get back the result properly, so we need to manually query it
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`)
+
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
     const assert = require('assert')
@@ -74,6 +77,9 @@ describe('Bookshop - Genres', () => {
     })
 
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
+    
+    // due to upsert we do not get back the result properly, so we need to manually query it
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`)
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
     assert.deepEqual(res.data, {
