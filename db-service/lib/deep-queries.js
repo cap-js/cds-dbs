@@ -200,7 +200,7 @@ const _deepInUpsert = (query, target) => {
     queryData = [query.UPDATE.data]
   }
 
-  return _getDeepInUpsertQueries(queryData, target, !!query.UPSERT)
+  return _getDeepInUpsertQueries(queryData, target, !!query.UPDATE)
 }
 
 /**
@@ -228,7 +228,7 @@ const _getDeepInUpsertQueries = (data, target, isUpsert) => {
           subQueries.push(..._getDeepInUpsertQueries([subEntry], target.elements[prop]._target, isUpsert))
         })
         const deleteQuery = getDeleteQuery(target, dataEntry, prop)
-        queries.push(deleteQuery)
+        if (isUpsert) queries.push(deleteQuery)
         toBeIgnoredProps.push(prop)
       } else if (dataEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
