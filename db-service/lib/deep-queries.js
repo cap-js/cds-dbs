@@ -38,7 +38,6 @@ async function onDeep(req, next) {
     queries.map(query => {
       if (query.DELETE) return this.onSIMPLE({ query })
       if (query.UPSERT) return this.onUPSERT({ query })
-      debugger
     }),
   )
   return res[0] ?? 0 // TODO what todo with multiple result responses?
