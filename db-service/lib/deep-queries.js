@@ -31,13 +31,14 @@ async function onDeep(req, next) {
   if (query.DELETE) {
     queries = _deepDelete(query, target)
   } else {
-    queries = _deepUpsert(query, target)
+    queries = _deepInUpsert(query, target)
   }
 
   const res = await Promise.all(
     queries.map(query => {
       if (query.DELETE) return this.onSIMPLE({ query })
       if (query.UPSERT) return this.onUPSERT({ query })
+      if (query.INSERT) return this.onINSERT({ query })
     }),
   )
   return res[0] ?? 0 // TODO what todo with multiple result responses?
@@ -190,7 +191,7 @@ const _deepDelete = async (query, target) => {
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _deepUpsert = (query, target) => {
+const _deepInUpsert = (query, target) => {
   let queryData
   if (query.INSERT) {
     queryData = query.INSERT.entries
@@ -199,7 +200,7 @@ const _deepUpsert = (query, target) => {
     queryData = [query.UPDATE.data]
   }
 
-  return _getDeepUpsertQueries(queryData, target)
+  return _getDeepInUpsertQueries(queryData, target, !!query.UPSERT)
 }
 
 /**
@@ -207,7 +208,7 @@ const _deepUpsert = (query, target) => {
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepUpsertQueries = (data, target) => {
+const _getDeepInUpsertQueries = (data, target, isUpsert) => {
   const queries = []
 
   for (const dataEntry of data) {
@@ -224,7 +225,7 @@ const _getDeepUpsertQueries = (data, target) => {
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
         arrayed.forEach(subEntry => {
-          subQueries.push(..._getDeepUpsertQueries([subEntry], target.elements[prop]._target))
+          subQueries.push(..._getDeepInUpsertQueries([subEntry], target.elements[prop]._target, isUpsert))
         })
         const deleteQuery = getDeleteQuery(target, dataEntry, prop)
         queries.push(deleteQuery)
@@ -240,8 +241,11 @@ const _getDeepUpsertQueries = (data, target) => {
       if (toBeIgnoredProps.includes(key)) continue
       dataCopy[key] = dataEntry[key]
     }
+
+    const QUERY = isUpsert ? UPSERT : INSERT
+
     // first calculate subqueries and rm their properties, then build root query
-    queries.push(UPSERT.into(target).entries(dataCopy))
+    queries.push(QUERY.into(target).entries(dataCopy))
     queries.push(...subQueries)
   }
 
