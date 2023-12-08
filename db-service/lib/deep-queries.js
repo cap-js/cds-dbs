@@ -215,12 +215,13 @@ const _getDeepUpsertQueries = (data, target) => {
     if (dataEntry === undefined) continue
     const subQueries = []
 
+    const toBeIgnoredProps = []
     for (const prop in dataEntry) {
       // handle deep operations
       const propData = dataEntry[prop]
 
       if (target.elements[prop] && _hasPersistenceSkip(target.elements[prop]._target)) {
-        delete dataEntry[prop]
+        toBeIgnoredProps.push(prop)
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
         arrayed.forEach(subEntry => {
@@ -228,15 +229,20 @@ const _getDeepUpsertQueries = (data, target) => {
         })
         const deleteQuery = getDeleteQuery(target, dataEntry, prop)
         queries.push(deleteQuery)
-        delete dataEntry[prop]
+        toBeIgnoredProps.push(prop)
       } else if (dataEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
-        delete dataEntry[prop]
+        toBeIgnoredProps.push(prop)
       }
     }
 
+    const dataCopy = {}
+    for (const key in dataEntry) {
+      if (toBeIgnoredProps.includes(key)) continue
+      dataCopy[key] = dataEntry[key]
+    }
     // first calculate subqueries and rm their properties, then build root query
-    queries.push(UPSERT.into(target).entries(dataEntry))
+    queries.push(UPSERT.into(target).entries(dataCopy))
     queries.push(...subQueries)
   }
 
