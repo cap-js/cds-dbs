@@ -46,10 +46,10 @@ class HANAService extends SQLService {
       },
       create: async function (tenant) {
         try {
-          const creds = isMultitenant
+          const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
-            : service.options.credentials
-          const dbc = new driver(creds)
+            : service.options
+          const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
