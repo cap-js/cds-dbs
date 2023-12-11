@@ -145,7 +145,7 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
-          .catch(e => {
+          .catch(() => {
             // TODO: check whether the error is early close
             return true
           })

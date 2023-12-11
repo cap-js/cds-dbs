@@ -1,6 +1,5 @@
 const fs = require('fs')
 const path = require('path')
-const { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -269,7 +268,7 @@ class HANAService extends SQLService {
 
       const src = q
 
-      const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
+      const { limit, one, orderBy, expand, columns, localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
