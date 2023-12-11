@@ -2019,7 +2019,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @param {object} name the last part of the name, e.g. the name of the deeply nested element
    * @returns the flat name of the element
    */
-  function getFullName(node, name = node.name) {
+  function getFullName(node, name = node.name) { // REVISIT: this is an unfortunate implementation
     if (node.parent.kind === 'entity') return name
 
     return getFullName(node.parent, `${node.parent.name}_${name}`)

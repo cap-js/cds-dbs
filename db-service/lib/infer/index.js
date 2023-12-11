@@ -100,12 +100,12 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
-          const next = d.elements[r.id || r]?.elements ? d.elements[r.id || r] : d.elements[r.id || r]?._target
+          const next = d.elements[r.id || r]?._target || d.elements[r.id || r]
           if (!next) throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
           return next
         }, target)
       }
-      if (target.kind !== 'entity' && !target._isAssociation)
+      if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
       attachRefLinksToArg(from) // REVISIT: remove
@@ -166,7 +166,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // we need to search for first step in ´model.definitions[infixAlias]`
         if ($baseLink) {
           const { definition } = $baseLink
-          const elements = definition.elements || definition._target?.elements
+          const elements = definition._target?.elements || definition.elements
           const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
           if (e.target) {
             // only fk access in infix filter
@@ -496,7 +496,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             nameSegments.push(id)
           } else if ($baseLink) {
             const { definition, target } = $baseLink
-            const elements = definition.elements || definition._target?.elements
+            const elements = definition._target?.elements || definition.elements
             if (elements && id in elements) {
               const element = elements[id]
               rejectNonFkAccess(element)
@@ -531,7 +531,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           }
         } else {
           const { definition } = column.$refLinks[i - 1]
-          const elements = definition.elements || definition._target?.elements
+          const elements = definition._target?.elements || definition.elements //> go for assoc._target first, instead of assoc as struct
           const element = elements?.[id]
 
           if (firstStepIsSelf && element?.isAssociation) {
@@ -651,7 +651,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         /**
          * Check if the next step in the ref is foreign key of `element`
          * if not, an error is thrown.
-         * 
+         *
          * @param {CSN.Element} element if this is an association, the next step must be a foreign key of the element.
          */
         function rejectNonFkAccess(element) {
@@ -724,7 +724,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
-            const leafLinkElements = $leafLink.definition.elements || $leafLink.definition._target.elements
+            const leafLinkElements = $leafLink.definition._target.elements || $leafLink.definition.elements
             Object.entries(leafLinkElements).forEach(([k, v]) => {
               const name = namePrefix ? `${namePrefix}_${k}` : k
               // if overwritten/excluded omit from wildcard elements
