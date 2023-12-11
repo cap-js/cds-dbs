@@ -2,5 +2,5 @@
   "db-service": "1.5.0",
   "sqlite": "1.4.0",
   "postgres": "1.4.1",
-  "hana": "0.0.1"
+  "hana": "0.0.2"
 }
