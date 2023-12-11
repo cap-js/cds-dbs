@@ -102,10 +102,10 @@ class HANAService extends SQLService {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs } = this.cqn2sql(query, data)
+    const { cqn, temporary, blobs, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, blobs)
-    let rows = await this.exec(sqlScript)
+    let rows = values?.length ? await (await this.prepare(sqlScript)).all(values) : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -264,8 +264,9 @@ class HANAService extends SQLService {
 
     SELECT(q) {
       // Collect all queries and blob columns of all queries
-      this.temporary = this.temporary || []
       this.blobs = this.blobs || []
+      this.temporary = this.temporary || []
+      this.temporaryValues = this.temporaryValues || []
 
       const src = q
 
@@ -274,7 +275,6 @@ class HANAService extends SQLService {
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const { element, elements } = q
-        if (expand === 'root') this.values = undefined
 
         q = cds.ql.clone(q)
         if (parent) {
@@ -376,6 +376,10 @@ class HANAService extends SQLService {
       if (expand === 'root') {
         this.cqn = q
         this.temporary.unshift({ blobs: this._blobs, select: this.sql.substring(7) })
+        if (this.values) {
+          this.temporaryValues.unshift(this.values)
+          this.values = this.temporaryValues.flat()
+        }
       }
 
       return this.sql
@@ -416,8 +420,11 @@ class HANAService extends SQLService {
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
 
+                const values = this.values
+                this.values = []
                 parent.SELECT.expand = true
                 this.SELECT(x)
+                this.values = values
                 return false
               }
               if (x.element?.type?.indexOf('Binary') > -1) {
@@ -763,6 +770,17 @@ class HANAService extends SQLService {
       else return x
     }
 
+    list({ list }) {
+      const first = list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (first.list && !first.list.find(v => !v.val)) {
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.${i}'`)
+        this.values.push(JSON.stringify(list.map(l => l.list.reduce((l, c, i) => { l[i] = c.val; return l }, {}))))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
+      return `(${list.map(e => this.expr(e))})`
+    }
+
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
       // When returning columns from a query they should be case sensitive
@@ -867,6 +885,10 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+
+      // Javascript types
+      string: () => `NVARCHAR(2147483647)`,
+      number: () => `DOUBLE`
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
