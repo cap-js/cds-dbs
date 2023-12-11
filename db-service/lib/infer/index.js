@@ -177,7 +177,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter
-            if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
+            if (!expandOrExists && nextStep && !(nextStep in e.elements))
               throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
           }
           arg.$refLinks.push({ definition: e, target: definition })
@@ -666,7 +666,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                   .join('.')}" must not be an unmanaged association`
               )
             // no non-fk traversal in infix filter
-            if (nextStep && element.foreignKeys && !(nextStep in element.foreignKeys))
+            if (nextStep && element.elements && !(nextStep in element.elements))
               throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
           }
         }
@@ -724,7 +724,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
-            const leafLinkElements = $leafLink.definition._target.elements || $leafLink.definition.elements
+            const leafLinkElements = $leafLink.definition._target?.elements || $leafLink.definition.elements
             Object.entries(leafLinkElements).forEach(([k, v]) => {
               const name = namePrefix ? `${namePrefix}_${k}` : k
               // if overwritten/excluded omit from wildcard elements

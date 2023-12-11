@@ -201,8 +201,8 @@ class JoinTree {
           child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias, outerQueries)
         }
 
-        const foreignKeys = node.$refLink?.definition.foreignKeys
-        if (node.$refLink && (!foreignKeys || !(child.$refLink.alias in foreignKeys)))
+        const elements = node.$refLink?.definition.elements
+        if (node.$refLink && (!elements || !(child.$refLink.alias in elements)))
           // foreign key access
           node.$refLink.onlyForeignKeyAccess = false
 

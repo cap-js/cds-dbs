@@ -1063,8 +1063,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     else if (isJoinRelevant) {
       const leaf = column.$refLinks[column.$refLinks.length - 1]
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      const { foreignKeys } = leafAssoc.definition
-      if (foreignKeys && leaf.alias in foreignKeys) {
+      const { elements } = leafAssoc.definition
+      if (elements && leaf.alias in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
         columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
