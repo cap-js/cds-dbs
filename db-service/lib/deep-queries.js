@@ -237,8 +237,9 @@ const _getDeepInUpsertQueries = (data, target, isUpsert) => {
     }
 
     const dataCopy = {}
+
     for (const key in dataEntry) {
-      if (toBeIgnoredProps.includes(key)) continue
+      if (toBeIgnoredProps.includes(key) || target.elements[key].virtual) continue
       dataCopy[key] = dataEntry[key]
     }
 
