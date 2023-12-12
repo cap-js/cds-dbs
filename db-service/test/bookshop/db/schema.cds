@@ -392,9 +392,9 @@ entity PartialStructuredKey {
   toSelf: Association to PartialStructuredKey { struct.one as partial}
 }
 
-  entity Reproduce {
-    key ID : Integer;
-    title : String(5000);
-    author : Association to Authors;
-    accessGroup : Composition of AccessGroups;
-  }
+entity Reproduce {
+  key ID : Integer;
+  title : String(5000);
+  author : Association to Authors;
+  accessGroup : Composition of AccessGroups;
+}

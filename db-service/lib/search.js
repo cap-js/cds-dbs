@@ -1,13 +1,5 @@
 'use strict'
 
-const DRAFT_COLUMNS_UNION = {
-  IsActiveEntity: 1,
-  HasActiveEntity: 1,
-  HasDraftEntity: 1,
-  DraftAdministrativeData_DraftUUID: 1,
-  SiblingEntity: 1,
-  DraftAdministrativeData: 1,
-}
 const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
 
 /**
@@ -26,20 +18,16 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
  */
 const getColumns = (
   entity,
-  { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false },
+  { removeIgnore = false, filterVirtual = false},
 ) => {
-  const skipDraft = filterDraft && entity._isDraftEnabled
   const columns = []
   const elements = entity.elements
 
   for (const each in elements) {
     const element = elements[each]
-    if (element.isAssociation) continue
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
-    if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
-    if (keysOnly && !element.key) continue
-    columns.push(onlyNames ? each : element)
+    columns.push(element)
   }
 
   return columns
@@ -63,20 +51,21 @@ const _getSearchableColumns = entity => {
   }
 
   let atLeastOneColumnIsSearchable = false
+  const deepSearchCandidates = []
 
   // build a map of columns annotated with the @cds.search annotation
   for (const key of cdsSearchKeys) {
     const columnName = key.split(cdsSearchTerm + '.').pop()
 
-    // REVISIT: for now, exclude search using path expression, as deep search is not currently
-    // supported
-    if (columnName.includes('.')) {
-      continue
-    }
-
     const annotationKey = `${cdsSearchTerm}.${columnName}`
     const annotationValue = entity[annotationKey]
     if (annotationValue) atLeastOneColumnIsSearchable = true
+    const column = entity.elements[columnName]
+
+    if (column?.isAssociation || columnName.includes('.')) {
+      deepSearchCandidates.push({ ref: columnName.split('.') })
+      continue;
+    }
     cdsSearchColumnMap.set(columnName, annotationValue)
   }
 
@@ -86,6 +75,9 @@ const _getSearchableColumns = entity => {
     // the element is searchable if it is annotated with the @cds.search, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
     if (annotatedColumnValue) return true
+
+    // calculated elements are only searchable if requested through `@cds.search` 
+    if(column.value) return false
 
     // if at least one element is explicitly annotated as searchable, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
@@ -101,15 +93,29 @@ const _getSearchableColumns = entity => {
     )
   })
 
-  // if the @cds.search annotation is provided -->
-  // Early return to ignore the interpretation of the @Search.defaultSearchElement
-  // annotation when an entity is annotated with the @cds.search annotation.
-  // The @cds.search annotation overrules the @Search.defaultSearchElement annotation.
-  if (cdsSearchKeys.length > 0) {
-    return searchableColumns.map(column => column.name)
+  if (deepSearchCandidates.length) {
+    deepSearchCandidates.forEach(c => {
+      const element = c.ref.reduce((resolveIn, curr, i) => {
+        const next = resolveIn.elements?.[curr] || resolveIn._target.elements[curr]
+        if (next.isAssociation && !c.ref[i + 1]) {
+          const searchInTarget = _getSearchableColumns(next._target)
+          searchInTarget.forEach(elementRefInTarget => {
+            searchableColumns.push({ ref: c.ref.concat(...elementRefInTarget.ref) })
+          })
+        }
+        return next
+      }, entity)
+      if (element?.type === DEFAULT_SEARCHABLE_TYPE) {
+        searchableColumns.push({ ref: c.ref })
+      }
+    })
   }
 
-  return searchableColumns.map(column => column.name)
+  return searchableColumns.map(column => {
+    if(column.ref)
+      return column
+    return { ref: [ column.name ] }
+  })
 }
 
 /**
@@ -121,35 +127,11 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
   // aggregations case
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
-    cqn.SELECT.columns &&
-      cqn.SELECT.columns.forEach(column => {
-        if (column.func) {
-          // exclude $count by SELECT of number of Items in a Collection
-          if (
-            cqn.SELECT.columns.length === 1 &&
-            column.func === 'count' &&
-            (column.as === '_counted_' || column.as === '$count')
-          ) {
-            return
-          }
-
-          toBeSearched.push(column)
-          return
-        }
-
-        const columnRef = column.ref
-        if (columnRef) {
-          if (entity.elements[columnRef[columnRef.length - 1]]?._type !== DEFAULT_SEARCHABLE_TYPE) return
-          column = { ref: [...column.ref] }
-          if (alias) column.ref.unshift(alias)
-          toBeSearched.push(column)
-        }
-      })
+    // REVISIT: No search for aggregation case for the moment
   } else {
     toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
-    if (cqn.SELECT.groupBy) toBeSearched = toBeSearched.filter(tbs => cqn.SELECT.groupBy.some(gb => gb.ref[0] === tbs))
     toBeSearched = toBeSearched.map(c => {
-      const col = { ref: [c] }
+      const col = {ref: [...c.ref]}
       if (alias) col.ref.unshift(alias)
       return col
     })

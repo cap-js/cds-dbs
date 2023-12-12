@@ -1,8 +1,6 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { computeColumnsToBeSearched } = require('./search')
-
 const infer = require('./infer')
 
 /**
@@ -57,10 +55,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!inferred.STREAM?.from && inferred.STREAM?.into) {
       transformedQuery = transformStreamQuery()
     } else {
-      const { entity, where } = queryProp
+      const { entity } = queryProp
       const from = queryProp.from
-
       const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+      const { where } = queryProp
 
       // Transform the existing where, prepend table aliases, and so on...
       if (where) {
@@ -69,10 +67,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
       // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
       // The already transformed `where` clause is then glued together with the resulting subqueries.
-      const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+      let { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
       const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
       if (inferred.SELECT) {
+        if (inferred.SELECT.search && inferred.SELECT.search.searchTerm) {
+          const searchTerm = getTransformedTokenStream([inferred.SELECT.search.searchTerm])
+          if(transformedWhere.length)
+            transformedWhere = [asXpr(transformedWhere), 'and', ...searchTerm]
+          else
+            transformedWhere = searchTerm
+        }
         transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
       } else {
         if (from) {
@@ -182,14 +187,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }
-
-    if (inferred.SELECT.search) {
-      // Search target can be a navigation, in that case use _target to get the correct entity
-      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
-      if (where) {
-        transformedQuery.SELECT.where = where
-      }
-    }
     return transformedQuery
   }
 
@@ -228,41 +225,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedProp.into = transformedFrom
     transformedQuery.STREAM = transformedProp
     return transformedQuery
-  }
-
-  /**
-   * Transforms a search expression to a WHERE clause for a SELECT operation.
-   *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {object} from - The FROM clause of the CQN statement.
-   *
-   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
-   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
-   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
-   *     If the target entity of the query does not contain searchable elements, the function returns null.
-   *
-   */
-  function transformSearchToWhere(search, from) {
-    const entity = from.$refLinks[0].definition._target || from.$refLinks[0].definition
-    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
-
-      if (transformedQuery.SELECT.where) {
-        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
-      } else {
-        return [contains]
-      }
-    } else {
-      return null
-    }
   }
 
   /**
@@ -1734,10 +1696,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         if (rhs?.ref || lhs.ref) {
           // if we have refs on each side of the comparison, we might need to perform tuple expansion
           // or flatten the structures
-          const refLinkFaker = thing => {
-            const { ref } = thing
+          const adHocRefLinks = column => {
+            const { ref } = column
             const assocHost = getParentEntity(assocRefLink.definition)
-            Object.defineProperty(thing, '$refLinks', {
+            Object.defineProperty(column, '$refLinks', {
               value: [],
               writable: true,
             })
@@ -1747,7 +1709,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 return prev
               const definition = prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
-              thing.$refLinks[i] = { definition, target, alias: definition.name }
+              column.$refLinks[i] = { definition, target, alias: definition.name }
               return prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
             }, assocHost)
           }
@@ -1755,8 +1717,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           // comparison in on condition needs to be expanded...
           // re-use existing algorithm for that
           // we need to fake some $refLinks for that to work though...
-          lhs?.ref && !lhs.$refLinks && refLinkFaker(lhs)
-          rhs?.ref && !rhs.$refLinks && refLinkFaker(rhs)
+          lhs?.ref && !lhs.$refLinks && adHocRefLinks(lhs)
+          rhs?.ref && !rhs.$refLinks && adHocRefLinks(rhs)
         }
 
         let backlink
