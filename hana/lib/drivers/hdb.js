@@ -158,7 +158,7 @@ async function* rsIterator(rs, one) {
       }
       return raw.next().then(next => {
         if (next.done) {
-          throw new Error('Trying to read more byte then are available')
+          throw new Error('Trying to read more bytes than are available')
         }
         // Write processed buffer to stream
         if (this.writing) this.yields.push(this.buffer.slice(0, this.writing))
