@@ -1,17 +1,12 @@
-const cds = require('@sap/cds/lib'),
-  DEBUG = cds.debug('sql|db')
+const cds = require('@sap/cds/lib')
+const DEBUG = cds.debug('sql|db')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
-/** @typedef {import('@sap/cds/apis/services').Request} Request */
-
-/**
- * @callback Handler
- * @param {Request} req
- * @param {(err? : Error) => {Promise<unknown>}} next
- * @returns {Promise<unknown>}
- */
+/** @typedef {import('@sap/cds/apis/ql').Query} Query */
+/** @typedef {import('@sap/cds').Request} Request */
+/** @typedef {function(Request,function)} Handler */
 
 class SQLService extends DatabaseService {
 
@@ -70,7 +65,6 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * Handler for SELECT
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
@@ -78,7 +72,9 @@ class SQLService extends DatabaseService {
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (cqn.SELECT.expand)
+        // REVISIT: looks like this should be moved down the stack to the db specific impl?
+        rows = rows.map(r => typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r)
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return SQLService._arrayWithCount(rows, await this.count(query, rows))
@@ -87,35 +83,36 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * Handler for INSERT
    * @type {Handler}
    */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs -> let's do so pls and remove this line
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     return new this.class.InsertResults(cqn, results)
   }
 
   /**
-   * Handler for UPSERT
    * @type {Handler}
    */
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen? -> let's do so pls and remove this line
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
+    // REVISIT: Why don't we use InsertResults here as well? -> would be more consistent; and we could eliminate this method
+    return results.reduce((total, affectedRows) => total += affectedRows.changes, 0)
   }
 
   /**
-   * Handler for UPDATE
    * @type {Handler}
    */
   async onUPDATE(req) {
+    ////////////////////////
+    // REVISIT: who is sending such updates? -> let's eliminate this code please
+    //
     // noop if not a touch for @cds.on.update
     if (
       !req.query.UPDATE.data &&
@@ -123,13 +120,15 @@ class SQLService extends DatabaseService {
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
+    //
+    /////////////////
     return this.onSIMPLE(req)
   }
 
   /**
-   * Handler for Stream
    * @type {Handler}
    */
+  // REVISIT: When do we see an update of stream handling?
   async onSTREAM(req) {
     const { one, sql, values } = this.cqn2sql(req.query)
     // writing stream
@@ -149,7 +148,8 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    return (await ps.run(values)).changes
+    let res = await ps.run(values)
+    return res.changes
   }
 
   get onDELETE() {
@@ -218,28 +218,28 @@ class SQLService extends DatabaseService {
 
   /**
    * Derives and executes a query to fill in `$count` for given query
-   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {import('@sap/cds/apis/ql').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
    * @returns {Promise<number>}
    */
-  async count(query, ret) {
+  async count (query, ret) {
     if (ret) {
-      const { one, limit: _ } = query.SELECT,
-        n = ret.length
-      const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      const n = ret.length
+      const { one, limit } = query.SELECT
+      const [ max, offset=0 ] = one ? [1] : !limit ? [] : [ limit.rows?.val, limit.offset?.val ]
+      if (!max || n < max && (n || !offset)) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
-      cds.ql.clone(query, {
+    const q = cds.ql.clone(query, {
+      columns: [{func:'count'}],
       localized: false,
       expand: false,
-        limit: undefined,
-        orderBy: undefined,
-      }),
-    )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+      limit: undefined,
+      orderBy: undefined,
+    })
+    const { sql, values } = this.cqn2sql(q)
+    const ps = await this.prepare (q.groupBy ? `SELECT count(*) as "count" from (${sql})` : sql)
+    const res = await ps.get(values)
+    return res.count
   }
 
   /**
@@ -254,7 +254,7 @@ class SQLService extends DatabaseService {
    */
   static CQN2SQL = require('./cqn2sql').class
 
-  // REVISIT: There must be a better way!
+  // REVISIT: There must be a better way! -> so let's find it
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
@@ -265,16 +265,13 @@ class SQLService extends DatabaseService {
     })
   }
 
-  /** @param {unknown[]} args */
   constructor(...args) {
     super(...args)
-    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').Query} query
-   * @param {unknown} values
+   * @param {Query} query
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
@@ -292,8 +289,8 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').Query} q
-   * @returns {import('./infer/cqn').Query}
+   * @param {Query} q
+   * @returns {Query}
    */
   cqn4sql(q) {
     if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
