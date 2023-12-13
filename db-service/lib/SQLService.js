@@ -1,5 +1,6 @@
 const cds = require('@sap/cds/lib'),
   DEBUG = cds.debug('sql|db')
+const { normalizeError } = require('@sap/cds/libx/_runtime/common/error/frontend')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
@@ -20,6 +21,33 @@ class SQLService extends DatabaseService {
     this.on(['UPDATE'], this.transformStreamIntoCQN)
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT: should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    if (cds.env.features.db_strict) {
+      this.on(['INSERT', 'UPSERT', 'UPDATE'], req => {
+        const query = req.query
+        const entries = (query.INSERT || query.UPSERT)?.entries
+        const missingColumns = entries
+          ? entries.flatMap(entry => Object.keys(entry).filter(el => !Object.keys(query.target.elements).includes(el)))
+          : (query.INSERT?.columns || Object.keys(query.UPDATE?.data)).filter(
+              el => !Object.keys(query.target.elements).includes(el),
+            )
+
+        if (missingColumns.length > 0) {
+          const createColumnError = (tableName, columnName) =>
+            Object.assign(new Error(`Table ${tableName} has no column named ${columnName}`), { code: 400 })
+
+          const err =
+            missingColumns.length === 1
+              ? createColumnError(query.target.name, missingColumns[0])
+              : new Error('MULTIPLE_ERRORS')
+
+          if (missingColumns.length > 1) {
+            err.details = missingColumns.map(el => createColumnError(query.target.name, el))
+          }
+
+          throw Object.assign(err, { statusCode: 400 })
+        }
+      })
+    }
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
