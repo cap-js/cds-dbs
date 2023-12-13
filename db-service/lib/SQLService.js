@@ -1,6 +1,5 @@
 const cds = require('@sap/cds/lib'),
   DEBUG = cds.debug('sql|db')
-const { normalizeError } = require('@sap/cds/libx/_runtime/common/error/frontend')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
