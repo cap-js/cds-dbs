@@ -102,10 +102,10 @@ class HANAService extends SQLService {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs, withclause } = this.cqn2sql(query, data)
+    const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
-    let rows = await this.exec(sqlScript)
+    let rows = values?.length ? await (await this.prepare(sqlScript)).all(values) : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -154,7 +154,7 @@ class HANAService extends SQLService {
 
     const values = temporary
       .map(t => {
-        const blobColumns = blobs.map(b => (b in t.blobs) ? `NULL AS ${blobColumn(b)}` : blobColumn(b))
+        const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
         return `SELECT "_path_","_expands_","_blobs_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
       })
 
@@ -261,11 +261,16 @@ class HANAService extends SQLService {
 
     SELECT(q) {
       // Collect all queries and blob columns of all queries
-      this.temporary = this.temporary || []
       this.blobs = this.blobs || []
       this.withclause = this.withclause || []
+      this.temporary = this.temporary || []
+      this.temporaryValues = this.temporaryValues || []
 
-      const walkAlias = q => q.SELECT.from.as || q.SELECT.from.args?.[0].as || walkAlias(q.SELECT.from)
+      const walkAlias = q => {
+        if (q.args) return q.as || walkAlias(q.args[0])
+        if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
+        return q.as
+      }
       const alias = walkAlias(q)
       q.as = q.as || alias
       const src = q
@@ -275,7 +280,6 @@ class HANAService extends SQLService {
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const { element, elements } = q
-        if (expand === 'root') this.values = undefined
 
         q = cds.ql.clone(q)
         if (parent) {
@@ -334,9 +338,9 @@ class HANAService extends SQLService {
                       func: 'concat',
                       args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[` }],
                     },
-                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] },
+                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
-                  : [{ val: '$[' }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] }],
+                  : [{ val: '$[', param: false }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] }],
               },
             ],
             as: '_path_',
@@ -347,7 +351,7 @@ class HANAService extends SQLService {
           // Apply row number limits
           q.where(
             one
-              ? [{ ref: ['$$RN$$'] }, '=', { val: 1 }]
+              ? [{ ref: ['$$RN$$'] }, '=', { val: 1, param: false }]
               : limit.offset?.val
                 ? [
                   { ref: ['$$RN$$'] },
@@ -379,6 +383,10 @@ class HANAService extends SQLService {
         this.cqn = q
         this.withclause.unshift(`${this.quote(alias)} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${this.quote(alias)}` })
+        if (this.values) {
+          this.temporaryValues.unshift(this.values)
+          this.values = this.temporaryValues.flat()
+        }
       }
 
       return this.sql
@@ -417,8 +425,11 @@ class HANAService extends SQLService {
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
 
+                const values = this.values
+                this.values = []
                 parent.SELECT.expand = true
                 this.SELECT(x)
+                this.values = values
                 return false
               }
               if (x.element?.type?.indexOf('Binary') > -1) {
@@ -752,6 +763,18 @@ class HANAService extends SQLService {
       else return x
     }
 
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => !v.val)) {
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.${i}'`)
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[i] = c.val; return l }, {}))))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
+      // Call super for normal SQL behavior
+      return super.list(list)
+    }
+
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
       // When returning columns from a query they should be case sensitive
@@ -799,7 +822,7 @@ class HANAService extends SQLService {
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
         const val = _managed[element[annotation]?.['=']]
         let managed
-        if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
+        if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
         const type = this.insertType4(element)
         let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
         if (!isUpdate) {
@@ -856,6 +879,10 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+
+      // Javascript types
+      string: () => `NVARCHAR(2147483647)`,
+      number: () => `DOUBLE`
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
