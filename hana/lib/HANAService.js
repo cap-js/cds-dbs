@@ -268,7 +268,8 @@ class HANAService extends SQLService {
 
       const src = q
 
-      const { limit, one, orderBy, expand, columns, localized, count, /* from */ parent } = q.SELECT
+      // eslint-disable-next-line no-unused-vars
+      const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
