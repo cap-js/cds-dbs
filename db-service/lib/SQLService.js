@@ -21,7 +21,7 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT: should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
-      this.on(['INSERT', 'UPSERT', 'UPDATE'], req => {
+      this.on(['INSERT', 'UPSERT', 'UPDATE'], (req, next) => {
         const { query } = req
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
@@ -49,6 +49,7 @@ class SQLService extends DatabaseService {
 
           throw Object.assign(err, { statusCode: 400 })
         }
+        next()
       })
     }
     this.on(['SELECT'], this.onSELECT)
