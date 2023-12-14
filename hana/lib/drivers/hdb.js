@@ -6,6 +6,13 @@ const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
 
+const credentialMappings = [
+  { old: 'certificate', new: 'ca' },
+  { old: 'encrypt', new: 'useTLS' },
+  { old: 'sslValidateCertificate', new: 'rejectUnauthorized' },
+  { old: 'validate_certificate', new: 'rejectUnauthorized' },
+]
+
 class HDBDriver extends driver {
   /**
    * Instantiates the HDBDriver class
@@ -14,14 +21,19 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       useCesu8: false,
-      rejectUnauthorized: !!creds.sslValidateCertificate,
       fetchSize: 1 << 16, // V8 default memory page size
-      useTLS: creds.useTLS || creds.encrypt,
       ...creds,
     }
+
+    // Retain hana credential mappings to hdb / node credential mapping
+    for (const m of credentialMappings) {
+      if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
+    }
+
     super(creds)
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
+    this._native.on('close', () => this.destroy?.())
 
     this.connected = false
   }
@@ -29,6 +41,10 @@ class HDBDriver extends driver {
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
     Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+  }
+
+  async validate() {
+    return this._native.readyState === 'connected'
   }
 
   /**
@@ -142,7 +158,7 @@ async function* rsIterator(rs, one) {
       }
       return raw.next().then(next => {
         if (next.done) {
-          throw new Error('Trying to read more byte then are available')
+          throw new Error('Trying to read more bytes than are available')
         }
         // Write processed buffer to stream
         if (this.writing) this.yields.push(this.buffer.slice(0, this.writing))
