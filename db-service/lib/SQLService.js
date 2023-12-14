@@ -238,8 +238,8 @@ class SQLService extends DatabaseService {
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = (await this.onSELECT({ query: cq })) || {}
-    return count ?? COUNT ?? 0
+    const { count, COUNT } = await this.onSELECT({ query: cq })
+    return count ?? COUNT
   }
 
   /**
