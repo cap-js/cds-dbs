@@ -1,9 +1,16 @@
-process.env.cds_features_db__strict = 'true'
 const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - strict mode', () => {
   const { expect } = cds.test(bookshop)
+
+  beforeAll(() => {
+    process.env.cds_features_db__strict = 'true'
+  })
+
+  afterAll(() => {
+    process.env.cds_features_db__strict = undefined
+  })
 
   async function runAndExpectError(cqn, expectedStatusCode, expectedMessage, expectedDetails) {
     let error
