@@ -666,9 +666,9 @@ class CQN2SQLRenderer {
   expr(x) {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
-    if ('val' in x) return wrap(this.val(x))
-    if ('param' in x) return wrap(this.param(x))
+    if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
+    if ('val' in x) return wrap(this.val(x))
     if ('xpr' in x) return wrap(this.xpr(x))
     if ('func' in x) return wrap(this.func(x))
     if ('list' in x) return wrap(this.list(x))
