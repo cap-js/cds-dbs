@@ -145,6 +145,7 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
+          // eslint-disable-next-line no-unused-vars
           .catch(e => {
             // TODO: check whether the error is early close
             return true
