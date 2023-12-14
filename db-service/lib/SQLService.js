@@ -22,25 +22,29 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.on(['INSERT', 'UPSERT', 'UPDATE'], req => {
-        const query = req.query
-        const entries = (query.INSERT || query.UPSERT)?.entries
-        const missingColumns = entries
-          ? entries.flatMap(entry => Object.keys(entry).filter(el => !Object.keys(query.target.elements).includes(el)))
-          : (query.INSERT?.columns || Object.keys(query.UPDATE?.data)).filter(
-              el => !Object.keys(query.target.elements).includes(el),
-            )
+        const { query } = req
+        const kind = query.kind || Object.keys(query)[0]
+        const operation = query[kind]
+        const columns =
+          operation.columns ||
+          Object.keys(
+            operation.entries?.reduce((acc, obj) => {
+              return Object.assign(acc, obj)
+            }, {}) || operation.data,
+          )
+        const invalidColumns = columns.filter(c => !query.target.elements[c])
 
-        if (missingColumns.length > 0) {
+        if (invalidColumns.length > 0) {
           const createColumnError = (tableName, columnName) =>
             Object.assign(new Error(`Table ${tableName} has no column named ${columnName}`), { code: 400 })
 
           const err =
-            missingColumns.length === 1
-              ? createColumnError(query.target.name, missingColumns[0])
+            invalidColumns.length === 1
+              ? createColumnError(query.target.name, invalidColumns[0])
               : new Error('MULTIPLE_ERRORS')
 
-          if (missingColumns.length > 1) {
-            err.details = missingColumns.map(el => createColumnError(query.target.name, el))
+          if (invalidColumns.length > 1) {
+            err.details = invalidColumns.map(el => createColumnError(query.target.name, el))
           }
 
           throw Object.assign(err, { statusCode: 400 })
