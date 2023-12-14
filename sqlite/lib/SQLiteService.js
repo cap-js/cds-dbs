@@ -18,6 +18,7 @@ class SQLiteService extends SQLService {
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
 
+        // REVISIT: Move these out to global scope?
         // define date and time functions in js to allow for throwing errors
         const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
         const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
@@ -26,6 +27,8 @@ class SQLiteService extends SQLService {
           if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
           return date
         }
+
+        // REVISIT: Do we really need all these user-defined db functions?
         dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
         dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
         dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
@@ -33,6 +36,7 @@ class SQLiteService extends SQLService {
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
 
+        // REVISIT: Doing that in a user-scope function likely is slower than a native one
         dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) =>
           args.join('').replace(/}{/g, ','),
         )
@@ -69,7 +73,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._stream(stmt, ..._), // REVISIT: stays or goes away?
       }
     } catch (e) {
       e.message += ' in:\n' + (e.sql = sql)
@@ -82,7 +86,7 @@ class SQLiteService extends SQLService {
       const val = binding_params[i]
       if (Buffer.isBuffer(val)) {
         binding_params[i] = Buffer.from(val.base64Slice())
-      } else if (typeof val === 'object' && val && val.pipe) {
+      } else if (val?.pipe) {
         // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
         // if (val.type === 'binary') val.setEncoding('base64')
         binding_params[i] = await convStrm.buffer(val)
@@ -92,7 +96,7 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iterator(rs, one) { // REVISIT: ?
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -112,7 +116,7 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  async _stream(stmt, binding_params, one) {
+  async _stream(stmt, binding_params, one) { // REVISIT: should it stay or should it go?
     const columns = stmt.columns()
     // Stream single blob column
     if (columns.length === 1 && columns[0].name !== '_json_') {
@@ -144,6 +148,7 @@ class SQLiteService extends SQLService {
     return this.dbc.exec(sql)
   }
 
+  // REVISIT: if this is a temporary hack, we should remove it
   onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
       // REVISIT: this is a hack the target of $now might not be a timestamp or date time
@@ -201,6 +206,7 @@ class SQLiteService extends SQLService {
       array: expr => `${expr}->'$'`,
 
       // SQLite has no booleans so we need to convert 0 and 1
+      // REVISIT: as discussed in the beginning, could we just keep the truthy/false raw data
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
 
       // DateTimes are returned without ms added by InputConverters
@@ -216,11 +222,18 @@ class SQLiteService extends SQLService {
       Int64: expr => `CAST(${expr} as TEXT)`,
 
       // Binary is not allowed in json objects
-      Binary: expr => `${expr} || ''`,
+      Binary: expr => `${expr} || ''`, // REVISIT: is this still needed?
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions,
+      // Ensure ISO strings are returned for date/time functions
+      current_timestamp: () => 'ISO(current_timestamp)',
+      // SQLite doesn't support arguments for current_date and current_time
+      // REVISIT: same for HANA -> shouldn't that be the standard?
+      current_date: () => 'current_date',
+      current_time: () => 'current_time',
+    }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -239,7 +252,10 @@ class SQLiteService extends SQLService {
       return 'is'
     }
 
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    static ReservedWords = {
+      ...super.ReservedWords,
+      ...require('./ReservedWords.json')
+    }
   }
 
   // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
