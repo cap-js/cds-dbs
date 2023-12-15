@@ -8,31 +8,21 @@ describe('strict mode', () => {
     process.env.cds_features_db__strict = undefined
   })
 
-  async function runAndExpectError(cqn, expectedStatusCode, expectedMessage, expectedDetails) {
+  async function runAndExpectError(cqn, expectedMessage) {
     let error
     try {
       await cds.run(cqn)
     } catch (e) {
       error = e
     }
-
-    expect(error.statusCode).toEqual(expectedStatusCode)
     expect(error.message).toEqual(expectedMessage)
-
-    if (expectedDetails) {
-      expect(error.details.map(detail => detail.message)).toEqual(expectedDetails)
-    } else {
-      expect(error.details).toEqual(undefined)
-    }
   }
   describe('UPDATE Scenarios', () => {
     test('Update with multiple errors', async () => {
       const { foo } = cds.entities('test')
       await runAndExpectError(
         UPDATE.entity(foo).where({ ID: 2 }).set({ abc: 'bar', abc2: 'baz' }),
-        400,
-        'MULTIPLE_ERRORS',
-        ['Table test.foo has no column named abc', 'Table test.foo has no column named abc2'],
+        'STRICT MODE: Trying to UPDATE non existent columns (abc,abc2)',
       )
     })
 
@@ -40,8 +30,14 @@ describe('strict mode', () => {
       const { foo } = cds.entities('test')
       await runAndExpectError(
         UPDATE.entity(foo).where({ ID: 2 }).set({ abc: 'bar' }),
-        400,
-        'Table test.foo has no column named abc',
+        'STRICT MODE: Trying to UPDATE non existent columns (abc)',
+      )
+    })
+
+    test.skip('Update on non existing entity', async () => {
+      await runAndExpectError(
+        UPDATE.entity('notExisting').where({ ID: 2 }).set({ abc: 'bar' }),
+        'STRICT MODE: Trying to UPDATE non existent columns (abc,abc2)',
       )
     })
   })
@@ -49,23 +45,25 @@ describe('strict mode', () => {
   describe('INSERT Scenarios', () => {
     test('Insert with single error using entries', async () => {
       const { foo } = cds.entities('test')
-      await runAndExpectError(INSERT.into(foo).entries({ abc: 'bar' }), 400, 'Table test.foo has no column named abc')
+      await runAndExpectError(
+        INSERT.into(foo).entries({ abc: 'bar' }),
+        'STRICT MODE: Trying to INSERT non existent columns (abc)',
+      )
     })
 
     test('Insert with multiple errors using entries', async () => {
       const { foo } = cds.entities('test')
-      await runAndExpectError(INSERT.into(foo).entries([{ abc: 'bar' }, { abc2: 'bar2' }]), 400, 'MULTIPLE_ERRORS', [
-        'Table test.foo has no column named abc',
-        'Table test.foo has no column named abc2',
-      ])
+      await runAndExpectError(
+        INSERT.into(foo).entries([{ abc: 'bar' }, { abc2: 'bar2' }]),
+        'STRICT MODE: Trying to INSERT non existent columns (abc,abc2)',
+      )
     })
 
     test('Insert with single error using columns and values', async () => {
       const { foo } = cds.entities('test')
       await runAndExpectError(
         INSERT.into(foo).columns(['abc']).values(['foo', 'bar']),
-        400,
-        'Table test.foo has no column named abc',
+        'STRICT MODE: Trying to INSERT non existent columns (abc)',
       )
     })
 
@@ -73,9 +71,7 @@ describe('strict mode', () => {
       const { foo } = cds.entities('test')
       await runAndExpectError(
         INSERT.into(foo).columns(['abc', 'abc2']).rows(['foo', 'bar'], ['foo2', 'bar2'], ['foo3', 'bar3']),
-        400,
-        'MULTIPLE_ERRORS',
-        ['Table test.foo has no column named abc', 'Table test.foo has no column named abc2'],
+        'STRICT MODE: Trying to INSERT non existent columns (abc,abc2)',
       )
     })
 
@@ -83,8 +79,14 @@ describe('strict mode', () => {
       const { foo } = cds.entities('test')
       await runAndExpectError(
         INSERT.into(foo).columns(['abc']).rows(['foo', 'bar'], ['foo2', 'bar2'], ['foo3', 'bar3']),
-        400,
-        'Table test.foo has no column named abc',
+        'STRICT MODE: Trying to INSERT non existent columns (abc)',
+      )
+    })
+
+    test('Insert on non existing entity using entries', async () => {
+      await runAndExpectError(
+        INSERT.into('notExisting').entries({ abc: 'bar' }),
+        'STRICT MODE: Trying to INSERT non existent columns (abc)',
       )
     })
   })
@@ -92,14 +94,24 @@ describe('strict mode', () => {
   describe('UPSERT Scenarios', () => {
     test('UPSERT with single error', async () => {
       const { foo } = cds.entities('test')
-      await runAndExpectError(UPSERT.into(foo).entries({ abc: 'bar' }), 400, 'Table test.foo has no column named abc')
+      await runAndExpectError(
+        UPSERT.into(foo).entries({ abc: 'bar' }),
+        'STRICT MODE: Trying to UPSERT non existent columns (abc)',
+      )
     })
     test('UPSERT with multiple errors', async () => {
       const { foo } = cds.entities('test')
-      await runAndExpectError(UPSERT.into(foo).entries({ abc: 'bar', abc2: 'baz' }), 400, 'MULTIPLE_ERRORS', [
-        'Table test.foo has no column named abc',
-        'Table test.foo has no column named abc2',
-      ])
+      await runAndExpectError(
+        UPSERT.into(foo).entries({ abc: 'bar', abc2: 'baz' }),
+        'STRICT MODE: Trying to UPSERT non existent columns (abc,abc2)',
+      )
+    })
+
+    test('UPSERT on non existing entity', async () => {
+      await runAndExpectError(
+        UPSERT.into('notExisting').entries({ abc: 'bar' }),
+        'STRICT MODE: Trying to UPSERT non existent columns (abc)',
+      )
     })
   })
 })

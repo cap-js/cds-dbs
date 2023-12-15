@@ -36,19 +36,7 @@ class SQLService extends DatabaseService {
         const invalidColumns = columns.filter(c => !query.target?.elements?.[c])
 
         if (invalidColumns.length > 0) {
-          const createColumnError = (tableName, columnName) =>
-            Object.assign(new Error(`Table ${tableName} has no column named ${columnName}`), { code: 400 })
-
-          const err =
-            invalidColumns.length === 1
-              ? createColumnError(query.target.name, invalidColumns[0])
-              : new Error('MULTIPLE_ERRORS')
-
-          if (invalidColumns.length > 1) {
-            err.details = invalidColumns.map(el => createColumnError(query.target.name, el))
-          }
-
-          throw Object.assign(err, { statusCode: 400 })
+          cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
         }
         next()
       })
