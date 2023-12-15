@@ -25,6 +25,7 @@ class SQLService extends DatabaseService {
         const { query } = req
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
+        if(!operation.columns && !operation.entries && !operation.data) return next()
         const columns =
           operation.columns ||
           Object.keys(
@@ -32,7 +33,7 @@ class SQLService extends DatabaseService {
               return Object.assign(acc, obj)
             }, {}) || operation.data,
           )
-        const invalidColumns = columns.filter(c => !query.target.elements[c])
+        const invalidColumns = columns.filter(c => !query.target?.elements?.[c])
 
         if (invalidColumns.length > 0) {
           const createColumnError = (tableName, columnName) =>
