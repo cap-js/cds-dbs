@@ -1,3 +1,8 @@
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const isVal = x => x && 'val' in x
+const getTimeType = x => isTime.test(x.val) ? 'TIME' : 'TIMESTAMP'
+const getTimeCast = x => isVal(x) ? `TO_${getTimeType(x)}(${x})` : x
+
 const StandardFunctions = {
   tolower: x => `lower(${x})`,
   toupper: x => `upper(${x})`,
@@ -25,6 +30,9 @@ const StandardFunctions = {
 
   // Date and Time Functions
   day: x => `DAYOFMONTH(${x})`,
+  hour: x => `HOUR(${getTimeCast(x)})`,
+  minute: x => `MINUTE(${getTimeCast(x)})`,
+  second: x => `SECOND(${getTimeCast(x)})`
 }
 
 module.exports = StandardFunctions

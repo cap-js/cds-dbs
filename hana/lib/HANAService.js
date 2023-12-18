@@ -336,7 +336,7 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[` }],
+                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
                     },
                     { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
@@ -516,6 +516,7 @@ class HANAService extends SQLService {
       return foreignKeys
     }
 
+    // REVISIT: Find a way to avoid overriding the whole function redundantly
     INSERT_entries(q) {
       this.values = undefined
       const { INSERT } = q
@@ -527,7 +528,7 @@ class HANAService extends SQLService {
         return // REVISIT: mtx sends an insert statement without entries and no reference entity
       }
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
