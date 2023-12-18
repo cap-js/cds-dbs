@@ -102,10 +102,10 @@ class HANAService extends SQLService {
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs } = this.cqn2sql(query, data)
+    const { cqn, temporary, blobs, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, blobs)
-    let rows = await this.exec(sqlScript)
+    let rows = values?.length ? await (await this.prepare(sqlScript)).all(values) : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -264,8 +264,9 @@ class HANAService extends SQLService {
 
     SELECT(q) {
       // Collect all queries and blob columns of all queries
-      this.temporary = this.temporary || []
       this.blobs = this.blobs || []
+      this.temporary = this.temporary || []
+      this.temporaryValues = this.temporaryValues || []
 
       const src = q
 
@@ -274,7 +275,6 @@ class HANAService extends SQLService {
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const { element, elements } = q
-        if (expand === 'root') this.values = undefined
 
         q = cds.ql.clone(q)
         if (parent) {
@@ -330,11 +330,11 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_path_'] }, { val: `].${q.element.name}[` }],
+                      args: [{ ref: ['_path_'] }, { val: `].${q.element.name}[`, param: false }],
                     },
-                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] },
+                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
-                  : [{ val: '$[' }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6 }, { val: '0' }] }],
+                  : [{ val: '$[', param: false }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] }],
               },
             ],
             as: '_path_',
@@ -345,7 +345,7 @@ class HANAService extends SQLService {
           // Apply row number limits
           q.where(
             one
-              ? [{ ref: ['$$RN$$'] }, '=', { val: 1 }]
+              ? [{ ref: ['$$RN$$'] }, '=', { val: 1, param: false }]
               : limit.offset?.val
                 ? [
                   { ref: ['$$RN$$'] },
@@ -376,6 +376,10 @@ class HANAService extends SQLService {
       if (expand === 'root') {
         this.cqn = q
         this.temporary.unshift({ blobs: this._blobs, select: this.sql.substring(7) })
+        if (this.values) {
+          this.temporaryValues.unshift(this.values)
+          this.values = this.temporaryValues.flat()
+        }
       }
 
       return this.sql
@@ -416,8 +420,11 @@ class HANAService extends SQLService {
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
 
+                const values = this.values
+                this.values = []
                 parent.SELECT.expand = true
                 this.SELECT(x)
+                this.values = values
                 return false
               }
               if (x.element?.type?.indexOf('Binary') > -1) {
@@ -516,6 +523,7 @@ class HANAService extends SQLService {
       return foreignKeys
     }
 
+    // REVISIT: Find a way to avoid overriding the whole function redundantly
     INSERT_entries(q) {
       this.values = undefined
       const { INSERT } = q
@@ -527,7 +535,7 @@ class HANAService extends SQLService {
         return // REVISIT: mtx sends an insert statement without entries and no reference entity
       }
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
@@ -763,6 +771,18 @@ class HANAService extends SQLService {
       else return x
     }
 
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => !v.val)) {
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.${i}'`)
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[i] = c.val; return l }, {}))))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
+      // Call super for normal SQL behavior
+      return super.list(list)
+    }
+
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
       // When returning columns from a query they should be case sensitive
@@ -810,7 +830,7 @@ class HANAService extends SQLService {
         const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
         const val = _managed[element[annotation]?.['=']]
         let managed
-        if (val) managed = this.func({ func: 'session_context', args: [{ val }] })
+        if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
         const type = this.insertType4(element)
         let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
         if (!isUpdate) {
@@ -867,6 +887,10 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+
+      // Javascript types
+      string: () => `NVARCHAR(2147483647)`,
+      number: () => `DOUBLE`
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
