@@ -21,11 +21,10 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT: should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
-      this.on(['INSERT', 'UPSERT', 'UPDATE'], (req, next) => {
-        const { query } = req
+      this.on(['INSERT', 'UPSERT', 'UPDATE'], ({ query }, next) => {
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
-        if(!operation.columns && !operation.entries && !operation.data) return next()
+        if (!operation.columns && !operation.entries && !operation.data) return next()
         const columns =
           operation.columns ||
           Object.keys(
@@ -38,7 +37,7 @@ class SQLService extends DatabaseService {
         if (invalidColumns.length > 0) {
           cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
         }
-        next()
+        return next()
       })
     }
     this.on(['SELECT'], this.onSELECT)
