@@ -27,7 +27,7 @@ class CQN2SQLRenderer {
     this.class._init() // is a noop for subsequent calls
   }
 
-  static _add_mixins (aspect, mixins) {
+  static _add_mixins(aspect, mixins) {
     const fqn = this.name + aspect
     const types = cds.builtin.types
     for (let each in mixins) {
@@ -52,7 +52,7 @@ class CQN2SQLRenderer {
       this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1 // Order
       this.ReservedWords[each.toLowerCase()] = 1 // order
     }
-    this._init = () => {} // makes this a noop for subsequent calls
+    this._init = () => { } // makes this a noop for subsequent calls
   }
 
   /**
@@ -208,7 +208,7 @@ class CQN2SQLRenderer {
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     // Expand cannot work without an inferred query
     if (expand) {
-      if ('elements' in q) sql = this.SELECT_expand (q,sql)
+      if ('elements' in q) sql = this.SELECT_expand(q, sql)
       else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
     return (this.sql = sql)
@@ -249,7 +249,7 @@ class CQN2SQLRenderer {
     // Prevent SQLite from hitting function argument limit of 100
     let obj = ''
 
-    if(cols.length < 50) obj =  `json_object(${cols.slice(0, 50)})`
+    if (cols.length < 50) obj = `json_object(${cols.slice(0, 50)})`
     else {
       const chunks = []
       for (let i = 0; i < cols.length; i += 50) {
@@ -342,9 +342,9 @@ class CQN2SQLRenderer {
     return orderBy.map(
       localized
         ? c =>
-            this.expr(c) +
-            (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
-            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          this.expr(c) +
+          (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
+          (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
     )
   }
@@ -372,12 +372,12 @@ class CQN2SQLRenderer {
     return INSERT.entries
       ? this.INSERT_entries(q)
       : INSERT.rows
-      ? this.INSERT_rows(q)
-      : INSERT.values
-      ? this.INSERT_values(q)
-      : INSERT.as
-      ? this.INSERT_select(q)
-      : cds.error`Missing .entries, .rows, or .values in ${q}`
+        ? this.INSERT_rows(q)
+        : INSERT.values
+          ? this.INSERT_values(q)
+          : INSERT.as
+            ? this.INSERT_select(q)
+            : cds.error`Missing .entries, .rows, or .values in ${q}`
   }
 
   /**
@@ -427,9 +427,8 @@ class CQN2SQLRenderer {
     // Include this.values for placeholders
     /** @type {unknown[][]} */
     this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+      }) SELECT ${extraction} FROM json_each(?)`)
   }
 
   /**
@@ -443,21 +442,20 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = INSERT.columns
-    || cds.error`Cannot insert rows without columns or elements`
+      || cds.error`Cannot insert rows without columns or elements`
 
     const inputConverter = this.class._convertInput
-    const extraction = columns.map((c,i) => {
+    const extraction = columns.map((c, i) => {
       const extract = `value->>'$[${i}]'`
       const element = elements?.[c]
       const converter = element?.[inputConverter]
-      return converter?.(extract,element) || extract
+      return converter?.(extract, element) || extract
     })
 
     this.columns = columns.map(c => this.quote(c))
     this.entries = [[JSON.stringify(INSERT.rows)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+      }) SELECT ${extraction} FROM json_each(?)`)
   }
 
   /**
@@ -552,9 +550,9 @@ class CQN2SQLRenderer {
     if (entity.as) sql += ` AS ${entity.as}`
 
     let columns = []
-    if (data) _add (data, val => this.val({val}))
-    if (_with) _add (_with, x => this.expr(x))
-    function _add (data, sql4) {
+    if (data) _add(data, val => this.val({ val }))
+    if (_with) _add(_with, x => this.expr(x))
+    function _add(data, sql4) {
       for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
           columns.push({ name: c, sql: sql4(data[c]) })
@@ -602,8 +600,8 @@ class CQN2SQLRenderer {
     return STREAM.from
       ? this.STREAM_from(q)
       : STREAM.into
-      ? this.STREAM_into(q)
-      : cds.error`Missing .form or .into in ${q}`
+        ? this.STREAM_into(q)
+        : cds.error`Missing .form or .into in ${q}`
   }
 
   /**
@@ -668,7 +666,7 @@ class CQN2SQLRenderer {
   expr(x) {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
-    if ('param' in x) return wrap(this.param(x))
+    if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
     if ('xpr' in x) return wrap(this.xpr(x))
@@ -704,15 +702,15 @@ class CQN2SQLRenderer {
   operator(x, i, xpr) {
 
     // Translate = to IS NULL for rhs operand being NULL literal
-    if (x === '=')  return xpr[i+1]?.val === null ? 'is' : '='
+    if (x === '=') return xpr[i + 1]?.val === null ? 'is' : '='
 
     // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '==') return xpr[i+1]?.val === null ? 'is' : _not_null(i-1) && _not_null(i+1) ? '=' : this.is_not_distinct_from_
+    if (x === '==') return xpr[i + 1]?.val === null ? 'is' : _not_null(i - 1) && _not_null(i + 1) ? '=' : this.is_not_distinct_from_
 
     // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '!=') return xpr[i+1]?.val === null ? 'is not' : _not_null(i-1) && _not_null(i+1) ? '<>' : this.is_distinct_from_
+    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(i - 1) && _not_null(i + 1) ? '<>' : this.is_distinct_from_
 
     else return x
 
@@ -749,9 +747,9 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now' }]})
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] })
       case '$user':
-      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id', param: false }] })
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
@@ -761,7 +759,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
-  val({ val }) {
+  val({ val, param }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': return 'NULL'
@@ -770,13 +768,13 @@ class CQN2SQLRenderer {
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) ; // go on with default below
+        if (val instanceof Readable); // go on with default below
         else if (Buffer.isBuffer(val)) val = val.toString('base64')
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough
     }
-    if (!this.values) return this.string(val)
+    if (!this.values || param === false) return this.string(val)
     else this.values.push(val)
     return '?'
   }
@@ -860,12 +858,12 @@ class CQN2SQLRenderer {
     const requiredColumns = !elements
       ? []
       : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
-              !columns.find(c => c.name === e),
-          )
-          .map(name => ({ name, sql: 'NULL' }))
+        .filter(
+          e =>
+            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
+            !columns.find(c => c.name === e),
+        )
+        .map(name => ({ name, sql: 'NULL' }))
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       let element = elements?.[name] || {}
@@ -875,14 +873,13 @@ class CQN2SQLRenderer {
       if (converter && sql[0] !== '$') sql = converter(sql, element)
 
       let val = _managed[element[annotation]?.['=']]
-      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
+      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
       else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
           // REVISIT: d.ref is not used afterwards
-          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${
-            this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
-          } ELSE ${sql} END)`
+          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
+            } ELSE ${sql} END)`
         }
       }
 
