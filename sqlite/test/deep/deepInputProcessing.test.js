@@ -61,7 +61,7 @@ describe('UUID Generation', () => {
     expect(resUpdate.data.toOneChild.ID).toEqual(resUpdate.data.toOneChild.toManySubChild[1].backlink_ID)
   })
 
-  test.only('generate UUID on update programmatically', async () => {
+  test('generate UUID on update programmatically', async () => {
     const uuid = cds.utils.uuid()
     await cds.db
       .insert({
