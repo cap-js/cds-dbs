@@ -272,7 +272,7 @@ class HANAService extends SQLService {
         return q.as
       }
       const alias = walkAlias(q)
-      q.as = q.as || alias
+      q.as = alias
       const src = q
 
       const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
