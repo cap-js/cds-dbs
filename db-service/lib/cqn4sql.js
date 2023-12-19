@@ -1051,6 +1051,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
+    const structsAreUnfoldedAlready = cds.model.meta.unfolded?.some(u => u === 'structs')
+    if(column.elements && structsAreUnfoldedAlready)
+      return []
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
@@ -1069,7 +1072,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         baseName = getFullName(leafAssoc.definition)
         columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
-    } else baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
+    } else {
+      if(!baseName && structsAreUnfoldedAlready)
+        baseName = column.name
+      else
+        baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
+    }
 
     // now we have the name of the to be expanded column
     // it could be a structure, an association or a scalar
@@ -1647,7 +1655,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {boolean}
    */
   function isStructured(elt) {
-    return Boolean(elt?.elements && elt.kind === 'element')
+    return Boolean(elt?.kind !== 'entity' && elt?.elements && elt.type !== 'cds.Association')
   }
 
   /**
@@ -2019,8 +2027,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @param {object} name the last part of the name, e.g. the name of the deeply nested element
    * @returns the flat name of the element
    */
-  function getFullName(node, name = node.name) { // REVISIT: this is an unfortunate implementation
-    if (node.parent.kind === 'entity') return name
+  function getFullName(node, name = node.name) {
+    // REVISIT: this is an unfortunate implementation
+    if (!node.parent || node.parent.kind === 'entity') return name
 
     return getFullName(node.parent, `${node.parent.name}_${name}`)
   }

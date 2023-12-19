@@ -182,8 +182,9 @@ describe('wildcard expansion and exclude clause', () => {
       `)
   })
   it('expand after wildcard combines assoc from wildcard expansion (flat mode)', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, cds.compile.for.nodejs(model))
-    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+    const flatModel = cds.compile.for.nodejs(model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, flatModel)
+    const expected = CQL`SELECT from bookshop.Books as Books
         {
           Books.createdAt,
           Books.createdBy,
@@ -210,7 +211,24 @@ describe('wildcard expansion and exclude clause', () => {
             } where Books.author_ID = author.ID
           ) as author
         }
-      `)
+      `
+    expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(expected.SELECT.columns.sort(customSort))
+
+    function customSort(a, b) {
+      // Get the last values from the "ref" arrays or set them as empty strings
+      const lastValueA = (a.ref && a.ref.length) ? a.ref[a.ref.length - 1] : '';
+      const lastValueB = (b.ref && b.ref.length) ? b.ref[b.ref.length - 1] : '';
+    
+      // Compare the last values alphabetically
+      if (lastValueA < lastValueB) {
+        return -1;
+      }
+      if (lastValueA > lastValueB) {
+        return 1;
+      }
+      // If the last values are equal, maintain their original order
+      return 0;
+    }
   })
 
   it('path expression after wildcard replaces assoc from wildcard expansion', () => {

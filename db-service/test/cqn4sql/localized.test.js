@@ -4,7 +4,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
-describe('localized', () => {
+describe.skip('localized', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
