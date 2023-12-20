@@ -155,7 +155,7 @@ class HANAService extends SQLService {
     const values = temporary
       .map(t => {
         const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-        return `SELECT "_path_","_expands_","_blobs_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
+        return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
