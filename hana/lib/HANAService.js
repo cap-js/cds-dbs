@@ -315,7 +315,7 @@ class HANAService extends SQLService {
         const over = { xpr: [] }
         // TODO: replace with full path partitioning
         if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
-        if (orderBy) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
+        if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
         const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
         q.as = q.SELECT.from.as
 
