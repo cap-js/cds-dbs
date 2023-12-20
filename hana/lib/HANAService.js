@@ -131,7 +131,7 @@ class HANAService extends SQLService {
   }
 
   async onSTREAM(req) {
-    let { cqn, sql, values, temporary, blobs } = this.cqn2sql(req.query)
+    let { cqn, sql, values, temporary, withclause, blobs } = this.cqn2sql(req.query)
     // writing stream
     if (req.query.STREAM.into) {
       const ps = await this.prepare(sql)
@@ -140,7 +140,7 @@ class HANAService extends SQLService {
     // reading stream
     if (temporary?.length) {
       // Full SELECT CQN support streaming
-      sql = this.wrapTemporary(temporary, blobs)
+      sql = this.wrapTemporary(temporary, withclause, blobs)
     }
     const ps = await this.prepare(sql)
     const stream = await ps.stream(values, cqn.SELECT?.one)
