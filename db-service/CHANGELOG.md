@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.5.0...db-service-v1.5.1) (2023-12-20)
+
+
+### Fixed
+
+* **cqn2sql:** supporting calculated elements ([#387](https://github.com/cap-js/cds-dbs/issues/387)) ([2153fb9](https://github.com/cap-js/cds-dbs/commit/2153fb9a3910cd4afa3a91918e6cf682646492b7))
+* do not rely on db constraints for deep delete ([#390](https://github.com/cap-js/cds-dbs/issues/390)) ([9623af6](https://github.com/cap-js/cds-dbs/commit/9623af64db97cfe15ef07b659635850fc908f77c))
+
+
+### Performance Improvements
+
+* HANA list placeholder ([#380](https://github.com/cap-js/cds-dbs/issues/380)) ([3eadfea](https://github.com/cap-js/cds-dbs/commit/3eadfea7b94f485030cc8bd0bd298ce088586422))
+
 ## [1.5.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.4.0...db-service-v1.5.0) (2023-12-06)
 
 
