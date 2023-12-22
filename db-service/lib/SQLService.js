@@ -173,7 +173,8 @@ class SQLService extends DatabaseService {
   }
 
   get onDELETE() {
-    return super.onDELETE = cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : deep_delete
+    // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
+    return super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete
     async function deep_delete(/** @type {Request} */ req) {
       let { compositions } = req.target
       if (compositions) {
