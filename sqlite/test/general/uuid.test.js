@@ -25,4 +25,16 @@ describe('UUID Generation', () => {
       await DELETE('test.bar')
     })
   })
+
+  test('INSERT entity with missing key as association throws error', async () => {
+    const db = await cds.connect.to('db')
+    return db.tx(async () => {
+      try {
+       await INSERT.into('test.BooksWithAssocAsKey').entries([{}])
+       expect(1).to.be.eq('INSERT entity with missing key as association throws error')
+      } catch (err) {
+        expect(err.code).toEqual('SQLITE_CONSTRAINT_NOTNULL')
+      }
+    })
+  })
 })
