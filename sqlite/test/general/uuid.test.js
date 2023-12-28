@@ -28,11 +28,11 @@ describe('UUID Generation', () => {
 
   test('INSERT entity with missing key as association throws error', async () => {
     const db = await cds.connect.to('db')
-    return db.tx(async () => {
-      expect.assertions(1)
-      await expect(INSERT.into('test.BooksWithAssocAsKey').entries([{}])).rejects.toThrow(
-        'NOT NULL constraint failed: test_BooksWithAssocAsKey.author_ID'
-      )   
-    })
+    expect.assertions(1)
+    return expect(db.tx(async () => {
+     await INSERT.into('test.BooksWithAssocAsKey').entries([{}])
+    })).rejects.toThrow(
+      'NOT NULL constraint failed: test_BooksWithAssocAsKey.author_ID'
+    )   
   })
 })
