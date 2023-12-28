@@ -20,7 +20,7 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
- * @returns {import('./cqn').Query} = q with .target and .elements
+ * @returns {import('../../types/cqn').Query} = q with .target and .elements
  */
 function infer(originalQuery, model = cds.context?.model || cds.model) {
   if (!model) throw new Error('Please specify a model')
