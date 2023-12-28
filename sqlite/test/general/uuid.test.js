@@ -31,8 +31,8 @@ describe('UUID Generation', () => {
     expect.assertions(1)
     return expect(db.tx(async () => {
      await INSERT.into('test.BooksWithAssocAsKey').entries([{}])
-    })).rejects.toThrow(
-      'NOT NULL constraint failed: test_BooksWithAssocAsKey.author_ID'
+    })).rejects.toEqual(
+      new Error('NOT NULL constraint failed: test_BooksWithAssocAsKey.author_ID')
     )   
   })
 })
