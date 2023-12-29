@@ -40,7 +40,8 @@ class HDBDriver extends driver {
 
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
-    Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+    clientInfo._updatedProperties = variables
+    clientInfo._properties = variables
   }
 
   async validate() {
