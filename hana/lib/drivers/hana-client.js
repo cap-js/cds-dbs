@@ -8,8 +8,6 @@ const streamUnsafe = false
 
 const credentialMappings = [
   { old: 'schema', new: 'currentSchema' },
-  { old: 'certificate', new: 'ca' },
-  { old: 'encrypt', new: 'useTLS' },
   { old: 'hostname_in_certificate', new: 'sslHostNameInCertificate' },
   { old: 'validate_certificate', new: 'sslValidateCertificate' },
 ]
