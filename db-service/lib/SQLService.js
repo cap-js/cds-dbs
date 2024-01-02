@@ -43,7 +43,7 @@ class SQLService extends DatabaseService {
 
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
-      if (col.element.isAssociation) {
+      if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
           rows.forEach(row => { this._changeToStreams(col.SELECT.columns, row[name], false, compat) }) 
