@@ -17,6 +17,16 @@ service test {
     key ID : UUID;
   }
 
+  entity BooksWithAssocAsKey {
+    key author: Association to AuthorAssoc;
+    title  : String;
+    stock  : Integer;
+  }
+
+  entity AuthorAssoc {
+    key ID: UUID;
+  }
+
   entity fooLocalized {
     key ID   : Integer;
         text : localized String;
