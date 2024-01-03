@@ -299,6 +299,8 @@ describe('streaming', () => {
       })
 
       // TODO: breaks on Postgres, because INSERT tries to decode it as base64 string (InputConverters) 
+      // Sqlite: (1) Stream is read to Buffer - not to JSON. (2) Bad JSON - multiple nesting of same quotations
+      // same x test in stream.compat.test.js
       xtest('WRITE dataset from json generator stream', async () => {
         const { Images } = cds.entities('test')
 
