@@ -16,11 +16,11 @@ describe('streaming', () => {
   // TODO: Un-x after cds is merged
   xdescribe('cds.stream', () => {
     beforeAll(async () => {
-      const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-      await cds.run('INSERT INTO test_Images values(?,?,?)', [
-        [1, data, null],
-        [2, null, null],
-      ])
+      let data = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+      await INSERT([
+        { data: data, data2: null, ID: 1 },
+        { data: null, data2: null, ID: 2 },
+      ]).into('test.Images')
     })
 
     afterAll(async () => {
@@ -267,9 +267,9 @@ describe('streaming', () => {
       test('WRITE dataset from json file stream', async () => {
         const { Images } = cds.entities('test')
 
-        // to be discussed
+        // REVISIT: to be discussed
         // const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
-        // const changes = await STREAM.into(Images).data(stream)
+        // const changes = await INSERT.into(Images).data(stream)
 
         const json = JSON.parse(fs.readFileSync(path.join(__dirname, 'samples/data.json')))
         const changes = await INSERT.into(Images).entries(json)
