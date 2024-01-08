@@ -44,7 +44,7 @@ describe('Bookshop - Update', () => {
 
   test('programmatic insert into unknown entity', async () => {
     const books = 'sap_capire_bookshop_Books'
-    const id = 999
+    const ID = 999
     let affectedRows = await INSERT(books, {
       ID,
       modifiedAt: new Date(),
