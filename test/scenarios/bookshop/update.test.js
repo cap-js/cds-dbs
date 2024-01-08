@@ -24,6 +24,7 @@ describe('Bookshop - Update', () => {
     expect(res.data.author_ID).to.be.eq(201)
     expect(res.data.descr).to.be.eq('UPDATED')
   })
+
   test('Update array of', async () => {
     // create book
     const insert = INSERT.into('sap.capire.bookshop.Books').columns(['ID']).values([150])
@@ -39,6 +40,24 @@ describe('Bookshop - Update', () => {
     )
     expect(update.status).to.be.eq(200)
     expect(update.data.footnotes).to.be.eql(['one'])
+  })
+
+  test('programmatic insert into unknown entity', async () => {
+    const books = 'sap_capire_bookshop_Books'
+    const id = 999
+    let affectedRows = await INSERT(books, {
+      ID,
+      modifiedAt: new Date(),
+      createdAt: (new Date()).toISOString(),
+    })
+    expect(affectedRows).to.be.eq(1)
+
+    await DELETE(books).where(`ID = `, { val: ID })
+
+    affectedRows = await INSERT.into(books)
+      .columns(['ID', 'modifiedAt', 'createdAt'])
+      .values([ID, new Date(), (new Date()).toISOString()])
+    expect(affectedRows).to.be.eq(1)
   })
 
   test('programmatic update without body incl. managed', async () => {
