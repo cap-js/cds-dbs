@@ -524,21 +524,14 @@ class HANAService extends SQLService {
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
 
       const elements = q.elements || q.target?.elements
-      if (!elements && !INSERT.entries?.length) {
-        return // REVISIT: mtx sends an insert statement without entries and no reference entity
+      if (!elements) {
+        return super.INSERT_entries(q)
       }
+
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
-
-      // Fallback to plain insert
-      if (!elements) {
-        this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
-        return `INSERT INTO ${this.quote(entity)} (${columns.map(c =>
-          this.quote(c),
-        )}) VALUES (${columns.map(() => '?')})`
-      }
 
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
@@ -606,19 +599,11 @@ class HANAService extends SQLService {
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
       const elements = q.elements || q.target?.elements
-      const columns = INSERT.columns || (elements && ObjectKeys(elements))
-
-      // Fallback to plain insert
       if (!elements) {
-        // REVISIT: should @cds.persistence.name be considered ?
-        const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
-
-        this.entries = INSERT.rows
-        return `INSERT INTO ${this.quote(entity)} (${columns.map(c =>
-          this.quote(c),
-        )}) VALUES (${columns.map(() => '?')})`
+        return super.INSERT_rows(q)
       }
-
+      
+      const columns = INSERT.columns || (elements && ObjectKeys(elements))
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows
       for (let x = 0; x < rows.length; x++) {
