@@ -432,9 +432,105 @@ class CQN2SQLRenderer {
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
-    this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
+    this.entries = []
+    if (INSERT.entries[0] instanceof Readable) {
+      INSERT.entries[0].type = 'json'
+      this.entries = [[...this.values, INSERT.entries[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
+  }
+
+  async *INSERT_entries_stream(entries) {
+    const bufferLimit = 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}{`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (const key in row) {
+        const keyJSON = `${sepsub}${JSON.stringify(key)}:`
+        if (!sepsub) sepsub = ','
+
+        const val = row[key]
+        if (val instanceof Readable) {
+          buffer += `${keyJSON}"`
+
+          // TODO: double check that it works
+          val.setEncoding('base64')
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
+        }
+      }
+      buffer += '}'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
+  }
+
+  async *INSERT_rows_stream(entries) {
+    const bufferLimit = 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}[`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (let key = 0; key < row.length; key++) {
+        const val = row[key]
+        if (val instanceof Readable) {
+          buffer += `${sepsub}"`
+
+          // TODO: double check that it works
+          val.setEncoding('base64')
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
+        }
+
+        if (!sepsub) sepsub = ','
+      }
+      buffer += ']'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
   }
 
   /**
@@ -466,7 +562,15 @@ class CQN2SQLRenderer {
       return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
     }
 
-    this.entries = [[JSON.stringify(INSERT.rows)]]
+    if (INSERT.rows[0] instanceof Readable) {
+      INSERT.rows[0].type = 'json'
+      this.entries = [[...this.values, INSERT.rows[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
   }
