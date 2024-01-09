@@ -629,9 +629,9 @@ class CQN2SQLRenderer {
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns.filter(c => {
+      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model
-      if (e.key) return true //> keys go into ON CONFLICT clause
       if (e.virtual) return true
       // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
       else return true
