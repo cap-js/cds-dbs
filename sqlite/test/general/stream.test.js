@@ -21,11 +21,11 @@ describe('STREAM', () => {
 
   describe('cds.stream', () => {
     beforeAll(async () => {
-      const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-      await cds.run('INSERT INTO test_Images values(?,?)', [
-        [1, data],
-        [2, null],
-      ])
+      let data = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
+      await INSERT([
+        { data: data, ID: 1 },
+        { data: null, ID: 2 },
+      ]).into('test.Images')
     })
 
     afterAll(async () => {
@@ -236,7 +236,7 @@ describe('STREAM', () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
 
-        const changes = await STREAM.into(Images).data(stream)
+        const changes = await INSERT.into(Images).entries(stream)
         try {
           expect(changes).toEqual(2)
         } catch (e) {

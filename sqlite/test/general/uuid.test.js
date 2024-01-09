@@ -25,4 +25,11 @@ describe('UUID Generation', () => {
       await DELETE('test.bar')
     })
   })
+
+  test('INSERT entity with missing key as association throws error', async () => {
+    expect.assertions(1)
+    return expect(
+      cds.run(INSERT.into('test.BooksWithAssocAsKey').entries([{}]))
+    ).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT_NOTNULL' })   
+  })
 })
