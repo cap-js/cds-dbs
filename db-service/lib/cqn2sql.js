@@ -632,7 +632,8 @@ class CQN2SQLRenderer {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model
-      if (e.virtual) return true
+      if (e.virtual) return true //> skip virtual elements
+      if (e.value) return true //> skip calculated elements
       // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
