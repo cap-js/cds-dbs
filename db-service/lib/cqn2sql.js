@@ -620,15 +620,16 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPSERT(q) {
-    let { UPSERT } = q,
-      sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+    const { UPSERT } = q
+    const elements = q.target?.elements || {}
+    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
     if (!keys) return (this.sql = sql) // REVISIT: We should converge q.target and q._target
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns
-      .filter(c => !keys.includes(c))
+      .filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !keys.includes(c))
       .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     // temporal data
