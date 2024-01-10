@@ -265,16 +265,16 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
 
+      const { limit, one, orderBy, expand, columns, localized, count, parent } = q.SELECT
+
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
         if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
         return q.as
       }
-      const alias = walkAlias(q)
-      q.as = alias
+      q.as = walkAlias(q)
+      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
-
-      const { limit, one, orderBy, expand, columns, localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -380,8 +380,9 @@ class HANAService extends SQLService {
 
       if (expand === 'root') {
         this.cqn = q
-        this.withclause.unshift(`${this.quote(alias)} as (${this.sql})`)
-        this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${this.quote(alias)}` })
+        const fromSQL = this.from({ ref: [alias] })
+        this.withclause.unshift(`${fromSQL} as (${this.sql})`)
+        this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
           this.temporaryValues.unshift(this.values)
           this.values = this.temporaryValues.flat()
@@ -416,7 +417,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.as], as: parent.as }, x.SELECT.from],
+                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
@@ -586,7 +587,7 @@ class HANAService extends SQLService {
       if (!elements) {
         return super.INSERT_rows(q)
       }
-      
+
       const columns = INSERT.columns || (elements && ObjectKeys(elements))
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows

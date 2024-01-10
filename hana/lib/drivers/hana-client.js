@@ -45,7 +45,9 @@ class HANAClientDriver extends driver {
   }
 
   set(variables) {
-    Object.keys(variables).forEach(k => this._native.setClientInfo(k, variables[k]))
+    for(const key in variables) {
+      this._native.setClientInfo(key, variables[key])
+    }
   }
 
   async prepare(sql) {
