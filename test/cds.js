@@ -38,7 +38,7 @@ cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(() => {
     try {
-      const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
+      const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
       const serviceDefinitionPath = testSource + 'test/service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
       require(testSource + 'cds-plugin')
@@ -103,6 +103,11 @@ cds.test = Object.setPrototypeOf(function () {
   })
 
   global.afterAll(async () => {
+    // Remove isolation layer including contents
+    if (isolate) {
+      await cds.db?.tenant(isolate, true)
+    }
+
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
