@@ -35,6 +35,17 @@ describe('Bookshop - Genres', () => {
 
     delete insertResponse.data['@odata.context']
     const assert = require('assert')
+
+    // Read after write does not sort the results
+    // therefor asynchronious databases might return in different orders
+    const sort = (a, b) => {
+      if (!a?.children || !b?.children) return
+      const order = b.children.reduce((l, c, i) => { l[c.ID] = i; return l }, {})
+      a.children.sort((a, b) => order[a.ID] - order[b.ID])
+      a.children.forEach((c, i) => sort(c, b.children[i]))
+    }
+
+    sort(insertResponse.data, body)
     assert.deepEqual(insertResponse.data, body)
 
     // REVISIT clean up so the deep update test does not fail
