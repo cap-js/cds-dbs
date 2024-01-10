@@ -814,8 +814,7 @@ class HANAService extends SQLService {
         const val = _managed[element[annotation]?.['=']]
         let managed
         if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
-        const type = this.insertType4(element)
-        let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
+        let extract = sql ?? `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}'`
         if (!isUpdate) {
           const d = element.default
           if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
