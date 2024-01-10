@@ -45,7 +45,7 @@ class SQLService extends DatabaseService {
   async transformStreamIntoCQN({ query, data, target }, next) {
     let col, type, etag
     const elements = query._target?.elements || target?.elements
-    if (!elements) next()
+    if (!elements) return next()
     for (const key in elements) {
       const element = elements[key]
       if (element['@Core.MediaType'] && data[key]?.pipe) col = key
@@ -163,22 +163,22 @@ class SQLService extends DatabaseService {
         if (typeof from === 'string') from = { ref: [from] }
         if (where) {
           let last = from.ref.at(-1)
-          if (last.where) [ last, where ] = [ last.id, [ { xpr: last.where }, 'and', { xpr: where } ] ]
-          from = {ref:[ ...from.ref.slice(0,-1), { id: last, where }]}
+          if (last.where) [last, where] = [last.id, [{ xpr: last.where }, 'and', { xpr: where }]]
+          from = { ref: [...from.ref.slice(0, -1), { id: last, where }] }
         }
         // Process child compositions depth-first
-        let { depth=0, visited=[] } = req
-        visited.push (req.target.name)
-        await Promise.all (Object.values(compositions).map(c => {
+        let { depth = 0, visited = [] } = req
+        visited.push(req.target.name)
+        await Promise.all(Object.values(compositions).map(c => {
           if (c._target['@cds.persistence.skip'] === true) return
           if (c._target === req.target) { // the Genre.children case
             if (++depth > (c['@depth'] || 3)) return
           } else if (visited.includes(c._target.name)) throw new Error(
-            `Transitive circular composition detected: \n\n`+
-            `  ${visited.join(' > ')} > ${c._target.name} \n\n`+
+            `Transitive circular composition detected: \n\n` +
+            `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
             `These are not supported by deep delete.`)
           // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
-          const query = DELETE.from({ref:[ ...from.ref, c.name ]})
+          const query = DELETE.from({ ref: [...from.ref, c.name] })
           return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
         }))
       }
@@ -233,8 +233,8 @@ class SQLService extends DatabaseService {
     // REVISIT: made uppercase count because of HANA reserved word quoting
     const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
       cds.ql.clone(query, {
-      localized: false,
-      expand: false,
+        localized: false,
+        expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
