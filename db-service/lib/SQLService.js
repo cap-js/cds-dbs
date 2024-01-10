@@ -297,7 +297,14 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
+    if (
+      !cds.env.features.db_strict &&
+      !q.SELECT?.from?.join &&
+      !q.SELECT?.from?.SELECT &&
+      !this.model?.definitions[_target_name4(q)]
+    ) {
+      return _unquirked(q)
+    }
     return cqn4sql(q, this.model)
   }
 

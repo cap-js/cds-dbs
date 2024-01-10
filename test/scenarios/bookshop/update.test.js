@@ -42,7 +42,7 @@ describe('Bookshop - Update', () => {
     expect(update.data.footnotes).to.be.eql(['one'])
   })
 
-  test('programmatic insert into unknown entity', async () => {
+  test('programmatic insert/upsert/update/delete with unknown entity', async () => {
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
     let affectedRows = await INSERT.into(books)
@@ -50,14 +50,45 @@ describe('Bookshop - Update', () => {
         ID,
         createdAt: (new Date()).toISOString(),
       })
-    expect(affectedRows|0).to.be.eq(1)
+    expect(affectedRows | 0).to.be.eq(1)
 
-    await DELETE(books).where(`ID = `, { val: ID })
+    affectedRows = await DELETE(books)
+      .where({ ID })
+    expect(affectedRows | 0).to.be.eq(1)
 
     affectedRows = await INSERT.into(books)
       .columns(['ID', 'createdAt'])
       .values([ID, (new Date()).toISOString()])
-    expect(affectedRows|0).to.be.eq(1)
+    expect(affectedRows | 0).to.be.eq(1)
+
+    affectedRows = await UPDATE(books)
+      .with({ modifiedAt: (new Date()).toISOString() })
+      .where({ ID })
+    expect(affectedRows | 0).to.be.eq(1)
+
+    affectedRows = await DELETE(books)
+      .where({ ID })
+    expect(affectedRows | 0).to.be.eq(1)
+
+    // UPSERT fallback to an INSERT
+    affectedRows = await UPSERT.into(books)
+      .entries({
+        ID,
+        createdAt: (new Date()).toISOString(),
+      })
+    expect(affectedRows | 0).to.be.eq(1)
+
+    // UPSERT fallback to an INSERT (throws on secondary call)
+    affectedRows = UPSERT.into(books)
+      .entries({
+        ID,
+        createdAt: (new Date()).toISOString(),
+      })
+    await expect(affectedRows).rejected
+    
+    affectedRows = await DELETE(books)
+      .where({ ID })
+    expect(affectedRows | 0).to.be.eq(1)
   })
 
   test('programmatic update without body incl. managed', async () => {
