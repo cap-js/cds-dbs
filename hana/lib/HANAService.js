@@ -528,7 +528,7 @@ class HANAService extends SQLService {
         return // REVISIT: mtx sends an insert statement without entries and no reference entity
       }
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => this.exists(elements[c]))
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
@@ -618,8 +618,8 @@ class HANAService extends SQLService {
       let keys = q.target?.keys
       const keyCompare =
         keys &&
-        Object.keys(keys)
-          .filter(k => !keys[k].isAssociation)
+        ObjectKeys(keys)
+          .filter(k => this.exists(keys[k]))
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
           .join('AND')
 
@@ -798,7 +798,7 @@ class HANAService extends SQLService {
       const keyZero = this.quote(
         ObjectKeys(elements).find(e => {
           const el = elements[e]
-          return el.key && !el.isAssociation
+          return el.key && this.exists(el)
         }) || '',
       )
 
