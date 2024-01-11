@@ -3,7 +3,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
-describe('Replace attribute search by search predicate', () => {
+describe('Streaming', () => {
   let model
   beforeAll(async () => {
     model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/schema`).then(cds.linked))
