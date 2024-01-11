@@ -1,5 +1,5 @@
 const cds = require('../../../test/cds.js')
-cds.env.features.compat_stream_cqn = true
+cds.env.features.stream_compat = true
 
 const { fs, path } = cds.utils
 const { Readable } = require('stream')
@@ -32,7 +32,7 @@ describe('streaming', () => {
 
     test('READ stream property with .from and .where', async () => {
       const { Images } = cds.entities('test')
-      const cqn =  cds.stream('data').from(Images).where({ ID: 1 })
+      const cqn = cds.stream('data').from(Images).where({ ID: 1 })
       const stream = await cqn
       await checkSize(stream)
     })
@@ -84,7 +84,7 @@ describe('streaming', () => {
 
     test('READ stream property using SELECT CQN', async () => {
       const { Images } = cds.entities('test')
-      const cqn = SELECT('data').from(Images,1)
+      const cqn = SELECT('data').from(Images, 1)
       const stream = await cds.stream(cqn)
       await checkSize(stream)
     })
@@ -97,14 +97,14 @@ describe('streaming', () => {
         [1, data, data],
         [2, null, data],
         [3, data, null],
-        [4, null, null]
+        [4, null, null],
       ])
     })
 
     afterAll(async () => {
       const { Images } = cds.entities('test')
       await DELETE.from(Images)
-    })    
+    })
 
     describe('READ', () => {
       test('READ stream property with _streaming = true', async () => {
@@ -118,7 +118,7 @@ describe('streaming', () => {
       test('READ stream property w/o _streaming = true', async () => {
         const { Images } = cds.entities('test')
         const { data: str } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
-        const buffer = Buffer.from(str, 'base64') 
+        const buffer = Buffer.from(str, 'base64')
         expect(buffer.length).toBe(7891)
       })
 
@@ -132,13 +132,15 @@ describe('streaming', () => {
 
       test('READ multiple stream properties w/o _streaming = true', async () => {
         const { Images } = cds.entities('test')
-        const [{ data: str1, ID, data2: str2 }] = await SELECT.from(Images).columns(['data', 'ID', 'data2']).where({ ID: 1 })
+        const [{ data: str1, ID, data2: str2 }] = await SELECT.from(Images)
+          .columns(['data', 'ID', 'data2'])
+          .where({ ID: 1 })
         expect(ID).toBe(1)
-        const buffer1 = Buffer.from(str1, 'base64') 
+        const buffer1 = Buffer.from(str1, 'base64')
         expect(buffer1.length).toBe(7891)
-        const buffer2 = Buffer.from(str2, 'base64') 
+        const buffer2 = Buffer.from(str2, 'base64')
         expect(buffer2.length).toBe(7891)
-      })      
+      })
 
       test('READ null stream property', async () => {
         const { Images } = cds.entities('test')
@@ -172,20 +174,20 @@ describe('streaming', () => {
           expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
         }
       })
-      
+
       test('WRITE single stream property', async () => {
         const { Images } = cds.entities('test')
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
         expect(changes).toEqual(1)
-        
+
         const cqn = SELECT.from(Images).columns('data2').where({ ID: 3 })
         cqn._streaming = true
         const { value: stream_ } = await cqn
         await checkSize(stream_)
-      }) 
-      
+      })
+
       test('WRITE multiple stream properties', async () => {
         const { Images } = cds.entities('test')
         const stream1 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
@@ -193,30 +195,30 @@ describe('streaming', () => {
 
         const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
         expect(changes).toEqual(1)
-        
-        const cqn = SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+
+        const cqn = SELECT.from(Images).columns(['data', 'data2']).where({ ID: 4 })
         const [{ data: str1, data2: str2 }] = await cqn
-        const buffer1 = Buffer.from(str1, 'base64') 
+        const buffer1 = Buffer.from(str1, 'base64')
         expect(buffer1.length).toBe(7891)
-        const buffer2 = Buffer.from(str2, 'base64') 
+        const buffer2 = Buffer.from(str2, 'base64')
         expect(buffer2.length).toBe(7891)
-      }) 
+      })
 
       test('WRITE multiple blob properties', async () => {
         const { Images } = cds.entities('test')
         const blob1 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
         const blob2 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-        
+
         const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
         expect(changes).toEqual(1)
-        
-        const cqn = SELECT.from(Images).columns(['data','data2']).where({ ID: 4 })
+
+        const cqn = SELECT.from(Images).columns(['data', 'data2']).where({ ID: 4 })
         const [{ data: str1, data2: str2 }] = await cqn
-        const buffer1 = Buffer.from(str1, 'base64') 
+        const buffer1 = Buffer.from(str1, 'base64')
         expect(buffer1.length).toBe(7891)
-        const buffer2 = Buffer.from(str2, 'base64') 
+        const buffer2 = Buffer.from(str2, 'base64')
         expect(buffer2.length).toBe(7891)
-      }) 
+      })
 
       test('WRITE stream property on view', async () => {
         const { ImagesView } = cds.entities('test')
@@ -230,7 +232,7 @@ describe('streaming', () => {
         const { value: stream_ } = await cqn
         await checkSize(stream_)
       })
-      
+
       test('WRITE dataset from json file stream', async () => {
         const { Images } = cds.entities('test')
 
@@ -268,7 +270,7 @@ describe('streaming', () => {
 
         await Promise.all([wrap(out1000), wrap(out1001)])
       })
-      
+
       // TODO: breaks on Postgres, because INSERT tries to decode it as base64 string (InputConverters)
       xtest('WRITE dataset from json generator stream', async () => {
         const { Images } = cds.entities('test')
