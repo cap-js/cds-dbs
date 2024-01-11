@@ -604,13 +604,17 @@ class HANAService extends SQLService {
     }
 
     UPSERT(q) {
-      let { UPSERT } = q,
-        sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+      const { UPSERT } = q
+      const sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+
+      // If no definition is available fallback to INSERT statement
+      const elements = q.elements || q.target?.elements
+      if (!elements) {
+        return (this.sql = sql)
+      }
 
       // REVISIT: should @cds.persistence.name be considered ?
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
-      const elements = q.elements || q.target?.elements
-
       const dataSelect = sql.substring(sql.indexOf('WITH'))
 
       // Calculate @cds.on.insert
