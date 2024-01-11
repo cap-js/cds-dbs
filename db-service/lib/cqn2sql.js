@@ -656,15 +656,15 @@ class CQN2SQLRenderer {
     if (entity.as) sql += ` AS ${entity.as}`
 
     let columns = []
-    if (data) _add(data, val => this.val({ val }))
-    if (_with) _add(_with, x => this.expr(x))
-    function _add(data, sql4) {
+    const _add = (data, sql4) => {
       for (let c in data) {
         if (!elements || (this.exists(elements[c]))) {
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
     }
+    if (data) _add(data, val => this.val({ val }))
+    if (_with) _add(_with, x => this.expr(x))
 
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) return {
