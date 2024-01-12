@@ -620,16 +620,23 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPSERT(q) {
-    let { UPSERT } = q,
-      sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+    const { UPSERT } = q
+    const elements = q.target?.elements || {}
+    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
-    if (!keys) return (this.sql = sql) // REVISIT: We should converge q.target and q._target
+    if (!keys) return this.sql = sql
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns
-      .filter(c => !keys.includes(c))
-      .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    updateColumns = updateColumns.filter(c => {
+      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
+      let e = elements[c]
+      if (!e) return true //> pass through to native SQL columns not in CDS model
+      if (e.virtual) return true //> skip virtual elements
+      if (e.value) return true //> skip calculated elements
+      // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
+      else return true
+    }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     // temporal data
     keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))

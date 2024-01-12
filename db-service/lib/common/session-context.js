@@ -28,5 +28,19 @@ class TemporalSessionContext extends SessionContext {
   }
 }
 
+// Set all getters as enumerable
+const iterate = { enumerable: true }
+const getters = (obj) => {
+  const prot = obj.prototype
+  const patch = {}
+  for (const [key, value] of Object.entries(Object.getOwnPropertyDescriptors(prot))) {
+    if (!value.get) continue
+    patch[key] = iterate
+  }
+  Object.defineProperties(prot, patch)
+}
+getters(SessionContext)
+getters(TemporalSessionContext)
+
 // REVISIT: only set temporal context if required!
 module.exports = TemporalSessionContext

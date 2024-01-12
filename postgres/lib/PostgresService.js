@@ -79,7 +79,7 @@ class PostgresService extends SQLService {
     }
 
     return Promise.all([
-      (await this.prepare(`SELECT set_config(key::text,$1->>key,false) FROM json_each($1);`)).run([
+      (await this.prepare(`SELECT set_config(key::text,$1->>key,false) FROM jsonb_each($1);`)).run([
         JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
@@ -364,9 +364,9 @@ GROUP BY k
         return col
       })
       // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
-      let obj = `row_to_json(${queryAlias}.*)`
+      let obj = `to_jsonb(${queryAlias}.*)`
       return `SELECT ${
-        SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
+        SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
       } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
     }
 
@@ -382,8 +382,8 @@ GROUP BY k
         // Adjusts json path expressions to be postgres specific
         .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
-        .replace('json_each(?)', 'json_array_elements($1::JSON)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+        .replace('json_each(?)', 'jsonb_array_elements($1::jsonb)')
+        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
     }
 
     param({ ref }) {
@@ -455,8 +455,8 @@ GROUP BY k
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
-      struct: e => `json(${e})`,
-      array: e => `json(${e})`,
+      struct: e => `jsonb(${e})`,
+      array: e => `jsonb(${e})`,
     }
   }
 

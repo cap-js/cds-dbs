@@ -1,5 +1,5 @@
 const cds = require('@sap/cds/lib'),
-DEBUG = cds.debug('sql|db')
+  DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
@@ -15,7 +15,6 @@ const cqn4sql = require('./cqn4sql')
  */
 
 class SQLService extends DatabaseService {
-
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
@@ -35,27 +34,29 @@ class SQLService extends DatabaseService {
     if (!Array.isArray(rows)) rows = [rows]
     if (!rows.length || !Object.keys(rows[0]).length) return
 
-    // REVISIT: remove after removing compat_stream_cqn feature flag 
-    if (compat) { 
+    // REVISIT: remove after removing stream_compat feature flag
+    if (compat) {
       rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
       return
-    }   
+    }
 
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
-          rows.forEach(row => { this._changeToStreams(col.SELECT.columns, row[name], false, compat) }) 
+          rows.forEach(row => {
+            this._changeToStreams(col.SELECT.columns, row[name], false, compat)
+          })
       } else if (col.element?.type === 'cds.LargeBinary') {
         if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
-          })        
+          })
       }
     }
-  } 
+  }
 
   _stream(val) {
     if (val === null) return null
@@ -67,8 +68,8 @@ class SQLService extends DatabaseService {
         const chunk = raw.slice(0, size)
         raw = raw.slice(size)
         this.push(chunk)
-      }
-    })    
+      },
+    })
   }
 
   /**
@@ -83,7 +84,7 @@ class SQLService extends DatabaseService {
     if (rows.length)
       if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
-    if (cds.env.features.compat_stream_cqn) {
+    if (cds.env.features.stream_compat) {
       if (query._streaming) {
         this._changeToStreams(cqn.SELECT.columns, rows, true, true)
         return rows.length ? { value: Object.values(rows[0])[0] } : undefined
@@ -152,7 +153,7 @@ class SQLService extends DatabaseService {
 
   get onDELETE() {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
-    return super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete
+    return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
       let { compositions } = req.target
       if (compositions) {
@@ -161,24 +162,29 @@ class SQLService extends DatabaseService {
         if (typeof from === 'string') from = { ref: [from] }
         if (where) {
           let last = from.ref.at(-1)
-          if (last.where) [ last, where ] = [ last.id, [ { xpr: last.where }, 'and', { xpr: where } ] ]
-          from = {ref:[ ...from.ref.slice(0,-1), { id: last, where }]}
+          if (last.where) [last, where] = [last.id, [{ xpr: last.where }, 'and', { xpr: where }]]
+          from = { ref: [...from.ref.slice(0, -1), { id: last, where }] }
         }
         // Process child compositions depth-first
-        let { depth=0, visited=[] } = req
-        visited.push (req.target.name)
-        await Promise.all (Object.values(compositions).map(c => {
-          if (c._target['@cds.persistence.skip'] === true) return
-          if (c._target === req.target) { // the Genre.children case
-            if (++depth > (c['@depth'] || 3)) return
-          } else if (visited.includes(c._target.name)) throw new Error(
-            `Transitive circular composition detected: \n\n`+
-            `  ${visited.join(' > ')} > ${c._target.name} \n\n`+
-            `These are not supported by deep delete.`)
-          // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
-          const query = DELETE.from({ref:[ ...from.ref, c.name ]})
-          return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
-        }))
+        let { depth = 0, visited = [] } = req
+        visited.push(req.target.name)
+        await Promise.all(
+          Object.values(compositions).map(c => {
+            if (c._target['@cds.persistence.skip'] === true) return
+            if (c._target === req.target) {
+              // the Genre.children case
+              if (++depth > (c['@depth'] || 3)) return
+            } else if (visited.includes(c._target.name))
+              throw new Error(
+                `Transitive circular composition detected: \n\n` +
+                  `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
+                  `These are not supported by deep delete.`,
+              )
+            // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
+            const query = DELETE.from({ ref: [...from.ref, c.name] })
+            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+          }),
+        )
       }
       return this.onSIMPLE(req)
     }
@@ -231,8 +237,8 @@ class SQLService extends DatabaseService {
     // REVISIT: made uppercase count because of HANA reserved word quoting
     const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
       cds.ql.clone(query, {
-      localized: false,
-      expand: false,
+        localized: false,
+        expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
@@ -257,10 +263,12 @@ class SQLService extends DatabaseService {
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
-    const map = function (..._) { return SQLService._arrayWithCount(_map.call(a, ..._), count) }
+    const map = function (..._) {
+      return SQLService._arrayWithCount(_map.call(a, ..._), count)
+    }
     return Object.defineProperties(a, {
       $count: { value: count, enumerable: false, configurable: true, writable: true },
-      map: { value: map, enumerable: false, configurable: true, writable: true }
+      map: { value: map, enumerable: false, configurable: true, writable: true },
     })
   }
 
@@ -293,7 +301,8 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)]) return _unquirked(q)
+    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)])
+      return _unquirked(q)
     return cqn4sql(q, this.model)
   }
 
@@ -326,7 +335,6 @@ class SQLService extends DatabaseService {
  * @interface
  */
 class PreparedStatement {
-
   /**
    * Executes a prepared DML query, i.e., INSERT, UPDATE, DELETE, CREATE, DROP
    * @abstract
@@ -395,8 +403,11 @@ const _unquirked = q => {
   return q
 }
 
-
-const sqls = new class extends SQLService { get factory() { return null } }
+const sqls = new (class extends SQLService {
+  get factory() {
+    return null
+  }
+})()
 cds.extend(cds.ql.Query).with(
   class {
     forSQL() {
