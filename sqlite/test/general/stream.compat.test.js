@@ -288,7 +288,7 @@ describe('streaming', () => {
         }
         const stream = Readable.from(generator())
 
-        const changes = await INSERT.into(Images).entries({ data: stream })
+        const changes = await INSERT.into(Images).entries(stream)
         try {
           expect(changes).toEqual(count)
         } catch (e) {

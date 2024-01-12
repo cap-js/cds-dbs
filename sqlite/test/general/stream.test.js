@@ -319,9 +319,9 @@ describe('streaming', () => {
         }
         const stream = Readable.from(generator())
         
-        const changes = await INSERT.into(Images).entries({ data: stream })
+        const changes = await INSERT.into(Images).entries(stream)
         try {
-          expect(changes).toEqual(count)
+          expect(changes | 0).toEqual(count)
         } catch (e) {
           // @sap/hana-client does not allow for returning the number of affected rows
         }
