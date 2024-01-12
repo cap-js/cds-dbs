@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { Readable } = require('stream')
+const  { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -129,24 +129,6 @@ class HANAService extends SQLService {
     return new this.class.InsertResults(cqn, results)
   }
 
-  async onSTREAM(req) {
-    let { cqn, sql, values, temporary, withclause, blobs } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    if (temporary?.length) {
-      // Full SELECT CQN support streaming
-      sql = this.wrapTemporary(temporary, withclause, blobs)
-    }
-    const ps = await this.prepare(sql)
-    const stream = await ps.stream(values, cqn.SELECT?.one)
-    if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
-    return stream
-  }
-
   // Allow for running complex expand queries in a single statement
   wrapTemporary(temporary, withclauses, blobs) {
     const blobColumn = b => `"${b.replace(/"/g, '""')}"`
@@ -179,7 +161,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
+      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {

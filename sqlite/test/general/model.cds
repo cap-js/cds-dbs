@@ -35,8 +35,9 @@ service test {
   entity fooTemporal as projection on db.fooTemporal;
 
   entity Images {
-    key ID   : Integer;
-        data : LargeBinary @Core.MediaType: 'image/jpeg';
+     key ID   : Integer;
+         data : LargeBinary @Core.MediaType: 'image/jpeg';
+         data2 : LargeBinary @Core.MediaType: 'image/jpeg';
   }
 
   entity ImagesView  as projection on Images {
