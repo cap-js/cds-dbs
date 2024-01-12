@@ -878,9 +878,9 @@ class CQN2SQLRenderer {
       case 'boolean': return `${val}`
       case 'number': return `${val}` // REVISIT for HANA
       case 'object':
-        if (val instanceof Date) val = val.toJSON() // returns null if invalid
         if (val === null) return 'NULL'
-        if (val instanceof Readable); // go on with default below
+        if (val instanceof Date) val = val.toJSON() // returns null if invalid
+        else if (val instanceof Readable); // go on with default below
         else if (Buffer.isBuffer(val)) val = val.toString('base64')
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
