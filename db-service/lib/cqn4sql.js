@@ -998,7 +998,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      * @returns {boolean} true if the element is a managed association and the model is flat
      */
     function isManagedAssocInFlatMode(e) {
-      return model.meta.transformation === 'odata' && e.isAssociation && e.keys
+      return (
+        (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'assocs')) &&
+        e.isAssociation &&
+        e.keys
+      )
     }
   }
 
@@ -1051,16 +1055,14 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
-    const structsAreUnfoldedAlready = cds.model.meta.unfolded?.some(u => u === 'structs')
-    if(column.elements && structsAreUnfoldedAlready)
-      return []
+    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs' || u === 'assocs')
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on) return [] // unmanaged doesn't make it into columns
+    if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
@@ -1072,11 +1074,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         baseName = getFullName(leafAssoc.definition)
         columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
+    } else if (!baseName && structsAreUnfoldedAlready) {
+      baseName = element.name
     } else {
-      if(!baseName && structsAreUnfoldedAlready)
-        baseName = column.name
-      else
-        baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
+      baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
     }
 
     // now we have the name of the to be expanded column

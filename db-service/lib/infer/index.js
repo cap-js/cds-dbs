@@ -172,7 +172,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // only fk access in infix filter
             const nextStep = ref[1]?.id || ref[1]
             // no unmanaged assoc in infix filter path
-            if (!expandOrExists && e.on)
+            if (!expandOrExists && !e.keys && e.on)
               throw new Error(
                 `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )

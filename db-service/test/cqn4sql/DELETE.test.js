@@ -70,7 +70,7 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
   it('DELETE with where exists expansion and path expression', () => {
-    cds.model = cds.compile.for.nodejs(cds.model)
+    cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
     const query = cqn4sql(d)
@@ -78,7 +78,7 @@ describe('DELETE', () => {
     // this is the final exists subquery
     const subquery = CQL`
      SELECT author.ID from bookshop.Authors as author
-      left join bookshop.Books as books on books.author_ID = author.ID
+      left join bookshop.Books as books on author.ID = books.author_ID
      where exists (
       SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = author.ID
      ) and books.title = 'Harry Potter'

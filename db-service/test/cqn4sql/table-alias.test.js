@@ -1002,7 +1002,7 @@ describe('table alias access', () => {
       }
       expect(error.message).to.match(/author_ID/)
 
-      const nodeModel = cds.compile.for.nodejs(model)
+      const nodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
       const repeat = cqn4sql(resultCopy, nodeModel)
 
       // Ensure sure that the where clause does not change
