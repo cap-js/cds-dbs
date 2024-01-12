@@ -1,5 +1,5 @@
 const cds = require('../../../test/cds.js')
-cds.env.features.stream_compat = true
+process.env.CDS_CONFIG = JSON.stringify({ features : { stream_compat: true } })
 
 const { fs, path } = cds.utils
 const { Readable } = require('stream')
