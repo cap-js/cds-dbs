@@ -1,4 +1,6 @@
 'use strict'
+const { text } = require('stream/consumers')
+
 const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
@@ -7,7 +9,7 @@ beforeAll(async () => {
 })
 
 describe('upsert', () => {
-  test('test with keys only', () => {
+  test('test with keys only', async () => {
     const cqnUpsert = {
       UPSERT: {
         into: 'Foo2',
@@ -17,11 +19,11 @@ describe('upsert', () => {
     }
 
     const { sql, entries } = cqn2sql(cqnUpsert)
-    expect({ sql, entries }).toMatchSnapshot()
+    expect({ sql, entries:  [[await text(entries[0][0])]] }).toMatchSnapshot()
   })
 
-  test('test with entries', () => {
-    const cqnInsert = {
+  test('test with entries', async () => {
+    const cqnUpsert = {
       UPSERT: {
         into: 'Foo2',
         entries: [
@@ -31,7 +33,7 @@ describe('upsert', () => {
       },
     }
 
-    const { sql, entries } = cqn2sql(cqnInsert)
-    expect({ sql, entries }).toMatchSnapshot()
+    const { sql, entries } = cqn2sql(cqnUpsert)
+    expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
   })
 })

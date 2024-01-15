@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { Readable } = require('stream')
+const  { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -117,35 +117,16 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-    // Using runBatch for HANA 2.0 and lower sometimes leads to integer underflow errors
-    // REVISIT: Address runBatch issues in node-hdb and hana-client
-    if (HANAVERSION <= 2) {
-      return super.onINSERT(...arguments)
-    }
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
     // HANA driver supports batch execution
-    const results = entries ? await ps.runBatch(entries) : await ps.run()
+    const results = await (entries
+      ? HANAVERSION <= 2
+        ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
+        : ps.run(entries)
+      : ps.run())
     return new this.class.InsertResults(cqn, results)
-  }
-
-  async onSTREAM(req) {
-    let { cqn, sql, values, temporary, withclause, blobs } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    if (temporary?.length) {
-      // Full SELECT CQN support streaming
-      sql = this.wrapTemporary(temporary, withclause, blobs)
-    }
-    const ps = await this.prepare(sql)
-    const stream = await ps.stream(values, cqn.SELECT?.one)
-    if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
-    return stream
   }
 
   // Allow for running complex expand queries in a single statement
@@ -180,7 +161,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
+      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -266,16 +247,16 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
 
+      const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
+
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
         if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
         return q.as
       }
-      const alias = walkAlias(q)
-      q.as = alias
+      q.as = walkAlias(q)
+      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
-
-      const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -381,8 +362,9 @@ class HANAService extends SQLService {
 
       if (expand === 'root') {
         this.cqn = q
-        this.withclause.unshift(`${this.quote(alias)} as (${this.sql})`)
-        this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${this.quote(alias)}` })
+        const fromSQL = this.from({ ref: [alias] })
+        this.withclause.unshift(`${fromSQL} as (${this.sql})`)
+        this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
           this.temporaryValues.unshift(this.values)
           this.values = this.temporaryValues.flat()
@@ -417,7 +399,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.as], as: parent.as }, x.SELECT.from],
+                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
@@ -545,28 +527,13 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        // Simple line splitting would be preferred, but batch execute does not work properly
-        // Which makes sending every line separately much slower
-        // this.entries = INSERT.entries.map(e => [JSON.stringify(e)])
-
-        this.entries = []
-        let cur = ['[']
-        this.entries.push(cur)
-        INSERT.entries
-          .map(r => JSON.stringify(r))
-          .forEach(r => {
-            if (cur[0].length > 65535) {
-              cur[0] += ']'
-              cur = ['[']
-              this.entries.push(cur)
-            } else if (cur[0].length > 1) {
-              cur[0] += ','
-            }
-            cur[0] += r
-          })
-        cur[0] += ']'
+        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e]))]))
       } else {
-        this.entries = [[JSON.stringify(INSERT.entries)]]
+        this.entries = [
+          INSERT.entries[0] instanceof Readable
+            ? INSERT.entries[0]
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries))
+        ]
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data

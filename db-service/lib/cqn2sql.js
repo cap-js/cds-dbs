@@ -426,9 +426,105 @@ class CQN2SQLRenderer {
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
-    this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
+    this.entries = []
+    if (INSERT.entries[0] instanceof Readable) {
+      INSERT.entries[0].type = 'json'
+      this.entries = [[...this.values, INSERT.entries[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
+  }
+
+  async *INSERT_entries_stream(entries) {
+    const bufferLimit = 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}{`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (const key in row) {
+        const keyJSON = `${sepsub}${JSON.stringify(key)}:`
+        if (!sepsub) sepsub = ','
+
+        const val = row[key]
+        if (val instanceof Readable) {
+          buffer += `${keyJSON}"`
+
+          // TODO: double check that it works
+          val.setEncoding('base64')
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
+        }
+      }
+      buffer += '}'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
+  }
+
+  async *INSERT_rows_stream(entries) {
+    const bufferLimit = 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}[`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (let key = 0; key < row.length; key++) {
+        const val = row[key]
+        if (val instanceof Readable) {
+          buffer += `${sepsub}"`
+
+          // TODO: double check that it works
+          val.setEncoding('base64')
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
+        }
+
+        if (!sepsub) sepsub = ','
+      }
+      buffer += ']'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
   }
 
   /**
@@ -453,7 +549,16 @@ class CQN2SQLRenderer {
     })
 
     this.columns = columns.map(c => this.quote(c))
-    this.entries = [[JSON.stringify(INSERT.rows)]]
+
+    if (INSERT.rows[0] instanceof Readable) {
+      INSERT.rows[0].type = 'json'
+      this.entries = [[...this.values, INSERT.rows[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
       }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -515,16 +620,23 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPSERT(q) {
-    let { UPSERT } = q,
-      sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+    const { UPSERT } = q
+    const elements = q.target?.elements || {}
+    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
-    if (!keys) return (this.sql = sql) // REVISIT: We should converge q.target and q._target
+    if (!keys) return this.sql = sql
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns
-      .filter(c => !keys.includes(c))
-      .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    updateColumns = updateColumns.filter(c => {
+      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
+      let e = elements[c]
+      if (!e) return true //> pass through to native SQL columns not in CDS model
+      if (e.virtual) return true //> skip virtual elements
+      if (e.value) return true //> skip calculated elements
+      // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
+      else return true
+    }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     // temporal data
     keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
@@ -544,7 +656,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const { entity, with: _with, data, where } = q.UPDATE
+    const { entity, with: _with, data, where } = q.UPDATE    
     const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
@@ -586,73 +698,6 @@ class CQN2SQLRenderer {
     let sql = `DELETE FROM ${this.from(from)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
-  }
-
-  // STREAM Statement -------------------------------------------------
-
-  /**
-   * Renders a STREAM query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM(q) {
-    const { STREAM } = q
-    return STREAM.from
-      ? this.STREAM_from(q)
-      : STREAM.into
-        ? this.STREAM_into(q)
-        : cds.error`Missing .form or .into in ${q}`
-  }
-
-  /**
-   * Renders a STREAM.into query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_into(q) {
-    const { into, column, where, data } = q.STREAM
-
-    let sql
-    if (!_empty(column)) {
-      data.type = 'binary'
-      const update = UPDATE(into)
-        .with({ [column]: data })
-        .where(where)
-      Object.defineProperty(update, 'target', { value: q.target })
-      sql = this.UPDATE(update)
-    } else {
-      data.type = 'json'
-      // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-      sql = this.UPSERT(UPSERT([{}]).into(into).forSQL())
-      this.values = [data]
-    }
-
-    return (this.sql = sql)
-  }
-
-  /**
-   * Renders a STREAM.from query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_from(q) {
-    const { column, from, where, columns } = q.STREAM
-
-    const select = cds.ql
-      .SELECT(column ? [column] : columns)
-      .where(where)
-      .limit(column ? 1 : undefined)
-
-    // SELECT.from() does not accept joins
-    select.SELECT.from = from
-
-    if (column) {
-      this.one = true
-    } else {
-      select.SELECT.expand = 'root'
-      this.one = !!from.SELECT?.one
-    }
-    return this.SELECT(select.forSQL())
   }
 
   // Expression Clauses ---------------------------------------------
@@ -768,8 +813,8 @@ class CQN2SQLRenderer {
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable); // go on with default below
-        else if (Buffer.isBuffer(val)) val = val.toString('base64')
+        if (val instanceof Readable) ; // go on with default below
+        else if (Buffer.isBuffer(val)) ; // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough

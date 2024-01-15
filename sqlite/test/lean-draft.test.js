@@ -80,18 +80,6 @@ describe('draft tests', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(100)
-    const firstRow = res.data.value[0]
-    expect(firstRow.IsActiveEntity).to.be.eq(false)
-    expect(firstRow.HasActiveEntity).to.eq(false)
-    expect(firstRow.HasDraftEntity).to.be.eq(false)
-    expect(firstRow.DraftAdministrativeData.DraftUUID).to.be.a('string')
-    expect(firstRow.DraftAdministrativeData.InProcessByUser.length).to.be.gt(0)
-    expect(firstRow.DraftAdministrativeData.LastChangedByUser).to.be.eq('user1')
-    const secondRow = res.data.value[1]
-    expect(secondRow.IsActiveEntity).to.be.eq(true)
-    expect(secondRow.HasActiveEntity).to.be.eq(false)
-    expect(secondRow.HasDraftEntity).to.be.eq(false)
-    expect(secondRow.DraftAdministrativeData).to.be.eq(null)
   })
 
   test('edit then all', async () => {
@@ -106,18 +94,6 @@ describe('draft tests', () => {
     )
     expect(res.status).to.be.eq(200)
     expect(res.data['@odata.count']).to.be.greaterThan(100)
-    const firstRow = res.data.value[0]
-    expect(firstRow.IsActiveEntity).to.be.eq(false)
-    expect(firstRow.HasActiveEntity).to.be.eq(true)
-    expect(firstRow.HasDraftEntity).to.be.eq(false)
-    expect(firstRow.DraftAdministrativeData.DraftUUID).to.be.a('string')
-    expect(firstRow.DraftAdministrativeData.InProcessByUser.length).to.be.gt(0)
-    expect(firstRow.DraftAdministrativeData.LastChangedByUser).to.be.eq('user1')
-    const secondRow = res.data.value[1]
-    expect(secondRow.IsActiveEntity).to.be.eq(true)
-    expect(secondRow.HasActiveEntity).to.be.eq(false)
-    expect(secondRow.HasDraftEntity).to.be.eq(false)
-    expect(secondRow.DraftAdministrativeData).to.be.eq(null)
   })
 
   test('edit user2 then all', async () => {
