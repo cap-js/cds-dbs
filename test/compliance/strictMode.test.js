@@ -1,4 +1,5 @@
 const cds = require('../cds.js')
+const Books = 'complex.Books'
 
 describe('strict mode', () => {
   beforeAll(() => {
@@ -22,7 +23,6 @@ describe('strict mode', () => {
   }
   describe('UPDATE Scenarios', () => {
     test('Update with multiple errors', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         UPDATE.entity(Books).where({ ID: 2 }).set({ abc: 'bar', abc2: 'baz' }),
         'STRICT MODE: Trying to UPDATE non existent columns (abc,abc2)',
@@ -30,7 +30,6 @@ describe('strict mode', () => {
     })
 
     test('Update with single error', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         UPDATE.entity(Books).where({ ID: 2 }).set({ abc: 'bar' }),
         'STRICT MODE: Trying to UPDATE non existent columns (abc)',
@@ -47,7 +46,6 @@ describe('strict mode', () => {
 
   describe('INSERT Scenarios', () => {
     test('Insert with single error using entries', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         INSERT.into(Books).entries({ abc: 'bar' }),
         'STRICT MODE: Trying to INSERT non existent columns (abc)',
@@ -55,7 +53,6 @@ describe('strict mode', () => {
     })
 
     test('Insert with multiple errors using entries', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         INSERT.into(Books).entries([{ abc: 'bar' }, { abc2: 'bar2' }]),
         'STRICT MODE: Trying to INSERT non existent columns (abc,abc2)',
@@ -63,7 +60,6 @@ describe('strict mode', () => {
     })
 
     test('Insert with single error using columns and values', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         INSERT.into(Books).columns(['abc']).values(['foo', 'bar']),
         'STRICT MODE: Trying to INSERT non existent columns (abc)',
@@ -71,7 +67,6 @@ describe('strict mode', () => {
     })
 
     test('Insert with multiple errors with columns and rows', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         INSERT.into(Books).columns(['abc', 'abc2']).rows(['foo', 'bar'], ['foo2', 'bar2'], ['foo3', 'bar3']),
         'STRICT MODE: Trying to INSERT non existent columns (abc,abc2)',
@@ -79,7 +74,6 @@ describe('strict mode', () => {
     })
 
     test('Insert with single error using columns and rows', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         INSERT.into(Books).columns(['abc']).rows(['foo', 'bar'], ['foo2', 'bar2'], ['foo3', 'bar3']),
         'STRICT MODE: Trying to INSERT non existent columns (abc)',
@@ -96,14 +90,12 @@ describe('strict mode', () => {
 
   describe('UPSERT Scenarios', () => {
     test('UPSERT with single error', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         UPSERT.into(Books).entries({ abc: 'bar' }),
         'STRICT MODE: Trying to UPSERT non existent columns (abc)',
       )
     })
     test('UPSERT with multiple errors', async () => {
-      const { Books } = cds.entities('ComplianceService')
       await runAndExpectError(
         UPSERT.into(Books).entries({ abc: 'bar', abc2: 'baz' }),
         'STRICT MODE: Trying to UPSERT non existent columns (abc,abc2)',
