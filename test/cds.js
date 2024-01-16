@@ -38,7 +38,7 @@ cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(() => {
     try {
-      const testSource = /(.*\/)test\//.exec(require.main.filename)?.[1]
+      const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
       const serviceDefinitionPath = testSource + 'test/service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
       require(testSource + 'cds-plugin')
