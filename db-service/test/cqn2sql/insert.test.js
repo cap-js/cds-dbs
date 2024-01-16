@@ -1,4 +1,6 @@
 'use strict'
+const { text } = require('stream/consumers')
+
 const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
@@ -10,7 +12,7 @@ beforeAll(async () => {
 describe('insert', () => {
   describe('insert only', () => {
     // Values are missing
-    test('test with insert values into columns', () => {
+    test('test with insert values into columns', async () => {
       const cqnInsert = {
         INSERT: {
           into: { ref: ['Foo'] },
@@ -20,10 +22,10 @@ describe('insert', () => {
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
+      expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
     })
 
-    test('test with insert rows into columns', () => {
+    test('test with insert rows into columns', async () => {
       const cqnInsert = {
         INSERT: {
           into: { ref: ['Foo'] },
@@ -35,11 +37,11 @@ describe('insert', () => {
         },
       }
       const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
+      expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
     })
 
     // no filtering in INSERT
-    xtest('test filter in insert rows into columns with not existing column', () => {
+    xtest('test filter in insert rows into columns with not existing column', async () => {
       const cqnInsert = {
         INSERT: {
           into: { ref: ['Foo2'] },
@@ -51,10 +53,10 @@ describe('insert', () => {
         },
       }
       const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
+      expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
     })
 
-    test('test with insert entries', () => {
+    test('test with insert entries', async () => {
       const cqnInsert = {
         INSERT: {
           into: 'Foo2',
@@ -66,10 +68,10 @@ describe('insert', () => {
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
+      expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
     })
 
-    test('test with insert with alias', () => {
+    test('test with insert with alias', async () => {
       const cqnInsert = {
         INSERT: {
           into: { ref: ['Foo2'], as: 'Fooooo2' },
@@ -81,7 +83,7 @@ describe('insert', () => {
       }
 
       const { sql, entries } = cqn2sql(cqnInsert)
-      expect({ sql, entries }).toMatchSnapshot()
+      expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
     })
   })
 
