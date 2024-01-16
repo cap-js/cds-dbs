@@ -303,6 +303,8 @@ class CQN2SQLRenderer {
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join)
       return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+    if (from.func)
+      return this.func(from)
   }
 
   /**
@@ -586,7 +588,7 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
       cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
@@ -656,7 +658,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const { entity, with: _with, data, where } = q.UPDATE    
+    const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
@@ -813,8 +815,8 @@ class CQN2SQLRenderer {
       case 'object':
         if (val === null) return 'NULL'
         if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) ; // go on with default below
-        else if (Buffer.isBuffer(val)) ; // go on with default below
+        if (val instanceof Readable); // go on with default below
+        else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough

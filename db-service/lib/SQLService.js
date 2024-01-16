@@ -17,7 +17,7 @@ const cqn4sql = require('./cqn4sql')
 class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on([/*'INSERT', 'UPSERT',*/ 'UPDATE'], require('./deep-queries').onDeep)
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
@@ -106,7 +106,20 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onINSERT({ query, data }) {
-    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (query.INSERT.entries) {
+      const exec = require('./deep2flat').call(this, query)
+      try {
+        const result = await exec.call(this, Readable, query.INSERT.entries)
+        return result[0]
+      } catch (e) {
+        debugger
+        throw e.query = exec + ''
+      }
+    }
+    return this._insert(this.cqn2sql(query, data))
+  }
+
+  async _insert({ sql, entries, cqn }) {
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
@@ -163,7 +176,7 @@ class SQLService extends DatabaseService {
         if (where) {
           let last = from.ref.at(-1)
           if (last.where) [last, where] = [last.id, [{ xpr: last.where }, 'and', { xpr: where }]]
-          from = { ref: [...from.ref.slice(0, -1), { id: last, where }] }
+          from = { ref: [...from.ref.slice(0, -1), { id: last?.id || last, where }] }
         }
         // Process child compositions depth-first
         let { depth = 0, visited = [] } = req
@@ -177,8 +190,8 @@ class SQLService extends DatabaseService {
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
-                  `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
-                  `These are not supported by deep delete.`,
+                `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
+                `These are not supported by deep delete.`,
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
@@ -287,7 +300,7 @@ class SQLService extends DatabaseService {
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
     let kind = q.kind || Object.keys(q)[0]
-    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
+    if (q.target && kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
       let target = q[kind]._transitions?.[0].target
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
