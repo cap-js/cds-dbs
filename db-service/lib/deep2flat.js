@@ -1,5 +1,4 @@
 const cds = require('@sap/cds/lib')
-const { Readable } = require('stream')
 
 const OP = {}
 
@@ -105,8 +104,6 @@ OP.INSERT = function (q, path = [], targets = {}) {
   return js
 }
 
-OP.UPDATE = ({ UPDATE, target, elements }) => {
+OP.UPDATE = (/*{ UPDATE, target, elements }*/) => {
   return []
 }
-
-const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []

@@ -112,7 +112,6 @@ class SQLService extends DatabaseService {
         const result = await exec.call(this, Readable, query.INSERT.entries)
         return result[0]
       } catch (e) {
-        debugger
         throw e.query = exec + ''
       }
     }
