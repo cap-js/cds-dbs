@@ -12,9 +12,7 @@ const checkSize = async stream => {
 
 describe('streaming', () => {
   cds.test(__dirname, 'model.cds')
-
-  // TODO: Un-x after cds is merged
-  xdescribe('cds.stream', () => {
+  describe('cds.stream', () => {
     beforeAll(async () => {
       let data = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
       await INSERT([
