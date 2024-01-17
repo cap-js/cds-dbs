@@ -57,6 +57,7 @@ class HANAClientDriver extends driver {
       // Create result set
       const rs = await prom(stmt, 'executeQuery')(values)
       const next = prom(rs, 'next')
+      const getValue = prom(rs, 'getValue')
       const result = []
       // Fetch the next row
       while (await next()) {
