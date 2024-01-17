@@ -5,11 +5,6 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
-const BINARY_TYPES = {
-  'cds.Binary': 1,
-  'cds.hana.BINARY': 1
-}
-
 class SQLiteService extends SQLService {
   init() {
     return super.init(...arguments)
@@ -140,43 +135,6 @@ class SQLiteService extends SQLService {
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)
     return (await ps.run(vals)).changes
-  }
-
-  _buffer(val) {
-    if (val === null) return null
-    return Buffer.from(val, 'base64')
-  }
-
-  // change each binary to Buffer except of large binaries
-  _changeToBuffers(columns, rows, one, compat) {
-    if (!rows || !columns) return
-    if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return
-    if (compat) return
-
-    for (let col of columns) {
-      const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
-      if (col.element?.isAssociation) {
-        if (one) this._changeToBuffers(col.SELECT.columns, rows[0][name], false, compat)
-        else
-          rows.forEach(row => {
-            this._changeToBuffers(col.SELECT.columns, row[name], false, compat)
-          })
-      } else if (col.element?.type in BINARY_TYPES) {
-        if (one) rows[0][name] = this._buffer(rows[0][name])
-        else
-          rows.forEach(row => {
-            row[name] = this._buffer(row[name])
-          })
-      }
-    }
-  }
-
-  async onSELECT(req) {
-    const rows = await super.onSELECT(req)
-    this._changeToBuffers(this.cqn4sql(req.query).SELECT.columns, rows, req.query.SELECT.one, cds.env.features.stream_compat)
-
-    return rows
   }
 
   onPlainSQL({ query, data }, next) {
