@@ -142,6 +142,11 @@ class SQLiteService extends SQLService {
     return (await ps.run(vals)).changes
   }
 
+  _buffer(val) {
+    if (val === null) return null
+    return Buffer.from(val, 'base64')
+  }
+
   // change each binary to Buffer except of large binaries
   _changeToBuffers(columns, rows, one, compat) {
     if (!rows || !columns) return
@@ -158,10 +163,10 @@ class SQLiteService extends SQLService {
             this._changeToBuffers(col.SELECT.columns, row[name], false, compat)
           })
       } else if (col.element?.type in BINARY_TYPES) {
-        if (one) rows[0][name] = Buffer.from(rows[0][name], 'base64')
+        if (one) rows[0][name] = this._buffer(rows[0][name])
         else
           rows.forEach(row => {
-            row[name] = Buffer.from(row[name], 'base64')
+            row[name] = this._buffer(row[name])
           })
       }
     }
@@ -169,7 +174,7 @@ class SQLiteService extends SQLService {
 
   async onSELECT(req) {
     const rows = await super.onSELECT(req)
-    this._changeToBuffers(req.query.SELECT.columns, rows, req.query.SELECT.one, cds.env.features.stream_compat)
+    this._changeToBuffers(this.cqn4sql(req.query).SELECT.columns, rows, req.query.SELECT.one, cds.env.features.stream_compat)
 
     return rows
   }
