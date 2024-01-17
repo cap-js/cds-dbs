@@ -161,7 +161,6 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {

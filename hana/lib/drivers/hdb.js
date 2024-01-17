@@ -40,7 +40,7 @@ class HDBDriver extends driver {
 
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
-    for(const key in variables) {
+    for (const key in variables) {
       clientInfo.setProperty(key, variables[key])
     }
   }
@@ -71,6 +71,29 @@ class HDBDriver extends driver {
 
   async prepare(sql) {
     const ret = await super.prepare(sql)
+
+    ret.all = async (values) => {
+      const stmt = await ret._prep
+      // Create result set
+      const rs = await prom(stmt, 'execute')(values)
+      const cols = rs.metadata.map(b => b.columnName)
+      const stream = rs.createReadStream({ arrayMode: true })
+
+      const result = []
+      for await (const row of stream) {
+        const obj = {}
+        for (const i = 0; i < cols.length; i++) {
+          obj[col] = i > 3
+            ? row[i] === null
+              ? null
+              : row[i].createReadStream()
+            : row[i]
+        }
+        result.push(obj)
+      }
+      return result
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
