@@ -82,7 +82,8 @@ class HDBDriver extends driver {
       const result = []
       for await (const row of stream) {
         const obj = {}
-        for (const i = 0; i < cols.length; i++) {
+        for (let i = 0; i < cols.length; i++) {
+          const col = cols[i]
           obj[col] = i > 3
             ? row[i] === null
               ? null
