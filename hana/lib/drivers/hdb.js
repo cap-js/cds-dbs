@@ -1,4 +1,4 @@
-const { Readable, PassThrough, Stream } = require('stream')
+const { Readable, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
@@ -85,7 +85,8 @@ class HDBDriver extends driver {
         const obj = {}
         for (let i = 0; i < cols.length; i++) {
           const col = cols[i]
-          if (col === '_json_') {
+          // hdb returns large strings as streams sometimes
+          if (col === '_json_' && typeof row[col] === 'object') {
             obj[col] = await text(row[col].createReadStream())
             continue
           }
@@ -127,11 +128,10 @@ class HDBDriver extends driver {
     if (!Array.isArray(values)) return { values: [], streams: [] }
     const streams = []
     values = values.map((v, i) => {
-      if (v instanceof Stream && !(v instanceof PassThrough)) {
+      if (v instanceof Stream) {
         streams[i] = v
-        const passThrough = new PassThrough()
-        v.pipe(passThrough)
-        return passThrough
+        const iterator = v[Symbol.asyncIterator]()
+        return Readable.from(iterator, { objectMode: false })
       }
       return v
     })

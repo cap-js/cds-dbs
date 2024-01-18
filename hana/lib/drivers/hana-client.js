@@ -59,7 +59,6 @@ class HANAClientDriver extends driver {
     // with the current next() implemenation it is only possible to go foward in the ResultSet
     // It would be required to allow using getDate() on previous rows
 
-
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       values = Array.isArray(values) ? values : []
@@ -74,7 +73,7 @@ class HANAClientDriver extends driver {
       // Which creates an inherent limitation to the maximum size of a result set (~0xfffffffb)
       if (streamUnsafe && sql.startsWith('DO')) {
         const rows = await prom(stmt, 'exec')(values, { rowsAsArray: true })
-        return Readable.from(rowsIterator(rows, stmt.getColumnInfo()))
+        return Readable.from(rowsIterator(rows, stmt.getColumnInfo()), { objectMode: false })
       }
       const rs = await prom(stmt, 'executeQuery')(values)
       const cols = rs.getColumnInfo()
@@ -83,9 +82,9 @@ class HANAClientDriver extends driver {
         if (rs.getRowCount() === 0) return null
         await prom(rs, 'next')()
         if (rs.isNull(0)) return null
-        return Readable.from(streamBlob(rs, 0, 'binary'))
+        return Readable.from(streamBlob(rs, 0, 'binary'), { objectMode: false })
       }
-      return Readable.from(rsIterator(rs, one))
+      return Readable.from(rsIterator(rs, one), { objectMode: false })
     }
     return ret
   }

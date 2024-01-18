@@ -288,7 +288,7 @@ describe('streaming', () => {
           }
           yield ']'
         }
-        const stream = Readable.from(generator())
+        const stream = Readable.from(generator(), { objectMode: false })
 
         const changes = await INSERT.into(Images).entries(stream)
         try {
