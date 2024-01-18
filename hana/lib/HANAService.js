@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const  { Readable } = require('stream')
+const { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -527,12 +527,12 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e]))]))
+        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e], 'hex'))]))
       } else {
         this.entries = [
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
-            : Readable.from(this.INSERT_entries_stream(INSERT.entries))
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'))
         ]
       }
 
@@ -859,7 +859,7 @@ class HANAService extends SQLService {
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `CONCAT('base64,',${e})`,
+      Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
     }
 
@@ -1013,7 +1013,7 @@ const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
 Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
+  return this.toString('hex')
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

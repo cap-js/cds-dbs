@@ -440,7 +440,7 @@ class CQN2SQLRenderer {
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
-  async *INSERT_entries_stream(entries) {
+  async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
     const bufferLimit = 1 << 16
     let buffer = '['
 
@@ -459,7 +459,7 @@ class CQN2SQLRenderer {
           buffer += `${keyJSON}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -484,7 +484,7 @@ class CQN2SQLRenderer {
     yield buffer
   }
 
-  async *INSERT_rows_stream(entries) {
+  async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
     const bufferLimit = 1 << 16
     let buffer = '['
 
@@ -500,7 +500,7 @@ class CQN2SQLRenderer {
           buffer += `${sepsub}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
