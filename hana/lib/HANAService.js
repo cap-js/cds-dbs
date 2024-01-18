@@ -603,7 +603,7 @@ class HANAService extends SQLService {
         Object.keys(keys)
           .filter(k => !keys[k].isAssociation)
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
-          .join('AND')
+          .join(' AND ')
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
