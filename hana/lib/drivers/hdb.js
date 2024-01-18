@@ -1,5 +1,6 @@
 const { Readable, PassThrough, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
+const { text } = require('stream/consumers')
 
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
@@ -77,18 +78,22 @@ class HDBDriver extends driver {
       // Create result set
       const rs = await prom(stmt, 'execute')(values)
       const cols = rs.metadata.map(b => b.columnName)
-      const stream = rs.createReadStream({ arrayMode: true })
+      const stream = rs.createReadStream()
 
       const result = []
       for await (const row of stream) {
         const obj = {}
         for (let i = 0; i < cols.length; i++) {
           const col = cols[i]
+          if (col === '_json_') {
+            obj[col] = await text(row[col].createReadStream())
+            continue
+          }
           obj[col] = i > 3
-            ? row[i] === null
+            ? row[col] === null
               ? null
-              : row[i].createReadStream()
-            : row[i]
+              : row[col].createReadStream()
+            : row[col]
         }
         result.push(obj)
       }

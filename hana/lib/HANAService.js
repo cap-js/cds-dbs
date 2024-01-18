@@ -105,9 +105,8 @@ class HANAService extends SQLService {
     const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
-    const hasBlobs = blobs.length > 0
-    let rows = (values?.length || hasBlobs)
-      ? await (await this.prepare(sqlScript, hasBlobs)).all(values || [])
+    let rows = (values?.length || blobs.length > 0)
+      ? await (await this.prepare(sqlScript)).all(values || [])
       : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
@@ -164,7 +163,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
+      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -205,8 +204,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql, hasBlobs) {
-    return this.ensureDBC().prepare(sql, hasBlobs)
+  prepare(sql) {
+    return this.ensureDBC().prepare(sql)
   }
 
   exec(sql) {
