@@ -1748,7 +1748,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else {
             const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
             const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
-            if (lhsLeafArt?.target || rhsLeafArt?.target) {
+            if (lhsLeafArt?.target && rhsLeafArt?.target || lhsLeafArt?.elements && rhsLeafArt?.elements) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
                 rhs.$refLinks.unshift(targetSideRefLink)
