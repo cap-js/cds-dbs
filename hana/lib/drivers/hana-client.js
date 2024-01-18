@@ -50,35 +50,38 @@ class HANAClientDriver extends driver {
     }
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
-    ret.all = async (values) => {
-      const stmt = await ret._prep
-      // Create result set
-      const rs = await prom(stmt, 'executeQuery')(values)
-      const next = prom(rs, 'next')
-      const getValue = prom(rs, 'getValue')
-      const result = []
-      // Fetch the next row
-      while (await next()) {
-        const cols = stmt.getColumnInfo().map(b => b.columnName)
-        // column 0-3 are metadata columns
-        const values = await Promise.all([getValue(0), getValue(1), getValue(2), getValue(3)])
+    // hana-client ResultSet API does not allow for deferred streaming of blobs
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'executeQuery')(values)
+        const next = prom(rs, 'next')
+        const getValue = prom(rs, 'getValue')
+        const result = []
+        // Fetch the next row
+        while (await next()) {
+          const cols = stmt.getColumnInfo().map(b => b.columnName)
+          // column 0-3 are metadata columns
+          const values = await Promise.all([getValue(0), getValue(1), getValue(2), getValue(3)])
 
-        const row = {}
-        for (let i = 0; i < cols.length; i++) {
-          const col = cols[i]
-          // column >3 are all blob columns
-          row[col] = i > 3 ?
-            rs.isNull(i)
-              ? null
-              : Readable.from(streamBlob(rs, i, 'binary'))
-            : values[i]
+          const row = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // column >3 are all blob columns
+            row[col] = i > 3 ?
+              rs.isNull(i)
+                ? null
+                : Readable.from(streamBlob(rs, i, 'binary'))
+              : values[i]
+          }
+
+          result.push(row)
         }
-
-        result.push(row)
+        return result
       }
-      return result
     }
 
     ret.stream = async (values, one) => {

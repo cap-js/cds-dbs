@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const  { Readable } = require('stream')
+const { Readable } = require('stream')
 
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
@@ -105,7 +105,10 @@ class HANAService extends SQLService {
     const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
-    let rows = values?.length ? await (await this.prepare(sqlScript)).all(values) : await this.exec(sqlScript)
+    const hasBlobs = blobs.length > 0
+    let rows = (values?.length || hasBlobs)
+      ? await (await this.prepare(sqlScript, hasBlobs)).all(values || [])
+      : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -161,6 +164,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
+      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -201,8 +205,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql) {
-    return this.ensureDBC().prepare(sql)
+  prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
@@ -953,7 +957,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = await stmt.all([creds.user, creds.password, creds.containerGroup, !clean])
+      const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
       DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -995,7 +999,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = await stmt.all([creds.user, creds.password, creds.schema, !clean])
+      const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
       res && DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
