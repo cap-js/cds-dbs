@@ -247,7 +247,7 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
 
-      const { limit, one, orderBy, expand, columns, localized, count, from, parent } = q.SELECT
+      const { limit, one, orderBy, expand, columns, localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
