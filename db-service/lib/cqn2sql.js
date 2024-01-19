@@ -2,6 +2,12 @@ const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.LargeBinary': 1,
+  'cds.hana.BINARY': 1,
+}
+
 const { Readable } = require('stream')
 
 const DEBUG = (() => {
@@ -440,8 +446,12 @@ class CQN2SQLRenderer {
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
-  async *INSERT_entries_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -454,12 +464,12 @@ class CQN2SQLRenderer {
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${keyJSON}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -470,6 +480,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[key]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
       }
@@ -484,8 +497,12 @@ class CQN2SQLRenderer {
     yield buffer
   }
 
-  async *INSERT_rows_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -495,12 +512,12 @@ class CQN2SQLRenderer {
 
       let sepsub = ''
       for (let key = 0; key < row.length; key++) {
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${sepsub}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -511,6 +528,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[this.columns[key]]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
 
