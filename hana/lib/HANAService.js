@@ -106,7 +106,7 @@ class HANAService extends SQLService {
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript)).all(values || [])
+      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
@@ -204,8 +204,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql) {
-    return this.ensureDBC().prepare(sql)
+  prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
