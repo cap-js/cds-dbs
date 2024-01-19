@@ -290,7 +290,6 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, encoding, binaryBuffe
     if (rowIndex >= 0) {
       rs._rowPosition ??= -1
       if (rowIndex - rs._rowPosition < 0) {
-        console.log('reset')
         rs = await rs.reset()
         rs._rowPosition ??= -1
       }

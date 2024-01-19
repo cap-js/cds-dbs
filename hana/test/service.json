@@ -10,7 +10,7 @@
     "sslValidateCertificate": false,
     "disableCloudRedirect": true,
 
-    "driver": "hana-client",
-    "driver": "hdb"
+    "driver": "hdb",
+    "driver": "hana-client"
   }
 }

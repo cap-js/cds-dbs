@@ -126,7 +126,7 @@ class HANAService extends SQLService {
     const results = await (entries
       ? HANAVERSION <= 2
         ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-        : ps.run(entries)
+        : ps.run(entries[0])
       : ps.run())
     return new this.class.InsertResults(cqn, results)
   }
@@ -533,11 +533,11 @@ class HANAService extends SQLService {
           ? [e]
           : [Readable.from(this.INSERT_entries_stream([e], 'hex'), { objectMode: false })]))
       } else {
-        this.entries = [
+        this.entries = [[
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
             : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'), { objectMode: false })
-        ]
+        ]]
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data

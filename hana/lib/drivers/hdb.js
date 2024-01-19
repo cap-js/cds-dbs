@@ -70,35 +70,40 @@ class HDBDriver extends driver {
     })
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
 
-    ret.all = async (values) => {
-      const stmt = await ret._prep
-      // Create result set
-      const rs = await prom(stmt, 'execute')(values)
-      const cols = rs.metadata.map(b => b.columnName)
-      const stream = rs.createReadStream()
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'execute')(values)
+        const cols = rs.metadata.map(b => b.columnName)
+        const stream = rs.createReadStream()
 
-      const result = []
-      for await (const row of stream) {
-        const obj = {}
-        for (let i = 0; i < cols.length; i++) {
-          const col = cols[i]
-          // hdb returns large strings as streams sometimes
-          if (col === '_json_' && typeof row[col] === 'object') {
-            obj[col] = await text(row[col].createReadStream())
-            continue
+        const result = []
+        for await (const row of stream) {
+          const obj = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // hdb returns large strings as streams sometimes
+            if (col === '_json_' && typeof row[col] === 'object') {
+              obj[col] = await text(row[col].createReadStream())
+              continue
+            }
+            obj[col] = i > 3
+              ? row[col] === null
+                ? null
+                : (
+                  row[col].createReadStream?.()
+                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                )
+              : row[col]
           }
-          obj[col] = i > 3
-            ? row[col] === null
-              ? null
-              : row[col].createReadStream()
-            : row[col]
+          result.push(obj)
         }
-        result.push(obj)
+        return result
       }
-      return result
     }
 
     ret.stream = async (values, one) => {
@@ -140,6 +145,10 @@ class HDBDriver extends driver {
       streams,
     }
   }
+}
+
+function* echoStream(ret) {
+  yield ret
 }
 
 async function* rsIterator(rs, one) {
