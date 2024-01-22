@@ -398,3 +398,13 @@ entity PartialStructuredKey {
     author : Association to Authors;
     accessGroup : Composition of AccessGroups;
   }
+
+entity Unmanaged {
+  key struct: {
+    leaf: Int16;
+    toBook: Association to Books;
+  };
+  field: Integer;
+  // needs to be expanded in join-conditions
+  toSelf: Association to Unmanaged on struct = toSelf.struct;
+}
