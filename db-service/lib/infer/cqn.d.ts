@@ -9,9 +9,6 @@ export type SELECT = cqn.SELECT & linkedQuery
 export type INSERT = cqn.INSERT & linkedQuery
 export type UPSERT = cqn.UPSERT & linkedQuery
 export type UPDATE = cqn.UPDATE & linkedQuery
-export type STREAM = {
-  STREAM: { into: cqn.name | ref; data: ReadableStream<Buffer>; from: cqn.source; column?: ref; where: predicate }
-} & linkedQuery
 export type DELETE = cqn.DELETE & linkedQuery
 export type CREATE = cqn.CREATE & linkedQuery
 export type DROP = cqn.DROP & linkedQuery

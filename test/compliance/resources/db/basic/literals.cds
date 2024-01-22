@@ -51,3 +51,8 @@ entity array {
     string  : array of String;
     integer : array of Integer;
 }
+
+entity binaries {
+     binary : Binary;
+     largebinary : LargeBinary;
+}

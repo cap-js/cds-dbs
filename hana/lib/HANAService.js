@@ -129,24 +129,6 @@ class HANAService extends SQLService {
     return new this.class.InsertResults(cqn, results)
   }
 
-  async onSTREAM(req) {
-    let { cqn, sql, values, temporary, withclause, blobs } = this.cqn2sql(req.query)
-    // writing stream
-    if (req.query.STREAM.into) {
-      const ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
-    }
-    // reading stream
-    if (temporary?.length) {
-      // Full SELECT CQN support streaming
-      sql = this.wrapTemporary(temporary, withclause, blobs)
-    }
-    const ps = await this.prepare(sql)
-    const stream = await ps.stream(values, cqn.SELECT?.one)
-    if (cqn.SELECT?.count) stream.$count = await this.count(req.query.STREAM.from)
-    return stream
-  }
-
   // Allow for running complex expand queries in a single statement
   wrapTemporary(temporary, withclauses, blobs) {
     const blobColumn = b => `"${b.replace(/"/g, '""')}"`
@@ -179,7 +161,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
+      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -546,12 +528,12 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e]))]))
+        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e], 'hex'))]))
       } else {
         this.entries = [
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
-            : Readable.from(this.INSERT_entries_stream(INSERT.entries))
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'))
         ]
       }
 
@@ -630,7 +612,7 @@ class HANAService extends SQLService {
         Object.keys(keys)
           .filter(k => !keys[k].isAssociation)
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
-          .join('AND')
+          .join(' AND ')
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
@@ -885,7 +867,7 @@ class HANAService extends SQLService {
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `CONCAT('base64,',${e})`,
+      Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
     }
 
@@ -1039,7 +1021,7 @@ const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
 Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
+  return this.toString('hex')
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

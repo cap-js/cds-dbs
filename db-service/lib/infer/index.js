@@ -36,8 +36,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     inferred.UPDATE ||
     inferred.DELETE ||
     inferred.CREATE ||
-    inferred.DROP ||
-    inferred.STREAM
+    inferred.DROP
 
   // cache for already processed calculated elements
   const alreadySeenCalcElements = new Set()
@@ -58,7 +57,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       writable: true,
     },
   })
-  if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE || originalQuery.STREAM) {
+  if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
     const $combinedElements = inferCombinedElements()
     /**
      * TODO: this function is currently only called on DELETE's
