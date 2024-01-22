@@ -430,7 +430,7 @@ class CQN2SQLRenderer {
       INSERT.entries[0].type = 'json'
       this.entries = [[...this.values, INSERT.entries[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -567,7 +567,7 @@ class CQN2SQLRenderer {
       INSERT.rows[0].type = 'json'
       this.entries = [[...this.values, INSERT.rows[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
