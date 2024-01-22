@@ -834,7 +834,7 @@ class CQN2SQLRenderer {
         if (val === null) return 'NULL'
         if (val instanceof Date) val = val.toJSON() // returns null if invalid
         else if (val instanceof Readable); // go on with default below
-        else if (Buffer.isBuffer(val)) val = val.toString('base64')
+        else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough
