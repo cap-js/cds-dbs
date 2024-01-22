@@ -54,9 +54,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedQuery = transformQueryForInsertUpsert(kind)
   } else {
     const queryProp = inferred[kind]
-    if (!inferred.STREAM?.from && inferred.STREAM?.into) {
-      transformedQuery = transformStreamQuery()
-    } else {
       const { entity, where } = queryProp
       const from = queryProp.from
 
@@ -137,7 +134,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
         }
       }
-    }
+
   }
 
   return transformedQuery
@@ -205,30 +202,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
-  }
-
-  /**
-   * Transforms a stream query, replacing the `where` and `into` clauses after processing.
-   *
-   * @param {object} inferred - The inferred object containing the STREAM query.
-   * @param {object} transformedQuery - The query object to be transformed.
-   *
-   * @returns {object} - The transformed query with updated STREAM clauses.
-   */
-  function transformStreamQuery() {
-    const { into, where } = inferred.STREAM
-    const transformedProp = { __proto__: inferred.STREAM }
-    if (where) {
-      transformedProp.where = getTransformedTokenStream(where)
-    }
-    const { transformedWhere, transformedFrom } = getTransformedFrom(into, transformedProp.where)
-    if (transformedWhere?.length > 0) {
-      transformedProp.where = transformedWhere
-    }
-    transformedProp.into = transformedFrom
-    transformedQuery.STREAM = transformedProp
-    return transformedQuery
-  }
+  } 
 
   /**
    * Transforms a search expression to a WHERE clause for a SELECT operation.
@@ -1774,7 +1748,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else {
             const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
             const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
-            if (lhsLeafArt?.target || rhsLeafArt?.target) {
+            if (lhsLeafArt?.target && rhsLeafArt?.target || lhsLeafArt?.elements && rhsLeafArt?.elements) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
                 rhs.$refLinks.unshift(targetSideRefLink)

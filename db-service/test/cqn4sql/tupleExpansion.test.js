@@ -404,4 +404,19 @@ describe('Structural comparison', () => {
       )
     })
   })
+  it('Struct needs to be unfolded in on-condition of join', () => {
+    const queryString = `SELECT from bookshop.Unmanaged {
+      toSelf.field
+    }`
+
+    const expected = CQL`SELECT from bookshop.Unmanaged as Unmanaged
+    left join bookshop.Unmanaged as toSelf
+    on Unmanaged.struct_leaf = toSelf.struct_leaf and Unmanaged.struct_toBook_ID = toSelf.struct_toBook_ID {
+      toSelf.field as toSelf_field
+    }
+    `
+    // const unfolded = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+    const res = cqn4sql(CQL(queryString), model)
+      expect(res).to.eql(expected)
+  })
 })

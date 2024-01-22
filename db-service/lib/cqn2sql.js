@@ -2,6 +2,12 @@ const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.LargeBinary': 1,
+  'cds.hana.BINARY': 1,
+}
+
 const { Readable } = require('stream')
 
 const DEBUG = (() => {
@@ -440,8 +446,12 @@ class CQN2SQLRenderer {
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
-  async *INSERT_entries_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -454,12 +464,12 @@ class CQN2SQLRenderer {
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${keyJSON}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -470,6 +480,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[key]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
       }
@@ -484,8 +497,12 @@ class CQN2SQLRenderer {
     yield buffer
   }
 
-  async *INSERT_rows_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -495,12 +512,12 @@ class CQN2SQLRenderer {
 
       let sepsub = ''
       for (let key = 0; key < row.length; key++) {
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${sepsub}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -511,6 +528,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[this.columns[key]]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
 
@@ -698,73 +718,6 @@ class CQN2SQLRenderer {
     let sql = `DELETE FROM ${this.from(from)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
-  }
-
-  // STREAM Statement -------------------------------------------------
-
-  /**
-   * Renders a STREAM query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM(q) {
-    const { STREAM } = q
-    return STREAM.from
-      ? this.STREAM_from(q)
-      : STREAM.into
-        ? this.STREAM_into(q)
-        : cds.error`Missing .form or .into in ${q}`
-  }
-
-  /**
-   * Renders a STREAM.into query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_into(q) {
-    const { into, column, where, data } = q.STREAM
-
-    let sql
-    if (!_empty(column)) {
-      data.type = 'binary'
-      const update = UPDATE(into)
-        .with({ [column]: data })
-        .where(where)
-      Object.defineProperty(update, 'target', { value: q.target })
-      sql = this.UPDATE(update)
-    } else {
-      data.type = 'json'
-      // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-      sql = this.UPSERT(UPSERT([{}]).into(into).forSQL())
-      this.values = [data]
-    }
-
-    return (this.sql = sql)
-  }
-
-  /**
-   * Renders a STREAM.from query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_from(q) {
-    const { column, from, where, columns } = q.STREAM
-
-    const select = cds.ql
-      .SELECT(column ? [column] : columns)
-      .where(where)
-      .limit(column ? 1 : undefined)
-
-    // SELECT.from() does not accept joins
-    select.SELECT.from = from
-
-    if (column) {
-      this.one = true
-    } else {
-      select.SELECT.expand = 'root'
-      this.one = !!from.SELECT?.one
-    }
-    return this.SELECT(select.forSQL())
   }
 
   // Expression Clauses ---------------------------------------------

@@ -1,11 +1,15 @@
 const { SQLService } = require('@cap-js/db-service')
-const { Readable } = require('stream')
 const cds = require('@sap/cds/lib')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
+const { Readable } = require('stream')
 
 class SQLiteService extends SQLService {
+  init() {
+    return super.init(...arguments)
+  }
+
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
@@ -112,36 +116,25 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  async _stream(stmt, binding_params, one) {
-    const columns = stmt.columns()
-    // Stream single blob column
-    if (columns.length === 1 && columns[0].name !== '_json_') {
-      // Setting result set to raw to keep better-sqlite from doing additional processing
-      stmt.raw(true)
-      const rows = stmt.all(binding_params)
-      // REVISIT: return undefined when no rows are found
-      if (rows.length === 0) return undefined
-      if (rows[0][0] === null) return null
-      // Buffer.from only applies encoding when the input is a string
-      let raw = Buffer.from(rows[0][0].toString(), 'base64')
-      stmt.raw(false)
-      return new Readable({
-        read(size) {
-          if (raw.length === 0) return this.push(null)
-          const chunk = raw.slice(0, size)
-          raw = raw.slice(size)
-          this.push(chunk)
-        },
-      })
-    }
-
-    stmt.raw(true)
-    const rs = stmt.iterate(binding_params)
-    return Readable.from(this._iterator(rs, one))
-  }
-
   exec(sql) {
     return this.dbc.exec(sql)
+  }
+
+  _prepareStreams(values) {
+    let any
+    values.forEach((v, i) => {
+      if (v instanceof Readable) {
+        any = values[i] = convStrm.buffer(v)
+      }
+    })
+    return any ? Promise.all(values) : values
+  }
+
+  async onSIMPLE({ query, data }) {
+    const { sql, values } = this.cqn2sql(query, data)
+    let ps = await this.prepare(sql)
+    const vals = await this._prepareStreams(values)
+    return (await ps.run(vals)).changes
   }
 
   onPlainSQL({ query, data }, next) {
@@ -172,8 +165,9 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
+      if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
+      else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
         const date = new Date(v.val)
         if (!Number.isNaN(date.getTime())) {
           v.val = new Date(v.val)
@@ -265,7 +259,7 @@ class SQLiteService extends SQLService {
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
-  }
+  } 
 }
 
 // function _not_null (err) {
