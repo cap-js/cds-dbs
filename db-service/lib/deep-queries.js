@@ -35,6 +35,8 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
+
+  if (query.kind === 'UPDATE') return beforeData.length
   return res[0] ?? 0 // TODO what todo with multiple result responses?
 }
 
