@@ -257,9 +257,9 @@ class CQN2SQLRenderer {
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
     for (let i = 0; i < cols.length; i += 48) {
-      obj = `json${isRoot ? '' : 'b'}_insert(${obj},${cols.slice(i, i + 48)})`
+      obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-    return `SELECT ${isRoot || SELECT.one ? obj : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
   /**
