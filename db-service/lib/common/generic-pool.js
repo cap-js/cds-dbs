@@ -1,4 +1,4 @@
-const { createPool } = require('@sap/cds-foss').pool
+const { createPool } = require('generic-pool')
 
 class ConnectionPool {
   constructor(factory, tenant) {
