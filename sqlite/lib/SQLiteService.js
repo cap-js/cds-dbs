@@ -37,9 +37,6 @@ class SQLiteService extends SQLService {
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
 
-        dbc.function('json_merge', { varargs: true, deterministic: true }, (...args) =>
-          args.join('').replace(/}{/g, ','),
-        )
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -84,13 +81,11 @@ class SQLiteService extends SQLService {
   async _run(stmt, binding_params) {
     for (let i = 0; i < binding_params.length; i++) {
       const val = binding_params[i]
+      if (val instanceof Readable) {
+        binding_params[i] = await convStrm[val.type === 'json' ? 'text' : 'buffer'](val)
+      }
       if (Buffer.isBuffer(val)) {
-        binding_params[i] = Buffer.from(val.base64Slice())
-      } else if (typeof val === 'object' && val && val.pipe) {
-        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
-        // if (val.type === 'binary') val.setEncoding('base64')
-        binding_params[i] = await convStrm.buffer(val)
-        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
+        binding_params[i] = Buffer.from(val.toString('base64'))
       }
     }
     return stmt.run(binding_params)
@@ -254,7 +249,7 @@ class SQLiteService extends SQLService {
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
     }
-  } 
+  }
 }
 
 // function _not_null (err) {
