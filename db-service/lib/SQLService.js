@@ -33,9 +33,9 @@ class SQLService extends DatabaseService {
         const columns =
           operation.columns ||
           Object.keys(
-            operation.entries?.reduce((acc, obj) => {
+            operation.data || operation.entries?.reduce((acc, obj) => {
               return Object.assign(acc, obj)
-            }, {}) || operation.data,
+            }, {}),
           )
           const invalidColumns = columns.filter(c => !(c in elements)) // also support falsy values in data
 
