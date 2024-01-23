@@ -243,7 +243,7 @@ class CQN2SQLRenderer {
 
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
+      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
@@ -252,21 +252,14 @@ class CQN2SQLRenderer {
       return col
     }).flat()
 
+    const isRoot = SELECT.expand === 'root'
+
     // Prevent SQLite from hitting function argument limit of 100
-    let obj = ''
-
-    if (cols.length < 50) obj = `json_object(${cols.slice(0, 50)})`
-    else {
-      const chunks = []
-      for (let i = 0; i < cols.length; i += 50) {
-        chunks.push(`json_object(${cols.slice(i, i + 50)})`)
-      }
-      // REVISIT: json_merge is a user defined function, bad performance!
-      obj = `json_merge(${chunks})`
+    let obj = "'{}'"
+    for (let i = 0; i < cols.length; i += 48) {
+      obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-
-
-    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj.includes('json_merge') ? `json_insert(${obj})` : obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
   /**
@@ -437,7 +430,7 @@ class CQN2SQLRenderer {
       INSERT.entries[0].type = 'json'
       this.entries = [[...this.values, INSERT.entries[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -574,7 +567,7 @@ class CQN2SQLRenderer {
       INSERT.rows[0].type = 'json'
       this.entries = [[...this.values, INSERT.rows[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -695,7 +688,7 @@ class CQN2SQLRenderer {
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) return {
         name: 'extensions__',
-        sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
+        sql: `jsonb_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
       }
       return c
     })
@@ -832,8 +825,8 @@ class CQN2SQLRenderer {
       case 'number': return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable); // go on with default below
+        if (val instanceof Date) val = val.toJSON() // returns null if invalid
+        else if (val instanceof Readable); // go on with default below
         else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)

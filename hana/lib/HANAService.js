@@ -105,7 +105,9 @@ class HANAService extends SQLService {
     const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
-    let rows = values?.length ? await (await this.prepare(sqlScript)).all(values) : await this.exec(sqlScript)
+    let rows = (values?.length || blobs.length > 0)
+      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+      : await this.exec(sqlScript)
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -124,7 +126,7 @@ class HANAService extends SQLService {
     const results = await (entries
       ? HANAVERSION <= 2
         ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-        : ps.run(entries)
+        : ps.run(entries[0])
       : ps.run())
     return new this.class.InsertResults(cqn, results)
   }
@@ -202,8 +204,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql) {
-    return this.ensureDBC().prepare(sql)
+  prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
@@ -527,13 +529,15 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable ? [e] : [Readable.from(this.INSERT_entries_stream([e], 'hex'))]))
+        this.entries = INSERT.entries.map(e => (e instanceof Readable
+          ? [e]
+          : [Readable.from(this.INSERT_entries_stream([e], 'hex'), { objectMode: false })]))
       } else {
-        this.entries = [
+        this.entries = [[
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
-            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'))
-        ]
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'), { objectMode: false })
+        ]]
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
@@ -954,7 +958,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = await stmt.all([creds.user, creds.password, creds.containerGroup, !clean])
+      const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
       DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -996,7 +1000,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = await stmt.all([creds.user, creds.password, creds.schema, !clean])
+      const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
       res && DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
