@@ -5,6 +5,11 @@ const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.hana.BINARY': 1
+}
+
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
@@ -54,12 +59,19 @@ class SQLService extends DatabaseService {
           rows.forEach(row => {
             row[name] = this._stream(row[name])
           })
+      } else if (col.element?.type in BINARY_TYPES) {
+        if (one) rows[0][name] = this._buffer(rows[0][name])
+        else
+          rows.forEach(row => {
+            row[name] = this._buffer(row[name])
+          })
       }
     }
   }
 
   _stream(val) {
     if (val === null) return null
+    if (val instanceof Readable) return val
     // Buffer.from only applies encoding when the input is a string
     let raw = typeof val === 'string' ? Buffer.from(val.toString(), 'base64') : val
     return new Readable({
@@ -70,6 +82,11 @@ class SQLService extends DatabaseService {
         this.push(chunk)
       },
     })
+  }
+
+  _buffer(val) {
+    if (val === null) return null
+    return Buffer.from(val, 'base64')
   }
 
   /**
@@ -177,8 +194,8 @@ class SQLService extends DatabaseService {
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
-                  `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
-                  `These are not supported by deep delete.`,
+                `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
+                `These are not supported by deep delete.`,
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })

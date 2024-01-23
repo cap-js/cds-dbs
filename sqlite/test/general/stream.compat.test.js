@@ -236,9 +236,9 @@ describe('streaming', () => {
       test('WRITE dataset from json file stream', async () => {
         const { Images } = cds.entities('test')
 
-        // to be discussed
+        // REVISIT: required proper BASE64_DECODE support from HANA
         // const stream = fs.createReadStream(path.join(__dirname, 'samples/data.json'))
-        // const changes = await STREAM.into(Images).data(stream)
+        // const changes = await INSERT(stream).into(Images)
 
         const json = JSON.parse(fs.readFileSync(path.join(__dirname, 'samples/data.json')))
         const changes = await INSERT.into(Images).entries(json)
@@ -288,7 +288,7 @@ describe('streaming', () => {
           }
           yield ']'
         }
-        const stream = Readable.from(generator())
+        const stream = Readable.from(generator(), { objectMode: false })
 
         const changes = await INSERT.into(Images).entries(stream)
         try {
