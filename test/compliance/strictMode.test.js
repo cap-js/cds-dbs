@@ -36,10 +36,10 @@ describe('strict mode', () => {
       )
     })
 
-    test.skip('Update on non existing entity', async () => {
+    test('Update on non existing entity', async () => {
       await runAndExpectError(
         UPDATE.entity('notExisting').where({ ID: 2 }).set({ abc: 'bar' }),
-        'STRICT MODE: Trying to UPDATE non existent columns (abc,abc2)',
+        'no such table: notExisting in:\nUPDATE notExisting SET abc=? WHERE ID = 2',
       )
     })
   })
@@ -83,7 +83,7 @@ describe('strict mode', () => {
     test('Insert on non existing entity using entries', async () => {
       await runAndExpectError(
         INSERT.into('notExisting').entries({ abc: 'bar' }),
-        'STRICT MODE: Trying to INSERT non existent columns (abc)',
+        `no such table: notExisting in:\nINSERT INTO notExisting (abc) SELECT value->>'$."abc"' FROM json_each(?)`,
       )
     })
   })
@@ -105,7 +105,7 @@ describe('strict mode', () => {
     test('UPSERT on non existing entity', async () => {
       await runAndExpectError(
         UPSERT.into('notExisting').entries({ abc: 'bar' }),
-        'STRICT MODE: Trying to UPSERT non existent columns (abc)',
+        `no such table: notExisting in:\nINSERT INTO notExisting (abc) SELECT value->>'$."abc"' FROM json_each(?)`,
       )
     })
   })
