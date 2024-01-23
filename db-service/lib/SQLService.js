@@ -25,8 +25,7 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
-        const elements = query.target?.elements; 
-        if (!elements) return
+        const elements = query.target?.elements; if (!elements) return
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
         if (!operation.columns && !operation.entries && !operation.data) return
