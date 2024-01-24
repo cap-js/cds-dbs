@@ -519,8 +519,7 @@ class HANAService extends SQLService {
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
         elements,
-        false,
-        !!q.UPSERT,
+        false
       )
 
       // REVISIT: @cds.extension required
@@ -599,7 +598,7 @@ class HANAService extends SQLService {
       const collations = this.managed(
         this.columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })),
         elements,
-        false,
+        true,
       )
 
       let keys = q.target?.keys
@@ -769,8 +768,8 @@ class HANAService extends SQLService {
       )
     }
 
-    managed(columns, elements, isUpdate = false, isUpsert = false) {
-      const annotation = isUpdate || isUpsert ? '@cds.on.update' : '@cds.on.insert'
+    managed(columns, elements, isUpdate = false) {
+      const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
       const inputConverterKey = this.class._convertInput
       // Ensure that missing managed columns are added
       const requiredColumns = !elements
@@ -778,7 +777,7 @@ class HANAService extends SQLService {
         : Object.keys(elements)
           .filter(
             e =>
-              (elements[e]?.[annotation] || (!(isUpdate || isUpsert) && elements[e]?.default)) && !columns.find(c => c.name === e),
+              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default)) && !columns.find(c => c.name === e),
           )
           .map(name => ({ name, sql: 'NULL' }))
 

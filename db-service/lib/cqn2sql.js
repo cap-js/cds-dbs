@@ -121,13 +121,15 @@ class CQN2SQLRenderer {
    */
   CREATE_elements(elements) {
     let sql = ''
+    let keys = ''
     for (let e in elements) {
       const definition = elements[e]
       if (definition.isAssociation) continue
+      if (definition.key) keys = `${keys}, ${this.quote(definition.name)}`
       const s = this.CREATE_element(definition)
-      if (s) sql += `${s}, `
+      if (s) sql += `, ${s}`
     }
-    return sql.slice(0, -2)
+    return `${sql.slice(2)}${keys && `, PRIMARY KEY(${keys.slice(2)})`}`
   }
 
   /**
@@ -402,8 +404,7 @@ class CQN2SQLRenderer {
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
-      false,
-      !!q.UPSERT,
+      false
     )
     const extraction = extractions
       .map(c => {
@@ -910,8 +911,8 @@ class CQN2SQLRenderer {
    * @param {Boolean} isUpdate
    * @returns {string[]} Array of SQL expressions for processing input JSON data
    */
-  managed(columns, elements, isUpdate = false, isUpsert = false) {
-    const annotation = (isUpdate || isUpsert) ? '@cds.on.update' : '@cds.on.insert'
+  managed(columns, elements, isUpdate = false) {
+    const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
     const { _convertInput } = this.class
     // Ensure that missing managed columns are added
     const requiredColumns = !elements
@@ -919,7 +920,7 @@ class CQN2SQLRenderer {
       : Object.keys(elements)
         .filter(
           e =>
-            (elements[e]?.[annotation] || (!(isUpdate || isUpsert) && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
+            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
             !columns.find(c => c.name === e),
         )
         .map(name => ({ name, sql: 'NULL' }))
@@ -928,18 +929,15 @@ class CQN2SQLRenderer {
       let element = elements?.[name] || {}
       if (!sql) sql = `value->>'$."${name}"'`
 
-      let converter = element[_convertInput]
-      if (converter && sql[0] !== '$') sql = converter(sql, element)
+      let converter = element[_convertInput] || (a => a)
+      if (sql[0] !== '$') sql = converter(sql, element)
 
-      let val = _managed[element[annotation]?.['=']]
-      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
-      else if (!isUpdate && element.default) {
-        const d = element.default
-        if (d.val !== undefined || d.ref?.[0] === '$now') {
-          // REVISIT: d.ref is not used afterwards
-          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
-            } ELSE ${sql} END)`
-        }
+      let val = _managed[element[annotation]?.['=']] || _managed[element.default?.ref?.[0]]
+      if (val) val = { func: 'session_context', args: [{ val, param: false }] }
+      else if (!isUpdate && element.default?.val !== undefined) val = { val: element.default.val, param: false }
+      if (val) {
+        // render d with expr as it supports both val and func
+        sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${converter(this.expr(val))} ELSE ${sql} END)`
       }
 
       return { name, sql }
