@@ -78,7 +78,7 @@ describe('DELETE', () => {
     // this is the final exists subquery
     const subquery = CQL`
      SELECT author.ID from bookshop.Authors as author
-      left join bookshop.Books as books on author.ID = books.author_ID
+      left join bookshop.Books as books on books.author_ID = author.ID
      where exists (
       SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = author.ID
      ) and books.title = 'Harry Potter'
