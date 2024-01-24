@@ -402,6 +402,7 @@ class CQN2SQLRenderer {
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
+      false,
       !!q.UPSERT,
     )
     const extraction = extractions
@@ -909,8 +910,8 @@ class CQN2SQLRenderer {
    * @param {Boolean} isUpdate
    * @returns {string[]} Array of SQL expressions for processing input JSON data
    */
-  managed(columns, elements, isUpdate = false) {
-    const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
+  managed(columns, elements, isUpdate = false, isUpsert = false) {
+    const annotation = (isUpdate || isUpsert) ? '@cds.on.update' : '@cds.on.insert'
     const { _convertInput } = this.class
     // Ensure that missing managed columns are added
     const requiredColumns = !elements
@@ -918,7 +919,7 @@ class CQN2SQLRenderer {
       : Object.keys(elements)
         .filter(
           e =>
-            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
+            (elements[e]?.[annotation] || (!(isUpdate || isUpsert) && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
             !columns.find(c => c.name === e),
         )
         .map(name => ({ name, sql: 'NULL' }))
@@ -932,7 +933,7 @@ class CQN2SQLRenderer {
 
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
-      else if (element.default) {
+      else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
           // REVISIT: d.ref is not used afterwards

@@ -1,6 +1,6 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, PUT, sleep } = cds.test(__dirname, 'model.cds')
+const { POST, PUT, PATCH, sleep } = cds.test(__dirname, 'model.cds')
 
 describe('Managed thingies', () => {
   test('INSERT execute on db only', async () => {
@@ -15,6 +15,7 @@ describe('Managed thingies', () => {
           ID: 2,
           createdAt: expect.any(String),
           createdBy: 'anonymous',
+          defaultValue: 100,
           modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
         },
@@ -63,6 +64,7 @@ describe('Managed thingies', () => {
       ID: 4,
       createdAt: expect.any(String),
       createdBy: 'anonymous',
+      defaultValue: 100,
       modifiedAt: expect.any(String),
       modifiedBy: 'anonymous',
     })
@@ -79,21 +81,37 @@ describe('Managed thingies', () => {
   })
 
   test('on update is filled', async () => {
-    const resPost = await POST('/test/foo', { ID: 5 })
+    const resPost = await POST('/test/foo', { ID: 5, defaultValue: 50 })
 
-    const resUpdate = await PUT('/test/foo(5)', {})
-    expect(resUpdate.status).toBe(200)
-
-    expect(resUpdate.data).toEqual({
+    // patch keeps old defaults
+    const resUpdate1 = await PATCH('/test/foo(5)', {})
+    expect(resUpdate1.status).toBe(200)
+    
+    expect(resUpdate1.data).toEqual({
       '@odata.context': '$metadata#foo/$entity',
       ID: 5,
       createdAt: resPost.data.createdAt,
       createdBy: resPost.data.createdBy,
+      defaultValue: 50, // not defaulted to 100 on update
       modifiedAt: expect.any(String),
       modifiedBy: 'anonymous',
     })
 
-    const { createdAt, modifiedAt } = resUpdate.data
+    // put overwrites not provided defaults
+    const resUpdate2 = await PUT('/test/foo(5)', {})
+    expect(resUpdate2.status).toBe(200)
+
+    expect(resUpdate2.data).toEqual({
+      '@odata.context': '$metadata#foo/$entity',
+      ID: 5,
+      createdAt: resPost.data.createdAt,
+      createdBy: resPost.data.createdBy,
+      defaultValue: 100,
+      modifiedAt: expect.any(String),
+      modifiedBy: 'anonymous',
+    })
+
+    const { createdAt, modifiedAt } = resUpdate1.data
     expect(createdAt).not.toEqual(modifiedAt)
 
     const insertTime = new Date(createdAt).getTime()
