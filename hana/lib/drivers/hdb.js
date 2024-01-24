@@ -1,10 +1,18 @@
-const { Readable, PassThrough, Stream } = require('stream')
+const { Readable, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
+const { text } = require('stream/consumers')
 
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+
+const credentialMappings = [
+  { old: 'certificate', new: 'ca' },
+  { old: 'encrypt', new: 'useTLS' },
+  { old: 'sslValidateCertificate', new: 'rejectUnauthorized' },
+  { old: 'validate_certificate', new: 'rejectUnauthorized' },
+]
 
 class HDBDriver extends driver {
   /**
@@ -14,11 +22,15 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       useCesu8: false,
-      rejectUnauthorized: !!creds.sslValidateCertificate,
       fetchSize: 1 << 16, // V8 default memory page size
-      useTLS: creds.useTLS || creds.encrypt,
       ...creds,
     }
+
+    // Retain hana credential mappings to hdb / node credential mapping
+    for (const m of credentialMappings) {
+      if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
+    }
+
     super(creds)
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
@@ -29,7 +41,9 @@ class HDBDriver extends driver {
 
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
-    Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+    for (const key in variables) {
+      clientInfo.setProperty(key, variables[key])
+    }
   }
 
   async validate() {
@@ -56,8 +70,42 @@ class HDBDriver extends driver {
     })
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
+
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'execute')(values)
+        const cols = rs.metadata.map(b => b.columnName)
+        const stream = rs.createReadStream()
+
+        const result = []
+        for await (const row of stream) {
+          const obj = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // hdb returns large strings as streams sometimes
+            if (col === '_json_' && typeof row[col] === 'object') {
+              obj[col] = await text(row[col].createReadStream())
+              continue
+            }
+            obj[col] = i > 3
+              ? row[col] === null
+                ? null
+                : (
+                  row[col].createReadStream?.()
+                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                )
+              : row[col]
+          }
+          result.push(obj)
+        }
+        return result
+      }
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
@@ -85,11 +133,10 @@ class HDBDriver extends driver {
     if (!Array.isArray(values)) return { values: [], streams: [] }
     const streams = []
     values = values.map((v, i) => {
-      if (v instanceof Stream && !(v instanceof PassThrough)) {
+      if (v instanceof Stream) {
         streams[i] = v
-        const passThrough = new PassThrough()
-        v.pipe(passThrough)
-        return passThrough
+        const iterator = v[Symbol.asyncIterator]()
+        return Readable.from(iterator, { objectMode: false })
       }
       return v
     })
@@ -98,6 +145,10 @@ class HDBDriver extends driver {
       streams,
     }
   }
+}
+
+function* echoStream(ret) {
+  yield ret
 }
 
 async function* rsIterator(rs, one) {
@@ -134,7 +185,7 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
-          .catch(e => {
+          .catch(() => {
             // TODO: check whether the error is early close
             return true
           })
@@ -147,7 +198,7 @@ async function* rsIterator(rs, one) {
       }
       return raw.next().then(next => {
         if (next.done) {
-          throw new Error('Trying to read more byte then are available')
+          throw new Error('Trying to read more bytes than are available')
         }
         // Write processed buffer to stream
         if (this.writing) this.yields.push(this.buffer.slice(0, this.writing))

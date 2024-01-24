@@ -24,6 +24,18 @@ describe('Bookshop - Update', () => {
     expect(res.data.author_ID).to.be.eq(201)
     expect(res.data.descr).to.be.eq('UPDATED')
   })
+
+  test('Update Book (with timestamp)', async () => {
+    const descr = `"${new Date().toISOString()}"`
+    const res = await PUT(
+      '/admin/Books(201)',
+      { descr },
+      admin,
+    )
+    expect(res.status).to.be.eq(200)
+    expect(res.data.descr).to.be.eq(descr)
+  })
+
   test('Update array of', async () => {
     // create book
     const insert = INSERT.into('sap.capire.bookshop.Books').columns(['ID']).values([150])

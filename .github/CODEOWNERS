@@ -24,6 +24,7 @@ db-service/test/tsc/**.js @BobdenOs @danjoa @johannes-vogel @stewsk
 db-service/test/index.js @BobdenOs @danjoa @johannes-vogel @stewsk
 
 sqlite/ @BobdenOs @patricebender @danjoa @johannes-vogel @stewsk
+hana/ @BobdenOs @danjoa @johannes-vogel @stewsk
 postgres/ @BobdenOs @patricebender @gregorwolf @sebastianesch @vobu @danjoa @johannes-vogel @stewsk
 
 .github/ @BobdenOs @patricebender @danjoa @johannes-vogel @stewsk
