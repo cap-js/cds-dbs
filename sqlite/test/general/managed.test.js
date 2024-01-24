@@ -36,6 +36,7 @@ describe('Managed thingies', () => {
           ID: 3,
           createdAt: null,
           createdBy: null,
+          defaultValue: 100,
           modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
         },

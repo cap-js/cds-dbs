@@ -932,7 +932,7 @@ class CQN2SQLRenderer {
 
       let val = _managed[element[annotation]?.['=']]
       if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
-      else if (!isUpdate && element.default) {
+      else if (element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
           // REVISIT: d.ref is not used afterwards
