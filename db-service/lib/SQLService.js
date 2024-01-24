@@ -36,7 +36,7 @@ class SQLService extends DatabaseService {
               return Object.assign(acc, obj)
             }, {}),
           )
-          const invalidColumns = columns.filter(c => !(c in elements)) // also support falsy values in data
+          const invalidColumns = columns.filter(c => !(c in elements))
 
         if (invalidColumns.length > 0) {
           cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
