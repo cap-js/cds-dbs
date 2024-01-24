@@ -28,6 +28,8 @@ describe('UUID Generation', () => {
 
   test('INSERT entity with missing key as association throws error', async () => {
     expect.assertions(1)
+    //> REVISIT: fk is of type "UUID" and hence filled automatically
+    //  why did this test work before?
     return expect(
       cds.run(INSERT.into('test.BooksWithAssocAsKey').entries([{}]))
     ).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT_NOTNULL' })   
