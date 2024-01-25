@@ -636,19 +636,21 @@ class HANAService extends SQLService {
     }
 
     where(xpr) {
-      return this.xpr({ xpr }, ' = TRUE')
+      return this.xpr({ xpr: [...xpr, 'THEN'] }).slice(0, -4)
     }
 
     having(xpr) {
-      return this.xpr({ xpr }, ' = TRUE')
+      return this.where(xpr)
     }
 
-    xpr({ xpr, _internal }, caseSuffix = '') {
+    xpr(_xpr, caseSuffix = '') {
+      const { xpr, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
       const compareOperators = {
-        '=': true,
+        '==': true,
         '!=': false,
         // These operators are not allowed in column expressions
+        /* REVISIT: Only adjust these operators when inside the column expression
         '>': null,
         '<': null,
         '<>': null,
@@ -656,6 +658,7 @@ class HANAService extends SQLService {
         '<=': null,
         '!<': null,
         '!>': null,
+        */
       }
 
       if (!_internal) {
@@ -669,13 +672,10 @@ class HANAService extends SQLService {
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
 
-              const compare = {
-                xpr: [left, x, right],
-                _internal: true,
-              }
+              const compare = [left, x, right]
 
               const expression = {
-                xpr: ['CASE', 'WHEN', compare, 'Then', { val: true }, 'WHEN', 'NOT', compare, 'Then', { val: false }],
+                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false }],
                 _internal: true,
               }
 
@@ -686,11 +686,8 @@ class HANAService extends SQLService {
                   xpr: [
                     'CASE',
                     'WHEN',
-                    {
-                      xpr: [left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
-                      _internal: true,
-                    },
-                    'Then',
+                    ...[left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
+                    'THEN',
                     { val: ifNull },
                     'ELSE',
                     { val: !ifNull },
@@ -703,7 +700,7 @@ class HANAService extends SQLService {
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = caseSuffix || ''
+              xpr[i + 1] = ''
             }
           }
         }
@@ -720,7 +717,8 @@ class HANAService extends SQLService {
       }
 
       // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
-      if (caseSuffix && xpr.length === 1) {
+      if (caseSuffix && (
+        xpr.length === 1 || xpr.at(-1) === '')) {
         sql.push(caseSuffix)
       }
 
@@ -729,10 +727,37 @@ class HANAService extends SQLService {
 
     operator(x, i, xpr) {
       // Add "= TRUE" before THEN in case statements
-      // As all valid comparators are converted to booleans as SQL specifies
-      if (x in { THEN: 1, then: 1 }) return ` = TRUE ${x}`
+      if (
+        x.toUpperCase() in logicOperators &&
+        !this.comparerator({ xpr }, i - 1)
+      ) {
+        this.comparerator({ xpr }, i - 1)
+        return ` = TRUE ${x}`
+      }
       if ((x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) || x === 'regexp') return 'LIKE_REGEXPR'
       else return x
+    }
+
+    /**
+     * Checks if the xpr is a comparison or a value
+     * @param {} xpr 
+     * @returns 
+     */
+    comparerator({ xpr }, start) {
+      for (let i = start ?? xpr.length; i > -1; i--) {
+        const cur = xpr[i]
+        if (cur == null) continue
+        if (typeof cur === 'string') {
+          const up = cur.toUpperCase()
+          // When a compare operator is found the expression is a comparison
+          if (up in compareOperators) return true
+          // When a case operator is found it is the start of the expression
+          if (up in caseOperators) break
+          continue
+        }
+        if ('xpr' in cur) return this.comparerator(cur)
+      }
+      return false
     }
 
     list(list) {
@@ -1026,6 +1051,35 @@ const _managed = {
   '$user.id': '$user.id',
   $user: '$user.id',
   $now: '$now',
+}
+
+const caseOperators = {
+  'CASE': 1,
+  'WHEN': 1,
+  'THEN': 1,
+  'ELSE': 1,
+}
+const logicOperators = {
+  'THEN': 1,
+  'AND': 1,
+  'OR': 1,
+}
+const compareOperators = {
+  '=': 1,
+  '==': 1,
+  '!=': 1,
+  '>': 1,
+  '<': 1,
+  '<>': 1,
+  '>=': 1,
+  '<=': 1,
+  '!<': 1,
+  '!>': 1,
+  'IS': 1,
+  'IN': 1,
+  'LIKE': 1,
+  'EXISTS': 1,
+  'BETWEEN': 1,
 }
 
 module.exports = HANAService
