@@ -1630,7 +1630,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {boolean}
    */
   function isStructured(elt) {
-    return Boolean(elt?.kind !== 'entity' && elt?.elements && elt.type !== 'cds.Association')
+    return Boolean(elt?.kind !== 'entity' && elt?.elements && !elt.isAssociation)
   }
 
   /**
