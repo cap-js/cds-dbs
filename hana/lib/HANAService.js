@@ -663,8 +663,11 @@ class HANAService extends SQLService {
 
       if (!_internal) {
         for (let i = 0; i < xpr.length; i++) {
-          const x = xpr[i]
+          let x = xpr[i]
           if (typeof x === 'string') {
+            // Convert =, == and != into is (not) null operator where required
+            x = xpr[i] = super.operator(xpr[i], i, xpr)
+
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
             if (x in compareOperators) {
@@ -726,17 +729,23 @@ class HANAService extends SQLService {
     }
 
     operator(x, i, xpr) {
+      const up = x.toUpperCase()
       // Add "= TRUE" before THEN in case statements
       if (
-        x.toUpperCase() in logicOperators &&
+        up in logicOperators &&
         !this.comparerator({ xpr }, i - 1)
       ) {
-        this.comparerator({ xpr }, i - 1)
         return ` = TRUE ${x}`
       }
-      if ((x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) || x === 'regexp') return 'LIKE_REGEXPR'
+      if (
+        (up === 'LIKE' && is_regexp(xpr[i + 1]?.val)) ||
+        up === 'REGEXP'
+      ) return 'LIKE_REGEXPR'
       else return x
     }
+
+    get is_distinct_from_() { return '!=' }
+    get is_not_distinct_from_() { return '==' }
 
     /**
      * Checks if the xpr is a comparison or a value
@@ -1078,6 +1087,7 @@ const compareOperators = {
   'IS': 1,
   'IN': 1,
   'LIKE': 1,
+  'IS NOT': 1,
   'EXISTS': 1,
   'BETWEEN': 1,
 }
