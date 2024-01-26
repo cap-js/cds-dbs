@@ -764,8 +764,8 @@ class HANAService extends SQLService {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
       if (this.values && first.list && !first.list.find(v => !v.val)) {
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.${i}'`)
-        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[i] = c.val; return l }, {}))))
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // Call super for normal SQL behavior
@@ -984,7 +984,7 @@ class HANAService extends SQLService {
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
       const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
+      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
         // Release table lock
@@ -1026,7 +1026,7 @@ class HANAService extends SQLService {
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
       const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      res && DEBUG?.(res.map(r => r.MESSAGE).join('\n'))
+      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
