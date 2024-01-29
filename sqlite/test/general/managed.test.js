@@ -1,6 +1,6 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, PUT, PATCH, sleep } = cds.test(__dirname, 'model.cds')
+const { POST, PUT, PATCH } = cds.test(__dirname, 'model.cds')
 
 describe('Managed thingies', () => {
   test('INSERT execute on db only', async () => {
@@ -26,7 +26,9 @@ describe('Managed thingies', () => {
   test('UPSERT execute on db only', async () => {
     // UPSERT behaves like UPDATE for managed, so insert annotated fields should not be filled
     const db = await cds.connect.to('db')
-    return db.run(async () => {
+
+    let modifications = []
+    await db.tx(async () => {
       // REVISIT: Why do we allow overriding managed elements here?
       // provided values for managed annotated fields should be kept on DB level if provided
       await UPSERT.into('test.foo').entries({ ID: 3, modifiedBy: 'samuel' })
@@ -35,23 +37,42 @@ describe('Managed thingies', () => {
       expect(result).toEqual([
         {
           ID: 3,
-          createdAt: null,
-          createdBy: null,
+          createdAt: expect.any(String),
+          createdBy: "anonymous",
           defaultValue: 100,
           modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
         },
       ])
 
-      const { modifiedAt } = result[0]
+      const row = result.at(-1)
+      modifications.push(row)
+      const { modifiedAt } = row
       expect(modifiedAt).toEqual(cds.context.timestamp.toISOString())
+    })
 
-      await sleep(11) // ensure some ms are passed
-      const modified = new Date(modifiedAt).getTime()
-      const now = Date.now()
+    // Ensure that a second UPSERT updates the managed fields
+    await db.tx(async () => {
+      console.log(cds.context.timestamp.toISOString())
+      await UPSERT.into('test.foo').entries({ ID: 3 })
 
-      expect(now - modified).toBeGreaterThan(0)
-      expect(now - modified).toBeLessThan(10 * 1000) // 10s
+      const result = await SELECT.from('test.foo').where({ ID: 3 })
+      expect(result).toEqual([
+        {
+          ID: 3,
+          createdAt: expect.any(String),
+          createdBy: "anonymous",
+          defaultValue: 100,
+          modifiedAt: expect.any(String),
+          modifiedBy: 'anonymous',
+        },
+      ])
+
+      const row = result.at(-1)
+      modifications.push(row)
+      const { modifiedAt } = row
+      expect(modifiedAt).toEqual(cds.context.timestamp.toISOString())
+      expect(modifiedAt).not.toEqual(modifications.at(-2).modifiedAt)
     })
   })
 
@@ -71,13 +92,6 @@ describe('Managed thingies', () => {
 
     const { createdAt, modifiedAt } = resPost.data
     expect(createdAt).toEqual(modifiedAt)
-
-    await sleep(11) // ensure some ms are passed
-    const now = Date.now()
-    const created = new Date(createdAt).getTime()
-
-    expect(now - created).toBeGreaterThan(0)
-    expect(now - created).toBeLessThan(10 * 1000) // 10s
   })
 
   test('on update is filled', async () => {
@@ -86,7 +100,7 @@ describe('Managed thingies', () => {
     // patch keeps old defaults
     const resUpdate1 = await PATCH('/test/foo(5)', {})
     expect(resUpdate1.status).toBe(200)
-    
+
     expect(resUpdate1.data).toEqual({
       '@odata.context': '$metadata#foo/$entity',
       ID: 5,

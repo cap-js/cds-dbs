@@ -399,7 +399,7 @@ class CQN2SQLRenderer {
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
+    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
@@ -437,7 +437,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -563,7 +563,7 @@ class CQN2SQLRenderer {
       return converter?.(extract, element) || extract
     })
 
-    this.columns = columns.map(c => this.quote(c))
+    this.columns = columns
 
     if (INSERT.rows[0] instanceof Readable) {
       INSERT.rows[0].type = 'json'
@@ -574,7 +574,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -601,9 +601,8 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
-      cqn4sql(INSERT.as),
-    )}`
+
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(cqn4sql(INSERT.as))}`
     this.entries = [this.values]
     return this.sql
   }
@@ -636,14 +635,51 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
+    const entity = this.name(q.target?.name || INSERT.into.ref[0])
+    const alias = INSERT.into.as
     const elements = q.target?.elements || {}
-    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
-    let keys = q.target?.keys
-    if (!keys) return this.sql = sql
-    keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
+    const keys = Object.keys(q.target?.keys || {}).filter(k => !keys[k].isAssociation)
+    if (!keys) return this.INSERT({ __proto__: q, INSERT: UPSERT })
 
-    let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns.filter(c => {
+    // temporal data
+    keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
+
+    const keyZero = this.quote(keys[0])
+
+    const keyCompare = keys
+      .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
+      .join(' AND ')
+
+    const extractkeys = this.managed(
+      keys.map(c => ({ name: c }))
+    )
+      .map(c => `${c.sql} as ${this.quote(c.name)}`)
+
+    const updates = this.managed(
+      this.columns.map(c => ({ name: c })),
+      elements,
+      !!q.UPSERT
+    )
+
+    const inserts = this.managed(
+      this.columns.map(c => ({ name: c })),
+      elements,
+      false,
+    )
+
+    const mixed = updates.map(c => {
+      const name = c.name
+      const qname = this.quote(name)
+      const update = c.managed
+        ? c.sql
+        : `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN OLD.${qname} ELSE ${c.sql} END)`
+      const insert = inserts.find(c => c.name === name)
+      return `(CASE WHEN OLD.${keyZero} IS NULL THEN COALESCE(${c.sql},${insert.sql}) ELSE ${update} END) as ${qname}`
+    })
+
+    const sql = `SELECT ${mixed} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN (SELECT * FROM ${this.quote(entity)}) AS OLD ON ${keyCompare}`
+
+    const updateColumns = this.columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model
@@ -656,11 +692,8 @@ class CQN2SQLRenderer {
     // temporal data
     keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
 
-    keys = keys.map(k => this.quote(k))
-    const conflict = updateColumns.length
-      ? `ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
-      : `ON CONFLICT(${keys}) DO NOTHING`
-    return (this.sql = `${sql} WHERE true ${conflict}`)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+      }) ${sql} WHERE TRUE ON CONFLICT(${keys}) DO UPDATE SET ${updateColumns}`)
   }
 
   // UPDATE Statements ------------------------------------------------
@@ -695,7 +728,8 @@ class CQN2SQLRenderer {
       return c
     })
 
-    const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
+    const extraction = this.managed(columns, elements, true)
+      .map((c, i) => `${this.quote(c.name)}=${!columns[i] ? c.managed : columns[i].sql}`)
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where(where)}`
@@ -935,12 +969,14 @@ class CQN2SQLRenderer {
       let val = _managed[element[annotation]?.['=']] || _managed[element.default?.ref?.[0]]
       if (val) val = { func: 'session_context', args: [{ val, param: false }] }
       else if (!isUpdate && element.default?.val !== undefined) val = { val: element.default.val, param: false }
+      let managed
       if (val) {
+        managed = converter(this.expr(val))
         // render d with expr as it supports both val and func
-        sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${converter(this.expr(val))} ELSE ${sql} END)`
+        sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${managed} ELSE ${sql} END)`
       }
 
-      return { name, sql }
+      return { name, sql, managed }
     })
   }
 

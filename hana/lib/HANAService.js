@@ -519,7 +519,7 @@ class HANAService extends SQLService {
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
         elements,
-        false
+        !!q.UPSERT,
       )
 
       // REVISIT: @cds.extension required
@@ -598,7 +598,7 @@ class HANAService extends SQLService {
       const collations = this.managed(
         this.columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })),
         elements,
-        true,
+        false,
       )
 
       let keys = q.target?.keys
