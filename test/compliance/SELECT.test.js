@@ -102,7 +102,7 @@ describe('SELECT', () => {
           'func' as function : cds.String
         FROM basic.projection.globals
       `
-      cqn.SELECT.columns[0].val = function () {}
+      cqn.SELECT.columns[0].val = function () { }
 
       await assert.rejects(cds.run(cqn))
     })
@@ -126,6 +126,29 @@ describe('SELECT', () => {
       assert.equal(res[0].xpr, true)
       assert.equal(res[1].xpr, false)
       assert.equal(res[2].xpr, false)
+    })
+
+    test('select xpr (invalid)', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: [
+            {
+              xpr: [
+                {
+                  xpr: [{ val: 'yes' }, '=', { ref: ['string'] }],
+                  cast: { type: 'cds.Boolean' },
+                },
+                '+',
+                { val: 1 }
+              ],
+              as: 'xpr',
+            }
+          ],
+        },
+      }
+
+      await assert.rejects(cds.run(cqn))
     })
 
     test('select 200 columns', async () => {
@@ -164,7 +187,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Authors'] },
-          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]
         },
       }
 
@@ -178,7 +201,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Books'] },
-          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]
         },
       }
 
@@ -224,7 +247,7 @@ describe('SELECT', () => {
     test('compare with DateTime column', async () => {
       const entity = `basic.literals.dateTime`
       const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0,-1) + '.000Z'
+      const timestamp = dateTime.slice(0, -1) + '.000Z'
       await DELETE.from(entity)
       await INSERT({ dateTime }).into(entity)
       const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
@@ -316,7 +339,7 @@ describe('SELECT', () => {
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
-      const renamed = result.map(row => ({key: row.ID, fullName: row.name}))
+      const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
       assert.strictEqual(renamed.$count, 1)
     })
   })
