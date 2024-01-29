@@ -393,7 +393,7 @@ class CQN2SQLRenderer {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
     const columns = elements
-      ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+      ? ObjectKeys(elements).filter(c => this.exists(elements[c]))
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
@@ -596,9 +596,8 @@ class CQN2SQLRenderer {
     const entity = this.name(q.target.name)
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
-      c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
-    ))
+    const columns = this.columns = (INSERT.columns || ObjectKeys(elements))
+      .filter(c => this.exists(elements[c]))
     this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
       cqn4sql(INSERT.as),
     )}`
@@ -643,12 +642,7 @@ class CQN2SQLRenderer {
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
-      let e = elements[c]
-      if (!e) return true //> pass through to native SQL columns not in CDS model
-      if (e.virtual) return true //> skip virtual elements
-      if (e.value) return true //> skip calculated elements
-      // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
-      else return true
+      return this.exists(elements[c]) //> only update columns that exist in the database
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
     // temporal data
@@ -675,15 +669,15 @@ class CQN2SQLRenderer {
     if (entity.as) sql += ` AS ${entity.as}`
 
     let columns = []
-    if (data) _add(data, val => this.val({ val }))
-    if (_with) _add(_with, x => this.expr(x))
-    function _add(data, sql4) {
+    const _add = (data, sql4) => {
       for (let c in data) {
-        if (!elements || (c in elements && !elements[c].virtual)) {
+        if (!elements || (this.exists(elements[c]))) {
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
     }
+    if (data) _add(data, val => this.val({ val }))
+    if (_with) _add(_with, x => this.expr(x))
 
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) return {
@@ -903,6 +897,15 @@ class CQN2SQLRenderer {
   }
 
   /**
+   * Check if element exists on the database
+   * @param {import('./infer/cqn').element} e
+   * @returns {Boolean} 
+   */
+  exists(e) {
+    return e && !e.virtual && !e.value && !e.isAssociation
+  }
+
+  /**
    * Convers the columns array into an array of SQL expressions that extract the correct value from inserted JSON data
    * @param {object[]} columns
    * @param {import('./infer/cqn').elements} elements
@@ -918,7 +921,7 @@ class CQN2SQLRenderer {
       : Object.keys(elements)
         .filter(
           e =>
-            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
+            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && this.exists(elements[e]))) &&
             !columns.find(c => c.name === e),
         )
         .map(name => ({ name, sql: 'NULL' }))
