@@ -131,8 +131,14 @@ describe('assign element onto columns with flat model', () => {
     expect(query).to.deep.eql(expected)
     expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.ID)
     // foreign key is part of flat model
-    expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf.__proto__)
-    expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf.__proto__)
+    if(model.meta.unfolded) { //> REVISIT: Remove once unfolded csn is standard
+      expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf.__proto__)
+      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf.__proto__)
+    } else {
+      expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf)
+      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)  
+    }
+
 
     expect(query.SELECT.columns[3]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_second)
   })

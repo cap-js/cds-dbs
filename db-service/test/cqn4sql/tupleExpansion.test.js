@@ -418,6 +418,13 @@ describe('Structural comparison', () => {
     const unfolded = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
     const structuredRes = cqn4sql(query, model)
     const unfoldedRes = cqn4sql(query, unfolded)
-    expect(structuredRes).to.eql(expected).to.eql(unfoldedRes)
+    //> REVISIT: remove fallback once UCSN is the new standard
+    if(unfolded.meta.unfolded) {
+      expect(structuredRes).to.eql(expected).to.eql(unfoldedRes)
+    } else {
+      // with odata csn, the on condition of the assoc is wrapped in xpr
+      expect(structuredRes.SELECT.from.on).to.eql(expected.SELECT.from.on).to.eql(unfoldedRes.SELECT.from.on[0].xpr)
+      expect(structuredRes.SELECT.columns).to.eql(expected.SELECT.columns).to.eql(unfoldedRes.SELECT.columns)
+    }
   })
 })

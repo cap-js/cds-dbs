@@ -927,8 +927,8 @@ describe('Unfolding calculated elements ... misc', () => {
     expect(query).to.deep.equal(expected)
   })
 })
-// TODO: UCSN > localized unfolds
-describe.skip('Unfolding calculated elements and localized', () => {
+
+describe('Unfolding calculated elements and localized', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)

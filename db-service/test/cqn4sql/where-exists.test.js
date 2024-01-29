@@ -1294,8 +1294,8 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
-// TODO: UCSN > localized unfolds
-describe.skip('cap issue', () => {
+
+describe('cap issue', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)

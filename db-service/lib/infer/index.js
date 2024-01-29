@@ -176,7 +176,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter
-            if (!expandOrExists && nextStep && !(nextStep in e.elements))
+            if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
               throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
           }
           arg.$refLinks.push({ definition: e, target: definition })
@@ -664,8 +664,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                   .map(idOnly)
                   .join('.')}" must not be an unmanaged association`
               )
-            // no non-fk traversal in infix filter
-            if (nextStep && element.elements && !(nextStep in element.elements))
+            // no non-fk traversal in infix filter in non-exists path
+            if (nextStep && !element.on && !isForeignKeyOf(nextStep, element))
               throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
           }
         }
@@ -1129,6 +1129,20 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
   }
+}
+/**
+ * Returns true if e is a foreign key of assoc.
+ * this function is also compatible with unfolded csn (UCSN),
+ * where association do not have foreign keys anymore.
+ *
+ * @param {*} e 
+ * @param {*} assoc
+ * @returns 
+ */
+function isForeignKeyOf(e, assoc) {
+  if(!assoc.isAssociation) return false
+  if(assoc.foreignKeys) return e in assoc.foreignKeys
+  return assoc.elements && e in assoc.elements
 }
 const idOnly = ref => ref.id || ref
 

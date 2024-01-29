@@ -1042,7 +1042,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     else if (isJoinRelevant) {
       const leaf = column.$refLinks[column.$refLinks.length - 1]
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      const { elements } = leafAssoc.definition
+      let elements
+      //> REVISIT: remove once UCSN is standard (no more .foreignKeys)
+      elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
       if (elements && leaf.alias in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
