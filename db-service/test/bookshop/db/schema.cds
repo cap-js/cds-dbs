@@ -2,22 +2,6 @@ using { Currency, managed, sap } from '@sap/cds/common';
 
 namespace bookshop;
 
-entity Root {
-    key ID : Integer;
-    children : Composition of many Child on children.parent = $self;
-}
-
-entity Child {
-    key ID: Integer;
-    parent: Association to one Root;
-    children: Composition of many GrandChild on children.parent = $self
-}
-
-entity GrandChild {
-    key ID: Integer;
-    parent: Association to one Child;
-}
-
 type DerivedString: String;
 type DerivedFromDerivedString: DerivedString;
 type toAuthor: Association to Authors;
