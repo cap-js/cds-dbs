@@ -733,7 +733,7 @@ class HANAService extends SQLService {
       // Add "= TRUE" before THEN in case statements
       if (
         up in logicOperators &&
-        !this.comparerator({ xpr }, i - 1)
+        !this.is_comparator({ xpr }, i - 1)
       ) {
         return ` = TRUE ${x}`
       }
@@ -752,7 +752,7 @@ class HANAService extends SQLService {
      * @param {} xpr 
      * @returns 
      */
-    comparerator({ xpr }, start) {
+    is_comparator({ xpr }, start) {
       for (let i = start ?? xpr.length; i > -1; i--) {
         const cur = xpr[i]
         if (cur == null) continue
@@ -764,7 +764,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
-        if ('xpr' in cur) return this.comparerator(cur)
+        if ('xpr' in cur) return this.is_comparator(cur)
       }
       return false
     }
