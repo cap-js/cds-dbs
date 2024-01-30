@@ -1,9 +1,10 @@
 const cds = require('@sap/cds/lib'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
-const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { resolveView, getDBTable } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const { getEnabledCategories } = require('trace_events')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -172,7 +173,12 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      let { compositions } = req.target
+      if(true){ // first
+        const cqn = this.cqn4sql(req.query, req.data)
+        req.query.DELETE.from.ref[0] = { id: getDBTable(req.target).name, where: cqn.DELETE.where }
+      }
+      const table = getDBTable(req.target)
+      const {compositions} = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
