@@ -922,6 +922,34 @@ describe('table alias access', () => {
       ).to.throw(/"title" not found in "bookshop.Genres"/)
     })
 
+    it('handles ref in list', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+            ],
+          },
+        ],
+      }).columns('ID')
+
+      const expected = SELECT.from('bookshop.Books as Books')
+        .columns('Books.ID')
+        .where([
+          {
+            list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+          },
+          'in',
+          CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+        ])
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
     it('handles value subquery in WHERE', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
