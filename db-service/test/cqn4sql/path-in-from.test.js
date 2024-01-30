@@ -67,13 +67,10 @@ describe('infix filter on entities', () => {
         },
       ],
     })
-    let response
-    try {
-      response = cqn4sql(select, model)
-    } catch (error) {
-      response = error
-    }
-
-    expect(response.message).to.deep.equal(`Cannot read properties of undefined (reading 'length')`)
+    
+    expect(() => {
+      cqn4sql(select, model)
+    }).to.throw()
+    throw new Error('list in where in ref fails');
   })
 })
