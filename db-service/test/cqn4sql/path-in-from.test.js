@@ -43,4 +43,37 @@ describe('infix filter on entities', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[author.ID = 22] {Books.ID}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.author_ID = 22`)
   })
+  it('list in where', () => {
+    const select = SELECT.from({ ref: ['CatalogService.RootP'] }).where([
+      { list: [{ ref: ['ID'] }] },
+      'in',
+      SELECT.from({ ref: ['CatalogService.RootP'] }).where([{ ref: ['ID'] }, '=', { val: 5 }]),
+    ])
+    let query = cqn4sql(select, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.author_ID = 22`)
+  })
+
+  // TO FIX
+  it('list in where in ref', () => {
+    const select = SELECT.from({
+      ref: [
+        {
+          id: 'CatalogService.RootP',
+          where: [
+            { list: [{ ref: ['ID'] }] },
+            'in',
+            SELECT.from({ ref: ['CatalogService.RootP'] }).where([{ ref: ['ID'] }, '=', { val: 5 }]),
+          ],
+        },
+      ],
+    })
+    let response
+    try {
+      response = cqn4sql(select, model)
+    } catch (error) {
+      response = error
+    }
+
+    expect(response.message).to.deep.equal(`Cannot read properties of undefined (reading 'length')`)
+  })
 })
