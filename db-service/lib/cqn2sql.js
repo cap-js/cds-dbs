@@ -85,7 +85,7 @@ class CQN2SQLRenderer {
       DEBUG(
         this.sql,
         sanitize_values
-          ? (Array.isArray(values) && values.length) || typeof values === 'object'
+          ? values
             ? ['***']
             : undefined
           : values,
