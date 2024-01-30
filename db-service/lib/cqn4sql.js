@@ -1029,7 +1029,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
-    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs' || u === 'assocs')
+    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs')
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
@@ -1051,7 +1051,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
     } else if (!baseName && structsAreUnfoldedAlready) {
-      baseName = element.name
+      baseName = element.name // name is already fully constructed
     } else {
       baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
     }

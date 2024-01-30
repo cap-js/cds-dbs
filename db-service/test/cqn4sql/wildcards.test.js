@@ -3,8 +3,6 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
-const compile = require('@sap/cds-compiler')
-const { flat } = require('@sap/cds/better-sqlite-ignore')
 
 // TODO: UCSN -> order is different compared to odata model
 function customSort(a, b) {

@@ -648,25 +648,25 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         /**
-         * Check if the next step in the ref is foreign key of `element`
+         * Check if the next step in the ref is foreign key of `assoc`
          * if not, an error is thrown.
          *
-         * @param {CSN.Element} element if this is an association, the next step must be a foreign key of the element.
+         * @param {CSN.Element} assoc if this is an association, the next step must be a foreign key of the element.
          */
-        function rejectNonFkAccess(element) {
-          if (!inNestedProjection && !inCalcElement && element.target) {
+        function rejectNonFkAccess(assoc) {
+          if (!inNestedProjection && !inCalcElement && assoc.target) {
             // only fk access in infix filter
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             // no unmanaged assoc in infix filter path
-            if (!inExists && element.on)
+            if (!inExists && assoc.on)
               throw new Error(
-                `"${element.name}" in path "${column.ref
+                `"${assoc.name}" in path "${column.ref
                   .map(idOnly)
                   .join('.')}" must not be an unmanaged association`
               )
             // no non-fk traversal in infix filter in non-exists path
-            if (nextStep && !element.on && !isForeignKeyOf(nextStep, element))
-              throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
+            if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
+              throw new Error(`Only foreign keys of "${assoc.name}" can be accessed in infix filter`)
           }
         }
       })
