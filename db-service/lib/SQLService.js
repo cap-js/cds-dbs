@@ -1,7 +1,7 @@
 const cds = require('@sap/cds/lib'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
-const { resolveView, getDBTable } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 const { getEnabledCategories } = require('trace_events')
@@ -173,9 +173,15 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      if(true){ // first
-        const cqn = this.cqn4sql(req.query, req.data)
-        req.query.DELETE.from.ref[0] = { id: getDBTable(req.target).name, where: cqn.DELETE.where }
+      const transitions = getTransition(req.target, this)
+      if (transitions.target !== transitions.queryTarget) {
+        const query = DELETE.from({ ref: [
+          {
+            id: transitions.target.name,
+            where: [{list:Object.keys(transitions.target.keys || {}).map(k => ({ref:[k]}))},'in',SELECT.from(DELETE.from).where(DELETE.where)]
+          }
+        ] })
+        return this.onDELETE({query, target: query.target})
       }
       const table = getDBTable(req.target)
       const {compositions} = table
