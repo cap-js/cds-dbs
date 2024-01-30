@@ -4,22 +4,23 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 const compile = require('@sap/cds-compiler')
+const { flat } = require('@sap/cds/better-sqlite-ignore')
 
 // TODO: UCSN -> order is different compared to odata model
 function customSort(a, b) {
   // Get the last values from the "ref" arrays or set them as empty strings
-  const lastValueA = (a.ref && a.ref.length) ? a.ref[a.ref.length - 1] : '';
-  const lastValueB = (b.ref && b.ref.length) ? b.ref[b.ref.length - 1] : '';
+  const lastValueA = a.ref && a.ref.length ? a.ref[a.ref.length - 1] : ''
+  const lastValueB = b.ref && b.ref.length ? b.ref[b.ref.length - 1] : ''
 
   // Compare the last values alphabetically
   if (lastValueA < lastValueB) {
-    return -1;
+    return -1
   }
   if (lastValueA > lastValueB) {
-    return 1;
+    return 1
   }
   // If the last values are equal, maintain their original order
-  return 0;
+  return 0
 }
 
 describe('wildcard expansion and exclude clause', () => {
@@ -230,7 +231,12 @@ describe('wildcard expansion and exclude clause', () => {
           ) as author
         }
       `
-    expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(expected.SELECT.columns.sort(customSort))
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it('path expression after wildcard replaces assoc from wildcard expansion', () => {
@@ -508,8 +514,8 @@ describe('wildcard expansion and exclude clause', () => {
     )
   })
   it('must not yield duplicate columns for already expanded foreign keys with OData CSN input', () => {
-    const odatamodel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    let query = cqn4sql(CQL`SELECT from bookshop.Books where author.name = 'Sanderson'`, odatamodel)
+    const flatModel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
+    let query = cqn4sql(CQL`SELECT from bookshop.Books where author.name = 'Sanderson'`, flatModel)
     const expected = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       {
@@ -534,14 +540,19 @@ describe('wildcard expansion and exclude clause', () => {
       Books.coAuthor_ID_unmanaged,
       } where author.name = 'Sanderson'
     `
-    expect(query.SELECT.columns.sort(customSort)).to.deep.equal(expected.SELECT.columns.sort(customSort))
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it('must be possible to select already expanded foreign keys with OData CSN input', () => {
-    const odatamodel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
+    const flatModel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { genre_ID, author_ID } where author.name = 'Sanderson'`,
-      odatamodel,
+      flatModel,
     )
     const expected = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -550,7 +561,12 @@ describe('wildcard expansion and exclude clause', () => {
       Books.author_ID
       } where author.name = 'Sanderson'
     `
-    expect(query.SELECT.columns.sort(customSort)).to.deep.equal(expected.SELECT.columns.sort(customSort))
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it.skip('must error out for clash of already expanded foreign keys with OData CSN input and manually expanded foreign key', () => {
