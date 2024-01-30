@@ -173,17 +173,23 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      const transitions = getTransition(req.target, this)
+      const transitions = getTransition(req.query.target, this)
       if (transitions.target !== transitions.queryTarget) {
-        const query = DELETE.from({ ref: [
-          {
-            id: transitions.target.name,
-            where: [{list:Object.keys(transitions.target.keys || {}).map(k => ({ref:[k]}))},'in',SELECT.from(DELETE.from).where(DELETE.where)]
-          }
-        ] })
-        return this.onDELETE({query, target: query.target})
+        const query = DELETE.from({
+          ref: [
+            {
+              id: transitions.target.name,
+              where: [
+                { list: Object.keys(transitions.target.keys || {}).map(k => ({ ref: [k] })) },
+                'in',
+                SELECT.from(req.query.DELETE.from).where(req.query.DELETE.where),
+              ],
+            },
+          ],
+        })
+        return this.onDELETE({ query })
       }
-      const table = getDBTable(req.target)
+      const table = getDBTable(req.query.target)
       const {compositions} = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -196,11 +202,11 @@ class SQLService extends DatabaseService {
         }
         // Process child compositions depth-first
         let { depth = 0, visited = [] } = req
-        visited.push(req.target.name)
+        visited.push(req.query.target.name)
         await Promise.all(
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
-            if (c._target === req.target) {
+            if (c._target === req.query.target) {
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -211,7 +217,7 @@ class SQLService extends DatabaseService {
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
-            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+            return this.onDELETE({ query, depth, visited: [...visited] })
           }),
         )
       }
