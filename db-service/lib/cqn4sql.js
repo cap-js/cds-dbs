@@ -54,87 +54,86 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedQuery = transformQueryForInsertUpsert(kind)
   } else {
     const queryProp = inferred[kind]
-      const { entity, where } = queryProp
-      const from = queryProp.from
+    const { entity, where } = queryProp
+    const from = queryProp.from
 
-      const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+    const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
 
-      // Transform the existing where, prepend table aliases, and so on...
-      if (where) {
-        transformedProp.where = getTransformedTokenStream(where)
+    // Transform the existing where, prepend table aliases, and so on...
+    if (where) {
+      transformedProp.where = getTransformedTokenStream(where)
+    }
+
+    // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
+    // The already transformed `where` clause is then glued together with the resulting subqueries.
+    const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
+    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
+
+    if (inferred.SELECT) {
+      transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
+    } else {
+      if (from) {
+        transformedProp.from = transformedFrom
+      } else if (!queryNeedsJoins) {
+        transformedProp.entity = transformedFrom
       }
 
-      // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
-      // The already transformed `where` clause is then glued together with the resulting subqueries.
-      const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
-      const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
+      if (transformedWhere?.length > 0) {
+        transformedProp.where = transformedWhere
+      }
 
-      if (inferred.SELECT) {
-        transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
+      transformedQuery[kind] = transformedProp
+
+      if (inferred.UPDATE?.with) {
+        Object.entries(inferred.UPDATE.with).forEach(([key, val]) => {
+          const transformed = getTransformedTokenStream([val])
+          inferred.UPDATE.with[key] = transformed[0]
+        })
+      }
+    }
+
+    if (queryNeedsJoins) {
+      if (inferred.UPDATE || inferred.DELETE) {
+        const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
+        const subquery = {
+          SELECT: {
+            from: { ...transformedFrom },
+            columns: [], // primary keys of the query target will be added later
+            where: [...transformedProp.where],
+          },
+        }
+        // The alias of the original query is now the alias for the subquery
+        // so that potential references in the where clause to the alias match.
+        // Hence, replace the alias of the original query with the next
+        // available alias, so that each alias is unique.
+        const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
+        transformedFrom.as = uniqueSubqueryAlias
+
+        // calculate the primary keys of the target entity, there is always exactly
+        // one query source for UPDATE / DELETE
+        const queryTarget = Object.values(originalQuery.sources)[0]
+        const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
+        const primaryKey = { list: [] }
+        keys.forEach(k => {
+          // cqn4sql will add the table alias to the column later, no need to add it here
+          subquery.SELECT.columns.push({ ref: [k.name] })
+
+          // add the alias of the main query to the list of primary key references
+          primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
+        })
+
+        const transformedSubquery = cqn4sql(subquery)
+
+        // replace where condition of original query with the transformed subquery
+        // correlate UPDATE / DELETE query with subquery by primary key matches
+        transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
+
+        if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
+        else transformedQuery.DELETE.from = transformedFrom
       } else {
-        if (from) {
-          transformedProp.from = transformedFrom
-        } else if (!queryNeedsJoins) {
-          transformedProp.entity = transformedFrom
-        }
-
-        if (transformedWhere?.length > 0) {
-          transformedProp.where = transformedWhere
-        }
-
-        transformedQuery[kind] = transformedProp
-
-        if (inferred.UPDATE?.with) {
-          Object.entries(inferred.UPDATE.with).forEach(([key, val]) => {
-            const transformed = getTransformedTokenStream([val])
-            inferred.UPDATE.with[key] = transformed[0]
-          })
-        }
+        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
       }
-
-      if (queryNeedsJoins) {
-        if (inferred.UPDATE || inferred.DELETE) {
-          const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
-          const subquery = {
-            SELECT: {
-              from: { ...transformedFrom },
-              columns: [], // primary keys of the query target will be added later
-              where: [...transformedProp.where],
-            },
-          }
-          // The alias of the original query is now the alias for the subquery
-          // so that potential references in the where clause to the alias match.
-          // Hence, replace the alias of the original query with the next
-          // available alias, so that each alias is unique.
-          const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
-          transformedFrom.as = uniqueSubqueryAlias
-
-          // calculate the primary keys of the target entity, there is always exactly
-          // one query source for UPDATE / DELETE
-          const queryTarget = Object.values(originalQuery.sources)[0]
-          const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
-          const primaryKey = { list: [] }
-          keys.forEach(k => {
-            // cqn4sql will add the table alias to the column later, no need to add it here
-            subquery.SELECT.columns.push({ ref: [k.name] })
-
-            // add the alias of the main query to the list of primary key references
-            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
-          })
-
-          const transformedSubquery = cqn4sql(subquery)
-
-          // replace where condition of original query with the transformed subquery
-          // correlate UPDATE / DELETE query with subquery by primary key matches
-          transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
-
-          if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
-          else transformedQuery.DELETE.from = transformedFrom
-        } else {
-          transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
-        }
-      }
-
+    }
   }
 
   return transformedQuery
@@ -202,7 +201,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     transformedQuery[kind].into = { ref: [inferred.target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
-  } 
+  }
 
   /**
    * Transforms a search expression to a WHERE clause for a SELECT operation.
@@ -1274,7 +1273,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedTokenStream.push({ list: getTransformedTokenStream(token.list) })
+          transformedTokenStream.push({ list: getTransformedTokenStream(token.list, $baseLink) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1403,19 +1402,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     if (flatRhs) {
       const flatLhs = flattenWithBaseName(token)
-
-      //REVISIT: Early exit here? We kndow we cant compare the structs, however we do not know exactly why
-      //        --> calculate error message or exit early? See test "proper error if structures cannot be compared / too many elements on lhs"
-      if (flatRhs.length !== flatLhs.length)
-        // make sure we can compare both structures
+      // make sure we can compare both structures
+      if (flatRhs.length !== flatLhs.length) {
         throw new Error(
           `Can't compare "${definition.name}" with "${
             value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
         )
-      const pathNotFoundErr = []
+      }
+
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
-      const rhsPath = value.ref.join('.') // original path of the comparison, used in error message
       while (flatLhs.length > 0) {
         // retrieve and remove one flat element from LHS and search for it in RHS (remove it there too)
         const { ref, _csnPath: lhs_csnPath } = flatLhs.shift()
@@ -1424,19 +1420,15 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           // all following steps must also be part of lhs
           return lhs_csnPath.slice(1).every((val, i) => val === rhs_csnPath[i + 1]) // first step is name of struct -> ignore
         })
+        // not found in rhs --> exit
         if (indexOfElementOnRhs === -1) {
-          pathNotFoundErr.push(`Path "${lhs_csnPath.slice(1).join('.')}" not found in "${rhsPath}"`)
-          continue
+          const lhsPath = token.ref.join('.')
+          const rhsPath = value.ref.join('.')
+          throw new Error(`Can't compare "${lhsPath}" with "${rhsPath}": the operands must have the same structure`)
         }
         const rhs = flatRhs.splice(indexOfElementOnRhs, 1)[0] // remove the element also from RHS
         result.push({ ref }, ...operator, rhs)
         if (flatLhs.length > 0) result.push(boolOp)
-      }
-      if (flatRhs.length) {
-        // if we still have elements in flatRhs -> those were not found in lhs
-        const lhsPath = token.ref.join('.') // original path of the comparison, used in error message
-        flatRhs.forEach(t => pathNotFoundErr.push(`Path "${t._csnPath.slice(1).join('.')}" not found in "${lhsPath}"`))
-        throw new Error(`Can't compare "${lhsPath}" with "${rhsPath}": ${pathNotFoundErr.join(', ')}`)
       }
     } else {
       // compare with value
@@ -1759,7 +1751,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           else {
             const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
             const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
-            if (lhsLeafArt?.target && rhsLeafArt?.target || lhsLeafArt?.elements && rhsLeafArt?.elements) {
+            if ((lhsLeafArt?.target && rhsLeafArt?.target) || (lhsLeafArt?.elements && rhsLeafArt?.elements)) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
                 rhs.$refLinks.unshift(targetSideRefLink)
