@@ -117,7 +117,7 @@ describe('negative', () => {
       let query = CQL`SELECT from bookshop.Books:name { * }` // name does not exist
       expect(() => _inferred(query)).to.throw(/No association “name” in entity “bookshop.Books”/)
       let fromEndsWithScalar = CQL`SELECT from bookshop.Books:title { * }`
-      expect(() => _inferred(fromEndsWithScalar)).to.throw(/No association “title” in entity “bookshop.Books”/)
+      expect(() => _inferred(fromEndsWithScalar)).to.throw(/Query source must be a an entity or an association/)
     })
 
     // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)

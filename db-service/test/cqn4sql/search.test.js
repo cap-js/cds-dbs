@@ -94,7 +94,7 @@ describe('Replace attribute search by search predicate', () => {
       CQL`
       SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
-        left join bookshop.Books as books2 on books2.author_ID = author.ID
+        left join bookshop.Books as books2 on  books2.author_ID = author.ID
       {
         Books.ID,
         books2.title as authorsBook

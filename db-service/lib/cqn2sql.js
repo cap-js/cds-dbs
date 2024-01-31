@@ -399,6 +399,12 @@ class CQN2SQLRenderer {
     /** @type {string[]} */
     this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
 
+    if (!elements) {
+      this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+    }
+
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
@@ -562,6 +568,12 @@ class CQN2SQLRenderer {
     })
 
     this.columns = columns.map(c => this.quote(c))
+
+    if (!elements) {
+      this.entries = INSERT.rows
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+    }
 
     if (INSERT.rows[0] instanceof Readable) {
       INSERT.rows[0].type = 'json'
@@ -805,9 +817,8 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] })
-      case '$user':
-      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id', param: false }] })
+      case '$now':  return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.'+ref[1]||'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
