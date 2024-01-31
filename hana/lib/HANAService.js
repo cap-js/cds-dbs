@@ -508,9 +508,10 @@ class HANAService extends SQLService {
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
 
       const elements = q.elements || q.target?.elements
-      if (!elements && !INSERT.entries?.length) {
-        return // REVISIT: mtx sends an insert statement without entries and no reference entity
+      if (!elements) {
+        return super.INSERT_entries(q)
       }
+
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
@@ -569,6 +570,10 @@ class HANAService extends SQLService {
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
       const elements = q.elements || q.target?.elements
+      if (!elements) {
+        return super.INSERT_rows(q)
+      }
+
       const columns = INSERT.columns || (elements && ObjectKeys(elements))
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows
@@ -585,13 +590,17 @@ class HANAService extends SQLService {
     }
 
     UPSERT(q) {
-      let { UPSERT } = q,
-        sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+      const { UPSERT } = q
+      const sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+
+      // If no definition is available fallback to INSERT statement
+      const elements = q.elements || q.target?.elements
+      if (!elements) {
+        return (this.sql = sql)
+      }
 
       // REVISIT: should @cds.persistence.name be considered ?
       const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
-      const elements = q.elements || q.target?.elements
-
       const dataSelect = sql.substring(sql.indexOf('WITH'))
 
       // Calculate @cds.on.insert
@@ -830,8 +839,7 @@ class HANAService extends SQLService {
         const val = _managed[element[annotation]?.['=']]
         let managed
         if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
-        const type = this.insertType4(element)
-        let extract = sql ?? `${this.quote(name)} ${type} PATH '$.${name}'`
+        let extract = sql ?? `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}'`
         if (!isUpdate) {
           const d = element.default
           if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
