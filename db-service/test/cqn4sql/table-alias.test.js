@@ -950,6 +950,41 @@ describe('table alias access', () => {
       expect(res).to.deep.equal(expected)
     })
 
+    it('handles ref in list of from with scoped query', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+            ],
+          },
+          'coAuthorUnmanaged',
+        ],
+      }).columns('ID')
+
+      const list = [
+        {
+          list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+        },
+        'in',
+        CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+      ]
+
+      const expected = SELECT.from('bookshop.Authors as coAuthorUnmanaged').columns('coAuthorUnmanaged.ID').where(`
+          exists (
+            SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
+          )
+        `)
+
+      expected.SELECT.where[1].SELECT.where.push('and', ...list)
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
     it('handles value subquery in WHERE', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
