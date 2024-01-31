@@ -2,6 +2,12 @@ const cds = require('@sap/cds/lib')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.LargeBinary': 1,
+  'cds.hana.BINARY': 1,
+}
+
 const { Readable } = require('stream')
 
 const DEBUG = (() => {
@@ -237,7 +243,7 @@ class CQN2SQLRenderer {
 
     let cols = SELECT.columns.map(x => {
       const name = this.column_name(x)
-      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
+      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
       if (x.SELECT?.count) {
         // Return both the sub select and the count for @odata.count
         const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
@@ -246,21 +252,14 @@ class CQN2SQLRenderer {
       return col
     }).flat()
 
+    const isRoot = SELECT.expand === 'root'
+
     // Prevent SQLite from hitting function argument limit of 100
-    let obj = ''
-
-    if (cols.length < 50) obj = `json_object(${cols.slice(0, 50)})`
-    else {
-      const chunks = []
-      for (let i = 0; i < cols.length; i += 50) {
-        chunks.push(`json_object(${cols.slice(i, i + 50)})`)
-      }
-      // REVISIT: json_merge is a user defined function, bad performance!
-      obj = `json_merge(${chunks})`
+    let obj = "'{}'"
+    for (let i = 0; i < cols.length; i += 48) {
+      obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-
-
-    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj.includes('json_merge') ? `json_insert(${obj})` : obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
   /**
@@ -431,7 +430,7 @@ class CQN2SQLRenderer {
       INSERT.entries[0].type = 'json'
       this.entries = [[...this.values, INSERT.entries[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -440,8 +439,12 @@ class CQN2SQLRenderer {
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
-  async *INSERT_entries_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -454,12 +457,12 @@ class CQN2SQLRenderer {
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${keyJSON}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -470,6 +473,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[key]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
       }
@@ -484,8 +490,12 @@ class CQN2SQLRenderer {
     yield buffer
   }
 
-  async *INSERT_rows_stream(entries) {
-    const bufferLimit = 1 << 16
+  async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
     let sep = ''
@@ -495,12 +505,12 @@ class CQN2SQLRenderer {
 
       let sepsub = ''
       for (let key = 0; key < row.length; key++) {
-        const val = row[key]
+        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${sepsub}"`
 
           // TODO: double check that it works
-          val.setEncoding('base64')
+          val.setEncoding(binaryEncoding)
           for await (const chunk of val) {
             buffer += chunk
             if (buffer.length > bufferLimit) {
@@ -511,6 +521,9 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (elements[this.columns[key]]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
 
@@ -554,7 +567,7 @@ class CQN2SQLRenderer {
       INSERT.rows[0].type = 'json'
       this.entries = [[...this.values, INSERT.rows[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -656,7 +669,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPDATE(q) {
-    const { entity, with: _with, data, where } = q.UPDATE    
+    const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
@@ -675,7 +688,7 @@ class CQN2SQLRenderer {
     columns = columns.map(c => {
       if (q.elements?.[c.name]?.['@cds.extension']) return {
         name: 'extensions__',
-        sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
+        sql: `jsonb_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
       }
       return c
     })
@@ -812,9 +825,9 @@ class CQN2SQLRenderer {
       case 'number': return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) ; // go on with default below
-        else if (Buffer.isBuffer(val)) ; // go on with default below
+        if (val instanceof Date) val = val.toJSON() // returns null if invalid
+        else if (val instanceof Readable); // go on with default below
+        else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
       case 'string': // eslint-disable-line no-fallthrough

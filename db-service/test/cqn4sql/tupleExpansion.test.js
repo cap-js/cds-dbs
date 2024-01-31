@@ -262,9 +262,9 @@ describe('Structural comparison', () => {
   })
 
   it('expands comparison also in exists subquery', () => {
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedQueryString = `
+    const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
+    let query = cqn4sql(CQL(queryString), model)
+    const expectedQueryString = `
         SELECT from bookshop.AccessGroups as accessGroup
         { accessGroup.ID }
         where exists (
@@ -275,7 +275,7 @@ describe('Structural comparison', () => {
               AssocWithStructuredKey.toStructuredKey_second                 = null
         )
       `
-      expect(query).to.deep.equal(CQL(expectedQueryString))
+    expect(query).to.deep.equal(CQL(expectedQueryString))
   })
 
   it('compare assocs with multiple keys', () => {
@@ -403,5 +403,28 @@ describe('Structural comparison', () => {
         "An association can't be used as a value in an expression",
       )
     })
+  })
+  it('Struct needs to be unfolded in on-condition of join', () => {
+    const query = CQL`SELECT from bookshop.Unmanaged {
+      toSelf.field
+    }`
+
+    const expected = CQL`SELECT from bookshop.Unmanaged as Unmanaged
+    left join bookshop.Unmanaged as toSelf
+    on Unmanaged.struct_leaf = toSelf.struct_leaf and Unmanaged.struct_toBook_ID = toSelf.struct_toBook_ID {
+      toSelf.field as toSelf_field
+    }
+    `
+    const unfolded = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+    const structuredRes = cqn4sql(query, model)
+    const unfoldedRes = cqn4sql(query, unfolded)
+    //> REVISIT: remove fallback once UCSN is the new standard
+    if(unfolded.meta.unfolded) {
+      expect(structuredRes).to.eql(expected).to.eql(unfoldedRes)
+    } else {
+      // with odata csn, the on condition of the assoc is wrapped in xpr
+      expect(structuredRes.SELECT.from.on).to.eql(expected.SELECT.from.on).to.eql(unfoldedRes.SELECT.from.on[0].xpr)
+      expect(structuredRes.SELECT.columns).to.eql(expected.SELECT.columns).to.eql(unfoldedRes.SELECT.columns)
+    }
   })
 })
