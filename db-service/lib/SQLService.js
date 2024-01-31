@@ -4,7 +4,6 @@ const { Readable } = require('stream')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
-const { getEnabledCategories } = require('trace_events')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
