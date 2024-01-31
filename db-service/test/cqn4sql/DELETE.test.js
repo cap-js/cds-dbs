@@ -70,7 +70,7 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
   it('DELETE with where exists expansion and path expression', () => {
-    cds.model = cds.compile.for.nodejs(cds.model)
+    cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
     const query = cqn4sql(d)

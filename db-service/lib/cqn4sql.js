@@ -972,7 +972,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      * @returns {boolean} true if the element is a managed association and the model is flat
      */
     function isManagedAssocInFlatMode(e) {
-      return model.meta.transformation === 'odata' && e.isAssociation && e.keys
+      return (
+        (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'assocs')) &&
+        e.isAssociation &&
+        e.keys
+      )
     }
   }
 
@@ -1025,25 +1029,32 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
+    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs')
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on) return [] // unmanaged doesn't make it into columns
+    if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
       const leaf = column.$refLinks[column.$refLinks.length - 1]
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      const { foreignKeys } = leafAssoc.definition
-      if (foreignKeys && leaf.alias in foreignKeys) {
+      let elements
+      //> REVISIT: remove once UCSN is standard (no more .foreignKeys)
+      elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
+      if (elements && leaf.alias in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
         columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
-    } else baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
+    } else if (!baseName && structsAreUnfoldedAlready) {
+      baseName = element.name // name is already fully constructed
+    } else {
+      baseName = baseName ? `${baseName}_${element.name}` : getFullName(element)
+    }
 
     // now we have the name of the to be expanded column
     // it could be a structure, an association or a scalar
@@ -1621,7 +1632,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {boolean}
    */
   function isStructured(elt) {
-    return Boolean(elt?.elements && elt.kind === 'element')
+    return Boolean(elt?.kind !== 'entity' && elt?.elements && !elt.isAssociation)
   }
 
   /**
@@ -1994,7 +2005,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    * @returns the flat name of the element
    */
   function getFullName(node, name = node.name) {
-    if (node.parent.kind === 'entity') return name
+    // REVISIT: this is an unfortunate implementation
+    if (!node.parent || node.parent.kind === 'entity') return name
 
     return getFullName(node.parent, `${node.parent.name}_${name}`)
   }
