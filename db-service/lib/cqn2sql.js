@@ -805,9 +805,8 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] })
-      case '$user':
-      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id', param: false }] })
+      case '$now':  return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.'+ref[1]||'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
