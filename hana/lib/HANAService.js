@@ -650,7 +650,7 @@ class HANAService extends SQLService {
         '==': true,
         '!=': false,
         // These operators are not allowed in column expressions
-        // REVISIT: Only adjust these operators when inside the column expression
+        /* REVISIT: Only adjust these operators when inside the column expression
         '=': null,
         '>': null,
         '<': null,
@@ -659,6 +659,7 @@ class HANAService extends SQLService {
         '<=': null,
         '!<': null,
         '!>': null,
+        */
       }
 
       if (!_internal) {
