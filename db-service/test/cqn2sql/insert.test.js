@@ -5,7 +5,8 @@ const cds = require('@sap/cds/lib')
 const cqn2sql = require('../../lib/cqn2sql')
 
 beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.compile.for.nodejs)
+  let model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
 })
 
 describe('insert', () => {
