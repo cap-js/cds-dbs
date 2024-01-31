@@ -306,7 +306,7 @@ describe('Unfold expands on associations to special subselects', () => {
     `
     // seems to only happen with the `for.nodejs(…)` compiled model
     expandQuery.SELECT.localized = true
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(model))))).to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.deep.equal(expected)
   })
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
@@ -1021,7 +1021,7 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     `
-    let transformed = cqn4sql(q, cds.compile.for.nodejs(model))
+    let transformed = cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
       SELECT from Collaborations as Collaborations {
         Collaborations.id,
@@ -1121,7 +1121,7 @@ describe('expand on structure part II', () => {
         (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
         (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
     }`
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(model))))).to.eql(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.eql(expected)
   })
 
   it('multi expand with star but foreign key does not survive in structured mode', () => {
