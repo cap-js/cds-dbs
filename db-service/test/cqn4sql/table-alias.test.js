@@ -674,7 +674,7 @@ describe('table alias access', () => {
         model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`,
+        CQL`SELECT from (SELECT from bookshop.Books as Books2 { Books2.ID, Books2.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
     it('explicit alias for FROM subquery', () => {
@@ -920,6 +920,34 @@ describe('table alias access', () => {
           model,
         ),
       ).to.throw(/"title" not found in "bookshop.Genres"/)
+    })
+
+    it('handles ref in list', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT ID from bookshop.Books where ID = 5`,
+            ],
+          },
+        ],
+      }).columns('ID')
+
+      const expected = SELECT.from('bookshop.Books as Books')
+        .columns('Books.ID')
+        .where([
+          {
+            list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+          },
+          'in',
+          CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+        ])
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
     })
 
     it('handles value subquery in WHERE', () => {

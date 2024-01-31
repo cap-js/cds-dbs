@@ -153,9 +153,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
-    const { ref, xpr, args } = arg
+    const { ref, xpr, args, list } = arg
     if (xpr) xpr.forEach(t => attachRefLinksToArg(t, $baseLink, expandOrExists))
     if (args) args.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
+    if (list) list.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
     ref.forEach((step, i) => {
@@ -459,12 +460,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
       const { inExists, inExpr, inNestedProjection, inCalcElement, baseColumn } = context || {}
-      if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
+      if (column.param || column.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
       if (column.xpr)
         column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
-      if (column.SELECT) return
 
       if (!column.ref) {
         if (column.expand) queryElements[column.as] = resolveExpand(column)

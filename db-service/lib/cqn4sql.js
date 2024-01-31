@@ -389,13 +389,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     return transformedColumns
 
     function handleSubquery(col) {
-      if (!col.SELECT.from.as) {
-        const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-          getLastStringSegment(col.SELECT.from.ref[col.SELECT.from.ref.length - 1]),
-          originalQuery.outerQueries,
-        )
-        Object.defineProperty(col.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
-      }
       transformedColumns.push(() => {
         const res = transformSubquery(col)
         if (col.as) res.as = col.as
@@ -443,7 +436,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       }
 
       let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
-      const refNavigation = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0).join('_')
+      const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
       if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
@@ -919,6 +912,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
     if (isLocalized(inferred.target)) q.SELECT.localized = true
+    if (!q.SELECT.from.as && !q.SELECT.from.uniqueSubqueryAlias) {
+      const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
+        getLastStringSegment(q.SELECT.from.ref[q.SELECT.from.ref.length - 1]),
+        originalQuery.outerQueries,
+      )
+      Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+    }
     return cqn4sql(q, model)
   }
 
