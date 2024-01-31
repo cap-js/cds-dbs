@@ -137,3 +137,6 @@ dist
 
 # cds-typer
 @cds-models/
+
+# cds temp folders
+**/_out
