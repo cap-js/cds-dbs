@@ -289,10 +289,10 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     }`
     let expected = CQL`
-      select from localized.bookshop.DataRestrictions as DataRestrictions {
+      select from bookshop.DataRestrictions as DataRestrictions {
         DataRestrictions.ID,
         (
-          select from localized.bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
+          select from bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
             dataRestrictionAccessGroups.dataRestrictionID,
             dataRestrictionAccessGroups.accessGroupID,
             (
@@ -962,7 +962,7 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books 
+      const qx = CQL`SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,

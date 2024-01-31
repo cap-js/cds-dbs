@@ -1329,11 +1329,11 @@ describe('cap issue', () => {
         (
           EXISTS (
             SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from localized.SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
+              and EXISTS ( SELECT 1 from SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
           )
           or EXISTS (
             SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from localized.ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+              and EXISTS ( SELECT 1 from ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
           )
         )
       `)
