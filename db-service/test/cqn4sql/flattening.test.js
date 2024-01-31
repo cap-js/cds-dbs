@@ -164,7 +164,7 @@ describe('Flattening', () => {
             genre,
             genre_ID
           }`,
-        cds.linked(cds.compile.for.odata(model)),
+        cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))),
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
