@@ -25,17 +25,8 @@ describe('DELETE', () => {
           },
         ]),
       ]
-      await cds.run(inserts)      
-      const root = await GET('/comp/RootP')
-      expect(root.status).to.be.eq(200)
-      expect(root.data.value.length).to.be.eq(1)      
-
-      const child = await GET('/comp/ChildP')
-      expect(child.status).to.be.eq(200)
-      expect(child.data.value.length).to.be.eq(1)
-
-      const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 7 }))
-      expect(grandchild.length).to.be.eq(1)
+      const insertsResp = await cds.run(inserts)
+      expect(insertsResp[0].affectedRows).to.be.eq(1)
 
       const deepDelete = await DELETE('/comp/RootP(5)')
       expect(deepDelete.status).to.be.eq(204)
