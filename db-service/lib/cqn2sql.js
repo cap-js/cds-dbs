@@ -436,7 +436,7 @@ class CQN2SQLRenderer {
       INSERT.entries[0].type = 'json'
       this.entries = [[...this.values, INSERT.entries[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries))
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -579,7 +579,7 @@ class CQN2SQLRenderer {
       INSERT.rows[0].type = 'json'
       this.entries = [[...this.values, INSERT.rows[0]]]
     } else {
-      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows))
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
       this.entries = [[...this.values, stream]]
     }
@@ -837,8 +837,8 @@ class CQN2SQLRenderer {
       case 'number': return `${val}` // REVISIT for HANA
       case 'object':
         if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable); // go on with default below
+        if (val instanceof Date) val = val.toJSON() // returns null if invalid
+        else if (val instanceof Readable); // go on with default below
         else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)

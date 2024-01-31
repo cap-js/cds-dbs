@@ -1,5 +1,6 @@
-const { Readable, PassThrough, Stream } = require('stream')
+const { Readable, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
+const { text } = require('stream/consumers')
 
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
@@ -40,7 +41,7 @@ class HDBDriver extends driver {
 
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
-    for(const key in variables) {
+    for (const key in variables) {
       clientInfo.setProperty(key, variables[key])
     }
   }
@@ -69,8 +70,42 @@ class HDBDriver extends driver {
     })
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
+
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'execute')(values)
+        const cols = rs.metadata.map(b => b.columnName)
+        const stream = rs.createReadStream()
+
+        const result = []
+        for await (const row of stream) {
+          const obj = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // hdb returns large strings as streams sometimes
+            if (col === '_json_' && typeof row[col] === 'object') {
+              obj[col] = await text(row[col].createReadStream())
+              continue
+            }
+            obj[col] = i > 3
+              ? row[col] === null
+                ? null
+                : (
+                  row[col].createReadStream?.()
+                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                )
+              : row[col]
+          }
+          result.push(obj)
+        }
+        return result
+      }
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
@@ -98,11 +133,10 @@ class HDBDriver extends driver {
     if (!Array.isArray(values)) return { values: [], streams: [] }
     const streams = []
     values = values.map((v, i) => {
-      if (v instanceof Stream && !(v instanceof PassThrough)) {
+      if (v instanceof Stream) {
         streams[i] = v
-        const passThrough = new PassThrough()
-        v.pipe(passThrough)
-        return passThrough
+        const iterator = v[Symbol.asyncIterator]()
+        return Readable.from(iterator, { objectMode: false })
       }
       return v
     })
@@ -111,6 +145,10 @@ class HDBDriver extends driver {
       streams,
     }
   }
+}
+
+function* echoStream(ret) {
+  yield ret
 }
 
 async function* rsIterator(rs, one) {

@@ -221,6 +221,18 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
+    test('compare with DateTime column', async () => {
+      const entity = `basic.literals.dateTime`
+      const dateTime = '1970-02-02T10:09:34Z'
+      const timestamp = dateTime.slice(0,-1) + '.000Z'
+      await DELETE.from(entity)
+      await INSERT({ dateTime }).into(entity)
+      const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
+      assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
+      const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
+      assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+    })
+
     test.skip('ref select', async () => {
       // Currently not possible as cqn4sql does not recognize where.ref.id: 'basic.projection.globals' as an external source
       const cqn = {
