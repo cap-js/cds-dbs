@@ -1273,7 +1273,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedTokenStream.push({ list: getTransformedTokenStream(token.list) })
+          transformedTokenStream.push({ list: getTransformedTokenStream(token.list, $baseLink) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
