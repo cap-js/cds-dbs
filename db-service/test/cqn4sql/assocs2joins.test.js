@@ -926,13 +926,13 @@ describe('subqueries in from', () => {
       model,
     )
     const expected = CQL`SELECT from (
-          SELECT from bookshop.Books as Books
-            left outer join bookshop.Authors as author on author.ID = Books.author_ID
-          { Books.author_ID, Books.author_ID as a_ID, author.name as author_name }
+          SELECT from bookshop.Books as Books2
+            left outer join bookshop.Authors as author on author.ID = Books2.author_ID
+          { Books2.author_ID, Books2.author_ID as a_ID, author.name as author_name }
         ) as Bar
         left outer join bookshop.Authors as a on a.ID = Bar.a_ID
-        left outer join bookshop.Books as books2 on books2.author_ID = a.ID
-        { Bar.author_name, books2.descr as a_books_descr}
+        left outer join bookshop.Books as books on books.author_ID = a.ID
+        { Bar.author_name, books.descr as a_books_descr}
       `
     expect(query).to.deep.equal(expected)
   })
