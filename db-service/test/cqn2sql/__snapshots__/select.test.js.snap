@@ -32,9 +32,9 @@ exports[`cqn2sql WHERE entries where with place holder 1`] = `
 }
 `;
 
-exports[`cqn2sql WHERE select with a nested select in a complex where 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo.a FROM Foo as Foo WHERE Foo.x < 9)"`;
+exports[`cqn2sql WHERE select with a nested select in a complex where 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo2.a FROM Foo as Foo2 WHERE Foo2.x < 9)"`;
 
-exports[`cqn2sql WHERE select with a nested select in where 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.x IN (SELECT Foo.a FROM Foo as Foo WHERE Foo.x < 9)"`;
+exports[`cqn2sql WHERE select with a nested select in where 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.x IN (SELECT Foo2.a FROM Foo as Foo2 WHERE Foo2.x < 9)"`;
 
 exports[`cqn2sql WHERE where with partial cqn 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x = 9)"`;
 
@@ -128,7 +128,7 @@ exports[`cqn2sql quoted column aliases select with subselect in exists and colum
 
 exports[`cqn2sql quoted column aliases select with subselect with in and column aliases 1`] = `
 {
-  "sql": "SELECT Foo.a as A,? as ABC,Foo.x + 1 as Xpr1 FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo.a as B,Foo.x - 4 as Xpr2 FROM Foo as Foo WHERE Foo.x < 9)",
+  "sql": "SELECT Foo.a as A,? as ABC,Foo.x + 1 as Xpr1 FROM Foo as Foo WHERE ( Foo.x + 1 ) < 9 AND Foo.x IN (SELECT Foo2.a as B,Foo2.x - 4 as Xpr2 FROM Foo as Foo2 WHERE Foo2.x < 9)",
   "values": [
     "abc",
   ],
