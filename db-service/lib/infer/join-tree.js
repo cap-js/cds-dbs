@@ -101,9 +101,6 @@ class JoinTree {
     Object.entries(sources).forEach(entry => {
       const alias = this.addNextAvailableTableAlias(entry[0])
       this._roots.set(alias, new Root(entry))
-      if (entry[1].sources)
-        // respect outer aliases
-        this.addAliasesOfSubqueryInFrom(entry[1].sources)
     })
   }
 
