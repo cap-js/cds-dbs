@@ -975,9 +975,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      */
     function isManagedAssocInFlatMode(e) {
       return (
-        (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'assocs')) &&
-        e.isAssociation &&
-        e.keys
+        e.isAssociation && e.keys
+        && (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'structs'))
       )
     }
   }
