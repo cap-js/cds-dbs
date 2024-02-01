@@ -911,14 +911,17 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
     if (isLocalized(inferred.target)) q.SELECT.localized = true
-    if (!q.SELECT.from.as && !q.SELECT.from.uniqueSubqueryAlias) {
+    if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
+    return cqn4sql(q, model)
+
+    function assignUniqueSubqueryAlias() {
+      if (q.SELECT.from.uniqueSubqueryAlias) return
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
         getLastStringSegment(q.SELECT.from.ref[q.SELECT.from.ref.length - 1]),
         originalQuery.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
     }
-    return cqn4sql(q, model)
   }
 
   /**
