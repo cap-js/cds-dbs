@@ -296,8 +296,7 @@ describe('Structural comparison', () => {
     eqOps.forEach(op => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStrucSibling { ID } where not struc1 ${first} struc2`
-      const expectedError =
-        'Can\'t compare "struc1" with "struc2": Path "deeper.foo" not found in "struc2", Path "deeper.bar" not found in "struc2", Path "foo" not found in "struc1", Path "bar" not found in "struc1"'
+      const expectedError = 'Can\'t compare "struc1" with "struc2": the operands must have the same structure'
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(expectedError)
     })
   })
@@ -306,8 +305,7 @@ describe('Structural comparison', () => {
     eqOps.forEach(op => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStruc { ID } where not struc1 ${first} struc3`
-      const expectedError =
-        'Can\'t compare "struc1" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "struc1"'
+      const expectedError = 'Can\'t compare "struc1" with "struc3": the operands must have the same structure'
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(expectedError)
     })
   })
@@ -382,7 +380,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStrucSibling { ID } where not sibling.struc2 ${first} struc3`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        /Can't compare "sibling.struc2" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "sibling.struc2"/,
+        `Can't compare "sibling.struc2" with "struc3": the operands must have the same structure`,
       )
     })
   })
@@ -419,7 +417,7 @@ describe('Structural comparison', () => {
     const structuredRes = cqn4sql(query, model)
     const unfoldedRes = cqn4sql(query, unfolded)
     //> REVISIT: remove fallback once UCSN is the new standard
-    if(unfolded.meta.unfolded) {
+    if (unfolded.meta.unfolded) {
       expect(structuredRes).to.eql(expected).to.eql(unfoldedRes)
     } else {
       // with odata csn, the on condition of the assoc is wrapped in xpr
