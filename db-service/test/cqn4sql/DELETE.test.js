@@ -107,7 +107,7 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
 
-  it('dont mess up everything', () => {
+  it('in a list with exactly one val, dont transform to key comparison', () => {
     const query = {
       DELETE: {
         from: {
