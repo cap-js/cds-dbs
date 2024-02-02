@@ -674,7 +674,7 @@ describe('table alias access', () => {
         model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`,
+        CQL`SELECT from (SELECT from bookshop.Books as Books2 { Books2.ID, Books2.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
     it('explicit alias for FROM subquery', () => {
@@ -930,7 +930,7 @@ describe('table alias access', () => {
             where: [
               { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
               'in',
-              CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+              CQL`SELECT ID from bookshop.Books where ID = 5`,
             ],
           },
         ],

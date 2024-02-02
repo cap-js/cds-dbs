@@ -55,7 +55,7 @@ exports[`expressions with complex xpr 1`] = `
 
 exports[`expressions with exists 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE exists (SELECT Foo2.name FROM Foo2 as Foo2) or not exists (SELECT Foo2.name FROM Foo2 as Foo2)",
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE exists (SELECT Foo2.name FROM Foo2 as Foo2) or not exists (SELECT Foo22.name FROM Foo2 as Foo22)",
   "values": [],
 }
 `;
