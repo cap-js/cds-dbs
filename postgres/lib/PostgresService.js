@@ -455,6 +455,7 @@ GROUP BY k
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Association: e => `jsonb(${e})`,
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
     }
