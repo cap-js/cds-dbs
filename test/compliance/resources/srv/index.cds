@@ -4,12 +4,14 @@ service ComplexService @(path:'/comp') {
     entity RootP  as
         projection on my.Root {
             key ID,
-                children
+            fooRoot,
+            children
         };
 
     entity ChildP as
         projection on my.Child {
             key ID,
-                parent
+            fooChild,
+            parent
         }
 }

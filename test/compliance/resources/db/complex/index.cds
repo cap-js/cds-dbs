@@ -15,16 +15,19 @@ entity Authors {
 
 entity Root {
     key ID : Integer;
+    fooRoot: String;
     children : Composition of many Child on children.parent = $self;
 }
 
 entity Child {
     key ID: Integer;
+    fooChild: String;
     parent: Association to one Root;
     children: Composition of many GrandChild on children.parent = $self
 }
 
 entity GrandChild {
     key ID: Integer;
+    fooGrandChild: String;
     parent: Association to one Child;
 }
