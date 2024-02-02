@@ -107,6 +107,82 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
 
+  it('dont mess up everything', () => {
+    const query = {
+      DELETE: {
+        from: {
+          ref: [
+            {
+              id: 'bookshop.Books',
+              where: [
+                {
+                  ref: ['ID'],
+                },
+                'in',
+                {
+                  list: [
+                    {
+                      val: 'b6248f67-6f8b-4816-a096-0b65c2349143',
+                    },
+                  ],
+                },
+              ],
+            },
+            'author',
+          ],
+        },
+      },
+    }
+
+    const expected = {
+      DELETE: {
+        from: {
+          ref: ['bookshop.Authors'],
+          as: 'author',
+        },
+        where: [
+          'exists',
+          {
+            SELECT: {
+              from: {
+                ref: ['bookshop.Books'],
+                as: 'Books',
+              },
+              columns: [
+                {
+                  val: 1,
+                },
+              ],
+              where: [
+                {
+                  ref: ['Books', 'author_ID'],
+                },
+                '=',
+                {
+                  ref: ['author', 'ID'],
+                },
+                'and',
+                {
+                  ref: ['Books', 'ID'],
+                },
+                'in',
+                {
+                  list: [
+                    {
+                      val: 'b6248f67-6f8b-4816-a096-0b65c2349143',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }
+    const res = cqn4sql(query)
+    expect(res).to.deep.equal(expected)
+  })
+
   it('DELETE with assoc filter and where exists expansion', () => {
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup')
