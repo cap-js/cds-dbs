@@ -393,7 +393,9 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                x.element._foreignKeys.forEach(k => {
+                let fkeys = x.element._foreignKeys()
+                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
+                fkeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -759,8 +761,8 @@ class HANAService extends SQLService {
 
     /**
      * Checks if the xpr is a comparison or a value
-     * @param {} xpr 
-     * @returns 
+     * @param {} xpr
+     * @returns
      */
     is_comparator({ xpr }, start) {
       for (let i = start ?? xpr.length; i > -1; i--) {
