@@ -916,8 +916,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
+      const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-        getLastStringSegment(q.SELECT.from.ref[q.SELECT.from.ref.length - 1]),
+        getLastStringSegment(last.id||last),
         originalQuery.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
