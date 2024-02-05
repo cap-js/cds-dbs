@@ -101,9 +101,6 @@ class JoinTree {
     Object.entries(sources).forEach(entry => {
       const alias = this.addNextAvailableTableAlias(entry[0])
       this._roots.set(alias, new Root(entry))
-      if (entry[1].sources)
-        // respect outer aliases
-        this.addAliasesOfSubqueryInFrom(entry[1].sources)
     })
   }
 
@@ -148,7 +145,6 @@ class JoinTree {
    *
    * It begins by inferring the source of the given column, which is the table alias where the column is resolvable.
    * Each step during this process represents a node in the join tree. If a node already exists in the tree, the current step is replaced by the already merged node.
-   * For each step, it checks whether it has been seen before. If so, it resets the $refLink to point to the already merged $refLink.
    * If not, it creates a new Node and ensures proper aliasing and foreign key access.
    *
    * @param {object} col - The column object to be merged into the existing join tree. This object should have the properties $refLinks and ref.
@@ -181,7 +177,10 @@ class JoinTree {
       if (next) {
         // step already seen before
         node = next
-        col.$refLinks[i] = node.$refLink // re-set $refLink to point to already merged $refLink
+        // re-set $refLink to equal the one which got already merged
+        col.$refLinks[i].alias = node.$refLink.alias
+        col.$refLinks[i].definition = node.$refLink.definition
+        col.$refLinks[i].target = node.$refLink.target
       } else {
         if (col.expand && !col.ref[i + 1]) {
           node.$refLink.onlyForeignKeyAccess = false
@@ -198,9 +197,11 @@ class JoinTree {
           }
           child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias, outerQueries)
         }
-
-        const foreignKeys = node.$refLink?.definition.foreignKeys
-        if (node.$refLink && (!foreignKeys || !(child.$refLink.alias in foreignKeys)))
+        //> REVISIT: remove fallback once UCSN is standard
+        const elements =
+          node.$refLink?.definition.isAssociation &&
+          (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
+        if (node.$refLink && (!elements || !(child.$refLink.alias in elements)))
           // foreign key access
           node.$refLink.onlyForeignKeyAccess = false
 

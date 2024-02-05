@@ -6,10 +6,16 @@ const cds = require('@sap/cds/lib')
 /** @typedef {unknown} DatabaseDriver */
 
 class DatabaseService extends cds.Service {
+
+  init() {
+    cds.on('shutdown', () => this.disconnect())
+    return super.init()
+  }
+
   /**
    * Dictionary of connection pools per tenant
    */
-  pools = { _factory: this.factory }
+  pools = Object.setPrototypeOf({}, { _factory: this.factory })
 
   /**
    * Return a pool factory + options property as expected by
@@ -44,7 +50,9 @@ class DatabaseService extends cds.Service {
   async begin() {
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
-    if (!ctx) return this.tx().begin() // REVISIT: Is this correct? When does this happen?
+
+    // If .begin is called explicitly it starts a new transaction and executes begin
+    if (!ctx) return this.tx().begin()
 
     // REVISIT: tenant should be undefined if !this.isMultitenant
     let isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
@@ -55,6 +63,7 @@ class DatabaseService extends cds.Service {
 
     // Acquire a pooled connection
     this.dbc = await this.acquire()
+    this.dbc.destroy = this.destroy.bind(this)
 
     // Begin a session...
     try {
@@ -81,12 +90,11 @@ class DatabaseService extends cds.Service {
    */
   async rollback() {
     if (!this.dbc) return
-    else
-      try {
-        await this.send('ROLLBACK')
-      } finally {
-        this.release()
-      }
+    try {
+      await this.send('ROLLBACK')
+    } finally {
+      this.release()
+    }
   }
 
   /**
@@ -102,19 +110,32 @@ class DatabaseService extends cds.Service {
    * This is for subclasses to intercept, if required.
    */
   async release() {
-    return this.pool.release(this.dbc)
+    if (!this.dbc) return
+    const dbc = this.dbc
+    this.dbc = undefined
+    await this.pool.release(dbc)
+  }
+
+  /**
+   * Destroys own connection, i.e. tix.dbc, from this.pool
+   * This is for subclasses to intercept, if required.
+   */
+  async destroy() {
+    if (!this.dbc) return
+    const dbc = this.dbc
+    this.dbc = undefined
+    await this.pool.destroy(dbc)
   }
 
   // REVISIT: should happen automatically after a configurable time
-  /**
-   * @param {string} tenant
-   */
-  async disconnect(tenant) {
-    const pool = this.pools[tenant]
-    if (!pool) return
-    await pool.drain()
-    await pool.clear()
-    delete this.pools[tenant]
+  async disconnect (tenant) {
+    const tenants = tenant ? [tenant] : Object.keys(this.pools)
+    await Promise.all (tenants.map (async t => {
+      const pool = this.pools[t]; if (!pool) return
+      await pool.drain()
+      await pool.clear()
+      delete this.pools[t]
+    }))
   }
 
   /**

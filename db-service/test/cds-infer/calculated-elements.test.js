@@ -53,6 +53,9 @@ describe('Infer types of calculated elements in select list', () => {
       authorFullNameWithAddress: Books.elements.authorFullNameWithAddress,
       authorAdrText: Books.elements.authorAdrText,
       authorAge: Books.elements.authorAge,
+      youngAuthorName: Books.elements.youngAuthorName,
+      authorAgeNativePG: Books.elements.authorAgeNativePG,
+      authorAgeInDogYears: Books.elements.authorAgeInDogYears,
     })
   })
 })

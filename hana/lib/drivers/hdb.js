@@ -1,10 +1,18 @@
-const { Readable, PassThrough, Stream } = require('stream')
+const { Readable, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
+const { text } = require('stream/consumers')
 
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+
+const credentialMappings = [
+  { old: 'certificate', new: 'ca' },
+  { old: 'encrypt', new: 'useTLS' },
+  { old: 'sslValidateCertificate', new: 'rejectUnauthorized' },
+  { old: 'validate_certificate', new: 'rejectUnauthorized' },
+]
 
 class HDBDriver extends driver {
   /**
@@ -14,23 +22,93 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       useCesu8: false,
-      rejectUnauthorized: !!creds.sslValidateCertificate,
       fetchSize: 1 << 16, // V8 default memory page size
-      useTLS: creds.useTLS || creds.encrypt,
       ...creds,
     }
+
+    // Retain hana credential mappings to hdb / node credential mapping
+    for (const m of credentialMappings) {
+      if (m.old in creds && !(m.new in creds)) creds[m.new] = creds[m.old]
+    }
+
     super(creds)
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
+    this._native.on('close', () => this.destroy?.())
 
     this.connected = false
   }
 
-  async prepare(sql) {
+  set(variables) {
+    const clientInfo = this._native._connection.getClientInfo()
+    for (const key in variables) {
+      clientInfo.setProperty(key, variables[key])
+    }
+  }
+
+  async validate() {
+    return this._native.readyState === 'connected'
+  }
+
+  /**
+   * Connects the driver using the provided credentials
+   * @returns {Promise<any>}
+   */
+  async connect() {
+    this.connected = prom(this._native, 'connect')(this._creds)
+    return this.connected.then(async () => {
+      const [version] = await Promise.all([
+        prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"'),
+        this._creds.schema && prom(this._native, 'exec')(`SET SCHEMA ${this._creds.schema}`),
+      ])
+      const split = version[0].VERSION.split('.')
+      this.server = {
+        major: split[0],
+        minor: split[2],
+        patch: split[3],
+      }
+    })
+  }
+
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
+
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'execute')(values)
+        const cols = rs.metadata.map(b => b.columnName)
+        const stream = rs.createReadStream()
+
+        const result = []
+        for await (const row of stream) {
+          const obj = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // hdb returns large strings as streams sometimes
+            if (col === '_json_' && typeof row[col] === 'object') {
+              obj[col] = await text(row[col].createReadStream())
+              continue
+            }
+            obj[col] = i > 3
+              ? row[col] === null
+                ? null
+                : (
+                  row[col].createReadStream?.()
+                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                )
+              : row[col]
+          }
+          result.push(obj)
+        }
+        return result
+      }
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
-      const rs = await prom(stmt, 'execute')(values)
+      const rs = await prom(stmt, 'execute')(values || [])
       const cols = rs.metadata
       // If the query only returns a single row with a single blob it is the final stream
       if (cols.length === 1 && cols[0].length === -1) {
@@ -55,11 +133,10 @@ class HDBDriver extends driver {
     if (!Array.isArray(values)) return { values: [], streams: [] }
     const streams = []
     values = values.map((v, i) => {
-      if (v instanceof Stream && !(v instanceof PassThrough)) {
+      if (v instanceof Stream) {
         streams[i] = v
-        const passThrough = new PassThrough()
-        v.pipe(passThrough)
-        return passThrough
+        const iterator = v[Symbol.asyncIterator]()
+        return Readable.from(iterator, { objectMode: false })
       }
       return v
     })
@@ -68,6 +145,10 @@ class HDBDriver extends driver {
       streams,
     }
   }
+}
+
+function* echoStream(ret) {
+  yield ret
 }
 
 async function* rsIterator(rs, one) {
@@ -104,6 +185,10 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
+          .catch(() => {
+            // TODO: check whether the error is early close
+            return true
+          })
       }
     },
     ensure(size) {
@@ -113,7 +198,7 @@ async function* rsIterator(rs, one) {
       }
       return raw.next().then(next => {
         if (next.done) {
-          throw new Error('Trying to read more byte then are available')
+          throw new Error('Trying to read more bytes than are available')
         }
         // Write processed buffer to stream
         if (this.writing) this.yields.push(this.buffer.slice(0, this.writing))
@@ -226,8 +311,9 @@ async function* rsIterator(rs, one) {
 
     state.inject(handleLevel(levels, path, expands))
 
+    // REVISIT: allow streaming with both NVARCHAR and NCLOB
     // Read and write JSON blob data
-    const jsonLength = readBlob(state)
+    const jsonLength = readString(state, true)
     let hasProperties = (typeof jsonLength === 'number' ? jsonLength : await jsonLength) > 2
 
     for (const blobColumn of nativeBlobs) {
@@ -279,9 +365,9 @@ async function* rsIterator(rs, one) {
   rs.close()
 }
 
-const readString = function (state) {
+const readString = function (state, isJson = false) {
   let ens = state.ensure(1)
-  if (ens) return ens.then(() => readString(state))
+  if (ens) return ens.then(() => readString(state, isJson))
 
   let length = state.buffer[state.reading]
   let offset = 1
@@ -290,21 +376,26 @@ const readString = function (state) {
       throw new Error('Missing stream metadata')
     case 0xf6:
       ens = state.ensure(2)
-      if (ens) return ens.then(() => readString(state))
-      length = state.buffer.readInt16LE(state.reading)
-      offset = 2
+      if (ens) return ens.then(() => readString(state, isJson))
+      length = state.buffer.readInt16LE(state.reading + offset)
+      offset += 2
       break
     case 0xf7:
       ens = state.ensure(4)
-      if (ens) return ens.then(() => readString(state))
-      length = state.buffer.readInt32LE(state.reading)
-      offset = 4
+      if (ens) return ens.then(() => readString(state, isJson))
+      length = state.buffer.readInt32LE(state.reading + offset)
+      offset += 4
       break
     default:
   }
 
   // Read the string value
   state.read(offset)
+  if (isJson) {
+    state.write(length - 1)
+    state.read(1)
+    return length
+  }
   return state.slice(length)
 }
 

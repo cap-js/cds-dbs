@@ -8,7 +8,12 @@ const generateUUIDandPropagateKeys = (target, data, event) => {
   if (!data) return
   const keys = target.keys
   for (const key in keys) {
-    if (keys[key].type === 'cds.UUID' && !data[key] && event === 'CREATE') {
+    const keyElement = keys[key]
+    if (
+      keyElement.type === 'cds.UUID' &&
+      !data[key] && event === 'CREATE' && 
+      !keyElement.parent.elements[keyElement._foreignKey4]?._isAssociationStrict
+    ) {
       data[key] = cds.utils.uuid()
     }
   }
@@ -62,7 +67,7 @@ module.exports = async function fill_in_keys(req, next) {
   }
 
   // REVISIT no input processing for INPUT with rows/values
-  if (req.event !== 'DELETE' && !(req.query.INSERT?.rows || req.query.INSERT?.values)) {
+  if (!(req.query.INSERT?.rows || req.query.INSERT?.values)) {
     if (Array.isArray(req.data)) {
       for (const d of req.data) {
         generateUUIDandPropagateKeys(req.target, d, req.event)

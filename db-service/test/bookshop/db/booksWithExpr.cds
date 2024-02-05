@@ -21,6 +21,9 @@ entity Books {
   volume : Decimal = area * height;
   storageVolume : Decimal = stock * volume;
 
+  // use calc element in infix filter
+  youngAuthorName: String = author[age < 50].name;
+
   // -- with paths
   authorLastName = author.lastName;
   authorName = author.name;
@@ -29,13 +32,23 @@ entity Books {
   authorAdrText = author.addressText;
 
   authorAge: Integer = years_between( author.sortCode, author.sortCode );
+  authorAgeNativePG: Integer = DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth);
+  
+  // calculated element is `xpr` which has subsequent `xpr`
+  authorAgeInDogYears: Integer = ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7;
 }
 
 entity Authors {
   key ID : Integer;
+
   firstName : String;
   lastName : String;
- 
+  
+  dateOfBirth  : Date;
+  dateOfDeath  : Date;
+  
+  age: Integer = years_between(dateOfBirth, dateOfDeath);
+
   books : Association to many Books on books.author = $self;
   address : Association to Addresses;
 

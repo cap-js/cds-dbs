@@ -134,3 +134,9 @@ dist
 
 # NPM
 .npmrc
+
+# cds-typer
+@cds-models/
+
+# cds temp folders
+**/_out
