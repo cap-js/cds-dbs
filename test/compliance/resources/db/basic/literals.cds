@@ -53,6 +53,10 @@ entity array {
 }
 
 entity binaries {
-     binary : Binary;
-     largebinary : LargeBinary;
+    binary      : Binary;
+    largebinary : LargeBinary;
+}
+
+entity vectors {
+    vector : Vector;
 }
