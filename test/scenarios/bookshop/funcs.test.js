@@ -1,8 +1,7 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET } = cds.test(bookshop)
+  const { expect, GET } = cds.test().in(__dirname,'../../bookshop')
 
   describe('String Functions', () => {
     test('concat', async () => {
@@ -19,7 +18,7 @@ describe('Bookshop - Functions', () => {
 
     test('avg', async () => {
       const { Books } = cds.entities
-      const res = await cds.run(CQL`SELECT from ${Books} { 
+      const res = await cds.run(CQL`SELECT from ${Books} {
         average(stock) as avgStock
       }`)
       expect(res[0].avgStock).to.not.be.undefined

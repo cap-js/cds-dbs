@@ -1,3 +1,4 @@
+// REVISIT: this is starting a new test server per test file -> bad
 require('./read.test')
 require('./delete.test')
 require('./update.test')
