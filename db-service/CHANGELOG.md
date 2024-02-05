@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.0...db-service-v1.6.1) (2024-02-05)
+
+
+### Fixed
+
+* URGENT: fix bug with missing ref.id || ref ([#440](https://github.com/cap-js/cds-dbs/issues/440)) ([3e2ef24](https://github.com/cap-js/cds-dbs/commit/3e2ef2429701f37853117c0f902a198aded767d9))
+
 ## [1.6.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.5.1...db-service-v1.6.0) (2024-02-02)
 
 
