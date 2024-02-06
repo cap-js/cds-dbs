@@ -202,7 +202,7 @@ class SQLService extends DatabaseService {
             {
               id: transitions.target.name,
               where: [
-                { list: Object.keys(transitions.target.keys || {}).map(k => ({ ref: [k] })) },
+                { list: matchedKeys.map(k => transitions.mapping.get(k.ref[0])) },
                 'in',
                 SELECT.from(req.query.DELETE.from).columns(matchedKeys).where(req.query.DELETE.where),
               ],
