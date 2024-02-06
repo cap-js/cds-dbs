@@ -393,7 +393,7 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                let fkeys = x.element._foreignKeys()
+                let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
