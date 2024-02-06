@@ -27,7 +27,21 @@ entity Child {
 }
 
 entity GrandChild {
-    key ID: Integer;
-    fooGrandChild: String;
-    parent: Association to one Child;
+  key ID            : Integer;
+      fooGrandChild : String;
+      parent        : Association to one Child;
 }
+
+entity RootP  as
+  projection on Root {
+    key ID,
+        fooRoot,
+        children
+  };
+
+entity ChildP as
+  projection on Child {
+    key ID,
+        fooChild,
+        parent
+  }
