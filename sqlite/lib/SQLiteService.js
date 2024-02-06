@@ -191,7 +191,8 @@ class SQLiteService extends SQLService {
 
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
-      struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
+      Association: expr => `${expr}->'$'`,
+      struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
 
       // SQLite has no booleans so we need to convert 0 and 1
