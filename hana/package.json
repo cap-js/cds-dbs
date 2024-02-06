@@ -13,6 +13,7 @@
   "files": [
     "cds-plugin.js",
     "lib",
+    "bin",
     "CHANGELOG.md"
   ],
   "engines": {
@@ -32,6 +33,9 @@
   "peerDependencies": {
     "@sap/hana-client": ">=2",
     "@sap/cds": ">=7"
+  },
+  "bin": {
+    "hana": "./bin/hana.js"
   },
   "cds": {
     "requires": {
