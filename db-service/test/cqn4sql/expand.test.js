@@ -278,6 +278,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('nested expand with unmanaged backlink', () => {
+    const localized_ = cds.unfold ? '' : 'localized.'
     let expandQuery = CQL`select from bookshop.DataRestrictions {
       *,
       dataRestrictionAccessGroups {
@@ -288,11 +289,11 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     }`
-    let expected = CQL`
-      select from bookshop.DataRestrictions as DataRestrictions {
+    let expected = CQL(`
+      select from ${localized_}bookshop.DataRestrictions as DataRestrictions {
         DataRestrictions.ID,
         (
-          select from bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
+          select from ${localized_}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
             dataRestrictionAccessGroups.dataRestrictionID,
             dataRestrictionAccessGroups.accessGroupID,
             (
@@ -303,7 +304,7 @@ describe('Unfold expands on associations to special subselects', () => {
           } where DataRestrictions.ID = dataRestrictionAccessGroups.dataRestrictionID
         ) as dataRestrictionAccessGroups
       }
-    `
+    `)
     // seems to only happen with the `for.nodejs(…)` compiled model
     expandQuery.SELECT.localized = true
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.deep.equal(expected)

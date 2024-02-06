@@ -729,7 +729,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               // if overwritten/excluded omit from wildcard elements
               // in elements the names are already flat so consider the prefix
               // in excluding, the elements are addressed without the prefix
-              if (!(name in elements || col.excluding?.some(e => e === k))) wildCardElements[name] = v
+              if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
             })
             elements = { ...elements, ...wildCardElements }
           } else {
@@ -1134,15 +1134,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
  * Returns true if e is a foreign key of assoc.
  * this function is also compatible with unfolded csn (UCSN),
  * where association do not have foreign keys anymore.
- *
- * @param {*} e 
- * @param {*} assoc
- * @returns 
  */
 function isForeignKeyOf(e, assoc) {
   if(!assoc.isAssociation) return false
-  if(assoc.foreignKeys) return e in assoc.foreignKeys
-  return assoc.elements && e in assoc.elements
+  return e in (assoc.elements || assoc.foreignKeys)
 }
 const idOnly = ref => ref.id || ref
 
