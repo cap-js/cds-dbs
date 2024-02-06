@@ -57,6 +57,9 @@ entity binaries {
     largebinary : LargeBinary;
 }
 
+
+/* Exlcuded from the tests until fully supported
 entity vectors {
     vector : Vector;
 }
+*/
