@@ -35,14 +35,14 @@ describe('DELETE', () => {
 
       //const root2 = await GET('/comp/RootP')
       const root = await cds.run(SELECT.one.from(RootP).where({ ID: 5 }))
-      expect(root).to.be.eq(undefined)
+      expect(root).to.not.exist
 
       //const child2 = await GET('/comp/ChildP')
       const child = await cds.run(SELECT.one.from(ChildP).where({ ID: 6 }))
-      expect(child).to.be.eq(undefined)
+      expect(child).to.not.exist
 
-      const grandchild2 = await cds.run(SELECT.from(GrandChild))
-      expect(grandchild2.length).to.be.eq(0)
+      const grandchild2 = await cds.run(SELECT.one.from(GrandChild).where({ ID: 7 }))
+      expect(grandchild2).to.not.exist
     })
 
     test.skip('missing', () => {
