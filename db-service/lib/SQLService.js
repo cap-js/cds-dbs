@@ -194,15 +194,20 @@ class SQLService extends DatabaseService {
     async function deep_delete(/** @type {Request} */ req) {
       const transitions = getTransition(req.query.target, this)
       if (transitions.target !== transitions.queryTarget) {
-        const matchedKeys = Object.keys(transitions.queryTarget.keys)
-          .filter(key => transitions.mapping.has(key))
+        const elements = transitions.queryTarget.keys
+          ? Object.keys(transitions.queryTarget.keys)
+          : Object.keys(transitions.queryTarget.elements).filter(
+              key => !transitions.queryTarget.elements[key].isAssociation,
+            )
+        const matchedKeys = elements
+          .filter(key => key !== 'IsActiveEntity' && transitions.mapping.has(key))
           .map(k => ({ ref: [k] }))
         const query = DELETE.from({
           ref: [
             {
               id: transitions.target.name,
               where: [
-                { list: Object.keys(transitions.target.keys || {}).map(k => ({ ref: [k] })) },
+                { list: matchedKeys.map(k => transitions.mapping.get(k.ref[0])) },
                 'in',
                 SELECT.from(req.query.DELETE.from).columns(matchedKeys).where(req.query.DELETE.where),
               ],
