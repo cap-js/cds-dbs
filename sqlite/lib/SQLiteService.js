@@ -259,7 +259,7 @@ class SQLiteService extends SQLService {
 }
 
 // function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign ({
+//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
 //     code: 'MUST_NOT_BE_NULL',
 //     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
 //     message: 'Value is required',
@@ -268,7 +268,7 @@ class SQLiteService extends SQLService {
 
 function _not_unique(err, code) {
   if (err.message.match(/unique constraint/i))
-    return Object.assign({
+    return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
