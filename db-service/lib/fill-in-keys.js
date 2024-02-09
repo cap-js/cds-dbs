@@ -17,7 +17,7 @@ const assoc4 = (e) => e.own('$fk4', ()=> {
         const tail = path.slice(i)
         if (a.keys.some (k => k.ref.every((r,i) => r === tail[i]))) {
           // process.stdout.write('> resolved assoc: ' + a.name + ' for: ' + this.name + '\n')
-          return a
+          return a.name
         }
       }
       return // not an assoc, or not the one we're looking for
