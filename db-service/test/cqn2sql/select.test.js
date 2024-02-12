@@ -307,6 +307,50 @@ describe('cqn2sql', () => {
   })
 
   describe('functions new notation', () => {
+    test('function with xpr', () => {
+      const { sql, values } = cqn2sql({
+        SELECT: {
+          from: { ref: ['Foo'] },
+          columns: [
+            {
+              func: 'replace_regexpr',
+              args: [
+                {
+                  xpr: [{ val: 'A' }, 'flag', { val: 'i' }, 'in', { val: 'ABC-abc-AAA-aaa' }, 'with', { val: 'B' }],
+                },
+              ],
+              as: 'replaced',
+            },
+          ],
+        },
+      })
+      expect(sql).toMatchSnapshot()
+      expect(values).toMatchSnapshot()
+    })
+
+    test('function with multiple xpr', () => {
+      const { sql, values } = cqn2sql({
+        SELECT: {
+          from: { ref: ['Foo'] },
+          columns: [
+            {
+              func: 'replace_regexpr',
+              args: [
+                { ref: ['a'] },
+                { val: 5 },
+                {
+                  xpr: [{ val: 'A' }, 'flag', { val: 'i' }, 'in', { val: 'ABC-abc-AAA-aaa' }, 'with', { val: 'B' }],
+                },
+              ],
+              as: 'replaced',
+            },
+          ],
+        },
+      })
+      expect(sql).toMatchSnapshot()
+      expect(values).toMatchSnapshot()
+    })
+
     test('in orderby with 1 arg new notation', () => {
       const { sql } = cqn2sql({
         SELECT: {

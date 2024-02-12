@@ -96,6 +96,13 @@ class HANADriver {
   }
 
   /**
+   * Starts a new transaction
+   */
+  async begin() {
+    this._native.setAutoCommit(false)
+  }
+
+  /**
    * Commits the current transaction
    */
   async commit() {

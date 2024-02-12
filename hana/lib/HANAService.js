@@ -971,7 +971,10 @@ class HANAService extends SQLService {
     return super.onPlainSQL(req, next)
   }
 
-  onBEGIN() { }
+  onBEGIN() {
+    DEBUG?.('BEGIN')
+    return this.dbc?.begin()
+  }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
