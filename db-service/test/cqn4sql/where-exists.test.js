@@ -1321,7 +1321,8 @@ describe('cap issue', () => {
     let query = cqn4sql(cqn, model)
     // cleanup
     delete cqn.SELECT.localized
-    expect(query).to.deep.equal(CQL`
+    const localized_ = cds.unfold ? '' : 'localized.'
+    expect(query).to.deep.equal(CQL(`
     SELECT from localized.Boo as boos { boos.ID }
         WHERE EXISTS (
           SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
@@ -1329,14 +1330,14 @@ describe('cap issue', () => {
         (
           EXISTS (
             SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from localized.SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
+              and EXISTS ( SELECT 1 from ${localized_}SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
           )
           or EXISTS (
             SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from localized.ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+              and EXISTS ( SELECT 1 from ${localized_}ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
           )
         )
-      `)
+      `))
   })
 })
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
