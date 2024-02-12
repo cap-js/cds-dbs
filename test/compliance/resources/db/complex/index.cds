@@ -34,22 +34,24 @@ entity GrandChild {
       parent        : Association to one Child;
 }
 
-entity RootWithKeys as
+entity RootPWithKeys   as
   projection on Root {
     key ID,
         fooRoot,
         children
   };
 
-entity RootNoKeys   as
+entity RootPNoKeys     as
   projection on Root {
     fooRoot,
     children
   }
 
-entity ChildP       as
+entity ChildP          as
   projection on Child {
     key ID,
         fooChild,
         parent
   }
+
+entity ChildPWithWhere as projection on Child where fooChild = 'bar'
