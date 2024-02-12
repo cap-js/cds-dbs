@@ -85,6 +85,28 @@ exports[`cqn2sql complex combinations Exists in object mode in complex where 1`]
 
 exports[`cqn2sql complex combinations WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET 1`] = `"SELECT Foo.x + 1 as foo1,Foo.b,Foo.c FROM Foo as Foo WHERE Foo.ID = 111 GROUP BY Foo.x HAVING Foo.x < 9 ORDER BY c ASC LIMIT 11 OFFSET 22"`;
 
+exports[`cqn2sql functions new notation function with multiple xpr 1`] = `"SELECT replace_regexpr(Foo.a,5,? flag ? in ? with ?) as replaced FROM Foo as Foo"`;
+
+exports[`cqn2sql functions new notation function with multiple xpr 2`] = `
+[
+  "A",
+  "i",
+  "ABC-abc-AAA-aaa",
+  "B",
+]
+`;
+
+exports[`cqn2sql functions new notation function with xpr 1`] = `"SELECT replace_regexpr(? flag ? in ? with ?) as replaced FROM Foo as Foo"`;
+
+exports[`cqn2sql functions new notation function with xpr 2`] = `
+[
+  "A",
+  "i",
+  "ABC-abc-AAA-aaa",
+  "B",
+]
+`;
+
 exports[`cqn2sql functions new notation in filter with 1 arg new notation 1`] = `
 {
   "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE lower(Foo.c) = ?",
