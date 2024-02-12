@@ -24,13 +24,13 @@ describe('DELETE', () => {
                   children: [
                     {
                       ID: 8,
-                      fooGrandChild: 'bar',
+                      fooGrandChild: 'foo',
                     },
                   ],
                 },
                 {
                   ID: 7,
-                  fooChild: 'foo',
+                  fooChild: 'bar',
                   children: [
                     {
                       ID: 9,
@@ -53,11 +53,11 @@ describe('DELETE', () => {
         const root = await cds.run(SELECT.one.from(Root).where({ ID: 5 }))
         expect(root).to.not.exist
 
-        const child = await cds.run(SELECT.one.from(Child).where({ ID: 6, or: { ID: 7 } }))
-        expect(child).to.not.exist
+        const child = await cds.run(SELECT.from(Child).where({ ID: 6, or: { ID: 7 } }))
+        expect(child.length).to.be.eq(0)
 
-        const grandchild2 = await cds.run(SELECT.one.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
-        expect(grandchild2).to.not.exist
+        const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
+        expect(grandchild.length).to.be.eq(0)
       })
 
       test('on root with no keys', async () => {
@@ -67,23 +67,23 @@ describe('DELETE', () => {
         const root = await cds.run(SELECT.one.from(Root).where({ ID: 5 }))
         expect(root).to.not.exist
 
-        const child = await cds.run(SELECT.one.from(Child).where({ ID: 6, or: { ID: 7 } }))
-        expect(child).to.not.exist
+        const child = await cds.run(SELECT.from(Child).where({ ID: 6, or: { ID: 7 } }))
+        expect(child.length).to.be.eq(0)
 
-        const grandchild = await cds.run(SELECT.one.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
-        expect(grandchild).to.not.exist
+        const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
+        expect(grandchild.length).to.be.eq(0)
       })
 
       test('on child with where', async () => {
         // only delete entries where fooChild = 'bar'
-        const deepDelete = await cds.run(DELETE.from(ChildPWithWhere))
+        const deepDelete = await cds.run(DELETE.from(ChildPWithWhere).where({ ID: 6 }))
         expect(deepDelete).to.be.eq(1)
 
-        const child = await cds.run(SELECT.one.from(Child).where({ ID: 6, or: { ID: 7 } }))
-        expect(child.ID).to.be.eq(7)
+        const child = await cds.run(SELECT.from(Child).where({ ID: 6, or: { ID: 7 } }))
+        expect(child[0].ID).to.be.eq(7)
 
-        const grandchild = await cds.run(SELECT.one.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
-        expect(grandchild.ID).to.be.eq(9)
+        const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
+        expect(grandchild[0].ID).to.be.eq(9)
       })
     })
 
