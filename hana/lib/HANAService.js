@@ -673,6 +673,7 @@ class HANAService extends SQLService {
         */
       }
 
+      let endWithCompare = false
       if (!_internal) {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
@@ -683,6 +684,7 @@ class HANAService extends SQLService {
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
             if (x in compareOperators) {
+              endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
@@ -721,14 +723,17 @@ class HANAService extends SQLService {
         }
       }
 
-      let endWithCompare = false
       const sql = []
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
-          if (x.toUpperCase() in logicOperators) {
+          const up = x.toUpperCase()
+          if (up in logicOperators) {
             // Force current expression to end with a comparison
             endWithCompare = true
+          }
+          if (endWithCompare && (up in caseOperators || up === ')')) {
+            endWithCompare = false
           }
           sql.push(this.operator(x, i, xpr))
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
