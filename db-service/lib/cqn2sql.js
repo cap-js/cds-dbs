@@ -479,10 +479,11 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (val === undefined) continue
           if (elements[key]?.type in BINARY_TYPES) {
             val = transformBase64(val)
           }
-          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
+          buffer += `${keyJSON}${JSON.stringify(val)}`
         }
       }
       buffer += '}'
