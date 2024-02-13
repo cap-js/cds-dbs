@@ -645,7 +645,9 @@ class HANAService extends SQLService {
     }
 
     where(xpr) {
-      return this.xpr({ xpr: [...xpr, 'THEN'] }).slice(0, -4)
+      xpr = { xpr }
+      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
+      return `${this.xpr(xpr)}${suffix}`
     }
 
     having(xpr) {
@@ -719,20 +721,26 @@ class HANAService extends SQLService {
         }
       }
 
+      let endWithCompare = false
       const sql = []
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
+          if (x.toUpperCase() in logicOperators) {
+            // Force current expression to end with a comparison
+            endWithCompare = true
+          }
           sql.push(this.operator(x, i, xpr))
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
         // default
         else sql.push(this.expr(x))
       }
 
-      // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
-      if (caseSuffix && (
-        xpr.length === 1 || xpr.at(-1) === '')) {
-        sql.push(caseSuffix)
+      if (endWithCompare) {
+        const suffix = this.operator('OR', xpr.length, xpr).slice(0, -3)
+        if (suffix) {
+          sql.push(suffix)
+        }
       }
 
       return `${sql.join(' ')}`
@@ -763,13 +771,14 @@ class HANAService extends SQLService {
      * @returns 
      */
     is_comparator({ xpr }, start) {
+      const local = start != null
       for (let i = start ?? xpr.length; i > -1; i--) {
         const cur = xpr[i]
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators) return true
+          if (up in compareOperators || (!local && up in logicOperators)) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue
