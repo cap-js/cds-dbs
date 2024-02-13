@@ -483,7 +483,7 @@ class CQN2SQLRenderer {
           if (elements[key]?.type in BINARY_TYPES) {
             val = transformBase64(val)
           }
-           buffer += `${keyJSON}${JSON.stringify(val)}`
+          buffer += `${keyJSON}${JSON.stringify(val)}`
         }
       }
       buffer += '}'
