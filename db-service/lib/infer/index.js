@@ -242,10 +242,14 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     const combinedElements = {}
     for (const index in sources) {
       const tableAlias = sources[index]
-      for (const key in tableAlias.elements) {
-        if (key in combinedElements) combinedElements[key].push({ index, tableAlias })
-        else combinedElements[key] = [{ index, tableAlias }]
-      }
+      Object.getOwnPropertyNames(tableAlias.elements).forEach(key => {
+        const descriptor = Object.getOwnPropertyDescriptor(tableAlias.elements, key)
+        const entry = { index, tableAlias }
+        if(!descriptor.enumerable) // mark as already expanded
+          entry.unfolded = true
+        if (key in combinedElements) combinedElements[key].push(entry)
+        else combinedElements[key] = [entry]
+      })
     }
     return combinedElements
   }
@@ -543,8 +547,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
           const target = definition._target || column.$refLinks[i - 1].target
           if (element) {
-            if($baseLink)
-              rejectNonFkAccess(element)
+            if ($baseLink) rejectNonFkAccess(element)
             const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -660,9 +663,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // no unmanaged assoc in infix filter path
             if (!inExists && assoc.on)
               throw new Error(
-                `"${assoc.name}" in path "${column.ref
-                  .map(idOnly)
-                  .join('.')}" must not be an unmanaged association`
+                `"${assoc.name}" in path "${column.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
@@ -896,7 +897,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               })
               mergePathIfNecessary(subPath, step)
             } else if (step.args || step.xpr) {
-              const nestedProp  = step.xpr ? 'xpr' : 'args'
+              const nestedProp = step.xpr ? 'xpr' : 'args'
               step[nestedProp].forEach(a => {
                 mergePathsIntoJoinTree(a, subPath)
               })
@@ -1136,7 +1137,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
  * where association do not have foreign keys anymore.
  */
 function isForeignKeyOf(e, assoc) {
-  if(!assoc.isAssociation) return false
+  if (!assoc.isAssociation) return false
   return e in (assoc.elements || assoc.foreignKeys)
 }
 const idOnly = ref => ref.id || ref
