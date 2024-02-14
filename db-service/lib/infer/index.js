@@ -242,16 +242,43 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
     const combinedElements = {}
     for (const index in sources) {
       const tableAlias = sources[index]
-      Object.getOwnPropertyNames(tableAlias.elements).forEach(key => {
-        const descriptor = Object.getOwnPropertyDescriptor(tableAlias.elements, key)
+      const elements = getAllElements(tableAlias.elements)
+      Object.getOwnPropertyNames(elements).forEach(key => {
+        const descriptor = Object.getOwnPropertyDescriptor(elements, key)
         const entry = { index, tableAlias }
-        if(!descriptor.enumerable) // mark as already expanded
+        if (!descriptor.enumerable)
+          // mark as already expanded
           entry.unfolded = true
         if (key in combinedElements) combinedElements[key].push(entry)
         else combinedElements[key] = [entry]
       })
     }
     return combinedElements
+
+    /**
+     * Retrieves all elements from an object, including enumerable and non-enumerable properties,
+     * respecting precedence of properties found in the object itself over those from its prototype chain.
+     */
+    function getAllElements(obj) {
+      const elements = {}
+      let currentObj = obj
+
+      // Iterate over own properties
+      do {
+        const currentProps = Object.getOwnPropertyNames(currentObj)
+        currentProps.forEach(prop => {
+          // Add property to elements object if not already present (to respect precedence)
+          if (!(prop in elements)) {
+            const propDescriptor = Object.getOwnPropertyDescriptor(currentObj, prop)
+            // if it was non-enumberable it was set by unfold, keep that information
+            Object.defineProperty(elements, prop, propDescriptor)
+          }
+        })
+        currentObj = Object.getPrototypeOf(currentObj)
+      } while (currentObj !== null)
+
+      return elements
+    }
   }
 
   /**

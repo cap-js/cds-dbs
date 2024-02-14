@@ -5,7 +5,6 @@ const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
 describe('Universal CSN hybrid mode - flat and structured at the same time', () => {
-    let model
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
     cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
