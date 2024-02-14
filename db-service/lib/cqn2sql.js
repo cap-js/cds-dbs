@@ -683,6 +683,7 @@ class CQN2SQLRenderer {
    */
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
+    const unfolded = cds.model.meta.unfolded?.includes('structs')
     const elements = q.target?.elements
     let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
     if (entity.as) sql += ` AS ${entity.as}`
@@ -692,9 +693,9 @@ class CQN2SQLRenderer {
     if (_with) _add(_with, x => this.expr(x))
     function _add(data, sql4) {
       for (let c in data) {
-        const alreadyFlat = elements[c].elements && cds.model.meta.unfolded?.includes('structs')
-        if (!alreadyFlat && (!elements || (c in elements && !elements[c].virtual))) {
-          columns.push({ name: c, sql: sql4(data[c]) })
+        if ((!elements || (c in elements && !elements[c].virtual))) {
+          if(!(unfolded && elements?.[c].elements))
+            columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
     }
