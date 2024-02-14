@@ -212,6 +212,34 @@ class HANAService extends SQLService {
     return this.ensureDBC().exec(sql)
   }
 
+  // Execute sql statement inside execution plan visualization API
+  async prepare_planviz(sql, hasBlobs) {
+    const stmt = await this.ensureDBC().prepare('CALL PLANVIZ_ACTION(?, ?)')
+
+    const { DATA: ID } = await stmt.get([208, sql])
+
+    const prep = await this.ensureDBC().prepare(`EXECUTE PLANVIZ STATEMENT ID '${ID}'`, hasBlobs)
+
+    const proxy = async (action, params) => {
+      const stmtID = this._stmtID ??= 0
+      this._stmtID++
+      const ret = await prep[action](params)
+      await stmt.run([514, `${ID}|${stmtID}`])
+      return ret
+    }
+
+    return {
+      run: params => proxy('run', params),
+      runBatch: params => proxy('runBatch', params),
+      get: params => proxy('get', params),
+      all: params => proxy('all', params),
+    }
+  }
+
+  async exec_planvix(sql) {
+    return (await this.prepare_planviz(sql)).run()
+  }
+
   /**
    * HDI specific deploy logic
    * @param {import('@sap/cds/apis/csn').CSN} model The CSN model to be deployed
