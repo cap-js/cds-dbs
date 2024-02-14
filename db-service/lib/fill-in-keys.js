@@ -57,7 +57,7 @@ const generateUUIDandPropagateKeys = (entity, data, event) => {
 module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
-  if (req.event === 'UPDATE') {
+  if (req.event === 'UPDATE' || req.event === 'CREATE') {
     // REVISIT for deep update we need to inject the keys first
     enrichDataWithKeysFromWhere (req.data, req, this)
   }
