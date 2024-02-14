@@ -408,3 +408,8 @@ entity Unmanaged {
   // needs to be expanded in join-conditions
   toSelf: Association to Unmanaged on struct = toSelf.struct;
 }
+
+entity Item {
+  key ID: Integer;
+  item: Association to Item;
+}
