@@ -31,7 +31,7 @@ class CQN2SQLRenderer {
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
-    this.model = srv.model
+    this.model = srv?.model
   }
 
   static _add_mixins(aspect, mixins) {
