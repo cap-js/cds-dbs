@@ -30,6 +30,15 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count with $top=1 and groupby', async () => {
+    const res = await GET(
+      `/browse/ListOfBooks?$apply=groupby((ID),aggregate(ID with countdistinct as countBookings))&$count=true&$top=1`,
+    )
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(1)
+    expect(res.data['@odata.count']).to.be.eq(5)
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
@@ -37,6 +46,22 @@ describe('Bookshop - Read', () => {
     const columns = Object.keys(res[0])
     expect(columns).to.contain('author')
     expect(columns).to.contain('title')
+  })
+
+  test('Smart quotation', async () => {
+    const q = CQL`
+      SELECT FROM sap.capire.bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+        ![FROM].author { name as CONSTRAINT } 
+      }
+      where ![FROM].title LIKE '%Wuthering%'
+      order by group
+    `
+    const res = await cds.run(q)
+    expect(res.length).to.be.eq(1)
+    expect(res[0]).to.have.property('group')
+    expect(res[0]).to.have.deep.property('author', { CONSTRAINT: 'Emily Brontë' })
   })
 
   test('Plain sql', async () => {

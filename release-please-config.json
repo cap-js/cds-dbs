@@ -1,0 +1,32 @@
+{
+  "packages": {
+    "db-service": {},
+    "sqlite": {},
+    "postgres": {},
+    "hana": {
+      "release-as": "0.0.4"
+    }
+  },
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Added",
+      "hidden": false
+    },
+    {
+      "type": "fix",
+      "section": "Fixed",
+      "hidden": false
+    },
+    {
+      "type": "deps",
+      "section": "Changed",
+      "hidden": false
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements",
+      "hidden": false
+    }
+  ]
+}

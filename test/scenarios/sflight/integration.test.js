@@ -1,11 +1,14 @@
 const childProcess = require('child_process')
 const path = require('path')
-const cds = require('../../../test/cds')
+const cds = require('../../cds')
 
 const sflightPath = require.resolve('@capire/sflight/package.json').slice(0, -13)
 
-if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
-else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
+// IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
+beforeAll(() => {
+  if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
+  else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
+})
 
 // Set the test project to the sflight project
 

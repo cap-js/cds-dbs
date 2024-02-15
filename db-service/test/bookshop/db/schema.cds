@@ -164,6 +164,7 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  accessGroup : Composition of AccessGroups;
 }
 entity Intermediate {
   key ID: Integer;
@@ -389,4 +390,21 @@ entity PartialStructuredKey {
     two: Integer;
   };
   toSelf: Association to PartialStructuredKey { struct.one as partial}
+}
+
+  entity Reproduce {
+    key ID : Integer;
+    title : String(5000);
+    author : Association to Authors;
+    accessGroup : Composition of AccessGroups;
+  }
+
+entity Unmanaged {
+  key struct: {
+    leaf: Int16;
+    toBook: Association to Books;
+  };
+  field: Integer;
+  // needs to be expanded in join-conditions
+  toSelf: Association to Unmanaged on struct = toSelf.struct;
 }

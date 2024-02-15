@@ -6,18 +6,21 @@ name: Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   publish-npm:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
       - run: npm i
-      - run: npm run test:all
+      - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
       - name: get-version # this takes the version of the monorepo root
         id: package-version
         uses: martinbeentjes/npm-get-version-action@v1.2.3

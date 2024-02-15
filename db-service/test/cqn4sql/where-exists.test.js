@@ -19,6 +19,45 @@ describe('EXISTS predicate in where', () => {
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
         )`)
     })
+    it('exists predicate after having', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } group by ID having exists author`, model)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books { Books.ID }
+         GROUP BY Books.ID
+         HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+         )`,
+      )
+    })
+    it('exists predicate after having with infix filter', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`, model)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      expect(query).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books { Books.ID }
+         GROUP BY Books.ID
+         HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 42
+         )`,
+      )
+    })
+    it('MUST ... two EXISTS both on same path in where', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
+          and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
+      )
+      or  EXISTS (
+        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID
+        and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
+      )`)
+    })
     it('exists predicate for assoc combined with path expression in xpr', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID } where exists author and ((author.name + 's') = 'Schillers')`,
@@ -33,11 +72,6 @@ describe('EXISTS predicate in where', () => {
       WHERE EXISTS (
         SELECT 1 from bookshop.Authors as author2 where author2.ID = Books.author_ID
         ) and ((author.name + 's') = 'Schillers')`)
-    })
-    it('rejects $self following exists predicate', () => {
-      expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
-        'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self,author ]',
-      )
     })
 
     it('handles simple where exists with implicit table alias', () => {
@@ -143,7 +177,7 @@ describe('EXISTS predicate in where', () => {
         cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model),
       ).to.throw(/"books" not found in "books"/)
       // it would work if entity "Books" had a field called "books"
-      // Done by cds.infer
+      // Done by infer
     })
 
     it('MUST fail for unknown field in filter (2)', () => {
@@ -175,13 +209,21 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it.skip('MUST fail if following managed assoc in filter', () => {
+    it('MUST fail if following managed assoc in filter in where exists', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
           model,
         ),
-      ).to.throw()
+      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+    })
+    it('MUST fail if following managed assoc in filter', () => {
+      expect(() =>
+        cqn4sql(
+          CQL`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
+          model,
+        ),
+      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
     })
 
     it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
@@ -196,7 +238,7 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it('MUST handle simple where exists with additional filter, shourcut notation', () => {
+    it('MUST handle simple where exists with additional filter, shortcut notation', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists author[17]`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 17
@@ -651,6 +693,31 @@ describe('EXISTS predicate in infix filter', () => {
       { Books.ID, children.descr as genre_children_descr }`,
     )
   })
+  it('reject non foreign key access in infix filter', async () => {
+    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
+    const q = CQL`
+      SELECT from Collaborations {
+        id
+      }
+       where exists leads[ participant.scholar_userID = $user.id ]
+    `
+    // maybe in the future this could be something like this
+    // eslint-disable-next-line no-unused-vars
+    const futureExpectation = CQL`
+      SELECT from Collaborations as Collaborations {
+        Collaborations.id
+      } where exists (
+        SELECT 1 from CollaborationLeads as leads
+          left join CollaborationParticipants as participant on participant.ID = leads.participant_id
+          where (leads.collaboration_id = Collaborations.id)
+            and leads.isLead = true
+            and participant.scholar_userID = $user.id
+      )
+    `
+    expect(() => {
+      cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
+    }).to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
+  })
 })
 
 /**
@@ -835,23 +902,6 @@ describe('Path in FROM which ends on association must be transformed to where ex
       ) AND author.ID = 150`)
   })
 
-  // (PB) new
-  // (SMW) can this be deleted?
-  it.skip('MUST not ... in from clauses with infix filters, ODATA variant w/o mentioning structured key', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.WithStructuredKey as toStructuredKey {
-        toStructuredKey.struct_mid_leaf,
-        toStructuredKey.struct_mid_anotherLeaf,
-        toStructuredKey.second
-      } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocWithStructuredKey as AssocWithStructuredKey where
-        AssocWithStructuredKey.toStructuredKey_struct_mid_leaf = toStructuredKey.struct_mid_leaf and
-        AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf = toStructuredKey.struct_mid_anotherLeaf and
-        AssocWithStructuredKey.toStructuredKey_second = toStructuredKey.second
-      ) AND toStructuredKey.struct_mid_leaf = 42 and
-      toStructuredKey.struct_mid_anotherLeaf = 42 and
-      toStructuredKey.second = 42`)
-  })
 
   // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
   // only shortcut notation is not allowed
@@ -870,15 +920,17 @@ describe('Path in FROM which ends on association must be transformed to where ex
       ) AND items.pos = 2`)
   })
 
-  // (SMW) TODO: check
-  // PB remark -> should `up__ID` be part of the where condition? Should this be an error?
-  //              Usually filters on associations with multiple foreign keys are declined
-  it.skip('MUST ... contain foreign keys of backlink association in on-condition?', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Orders:items[2] {pos}`, model)
-    expect(query).to.throw()
+  // usually, "Filters can only be applied to managed associations which result in a single foreign key"
+  // but because "up__ID" is the foreign key for the backlink association of "items", it is already part of the inner where
+  // `where` condition of the exists subquery. Hence we enable this shortcut notation.
+  it('MUST ... contain foreign keys of backlink association in on-condition?', () => {
+    const query = cqn4sql(CQL`SELECT from bookshop.Orders:items[2] {pos}`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
+      SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID
+    ) and items.pos = 2`)
   })
 
-  it.skip('...', () => {
+  it('same as above but mention key', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Orders:items[pos=2] {pos}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
         SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID
@@ -1242,6 +1294,52 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
+
+describe('cap issue', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
+    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+  })
+  it('MUST ... two EXISTS both on same path in where with real life example', () => {
+    // make sure that in a localized scenario, all aliases
+    // are properly replaced in the on-conditions.
+
+    // the issue here was that we had a where condition like
+    // `where exists foo[id=1] or exists foo[id=2]`
+    // with `foo` being an association `foo : Association to one Foo on foo.ID = foo_ID;`.
+    // While building up the where exists subqueries, we calculate unique table aliases for `foo`,
+    // which results in a table alias `foo2` for the second condition of the initial where clause.
+    // Now, if we incorporate the on-condition into the where clause of the second where exists subquery,
+    // we must replace the table alias `foo` from the on-condition with `foo2`.
+
+    // the described scenario didn't work because in a localized scenario, the localized `foo`
+    // association (pointing to `localized.Foo`) was compared to the non-localized version
+    // of the association (pointing to `Foo`) and hence, the alias was not properly replaced
+    const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
+    cqn.SELECT.localized = true
+    let query = cqn4sql(cqn, model)
+    // cleanup
+    delete cqn.SELECT.localized
+    const localized_ = cds.unfold ? '' : 'localized.'
+    expect(query).to.deep.equal(CQL(`
+    SELECT from localized.Boo as boos { boos.ID }
+        WHERE EXISTS (
+          SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
+        ) and
+        (
+          EXISTS (
+            SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from ${localized_}SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
+          )
+          or EXISTS (
+            SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
+              and EXISTS ( SELECT 1 from ${localized_}ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+          )
+        )
+      `))
+  })
+})
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
@@ -1283,5 +1381,43 @@ describe('comparisons of associations in on condition of elements needs to be ex
       )
     `
     expect(query).to.eql(expected)
+  })
+})
+
+describe('Sanity checks for `exists` predicate', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+  })
+  it('rejects $self following exists predicate', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author } where exists $self.author`, model)).to.throw(
+      'Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]',
+    )
+  })
+
+  it('rejects non assoc following exists predicate', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[exists name].name as author }`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc following exists predicate in scoped query', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books:author[exists name] { ID }`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc following exists predicate in where', () => {
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } where exists author[exists name]`, model)).to.throw(
+      'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+
+  it('rejects non assoc at leaf of path following exists predicate', () => {
+    expect(() =>
+      cqn4sql(CQL`SELECT from bookshop.Books { ID, author[exists books.title].name as author }`, model),
+    ).to.throw(
+      'Expecting path “books.title” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
   })
 })

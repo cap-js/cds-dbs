@@ -1,8 +1,9 @@
-module.exports = require('@sap/cds/lib')
+const cds = require('@sap/cds/lib')
+module.exports = cds
 
 // Adding cds.hana types to cds.builtin.types
 // REVISIT: Where should we put this?
-const hana = module.exports.linked({
+const hana = cds.linked({
   definitions: {
     'cds.hana.SMALLDECIMAL': { type: 'cds.Decimal' },
     'cds.hana.SMALLINT': { type: 'cds.Int16' },
@@ -16,45 +17,47 @@ const hana = module.exports.linked({
     'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
   },
 })
-Object.assign(module.exports.builtin.types, hana.definitions)
+Object.assign(cds.builtin.types, hana.definitions)
 
-const cdsTest = module.exports.test
+const cdsTest = cds.test
 
 let isolateCounter = 0
 
-const orgIn = cdsTest.constructor.prototype.in
-cdsTest.constructor.prototype.in = function () {
-  global.before(() => {
-    orgIn.apply(this, arguments)
-  })
-  return orgIn.apply(this, arguments)
-}
+// REVISIT: this caused lots of errors -> all is fine when I remove it
+// const orgIn = cdsTest.constructor.prototype.in
+// cdsTest.constructor.prototype.in = function () {
+//   global.before(() => {
+//     orgIn.apply(this, arguments)
+//   })
+//   return orgIn.apply(this, arguments)
+// }
 
 // REVISIT: move this logic into cds when stabilized
 // Overwrite cds.test with autoIsolation logic
-module.exports.test = Object.setPrototypeOf(function () {
-  let ret
+cds.test = Object.setPrototypeOf(function () {
 
-  global.before(async () => {
+  global.beforeAll(() => {
     try {
-      const serviceDefinitionPath = /.*\/test\//.exec(require.main.filename)?.[0] + 'service.json'
+      const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
+      const serviceDefinitionPath = testSource + 'test/service.json'
       cds.env.requires.db = require(serviceDefinitionPath)
+      require(testSource + 'cds-plugin')
     } catch (e) {
       // Default to sqlite for packages without their own service
       cds.env.requires.db = require('@cap-js/sqlite/test/service.json')
     }
   })
 
-  ret = cdsTest(...arguments)
+  let ret = cdsTest(...arguments)
 
-  global.before(async () => {
+  global.beforeAll(async () => {
     // Setup isolation after cds has prepare the project (e.g. cds.model)
     if (ret.data._autoIsolation) {
       await ret.data.isolate()
     }
   })
 
-  const cds = ret.cds
+  let isolate = null
 
   ret.data.isolate =
     ret.data.isolate ||
@@ -67,7 +70,7 @@ module.exports.test = Object.setPrototypeOf(function () {
         const hash = createHash('sha1')
         const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
         hash.update(isolateName)
-        const isolate = {
+        isolate = {
           // Create one database for each overall test execution
           database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
           // Create one tenant for each test suite
@@ -97,7 +100,7 @@ module.exports.test = Object.setPrototypeOf(function () {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
-  }, 30 * 1000)
+  })
 
   global.afterAll(async () => {
     // Clean database connection pool
@@ -116,5 +119,5 @@ module.exports.test = Object.setPrototypeOf(function () {
 
 // Release cds._context for garbage collection
 global.afterEach(() => {
-  module.exports._context.disable()
+  cds._context.disable()
 })

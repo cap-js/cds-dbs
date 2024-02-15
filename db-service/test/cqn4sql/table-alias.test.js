@@ -216,6 +216,31 @@ describe('table alias access', () => {
   })
 
   describe('replace $self references', () => {
+    it('escaped identifier does not hurt', () => {
+      let query = cqn4sql(
+        CQL`
+      SELECT FROM bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      }
+      where $self.group = 'foo'
+      group by $self.group
+      having $self.group = 'foo'
+      order by $self.group
+      `,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from bookshop.Books as ![FROM]
+      {
+        ![FROM].title as group,
+      }
+      where ![FROM].title = 'foo' 
+      group by ![FROM].title
+      having ![FROM].title = 'foo' 
+      order by ![FROM].title
+      `)
+    })
     it('refer to other query element', () => {
       const q = CQL`SELECT from bookshop.Books {
       Books.title,
@@ -649,7 +674,7 @@ describe('table alias access', () => {
         model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`,
+        CQL`SELECT from (SELECT from bookshop.Books as Books2 { Books2.ID, Books2.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
     it('explicit alias for FROM subquery', () => {
@@ -897,6 +922,69 @@ describe('table alias access', () => {
       ).to.throw(/"title" not found in "bookshop.Genres"/)
     })
 
+    it('handles ref in list', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT ID from bookshop.Books where ID = 5`,
+            ],
+          },
+        ],
+      }).columns('ID')
+
+      const expected = SELECT.from('bookshop.Books as Books')
+        .columns('Books.ID')
+        .where([
+          {
+            list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+          },
+          'in',
+          CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+        ])
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
+    it('handles ref in list of from with scoped query', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+            ],
+          },
+          'coAuthorUnmanaged',
+        ],
+      }).columns('ID')
+
+      const list = [
+        {
+          list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+        },
+        'in',
+        CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+      ]
+
+      const expected = SELECT.from('bookshop.Authors as coAuthorUnmanaged').columns('coAuthorUnmanaged.ID').where(`
+          exists (
+            SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
+          )
+        `)
+
+      expected.SELECT.where[1].SELECT.where.push('and', ...list)
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
     it('handles value subquery in WHERE', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
@@ -977,7 +1065,7 @@ describe('table alias access', () => {
       }
       expect(error.message).to.match(/author_ID/)
 
-      const nodeModel = cds.compile.for.nodejs(model)
+      const nodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
       const repeat = cqn4sql(resultCopy, nodeModel)
 
       // Ensure sure that the where clause does not change
