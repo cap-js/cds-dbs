@@ -693,6 +693,7 @@ class CQN2SQLRenderer {
     function _add(data, sql4) {
       for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
+          if (cds.unfold && elements?.[c].is_struct) continue // skip structs from universal csn
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
