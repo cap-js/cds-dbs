@@ -98,7 +98,12 @@ class HANAService extends SQLService {
     this.ensureDBC().set(variables)
   }
 
-  async onSELECT({ query, data }) {
+  async onSELECT(req) {
+    const { query, data } = req
+    if (!query.target || query.target._unresolved) {
+      return super.onSELECT(req)
+    }
+
     // REVISIT: disable this for queries like (SELECT 1)
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
@@ -249,7 +254,7 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
 
-      const { limit, one, orderBy, expand, columns, localized, count, parent } = q.SELECT
+      const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
@@ -795,17 +800,17 @@ class HANAService extends SQLService {
       return false
     }
 
-    list(list) {
-      const first = list.list[0]
-      // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => !v.val)) {
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
-        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
-      }
-      // Call super for normal SQL behavior
-      return super.list(list)
-    }
+        list(list) {
+          const first = list.list[0]
+          // If the list only contains of lists it is replaced with a json function and a placeholder
+          if (this.values && first.list && !first.list.find(v => !v.val)) {
+            const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
+            this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+            return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+          }
+          // Call super for normal SQL behavior
+          return super.list(list)
+        }
 
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
