@@ -36,7 +36,7 @@ class SQLService extends DatabaseService {
               return Object.assign(acc, obj)
             }, {}),
           )
-          const invalidColumns = columns.filter(c => !(c in elements))
+        const invalidColumns = columns.filter(c => !(c in elements))
 
         if (invalidColumns.length > 0) {
           cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
@@ -114,7 +114,11 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    query.SELECT.expand = 'root'
+    if (query.target && !query.target._unresolved) {
+      // Will return multiple rows with objects inside
+      query.SELECT.expand = 'root'
+    }
+
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
