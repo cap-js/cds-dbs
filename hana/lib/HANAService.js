@@ -821,10 +821,12 @@ class HANAService extends SQLService {
       const requiredColumns = !elements
         ? []
         : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default)) && !columns.find(c => c.name === e),
-          )
+          .filter(e => {
+            if (elements[e]?.virtual) return false
+            if (elements[e]?.[annotation]) return true
+            if (!isUpdate && elements[e]?.default && !columns.find(c => c.name === e)) return true
+            return false
+          })
           .map(name => ({ name, sql: 'NULL' }))
 
       const keyZero = this.quote(
