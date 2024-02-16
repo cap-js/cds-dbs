@@ -393,7 +393,9 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                x.element._foreignKeys.forEach(k => {
+                let fkeys = x.element._foreignKeys
+                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
+                fkeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -614,7 +616,7 @@ class HANAService extends SQLService {
       const keyCompare =
         keys &&
         Object.keys(keys)
-          .filter(k => !keys[k].isAssociation)
+          .filter(k => !keys[k].isAssociation && !keys[k].virtual)
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
           .join(' AND ')
 
@@ -772,8 +774,8 @@ class HANAService extends SQLService {
 
     /**
      * Checks if the xpr is a comparison or a value
-     * @param {} xpr 
-     * @returns 
+     * @param {} xpr
+     * @returns
      */
     is_comparator({ xpr }, start) {
       const local = start != null
@@ -833,10 +835,13 @@ class HANAService extends SQLService {
       const requiredColumns = !elements
         ? []
         : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default)) && !columns.find(c => c.name === e),
-          )
+          .filter(e => {
+            if (elements[e]?.virtual) return false
+            if (columns.find(c => c.name === e)) return false
+            if (elements[e]?.[annotation]) return true
+            if (!isUpdate && elements[e]?.default) return true
+            return false
+          })
           .map(name => ({ name, sql: 'NULL' }))
 
       const keyZero = this.quote(
@@ -983,7 +988,10 @@ class HANAService extends SQLService {
     return super.onPlainSQL(req, next)
   }
 
-  onBEGIN() { }
+  onBEGIN() {
+    DEBUG?.('BEGIN')
+    return this.dbc?.begin()
+  }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')

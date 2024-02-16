@@ -976,9 +976,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      */
     function isManagedAssocInFlatMode(e) {
       return (
-        (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'assocs')) &&
-        e.isAssociation &&
-        e.keys
+        e.isAssociation && e.keys
+        && (model.meta.transformation === 'odata' || model.meta.unfolded?.includes('structs'))
       )
     }
   }
@@ -992,7 +991,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getElementForRef(ref, def) {
     return ref.reduce((prev, res) => {
-      return prev?.elements?.[res] || prev?._target?.elements[res]
+      return (prev?.elements || prev?.foreignKeys)?.[res] || prev?._target?.elements[res] // PLEASE REVIEW: should we add the .foreignKey check here for the non-ucsn case?
     }, def)
   }
 
@@ -1032,7 +1031,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
-    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs')
+    const structsAreUnfoldedAlready = model.meta.unfolded?.includes('structs')
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
@@ -1046,7 +1045,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       const leaf = column.$refLinks[column.$refLinks.length - 1]
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       let elements
-      //> REVISIT: remove once UCSN is standard (no more .foreignKeys)
       elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
       if (elements && leaf.alias in elements) {
         element = leafAssoc.definition
@@ -1828,9 +1826,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 // first step is the association itself -> use it's name as it becomes the table alias
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
-                Object.values(
-                  targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements,
-                ).some(e => e === definition)
+                definition.name in (targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements)
               ) {
                 // first step is association which refers to its foreign key by dot notation
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
