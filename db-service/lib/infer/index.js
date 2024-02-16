@@ -114,6 +114,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = target
+      const last = from.$refLinks.at(-1)
+      last.alias = alias
     } else if (from.args) {
       from.args.forEach(a => inferTarget(a, querySources))
     } else if (from.SELECT) {
@@ -543,8 +545,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
           const target = definition._target || column.$refLinks[i - 1].target
           if (element) {
-            if($baseLink)
-              rejectNonFkAccess(element)
+            if ($baseLink) rejectNonFkAccess(element)
             const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -660,9 +661,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             // no unmanaged assoc in infix filter path
             if (!inExists && assoc.on)
               throw new Error(
-                `"${assoc.name}" in path "${column.ref
-                  .map(idOnly)
-                  .join('.')}" must not be an unmanaged association`
+                `"${assoc.name}" in path "${column.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
@@ -729,7 +728,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               // if overwritten/excluded omit from wildcard elements
               // in elements the names are already flat so consider the prefix
               // in excluding, the elements are addressed without the prefix
-              if (!(name in elements || col.excluding?.some(e => e === k))) wildCardElements[name] = v
+              if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
             })
             elements = { ...elements, ...wildCardElements }
           } else {
@@ -896,7 +895,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               })
               mergePathIfNecessary(subPath, step)
             } else if (step.args || step.xpr) {
-              const nestedProp  = step.xpr ? 'xpr' : 'args'
+              const nestedProp = step.xpr ? 'xpr' : 'args'
               step[nestedProp].forEach(a => {
                 mergePathsIntoJoinTree(a, subPath)
               })
@@ -1134,15 +1133,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
  * Returns true if e is a foreign key of assoc.
  * this function is also compatible with unfolded csn (UCSN),
  * where association do not have foreign keys anymore.
- *
- * @param {*} e 
- * @param {*} assoc
- * @returns 
  */
 function isForeignKeyOf(e, assoc) {
-  if(!assoc.isAssociation) return false
-  if(assoc.foreignKeys) return e in assoc.foreignKeys
-  return assoc.elements && e in assoc.elements
+  if (!assoc.isAssociation) return false
+  return e in (assoc.elements || assoc.foreignKeys)
 }
 const idOnly = ref => ref.id || ref
 

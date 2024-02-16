@@ -249,7 +249,7 @@ class SQLService extends DatabaseService {
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
-      if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
+      if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
       else return exec(data)
     } else return next()
   }

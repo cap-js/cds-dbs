@@ -398,7 +398,9 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                x.element._foreignKeys.forEach(k => {
+                let fkeys = x.element._foreignKeys
+                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
+                fkeys.forEach(k => {
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -619,7 +621,7 @@ class HANAService extends SQLService {
       const keyCompare =
         keys &&
         Object.keys(keys)
-          .filter(k => !keys[k].isAssociation)
+          .filter(k => !keys[k].isAssociation && !keys[k].virtual)
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
           .join(' AND ')
 
@@ -650,7 +652,9 @@ class HANAService extends SQLService {
     }
 
     where(xpr) {
-      return this.xpr({ xpr: [...xpr, 'THEN'] }).slice(0, -4)
+      xpr = { xpr }
+      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
+      return `${this.xpr(xpr)}${suffix}`
     }
 
     having(xpr) {
@@ -676,6 +680,7 @@ class HANAService extends SQLService {
         */
       }
 
+      let endWithCompare = false
       if (!_internal) {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
@@ -686,6 +691,7 @@ class HANAService extends SQLService {
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
             if (x in compareOperators) {
+              endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
@@ -728,16 +734,25 @@ class HANAService extends SQLService {
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
+          const up = x.toUpperCase()
+          if (up in logicOperators) {
+            // Force current expression to end with a comparison
+            endWithCompare = true
+          }
+          if (endWithCompare && (up in caseOperators || up === ')')) {
+            endWithCompare = false
+          }
           sql.push(this.operator(x, i, xpr))
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
         // default
         else sql.push(this.expr(x))
       }
 
-      // HANA does not allow WHERE TRUE so when the expression is only a single entry "= TRUE" is appended
-      if (caseSuffix && (
-        xpr.length === 1 || xpr.at(-1) === '')) {
-        sql.push(caseSuffix)
+      if (endWithCompare) {
+        const suffix = this.operator('OR', xpr.length, xpr).slice(0, -3)
+        if (suffix) {
+          sql.push(suffix)
+        }
       }
 
       return `${sql.join(' ')}`
@@ -764,17 +779,18 @@ class HANAService extends SQLService {
 
     /**
      * Checks if the xpr is a comparison or a value
-     * @param {} xpr 
-     * @returns 
+     * @param {} xpr
+     * @returns
      */
     is_comparator({ xpr }, start) {
+      const local = start != null
       for (let i = start ?? xpr.length; i > -1; i--) {
         const cur = xpr[i]
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators) return true
+          if (up in compareOperators || (!local && up in logicOperators)) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue
@@ -824,10 +840,13 @@ class HANAService extends SQLService {
       const requiredColumns = !elements
         ? []
         : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default)) && !columns.find(c => c.name === e),
-          )
+          .filter(e => {
+            if (elements[e]?.virtual) return false
+            if (columns.find(c => c.name === e)) return false
+            if (elements[e]?.[annotation]) return true
+            if (!isUpdate && elements[e]?.default) return true
+            return false
+          })
           .map(name => ({ name, sql: 'NULL' }))
 
       const keyZero = this.quote(
@@ -974,7 +993,10 @@ class HANAService extends SQLService {
     return super.onPlainSQL(req, next)
   }
 
-  onBEGIN() { }
+  onBEGIN() {
+    DEBUG?.('BEGIN')
+    return this.dbc?.begin()
+  }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
