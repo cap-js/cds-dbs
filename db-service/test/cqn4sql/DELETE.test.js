@@ -70,7 +70,7 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
   it('DELETE with where exists expansion and path expression', () => {
-    cds.model = cds.compile.for.nodejs(cds.model)
+    cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
     const query = cqn4sql(d)
@@ -105,6 +105,82 @@ describe('DELETE', () => {
       subquery,
     ]
     expect(query.DELETE).to.deep.equal(expected.DELETE)
+  })
+
+  it('in a list with exactly one val, dont transform to key comparison', () => {
+    const query = {
+      DELETE: {
+        from: {
+          ref: [
+            {
+              id: 'bookshop.Books',
+              where: [
+                {
+                  ref: ['ID'],
+                },
+                'in',
+                {
+                  list: [
+                    {
+                      val: 'b6248f67-6f8b-4816-a096-0b65c2349143',
+                    },
+                  ],
+                },
+              ],
+            },
+            'author',
+          ],
+        },
+      },
+    }
+
+    const expected = {
+      DELETE: {
+        from: {
+          ref: ['bookshop.Authors'],
+          as: 'author',
+        },
+        where: [
+          'exists',
+          {
+            SELECT: {
+              from: {
+                ref: ['bookshop.Books'],
+                as: 'Books',
+              },
+              columns: [
+                {
+                  val: 1,
+                },
+              ],
+              where: [
+                {
+                  ref: ['Books', 'author_ID'],
+                },
+                '=',
+                {
+                  ref: ['author', 'ID'],
+                },
+                'and',
+                {
+                  ref: ['Books', 'ID'],
+                },
+                'in',
+                {
+                  list: [
+                    {
+                      val: 'b6248f67-6f8b-4816-a096-0b65c2349143',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    }
+    const res = cqn4sql(query)
+    expect(res).to.deep.equal(expected)
   })
 
   it('DELETE with assoc filter and where exists expansion', () => {

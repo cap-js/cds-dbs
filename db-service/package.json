@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "1.5.0",
+  "version": "1.6.1",
   "description": "CDS base database service",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
   "repository": {
@@ -29,7 +29,7 @@
     "test": "jest --silent"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.1.1"
+    "@sap/cds": ">=7.6"
   },
   "license": "SEE LICENSE",
   "devDependencies": {

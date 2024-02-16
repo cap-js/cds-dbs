@@ -101,9 +101,6 @@ class JoinTree {
     Object.entries(sources).forEach(entry => {
       const alias = this.addNextAvailableTableAlias(entry[0])
       this._roots.set(alias, new Root(entry))
-      if (entry[1].sources)
-        // respect outer aliases
-        this.addAliasesOfSubqueryInFrom(entry[1].sources)
     })
   }
 
@@ -200,9 +197,11 @@ class JoinTree {
           }
           child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias, outerQueries)
         }
-
-        const foreignKeys = node.$refLink?.definition.foreignKeys
-        if (node.$refLink && (!foreignKeys || !(child.$refLink.alias in foreignKeys)))
+        //> REVISIT: remove fallback once UCSN is standard
+        const elements =
+          node.$refLink?.definition.isAssociation &&
+          (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
+        if (node.$refLink && (!elements || !(child.$refLink.alias in elements)))
           // foreign key access
           node.$refLink.onlyForeignKeyAccess = false
 

@@ -28,7 +28,6 @@ const getColumns = (
   entity,
   { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false },
 ) => {
-  const skipDraft = filterDraft && entity._isDraftEnabled
   const columns = []
   const elements = entity.elements
 
@@ -37,7 +36,7 @@ const getColumns = (
     if (element.isAssociation) continue
     if (filterVirtual && element.virtual) continue
     if (removeIgnore && element['@cds.api.ignore']) continue
-    if (skipDraft && each in DRAFT_COLUMNS_UNION) continue
+    if (filterDraft && each in DRAFT_COLUMNS_UNION) continue
     if (keysOnly && !element.key) continue
     columns.push(onlyNames ? each : element)
   }
