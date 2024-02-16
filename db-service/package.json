@@ -26,7 +26,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "jest --silent"
+    "test": "cd ../ && npm run test"
   },
   "peerDependencies": {
     "@sap/cds": ">=7.6"
