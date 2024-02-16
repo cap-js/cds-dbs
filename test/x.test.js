@@ -7,7 +7,11 @@ test('bs error', async () => {
   try {
     await dbc.exec('INSERT INTO test (id,name) VALUES (12, \'test\')')
   } catch (err) {
-    const cdsErr = Object.assign(err, {message: 'xy'})
+    const cdsErr = Object.assign(err, {
+      originalMessage: err.message,
+      message: 'asdf',
+      code: 400
+    })
     const  {VError} = require('verror')
     var err2 = new VError(cdsErr, 'sdfsd');
     console.error(err2.message);
