@@ -37,8 +37,9 @@ describe('Bookshop - Update', () => {
   })
 
   test('Update array of', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
     // create book
-    const insert = INSERT.into('sap.capire.bookshop.Books').columns(['ID']).values([150])
+    const insert = INSERT.into(Books).columns(['ID']).values([150])
     await cds.run(insert)
 
     const update = await PUT(
@@ -96,30 +97,42 @@ describe('Bookshop - Update', () => {
         createdAt: (new Date()).toISOString(),
       })
     await expect(affectedRows).rejected
-    
+
     affectedRows = await DELETE(books)
       .where({ ID })
     expect(affectedRows | 0).to.be.eq(1)
   })
 
   test('programmatic update without body incl. managed', async () => {
-    const { modifiedAt } = await SELECT.from('sap.capire.bookshop.Books', { ID: 251 })
-    const affectedRows = await UPDATE('sap.capire.bookshop.Books', { ID: 251 })
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const { modifiedAt } = await SELECT.from(Books, { ID: 251 })
+    const affectedRows = await UPDATE(Books, { ID: 251 })
     expect(affectedRows).to.be.eq(1)
-    const { modifiedAt: newModifiedAt } = await SELECT.from('sap.capire.bookshop.Books', { ID: 251 })
+    const { modifiedAt: newModifiedAt } = await SELECT.from(Books, { ID: 251 })
     expect(newModifiedAt).not.to.be.eq(modifiedAt)
   })
 
   test('programmatic update without body excl. managed', async () => {
-    const affectedRows = await UPDATE('sap.capire.bookshop.Genres', { ID: 10 })
+    const { Genres } = cds.entities('sap.capire.bookshop')
+    const affectedRows = await UPDATE(Genres, { ID: 10 })
     expect(affectedRows).to.be.eq(0)
   })
 
+  test('programmatic update with unique constraint conflict', async () => {
+    const { Genres } = cds.entities('sap.capire.bookshop')
+    const update = UPDATE(Genres).set('ID = 201')
+    const err = await expect(update).rejected
+    expect(err).to.be.instanceOf(Error)
+    expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+  })
+
+
   test('Update with path expressions', async () => {
-    const updateRichardsBooks = UPDATE.entity('AdminService.RenameKeys')
+    const { RenameKeys } = cds.entities('AdminService')
+    const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
       .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM AdminService.RenameKeys where author.name = 'Richard Carpenter'`
+    const selectRichardsBooks = CQL`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)

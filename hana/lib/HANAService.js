@@ -119,6 +119,7 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
+    try {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
@@ -129,6 +130,17 @@ class HANAService extends SQLService {
         : ps.run(entries[0])
       : ps.run())
     return new this.class.InsertResults(cqn, results)
+    } catch (err) {
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+    }
+  }
+
+  async onUPDATE(req) {
+    try {
+      return await super.onUPDATE(req)
+    } catch (err) {
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+    }
   }
 
   // Allow for running complex expand queries in a single statement
@@ -1066,6 +1078,16 @@ const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/c
 
 Buffer.prototype.toJSON = function () {
   return this.toString('hex')
+}
+
+function _not_unique(err, code) {
+  if (err.code === 301)
+    return Object.assign(err, {
+      originalMessage: err.message, // FIXME: required because of next line
+      message: code, // FIXME: misusing message as code
+      code: 400, // FIXME: misusing code as (http) status
+    })
+  return err
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

@@ -245,7 +245,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS') || err
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
   }
 
@@ -253,7 +253,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
     }
   }
 }
@@ -273,6 +273,7 @@ function _not_unique(err, code) {
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  return err
 }
 
 module.exports = SQLiteService
