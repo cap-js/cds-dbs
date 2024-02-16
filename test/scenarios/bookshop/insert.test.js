@@ -4,12 +4,13 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 describe('Bookshop - Insert', () => {
   const { expect } = cds.test(bookshop)
 
-  test('unique constraing violation throws error', async () => {
+  test.only('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
     try {
       await INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
     } catch (err) {
-      expect(err).to.be.instanceOf(Error)
+      // expect(err).to.be.instanceOf(Error)
+      expect(err instanceof Error).to.be.true
       expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
       return
     }

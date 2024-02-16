@@ -123,11 +123,12 @@ describe('Bookshop - Update', () => {
     try {
       await UPDATE(Genres).set('ID = 201')
     } catch (err) {
-      expect(err).to.be.instanceOf(Error)
+      // expect(err).to.be.instanceOf(Error)
+      expect(err instanceof Error).to.be.true
       expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
       return
     }
-
+    expect('Unique constraint error was not thrown').to.be.undefined
   })
 
 
