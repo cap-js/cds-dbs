@@ -4,7 +4,7 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 describe('Bookshop - Insert', () => {
   const { expect } = cds.test(bookshop)
 
-  test.only('unique constraing violation throws error', async () => {
+  test('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
     const insert = INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
     const err = await expect(insert).rejected
