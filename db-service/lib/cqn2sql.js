@@ -479,10 +479,11 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (val === undefined) continue
           if (elements[key]?.type in BINARY_TYPES) {
             val = transformBase64(val)
           }
-          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
+          buffer += `${keyJSON}${JSON.stringify(val)}`
         }
       }
       buffer += '}'
@@ -650,7 +651,7 @@ class CQN2SQLRenderer {
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
     if (!keys) return this.sql = sql
-    keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
+    keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns.filter(c => {
@@ -692,6 +693,7 @@ class CQN2SQLRenderer {
     function _add(data, sql4) {
       for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
+          if (cds.unfold && elements?.[c].is_struct) continue // skip structs from universal csn
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
