@@ -6,11 +6,13 @@ describe('Bookshop - Insert', () => {
 
   test('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
-
-    const insert = INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
-
-    const err = await insert.then(a => a, e => e)
-    expect(err).to.be.instanceOf(Error)
-    expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
+    try {
+      await INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error)
+      expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
+      return
+    }
+    expect('Unique constraint error was not thrown').to.be.undefined
   })
 })

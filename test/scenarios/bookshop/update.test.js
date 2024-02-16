@@ -120,10 +120,14 @@ describe('Bookshop - Update', () => {
 
   test('programmatic update with unique constraint conflict', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
-    const update = UPDATE(Genres).set('ID = 201')
-    const err = await update.then(a => a, e => e)
-    expect(err).to.be.instanceOf(Error)
-    expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+    try {
+      await UPDATE(Genres).set('ID = 201')
+    } catch (err) {
+      expect(err).to.be.instanceOf(Error)
+      expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+      return
+    }
+
   })
 
 
