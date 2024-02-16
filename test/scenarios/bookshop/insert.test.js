@@ -9,7 +9,7 @@ describe('Bookshop - Insert', () => {
 
     const insert = INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
 
-    const err = await expect(insert).rejected
+    const err = await insert.then(a => a, e => e)
     expect(err).to.be.instanceOf(Error)
     expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
   })

@@ -121,7 +121,7 @@ describe('Bookshop - Update', () => {
   test('programmatic update with unique constraint conflict', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
     const update = UPDATE(Genres).set('ID = 201')
-    const err = await expect(update).rejected
+    const err = await update.then(a => a, e => e)
     expect(err).to.be.instanceOf(Error)
     expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
   })
@@ -140,7 +140,7 @@ describe('Bookshop - Update', () => {
   })
 
   test('Upsert draft enabled entity', async () => {
-    const res = await UPSERT.into('DraftService.DraftEnabledBooks').entries({ID: 42, title: 'Foo'})
+    const res = await UPSERT.into('DraftService.DraftEnabledBooks').entries({ ID: 42, title: 'Foo' })
     expect(res).to.equal(1)
   })
 })
