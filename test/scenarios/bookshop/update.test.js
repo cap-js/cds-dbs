@@ -54,7 +54,7 @@ describe('Bookshop - Update', () => {
     expect(update.data.footnotes).to.be.eql(['one'])
   })
 
-  test('programmatic insert/upsert/update/delete with unknown entity', async () => {
+  test('programmatic insert/upsert/update/select/delete with unknown entity', async () => {
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
     let affectedRows = await INSERT.into(books)
@@ -97,6 +97,10 @@ describe('Bookshop - Update', () => {
         createdAt: (new Date()).toISOString(),
       })
     await expect(affectedRows).rejected
+
+    const result = await SELECT.from(books)
+      .where({ ID })
+    expect(result.length).to.be.eq(1)
 
     affectedRows = await DELETE(books)
       .where({ ID })
