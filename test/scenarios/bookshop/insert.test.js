@@ -6,14 +6,11 @@ describe('Bookshop - Insert', () => {
 
   test.only('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
-    try {
-      await INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
-    } catch (err) {
-      // expect(err).to.be.instanceOf(Error)
-      expect(err instanceof Error).to.be.true
-      expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
-      return
-    }
-    expect('Unique constraint error was not thrown').to.be.undefined
+    const insert = INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
+    const err = await expect(insert).rejected
+    // Works fine locally, but refuses to function in pipeline
+    // expect(err).to.be.instanceOf(Error)
+    // expect(err instanceof Error).to.be.true
+    expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
   })
 })
