@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.0.5](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.4...hana-v0.0.5) (2024-02-16)
+
+
+### Fixed
+
+* **`sqlite`:** Retain Error object for unique constraint violation ([#446](https://github.com/cap-js/cds-dbs/issues/446)) ([d27ee79](https://github.com/cap-js/cds-dbs/commit/d27ee79b4c4eea8522bf5dd2a288638f54029567))
+* **hana:** ensure the database connection does not enable auto commit ([#448](https://github.com/cap-js/cds-dbs/issues/448)) ([b2ca1da](https://github.com/cap-js/cds-dbs/commit/b2ca1da4fa1976cd2ac16d2bb831719cf9ba8424))
+* **hana:** Ensure xpr with logical operator to only contain comparisons  ([#452](https://github.com/cap-js/cds-dbs/issues/452)) ([a2ecb22](https://github.com/cap-js/cds-dbs/commit/a2ecb22fb587bf5364e035f679851610ede58e20))
+* ignore virtual keys in UPSERT([#463](https://github.com/cap-js/cds-dbs/issues/463)) ([49adbf3](https://github.com/cap-js/cds-dbs/commit/49adbf35f243d6365f84a8cf0193f028798aa366))
+* select without columns from unknown entity ([#466](https://github.com/cap-js/cds-dbs/issues/466)) ([eb857de](https://github.com/cap-js/cds-dbs/commit/eb857def41a89e9afe5e72686c3e55273c983b98))
+
 ## [0.0.4](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.3...hana-v0.0.4) (2024-02-02)
 
 

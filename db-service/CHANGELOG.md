@@ -4,6 +4,18 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.1...db-service-v1.6.2) (2024-02-16)
+
+
+### Fixed
+
+* ** `infer`:** unique alias for scoped subqueries ([#465](https://github.com/cap-js/cds-dbs/issues/465)) ([5dbaa8e](https://github.com/cap-js/cds-dbs/commit/5dbaa8e414102ee1dd0d8f76058c9eeff899666e))
+* Allow only for array of arrays as data for plain SQL ([#449](https://github.com/cap-js/cds-dbs/issues/449)) ([22e1c43](https://github.com/cap-js/cds-dbs/commit/22e1c43c38709c6597be9e642619476338ef824a))
+* dont insert structured elements ([#461](https://github.com/cap-js/cds-dbs/issues/461)) ([f3f688d](https://github.com/cap-js/cds-dbs/commit/f3f688d6ef45f9d42690c13eaf88ab004aa86ff9))
+* ignore virtual keys in UPSERT([#463](https://github.com/cap-js/cds-dbs/issues/463)) ([49adbf3](https://github.com/cap-js/cds-dbs/commit/49adbf35f243d6365f84a8cf0193f028798aa366))
+* INSERT entries containing undefined values ([#453](https://github.com/cap-js/cds-dbs/issues/453)) ([d3aad75](https://github.com/cap-js/cds-dbs/commit/d3aad7580f45ccde8528ddfa261f81d155354574))
+* select without columns from unknown entity ([#466](https://github.com/cap-js/cds-dbs/issues/466)) ([eb857de](https://github.com/cap-js/cds-dbs/commit/eb857def41a89e9afe5e72686c3e55273c983b98))
+
 ## [1.6.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.0...db-service-v1.6.1) (2024-02-05)
 
 
