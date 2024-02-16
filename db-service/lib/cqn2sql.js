@@ -651,7 +651,7 @@ class CQN2SQLRenderer {
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
     if (!keys) return this.sql = sql
-    keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
+    keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns.filter(c => {

@@ -616,7 +616,7 @@ class HANAService extends SQLService {
       const keyCompare =
         keys &&
         Object.keys(keys)
-          .filter(k => !keys[k].isAssociation)
+          .filter(k => !keys[k].isAssociation && !keys[k].virtual)
           .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
           .join(' AND ')
 
@@ -821,10 +821,13 @@ class HANAService extends SQLService {
       const requiredColumns = !elements
         ? []
         : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default)) && !columns.find(c => c.name === e),
-          )
+          .filter(e => {
+            if (elements[e]?.virtual) return false
+            if (columns.find(c => c.name === e)) return false
+            if (elements[e]?.[annotation]) return true
+            if (!isUpdate && elements[e]?.default) return true
+            return false
+          })
           .map(name => ({ name, sql: 'NULL' }))
 
       const keyZero = this.quote(
