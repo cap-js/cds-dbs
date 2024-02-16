@@ -138,4 +138,9 @@ describe('Bookshop - Update', () => {
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('foo').that.equals(42)
   })
+
+  test('Upsert draft enabled entity', async () => {
+    const res = await UPSERT.into('DraftService.DraftEnabledBooks').entries({ID: 42, title: 'Foo'})
+    expect(res).to.equal(1)
+  })
 })
