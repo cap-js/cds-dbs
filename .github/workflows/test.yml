@@ -30,6 +30,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
         env:
           FORCE_COLOR: true
