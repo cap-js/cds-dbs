@@ -100,6 +100,9 @@ class HANAService extends SQLService {
 
   async onSELECT(req) {
     const { query, data } = req
+    if (!query.target) {
+      try { this.infer(query) } catch (e) { /**/ }
+    }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
     }
@@ -125,16 +128,16 @@ class HANAService extends SQLService {
 
   async onINSERT({ query, data }) {
     try {
-    const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
-    const ps = await this.prepare(sql)
-    // HANA driver supports batch execution
-    const results = await (entries
-      ? HANAVERSION <= 2
-        ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-        : ps.run(entries[0])
-      : ps.run())
-    return new this.class.InsertResults(cqn, results)
+      const { sql, entries, cqn } = this.cqn2sql(query, data)
+      if (!sql) return // Do nothing when there is nothing to be done
+      const ps = await this.prepare(sql)
+      // HANA driver supports batch execution
+      const results = await (entries
+        ? HANAVERSION <= 2
+          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
+          : ps.run(entries[0])
+        : ps.run())
+      return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
@@ -812,17 +815,17 @@ class HANAService extends SQLService {
       return false
     }
 
-        list(list) {
-          const first = list.list[0]
-          // If the list only contains of lists it is replaced with a json function and a placeholder
-          if (this.values && first.list && !first.list.find(v => !v.val)) {
-            const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-            this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
-            return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
-          }
-          // Call super for normal SQL behavior
-          return super.list(list)
-        }
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => !v.val)) {
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
+      // Call super for normal SQL behavior
+      return super.list(list)
+    }
 
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
