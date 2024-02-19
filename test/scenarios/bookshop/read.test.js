@@ -107,6 +107,16 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[1].descr).to.include('e r')
   })
 
+  test('Search book with multiple values', async () => {
+    const or = await GET('/admin/Books?$search=Edgar OR Eyre', admin)
+    expect(or.status).to.be.eq(200)
+    expect(or.data.value.length).to.be.eq(4)
+
+    const and = await GET('/admin/Books?$search=Edgar AND Eyre', admin)
+    expect(and.status).to.be.eq(200)
+    expect(and.data.value.length).to.be.eq(0)
+  })
+
   test.skip('Expand Book($count,$top,$orderby)', async () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
