@@ -1817,7 +1817,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           if (lhs.ref[0] === '$self') { // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
             if (lhs.$refLinks[1].definition.isAssociation) result[i].ref.splice(0, 1)
-            // otherwise $self points to the entity itself
+            // otherwise $self is replaced by the alias of the entity
             else result[i].ref.splice(0, 1, targetSideRefLink.alias)
           } else if (lhs.ref.length > 1) {
             if (
