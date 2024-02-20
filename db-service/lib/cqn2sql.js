@@ -95,6 +95,10 @@ class CQN2SQLRenderer {
     return q.target ? q : cds_infer(q)
   }
 
+  cqn4sql(q) {
+    return cqn4sql(q, this.model)
+  }
+
   // CREATE Statements ------------------------------------------------
 
   /**
@@ -110,7 +114,7 @@ class CQN2SQLRenderer {
     this.sql =
       !query || target['@cds.persistence.table']
         ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
-        : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
+        : `CREATE VIEW ${name} AS ${this.SELECT(this.cqn4sql(query))}`
     this.values = []
     return
   }
@@ -818,8 +822,8 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now':  return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
-      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.'+ref[1]||'id', param: false }] }) // REVISIT: same here?
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
@@ -987,6 +991,6 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
+module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
 module.exports.class = CQN2SQLRenderer
 module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word

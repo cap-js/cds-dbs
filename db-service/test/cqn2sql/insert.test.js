@@ -2,17 +2,19 @@
 const { text } = require('stream/consumers')
 
 const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
-// function cqn2sql(q, m = cds.model) {
-//   return _cqn2sql(q, m)
-// } 
-
-beforeAll(async () => {
-  let model = await cds.load(__dirname + '/testModel').then(cds.linked)
-  cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
-})
+const _cqn2sql = require('../../lib/cqn2sql')
 
 describe('insert', () => {
+  let model
+  function cqn2sql(q) {
+    return _cqn2sql(q, model)
+  }
+
+  beforeAll(async () => {
+    model = await cds.load(__dirname + '/testModel').then(cds.linked)
+    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+  })
+
   describe('insert only', () => {
     // Values are missing
     test('test with insert values into columns', async () => {
