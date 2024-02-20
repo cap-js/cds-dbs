@@ -262,9 +262,9 @@ describe('Structural comparison', () => {
   })
 
   it('expands comparison also in exists subquery', () => {
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedQueryString = `
+    const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
+    let query = cqn4sql(CQL(queryString), model)
+    const expectedQueryString = `
         SELECT from bookshop.AccessGroups as accessGroup
         { accessGroup.ID }
         where exists (
@@ -275,7 +275,7 @@ describe('Structural comparison', () => {
               AssocWithStructuredKey.toStructuredKey_second                 = null
         )
       `
-      expect(query).to.deep.equal(CQL(expectedQueryString))
+    expect(query).to.deep.equal(CQL(expectedQueryString))
   })
 
   it('compare assocs with multiple keys', () => {
@@ -296,8 +296,7 @@ describe('Structural comparison', () => {
     eqOps.forEach(op => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStrucSibling { ID } where not struc1 ${first} struc2`
-      const expectedError =
-        'Can\'t compare "struc1" with "struc2": Path "deeper.foo" not found in "struc2", Path "deeper.bar" not found in "struc2", Path "foo" not found in "struc1", Path "bar" not found in "struc1"'
+      const expectedError = 'Can\'t compare "struc1" with "struc2": the operands must have the same structure'
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(expectedError)
     })
   })
@@ -306,8 +305,7 @@ describe('Structural comparison', () => {
     eqOps.forEach(op => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStruc { ID } where not struc1 ${first} struc3`
-      const expectedError =
-        'Can\'t compare "struc1" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "struc1"'
+      const expectedError = 'Can\'t compare "struc1" with "struc3": the operands must have the same structure'
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(expectedError)
     })
   })
@@ -382,7 +380,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.EStrucSibling { ID } where not sibling.struc2 ${first} struc3`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        /Can't compare "sibling.struc2" with "struc3": Path "bar" not found in "struc3", Path "oxx" not found in "sibling.struc2"/,
+        `Can't compare "sibling.struc2" with "struc3": the operands must have the same structure`,
       )
     })
   })
@@ -405,7 +403,7 @@ describe('Structural comparison', () => {
     })
   })
   it('Struct needs to be unfolded in on-condition of join', () => {
-    const queryString = `SELECT from bookshop.Unmanaged {
+    const query = CQL`SELECT from bookshop.Unmanaged {
       toSelf.field
     }`
 
@@ -415,8 +413,16 @@ describe('Structural comparison', () => {
       toSelf.field as toSelf_field
     }
     `
-    // const unfolded = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
-    const res = cqn4sql(CQL(queryString), model)
-      expect(res).to.eql(expected)
+    const unfolded = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+    const structuredRes = cqn4sql(query, model)
+    const unfoldedRes = cqn4sql(query, unfolded)
+    //> REVISIT: remove fallback once UCSN is the new standard
+    if (unfolded.meta.unfolded) {
+      expect(structuredRes).to.eql(expected).to.eql(unfoldedRes)
+    } else {
+      // with odata csn, the on condition of the assoc is wrapped in xpr
+      expect(structuredRes.SELECT.from.on).to.eql(expected.SELECT.from.on).to.eql(unfoldedRes.SELECT.from.on[0].xpr)
+      expect(structuredRes.SELECT.columns).to.eql(expected.SELECT.columns).to.eql(unfoldedRes.SELECT.columns)
+    }
   })
 })

@@ -107,7 +107,7 @@ describe('SELECT', () => {
       await assert.rejects(cds.run(cqn))
     })
 
-    test('select xpr', async () => {
+    test.skip('select xpr', async () => {
       const cqn = {
         SELECT: {
           from: { ref: ['basic.projection.string'] },

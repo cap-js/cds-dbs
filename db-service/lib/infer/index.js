@@ -99,12 +99,12 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
-          const next = d.elements[r.id || r]?.elements ? d.elements[r.id || r] : d.elements[r.id || r]?._target
+          const next = d.elements[r.id || r]?._target || d.elements[r.id || r]
           if (!next) throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
           return next
         }, target)
       }
-      if (target.kind !== 'entity' && !target._isAssociation)
+      if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
       attachRefLinksToArg(from) // REVISIT: remove
@@ -114,6 +114,8 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = target
+      const last = from.$refLinks.at(-1)
+      last.alias = alias
     } else if (from.args) {
       from.args.forEach(a => inferTarget(a, querySources))
     } else if (from.SELECT) {
@@ -153,9 +155,10 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
    * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
    */
   function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
-    const { ref, xpr, args } = arg
+    const { ref, xpr, args, list } = arg
     if (xpr) xpr.forEach(t => attachRefLinksToArg(t, $baseLink, expandOrExists))
     if (args) args.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
+    if (list) list.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
     ref.forEach((step, i) => {
@@ -165,7 +168,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         // we need to search for first step in ´model.definitions[infixAlias]`
         if ($baseLink) {
           const { definition } = $baseLink
-          const elements = definition.elements || definition._target?.elements
+          const elements = definition._target?.elements || definition.elements
           const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
           if (e.target) {
             // only fk access in infix filter
@@ -176,7 +179,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
                 `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
             // no non-fk traversal in infix filter
-            if (!expandOrExists && nextStep && !(nextStep in e.foreignKeys))
+            if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
               throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
           }
           arg.$refLinks.push({ definition: e, target: definition })
@@ -459,12 +462,11 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
       const { inExists, inExpr, inNestedProjection, inCalcElement, baseColumn } = context || {}
-      if (column.param) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
+      if (column.param || column.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
       if (column.xpr)
         column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
-      if (column.SELECT) return
 
       if (!column.ref) {
         if (column.expand) queryElements[column.as] = resolveExpand(column)
@@ -495,7 +497,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
             nameSegments.push(id)
           } else if ($baseLink) {
             const { definition, target } = $baseLink
-            const elements = definition.elements || definition._target?.elements
+            const elements = definition._target?.elements || definition.elements
             if (elements && id in elements) {
               const element = elements[id]
               rejectNonFkAccess(element)
@@ -530,7 +532,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           }
         } else {
           const { definition } = column.$refLinks[i - 1]
-          const elements = definition.elements || definition._target?.elements
+          const elements = definition._target?.elements || definition.elements //> go for assoc._target first, instead of assoc as struct
           const element = elements?.[id]
 
           if (firstStepIsSelf && element?.isAssociation) {
@@ -543,8 +545,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
 
           const target = definition._target || column.$refLinks[i - 1].target
           if (element) {
-            if($baseLink)
-              rejectNonFkAccess(element)
+            if ($baseLink) rejectNonFkAccess(element)
             const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -648,25 +649,23 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
         }
 
         /**
-         * Check if the next step in the ref is foreign key of `element`
+         * Check if the next step in the ref is foreign key of `assoc`
          * if not, an error is thrown.
-         * 
-         * @param {CSN.Element} element if this is an association, the next step must be a foreign key of the element.
+         *
+         * @param {CSN.Element} assoc if this is an association, the next step must be a foreign key of the element.
          */
-        function rejectNonFkAccess(element) {
-          if (!inNestedProjection && !inCalcElement && element.target) {
+        function rejectNonFkAccess(assoc) {
+          if (!inNestedProjection && !inCalcElement && assoc.target) {
             // only fk access in infix filter
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             // no unmanaged assoc in infix filter path
-            if (!inExists && element.on)
+            if (!inExists && assoc.on)
               throw new Error(
-                `"${element.name}" in path "${column.ref
-                  .map(idOnly)
-                  .join('.')}" must not be an unmanaged association`
+                `"${assoc.name}" in path "${column.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
               )
-            // no non-fk traversal in infix filter
-            if (nextStep && element.foreignKeys && !(nextStep in element.foreignKeys))
-              throw new Error(`Only foreign keys of "${element.name}" can be accessed in infix filter`)
+            // no non-fk traversal in infix filter in non-exists path
+            if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
+              throw new Error(`Only foreign keys of "${assoc.name}" can be accessed in infix filter`)
           }
         }
       })
@@ -723,13 +722,13 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
-            const leafLinkElements = $leafLink.definition.elements || $leafLink.definition._target.elements
+            const leafLinkElements = $leafLink.definition._target?.elements || $leafLink.definition.elements
             Object.entries(leafLinkElements).forEach(([k, v]) => {
               const name = namePrefix ? `${namePrefix}_${k}` : k
               // if overwritten/excluded omit from wildcard elements
               // in elements the names are already flat so consider the prefix
               // in excluding, the elements are addressed without the prefix
-              if (!(name in elements || col.excluding?.some(e => e === k))) wildCardElements[name] = v
+              if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
             })
             elements = { ...elements, ...wildCardElements }
           } else {
@@ -896,7 +895,7 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
               })
               mergePathIfNecessary(subPath, step)
             } else if (step.args || step.xpr) {
-              const nestedProp  = step.xpr ? 'xpr' : 'args'
+              const nestedProp = step.xpr ? 'xpr' : 'args'
               step[nestedProp].forEach(a => {
                 mergePathsIntoJoinTree(a, subPath)
               })
@@ -1129,6 +1128,15 @@ function infer(originalQuery, model = cds.context?.model || cds.model) {
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
   }
+}
+/**
+ * Returns true if e is a foreign key of assoc.
+ * this function is also compatible with unfolded csn (UCSN),
+ * where association do not have foreign keys anymore.
+ */
+function isForeignKeyOf(e, assoc) {
+  if (!assoc.isAssociation) return false
+  return e in (assoc.elements || assoc.foreignKeys)
 }
 const idOnly = ref => ref.id || ref
 

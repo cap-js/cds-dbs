@@ -191,7 +191,8 @@ class SQLiteService extends SQLService {
 
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
-      struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
+      Association: expr => `${expr}->'$'`,
+      struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
 
       // SQLite has no booleans so we need to convert 0 and 1
@@ -244,7 +245,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS') || err
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
   }
 
@@ -252,13 +253,13 @@ class SQLiteService extends SQLService {
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
     }
   }
 }
 
 // function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign ({
+//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
 //     code: 'MUST_NOT_BE_NULL',
 //     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
 //     message: 'Value is required',
@@ -267,11 +268,12 @@ class SQLiteService extends SQLService {
 
 function _not_unique(err, code) {
   if (err.message.match(/unique constraint/i))
-    return Object.assign({
+    return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  return err
 }
 
 module.exports = SQLiteService

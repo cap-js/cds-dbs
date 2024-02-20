@@ -680,7 +680,7 @@ describe('Unfolding calculated elements in select list', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books:youngAuthorName { ID }`, model)).to.throw(
-      'No association “youngAuthorName” in entity “booksCalc.Books”',
+      'Query source must be a an entity or an association',
     )
   })
 

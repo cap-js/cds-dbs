@@ -401,6 +401,12 @@ class CQN2SQLRenderer {
     /** @type {string[]} */
     this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
+    if (!elements) {
+      this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+    }
+
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
@@ -475,10 +481,11 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
+          if (val === undefined) continue
           if (elements[key]?.type in BINARY_TYPES) {
             val = transformBase64(val)
           }
-          buffer += `${keyJSON}${val === undefined ? 'null' : JSON.stringify(val)}`
+          buffer += `${keyJSON}${JSON.stringify(val)}`
         }
       }
       buffer += '}'
@@ -565,6 +572,12 @@ class CQN2SQLRenderer {
 
     this.columns = columns
 
+    if (!elements) {
+      this.entries = INSERT.rows
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+    }
+
     if (INSERT.rows[0] instanceof Readable) {
       INSERT.rows[0].type = 'json'
       this.entries = [[...this.values, INSERT.rows[0]]]
@@ -635,11 +648,12 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
-    const entity = this.name(q.target?.name || INSERT.into.ref[0])
-    const alias = INSERT.into.as
+    const entity = this.name(q.target?.name || UPSERT.into.ref[0])
+    const alias = UPSERT.into.as
     const elements = q.target?.elements || {}
-    const keys = Object.keys(q.target?.keys || {}).filter(k => !keys[k].isAssociation)
+    let keys = q.target?.keys
     if (!keys) return this.INSERT({ __proto__: q, INSERT: UPSERT })
+    keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
     // temporal data
     keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
@@ -715,6 +729,7 @@ class CQN2SQLRenderer {
     function _add(data, sql4) {
       for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
+          if (cds.unfold && elements?.[c].is_struct) continue // skip structs from universal csn
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
@@ -841,9 +856,8 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] })
-      case '$user':
-      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id', param: false }] })
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }

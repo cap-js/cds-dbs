@@ -23,6 +23,26 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    if (cds.env.features.db_strict) {
+      this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
+        const elements = query.target?.elements; if (!elements) return
+        const kind = query.kind || Object.keys(query)[0]
+        const operation = query[kind]
+        if (!operation.columns && !operation.entries && !operation.data) return
+        const columns =
+          operation.columns ||
+          Object.keys(
+            operation.data || operation.entries?.reduce((acc, obj) => {
+              return Object.assign(acc, obj)
+            }, {}),
+          )
+        const invalidColumns = columns.filter(c => !(c in elements))
+
+        if (invalidColumns.length > 0) {
+          cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
+        }
+      })
+    }
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
@@ -94,7 +114,11 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    query.SELECT.expand = 'root'
+    if (query.target && !query.target._unresolved) {
+      // Will return multiple rows with objects inside
+      query.SELECT.expand = 'root'
+    }
+
     const { sql, values, cqn } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
@@ -225,7 +249,7 @@ class SQLService extends DatabaseService {
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
-      if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
+      if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
       else return exec(data)
     } else return next()
   }
@@ -318,8 +342,14 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)])
+    if (
+      !cds.env.features.db_strict &&
+      !q.SELECT?.from?.join &&
+      !q.SELECT?.from?.SELECT &&
+      !this.model?.definitions[_target_name4(q)]
+    ) {
       return _unquirked(q)
+    }
     return cqn4sql(q, this.model)
   }
 
