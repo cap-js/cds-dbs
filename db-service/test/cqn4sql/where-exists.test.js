@@ -2,6 +2,8 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
+
+
 /**
  * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
  *       Especially w.r.t. to table aliases and bracing.
@@ -1222,7 +1224,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
               )
       )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
   it('on condition of to many composition in csn model has xpr and dangling filter', () => {
     const q = CQL`
@@ -1256,7 +1258,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
           and detailsDeviations.material_ID = '1'
         )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 
   /**

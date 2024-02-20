@@ -31,6 +31,7 @@ class CQN2SQLRenderer {
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
+    this.model = srv?.model
   }
 
   static _add_mixins(aspect, mixins) {
@@ -94,6 +95,10 @@ class CQN2SQLRenderer {
     return q.target ? q : cds_infer(q)
   }
 
+  cqn4sql(q) {
+    return cqn4sql(q, this.model)
+  }
+
   // CREATE Statements ------------------------------------------------
 
   /**
@@ -109,7 +114,7 @@ class CQN2SQLRenderer {
     this.sql =
       !query || target['@cds.persistence.table']
         ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
-        : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
+        : `CREATE VIEW ${name} AS ${this.SELECT(this.cqn4sql(query))}`
     this.values = []
     return
   }
@@ -614,8 +619,9 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(cqn4sql(INSERT.as))}`
+    this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
+      this.cqn4sql(INSERT.as),
+    )}`
     this.entries = [this.values]
     return this.sql
   }
@@ -1024,6 +1030,6 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
+module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
 module.exports.class = CQN2SQLRenderer
 module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word
