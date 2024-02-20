@@ -43,7 +43,7 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
+function cqn4sql(originalQuery, model) {
   const inferred = infer(originalQuery, model)
   if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
@@ -122,7 +122,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
         })
 
-        const transformedSubquery = cqn4sql(subquery)
+        const transformedSubquery = cqn4sql(subquery, model)
 
         // replace where condition of original query with the transformed subquery
         // correlate UPDATE / DELETE query with subquery by primary key matches

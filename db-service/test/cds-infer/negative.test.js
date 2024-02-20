@@ -4,7 +4,10 @@ const cds = require('@sap/cds/lib')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('negative', () => {
   let model

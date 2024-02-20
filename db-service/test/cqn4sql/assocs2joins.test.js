@@ -373,7 +373,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in select, same field with different filters requires alias', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`), model).to.throw(
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`, model)).to.throw(
       /Duplicate definition of element “author_name”/,
     )
   })
