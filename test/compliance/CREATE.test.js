@@ -70,7 +70,17 @@ const dataTest = async function (entity, table, type, obj) {
     }
   }
 
-  await cds.db.run(async tx => {
+  // It is required for Postgres to reset the transaction
+  // Once a query in the transaction throws it is poisoned
+  // Making all follow up queries throw
+  // This includes commit all previous successfull changes are lost
+  let tx = await cds.tx()
+  const commit = async () => {
+    await tx.commit()
+    tx = await cds.tx()
+  }
+
+  try {
     await tx.run(cds.ql.DELETE.from(table))
     try {
       await tx.run(cds.ql[type](data).into(table))
@@ -81,25 +91,32 @@ const dataTest = async function (entity, table, type, obj) {
       return
     }
 
+    await commit()
 
     // Execute the query an extra time if the entity has an ID key column
     if (cuid) {
+      let error
       try {
         await tx.run(cds.ql[type](data).into(table))
-        if (type === 'INSERT') throw new Error('Ensure that INSERT queries fail when executed twice')
+        if (type === 'INSERT') error = new Error('Ensure that INSERT queries fail when executed twice')
       } catch (e) {
         // Ensure that UPSERT does not throw when executed twice
         if (type === 'UPSERT') throw e
       }
+      await commit()
 
       try {
         const keysOnly = keys.reduce((l, c) => { l[c] = data[c]; return l }, {})
         await tx.run(cds.ql[type](keysOnly).into(table))
-        if (type === 'INSERT') throw new Error('Ensure that INSERT queries fail when executed twice')
+        if (type === 'INSERT') error = new Error('Ensure that INSERT queries fail when executed twice')
       } catch (e) {
         // Ensure that UPSERT does not throw when executed twice
         if (type === 'UPSERT') throw e
       }
+
+      if (error) throw error
+
+      await commit()
     }
 
     if (throws !== false)
@@ -146,7 +163,9 @@ const dataTest = async function (entity, table, type, obj) {
       checks++
     }
     assert.notEqual(checks, 0, 'Ensure that the test has expectations')
-  })
+  } finally {
+    await tx.commit()
+  }
 }
 
 describe('CREATE', () => {

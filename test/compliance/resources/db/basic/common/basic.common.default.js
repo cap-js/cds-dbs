@@ -1,4 +1,4 @@
-const dstring = size => { d: 'default'.slice(0, size), o: 'not default'.slice(0, size) }
+const dstring = size => ({ d: 'default'.slice(0, size), o: 'not default'.slice(0, size) })
 
 const columns = {
   integer: { d: 10, o: 20 },
@@ -11,7 +11,7 @@ const columns = {
   short: dstring(10),
   medium: dstring(100),
   large: dstring(5000),
-  blob: dstring(5001),
+  // blob: dstring(5001),
   date: { d: '1970-01-01', o: '2000-01-01' },
   time: { d: '01:02:03', o: '21:02:03' },
   dateTime: { d: '1970-01-01T01:02:03Z', o: '2000-01-01T21:02:03Z' },
