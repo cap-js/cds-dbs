@@ -272,7 +272,7 @@ describe('CREATE', () => {
           })
         })
 
-        describe.only('UPSERT', () => {
+        describe('UPSERT', () => {
           // Prevent INSERT tests from running when CREATE fails
           beforeAll(() => deploy)
 

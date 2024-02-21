@@ -540,7 +540,7 @@ class HANAService extends SQLService {
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
-      const converter = extractions.map(c => c.converter(c.sql))
+      const converter = extractions.map(c => c.insert)
 
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
@@ -589,7 +589,11 @@ class HANAService extends SQLService {
         return super.INSERT_rows(q)
       }
 
-      const columns = INSERT.columns || (elements && ObjectKeys(elements))
+      const columns = INSERT.columns || []
+      for (const col of ObjectKeys(elements)) {
+        if (!columns.includes(col)) columns.push(col)
+      }
+
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows
       for (let x = 0; x < rows.length; x++) {
@@ -597,6 +601,8 @@ class HANAService extends SQLService {
         const entry = {}
         for (let y = 0; y < columns.length; y++) {
           entry[columns[y]] = row[y]
+            // Include explicit null values for managed fields
+            ?? (elements[columns[y]]['@cds.on.insert'] && null)
         }
         entries[x] = entry
       }
@@ -810,7 +816,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       // If the list only contains of lists it is replaced with a json function and a placeholder
       if (this.values && first.list && !first.list.find(v => !v.val)) {
         const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-            this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // Call super for normal SQL behavior
@@ -857,6 +863,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
     static TypeMap = {
       ...super.TypeMap,
+      UUID: () => `NVARCHAR(36)`,
     }
 
     // TypeMap used for the JSON_TABLE column definition
@@ -1022,7 +1029,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
       const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      res?.changes.length && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
       delete this.dbc

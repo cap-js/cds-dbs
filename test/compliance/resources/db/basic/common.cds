@@ -18,11 +18,13 @@ entity ![default] : _cuid {
   float       : cds.Decimal default 1.1;
   decimal     : cds.Decimal(5, 4) default 1.12345;
   string      : String default 'default';
-  char        : String(1) default 'default';
+  char        : String(1) default 'd';
   short       : String(10) default 'default';
   medium      : String(100) default 'default';
   large       : String(5000) default 'default';
-  blob        : LargeString default 'default';
+  // HANA Does not support default values on BLOB types
+  // default value cannot be created on column of data type NCLOB: BLOB
+  // blob        : LargeString default 'default';
   date        : Date default '1970-01-01';
   time        : Time default '01:02:03';
   dateTime    : DateTime default '1970-01-01T01:02:03Z';

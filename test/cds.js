@@ -106,6 +106,10 @@ cds.test = Object.setPrototypeOf(function () {
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
+    if (isolate) {
+      await cds.db.tenant(isolate, true)
+    }
+
     // Clean cache
     delete cds.services._pending.db
     delete cds.services.db
