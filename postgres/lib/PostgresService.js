@@ -401,6 +401,18 @@ GROUP BY k
         .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
     }
 
+    UPSERT(q, isUpsert = false) {
+      super.UPSERT(q, isUpsert)
+
+      // REVISIT: this should probably be made a bit easier to adopt
+      return (this.sql = this.sql
+        // Adjusts json path expressions to be postgres specific
+        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
+        // Adjusts json function to be postgres specific
+        .replace('json_each(?)', 'jsonb_array_elements($1::jsonb)')
+        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
+    }
+
     param({ ref }) {
       this._paramCount = this._paramCount || 1
       if (ref.length > 1) throw cds.error`Unsupported nested ref parameter: ${ref}`
