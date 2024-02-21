@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.3](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.2...db-service-v1.6.3) (2024-02-20)
+
+
+### Fixed
+
+* **`cqn4sql`:** be robust against `$self.<element>;` references ([#471](https://github.com/cap-js/cds-dbs/issues/471)) ([2921b0e](https://github.com/cap-js/cds-dbs/commit/2921b0e8ada33b172a001d89904893268e751efd))
+* **`infer`:** Always use srv.model ([#451](https://github.com/cap-js/cds-dbs/issues/451)) ([41cf4a2](https://github.com/cap-js/cds-dbs/commit/41cf4a24cf2f5e2411be0dc647af6eb628a6d312))
+* Throw 'new Error' instead of string on $search with multiple words ([#472](https://github.com/cap-js/cds-dbs/issues/472)) ([51be94d](https://github.com/cap-js/cds-dbs/commit/51be94d2333b4a4007f354c805d1b974b19d6d2d))
+
 ## [1.6.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.1...db-service-v1.6.2) (2024-02-16)
 
 
