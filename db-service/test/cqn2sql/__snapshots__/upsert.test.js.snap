@@ -7,7 +7,7 @@ exports[`upsert test with entries 1`] = `
       "[{"ID":1,"name":null,"a":2},{"ID":null,"name":"'asd'","a":6}]",
     ],
   ],
-  "sql": "INSERT INTO Foo2 (ID,name,a) SELECT value->>'$."ID"',value->>'$."name"',value->>'$."a"' FROM json_each(?) WHERE true ON CONFLICT(ID) DO UPDATE SET name = excluded.name,a = excluded.a",
+  "sql": "INSERT INTO Foo2 (ID,name,a) SELECT (CASE WHEN OLD.ID IS NULL THEN value->>'$."ID"' ELSE (CASE WHEN json_type(value,'$."ID"') IS NULL THEN OLD.ID ELSE value->>'$."ID"' END) END) as ID,(CASE WHEN OLD.ID IS NULL THEN value->>'$."name"' ELSE (CASE WHEN json_type(value,'$."name"') IS NULL THEN OLD.name ELSE value->>'$."name"' END) END) as name,(CASE WHEN OLD.ID IS NULL THEN value->>'$."a"' ELSE (CASE WHEN json_type(value,'$."a"') IS NULL THEN OLD.a ELSE value->>'$."a"' END) END) as a FROM (SELECT value, value->>'$."ID"' as ID from json_each(?)) as NEW LEFT JOIN Foo2 AS OLD ON NEW.ID=OLD.ID WHERE TRUE ON CONFLICT(ID) DO UPDATE SET name = excluded.name,a = excluded.a",
 }
 `;
 
@@ -18,6 +18,6 @@ exports[`upsert test with keys only 1`] = `
       "[[1],[9]]",
     ],
   ],
-  "sql": "INSERT INTO Foo2 (ID) SELECT value->>'$[0]' FROM json_each(?) WHERE true ON CONFLICT(ID) DO NOTHING",
+  "sql": "INSERT INTO Foo2 (ID) SELECT (CASE WHEN OLD.ID IS NULL THEN value->>'$."ID"' ELSE (CASE WHEN json_type(value,'$."ID"') IS NULL THEN OLD.ID ELSE value->>'$."ID"' END) END) as ID FROM (SELECT value, value->>'$."ID"' as ID from json_each(?)) as NEW LEFT JOIN Foo2 AS OLD ON NEW.ID=OLD.ID WHERE TRUE ON CONFLICT(ID) DO UPDATE SET ",
 }
 `;
