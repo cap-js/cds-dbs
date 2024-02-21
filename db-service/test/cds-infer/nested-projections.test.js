@@ -2,7 +2,10 @@
 
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('nested projections', () => {
   describe('expand', () => {
