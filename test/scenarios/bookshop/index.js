@@ -1,4 +1,5 @@
 require('./read.test')
+require('./insert.test')
 require('./delete.test')
 require('./update.test')
 require('./funcs.test')

@@ -28,7 +28,7 @@ entity Books : managed {
     dedication: String; // same name as struct
   };
   coAuthor_ID_unmanaged: Integer;
-  coAuthorUnmanaged: Association to Authors on coAuthorUnmanaged.ID = coAuthor_ID_unmanaged;
+  coAuthorUnmanaged: Association to Authors on $self.coAuthorUnmanaged.ID = $self.coAuthor_ID_unmanaged;
 }
 
 entity BooksWithWeirdOnConditions {

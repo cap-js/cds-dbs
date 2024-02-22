@@ -43,7 +43,7 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
+function cqn4sql(originalQuery, model) {
   const inferred = infer(originalQuery, model)
   if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
@@ -122,7 +122,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
         })
 
-        const transformedSubquery = cqn4sql(subquery)
+        const transformedSubquery = cqn4sql(subquery, model)
 
         // replace where condition of original query with the transformed subquery
         // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -918,7 +918,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
       if (q.SELECT.from.uniqueSubqueryAlias) return
       const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-        getLastStringSegment(last.id||last),
+        getLastStringSegment(last.id || last),
         originalQuery.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
@@ -976,8 +976,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      */
     function isManagedAssocInFlatMode(e) {
       return (
-        e.isAssociation && e.keys
-        && (model.meta.transformation === 'odata' || model.meta.unfolded?.includes('structs'))
+        e.isAssociation && e.keys && (model.meta.transformation === 'odata' || model.meta.unfolded?.includes('structs'))
       )
     }
   }
@@ -1038,7 +1037,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
+    if (element.on && !element.keys)
+      return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
@@ -1276,7 +1276,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           }
         } else {
           const { list } = token
-          if (list.every(e => e.val)) // no need for transformation
+          if (list.every(e => e.val))
+            // no need for transformation
             transformedTokenStream.push({ list })
           else transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
         }
@@ -1774,13 +1775,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             // naive assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
             else if (
-              lhs.$refLinks[0].definition ===
+              lhs.$refLinks[0]?.definition ===
               getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
             )
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
-            else if (lhs.$refLinks[0].definition.target) result[i].ref = [result[i].ref.join('_')]
+            else if (lhs.$refLinks[0]?.definition.target) result[i].ref = [result[i].ref.join('_')]
           }
         }
         if (backlink) {
@@ -1813,8 +1814,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
         } else if (lhs.ref) {
-          if (lhs.ref[0] === '$self') result[i].ref.splice(0, 1, targetSideRefLink.alias)
-          else if (lhs.ref.length > 1) {
+          if (lhs.ref[0] === '$self') { // $self in ref of length > 1
+            // if $self is followed by association, the alias of the association must be used
+            if (lhs.$refLinks[1].definition.isAssociation) result[i].ref.splice(0, 1)
+            // otherwise $self is replaced by the alias of the entity
+            else result[i].ref.splice(0, 1, targetSideRefLink.alias)
+          } else if (lhs.ref.length > 1) {
             if (
               !(lhs.ref[0] in pseudos.elements) &&
               lhs.ref[0] !== assocRefLink.alias &&
@@ -1826,7 +1831,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 // first step is the association itself -> use it's name as it becomes the table alias
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
-                definition.name in (targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements)
+                definition.name in
+                (targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements)
               ) {
                 // first step is association which refers to its foreign key by dot notation
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
