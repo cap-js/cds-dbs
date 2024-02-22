@@ -482,6 +482,18 @@ describe('table alias access', () => {
             } where Books.ID = 1`,
       )
     })
+    it('in a scoped subquery, always assign unique subquery aliases', () => {
+      const query = CQL`SELECT ID from bookshop.Item where exists (select ID from bookshop.Item:item)`
+      const res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT Item.ID from bookshop.Item as Item where exists (
+        SELECT item2.ID from bookshop.Item as item2 where exists (
+          SELECT 1 from bookshop.Item as Item3 where Item3.item_ID = item2.ID
+        )
+      )
+      `
+      expect(res).to.deep.eql(expected)
+    })
     it('in expand subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books {
