@@ -1,4 +1,4 @@
-// ORDER / ALTER is a reserved word in the ANSI SQL standard
+// ORDER / ALTER / ASC / NUMBER are reserved words in ANSI SQL standard
 entity Order {
   key ID : Integer;
   alter: composition of many Alter on alter.order = $self;
