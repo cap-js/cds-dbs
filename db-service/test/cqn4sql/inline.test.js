@@ -1,6 +1,9 @@
 'use strict'
 
-const cqn4sql = require('../../lib/cqn4sql')
+const _cqn4sql = require('../../lib/cqn4sql')
+function cqn4sql(q, model = cds.model) {
+  return _cqn4sql(q, model)
+}
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 describe('inline', () => {

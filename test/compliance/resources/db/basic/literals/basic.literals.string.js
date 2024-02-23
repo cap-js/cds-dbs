@@ -12,6 +12,20 @@ module.exports = [
     blob: null,
   },
   {
+    string: undefined,
+    char: undefined,
+    short: undefined,
+    medium: undefined,
+    large: undefined,
+    blob: undefined,
+    '=string': null,
+    '=char': null,
+    '=short': null,
+    '=medium': null,
+    '=large': null,
+    '=blob': null,
+  },
+  {
     string: 'Simple String',
   },
   {

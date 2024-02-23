@@ -6,7 +6,6 @@ const cds = require('@sap/cds/lib')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-
 describe('assign element onto columns', () => {
   let model
   beforeAll(async () => {
@@ -21,7 +20,7 @@ describe('assign element onto columns', () => {
         dedication.addressee,
         dedication.sub
       }
-    `)
+    `, model)
     const expected = CQL`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.author_ID,
@@ -45,7 +44,7 @@ describe('assign element onto columns', () => {
       SELECT from bookshop.Books {
         author { name }
       }
-    `)
+    `, model)
     const { Authors } = model.entities
     expect(query.SELECT.columns[0].SELECT.columns[0]).to.have.property('element').that.equals(Authors.elements['name'])
   })
@@ -57,7 +56,7 @@ describe('assign element onto columns', () => {
         func(),
         (SELECT from bookshop.Books) as subquery: cds.String
       }
-    `)
+    `, model)
     expect(query.SELECT.columns[0]).to.have.property('element').that.is.an.instanceof(cds.type) // has cds.Integer type inferred
     expect(query.SELECT.columns[1]).to.have.property('element')
     expect(query.SELECT.columns[2]).to.have.property('element')

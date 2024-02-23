@@ -5,13 +5,14 @@ const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
 describe('DELETE', () => {
+  let model
   beforeAll(async () => {
-    cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
   it('flatten structured access in where', () => {
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
-    const query = cqn4sql(d)
+    const query = cqn4sql(d, model)
     const expected = JSON.parse(
       '{"DELETE":{"from":{"ref": ["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
@@ -21,7 +22,7 @@ describe('DELETE', () => {
   it('DELETE with where exists expansion', () => {
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author')
-    const query = cqn4sql(d)
+    const query = cqn4sql(d, model)
     // how to express this in CQN?
     // DELETE.from({ref: ['bookshop.Authors'], as: 'author'}).where('exists ( SELECT 1 from bookshop.Books as Books where author_ID = author.ID)')
     const expected = JSON.parse(`{
@@ -70,10 +71,10 @@ describe('DELETE', () => {
     expect(query.DELETE).to.deep.equal(expected.DELETE)
   })
   it('DELETE with where exists expansion and path expression', () => {
-    cds.model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
+    const forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
-    const query = cqn4sql(d)
+    const query = cqn4sql(d, forNodeModel)
 
     // this is the final exists subquery
     const subquery = CQL`
@@ -179,14 +180,14 @@ describe('DELETE', () => {
         ],
       },
     }
-    const res = cqn4sql(query)
+    const res = cqn4sql(query, model)
     expect(res).to.deep.equal(expected)
   })
 
   it('DELETE with assoc filter and where exists expansion', () => {
     const { DELETE } = cds.ql
     let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup')
-    const query = cqn4sql(d)
+    const query = cqn4sql(d, model)
 
     const expected = {
       DELETE: {

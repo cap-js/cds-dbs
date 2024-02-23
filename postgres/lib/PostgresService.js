@@ -308,14 +308,30 @@ GROUP BY k
     return super.onSELECT({ query, data })
   }
 
+  async onINSERT(req) {
+    try {
+      return await super.onINSERT(req)
+    } catch (err) {
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+    }
+  }
+
+  async onUPDATE(req) {
+    try {
+      return await super.onUPDATE(req)
+    } catch (err) {
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
+    }
+  }
+
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
     _orderBy(orderBy, localized, locale) {
       return orderBy.map(
         localized
           ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+            this.expr(c) +
+            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
+            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
@@ -365,9 +381,8 @@ GROUP BY k
       })
       // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
       let obj = `to_jsonb(${queryAlias}.*)`
-      return `SELECT ${
-        SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
-      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+      return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
+        } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
     }
 
     doubleQuote(name) {
@@ -552,14 +567,14 @@ class QueryStream extends Query {
     this.stream = new Readable({
       read: this.rows
         ? () => {
-            this.stream.pause()
-            // Request more rows
-            this.connection.execute({
-              portal: this.portal,
-              rows: this.rows,
-            })
-            this.connection.flush()
-          }
+          this.stream.pause()
+          // Request more rows
+          this.connection.execute({
+            portal: this.portal,
+            rows: this.rows,
+          })
+          this.connection.flush()
+        }
         : () => {},
     })
     this.push = this.stream.push.bind(this.stream)
@@ -738,6 +753,16 @@ class ParameterStream extends Writable {
     this._finish()
     this.connection = null
   }
+}
+
+function _not_unique(err, code) {
+  if (err.code === '23505')
+    return Object.assign(err, {
+      originalMessage: err.message, // FIXME: required because of next line
+      message: code, // FIXME: misusing message as code
+      code: 400, // FIXME: misusing code as (http) status
+    })
+  return err
 }
 
 module.exports = PostgresService
