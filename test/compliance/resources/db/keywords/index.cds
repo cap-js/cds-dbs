@@ -9,3 +9,7 @@ entity Alter {
   number: Integer;
   order: Association to Order;
 }
+entity ASC {
+  key ID : Integer;
+  alias: Integer;
+}
