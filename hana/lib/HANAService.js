@@ -896,7 +896,7 @@ class HANAService extends SQLService {
       array: () => `NVARCHAR(2147483647)`,
       Vector: () => `NVARCHAR(2147483647)`,
 
-      // Javascript types
+      // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`
     }
