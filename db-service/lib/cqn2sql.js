@@ -31,6 +31,7 @@ class CQN2SQLRenderer {
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
+    this.model = srv?.model
   }
 
   static _add_mixins(aspect, mixins) {
@@ -94,6 +95,10 @@ class CQN2SQLRenderer {
     return q.target ? q : cds_infer(q)
   }
 
+  cqn4sql(q) {
+    return cqn4sql(q, this.model)
+  }
+
   // CREATE Statements ------------------------------------------------
 
   /**
@@ -109,7 +114,7 @@ class CQN2SQLRenderer {
     this.sql =
       !query || target['@cds.persistence.table']
         ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
-        : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
+        : `CREATE VIEW ${name} AS ${this.SELECT(this.cqn4sql(query))}`
     this.values = []
     return
   }
@@ -642,7 +647,7 @@ class CQN2SQLRenderer {
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
     this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
-      cqn4sql(INSERT.as),
+      this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
     return this.sql
@@ -680,7 +685,7 @@ class CQN2SQLRenderer {
     let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
     if (!keys) return this.sql = sql
-    keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
+    keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
     updateColumns = updateColumns.filter(c => {
@@ -722,6 +727,7 @@ class CQN2SQLRenderer {
     function _add(data, sql4) {
       for (let c in data) {
         if (!elements || (c in elements && !elements[c].virtual)) {
+          if (cds.unfold && elements?.[c].is_struct) continue // skip structs from universal csn
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
@@ -847,8 +853,8 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now':  return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
-      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.'+ref[1]||'id', param: false }] }) // REVISIT: same here?
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
@@ -1016,6 +1022,6 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
+module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
 module.exports.class = CQN2SQLRenderer
 module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word

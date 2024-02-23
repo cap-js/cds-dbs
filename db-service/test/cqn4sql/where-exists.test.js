@@ -2,6 +2,8 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
+
+
 /**
  * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
  *       Especially w.r.t. to table aliases and bracing.
@@ -720,11 +722,7 @@ describe('EXISTS predicate in infix filter', () => {
   })
 })
 
-/**
- * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
- *       Especially w.r.t. to table aliases and bracing.
- */
-describe('Path in FROM which ends on association must be transformed to where exists', () => {
+describe('Scoped queries', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
@@ -813,6 +811,13 @@ describe('Path in FROM which ends on association must be transformed to where ex
     let query = cqn4sql(CQL`SELECT from bookshop.Books:author { name }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as author { author.name }
         WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+      )`)
+  })
+  it('unmanaged to one with (multiple) $self in on-condition', () => {
+    // $self in refs of length > 1 can just be ignored semantically
+    let query = cqn4sql(CQL`SELECT from bookshop.Books:coAuthorUnmanaged { name }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as coAuthorUnmanaged { coAuthorUnmanaged.name }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
       )`)
   })
   it('handles FROM path with association with explicit table alias', () => {
@@ -1222,7 +1227,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
               )
       )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
   it('on condition of to many composition in csn model has xpr and dangling filter', () => {
     const q = CQL`
@@ -1256,7 +1261,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
           and detailsDeviations.material_ID = '1'
         )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 
   /**

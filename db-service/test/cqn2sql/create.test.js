@@ -1,6 +1,9 @@
 'use strict'
 const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
+const _cqn2sql = require('../../lib/cqn2sql')
+function cqn2sql(q, m = cds.model) {
+  return _cqn2sql(q, m)
+} 
 const cqn = require('./cqn.js')
 
 beforeAll(async () => {
