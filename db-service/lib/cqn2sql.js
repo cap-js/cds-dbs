@@ -689,8 +689,8 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
-    let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
-    if (entity.as) sql += ` AS ${entity.as}`
+    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity))}`
+    if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
     if (data) _add(data, val => this.val({ val }))

@@ -58,6 +58,11 @@ entity DBDeepEntityChild {
       otherName2 : String;
 }
 
+entity Order {
+  key ID : Integer;
+  order: String;
+}
+
   entity EProjChild as projection on DBDeepEntityChild {
     ID as IDRename,
     parent as parentRename,
