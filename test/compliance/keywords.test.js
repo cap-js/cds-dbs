@@ -35,15 +35,14 @@ describe('keywords', () => {
     const { Alter, ASC } = cds.entities
     // fill other table first
     await cds.run(INSERT({ ID: 1, alias: 42 }).into(ASC))
-    const insert = INSERT.into(Alter)
+    await INSERT.into(Alter)
       .columns(['ID', 'number'])
       .as(
         SELECT.from(ASC)
           .columns(['ID', 'alias'])
           .where({ ref: ['alias'] }, '=', { val: 42 }),
       )
-      await cds.run(insert)
-      const select = await SELECT.from(Alter).where('number = 42')
-     expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
+    const select = await SELECT.from(Alter).where('number = 42')
+    expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
   })
 })
