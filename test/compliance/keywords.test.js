@@ -5,7 +5,7 @@ const { expect } = cds.test(__dirname + '/resources')
 describe('keywords', () => {
   test('insert, update, select', async () => {
     // fill other table first
-    const { Order, Alter } = cds.entities
+    const { Order } = cds.entities
     const data = {
       ID: 1,
       alter: [
