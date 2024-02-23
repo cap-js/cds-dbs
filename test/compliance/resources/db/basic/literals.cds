@@ -58,7 +58,7 @@ entity binaries {
 }
 
 
-/* Exlcuded from the tests until fully supported
+/* Excluded from the tests until fully supported
 entity vectors {
     vector : Vector;
 }
