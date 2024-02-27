@@ -4,7 +4,6 @@ const Root = 'complex.Root'
 const Child = 'complex.Child'
 const GrandChild = 'complex.GrandChild'
 const RootPWithKeys = 'complex.RootPWithKeys'
-const RootPNoKeys = 'complex.RootPNoKeys'
 const ChildPWithWhere = 'complex.ChildPWithWhere'
 
 describe('DELETE', () => {
