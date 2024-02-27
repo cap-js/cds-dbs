@@ -242,6 +242,7 @@ describe('Bookshop - Read', () => {
             ref: ['Authors', 'dead'],
           },
         ],
+        where: [{ ref: ['Authors', 'ID']}, '=', {val: 1}]
       },
     }
     const result = await cds.run(query)
