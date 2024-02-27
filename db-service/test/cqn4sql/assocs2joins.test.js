@@ -1221,13 +1221,39 @@ describe('optimize fk access', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
   })
-  it('two step path ends in foreign key', () => {
+  it.skip('two step path ends in foreign key simple ref', () => {
+    const query = CQL`SELECT from Classrooms {
+      pupils.pupil.ID as studentCount,
+    } where Classrooms.ID = 1`
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          pupils.pupil_ID as studentCount
+                        } where Classrooms.ID = 1`
+
+   expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('two step path ends in foreign key nested ref', () => {
     const query = CQL`SELECT from Classrooms {
       count(pupils.pupil.ID) as studentCount,
     } where Classrooms.ID = 1`
     const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
                         on pupils.classroom_ID = Classrooms.ID {
                           count(pupils.pupil_ID) as studentCount
+                        } where Classrooms.ID = 1`
+
+   expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+
+  it('multi step path ends in foreign key', () => {
+    const query = CQL`SELECT from Classrooms {
+      count(pupils.pupil.classrooms.classroom.ID) as classCount,
+    } where Classrooms.ID = 1`
+    const expected = CQL`SELECT from Classrooms as Classrooms
+                        left join ClassRoomPupil as pupils on pupils.classroom_ID = Classrooms.ID
+                        left join Pupils as pupil on pupil.ID = pupils.pupil_ID
+                        left join ClassRoomPupil as classrooms2 on classrooms2.pupil_ID = pupil.ID
+                        {
+                          count(classrooms2.classroom_ID) as classCount
                         } where Classrooms.ID = 1`
 
    expect(cqn4sql(query, model)).to.deep.equal(expected)

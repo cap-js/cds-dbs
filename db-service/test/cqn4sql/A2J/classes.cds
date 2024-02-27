@@ -7,8 +7,8 @@ entity Classrooms {
 
 entity Pupils {
     key ID        : Integer;
-        classroom : Association to many ClassRoomPupil
-                        on classroom.pupil = $self
+        classrooms : Association to many ClassRoomPupil
+                        on classrooms.pupil = $self
 }
 
 entity ClassRoomPupil {

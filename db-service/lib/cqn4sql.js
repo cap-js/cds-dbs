@@ -1357,7 +1357,7 @@ function cqn4sql(originalQuery, model) {
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
-              const nonJoinRelevantAssoc = [...token.$refLinks].reverse().findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+              const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
               let name
               if(nonJoinRelevantAssoc) // calculate fk name
                 name = token.ref.slice(nonJoinRelevantAssoc, token.ref.length).join('_')
