@@ -99,7 +99,7 @@ module.exports = class InsertResult {
    * @returns {number}
    */
   insertedRowId4(result) {
-    return result.lastID
+    return result.lastID || result.lastInsertRowid
   }
 
   /**
