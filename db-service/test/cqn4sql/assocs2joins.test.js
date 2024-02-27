@@ -1215,3 +1215,21 @@ describe('comparisons of associations in on condition of elements needs to be ex
     expect(query).to.eql(expected)
   })
 })
+
+describe('optimize fk access', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
+  })
+  it('two step path ends in foreign key', () => {
+    const query = CQL`SELECT from Classrooms {
+      count(pupils.pupil.ID) as studentCount,
+    } where Classrooms.ID = 1`
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          count(pupils.pupil_ID) as studentCount
+                        } where Classrooms.ID = 1`
+
+   expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+})

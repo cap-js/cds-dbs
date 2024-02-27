@@ -1353,11 +1353,17 @@ function cqn4sql(originalQuery, model) {
             // in that case, we have a baseLink `books` which we need to resolve the following steps
             // however, the correct table alias has been assigned to the `author` step
             // hence we need to ignore the alias of the `$baseLink`
-            const refHasOwnAssoc =
+            const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
-            const tableAlias = getQuerySourceName(token, refHasOwnAssoc || $baseLink)
-            if ((!$baseLink || refHasOwnAssoc) && token.isJoinRelevant) {
-              result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
+            const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
+            if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
+              const nonJoinRelevantAssoc = [...token.$refLinks].reverse().findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+              let name
+              if(nonJoinRelevantAssoc) // calculate fk name
+                name = token.ref.slice(nonJoinRelevantAssoc, token.ref.length).join('_')
+              else
+                name = getFullName(token.$refLinks[token.$refLinks.length - 1 ].definition)
+              result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
             } else {
