@@ -49,11 +49,11 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in select, three assocs, last navigates to foreign key', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.parent.ID }`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.parent.ID as foo }`, model)
     const expected = CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID
         left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-        { Authors.ID, genre.parent_ID as books_genre_parent_ID }
+        { Authors.ID, genre.parent_ID as foo }
       `
     expect(query).to.deep.equal(expected)
   })
@@ -1221,7 +1221,7 @@ describe('optimize fk access', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
   })
-  it.skip('two step path ends in foreign key simple ref', () => {
+  it('two step path ends in foreign key simple ref', () => {
     const query = CQL`SELECT from Classrooms {
       pupils.pupil.ID as studentCount,
     } where Classrooms.ID = 1`

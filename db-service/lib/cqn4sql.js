@@ -1046,10 +1046,10 @@ function cqn4sql(originalQuery, model) {
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       let elements
       elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
-      if (elements && leaf.alias in elements) {
+      if (elements && leaf.definition.name in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
-        columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
+        columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
     } else if (!baseName && structsAreUnfoldedAlready) {
       baseName = element.name // name is already fully constructed
@@ -1127,7 +1127,15 @@ function cqn4sql(originalQuery, model) {
         } else {
           // leaf reached
           let flatColumn
-          if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
+          if (columnAlias) {
+            // if the column has an explicit alias AND the orignal ref
+            // directly resolves to the foreign key, we must not append the fk name to the column alias
+            // e.g. `assoc.fk as FOO` => columns.alias = FOO
+            //      `assoc as FOO`    => columns.alias = FOO_fk
+            if(!(column.as && fkElement === column.$refLinks?.at(-1).definition))
+              columnAlias = `${columnAlias}_${fk.ref.join('_')}`
+            flatColumn = { ref: [fkBaseName], as: columnAlias }
+          }
           else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
@@ -1357,12 +1365,14 @@ function cqn4sql(originalQuery, model) {
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
-              const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+              const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(
+                l => l.definition.isAssociation && l.onlyForeignKeyAccess,
+              )
               let name
-              if(nonJoinRelevantAssoc) // calculate fk name
+              if (nonJoinRelevantAssoc)
+                // calculate fk name
                 name = token.ref.slice(nonJoinRelevantAssoc, token.ref.length).join('_')
-              else
-                name = getFullName(token.$refLinks[token.$refLinks.length - 1 ].definition)
+              else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
               result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
@@ -1820,7 +1830,8 @@ function cqn4sql(originalQuery, model) {
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
         } else if (lhs.ref) {
-          if (lhs.ref[0] === '$self') { // $self in ref of length > 1
+          if (lhs.ref[0] === '$self') {
+            // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
             if (lhs.$refLinks[1].definition.isAssociation) result[i].ref.splice(0, 1)
             // otherwise $self is replaced by the alias of the entity
