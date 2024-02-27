@@ -207,7 +207,7 @@ describe('Bookshop - Read', () => {
   test('post processing works', async () => {
     const { Authors, Books } = cds.entities('sap.capire.bookshop')
     await INSERT({ ID: 1, name: 'J.K. Rowling', dead: false }).into(Authors)
-    await INSERT({ ID: 101, title: 'Harry Potter', author_ID: 1, soldOut: false }).into(Books)
+    await INSERT({ ID: 101, title: 'Harry Potter', author_ID: 1 }).into(Books)
 
     const query = {
       SELECT: {
