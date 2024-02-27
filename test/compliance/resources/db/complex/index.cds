@@ -39,12 +39,6 @@ entity RootPWithKeys   as
     key ID,
         fooRoot,
         children
-  };
-
-entity RootPNoKeys     as
-  projection on Root {
-    fooRoot,
-    children
   }
 
 entity ChildP          as
