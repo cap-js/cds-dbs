@@ -113,8 +113,8 @@ class CQN2SQLRenderer {
     delete this.values
     this.sql =
       !query || target['@cds.persistence.table']
-        ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
-        : `CREATE VIEW ${name} AS ${this.SELECT(this.cqn4sql(query))}`
+        ? `CREATE TABLE ${this.quote(name)} ( ${this.CREATE_elements(target.elements)} )`
+        : `CREATE VIEW ${this.quote(name)} AS ${this.SELECT(this.cqn4sql(query))}`
     this.values = []
     return
   }
@@ -617,7 +617,7 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
       this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
@@ -689,8 +689,8 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
-    let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
-    if (entity.as) sql += ` AS ${entity.as}`
+    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity))}`
+    if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
     if (data) _add(data, val => this.val({ val }))
