@@ -21,6 +21,7 @@ entity Authors : managed {
   dateOfDeath  : Date;
   placeOfBirth : String;
   placeOfDeath : String;
+  dead: Boolean;
   books  : Association to many Books on books.author = $self;
 }
 
