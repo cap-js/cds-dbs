@@ -201,12 +201,20 @@ class SQLService extends DatabaseService {
     async function deep_delete(/** @type {Request} */ req) {
       const transitions = getTransition(req.query.target, this)
       if (transitions.target !== transitions.queryTarget) {
-        const elements = transitions.queryTarget.keys
-          ? Object.keys(transitions.queryTarget.keys).filter(key => !transitions.queryTarget.keys[key].virtual)
-          : Object.keys(transitions.queryTarget.elements).filter(
-              key => !transitions.queryTarget.elements[key].isAssociation,
-            )
-        const matchedKeys = elements.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
+        const keys = []
+        const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
+        for (const key in transitionsTarget) {
+          let isKeyValid
+          if (transitions.queryTarget.keys) {
+            isKeyValid = !transitionsTarget[key].virtual
+          } else {
+            isKeyValid = !transitionsTarget[key].isAssociation
+          }
+          if (isKeyValid) {
+            keys.push(key)
+          }
+        }
+        const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
         const query = DELETE.from({
           ref: [
             {
