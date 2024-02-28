@@ -16,8 +16,7 @@ describe('Bookshop - Insert', () => {
 
   test('insert with undefined value works', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
-    await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
-    const result = await SELECT.from(Books).where({ ID: 223 })
-    expect(result.length).to.be.eq(1)
+    const resp = await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
+    expect(resp | 0).to.be.eq(1)
   })
 })
