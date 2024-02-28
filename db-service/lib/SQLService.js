@@ -202,13 +202,11 @@ class SQLService extends DatabaseService {
       const transitions = getTransition(req.query.target, this)
       if (transitions.target !== transitions.queryTarget) {
         const elements = transitions.queryTarget.keys
-          ? Object.keys(transitions.queryTarget.keys)
+          ? Object.keys(transitions.queryTarget.keys).filter(key => !transitions.queryTarget.keys[key].virtual)
           : Object.keys(transitions.queryTarget.elements).filter(
               key => !transitions.queryTarget.elements[key].isAssociation,
             )
-        const matchedKeys = elements
-          .filter(key => key !== 'IsActiveEntity' && transitions.mapping.has(key))
-          .map(k => ({ ref: [k] }))
+        const matchedKeys = elements.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
         const query = DELETE.from({
           ref: [
             {
