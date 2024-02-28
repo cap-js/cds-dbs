@@ -181,6 +181,7 @@ class JoinTree {
         col.$refLinks[i].alias = node.$refLink.alias
         col.$refLinks[i].definition = node.$refLink.definition
         col.$refLinks[i].target = node.$refLink.target
+        col.$refLinks[i].onlyForeignKeyAccess = node.$refLink.onlyForeignKeyAccess
       } else {
         if (col.expand && !col.ref[i + 1]) {
           node.$refLink.onlyForeignKeyAccess = false

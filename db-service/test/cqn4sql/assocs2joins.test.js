@@ -1230,7 +1230,27 @@ describe('optimize fk access', () => {
                           pupils.pupil_ID as studentCount
                         } where Classrooms.ID = 1`
 
-   expect(cqn4sql(query, model)).to.deep.equal(expected)
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('two step path ends in foreign key simple ref in aggregation clauses', () => {
+    const query = CQL`SELECT from Classrooms {
+      pupils.pupil.ID as studentCount,
+    }
+      where pupils.pupil.ID = 1
+      group by pupils.pupil.ID
+      having pupils.pupil.ID = 1
+      order by pupils.pupil.ID
+    `
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          pupils.pupil_ID as studentCount
+                        } where pupils.pupil_ID = 1
+                          group by pupils.pupil_ID
+                          having pupils.pupil_ID = 1
+                          order by pupils.pupil_ID
+                        `
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
   it('two step path ends in foreign key nested ref', () => {
     const query = CQL`SELECT from Classrooms {
@@ -1241,21 +1261,23 @@ describe('optimize fk access', () => {
                           count(pupils.pupil_ID) as studentCount
                         } where Classrooms.ID = 1`
 
-   expect(cqn4sql(query, model)).to.deep.equal(expected)
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 
   it('multi step path ends in foreign key', () => {
     const query = CQL`SELECT from Classrooms {
       count(pupils.pupil.classrooms.classroom.ID) as classCount,
-    } where Classrooms.ID = 1`
+    } where    pupils.pupil.classrooms.classroom.ID = 1
+      order by pupils.pupil.classrooms.classroom.ID`
     const expected = CQL`SELECT from Classrooms as Classrooms
                         left join ClassRoomPupil as pupils on pupils.classroom_ID = Classrooms.ID
                         left join Pupils as pupil on pupil.ID = pupils.pupil_ID
                         left join ClassRoomPupil as classrooms2 on classrooms2.pupil_ID = pupil.ID
                         {
                           count(classrooms2.classroom_ID) as classCount
-                        } where Classrooms.ID = 1`
+                        } where    classrooms2.classroom_ID = 1
+                          order by classrooms2.classroom_ID`
 
-   expect(cqn4sql(query, model)).to.deep.equal(expected)
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 })

@@ -838,9 +838,10 @@ function cqn4sql(originalQuery, model) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
       } else if (col.isJoinRelevant) {
-        const tableAlias$refLink = getQuerySourceName(col)
+        const tableAlias = getQuerySourceName(col)
+        const name = calculateElementName(col)
         const transformedColumn = {
-          ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
+          ref: [tableAlias, name],
         }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
@@ -1132,11 +1133,10 @@ function cqn4sql(originalQuery, model) {
             // directly resolves to the foreign key, we must not append the fk name to the column alias
             // e.g. `assoc.fk as FOO` => columns.alias = FOO
             //      `assoc as FOO`    => columns.alias = FOO_fk
-            if(!(column.as && fkElement === column.$refLinks?.at(-1).definition))
+            if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
               columnAlias = `${columnAlias}_${fk.ref.join('_')}`
             flatColumn = { ref: [fkBaseName], as: columnAlias }
-          }
-          else flatColumn = { ref: [fkBaseName] }
+          } else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
           // in a flat model, we must assign the foreign key rather than the key in the target
@@ -1365,14 +1365,7 @@ function cqn4sql(originalQuery, model) {
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
-              const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(
-                l => l.definition.isAssociation && l.onlyForeignKeyAccess,
-              )
-              let name
-              if (nonJoinRelevantAssoc)
-                // calculate fk name
-                name = token.ref.slice(nonJoinRelevantAssoc, token.ref.length).join('_')
-              else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
+              let name = calculateElementName(token, getFullName)
               result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
@@ -2015,21 +2008,6 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-   * Calculate the flat name for a deeply nested element:
-   * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
-   *
-   * @param {CSN.element} node an element
-   * @param {object} name the last part of the name, e.g. the name of the deeply nested element
-   * @returns the flat name of the element
-   */
-  function getFullName(node, name = node.name) {
-    // REVISIT: this is an unfortunate implementation
-    if (!node.parent || node.parent.kind === 'entity') return name
-
-    return getFullName(node.parent, `${node.parent.name}_${name}`)
-  }
-
-  /**
    * Calculates the name of the source which can be used to address the given node.
    *
    * @param {object} node a csn object with a `ref` and `$refLinks`
@@ -2096,6 +2074,31 @@ module.exports = Object.assign(cqn4sql, {
   notEqOps,
   notSupportedOps,
 })
+
+function calculateElementName(token) {
+  const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+  let name
+  if (nonJoinRelevantAssoc)
+    // calculate fk name
+    name = token.ref.slice(nonJoinRelevantAssoc).join('_')
+  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  return name
+}
+
+/**
+ * Calculate the flat name for a deeply nested element:
+ * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
+ *
+ * @param {CSN.element} node an element
+ * @param {object} name the last part of the name, e.g. the name of the deeply nested element
+ * @returns the flat name of the element
+ */
+function getFullName(node, name = node.name) {
+  // REVISIT: this is an unfortunate implementation
+  if (!node.parent || node.parent.kind === 'entity') return name
+
+  return getFullName(node.parent, `${node.parent.name}_${name}`)
+}
 
 function copy(obj) {
   const walk = function (par, prop) {
