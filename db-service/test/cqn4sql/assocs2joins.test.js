@@ -1221,7 +1221,7 @@ describe('optimize fk access', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
   })
-  it.only('association (with multiple, structured, renamed fks) is key', () => {
+  it('association (with multiple, structured, renamed fks) is key', () => {
     const query = CQL`SELECT from ForeignKeyIsAssoc {
       my.room as teachersRoom,
     }`
