@@ -29,7 +29,7 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
+    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
     return {
@@ -100,6 +100,10 @@ class HANAService extends SQLService {
 
   async onSELECT(req) {
     const { query, data } = req
+
+    if (!query.target) {
+      try { this.infer(query) } catch (e) { /**/ }
+    }
     if (
       !query.target
       || query.target._unresolved
@@ -935,8 +939,9 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+      Vector: () => `NVARCHAR(2147483647)`,
 
-      // Javascript types
+      // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`
     }
@@ -949,6 +954,7 @@ class HANAService extends SQLService {
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Vector: e => `TO_REAL_VECTOR(${e})`,
     }
 
     static OutputConverters = {
@@ -959,6 +965,7 @@ class HANAService extends SQLService {
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Vector: e => `TO_NVARCHAR(${e})`,
     }
   }
 
