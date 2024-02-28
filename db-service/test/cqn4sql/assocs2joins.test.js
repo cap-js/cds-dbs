@@ -1221,6 +1221,18 @@ describe('optimize fk access', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
   })
+  it.only('association (with multiple, structured, renamed fks) is key', () => {
+    const query = CQL`SELECT from ForeignKeyIsAssoc {
+      my.room as teachersRoom,
+    }`
+    const expected = CQL`SELECT from ForeignKeyIsAssoc as ForeignKeyIsAssoc {
+                          ForeignKeyIsAssoc.my_room_number as teachersRoom_number,
+                          ForeignKeyIsAssoc.my_room_name as teachersRoom_name,
+                          ForeignKeyIsAssoc.my_room_location as teachersRoom_info_location
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
   it('two step path ends in foreign key simple ref', () => {
     const query = CQL`SELECT from Classrooms {
       pupils.pupil.ID as studentCount,

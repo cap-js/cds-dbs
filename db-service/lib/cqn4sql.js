@@ -1133,9 +1133,10 @@ function cqn4sql(originalQuery, model) {
             // directly resolves to the foreign key, we must not append the fk name to the column alias
             // e.g. `assoc.fk as FOO` => columns.alias = FOO
             //      `assoc as FOO`    => columns.alias = FOO_fk
+            let columnAliasWithFlatFk
             if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
-              columnAlias = `${columnAlias}_${fk.ref.join('_')}`
-            flatColumn = { ref: [fkBaseName], as: columnAlias }
+              columnAliasWithFlatFk = `${columnAlias}_${fk.as || fk.ref.join('_')}`
+            flatColumn = { ref: [fkBaseName], as: columnAliasWithFlatFk || columnAlias }
           } else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
