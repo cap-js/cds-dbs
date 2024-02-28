@@ -494,10 +494,11 @@ class CQN2SQLRenderer {
 
       let sepsub = ''
       for (const key in row) {
+        let val = row[key]
+        if (val === undefined) continue
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
-        let val = row[key]
         if (val instanceof Readable) {
           buffer += `${keyJSON}"`
 
@@ -513,7 +514,6 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (val === undefined) continue
           if (elements[key]?.type in BINARY_TYPES) {
             val = transformBase64(val)
           }
