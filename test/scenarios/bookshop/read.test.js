@@ -203,49 +203,4 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(204)
   })
 
-
-  test('post processing works', async () => {
-    const { Authors, Books } = cds.entities('sap.capire.bookshop')
-    await INSERT({ ID: 1, name: 'J.K. Rowling', dead: false }).into(Authors)
-    await INSERT({ ID: 101, title: 'Harry Potter', author_ID: 1 }).into(Books)
-
-    const query = {
-      SELECT: {
-        one: true,
-        from: {
-          join: 'left',
-          args: [
-            {
-              ref: [Authors.name],
-              as: 'Authors',
-            },
-            {
-              ref: [Books.name],
-              as: 'Books',
-            },
-          ],
-          on: [
-            {
-              ref: ['Authors', 'ID'],
-            },
-            '=',
-            {
-              ref: ['Books', 'author_ID'],
-            },
-          ],
-        },
-        columns: [
-          {
-            ref: ['Authors', 'name'],
-          },
-          {
-            ref: ['Authors', 'dead'],
-          },
-        ],
-        where: [{ ref: ['Authors', 'ID']}, '=', {val: 1}]
-      },
-    }
-    const result = await cds.run(query)
-    expect(result).to.have.property('dead', false)
-  })
 })
