@@ -338,7 +338,7 @@ describe('SELECT', () => {
 
           // Lock false
           await expect(tx2.run(lock4(false))).rejected
-        } catch (e) { debugger } finally {
+        } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
         }
       })
