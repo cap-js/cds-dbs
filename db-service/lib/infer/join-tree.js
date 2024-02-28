@@ -181,6 +181,7 @@ class JoinTree {
         col.$refLinks[i].alias = node.$refLink.alias
         col.$refLinks[i].definition = node.$refLink.definition
         col.$refLinks[i].target = node.$refLink.target
+        col.$refLinks[i].onlyForeignKeyAccess = node.$refLink.onlyForeignKeyAccess
       } else {
         if (col.expand && !col.ref[i + 1]) {
           node.$refLink.onlyForeignKeyAccess = false
@@ -201,7 +202,7 @@ class JoinTree {
         const elements =
           node.$refLink?.definition.isAssociation &&
           (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
-        if (node.$refLink && (!elements || !(child.$refLink.alias in elements)))
+        if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements)))
           // foreign key access
           node.$refLink.onlyForeignKeyAccess = false
 
