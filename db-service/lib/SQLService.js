@@ -114,7 +114,12 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    if (query.target && !query.target._unresolved) {
+    if (
+      query.target
+      && !query.target._unresolved
+      && !query.SELECT.forUpdate
+      && !query.SELECT.forShareLock
+    ) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }

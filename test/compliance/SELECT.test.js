@@ -6,7 +6,7 @@ const cds = require('../cds.js')
 // Call default cds.test API
 
 describe('SELECT', () => {
-  const { data } = cds.test(__dirname + '/resources')
+  const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
 
   describe('from', () => {
@@ -57,12 +57,12 @@ describe('SELECT', () => {
 
     test('like regex uses native regex support', async () => {
       let ret = await SELECT.from('basic.projection.string').where('string like', /ye./)
-      expect(ret.length).toBe(1)
+      expect(ret.length).to.eq(1)
     })
 
     test('= regex behaves like string', async () => {
-      await expect(SELECT.from('basic.projection.string').where('string =', /ye./)).resolves.toHaveProperty('length', 0)
-      await expect(SELECT.from('basic.projection.string').where('string =', /yes/)).resolves.toHaveProperty('length', 1)
+      expect(await SELECT.from('basic.projection.string').where('string =', /ye./)).to.have.property('length', 0)
+      expect(await SELECT.from('basic.projection.string').where('string =', /yes/)).to.have.property('length', 1)
     })
 
     test('from select', async () => {
@@ -102,9 +102,9 @@ describe('SELECT', () => {
           'func' as function : cds.String
         FROM basic.projection.globals
       `
-      cqn.SELECT.columns[0].val = function () {}
+      cqn.SELECT.columns[0].val = function () { }
 
-      await assert.rejects(cds.run(cqn))
+      await expect(cds.run(cqn)).rejected
     })
 
     test.skip('select xpr', async () => {
@@ -164,7 +164,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Authors'] },
-          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]
         },
       }
 
@@ -178,7 +178,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Books'] },
-          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]
         },
       }
 
@@ -188,7 +188,7 @@ describe('SELECT', () => {
     })
 
     test.skip('invalid cast (wrong)', async () => {
-      await assert.rejects(
+      await expect(
         cds.run(CQL`
         SELECT
             'String' as ![string] : cds.DoEsNoTeXiSt
@@ -197,7 +197,7 @@ describe('SELECT', () => {
         {
           message: 'Not supported type: cds.DoEsNoTeXiSt',
         },
-      )
+      ).rejected
     })
   })
 
@@ -224,7 +224,7 @@ describe('SELECT', () => {
     test('compare with DateTime column', async () => {
       const entity = `basic.literals.dateTime`
       const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0,-1) + '.000Z'
+      const timestamp = dateTime.slice(0, -1) + '.000Z'
       await DELETE.from(entity)
       await INSERT({ dateTime }).into(entity)
       const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
@@ -292,7 +292,7 @@ describe('SELECT', () => {
     })
   })
 
-  const generalLockTest = lock => {
+  const generalLockTest = (lock, shared = false) => {
     const lock4 = bool => {
       return lock.clone().where([{ ref: ['bool'] }, '=', { val: bool }])
     }
@@ -300,41 +300,35 @@ describe('SELECT', () => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
-      // TODO: Stop leaking resources when changing size
       let oldMax
-      beforeAll(() => {
-        oldMax = cds.db.pools.undefined._config.max
-        cds.db.pools.undefined._config.max = max
+      beforeAll(async () => {
+        if (isSQLite()) return
+        await cds.db.disconnect()
+        oldMax = cds.db.pools._factory.options.max
+        cds.db.pools._factory.options.max = max
       })
 
-      afterAll(() => {
-        const pool = cds.db.pools.undefined
-        pool._config.max = oldMax
-        const allObjects = pool._allObjects
-        let toMuch = allObjects.size - oldMax
-        if (toMuch > 0) {
-          for (const obj of allObjects) {
-            if (toMuch-- === 0) break
-            pool._destroy(obj)
-          }
-        }
+      afterAll(async () => {
+        if (isSQLite()) return
+        cds.db.pools._factory.options.max = oldMax
       })
     }
 
     let oldTimeout
-    beforeAll(() => {
-      oldTimeout = cds.db.pools.undefined._config.acquireTimeoutMillis
-      cds.db.pools.undefined._config.acquireTimeoutMillis = 500
+    beforeAll(async () => {
+      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
     })
 
     afterAll(() => {
-      cds.db.pools.undefined._config.acquireTimeoutMillis = oldTimeout
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
     })
 
     describe('pool max = 1', () => {
       setMax(1)
       test('two locks on a single table', async () => {
-        let error = false
         const tx1 = await cds.tx()
         const tx2 = await cds.tx()
 
@@ -343,18 +337,13 @@ describe('SELECT', () => {
           await tx1.run(lock4(true))
 
           // Lock false
-          await tx2.run(lock4(false))
-
-          await Promise.all([tx2.commit(), tx1.commit()])
-        } catch (e) {
-          error = true
-          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+          await expect(tx2.run(lock4(false))).rejected
+        } catch (e) { debugger } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
         }
-        if (!error) throw new Error('Expected deadlock')
       })
 
       test('same lock twice on a single table', async () => {
-        let error = false
         const tx1 = await cds.tx()
         const tx2 = await cds.tx()
 
@@ -363,14 +352,10 @@ describe('SELECT', () => {
           await tx1.run(lock4(false))
 
           // Lock false
-          await tx2.run(lock4(false))
-
-          await Promise.all([tx2.commit(), tx1.commit()])
-        } catch (e) {
-          error = true
-          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
+          await expect(tx2.run(lock4(false))).rejected
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
         }
-        if (!error) throw new Error('Expected deadlock')
       })
     })
 
@@ -388,35 +373,32 @@ describe('SELECT', () => {
 
           // Lock false
           await tx2.run(lock4(false))
-
-          await Promise.all([tx2.commit(), tx1.commit()])
-        } catch (e) {
-          await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
-          throw e
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
         }
       })
 
-      test('same lock twice on a single table', async () =>
-        !isSQLite() &&
-        expect(
-          (async () => {
-            const tx1 = await cds.tx()
-            const tx2 = await cds.tx()
+      test('same lock twice on a single table', async () => {
+        if (isSQLite()) return
 
-            try {
-              // Lock false
-              await tx1.run(lock4(false))
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
 
-              // Lock false
-              await tx2.run(lock4(false))
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
 
-              await Promise.all([tx2.commit(), tx1.commit()])
-            } catch (e) {
-              await Promise.all([tx1.rollback(e), tx2.rollback(e)]).catch(() => {})
-              throw e
-            }
-          })(),
-        ).rejects)
+          // Lock false
+          if (shared) {
+            const ret = await tx2.run(lock4(false))
+            expect(ret).is.not.undefined
+          } else {
+            await expect(tx2.run(lock4(false))).rejected
+          }
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
     })
   }
 
@@ -435,7 +417,7 @@ describe('SELECT', () => {
       wait: 0,
     })
 
-    generalLockTest(lock)
+    generalLockTest(lock, true)
   })
 
   describe('search', () => {
@@ -450,7 +432,7 @@ describe('SELECT', () => {
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
-      const renamed = result.map(row => ({key: row.ID, fullName: row.name}))
+      const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
       assert.strictEqual(renamed.$count, 1)
     })
   })
