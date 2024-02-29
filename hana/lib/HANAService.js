@@ -652,6 +652,10 @@ class HANAService extends SQLService {
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
     }
 
+    from_args(args) {
+      return `(${ObjectKeys(args).map(k => `${this.quote(k)} => ${this.expr(args[k])}`)})`
+    }
+
     orderBy(orderBy, localized) {
       return orderBy.map(
         localized

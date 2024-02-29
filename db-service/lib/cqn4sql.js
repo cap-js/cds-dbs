@@ -1542,7 +1542,7 @@ function cqn4sql(originalQuery, model) {
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
         if (stepLink.definition.target && nextStepLink) {
-          const { where } = nextStep
+          const { where, args } = nextStep
           if (isStructured(nextStepLink.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
@@ -1563,7 +1563,7 @@ function cqn4sql(originalQuery, model) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
-          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where))
+          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where, false, args))
         }
       }
 
@@ -1597,7 +1597,10 @@ function cqn4sql(originalQuery, model) {
 
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
-      transformedFrom.ref = [localized(transformedFrom.$refLinks[0].target)]
+      transformedFrom.ref = [{
+        id: localized(transformedFrom.$refLinks[0].target),
+        args: from.ref.at(-1).args
+      }]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1922,7 +1925,7 @@ function cqn4sql(originalQuery, model) {
    *                    -> if it is, target and source side are flipped in the where exists subquery
    * @returns {CQN.SELECT}
    */
-  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false) {
+  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, customArgs = null) {
     const { definition } = current
     const { definition: nextDefinition } = next
     const on = []
@@ -1948,7 +1951,10 @@ function cqn4sql(originalQuery, model) {
 
     const SELECT = {
       from: {
-        ref: [localized(assocTarget(nextDefinition) || nextDefinition)],
+        ref: [{
+          id: localized(assocTarget(nextDefinition) || nextDefinition),
+          args: customArgs,
+        }],
         as: next.alias,
       },
       columns: [
