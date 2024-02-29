@@ -1246,8 +1246,7 @@ function cqn4sql(originalQuery, model) {
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
-                next.definition.type
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${next.definition.type
               }”`,
             )
           }
@@ -1411,8 +1410,7 @@ function cqn4sql(originalQuery, model) {
       // make sure we can compare both structures
       if (flatRhs.length !== flatLhs.length) {
         throw new Error(
-          `Can't compare "${definition.name}" with "${
-            value.$refLinks[value.$refLinks.length - 1].definition.name
+          `Can't compare "${definition.name}" with "${value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
         )
       }
@@ -1595,12 +1593,16 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
+      const args = from.ref.at(-1).args
+      const id = localized(transformedFrom.$refLinks[0].target)
+
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
-      transformedFrom.ref = [{
-        id: localized(transformedFrom.$refLinks[0].target),
-        args: from.ref.at(-1).args
-      }]
+      transformedFrom.ref = [
+        args
+          ? { id, args }
+          : id
+      ]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1949,12 +1951,14 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
 
+    const id = localized(assocTarget(nextDefinition) || nextDefinition)
     const SELECT = {
       from: {
-        ref: [{
-          id: localized(assocTarget(nextDefinition) || nextDefinition),
-          args: customArgs,
-        }],
+        ref: [
+          customArgs
+            ? { id, args: customArgs }
+            : id
+        ],
         as: next.alias,
       },
       columns: [
