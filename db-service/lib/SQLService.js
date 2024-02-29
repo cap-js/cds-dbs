@@ -25,16 +25,18 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
-        const elements = query.target?.elements; if (!elements) return
+        const elements = query.target?.elements
+        if (!elements) return
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
         if (!operation.columns && !operation.entries && !operation.data) return
         const columns =
           operation.columns ||
           Object.keys(
-            operation.data || operation.entries?.reduce((acc, obj) => {
-              return Object.assign(acc, obj)
-            }, {}),
+            operation.data ||
+              operation.entries?.reduce((acc, obj) => {
+                return Object.assign(acc, obj)
+              }, {}),
           )
         const invalidColumns = columns.filter(c => !(c in elements))
 
@@ -115,7 +117,11 @@ class SQLService extends DatabaseService {
    */
   async onSELECT({ query, data }) {
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try {
+        this.infer(query)
+      } catch (e) {
+        /**/
+      }
     }
     if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
@@ -195,6 +201,10 @@ class SQLService extends DatabaseService {
     return (await ps.run(values)).changes
   }
 
+  exists(e) {
+    return e && !e.virtual && !e.value && !e.isAssociation
+  }
+
   get onDELETE() {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
@@ -204,15 +214,7 @@ class SQLService extends DatabaseService {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
         for (const key in transitionsTarget) {
-          let isKeyValid
-          if (transitions.queryTarget.keys) {
-            isKeyValid = !transitionsTarget[key].virtual
-          } else {
-            isKeyValid = !transitionsTarget[key].isAssociation
-          }
-          if (isKeyValid) {
-            keys.push(key)
-          }
+          if (this.exists(transitionsTarget[key])) keys.push(key)
         }
         const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
         const query = DELETE.from({
