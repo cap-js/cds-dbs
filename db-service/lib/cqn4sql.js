@@ -1593,11 +1593,11 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      const args = from.ref.at(-1).args
-      const id = localized(transformedFrom.$refLinks[0].target)
-
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
+
+      const args = from.ref.at(-1).args
+      const id = localized(transformedFrom.$refLinks[0].target)
       transformedFrom.ref = [
         args
           ? { id, args }
