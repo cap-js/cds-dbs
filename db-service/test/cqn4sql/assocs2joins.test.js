@@ -1237,10 +1237,52 @@ describe('optimize fk access', () => {
     const query = CQL`SELECT from Classrooms {
       pupils.pupil.ID as studentCount,
     } where Classrooms.ID = 1`
-    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
                         on pupils.classroom_ID = Classrooms.ID {
                           pupils.pupil_ID as studentCount
                         } where Classrooms.ID = 1`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('filters are always join relevant', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      pupil[ID = 5].ID as student,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Pupils as pupil on pupil.ID = ClassroomsPupils.pupil_ID
+                          and pupil.ID = 5
+                        {
+                          pupil.ID as student
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('optimized next to non-optimized', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      pupil[ID = 5].ID as nonOptimized,
+      pupil.ID as optimized,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Pupils as pupil on pupil.ID = ClassroomsPupils.pupil_ID
+                          and pupil.ID = 5
+                        {
+                          pupil.ID as nonOptimized,
+                          ClassroomsPupils.pupil_ID as optimized
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('optimized next to join relevant', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      classroom.ID as classroom_ID,
+      classroom.name as classroom,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Classrooms as classroom on classroom.ID = ClassroomsPupils.classroom_ID
+                        {
+                          ClassroomsPupils.classroom_ID as classroom_ID,
+                          classroom.name as classroom
+                        }`
 
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
@@ -1253,7 +1295,7 @@ describe('optimize fk access', () => {
       having pupils.pupil.ID = 1
       order by pupils.pupil.ID
     `
-    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
                         on pupils.classroom_ID = Classrooms.ID {
                           pupils.pupil_ID as studentCount
                         } where pupils.pupil_ID = 1
@@ -1268,7 +1310,7 @@ describe('optimize fk access', () => {
     const query = CQL`SELECT from Classrooms {
       count(pupils.pupil.ID) as studentCount,
     } where Classrooms.ID = 1`
-    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassRoomPupil as pupils
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
                         on pupils.classroom_ID = Classrooms.ID {
                           count(pupils.pupil_ID) as studentCount
                         } where Classrooms.ID = 1`
@@ -1282,9 +1324,9 @@ describe('optimize fk access', () => {
     } where    pupils.pupil.classrooms.classroom.ID = 1
       order by pupils.pupil.classrooms.classroom.ID`
     const expected = CQL`SELECT from Classrooms as Classrooms
-                        left join ClassRoomPupil as pupils on pupils.classroom_ID = Classrooms.ID
+                        left join ClassroomsPupils as pupils on pupils.classroom_ID = Classrooms.ID
                         left join Pupils as pupil on pupil.ID = pupils.pupil_ID
-                        left join ClassRoomPupil as classrooms2 on classrooms2.pupil_ID = pupil.ID
+                        left join ClassroomsPupils as classrooms2 on classrooms2.pupil_ID = pupil.ID
                         {
                           count(classrooms2.classroom_ID) as classCount
                         } where    classrooms2.classroom_ID = 1
