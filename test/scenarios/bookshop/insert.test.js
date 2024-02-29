@@ -13,4 +13,10 @@ describe('Bookshop - Insert', () => {
     // expect(err instanceof Error).to.be.true
     expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
   })
+
+  test('insert with undefined value works', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const resp = await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
+    expect(resp | 0).to.be.eq(1)
+  })
 })
