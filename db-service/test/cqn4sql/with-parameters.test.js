@@ -19,6 +19,12 @@ describe('Repetitive calls to cqn4sql must work', () => {
     const expected = SELECT.from('PBooks(P1: 1, P2: 2) as PBooks').columns('PBooks.ID')
     expect(query).to.deep.equal(expected)
   })
+  it.skip('select from view with param which has subquery as param', () => {
+    // subqueries at this location are not supported by the compiler, yet
+    const query = cqn4sql(SELECT.from('PBooks(P1: 1, P2: (SELECT ID from Books))').columns('ID'), model)
+    const expected = SELECT.from('PBooks(P1: 1, P2: (SELECT Books.ID from Books as Books)) as PBooks').columns('PBooks.ID')
+    expect(query).to.deep.equal(expected)
+  })
   // will be done in another change
   it.skip('select from view with param and join with normal entity', () => {
     // currently only possible with cds-compiler beta-mode,
