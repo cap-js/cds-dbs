@@ -51,6 +51,7 @@ class Node {
     /** @type {where} - An optional condition to be applied to this node. */
     this.where = where
     /** @type {args} - optional parameter object to be applied to this node. */
+    if(!args && $refLink.definition._target?.params) args = {} // if no args are provided, provide empty argument list
     this.args = args
     /** @type {children} - A Map of children nodes belonging to this node. */
     this.children = new Map()
@@ -65,10 +66,11 @@ class Root {
    * @param {[alias, queryArtifact]} querySource
    */
   constructor(querySource) {
-    const [alias, { definition, args }] = querySource
+    let [alias, { definition, args }] = querySource
     /** @type {queryArtifact} - The artifact used to make the query. */
     this.queryArtifact = definition
     /** @type {args} - optional parameter object to be applied to this node. */
+    if(!args && definition.params) args = {} // if no args are provided, provide empty argument list
     this.args = args
     /** @type {alias} - The alias of the artifact. */
     this.alias = alias

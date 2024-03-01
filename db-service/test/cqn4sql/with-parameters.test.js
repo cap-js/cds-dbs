@@ -66,6 +66,39 @@ describe('Repetitive calls to cqn4sql must work', () => {
     `
     expect(query).to.deep.equal(expected)
   })
+  it('empty argument list if no params provided for association', () => {
+    const cqn = CQL`SELECT from PBooks(P1: 42, P2: 45) {
+            author.name as author,
+    }`
+    const query = cqn4sql(cqn, model)
+    const expected = CQL`
+      SELECT FROM PBooks(P1: 42, P2: 45) as PBooks
+      left join Authors(P1: 1) as author on author.ID = PBooks.author_ID
+        {
+          author.name as author
+        }
+    `
+    // manually remove the param from argument list because compiler does not allow empty args for cqn
+    expected.SELECT.from.args[1].ref[0].args = {}
+    expect(query).to.deep.equal(expected)
+  })
+  it('empty argument list if no params provided for entity and association', () => {
+    const cqn = CQL`SELECT from PBooks {
+            author.name as author,
+    }`
+    const query = cqn4sql(cqn, model)
+    const expected = CQL`
+      SELECT FROM PBooks(P1: dummy) as PBooks
+      left join Authors(P1: dummy) as author on author.ID = PBooks.author_ID
+        {
+          author.name as author
+        }
+    `
+    // manually remove the param from argument list because compiler does not allow empty args for cqn
+    expected.SELECT.from.args[0].ref[0].args = {}
+    expected.SELECT.from.args[1].ref[0].args = {}
+    expect(query).to.deep.equal(expected)
+  })
   it.skip('select from view with param which has subquery as param', () => {
     // subqueries at this location are not supported by the compiler, yet
     const query = cqn4sql(SELECT.from('PBooks(P1: 1, P2: (SELECT ID from Books))').columns('ID'), model)
