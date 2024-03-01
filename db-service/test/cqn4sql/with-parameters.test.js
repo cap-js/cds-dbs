@@ -29,7 +29,7 @@ describe('Repetitive calls to cqn4sql must work', () => {
     `
     expect(query).to.deep.equal(expected)
   })
-  it.skip('select from entity with params and follow association to entity with params', () => {
+  it('select from entity with params and follow association to entity with params', () => {
     const query = cqn4sql(SELECT.from('PBooks(P1: 42, P2: 45)').columns('author(P1: 1, P2: 2).name as author'), model)
     const expected = CQL`
       SELECT FROM PBooks(P1: 42, P2: 45) as PBooks left join Authors(P1:1, P2: 2) as author

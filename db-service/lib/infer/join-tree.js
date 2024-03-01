@@ -69,7 +69,7 @@ class Root {
     /** @type {queryArtifact} - The artifact used to make the query. */
     this.queryArtifact = definition
     /** @type {args} - optional parameter object to be applied to this node. */
-    this.args = definition
+    this.args = args
     /** @type {alias} - The alias of the artifact. */
     this.alias = alias
     /** @type {parent} - The parent Node of this root, null for the root Node. */
@@ -103,7 +103,6 @@ class JoinTree {
      */
     this._queryAliases = new Map()
     Object.entries(sources).forEach(entry => {
-      const [id, { definition }] = entry
       const alias = this.addNextAvailableTableAlias(entry[0])
       this._roots.set(alias, new Root(entry))
     })

@@ -255,9 +255,12 @@ function cqn4sql(originalQuery, model) {
      */
     const alreadySeen = new Map()
     inferred.joinTree._roots.forEach(r => {
-      const args = r.queryArtifact.SELECT
-        ? [{ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias }]
-        : [{ ref: [localized(r.queryArtifact)], as: r.alias }]
+      const args = []
+      if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
+      else {
+        const id = localized(r.queryArtifact)
+        args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
+      }
       from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
@@ -683,7 +686,7 @@ function cqn4sql(originalQuery, model) {
     // select from books { { * } as bar }
     // only possible if there is exactly one query source
     if (!baseRef.length) {
-      const [tableAlias, {definition }] = Object.entries(inferred.sources)[0]
+      const [tableAlias, { definition }] = Object.entries(inferred.sources)[0]
       baseRef.push(tableAlias)
       baseRefLinks.push({ definition, source: definition })
     }

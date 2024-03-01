@@ -94,7 +94,8 @@ function infer(originalQuery, model) {
   function inferTarget(from, querySources) {
     const { ref } = from
     if (ref) {
-      const first = ref[0].id || ref[0]
+      const { id, args } = ref[0]
+      const first = id || ref[0]
       let target = getDefinition(first, model)
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
@@ -113,7 +114,7 @@ function infer(originalQuery, model) {
         from.as ||
         (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
-      querySources[alias] = { definition: target }
+      querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
