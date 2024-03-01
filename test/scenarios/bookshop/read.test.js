@@ -202,4 +202,5 @@ describe('Bookshop - Read', () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)
   })
+
 })
