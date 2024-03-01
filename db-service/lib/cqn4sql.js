@@ -1614,8 +1614,10 @@ function cqn4sql(originalQuery, model) {
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
-      const args = from.ref.at(-1).args
-      const id = localized(transformedFrom.$refLinks[0].target)
+      let args = from.ref.at(-1).args
+      const subquerySource = transformedFrom.$refLinks[0].target
+      if(subquerySource.params && !args) args = {}
+      const id = localized(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
@@ -1966,7 +1968,9 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
 
-    const id = localized(assocTarget(nextDefinition) || nextDefinition)
+    const subquerySource = assocTarget(nextDefinition) || nextDefinition
+    const id = localized(subquerySource)
+    if(subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
         ref: [customArgs ? { id, args: customArgs } : id],

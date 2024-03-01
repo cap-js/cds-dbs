@@ -140,6 +140,49 @@ describe('entities and views with parameters', () => {
       `
       expect(cqn4sql(query, model)).to.deep.equal(expected)
     })
+    it('where exists shortcut w/o params', () => {
+      const query = CQL`SELECT from Books { ID } where exists author`
+      const expected = CQL`
+        SELECT from Books as Books { Books.ID }
+          where exists (
+            SELECT 1 from Authors(P1: dummy) as author where author.ID = Books.author_ID
+          )
+      `
+      // manually remove the param from argument list because compiler does not allow empty args for cqn
+      expected.SELECT.where[1].SELECT.from.ref[0].args = {}
+      expect(cqn4sql(query, model)).to.deep.equal(expected)
+    })
+  })
+
+  describe('expand subqueries', () => {
+    it('expand with params', () => {
+      const query = CQL`SELECT from Books {
+        author(P1: 1, P2: 2) { ID }
+      }`
+      const expected = CQL`SELECT from Books as Books {
+        (
+          SELECT from Authors(P1: 1, P2: 2) as author {
+            author.ID
+          } where Books.author_ID = author.ID
+        ) as author
+      }`
+      expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
+    })
+    it('expand on parameterized entity without args', () => {
+      const query = CQL`SELECT from Books {
+        author { ID }
+      }`
+      const expected = CQL`SELECT from Books as Books {
+        (
+          SELECT from Authors(P1: dummy) as author {
+            author.ID
+          } where Books.author_ID = author.ID
+        ) as author
+      }`
+      // manually remove the param from argument list because compiler does not allow empty args for cqn
+      expected.SELECT.columns[0].SELECT.from.ref[0].args = {}
+      expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
+    })
   })
 
   describe('subqueries', () => {
