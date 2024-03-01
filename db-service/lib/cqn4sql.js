@@ -945,7 +945,7 @@ function cqn4sql(originalQuery, model) {
   function getColumnsForWildcard(exclude = [], replace = [], baseName = null) {
     const wildcardColumns = []
     Object.keys(inferred.$combinedElements)
-      .filter(k => !exclude.includes(k))
+      .filter(k => !inferred.$combinedElements[k][0].unfolded && !exclude.includes(k))
       .forEach(k => {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
