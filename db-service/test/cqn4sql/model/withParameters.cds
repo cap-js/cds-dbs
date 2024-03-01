@@ -5,7 +5,14 @@ entity Books {
     author: Association to Authors;
 };
 
-entity Authors {
+@cds.persistence.exists
+entity Authors(P1: Integer, P2: String(100)) {
+    key ID    : Integer;
+        name  : String;
+};
+
+@cds.persistence.exists
+entity AuthorsUDF {
     key ID    : Integer;
         name  : String;
 };
