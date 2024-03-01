@@ -51,7 +51,8 @@ class Node {
     /** @type {where} - An optional condition to be applied to this node. */
     this.where = where
     /** @type {args} - optional parameter object to be applied to this node. */
-    if(!args && $refLink.definition._target?.params) args = {} // if no args are provided, provide empty argument list
+    const targetHasParams = $refLink.definition._target?.params || $refLink.definition._target?.['@cds.persistence.udf']
+    if (!args && targetHasParams) args = {} // if no args are provided, provide empty argument list
     this.args = args
     /** @type {children} - A Map of children nodes belonging to this node. */
     this.children = new Map()
@@ -70,7 +71,8 @@ class Root {
     /** @type {queryArtifact} - The artifact used to make the query. */
     this.queryArtifact = definition
     /** @type {args} - optional parameter object to be applied to this node. */
-    if(!args && definition.params) args = {} // if no args are provided, provide empty argument list
+    const definitionHasParams = definition.params || definition['@cds.persistence.udf']
+    if (!args && definitionHasParams) args = {} // if no args are provided, provide empty argument list
     this.args = args
     /** @type {alias} - The alias of the artifact. */
     this.alias = alias
