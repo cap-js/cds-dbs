@@ -39,6 +39,33 @@ describe('Repetitive calls to cqn4sql must work', () => {
     `
     expect(query).to.deep.equal(expected)
   })
+  it('join identity via params', () => {
+    const cqn = CQL`SELECT from PBooks(P1: 42, P2: 45) {
+            author(P1: 1, P2: 2).name as author,
+            author(P1: 1, P2: 2).name as sameAuthor,
+
+            author(P1: 1).name as otherAuthor,
+
+            author(P1: 1)[ID > 15].name as otherOtherAuthor,
+    }`
+    const query = cqn4sql(cqn, model)
+    const expected = CQL`
+      SELECT FROM PBooks(P1: 42, P2: 45) as PBooks
+      left join Authors(P1:1, P2: 2) as author on author.ID = PBooks.author_ID
+      left join Authors(P1:1) as author2 on author2.ID = PBooks.author_ID
+      left join Authors(P1:1) as author3 on author3.ID = PBooks.author_ID and author3.ID > 15
+
+         {
+          author.name as author,
+          author.name as sameAuthor,
+
+          author2.name as otherAuthor,
+
+          author3.name as otherOtherAuthor,
+        }
+    `
+    expect(query).to.deep.equal(expected)
+  })
   it.skip('select from view with param which has subquery as param', () => {
     // subqueries at this location are not supported by the compiler, yet
     const query = cqn4sql(SELECT.from('PBooks(P1: 1, P2: (SELECT ID from Books))').columns('ID'), model)
