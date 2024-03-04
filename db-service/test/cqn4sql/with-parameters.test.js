@@ -74,7 +74,7 @@ describe('entities and views with parameters', () => {
       const query = cqn4sql(cqn, model)
       const expected = CQL`
       SELECT FROM PBooks(P1: 42, P2: 45) as PBooks
-      left join Authors(P1: 1) as author on author.ID = PBooks.author_ID
+      left join Authors(P1: dummy) as author on author.ID = PBooks.author_ID
         {
           author.name as author
         }
