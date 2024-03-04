@@ -23,13 +23,13 @@ describe('DELETE', () => {
                   children: [
                     {
                       ID: 8,
-                      fooGrandChild: 'foo',
+                      fooGrandChild: 'bar',
                     },
                   ],
                 },
                 {
                   ID: 7,
-                  fooChild: 'bar',
+                  fooChild: 'foo',
                   children: [
                     {
                       ID: 9,
@@ -61,7 +61,7 @@ describe('DELETE', () => {
 
       test('on child with where', async () => {
         // only delete entries where fooChild = 'bar'
-        const deepDelete = await cds.run(DELETE.from(ChildPWithWhere).where({ ID: 6 }))
+        const deepDelete = await cds.run(DELETE.from(ChildPWithWhere))
         expect(deepDelete).to.be.eq(1)
 
         const child = await cds.run(SELECT.from(Child).where({ ID: 6, or: { ID: 7 } }))
