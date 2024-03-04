@@ -111,7 +111,7 @@ function cqn4sql(originalQuery, model) {
 
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(originalQuery.sources)[0]
+        const queryTarget = Object.values(originalQuery.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
         keys.forEach(k => {
@@ -255,9 +255,12 @@ function cqn4sql(originalQuery, model) {
      */
     const alreadySeen = new Map()
     inferred.joinTree._roots.forEach(r => {
-      const args = r.queryArtifact.SELECT
-        ? [{ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias }]
-        : [{ ref: [localized(r.queryArtifact)], as: r.alias }]
+      const args = []
+      if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
+      else {
+        const id = localized(r.queryArtifact)
+        args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
+      }
       from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
@@ -282,10 +285,13 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
+      const id = localized(model.definitions[nextAssoc.$refLink.definition.target])
+      const { args } = nextAssoc
       const arg = {
-        ref: [localized(model.definitions[nextAssoc.$refLink.definition.target])],
+        ref: [args ? { id, args } : id],
         as: nextAssoc.$refLink.alias,
       }
+
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
@@ -680,7 +686,7 @@ function cqn4sql(originalQuery, model) {
     // select from books { { * } as bar }
     // only possible if there is exactly one query source
     if (!baseRef.length) {
-      const [tableAlias, definition] = Object.entries(inferred.sources)[0]
+      const [tableAlias, { definition }] = Object.entries(inferred.sources)[0]
       baseRef.push(tableAlias)
       baseRefLinks.push({ definition, source: definition })
     }
@@ -1255,11 +1261,12 @@ function cqn4sql(originalQuery, model) {
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${next.definition.type
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
+                next.definition.type
               }”`,
             )
           }
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
@@ -1420,7 +1427,8 @@ function cqn4sql(originalQuery, model) {
       // make sure we can compare both structures
       if (flatRhs.length !== flatLhs.length) {
         throw new Error(
-          `Can't compare "${definition.name}" with "${value.$refLinks[value.$refLinks.length - 1].definition.name
+          `Can't compare "${definition.name}" with "${
+            value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
         )
       }
@@ -1606,13 +1614,11 @@ function cqn4sql(originalQuery, model) {
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
-      const args = from.ref.at(-1).args
-      const id = localized(transformedFrom.$refLinks[0].target)
-      transformedFrom.ref = [
-        args
-          ? { id, args }
-          : id
-      ]
+      let args = from.ref.at(-1).args
+      const subquerySource = transformedFrom.$refLinks[0].target
+      if(subquerySource.params && !args) args = {}
+      const id = localized(subquerySource)
+      transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1962,14 +1968,12 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
 
-    const id = localized(assocTarget(nextDefinition) || nextDefinition)
+    const subquerySource = assocTarget(nextDefinition) || nextDefinition
+    const id = localized(subquerySource)
+    if(subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
-        ref: [
-          customArgs
-            ? { id, args: customArgs }
-            : id
-        ],
+        ref: [customArgs ? { id, args: customArgs } : id],
         as: next.alias,
       },
       columns: [
