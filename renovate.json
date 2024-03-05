@@ -1,0 +1,5 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "ignoreDeps": ["amannn/action-semantic-pull-request", "martinbeentjes/npm-get-version-action"]
+}
