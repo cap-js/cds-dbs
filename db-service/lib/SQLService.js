@@ -256,6 +256,7 @@ class SQLService extends DatabaseService {
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
+            query.target = c._target
             return this.onDELETE({ query, depth, visited: [...visited] })
           }),
         )
