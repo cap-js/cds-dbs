@@ -34,9 +34,9 @@ class SQLService extends DatabaseService {
           operation.columns ||
           Object.keys(
             operation.data ||
-              operation.entries?.reduce((acc, obj) => {
-                return Object.assign(acc, obj)
-              }, {}),
+            operation.entries?.reduce((acc, obj) => {
+              return Object.assign(acc, obj)
+            }, {}),
           )
         const invalidColumns = columns.filter(c => !(c in elements))
 
@@ -201,10 +201,6 @@ class SQLService extends DatabaseService {
     return (await ps.run(values)).changes
   }
 
-  exists(e) {
-    return e && !e.virtual && !e.value && !e.isAssociation
-  }
-
   get onDELETE() {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
@@ -214,7 +210,8 @@ class SQLService extends DatabaseService {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
         for (const key in transitionsTarget) {
-          if (this.exists(transitionsTarget[key])) keys.push(key)
+          const exists = e => e && !e.virtual && !e.value && !e.isAssociation
+          if (exists(transitionsTarget[key])) keys.push(key)
         }
         const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
         const query = DELETE.from({
@@ -254,8 +251,8 @@ class SQLService extends DatabaseService {
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
-                  `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
-                  `These are not supported by deep delete.`,
+                `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
+                `These are not supported by deep delete.`,
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
