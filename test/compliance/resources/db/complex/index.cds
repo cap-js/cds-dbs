@@ -11,3 +11,11 @@ entity Authors {
   name   : String(111);
   books  : Association to many Books on books.author = $self;
 }
+
+entity JoinBooksAndAuthors as
+  select
+    Books.ID as BookId,
+    Authors.ID as AuthorId
+  from Books
+  left outer join Authors
+    on Authors.ID = Books.author.ID;

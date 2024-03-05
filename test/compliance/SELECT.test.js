@@ -190,6 +190,20 @@ describe('SELECT', () => {
       assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
     })
 
+    test('select from joined entity', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.JoinBooksAndAuthors'] }
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all properties are in the correct case
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].BookId, 1)
+      assert.strictEqual(res[0].AuthorId, 1)
+    })
+
     test('expand to one with 200 columns', async () => {
       const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
       const cqn = {
