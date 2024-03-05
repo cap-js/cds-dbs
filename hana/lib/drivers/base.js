@@ -96,6 +96,13 @@ class HANADriver {
   }
 
   /**
+   * Starts a new transaction
+   */
+  async begin() {
+    this._native.setAutoCommit(false)
+  }
+
+  /**
    * Commits the current transaction
    */
   async commit() {
@@ -163,6 +170,9 @@ const prom = function (dbc, func) {
     return new Promise((resolve, reject) => {
       dbc[func](...args, (err, res, output) => {
         if (err) {
+          if (!(err instanceof Error)) {
+            Object.setPrototypeOf(err, Error.prototype)
+          }
           const sql = typeof args[0] === 'string' && args[0]
           // Enhance insufficient privilege errors with details
           if (err.code === 258) {

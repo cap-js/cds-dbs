@@ -23,7 +23,8 @@ jobs:
       - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
       - name: get-version # this takes the version of the monorepo root
         id: package-version
-        uses: martinbeentjes/npm-get-version-action@v1.2.3
+        # v1.3.1
+        uses: martinbeentjes/npm-get-version-action@3cf273023a0dda27efcd3164bdfb51908dd46a5b
       - name: Create a GitHub release
         uses: ncipollo/release-action@v1
         with:

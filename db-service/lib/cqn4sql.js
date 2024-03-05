@@ -43,7 +43,7 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
+function cqn4sql(originalQuery, model) {
   const inferred = infer(originalQuery, model)
   if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
 
@@ -122,7 +122,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
         })
 
-        const transformedSubquery = cqn4sql(subquery)
+        const transformedSubquery = cqn4sql(subquery, model)
 
         // replace where condition of original query with the transformed subquery
         // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -838,9 +838,10 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
       } else if (col.isJoinRelevant) {
-        const tableAlias$refLink = getQuerySourceName(col)
+        const tableAlias = getQuerySourceName(col)
+        const name = calculateElementName(col)
         const transformedColumn = {
-          ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
+          ref: [tableAlias, name],
         }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
@@ -916,8 +917,9 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
+      const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
-        getLastStringSegment(q.SELECT.from.ref[q.SELECT.from.ref.length - 1]),
+        getLastStringSegment(last.id || last),
         originalQuery.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
@@ -975,9 +977,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
      */
     function isManagedAssocInFlatMode(e) {
       return (
-        (model.meta.transformation === 'odata' || model.meta.unfolded?.some(u => u === 'assocs')) &&
-        e.isAssociation &&
-        e.keys
+        e.isAssociation && e.keys && (model.meta.transformation === 'odata' || model.meta.unfolded?.includes('structs'))
       )
     }
   }
@@ -991,7 +991,7 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
    */
   function getElementForRef(ref, def) {
     return ref.reduce((prev, res) => {
-      return prev?.elements?.[res] || prev?._target?.elements[res]
+      return (prev?.elements || prev?.foreignKeys)?.[res] || prev?._target?.elements[res] // PLEASE REVIEW: should we add the .foreignKey check here for the non-ucsn case?
     }, def)
   }
 
@@ -1031,26 +1031,26 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
     if (!column) return column
     if (column.val || column.func || column.SELECT) return [column]
 
-    const structsAreUnfoldedAlready = model.meta.unfolded?.some(u => u === 'structs')
+    const structsAreUnfoldedAlready = model.meta.unfolded?.includes('structs')
     let { baseName, columnAlias, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
+    if (element.on && !element.keys)
+      return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
       const leaf = column.$refLinks[column.$refLinks.length - 1]
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       let elements
-      //> REVISIT: remove once UCSN is standard (no more .foreignKeys)
       elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
-      if (elements && leaf.alias in elements) {
+      if (elements && leaf.definition.name in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
-        columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
+        columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
     } else if (!baseName && structsAreUnfoldedAlready) {
       baseName = element.name // name is already fully constructed
@@ -1128,8 +1128,16 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
         } else {
           // leaf reached
           let flatColumn
-          if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
-          else flatColumn = { ref: [fkBaseName] }
+          if (columnAlias) {
+            // if the column has an explicit alias AND the orignal ref
+            // directly resolves to the foreign key, we must not append the fk name to the column alias
+            // e.g. `assoc.fk as FOO` => columns.alias = FOO
+            //      `assoc as FOO`    => columns.alias = FOO_fk
+            let columnAliasWithFlatFk
+            if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
+              columnAliasWithFlatFk = `${columnAlias}_${fk.as || fk.ref.join('_')}`
+            flatColumn = { ref: [fkBaseName], as: columnAliasWithFlatFk || columnAlias }
+          } else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
           // in a flat model, we must assign the foreign key rather than the key in the target
@@ -1276,7 +1284,11 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             transformedTokenStream.push({ list: [] })
           }
         } else {
-          transformedTokenStream.push({ list: getTransformedTokenStream(token.list, $baseLink) })
+          const { list } = token
+          if (list.every(e => e.val))
+            // no need for transformation
+            transformedTokenStream.push({ list })
+          else transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1350,11 +1362,12 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             // in that case, we have a baseLink `books` which we need to resolve the following steps
             // however, the correct table alias has been assigned to the `author` step
             // hence we need to ignore the alias of the `$baseLink`
-            const refHasOwnAssoc =
+            const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
-            const tableAlias = getQuerySourceName(token, refHasOwnAssoc || $baseLink)
-            if ((!$baseLink || refHasOwnAssoc) && token.isJoinRelevant) {
-              result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
+            const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
+            if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
+              let name = calculateElementName(token, getFullName)
+              result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
             } else {
@@ -1772,13 +1785,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
             // naive assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
             else if (
-              lhs.$refLinks[0].definition ===
+              lhs.$refLinks[0]?.definition ===
               getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
             )
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
-            else if (lhs.$refLinks[0].definition.target) result[i].ref = [result[i].ref.join('_')]
+            else if (lhs.$refLinks[0]?.definition.target) result[i].ref = [result[i].ref.join('_')]
           }
         }
         if (backlink) {
@@ -1811,8 +1824,13 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
         } else if (lhs.ref) {
-          if (lhs.ref[0] === '$self') result[i].ref.splice(0, 1, targetSideRefLink.alias)
-          else if (lhs.ref.length > 1) {
+          if (lhs.ref[0] === '$self') {
+            // $self in ref of length > 1
+            // if $self is followed by association, the alias of the association must be used
+            if (lhs.$refLinks[1].definition.isAssociation) result[i].ref.splice(0, 1)
+            // otherwise $self is replaced by the alias of the entity
+            else result[i].ref.splice(0, 1, targetSideRefLink.alias)
+          } else if (lhs.ref.length > 1) {
             if (
               !(lhs.ref[0] in pseudos.elements) &&
               lhs.ref[0] !== assocRefLink.alias &&
@@ -1824,9 +1842,8 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
                 // first step is the association itself -> use it's name as it becomes the table alias
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
-                Object.values(
-                  targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements,
-                ).some(e => e === definition)
+                definition.name in
+                (targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements)
               ) {
                 // first step is association which refers to its foreign key by dot notation
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
@@ -1992,21 +2009,6 @@ function cqn4sql(originalQuery, model = cds.context?.model || cds.model) {
   }
 
   /**
-   * Calculate the flat name for a deeply nested element:
-   * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
-   *
-   * @param {CSN.element} node an element
-   * @param {object} name the last part of the name, e.g. the name of the deeply nested element
-   * @returns the flat name of the element
-   */
-  function getFullName(node, name = node.name) {
-    // REVISIT: this is an unfortunate implementation
-    if (!node.parent || node.parent.kind === 'entity') return name
-
-    return getFullName(node.parent, `${node.parent.name}_${name}`)
-  }
-
-  /**
    * Calculates the name of the source which can be used to address the given node.
    *
    * @param {object} node a csn object with a `ref` and `$refLinks`
@@ -2073,6 +2075,31 @@ module.exports = Object.assign(cqn4sql, {
   notEqOps,
   notSupportedOps,
 })
+
+function calculateElementName(token) {
+  const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+  let name
+  if (nonJoinRelevantAssoc)
+    // calculate fk name
+    name = token.ref.slice(nonJoinRelevantAssoc).join('_')
+  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  return name
+}
+
+/**
+ * Calculate the flat name for a deeply nested element:
+ * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
+ *
+ * @param {CSN.element} node an element
+ * @param {object} name the last part of the name, e.g. the name of the deeply nested element
+ * @returns the flat name of the element
+ */
+function getFullName(node, name = node.name) {
+  // REVISIT: this is an unfortunate implementation
+  if (!node.parent || node.parent.kind === 'entity') return name
+
+  return getFullName(node.parent, `${node.parent.name}_${name}`)
+}
 
 function copy(obj) {
   const walk = function (par, prop) {

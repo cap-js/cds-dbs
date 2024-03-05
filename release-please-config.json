@@ -3,7 +3,9 @@
     "db-service": {},
     "sqlite": {},
     "postgres": {},
-    "hana": {}
+    "hana": {
+      "release-as": "0.0.7"
+    }
   },
   "changelog-sections": [
     {

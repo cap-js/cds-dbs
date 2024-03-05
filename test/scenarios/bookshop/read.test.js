@@ -171,6 +171,14 @@ describe('Bookshop - Read', () => {
     expect(res4[1].title).to.be.eq('dracula')
   })
 
+  test('Filter Books(multiple functions)', async () => {
+    const res = await GET(
+      `/admin/Books?$filter=contains(descr,'Edgar') or contains(descr,'Autobiography')`,
+      admin,
+    )
+    expect(res.data.value.length).to.be.eq(3)
+  })
+
   test.skip('Insert Booky', async () => {
     const res = await POST(
       '/admin/Booky',
@@ -194,4 +202,5 @@ describe('Bookshop - Read', () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)
   })
+
 })
