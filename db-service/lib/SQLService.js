@@ -205,7 +205,7 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      const transitions = getTransition(req.query, this, false, req.query.cmd || 'DELETE')
+      const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
