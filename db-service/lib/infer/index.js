@@ -95,11 +95,11 @@ function infer(originalQuery, model) {
     const { ref } = from
     if (ref) {
       const first = ref[0].id || ref[0]
-      let target = getDefinition(first, model)
+      let target = getDefinition(first) || cds.error`"${first}" not found in the definitions of your model`
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
-          const next = d.elements[r.id || r]?._target || d.elements[r.id || r]
+          const next = getDefinition(d.elements[r.id || r]?.target) || d.elements[r.id || r]
           if (!next) throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
           return next
         }, target)
@@ -122,7 +122,8 @@ function infer(originalQuery, model) {
       infer(from, model) // we need the .elements in the sources
       querySources[from.as || ''] = from
     } else if (typeof from === 'string') {
-      querySources[/([^.]*)$/.exec(from)[0]] = getDefinition(from, model)
+      querySources[/([^.]*)$/.exec(from)[0]] =
+        getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
     } else if (from.SET) {
       infer(from, model)
     }
@@ -168,7 +169,7 @@ function infer(originalQuery, model) {
         // we need to search for first step in ´model.definitions[infixAlias]`
         if ($baseLink) {
           const { definition } = $baseLink
-          const elements = definition._target?.elements || definition.elements
+          const elements = getDefinition(definition.target)?.elements || definition.elements
           const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
           if (e.target) {
             // only fk access in infix filter
@@ -188,22 +189,22 @@ function infer(originalQuery, model) {
           Object.defineProperty(arg, 'flatName', { value: ref.join('_'), writable: true })
         } else {
           // must be in model.definitions
-          const definition = getDefinition(id, model)
+          const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
           arg.$refLinks[0] = { definition, target: definition }
         }
       } else {
         const recent = arg.$refLinks[i - 1]
-        const { elements } = recent.definition._target || recent.definition
+        const { elements } = getDefinition(recent.definition.target) || recent.definition
         const e = elements[id]
         if (!e) throw new Error(`"${id}" not found in the elements of "${arg.$refLinks[i - 1].definition.name}"`)
-        arg.$refLinks.push({ definition: e, target: e._target || e })
+        arg.$refLinks.push({ definition: e, target: getDefinition(e.target) || e })
       }
       arg.$refLinks[i].alias = !ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
 
       // link refs in where
       if (step.where) {
         // REVISIT: why do we need to walk through these so early?
-        if (arg.$refLinks[i].definition.kind === 'entity' || arg.$refLinks[i].definition._target) {
+        if (arg.$refLinks[i].definition.kind === 'entity' || getDefinition(arg.$refLinks[i].definition.target)) {
           let existsPredicate = false
           const walkTokenStream = token => {
             if (token === 'exists') {
@@ -497,11 +498,11 @@ function infer(originalQuery, model) {
             nameSegments.push(id)
           } else if ($baseLink) {
             const { definition, target } = $baseLink
-            const elements = definition._target?.elements || definition.elements
+            const elements = getDefinition(definition.target)?.elements || definition.elements
             if (elements && id in elements) {
               const element = elements[id]
               rejectNonFkAccess(element)
-              const resolvableIn = definition.target ? definition._target : target
+              const resolvableIn = getDefinition(definition.target) || target
               column.$refLinks.push({ definition: elements[id], target: resolvableIn })
             } else {
               stepNotFoundInPredecessor(id, definition.name)
@@ -532,7 +533,7 @@ function infer(originalQuery, model) {
           }
         } else {
           const { definition } = column.$refLinks[i - 1]
-          const elements = definition._target?.elements || definition.elements //> go for assoc._target first, instead of assoc as struct
+          const elements = getDefinition(definition.target)?.elements || definition.elements //> go for assoc._target first, instead of assoc as struct
           const element = elements?.[id]
 
           if (firstStepIsSelf && element?.isAssociation) {
@@ -543,7 +544,7 @@ function infer(originalQuery, model) {
             )
           }
 
-          const target = definition._target || column.$refLinks[i - 1].target
+          const target = getDefinition(definition.target) || column.$refLinks[i - 1].target
           if (element) {
             if ($baseLink) rejectNonFkAccess(element)
             const $refLink = { definition: elements[id], target }
@@ -602,7 +603,7 @@ function infer(originalQuery, model) {
         }
 
         column.$refLinks[i].alias = !column.ref[i + 1] && column.as ? column.as : id.split('.').pop()
-        if (column.$refLinks[i].definition._target?.['@cds.persistence.skip'] === true) isPersisted = false
+        if (getDefinition(column.$refLinks[i].definition.target)?.['@cds.persistence.skip'] === true) isPersisted = false
         if (!column.ref[i + 1]) {
           const flatName = nameSegments.join('_')
           Object.defineProperty(column, 'flatName', { value: flatName, writable: true })
@@ -673,9 +674,7 @@ function infer(originalQuery, model) {
       // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
       if (column.expand) {
         const { $refLinks } = column
-        const skip = $refLinks.some(
-          link => model.definitions[link.definition.target]?.['@cds.persistence.skip'] === true,
-        )
+        const skip = $refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)
         if (skip) {
           $refLinks[$refLinks.length - 1].skipExpand = true
           return
@@ -722,7 +721,7 @@ function infer(originalQuery, model) {
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
-            const leafLinkElements = $leafLink.definition._target?.elements || $leafLink.definition.elements
+            const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
             Object.entries(leafLinkElements).forEach(([k, v]) => {
               const name = namePrefix ? `${namePrefix}_${k}` : k
               // if overwritten/excluded omit from wildcard elements
@@ -768,10 +767,11 @@ function infer(originalQuery, model) {
       function resolveExpand(col) {
         const { expand, $refLinks } = col
         const $leafLink = $refLinks?.[$refLinks.length - 1] || inferred.SELECT.from.$refLinks.at(-1) // fallback to anonymous expand
-        if ($leafLink.definition._target) {
+        const target = getDefinition($leafLink.definition.target)
+        if (target) {
           const expandSubquery = {
             SELECT: {
-              from: $leafLink.definition._target.name,
+              from: target.name,
               columns: expand.filter(c => !c.inline),
             },
           }
@@ -1105,9 +1105,10 @@ function infer(originalQuery, model) {
     }
   }
 
-  /** gets the CSN element for the given name from the model */
-  function getDefinition(name, model) {
-    return model.definitions[name] || cds.error`"${name}" not found in the definitions of your model`
+  /** returns the CSN definition for the given name from the model */
+  function getDefinition(name) {
+    if(!name) return null
+    return model.definitions[name]
   }
 
   /**
