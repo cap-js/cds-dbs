@@ -79,6 +79,19 @@ describe('Bookshop - Read', () => {
     expect(res.length).to.be.eq(2)
   })
 
+  test('reuse already executed select as subselect', async () => {
+    let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
+    let res = await s
+
+    res = await SELECT.one.from('sap.capire.bookshop.Books as b')
+      .join('sap.capire.bookshop.Authors as a')
+      .on('a.ID = b.author_ID')
+      .columns('a.name', 'b.title')
+      .where('b.ID in', s)
+      .orderBy('b.ID')
+    expect(res).to.deep.eq({"name": "Emily Brontë", "title": "Wuthering Heights"})
+  })
+
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',

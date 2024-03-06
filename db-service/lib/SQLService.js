@@ -123,10 +123,13 @@ class SQLService extends DatabaseService {
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    const expand = query.SELECT.expand
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
