@@ -51,7 +51,7 @@ jobs:
           fi;
       - name: Set up Docker Buildx
         if: ${{ steps.release.outputs.releases_created && steps.find-hxe.outputs.BUILD_HXE == 'true' }}
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Build HXE image
         if: ${{ steps.release.outputs.releases_created && steps.find-hxe.outputs.BUILD_HXE == 'true' }}
         run: |
