@@ -17,8 +17,6 @@
     "jest": "^29",
     "axios": "^1",
     "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
-    "chai-subset": "^1.6.0",
     "express": "^4"
   },
   "scripts": {
