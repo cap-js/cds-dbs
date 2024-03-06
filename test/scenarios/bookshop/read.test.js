@@ -198,6 +198,37 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(201)
   })
 
+  it('joins as subselect are executable', async () => {
+    const subselect = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [
+          { ref: ['a', 'name'], as: 'aname' },
+          { ref: ['b', 'title'], as: 'btitle' },
+        ],
+      },
+    }
+    subselect.as = 'ab'
+
+    const query = {
+      SELECT: {
+        one: true,
+        from: subselect,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['ab', 'aname'] }, '=', { val: 'Edgar Allen Poe' }],
+      },
+    }
+
+    expect((await cds.db.run(query)).count).to.be.eq(2)
+  })
+
   test('Delete Book', async () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)
