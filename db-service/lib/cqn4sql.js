@@ -283,7 +283,7 @@ function cqn4sql(originalQuery, model) {
       )
 
       const arg = {
-        ref: [localized(model.definitions[nextAssoc.$refLink.definition.target])],
+        ref: [localized(getDefinition(nextAssoc.$refLink.definition.target))],
         as: nextAssoc.$refLink.alias,
       }
       lhs.args.push(arg)
@@ -1141,7 +1141,7 @@ function cqn4sql(originalQuery, model) {
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
           // in a flat model, we must assign the foreign key rather than the key in the target
-          const flatForeignKey = model.definitions[element.parent.name]?.elements[fkBaseName]
+          const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
           setElementOnColumns(flatColumn, flatForeignKey || fkElement)
           Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
@@ -1661,7 +1661,7 @@ function cqn4sql(originalQuery, model) {
    */
   function backlinkFor(assoc) {
     if (!assoc.on) return null
-    const target = model.definitions[assoc.target]
+    const target = getDefinition(assoc.target)
     // technically we could have multiple backlinks
     const backlinks = []
     for (let i = 0; i < assoc.on.length; i += 3) {
@@ -1687,7 +1687,7 @@ function cqn4sql(originalQuery, model) {
    */
   function onCondFor(assocRefLink, targetSideRefLink, inWhereOrJoin) {
     const { on, keys } = assocRefLink.definition
-    const target = model.definitions[assocRefLink.definition.target]
+    const target = getDefinition(assocRefLink.definition.target)
     let res
     // technically we could have multiple backlinks
     if (keys) {
@@ -1865,7 +1865,7 @@ function cqn4sql(originalQuery, model) {
         // pseudo element
         return element
       if (element.kind === 'entity') return element
-      else return model.definitions[localized(getParentEntity(element.parent))]
+      else return getDefinition(localized(getParentEntity(element.parent)))
     }
   }
 
@@ -1982,7 +1982,7 @@ function cqn4sql(originalQuery, model) {
    */
   function localized(definition) {
     if (!isLocalized(definition)) return definition.name
-    const view = model.definitions[`localized.${definition.name}`]
+    const view = getDefinition(`localized.${definition.name}`)
     return view?.name || definition.name
   }
 
@@ -2011,7 +2011,7 @@ function cqn4sql(originalQuery, model) {
    * @returns the csn definition of the association target or null if it is not an association
    */
   function assocTarget(assoc) {
-    return model.definitions[assoc.target] || null
+    return getDefinition(assoc.target) || null
   }
 
   /**
