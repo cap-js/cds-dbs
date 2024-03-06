@@ -123,6 +123,8 @@ class SQLService extends DatabaseService {
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
