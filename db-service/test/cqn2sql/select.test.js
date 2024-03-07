@@ -246,6 +246,11 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql(cqn.orderByWithAlias)
       expect(sql).toMatchSnapshot()
     })
+
+    test('ORDER BY with @cds.collate false', () => {
+      const { sql } = cqn2sql(cqn.orderByCollations)
+      expect(sql).toMatchSnapshot()
+    })
   })
 
   describe('ONE', () => {
