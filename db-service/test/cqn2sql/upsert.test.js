@@ -44,8 +44,8 @@ describe('upsert', () => {
     const cqnUpsert = {
       UPSERT: {
         into: '"Foo2Quoted"',
-        columns: ['"ID"', '"name"', '"a"'],
-        rows: [[1, null, 2]],
+        columns: ['"ID"', '"name"', '"a"', 'order'],
+        rows: [[1, null, 2, 3]],
       },
     }
 
