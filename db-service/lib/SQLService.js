@@ -123,10 +123,13 @@ class SQLService extends DatabaseService {
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    const expand = query.SELECT.expand
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
@@ -428,6 +431,8 @@ SQLService.prototype.PreparedStatement = PreparedStatement
 
 const _target_name4 = q => {
   const target =
+    q._target_ref ||
+    q.from_into_ntt ||
     q.SELECT?.from ||
     q.INSERT?.into ||
     q.UPSERT?.into ||
@@ -441,7 +446,7 @@ const _target_name4 = q => {
   return first.id || first
 }
 
-const _unquirked = q => {
+const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
   if (!q) return q
   else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
   else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
