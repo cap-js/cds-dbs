@@ -284,8 +284,22 @@ describe('SELECT', () => {
   })
 
   describe('groupby', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('aggregate functions', async () => {
+      const [{ min, max }] = await cds.run(CQL`
+        SELECT
+          min(dateTime),
+          max(dateTime)
+        FROM basic.projection.dateTime
+        WHERE dateTime != null
+      `)
+
+      const [{ dateTime: minMatch }, { dateTime: maxMatch }] = await Promise.all([
+        SELECT.one.from('basic.projection.dateTime').where(`dateTime = `, new Date(min)),
+        SELECT.one.from('basic.projection.dateTime').where(`dateTime = `, new Date(max)),
+      ])
+
+      assert.strictEqual(min, minMatch, 'Ensure that the min result is equal to direct access')
+      assert.strictEqual(max, maxMatch, 'Ensure that the max result is equal to direct access')
     })
   })
 
