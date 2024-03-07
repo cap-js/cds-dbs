@@ -13,6 +13,13 @@ entity Foo2 {
   virtual something : String(11);
 }
 
+entity FooCollate {
+  key ID: UUID;
+  collateString: String;
+  nonCollateString: String @cds.collate: false;
+}
+
+
 entity Books  {
   key ID   : Integer;
   author : Composition of Author ;

@@ -46,6 +46,13 @@ module.exports.orderByWithAlias = {
     orderBy: [{ ref: ['count1'], sort: 'asc' }],
   },
 }
+module.exports.orderByCollations = {
+  SELECT: {
+    from: { ref: ['FooCollate'] },
+    orderBy: [{ ref: ['collateString'], sort: 'asc' }, { ref: ['nonCollateString'], sort: 'asc' }],
+    localized: true
+  },
+}
 module.exports.selectDistinct = {
   SELECT: {
     distinct: true,
