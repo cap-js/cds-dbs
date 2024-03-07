@@ -402,12 +402,12 @@ class CQN2SQLRenderer {
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
+    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
-      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
     const extractions = this.managed(
@@ -446,7 +446,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -573,12 +573,12 @@ class CQN2SQLRenderer {
       return converter?.(extract, element) || extract
     })
 
-    this.columns = columns.map(c => this.quote(c))
+    this.columns = columns
 
     if (!elements) {
       this.entries = INSERT.rows
       const param = this.param.bind(this, { ref: ['?'] })
-      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
     if (INSERT.rows[0] instanceof Readable) {
@@ -590,7 +590,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -617,7 +617,7 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
       this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
@@ -658,8 +658,7 @@ class CQN2SQLRenderer {
     if (!keys) return this.sql = sql
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
-    let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns.filter(c => {
+    const updateColumns = this.columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model

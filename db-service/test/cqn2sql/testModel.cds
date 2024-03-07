@@ -13,6 +13,13 @@ entity Foo2 {
   virtual something : String(11);
 }
 
+entity !["Foo2Quoted"] {
+  key !["ID"]: Integer;
+  !["name"]: String;
+  !["a"]: Integer;
+  virtual !["something"] : String(11);
+}
+
 entity Books  {
   key ID   : Integer;
   author : Composition of Author ;
