@@ -41,7 +41,7 @@ async function onDeep(req, next) {
       if (res[i].query?.target === target) summedResult.affectedRows += res[i].affectedRows
       if (res[i].results) {
         if (!summedResult.results) summedResult.results = []
-        summedResult.results.push(res[i].results[0])
+        summedResult.results?.push(res[i].results[0])
       }
     }
     return summedResult
