@@ -40,7 +40,9 @@ class CQN2SQLRenderer {
     for (let each in mixins) {
       const def = types[each]
       if (!def) continue
-      Object.defineProperty(def, fqn, { value: mixins[each] })
+      const value = mixins[each]
+      if (value?.get) Object.defineProperty(def, fqn, { get: value.get })
+      else Object.defineProperty(def, fqn, { value })
     }
     return fqn
   }
@@ -641,7 +643,7 @@ class CQN2SQLRenderer {
   /** @type {import('./converters').Converters} */
   static OutputConverters = {} // subclasses to override
 
-  static localized = { String: true, UUID: false }
+  static localized = { String: { get() { return this['@cds.collate'] !== false } }, UUID: false }
 
   // UPSERT Statements ------------------------------------------------
 
