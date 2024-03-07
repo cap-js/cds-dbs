@@ -41,7 +41,7 @@ module.exports = class InsertResult {
 
     // For INSERT.entries() with generated keys in there return these keys
     const { entries } = INSERT
-    if (entries && k1 in entries[0] && this.results.length === entries.length) {
+    if (entries && k1 in entries[0]) {
       return (super[iterator] = function* () {
         for (const each of entries)
           yield keys.reduce((p, k) => {
@@ -99,7 +99,7 @@ module.exports = class InsertResult {
    * @returns {number}
    */
   insertedRowId4(result) {
-    return result.lastID || result.lastInsertRowid
+    return result.lastID
   }
 
   /**

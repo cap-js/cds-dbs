@@ -35,11 +35,12 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
-  if (res.length > 1) {
+  if (res.length > 1 && res[0].results) {
     const summedResult = res[0]
-    for (let i = 2; i < res.length; i++) {
-      if (res[0].query && res[i].query && res[0].query?.target?.name === res[i].query?.target?.name) {
-        summedResult.affectedRows += res[i].affectedRows
+    for (let i = 1; i < res.length; i++) {
+      if (res[i].query?.target === target) summedResult.affectedRows += res[i].affectedRows
+      if (res[i].results) {
+        if (!summedResult.results) summedResult.results = []
         summedResult.results.push(res[i].results[0])
       }
     }
