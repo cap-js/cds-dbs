@@ -660,7 +660,8 @@ class CQN2SQLRenderer {
     if (!keys) return this.sql = sql
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
-    const updateColumns = this.columns.filter(c => {
+    let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
+    updateColumns = updateColumns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model
