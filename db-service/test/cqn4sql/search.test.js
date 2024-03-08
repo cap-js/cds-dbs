@@ -120,4 +120,15 @@ describe('Replace attribute search by search predicate', () => {
       search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
+  it('Search with aggregated column and groupby', () => {
+    let query = SELECT.from('bookshop.Books')
+      .columns({ args: [{ xpr: [{ ref: ['stock'] }] }], as: 'foo', func: 'count' })
+      .groupBy('title')
+      .search('foo')
+
+    let res = cqn4sql(query, model)
+    expect(JSON.parse(JSON.stringify(res.SELECT.where))).to.not.deep.equal([
+      { func: 'search', args: [{ args: [{ xpr: [{ ref: ['stock'] }] }], as: 'foo', func: 'count' }, { val: 'foo' }] },
+    ])
+  })
 })
