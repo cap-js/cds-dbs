@@ -36,14 +36,25 @@ async function onDeep(req, next) {
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
   if (res.length > 1 && res[0].results) {
-    const summedResult = res[0]
-    for (let i = 1; i < res.length; i++) {
-      if (res[i].query?.target === target) summedResult.affectedRows += res[i].affectedRows
-      if (res[i].results) {
-        if (!summedResult.results) summedResult.results = []
-        summedResult.results?.push(res[i].results[0])
+    const summedResult = { ...res[0] } // Copy the first element
+
+    summedResult.affectedRows = res.reduce((totalRows, result) => {
+      if (result.query?.target === target) {
+        return totalRows + result.affectedRows
       }
-    }
+      return totalRows
+    }, summedResult.affectedRows || 0)
+
+    summedResult.results = res.slice(1).reduce(
+      (resultsArray, result) => {
+        if (result.results) {
+          resultsArray.push(result.results[0])
+        }
+        return resultsArray
+      },
+      summedResult.results ? [summedResult.results] : [],
+    )
+
     return summedResult
   }
   
