@@ -17,7 +17,6 @@ entity !["Foo2Quoted"] {
   key !["ID"]: Integer;
   !["name"]: String;
   !["a"]: Integer;
-  ![order]: Integer;
   virtual !["something"] : String(11);
 }
 

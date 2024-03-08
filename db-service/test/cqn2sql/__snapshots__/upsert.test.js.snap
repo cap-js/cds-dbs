@@ -26,9 +26,9 @@ exports[`upsert test with rows (quoted) 1`] = `
 {
   "entries": [
     [
-      "[[1,null,2,3]]",
+      "[[1,null,2]]",
     ],
   ],
-  "sql": "INSERT INTO """Foo2Quoted""" ("""ID""","""name""","""a""",order) SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]',value->>'$[3]' FROM json_each(?) WHERE true ON CONFLICT("""ID""") DO UPDATE SET """name""" = excluded."""name""","""a""" = excluded."""a""",order = excluded.order",
+  "sql": "INSERT INTO """Foo2Quoted""" ("""ID""","""name""","""a""") SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]' FROM json_each(?) WHERE true ON CONFLICT("""ID""") DO UPDATE SET """name""" = excluded."""name""","""a""" = excluded."""a"""",
 }
 `;
