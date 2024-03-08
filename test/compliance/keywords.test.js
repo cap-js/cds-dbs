@@ -45,4 +45,13 @@ describe('keywords', () => {
     const select = await SELECT.from(Alter).where('number = 42')
     expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
   })
+
+  test('upsert', async () => {
+    const { ASC } = cds.entities
+    await UPSERT.into(ASC)
+      .columns(['ID', 'select'])
+      .rows([[42,4711]])
+    const select = await SELECT.one.from(ASC, ['ID', 'select']).where('ID = 42')
+    expect(select).to.eql({ ID: 42, select: 4711 })
+  })
 })

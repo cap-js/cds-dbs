@@ -39,4 +39,17 @@ describe('upsert', () => {
     const { sql, entries } = cqn2sql(cqnUpsert)
     expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
   })
+
+  test('test with rows (quoted)', async () => {
+    const cqnUpsert = {
+      UPSERT: {
+        into: '"Foo2Quoted"',
+        columns: ['"ID"', '"name"', '"a"'],
+        rows: [[1, null, 2]],
+      },
+    }
+
+    const { sql, entries } = cqn2sql(cqnUpsert)
+    expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
+  })
 })
