@@ -40,7 +40,9 @@ class CQN2SQLRenderer {
     for (let each in mixins) {
       const def = types[each]
       if (!def) continue
-      Object.defineProperty(def, fqn, { value: mixins[each] })
+      const value = mixins[each]
+      if (value?.get) Object.defineProperty(def, fqn, { get: value.get })
+      else Object.defineProperty(def, fqn, { value })
     }
     return fqn
   }
@@ -418,12 +420,12 @@ class CQN2SQLRenderer {
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
+    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
 
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
-      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
     const extractions = this.managed(
@@ -462,7 +464,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -589,12 +591,12 @@ class CQN2SQLRenderer {
       return converter?.(extract, element) || extract
     })
 
-    this.columns = columns.map(c => this.quote(c))
+    this.columns = columns
 
     if (!elements) {
       this.entries = INSERT.rows
       const param = this.param.bind(this, { ref: ['?'] })
-      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns}) VALUES (${columns.map(param)})`)
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
     if (INSERT.rows[0] instanceof Readable) {
@@ -606,7 +608,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -633,7 +635,7 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
       this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
@@ -657,7 +659,7 @@ class CQN2SQLRenderer {
   /** @type {import('./converters').Converters} */
   static OutputConverters = {} // subclasses to override
 
-  static localized = { String: true, UUID: false }
+  static localized = { String: { get() { return this['@cds.collate'] !== false } }, UUID: false }
 
   // UPSERT Statements ------------------------------------------------
 

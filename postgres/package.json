@@ -36,7 +36,7 @@
   },
   "peerDependencies": {
     "@sap/cds": ">=7.6",
-    "@sap/cds-dk": ">=7"
+    "@sap/cds-dk": ">=7.5"
   },
   "peerDependenciesMeta": {
     "@sap/cds-dk": {
