@@ -305,10 +305,26 @@ class CQN2SQLRenderer {
   from(from) {
     const { ref, as } = from
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
-    if (ref) return _aliased(this.quote(this.name(ref[0])))
+    if (ref) {
+      const z = ref[0]
+      if (z.args) {
+        return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
+      }
+      return _aliased(this.quote(this.name(z)))
+    }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join)
       return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+  }
+
+  /**
+   * Renders a FROM clause into generic SQL
+   * @param {import('./infer/cqn').ref['ref'][0]['args']} args
+   * @returns {string} SQL
+   */
+  from_args(args) {
+    args
+    cds.error`Parameterized views are not supported by ${this.constructor.name}`
   }
 
   /**
