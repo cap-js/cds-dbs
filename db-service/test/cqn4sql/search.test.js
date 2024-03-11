@@ -120,15 +120,17 @@ describe('Replace attribute search by search predicate', () => {
       search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
-  it('Search with aggregated column and groupby', () => {
-    let query = SELECT.from('bookshop.Books')
-      .columns({ args: [{ xpr: [{ ref: ['stock'] }] }], as: 'foo', func: 'count' })
+  it('Search with aggregated column and groupby must be put into having', () => {
+    // if we search on aggregated results, the search must be put into the having clause
+    const { Books } = cds.entities
+    let query = SELECT.from(Books)
+      .columns({ args: [{ ref: ['title'] }], as: 'firstInAlphabet', func: 'MIN' })
       .groupBy('title')
-      .search('foo')
+      .search('Cat')
 
-    let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res.SELECT.where))).to.not.deep.equal([
-      { func: 'search', args: [{ args: [{ xpr: [{ ref: ['stock'] }] }], as: 'foo', func: 'count' }, { val: 'foo' }] },
-    ])
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books {
+        MIN(Books.title) as firstInAlphabet
+      } group by Books.title having search(MIN(Books.title), 'Cat')`)
   })
 })
