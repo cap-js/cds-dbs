@@ -145,6 +145,29 @@ describe('SELECT', () => {
       assert.equal(res[2].xpr, false)
     })
 
+    test('select xpr (invalid)', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic.projection.string'] },
+          columns: [
+            {
+              xpr: [
+                {
+                  xpr: [{ val: 'yes' }, '=', { ref: ['string'] }],
+                  cast: { type: 'cds.Boolean' },
+                },
+                '+',
+                { val: 1 }
+              ],
+              as: 'xpr',
+            }
+          ],
+        },
+      }
+
+      await assert.rejects(cds.run(cqn))
+    })
+
     test('select 200 columns', async () => {
       const cqn = {
         SELECT: {
