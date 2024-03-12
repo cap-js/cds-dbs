@@ -158,6 +158,19 @@ describe('SELECT', () => {
       assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
     })
 
+    test('column alias is respected for unknown entities', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['basic_projection_string'] },
+          columns: [{val: 42, as: 'my_SuPer_ALIAS'}],
+          one: true
+        },
+      }
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res, {my_SuPer_ALIAS: 42})
+    })
+
     test('select 200 null columns', async () => {
       const cqn = {
         SELECT: {
