@@ -13,12 +13,13 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     name: Node.js ${{ matrix.node }}
 
     strategy:
       fail-fast: true
       matrix:
+        os: [ubuntu-latest, windows-latest]
         node: [18]
 
     steps:
