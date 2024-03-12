@@ -29,7 +29,7 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
+    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
     return {
@@ -100,6 +100,9 @@ class HANAService extends SQLService {
 
   async onSELECT(req) {
     const { query, data } = req
+    if (!query.target) {
+      try { this.infer(query) } catch (e) { /**/ }
+    }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
     }
@@ -108,6 +111,8 @@ class HANAService extends SQLService {
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
     const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    delete query.SELECT.expand
+
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
@@ -648,6 +653,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
     }
 
+    from_args(args) {
+      return `(${ObjectKeys(args).map(k => `${this.quote(k)} => ${this.expr(args[k])}`)})`
+    }
+
     orderBy(orderBy, localized) {
       return orderBy.map(
         localized
@@ -876,8 +885,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+      Vector: () => `NVARCHAR(2147483647)`,
 
-      // Javascript types
+      // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`
     }
@@ -894,6 +904,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Vector: e => `TO_REAL_VECTOR(${e})`,
     }
 
     static OutputConverters = {
@@ -904,6 +915,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Vector: e => `TO_NVARCHAR(${e})`,
     }
   }
 

@@ -21,3 +21,14 @@ exports[`upsert test with keys only 1`] = `
   "sql": "INSERT INTO Foo2 (ID) SELECT (CASE WHEN OLD.ID IS NULL THEN value->>'$."ID"' ELSE (CASE WHEN json_type(value,'$."ID"') IS NULL THEN OLD.ID ELSE value->>'$."ID"' END) END) as ID FROM (SELECT value, value->>'$."ID"' as ID from json_each(?)) as NEW LEFT JOIN Foo2 AS OLD ON NEW.ID=OLD.ID WHERE TRUE ON CONFLICT(ID) DO UPDATE SET ",
 }
 `;
+
+exports[`upsert test with rows (quoted) 1`] = `
+{
+  "entries": [
+    [
+      "[[1,null,2]]",
+    ],
+  ],
+  "sql": "INSERT INTO """Foo2Quoted""" ("""ID""","""name""","""a""") SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]' FROM json_each(?) WHERE true ON CONFLICT("""ID""") DO UPDATE SET """name""" = excluded."""name""","""a""" = excluded."""a"""",
+}
+`;
