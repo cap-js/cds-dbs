@@ -103,6 +103,11 @@ cds.test = Object.setPrototypeOf(function () {
   })
 
   global.afterAll(async () => {
+    // Remove isolation layer including contents
+    if (isolate) {
+      await cds.db?.tenant(isolate, true)
+    }
+
     // Clean database connection pool
     await cds.db?.disconnect?.()
 
