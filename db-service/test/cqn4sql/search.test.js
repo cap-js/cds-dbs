@@ -189,7 +189,7 @@ describe('Replace attribute search by search predicate', () => {
     const query = CQL`
       SELECT from bookshop.Books {
         ID,
-        MyCustomFunction(Books.stock) as searchRelevantViaCast: cds.String,
+        substring(Books.stock) as searchRelevantViaCast: cds.String,
       } group by title
       `
 
@@ -198,7 +198,7 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
         Books.ID,
-        MyCustomFunction(Books.stock) as searchRelevantViaCast: cds.String,
-      } group by Books.title having search(MyCustomFunction(Books.stock), 'x')`)
+        substring(Books.stock) as searchRelevantViaCast: cds.String,
+      } group by Books.title having search(substring(Books.stock), 'x')`)
   })
 })
