@@ -148,7 +148,7 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
         MIN(Books.title) as firstInAlphabet
-      } group by Books.title having search(MIN(Books.title), 'Cat')`)
+      } group by Books.title having search(firstInAlphabet, 'Cat')`)
   })
 
   it('Ignore non string aggregates from being searched', () => {
@@ -159,7 +159,7 @@ describe('Replace attribute search by search predicate', () => {
       } group by title
       `
 
-    query.SELECT.search = [{ val: 'x' } ]
+    query.SELECT.search = [{ val: 'x' }]
 
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
@@ -175,7 +175,7 @@ describe('Replace attribute search by search predicate', () => {
       } group by title
       `
 
-    query.SELECT.search = [{ val: 'x' } ]
+    query.SELECT.search = [{ val: 'x' }]
 
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
@@ -183,9 +183,9 @@ describe('Replace attribute search by search predicate', () => {
         SUM(Books.stock) as notSearchRelevant,
       } group by Books.title`)
   })
-  it('search relevant via cast', () => {
+  it('func is search relevant via cast', () => {
     // this aggregation is not relevant for search per default
-    // but due to the cast to string, we search 
+    // but due to the cast to string, we search
     const query = CQL`
       SELECT from bookshop.Books {
         ID,
@@ -193,12 +193,32 @@ describe('Replace attribute search by search predicate', () => {
       } group by title
       `
 
-    query.SELECT.search = [{ val: 'x' } ]
+    query.SELECT.search = [{ val: 'x' }]
 
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
         Books.ID,
         substring(Books.stock) as searchRelevantViaCast: cds.String,
-      } group by Books.title having search(substring(Books.stock), 'x')`)
+      } group by Books.title having search(searchRelevantViaCast, 'x')`)
+  })
+  it('xpr is search relevant via cast', () => {
+    // this aggregation is not relevant for search per default
+    // but due to the cast to string, we search
+    const query = CQL`
+      SELECT from bookshop.Books {
+        ID,
+        ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
+        ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
+      } group by title
+      `
+
+    query.SELECT.search = [{ val: 'x' }]
+
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books {
+        Books.ID,
+        ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
+        ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
+      } group by Books.title having search(searchRelevantViaCast, 'x')`)
   })
 })

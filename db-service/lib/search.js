@@ -127,7 +127,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
     cqn.SELECT.columns?.forEach(column => {
-      if (column.func) {
+      if (column.func || column.xpr) {
         // exclude $count by SELECT of number of Items in a Collection
         if (
           cqn.SELECT.columns.length === 1 &&
@@ -137,10 +137,17 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
           return
         }
 
-        // only strings can be searched
-        if(column.element.type !== 'cds.String' && column.func && !(column.func in aggregateFunctions)) return
+        // only strings can be searched)
+        if (column.element.type !== DEFAULT_SEARCHABLE_TYPE) {
+          if (column.xpr) return
+          if (column.func && !(column.func in aggregateFunctions)) return
+        }
 
-        toBeSearched.push({ func: column.func, args: column.args })
+        // this column is a column expression, we can also reference the column
+        // as the search term will be put into the HAVING clause
+        const refToColumn = { ref: [column.as] }
+        Object.defineProperty(refToColumn, 'refersToColumn', { value: true })
+        toBeSearched.push(refToColumn)
         return
       }
 

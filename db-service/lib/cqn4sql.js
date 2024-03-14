@@ -237,8 +237,8 @@ function cqn4sql(originalQuery, model) {
       // we must put the search term into the `having` clause, as the search expression
       // is defined on the aggregated result, not on the individual rows
       let prop = 'where'
-      
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.func)) prop = 'having'
+
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.refersToColumn)) prop = 'having'
       if (transformedQuery.SELECT[prop]) {
         return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
@@ -489,14 +489,16 @@ function cqn4sql(originalQuery, model) {
 
     function getTransformedColumn(col) {
       if (col.xpr) {
-        return { xpr: getTransformedTokenStream(col.xpr) }
+        const xpr = { xpr: getTransformedTokenStream(col.xpr) }
+        if (col.cast) xpr.cast = col.cast
+        return xpr
       } else if (col.func) {
         const func = {
           func: col.func,
           args: col.args && getTransformedTokenStream(col.args),
-          as: col.func,
+          as: col.func, // may be overwritten by the explicit alias
         }
-        if(col.cast) func.cast = col.cast
+        if (col.cast) func.cast = col.cast
         return func
       } else {
         return copy(col)
@@ -1630,7 +1632,7 @@ function cqn4sql(originalQuery, model) {
 
       let args = from.ref.at(-1).args
       const subquerySource = transformedFrom.$refLinks[0].target
-      if(subquerySource.params && !args) args = {}
+      if (subquerySource.params && !args) args = {}
       const id = localized(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
 
@@ -1985,7 +1987,7 @@ function cqn4sql(originalQuery, model) {
 
     const subquerySource = assocTarget(nextDefinition) || nextDefinition
     const id = localized(subquerySource)
-    if(subquerySource.params && !customArgs) customArgs = {}
+    if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
         ref: [customArgs ? { id, args: customArgs } : id],
