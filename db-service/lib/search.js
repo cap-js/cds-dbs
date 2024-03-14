@@ -13,7 +13,7 @@ const DEFAULT_SEARCHABLE_TYPE = 'cds.String'
 /**
  * This method gets all columns for an entity.
  * It includes the generated foreign keys from managed associations, structured elements and complex and custom types.
- * As well, it provides the annotations starting with '@' for each column.
+ * Moreover, it provides the annotations starting with '@' for each column.
  *
  * @param {object} entity - the csn entity
  * @param {object} [options]
@@ -120,30 +120,28 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
   // aggregations case
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
-    cqn.SELECT.columns &&
-      cqn.SELECT.columns.forEach(column => {
-        if (column.func) {
-          // exclude $count by SELECT of number of Items in a Collection
-          if (
-            cqn.SELECT.columns.length === 1 &&
-            column.func === 'count' &&
-            (column.as === '_counted_' || column.as === '$count')
-          ) {
-            return
-          }
-
-          toBeSearched.push(column)
+    cqn.SELECT.columns?.forEach(column => {
+      if (column.func) {
+        // exclude $count by SELECT of number of Items in a Collection
+        if (
+          cqn.SELECT.columns.length === 1 &&
+          column.func === 'count' &&
+          (column.as === '_counted_' || column.as === '$count')
+        ) {
           return
         }
 
-        const columnRef = column.ref
-        if (columnRef) {
-          if (entity.elements[columnRef[columnRef.length - 1]]?._type !== DEFAULT_SEARCHABLE_TYPE) return
-          column = { ref: [...column.ref] }
-          if (alias) column.ref.unshift(alias)
-          toBeSearched.push(column)
-        }
-      })
+        toBeSearched.push({ func: column.func, args: column.args })
+        return
+      }
+
+      if (column.ref) {
+        if (entity.elements[column.ref.at(-1)]?._type !== DEFAULT_SEARCHABLE_TYPE) return
+        column = { ref: [...column.ref] }
+        if (alias) column.ref.unshift(alias)
+        toBeSearched.push(column)
+      }
+    })
   } else {
     toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
     if (cqn.SELECT.groupBy) toBeSearched = toBeSearched.filter(tbs => cqn.SELECT.groupBy.some(gb => gb.ref[0] === tbs))

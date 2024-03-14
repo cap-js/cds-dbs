@@ -181,10 +181,9 @@ function cqn4sql(originalQuery, model) {
 
     if (inferred.SELECT.search) {
       // Search target can be a navigation, in that case use _target to get the correct entity
-      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
-      if (where) {
-        transformedQuery.SELECT.where = where
-      }
+      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
+      if (where) transformedQuery.SELECT.where = where
+      else if (having) transformedQuery.SELECT.having = having
     }
     return transformedQuery
   }
@@ -204,20 +203,26 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-   * Transforms a search expression to a WHERE clause for a SELECT operation.
+   * Transforms a search expression into a WHERE or HAVING clause for a SELECT operation, depending on the context of the query.
+   * The function decides whether to use a WHERE or HAVING clause based on the presence of aggregated columns in the search criteria.
    *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} search - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
-   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
-   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
-   *     If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
+   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
+   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
+   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
+   *     - If the target entity of the query does not contain searchable elements, the function returns null.
    *
+   * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
+   * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearchToWhere(search, from) {
+  function transformSearch(search, from) {
     const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
-    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    // pass transformedQuery because we may need to search in the columns directly
+    // in case of aggregation
+    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
     if (searchIn.length > 0) {
       const xpr = search
       const contains = {
@@ -228,10 +233,33 @@ function cqn4sql(originalQuery, model) {
         ],
       }
 
-      if (transformedQuery.SELECT.where) {
-        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
+      // if the query is grouped and the queries columns contain an aggregate function,
+      // we must put the search term into the `having` clause, as the search expression
+      // is defined on the aggregated result, not on the individual rows
+      let prop = 'where'
+      // ANSI SQL aggregate functions
+      const aggregateFunctions = {
+        AVG: 1,
+        COUNT: 1,
+        MAX: 1,
+        MIN: 1,
+        SUM: 1,
+        EVERY: 1,
+        ANY: 1,
+        SOME: 1,
+        STDDEV_POP: 1,
+        STDDEV_SAMP: 1,
+        VAR_POP: 1,
+        VAR_SAMP: 1,
+        COLLECT: 1,
+        FUSION: 1,
+        INTERSECTION: 1,
+      }
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.func in aggregateFunctions)) prop = 'having'
+      if (transformedQuery.SELECT[prop]) {
+        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
-        return [contains]
+        return { [prop]: [contains] }
       }
     } else {
       return null
@@ -855,7 +883,8 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)) continue
+        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true))
+          continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
@@ -1749,7 +1778,8 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
-              const definition = prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
+              const definition =
+                prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
               thing.$refLinks[i] = { definition, target, alias: definition.name }
               return prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
