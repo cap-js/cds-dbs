@@ -178,5 +178,4 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
 module.exports = {
   getColumns,
   computeColumnsToBeSearched,
-  aggregateFunctions,
 }
