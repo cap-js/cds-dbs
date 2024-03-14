@@ -417,6 +417,20 @@ GROUP BY k
       else return super.operator(x, i, xpr)
     }
 
+    // Postgres does not support locking columns only tables which makes of unapplicable
+    // Postgres does not support "wait n" it only supports "nowait"
+    forUpdate(update) {
+      const { wait } = update
+      if (wait === 0) return 'FOR UPDATE NOWAIT'
+      return 'FOR UPDATE'
+    }
+
+    forShareLock(lock) {
+      const { wait } = lock
+      if (wait === 0) return 'FOR SHARE NOWAIT'
+      return 'FOR SHARE'
+    }
+
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }

@@ -132,9 +132,9 @@ class DatabaseService extends cds.Service {
     const tenants = tenant ? [tenant] : Object.keys(this.pools)
     await Promise.all (tenants.map (async t => {
       const pool = this.pools[t]; if (!pool) return
+      delete this.pools[t]
       await pool.drain()
       await pool.clear()
-      delete this.pools[t]
     }))
   }
 

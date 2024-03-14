@@ -171,6 +171,14 @@ class SQLiteService extends SQLService {
       return super.val(v)
     }
 
+    forUpdate() {
+      return ''
+    }
+
+    forShareLock() {
+      return ''
+    }
+
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
