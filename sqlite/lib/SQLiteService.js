@@ -5,6 +5,13 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
+const keywords = require('@sap/cds-compiler').to.sql.sqlite.keywords
+// keywords come as array
+const sqliteKeywords = keywords.reduce((prev, curr) => {
+  prev[curr] = 1
+  return prev
+}, {})
+
 class SQLiteService extends SQLService {
   init() {
     return super.init(...arguments)
@@ -242,7 +249,7 @@ class SQLiteService extends SQLService {
       return 'is'
     }
 
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
   }
 
   // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
