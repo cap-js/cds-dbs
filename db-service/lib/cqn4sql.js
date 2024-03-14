@@ -238,7 +238,7 @@ function cqn4sql(originalQuery, model) {
       // is defined on the aggregated result, not on the individual rows
       let prop = 'where'
       
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.func in aggregateFunctions)) prop = 'having'
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.func)) prop = 'having'
       if (transformedQuery.SELECT[prop]) {
         return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
@@ -491,11 +491,13 @@ function cqn4sql(originalQuery, model) {
       if (col.xpr) {
         return { xpr: getTransformedTokenStream(col.xpr) }
       } else if (col.func) {
-        return {
+        const func = {
           func: col.func,
           args: col.args && getTransformedTokenStream(col.args),
           as: col.func,
         }
+        if(col.cast) func.cast = col.cast
+        return func
       } else {
         return copy(col)
       }

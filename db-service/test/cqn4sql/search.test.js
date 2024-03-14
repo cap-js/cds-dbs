@@ -167,12 +167,11 @@ describe('Replace attribute search by search predicate', () => {
         AVG(Books.stock) as searchRelevant,
       } where search(Books.title, 'x') group by Books.title`)
   })
-  it.skip('aggregations which are not of type string are not searched', () => {
+  it('aggregations which are not of type string are not searched', () => {
     const query = CQL`
       SELECT from bookshop.Books {
+        ID,
         SUM(Books.stock) as notSearchRelevant,
-        MIN(Books.stock) as searchRelevant,
-        cast(AVG(Books.stock) as string) as searchRelevantViaCast,
       } group by title
       `
 
@@ -180,9 +179,26 @@ describe('Replace attribute search by search predicate', () => {
 
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
+        Books.ID,
         SUM(Books.stock) as notSearchRelevant,
-        MIN(Books.stock) as searchRelevant,
-        cast(AVG(Books.stock) as string) as searchRelevantViaCast,
-      } group by Books.title having search(MIN(Books.title), 'Cat')`)
+      } group by Books.title`)
+  })
+  it('search relevant via cast', () => {
+    // this aggregation is not relevant for search per default
+    // but due to the cast to string, we search 
+    const query = CQL`
+      SELECT from bookshop.Books {
+        ID,
+        MyCustomFunction(Books.stock) as searchRelevantViaCast: cds.String,
+      } group by title
+      `
+
+    query.SELECT.search = [{ val: 'x' } ]
+
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books {
+        Books.ID,
+        MyCustomFunction(Books.stock) as searchRelevantViaCast: cds.String,
+      } group by Books.title having search(MyCustomFunction(Books.stock), 'x')`)
   })
 })
