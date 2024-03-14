@@ -137,7 +137,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
           return
         }
 
-        // only strings can be searched)
+        // only strings can be searched
         if (column.element.type !== DEFAULT_SEARCHABLE_TYPE) {
           if (column.xpr) return
           if (column.func && !(column.func in aggregateFunctions)) return
