@@ -117,6 +117,8 @@ class HANAService extends SQLService {
     // Will return multiple rows with objects inside
     query.SELECT.expand = 'root'
     const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    delete query.SELECT.expand
+
     // REVISIT: add prepare options when param:true is used
     const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
@@ -656,6 +658,10 @@ class HANAService extends SQLService {
       const { target } = q
       const isView = target.query || target.projection
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
+    }
+
+    from_args(args) {
+      return `(${ObjectKeys(args).map(k => `${this.quote(k)} => ${this.expr(args[k])}`)})`
     }
 
     orderBy(orderBy, localized) {

@@ -25,6 +25,23 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
+    test('join', async () => {
+      const res = await cds.run(CQL`
+      SELECT A.bool
+      FROM basic.projection.globals as A
+      LEFT JOIN basic.projection.globals AS B
+      ON A.bool=B.bool`)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      for (let i = 0; i < res.length; i++) {
+        const val = res[i].bool
+        if (typeof val === 'object') {
+          assert.strictEqual(val, null)
+        } else {
+          assert.strictEqual(typeof val, 'boolean')
+        }
+      }
+    })
+
     test('statics', async () => {
       const res = await cds.run(CQL`
         SELECT

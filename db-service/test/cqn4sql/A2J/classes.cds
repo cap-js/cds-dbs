@@ -6,17 +6,17 @@ entity Classrooms {
             capacity: Integer;
             location: String;
         };
-        pupils : Association to many ClassRoomPupil
+        pupils : Association to many ClassroomsPupils
                      on pupils.classroom = $self
 }
 
 entity Pupils {
     key ID         : Integer;
-        classrooms : Association to many ClassRoomPupil
+        classrooms : Association to many ClassroomsPupils
                          on classrooms.pupil = $self
 }
 
-entity ClassRoomPupil {
+entity ClassroomsPupils {
     key classroom : Association to Classrooms;
     key pupil     : Association to Pupils;
 }

@@ -79,6 +79,19 @@ describe('Bookshop - Read', () => {
     expect(res.length).to.be.eq(2)
   })
 
+  test('reuse already executed select as subselect', async () => {
+    let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
+    let res = await s
+
+    res = await SELECT.one.from('sap.capire.bookshop.Books as b')
+      .join('sap.capire.bookshop.Authors as a')
+      .on('a.ID = b.author_ID')
+      .columns('a.name', 'b.title')
+      .where('b.ID in', s)
+      .orderBy('b.ID')
+    expect(res).to.deep.eq({"name": "Emily Brontë", "title": "Wuthering Heights"})
+  })
+
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',
@@ -198,8 +211,40 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(201)
   })
 
+  it('joins as subselect are executable', async () => {
+    const subselect = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [
+          { ref: ['a', 'name'], as: 'aname' },
+          { ref: ['b', 'title'], as: 'btitle' },
+        ],
+      },
+    }
+    subselect.as = 'ab'
+
+    const query = {
+      SELECT: {
+        one: true,
+        from: subselect,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['ab', 'aname'] }, '=', { val: 'Edgar Allen Poe' }],
+      },
+    }
+
+    expect((await cds.db.run(query)).count).to.be.eq(2)
+  })
+
   test('Delete Book', async () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)
   })
+
 })
