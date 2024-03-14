@@ -101,6 +101,23 @@ describe('Replace attribute search by search predicate', () => {
       } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y')) `,
     )
   })
+  it('Search columns if result is grouped', () => {
+    // in this case, we actually search the "title" which comes from the join
+    let query = CQL`SELECT from bookshop.Books { ID, author.books.title as authorsBook } group by title`
+    query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
+
+    let res = cqn4sql(query, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
+      CQL`
+      SELECT from bookshop.Books as Books
+        left join bookshop.Authors as author on author.ID = Books.author_ID
+        left join bookshop.Books as books2 on  books2.author_ID = author.ID
+      {
+        Books.ID,
+        books2.title as authorsBook
+      } where search(books2.title, ('x' OR 'y')) group by Books.title `,
+    )
+  })
   it('Search on navigation', () => {
     let query = CQL`SELECT from bookshop.Authors:books { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
@@ -131,6 +148,41 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
         MIN(Books.title) as firstInAlphabet
+      } group by Books.title having search(MIN(Books.title), 'Cat')`)
+  })
+
+  it('Ignore non string aggregates from being searched', () => {
+    const query = CQL`
+      SELECT from bookshop.Books {
+        title,
+        AVG(Books.stock) as searchRelevant,
+      } group by title
+      `
+
+    query.SELECT.search = [{ val: 'x' } ]
+
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books {
+        Books.title,
+        AVG(Books.stock) as searchRelevant,
+      } where search(Books.title, 'x') group by Books.title`)
+  })
+  it.skip('aggregations which are not of type string are not searched', () => {
+    const query = CQL`
+      SELECT from bookshop.Books {
+        SUM(Books.stock) as notSearchRelevant,
+        MIN(Books.stock) as searchRelevant,
+        cast(AVG(Books.stock) as string) as searchRelevantViaCast,
+      } group by title
+      `
+
+    query.SELECT.search = [{ val: 'x' } ]
+
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books {
+        SUM(Books.stock) as notSearchRelevant,
+        MIN(Books.stock) as searchRelevant,
+        cast(AVG(Books.stock) as string) as searchRelevantViaCast,
       } group by Books.title having search(MIN(Books.title), 'Cat')`)
   })
 })

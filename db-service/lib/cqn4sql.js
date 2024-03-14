@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { computeColumnsToBeSearched } = require('./search')
+const { computeColumnsToBeSearched, aggregateFunctions } = require('./search')
 
 const infer = require('./infer')
 
@@ -237,24 +237,7 @@ function cqn4sql(originalQuery, model) {
       // we must put the search term into the `having` clause, as the search expression
       // is defined on the aggregated result, not on the individual rows
       let prop = 'where'
-      // ANSI SQL aggregate functions
-      const aggregateFunctions = {
-        AVG: 1,
-        COUNT: 1,
-        MAX: 1,
-        MIN: 1,
-        SUM: 1,
-        EVERY: 1,
-        ANY: 1,
-        SOME: 1,
-        STDDEV_POP: 1,
-        STDDEV_SAMP: 1,
-        VAR_POP: 1,
-        VAR_SAMP: 1,
-        COLLECT: 1,
-        FUSION: 1,
-        INTERSECTION: 1,
-      }
+      
       if (inferred.SELECT.groupBy && searchIn.some(c => c.func in aggregateFunctions)) prop = 'having'
       if (transformedQuery.SELECT[prop]) {
         return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
