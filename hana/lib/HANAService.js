@@ -100,10 +100,16 @@ class HANAService extends SQLService {
 
   async onSELECT(req) {
     const { query, data } = req
+
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
-    if (!query.target || query.target._unresolved) {
+    if (
+      !query.target
+      || query.target._unresolved
+      || query.SELECT.forUpdate
+      || query.SELECT.forShareLock
+    ) {
       return super.onSELECT(req)
     }
 

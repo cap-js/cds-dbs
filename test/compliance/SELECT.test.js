@@ -6,7 +6,7 @@ const cds = require('../cds.js')
 // Call default cds.test API
 
 describe('SELECT', () => {
-  const { data } = cds.test(__dirname + '/resources')
+  const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
 
   describe('from', () => {
@@ -74,12 +74,12 @@ describe('SELECT', () => {
 
     test('like regex uses native regex support', async () => {
       let ret = await SELECT.from('basic.projection.string').where('string like', /ye./)
-      expect(ret.length).toBe(1)
+      expect(ret.length).to.eq(1)
     })
 
     test('= regex behaves like string', async () => {
-      await expect(SELECT.from('basic.projection.string').where('string =', /ye./)).resolves.toHaveProperty('length', 0)
-      await expect(SELECT.from('basic.projection.string').where('string =', /yes/)).resolves.toHaveProperty('length', 1)
+      expect(await SELECT.from('basic.projection.string').where('string =', /ye./)).to.have.property('length', 0)
+      expect(await SELECT.from('basic.projection.string').where('string =', /yes/)).to.have.property('length', 1)
     })
 
     test('from select', async () => {
@@ -121,7 +121,7 @@ describe('SELECT', () => {
       `
       cqn.SELECT.columns[0].val = function () { }
 
-      await assert.rejects(cds.run(cqn))
+      await expect(cds.run(cqn)).rejected
     })
 
     test.skip('select xpr', async () => {
@@ -205,7 +205,7 @@ describe('SELECT', () => {
     })
 
     test.skip('invalid cast (wrong)', async () => {
-      await assert.rejects(
+      await expect(
         cds.run(CQL`
         SELECT
             'String' as ![string] : cds.DoEsNoTeXiSt
@@ -214,7 +214,7 @@ describe('SELECT', () => {
         {
           message: 'Not supported type: cds.DoEsNoTeXiSt',
         },
-      )
+      ).rejected
     })
   })
 
@@ -309,16 +309,132 @@ describe('SELECT', () => {
     })
   })
 
-  describe('forUpdate', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+  const generalLockTest = (lock, shared = false) => {
+    const lock4 = bool => {
+      return lock.clone().where([{ ref: ['bool'] }, '=', { val: bool }])
+    }
+
+    const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
+
+    const setMax = max => {
+      let oldMax
+      beforeAll(async () => {
+        if (isSQLite()) return
+        await cds.db.disconnect()
+        oldMax = cds.db.pools._factory.options.max
+        cds.db.pools._factory.options.max = max
+      })
+
+      afterAll(async () => {
+        if (isSQLite()) return
+        cds.db.pools._factory.options.max = oldMax
+      })
+    }
+
+    let oldTimeout
+    beforeAll(async () => {
+      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
     })
+
+    afterAll(() => {
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
+    })
+
+    describe('pool max = 1', () => {
+      setMax(1)
+      test('two locks on a single table', async () => {
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await expect(tx2.run(lock4(false))).rejected
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+
+      test('same lock twice on a single table', async () => {
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
+
+          // Lock false
+          await expect(tx2.run(lock4(false))).rejected
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+    })
+
+    describe('pool max > 1', () => {
+      setMax(2)
+      test('two locks on a single table', async () => {
+        if (isSQLite()) return
+
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await tx2.run(lock4(false))
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+
+      test('same lock twice on a single table', async () => {
+        if (isSQLite()) return
+
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
+
+          // Lock false
+          if (shared) {
+            const ret = await tx2.run(lock4(false))
+            expect(ret).is.not.undefined
+          } else {
+            await expect(tx2.run(lock4(false))).rejected
+          }
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+    })
+  }
+
+  describe('forUpdate', () => {
+    const lock = SELECT.from('basic.projection.globals').forUpdate({
+      of: ['bool'],
+      wait: 0,
+    })
+
+    generalLockTest(lock)
   })
 
   describe('forShareLock', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    const lock = SELECT.from('basic.projection.globals').forShareLock({
+      of: ['bool'],
+      wait: 0,
     })
+
+    generalLockTest(lock, true)
   })
 
   describe('search', () => {
