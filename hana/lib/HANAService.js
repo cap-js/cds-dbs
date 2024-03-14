@@ -933,7 +933,6 @@ class HANAService extends SQLService {
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
-    // compiler keywords come in string array
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
     static Functions = require('./cql-functions')
