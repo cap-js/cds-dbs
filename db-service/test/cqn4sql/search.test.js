@@ -148,7 +148,7 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books {
         MIN(Books.title) as firstInAlphabet
-      } group by Books.title having search(firstInAlphabet, 'Cat')`)
+      } group by Books.title having search(MIN(Books.title), 'Cat')`)
   })
 
   it('Ignore non string aggregates from being searched', () => {
@@ -199,7 +199,7 @@ describe('Replace attribute search by search predicate', () => {
       SELECT from bookshop.Books as Books {
         Books.ID,
         substring(Books.stock) as searchRelevantViaCast: cds.String,
-      } group by Books.title having search(searchRelevantViaCast, 'x')`)
+      } group by Books.title having search(substring(Books.stock), 'x')`)
   })
   it('xpr is search relevant via cast', () => {
     // this aggregation is not relevant for search per default
@@ -219,6 +219,6 @@ describe('Replace attribute search by search predicate', () => {
         Books.ID,
         ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
         ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
-      } group by Books.title having search(searchRelevantViaCast, 'x')`)
+      } group by Books.title having search(('very' + 'useful' + 'string'), 'x')`)
   })
 })

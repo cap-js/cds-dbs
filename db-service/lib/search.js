@@ -143,11 +143,14 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
           if (column.func && !(column.func in aggregateFunctions)) return
         }
 
-        // this column is a column expression, we can also reference the column
-        // as the search term will be put into the HAVING clause
-        const refToColumn = { ref: [column.as] }
-        Object.defineProperty(refToColumn, 'refersToColumn', { value: true })
-        toBeSearched.push(refToColumn)
+        const searchTerm = {}
+        if (column.func) {
+          searchTerm.func = column.func
+          searchTerm.args = column.args
+        } else if (column.xpr) {
+          searchTerm.xpr = column.xpr
+        }
+        toBeSearched.push(searchTerm)
         return
       }
 
@@ -156,6 +159,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
         if (column.element.type !== DEFAULT_SEARCHABLE_TYPE) return
         column = { ref: [...column.ref] }
         toBeSearched.push(column)
+        return
       }
     })
   } else {

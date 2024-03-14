@@ -238,7 +238,7 @@ function cqn4sql(originalQuery, model) {
       // is defined on the aggregated result, not on the individual rows
       let prop = 'where'
 
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.refersToColumn)) prop = 'having'
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
       if (transformedQuery.SELECT[prop]) {
         return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
