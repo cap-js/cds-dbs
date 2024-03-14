@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const compilerKeywords = require('@sap/cds-compiler').to.hdi.keywords
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
@@ -927,7 +928,8 @@ class HANAService extends SQLService {
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    // compiler keywords come in string array
+    static ReservedWords = { ...super.ReservedWords, ...compilerKeywords.reduce((prev, curr)=> { prev[curr] = 1 }, {}) }
 
     static Functions = require('./cql-functions')
 
