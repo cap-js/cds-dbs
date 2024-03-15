@@ -5,7 +5,7 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
-const keywords = require('@sap/cds-compiler').to.sql.sqlite.keywords
+const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
   prev[curr] = 1
