@@ -9,6 +9,8 @@ const StandardFunctions = {
   indexof: (x, y) => `locate(${x},${y}) - 1`, // locate is 1 indexed
   startswith: (x, y) => `(CASE WHEN locate(${x},${y}) = 1 THEN TRUE ELSE FALSE END)`, // locate is 1 indexed
   endswith: (x, y) => `(CASE WHEN substring(${x},length(${x})+1 - length(${y})) = ${y} THEN TRUE ELSE FALSE END)`,
+  matchesPattern: (x, y) => `${x} LIKE_REGEXPR '${y}'`,
+  matchespattern: (x, y) => `${x} LIKE_REGEXPR '${y}'`,
   substring: (x, y, z) =>
     z
       ? `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
