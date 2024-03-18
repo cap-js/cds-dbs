@@ -107,6 +107,10 @@ class HANAService extends SQLService {
   async onSELECT(req) {
     const { query, data } = req
 
+    if (query.SELECT.from?.join && !query.SELECT.columns) {
+      throw new Error('CQN query using joins must specify the selected columns.')
+    }
+
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
