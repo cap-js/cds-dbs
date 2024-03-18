@@ -1,0 +1,47 @@
+{
+  "name": "@cap-js/db-fractal",
+  "version": "0.0.1",
+  "description": "CDS database service for load balancing database access",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-fractal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
+  "keywords": [
+    "CAP",
+    "CDS"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "main": "index.js",
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
+  "scripts": {
+    "test": "jest --silent"
+  },
+  "dependencies": {
+    "@cap-js/db-service": "^1.6.0"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=7.6"
+  },
+  "cds": {
+    "requires": {
+      "kinds": {
+        "db-fractal": {
+          "impl": "@cap-js/db-fractal"
+        }
+      }
+    }
+  },
+  "license": "SEE LICENSE"
+}
