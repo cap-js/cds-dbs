@@ -117,12 +117,7 @@ class SQLService extends DatabaseService {
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
-    if (
-      query.target
-      && !query.target._unresolved
-      && !query.SELECT.forUpdate
-      && !query.SELECT.forShareLock
-    ) {
+    if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }

@@ -110,26 +110,34 @@ class HANAService extends SQLService {
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
-    if (
-      !query.target
-      || query.target._unresolved
-      || query.SELECT.forUpdate
-      || query.SELECT.forShareLock
-    ) {
+    if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
     }
 
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
-    query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
+    if (!isLockQuery) {
+      // REVISIT: disable this for queries like (SELECT 1)
+      // Will return multiple rows with objects inside
+      query.SELECT.expand = 'root'
+    }
+
+    const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
+    const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
       ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
+
+    if (isLockQuery) {
+      // Fetch actual locked results
+      const resultQuery = query.clone()
+      resultQuery.SELECT.forUpdate = undefined
+      resultQuery.SELECT.forShareLock = undefined
+      return this.onSELECT({ query: resultQuery, __proto__: req })
+    }
+
     if (rows.length) {
       rows = this.parseRows(rows)
     }
