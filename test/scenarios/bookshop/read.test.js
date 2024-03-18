@@ -89,7 +89,20 @@ describe('Bookshop - Read', () => {
       .columns('a.name', 'b.title')
       .where('b.ID in', s)
       .orderBy('b.ID')
-    expect(res).to.deep.eq({"name": "Emily Brontë", "title": "Wuthering Heights"})
+    expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
+  })
+
+  test('forUpdate query from path expression', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const query = SELECT([{ ref: ['ID'] }])
+      .from({ ref: [{ id: Books.name, where: [{ ref: ['ID'] }, '=', { val: 201 }] }, 'author'] })
+      .forUpdate({
+        of: ['ID'],
+        wait: 0,
+      })
+
+    const forUpdateResults = await cds.run(query)
+    expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
   })
 
   test('Expand Book', async () => {

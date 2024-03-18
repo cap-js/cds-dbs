@@ -309,11 +309,7 @@ describe('SELECT', () => {
     })
   })
 
-  const generalLockTest = (lock, shared = false) => {
-    const lock4 = bool => {
-      return lock.clone().where([{ ref: ['bool'] }, '=', { val: bool }])
-    }
-
+  const generalLockTest = (lock4, shared = false) => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
@@ -345,6 +341,12 @@ describe('SELECT', () => {
 
     describe('pool max = 1', () => {
       setMax(1)
+      test('output converters apply to for update', async () => {
+        const query = lock4(true)
+        const [result] = await query
+        expect(result).to.have.all.keys(Object.keys(query.elements))
+      })
+
       test('two locks on a single table', async () => {
         const tx1 = await cds.tx()
         const tx2 = await cds.tx()
@@ -420,21 +422,28 @@ describe('SELECT', () => {
   }
 
   describe('forUpdate', () => {
-    const lock = SELECT.from('basic.projection.globals').forUpdate({
-      of: ['bool'],
-      wait: 0,
-    })
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forUpdate({
+        of: ['bool'],
+        wait: 0,
+      })
 
-    generalLockTest(lock)
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }])
+    )
   })
 
   describe('forShareLock', () => {
-    const lock = SELECT.from('basic.projection.globals').forShareLock({
-      of: ['bool'],
-      wait: 0,
-    })
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forShareLock({
+        of: ['bool'],
+        wait: 0,
+      })
 
-    generalLockTest(lock, true)
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }]),
+      true
+    )
   })
 
   describe('search', () => {
