@@ -831,8 +831,8 @@ class HANAService extends SQLService {
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
           // When a logic operator is found the expression is not a comparison
-          // When it is a local check it should be compared outside of the xpr
-          if (up in logicOperators) return local 
+          // When it is a local check it cannot be compared outside of the xpr
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
