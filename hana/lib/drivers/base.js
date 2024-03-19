@@ -34,6 +34,21 @@ class HANADriver {
         if (streams.length && changes === 0) {
           changes = 1
         }
+
+        if (streams.length) {
+          Promise.all(streams.map(stream => new Promise((resolve, reject) => {
+            stream.on('end', () => {
+              resolve()
+            })
+            stream.on('error', () => {
+              reject()
+            })
+          }))).finally(() => {
+            stmt.drop()
+          })
+        }
+
+
         return { changes }
       },
       runBatch: async params => {
