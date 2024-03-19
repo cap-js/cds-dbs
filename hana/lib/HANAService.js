@@ -130,14 +130,10 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows
-    if (values?.length || blobs.length > 0) {
-      const stmt = await this.prepare(sqlScript, blobs.length)
-      rows = await stmt.all(values || [])
-      stmt.drop()
-    } else {
-      rows = await this.exec(sqlScript)
-    }
+    let rows =
+      values?.length || blobs.length > 0
+        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+        : await this.exec(sqlScript)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -161,14 +157,13 @@ class HANAService extends SQLService {
     try {
       const { sql, entries, cqn } = this.cqn2sql(query, data)
       if (!sql) return // Do nothing when there is nothing to be done
-      const stmt = await this.prepare(sql)
+      const ps = await this.prepare(sql)
       // HANA driver supports batch execution
       const results = await (entries
         ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => stmt.run(c)), Promise.resolve(0))
-          : stmt.run(entries[0])
-        : stmt.run())
-      stmt.drop()
+          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
+          : ps.run(entries[0])
+        : ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
@@ -1041,10 +1036,8 @@ class HANAService extends SQLService {
   async onSIMPLE({ query, data, event }) {
     const { sql, values } = this.cqn2sql(query, data)
     try {
-      const stmt = await this.prepare(sql)
-      const result = (await stmt.run(values)).changes
-      stmt.drop()
-      return result
+      let ps = await this.prepare(sql)
+      return (await ps.run(values)).changes
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
@@ -1124,7 +1117,6 @@ class HANAService extends SQLService {
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
       const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      stmt.drop()
       res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -1167,7 +1159,6 @@ class HANAService extends SQLService {
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
       const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      stmt.drop()
       res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()

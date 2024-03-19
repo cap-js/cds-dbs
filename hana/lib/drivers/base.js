@@ -37,20 +37,30 @@ class HANADriver {
         if (streams.length && changes === 0) {
           changes = 1
         }
+        stmt.drop()
         return { changes }
       },
       runBatch: async params => {
         const stmt = await prep
         const changes = await prom(stmt, 'exec')(params)
+        stmt.drop()
         return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
       },
       get: async params => {
         const stmt = await prep
-        return (await prom(stmt, 'exec')(params))[0]
+        const result = (await prom(stmt, 'exec')(params))[0]
+        stmt.drop()
+        return result
       },
       all: async params => {
         const stmt = await prep
-        return prom(stmt, 'exec')(params)
+        return prom(
+          stmt,
+          'exec',
+        )(params).then(res => {
+          stmt.drop()
+          return res
+        })
       },
     }
   }
@@ -259,7 +269,9 @@ const handleLevel = function (levels, path, expands) {
         const leftOverExpands = Object.keys(level.expands)
         // Fill in all missing expands
         if (leftOverExpands.length) {
-          buffer += (level.hasProperties ? ',' : '') + leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
+          buffer +=
+            (level.hasProperties ? ',' : '') +
+            leftOverExpands.map(p => `${JSON.stringify(p)}:${JSON.stringify(level.expands[p])}`).join(',')
         }
       }
       if (level.suffix) buffer += level.suffix
