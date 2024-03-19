@@ -114,11 +114,6 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    if (query.SELECT.from?.join && !query.SELECT.columns) {
-      throw new Error('CQN query using joins must specify the selected columns.')
-    }
-
-
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
