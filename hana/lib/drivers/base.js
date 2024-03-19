@@ -17,10 +17,7 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(
-      this._native,
-      'prepare',
-    )(sql).then(stmt => {
+    const prep = prom(this._native, 'prepare')(sql).then(stmt => {
       stmt._parentConnection = this._native
       return stmt
     })
@@ -54,10 +51,7 @@ class HANADriver {
       },
       all: async params => {
         const stmt = await prep
-        return prom(
-          stmt,
-          'exec',
-        )(params).then(res => {
+        return prom(stmt, 'exec')(params).then(res => {
           stmt.drop()
           return res
         })
