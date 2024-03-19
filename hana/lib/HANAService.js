@@ -830,8 +830,9 @@ class HANAService extends SQLService {
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
+          if (up in logicOperators) return local
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators || (!local && up in logicOperators)) return true
+          if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue

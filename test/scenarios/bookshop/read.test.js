@@ -125,12 +125,22 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[0].title).to.be.eq('Catweazle')
   })
 
-  test('Search book with space and quotes', async () => {
+  test.only('Search book with space and quotes', async () => {
     const res = await GET('/admin/Books?$search="e R"', admin)
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
     expect(res.data.value[0].title).to.be.eq('The Raven')
     expect(res.data.value[1].descr).to.include('e r')
+  })
+
+  test.only('Search book with filter', async () => {
+    const res = await GET('/admin/Books?$search="e R"&$filter=ID eq 251 or ID eq 271', admin)
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+    expect(res.data.value[0].title).to.be.eq('The Raven')
+    expect(res.data.value[1].descr).to.include('e r')
+    expect(res.data.value[0].ID).to.be.eq(251)
+    expect(res.data.value[1].ID).to.be.eq(271)
   })
 
   test.skip('Expand Book($count,$top,$orderby)', async () => {
