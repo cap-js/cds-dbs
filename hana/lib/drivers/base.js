@@ -41,6 +41,7 @@ class HANADriver {
               resolve()
             })
             stream.on('error', () => {
+              // REVISIT: does it actually matter if it fails or is successful, so should we resolve here?
               reject()
             })
           }))).finally(() => {
