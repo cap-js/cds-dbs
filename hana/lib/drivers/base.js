@@ -34,27 +34,29 @@ class HANADriver {
         if (streams.length && changes === 0) {
           changes = 1
         }
-        stmt.drop()
         return { changes }
       },
       runBatch: async params => {
         const stmt = await prep
-        const changes = await prom(stmt, 'exec')(params)
-        stmt.drop()
+        const changes = await prom(stmt, 'exec')(params).then(changes => {
+          stmt.drop()
+          return changes
+        })
         return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
       },
       get: async params => {
         const stmt = await prep
-        const result = (await prom(stmt, 'exec')(params))[0]
-        stmt.drop()
-        return result
+        return (await prom(stmt, 'exec')(params).then(res => {
+          stmt.drop()
+          return res[0]
+        }))
       },
       all: async params => {
         const stmt = await prep
-        return prom(stmt, 'exec')(params)/*.then(res => {
+        return prom(stmt, 'exec')(params).then(res => {
           stmt.drop()
           return res
-        })*/
+        })
       },
     }
   }
