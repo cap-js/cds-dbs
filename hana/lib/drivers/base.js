@@ -17,7 +17,10 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(this._native, 'prepare')(sql).then(stmt => {
+    const prep = prom(
+      this._native,
+      'prepare',
+    )(sql).then(stmt => {
       stmt._parentConnection = this._native
       return stmt
     })
@@ -36,25 +39,32 @@ class HANADriver {
         }
 
         if (streams.length) {
-          Promise.all(streams.map(stream => new Promise((resolve, reject) => {
-            stream.on('end', () => {
-              resolve()
-            })
-            stream.on('error', () => {
-              // REVISIT: does it actually matter if it fails or is successful, so should we resolve here?
-              reject()
-            })
-          }))).finally(() => {
+          Promise.all(
+            streams.map(
+              stream =>
+                new Promise((resolve, reject) => {
+                  stream.on('end', () => {
+                    resolve()
+                  })
+                  stream.on('error', () => {
+                    // REVISIT: does it actually matter if it fails or is successful, so should we resolve here?
+                    reject()
+                  })
+                }),
+            ),
+          ).finally(() => {
             stmt.drop()
           })
         }
-
 
         return { changes }
       },
       runBatch: async params => {
         const stmt = await prep
-        const changes = await prom(stmt, 'exec')(params).then(changes => {
+        const changes = await prom(
+          stmt,
+          'exec',
+        )(params).then(changes => {
           stmt.drop()
           return changes
         })
@@ -62,14 +72,20 @@ class HANADriver {
       },
       get: async params => {
         const stmt = await prep
-        return (await prom(stmt, 'exec')(params).then(res => {
+        return await prom(
+          stmt,
+          'exec',
+        )(params).then(res => {
           stmt.drop()
           return res[0]
-        }))
+        })
       },
       all: async params => {
         const stmt = await prep
-        return prom(stmt, 'exec')(params).then(res => {
+        return prom(
+          stmt,
+          'exec',
+        )(params).then(res => {
           stmt.drop()
           return res
         })
