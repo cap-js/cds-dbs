@@ -269,7 +269,7 @@ describe('Bookshop - Read', () => {
       },
     }
 
-    expect(cds.db.run(query)).to.be.rejectedWith(/Ambiguous wildcard elements/)
+    return expect(cds.db.run(query)).to.be.rejectedWith(/Ambiguous wildcard elements/)
   })
 
   it('joins without columns are rejected in general', async () => {
