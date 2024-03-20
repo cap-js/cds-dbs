@@ -989,19 +989,8 @@ class HANAService extends SQLService {
   }
 
   async onCall({ query, data }) {
-      DEBUG?.(query, data)
-
-      // procedure call metadata
-      let outParameters
       const { name: procedureName, schema: procedureSchema } = _getProcedureNameAndSchema(query) || {}
-      if (procedureName) {
-        try {
-          outParameters = await this._getProcedureMetadata(procedureName, procedureSchema)
-        } catch (e) {
-          LOG._warn && LOG.warn('Unable to fetch procedure metadata due to error:', e)
-        }
-      }
-
+      const outParameters = await this._getProcedureMetadata(procedureName, procedureSchema)
       const ps = await this.prepare(query)
       return ps.proc(data, outParameters)     
   }
