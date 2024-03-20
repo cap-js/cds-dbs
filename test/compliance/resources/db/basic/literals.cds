@@ -53,6 +53,13 @@ entity array {
 }
 
 entity binaries {
-     binary : Binary;
-     largebinary : LargeBinary;
+    binary      : Binary;
+    largebinary : LargeBinary;
 }
+
+
+/* Excluded from the tests until fully supported
+entity vectors {
+    vector : Vector;
+}
+*/

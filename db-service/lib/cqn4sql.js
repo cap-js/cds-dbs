@@ -111,7 +111,7 @@ function cqn4sql(originalQuery, model) {
 
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(originalQuery.sources)[0]
+        const queryTarget = Object.values(originalQuery.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
         keys.forEach(k => {
@@ -181,10 +181,9 @@ function cqn4sql(originalQuery, model) {
 
     if (inferred.SELECT.search) {
       // Search target can be a navigation, in that case use _target to get the correct entity
-      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
-      if (where) {
-        transformedQuery.SELECT.where = where
-      }
+      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
+      if (where) transformedQuery.SELECT.where = where
+      else if (having) transformedQuery.SELECT.having = having
     }
     return transformedQuery
   }
@@ -204,20 +203,26 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-   * Transforms a search expression to a WHERE clause for a SELECT operation.
+   * Transforms a search expression into a WHERE or HAVING clause for a SELECT operation, depending on the context of the query.
+   * The function decides whether to use a WHERE or HAVING clause based on the presence of aggregated columns in the search criteria.
    *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} search - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
-   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
-   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
-   *     If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
+   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
+   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
+   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
+   *     - If the target entity of the query does not contain searchable elements, the function returns null.
    *
+   * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
+   * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearchToWhere(search, from) {
-    const entity = from.$refLinks[0].definition._target || from.$refLinks[0].definition
-    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+  function transformSearch(search, from) {
+    const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
+    // pass transformedQuery because we may need to search in the columns directly
+    // in case of aggregation
+    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
     if (searchIn.length > 0) {
       const xpr = search
       const contains = {
@@ -228,10 +233,16 @@ function cqn4sql(originalQuery, model) {
         ],
       }
 
-      if (transformedQuery.SELECT.where) {
-        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
+      // if the query is grouped and the queries columns contain an aggregate function,
+      // we must put the search term into the `having` clause, as the search expression
+      // is defined on the aggregated result, not on the individual rows
+      let prop = 'where'
+
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
+      if (transformedQuery.SELECT[prop]) {
+        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
-        return [contains]
+        return { [prop]: [contains] }
       }
     } else {
       return null
@@ -255,9 +266,12 @@ function cqn4sql(originalQuery, model) {
      */
     const alreadySeen = new Map()
     inferred.joinTree._roots.forEach(r => {
-      const args = r.queryArtifact.SELECT
-        ? [{ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias }]
-        : [{ ref: [localized(r.queryArtifact)], as: r.alias }]
+      const args = []
+      if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
+      else {
+        const id = localized(r.queryArtifact)
+        args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
+      }
       from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
@@ -282,10 +296,13 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
+      const id = localized(getDefinition(nextAssoc.$refLink.definition.target))
+      const { args } = nextAssoc
       const arg = {
-        ref: [localized(model.definitions[nextAssoc.$refLink.definition.target])],
+        ref: [args ? { id, args } : id],
         as: nextAssoc.$refLink.alias,
       }
+
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
@@ -438,7 +455,7 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) return
+      if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)) return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -472,13 +489,17 @@ function cqn4sql(originalQuery, model) {
 
     function getTransformedColumn(col) {
       if (col.xpr) {
-        return { xpr: getTransformedTokenStream(col.xpr) }
+        const xpr = { xpr: getTransformedTokenStream(col.xpr) }
+        if (col.cast) xpr.cast = col.cast
+        return xpr
       } else if (col.func) {
-        return {
+        const func = {
           func: col.func,
           args: col.args && getTransformedTokenStream(col.args),
-          as: col.func,
+          as: col.func, // may be overwritten by the explicit alias
         }
+        if (col.cast) func.cast = col.cast
+        return func
       } else {
         return copy(col)
       }
@@ -680,7 +701,7 @@ function cqn4sql(originalQuery, model) {
     // select from books { { * } as bar }
     // only possible if there is exactly one query source
     if (!baseRef.length) {
-      const [tableAlias, definition] = Object.entries(inferred.sources)[0]
+      const [tableAlias, { definition }] = Object.entries(inferred.sources)[0]
       baseRef.push(tableAlias)
       baseRefLinks.push({ definition, source: definition })
     }
@@ -838,9 +859,10 @@ function cqn4sql(originalQuery, model) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
       } else if (col.isJoinRelevant) {
-        const tableAlias$refLink = getQuerySourceName(col)
+        const tableAlias = getQuerySourceName(col)
+        const name = calculateElementName(col)
         const transformedColumn = {
-          ref: [tableAlias$refLink, getFullName(col.$refLinks[col.$refLinks.length - 1].definition)],
+          ref: [tableAlias, name],
         }
         if (col.sort) transformedColumn.sort = col.sort
         if (col.nulls) transformedColumn.nulls = col.nulls
@@ -848,7 +870,8 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => link.definition._target?.['@cds.persistence.skip'] === true)) continue
+        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true))
+          continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
@@ -990,7 +1013,7 @@ function cqn4sql(originalQuery, model) {
    */
   function getElementForRef(ref, def) {
     return ref.reduce((prev, res) => {
-      return (prev?.elements || prev?.foreignKeys)?.[res] || prev?._target?.elements[res] // PLEASE REVIEW: should we add the .foreignKey check here for the non-ucsn case?
+      return (prev?.elements || prev?.foreignKeys)?.[res] || getDefinition(prev?.target)?.elements[res] // PLEASE REVIEW: should we add the .foreignKey check here for the non-ucsn case?
     }, def)
   }
 
@@ -1046,10 +1069,10 @@ function cqn4sql(originalQuery, model) {
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       let elements
       elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
-      if (elements && leaf.alias in elements) {
+      if (elements && leaf.definition.name in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
-        columnAlias = column.ref.slice(0, -1).map(idOnly).join('_')
+        columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
     } else if (!baseName && structsAreUnfoldedAlready) {
       baseName = element.name // name is already fully constructed
@@ -1086,7 +1109,7 @@ function cqn4sql(originalQuery, model) {
     if (element.keys) {
       const flatColumns = []
       element.keys.forEach(fk => {
-        const fkElement = getElementForRef(fk.ref, element._target)
+        const fkElement = getElementForRef(fk.ref, getDefinition(element.target))
         let fkBaseName
         if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
           fkBaseName = `${baseName}_${fk.as || fk.ref[fk.ref.length - 1]}`
@@ -1127,12 +1150,20 @@ function cqn4sql(originalQuery, model) {
         } else {
           // leaf reached
           let flatColumn
-          if (columnAlias) flatColumn = { ref: [fkBaseName], as: `${columnAlias}_${fk.ref.join('_')}` }
-          else flatColumn = { ref: [fkBaseName] }
+          if (columnAlias) {
+            // if the column has an explicit alias AND the orignal ref
+            // directly resolves to the foreign key, we must not append the fk name to the column alias
+            // e.g. `assoc.fk as FOO` => columns.alias = FOO
+            //      `assoc as FOO`    => columns.alias = FOO_fk
+            let columnAliasWithFlatFk
+            if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
+              columnAliasWithFlatFk = `${columnAlias}_${fk.as || fk.ref.join('_')}`
+            flatColumn = { ref: [fkBaseName], as: columnAliasWithFlatFk || columnAlias }
+          } else flatColumn = { ref: [fkBaseName] }
           if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
           // in a flat model, we must assign the foreign key rather than the key in the target
-          const flatForeignKey = model.definitions[element.parent.name]?.elements[fkBaseName]
+          const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
           setElementOnColumns(flatColumn, flatForeignKey || fkElement)
           Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
@@ -1251,7 +1282,7 @@ function cqn4sql(originalQuery, model) {
               }”`,
             )
           }
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
@@ -1283,7 +1314,7 @@ function cqn4sql(originalQuery, model) {
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
-        const def = $baseLink.definition._target || $baseLink.definition
+        const def = getDefinition($baseLink.definition.target) || $baseLink.definition
         const keys = def.keys // use key aspect on entity
         const keyValComparisons = []
         const flatKeys = []
@@ -1353,11 +1384,12 @@ function cqn4sql(originalQuery, model) {
             // in that case, we have a baseLink `books` which we need to resolve the following steps
             // however, the correct table alias has been assigned to the `author` step
             // hence we need to ignore the alias of the `$baseLink`
-            const refHasOwnAssoc =
+            const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
-            const tableAlias = getQuerySourceName(token, refHasOwnAssoc || $baseLink)
-            if ((!$baseLink || refHasOwnAssoc) && token.isJoinRelevant) {
-              result.ref = [tableAlias, getFullName(token.$refLinks[token.$refLinks.length - 1].definition)]
+            const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
+            if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
+              let name = calculateElementName(token, getFullName)
+              result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
             } else {
@@ -1542,7 +1574,7 @@ function cqn4sql(originalQuery, model) {
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
         if (stepLink.definition.target && nextStepLink) {
-          const { where } = nextStep
+          const { where, args } = nextStep
           if (isStructured(nextStepLink.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
@@ -1563,7 +1595,7 @@ function cqn4sql(originalQuery, model) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
-          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where))
+          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where, false, args))
         }
       }
 
@@ -1597,7 +1629,12 @@ function cqn4sql(originalQuery, model) {
 
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
-      transformedFrom.ref = [localized(transformedFrom.$refLinks[0].target)]
+
+      let args = from.ref.at(-1).args
+      const subquerySource = transformedFrom.$refLinks[0].target
+      if (subquerySource.params && !args) args = {}
+      const id = localized(subquerySource)
+      transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1651,7 +1688,7 @@ function cqn4sql(originalQuery, model) {
    */
   function backlinkFor(assoc) {
     if (!assoc.on) return null
-    const target = model.definitions[assoc.target]
+    const target = getDefinition(assoc.target)
     // technically we could have multiple backlinks
     const backlinks = []
     for (let i = 0; i < assoc.on.length; i += 3) {
@@ -1677,7 +1714,7 @@ function cqn4sql(originalQuery, model) {
    */
   function onCondFor(assocRefLink, targetSideRefLink, inWhereOrJoin) {
     const { on, keys } = assocRefLink.definition
-    const target = model.definitions[assocRefLink.definition.target]
+    const target = getDefinition(assocRefLink.definition.target)
     let res
     // technically we could have multiple backlinks
     if (keys) {
@@ -1728,10 +1765,11 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
-              const definition = prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
+              const definition =
+                prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
               thing.$refLinks[i] = { definition, target, alias: definition.name }
-              return prev?.elements?.[res] || prev?._target?.elements[res] || pseudos.elements[res]
+              return prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
             }, assocHost)
           }
 
@@ -1814,7 +1852,8 @@ function cqn4sql(originalQuery, model) {
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
         } else if (lhs.ref) {
-          if (lhs.ref[0] === '$self') { // $self in ref of length > 1
+          if (lhs.ref[0] === '$self') {
+            // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
             if (lhs.$refLinks[1].definition.isAssociation) result[i].ref.splice(0, 1)
             // otherwise $self is replaced by the alias of the entity
@@ -1832,7 +1871,7 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
                 definition.name in
-                (targetSideRefLink.definition.elements || targetSideRefLink.definition._target.elements)
+                (targetSideRefLink.definition.elements || getDefinition(targetSideRefLink.definition.target).elements)
               ) {
                 // first step is association which refers to its foreign key by dot notation
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
@@ -1854,7 +1893,7 @@ function cqn4sql(originalQuery, model) {
         // pseudo element
         return element
       if (element.kind === 'entity') return element
-      else return model.definitions[localized(getParentEntity(element.parent))]
+      else return getDefinition(localized(getParentEntity(element.parent)))
     }
   }
 
@@ -1869,11 +1908,11 @@ function cqn4sql(originalQuery, model) {
   function getParentKeyForeignKeyPairs(assoc, targetSideRefLink, flipSourceAndTarget = false) {
     const res = []
     const backlink = backlinkFor(assoc)?.[0]
-    const { keys, _target } = backlink || assoc
+    const { keys, target } = backlink || assoc
     if (keys) {
       keys.forEach(fk => {
         const { ref, as } = fk
-        const elem = getElementForRef(ref, _target) // find the element (the target element of the foreign key) in the target of the (backlink) association
+        const elem = getElementForRef(ref, getDefinition(target)) // find the element (the target element of the foreign key) in the target of the (backlink) association
         const flatParentKeys = getFlatColumnsFor(elem, { baseName: ref.slice(0, ref.length - 1).join('_') }) // it might be a structured element, so expand it into the full parent key tuple
         const flatAssociationName = getFullName(backlink || assoc) // get the name of the (backlink) association
         const flatForeignKeys = getFlatColumnsFor(elem, { baseName: flatAssociationName, columnAlias: as }) // the name of the (backlink) association is the base of the foreign key tuple, also respect aliased fk.
@@ -1922,7 +1961,7 @@ function cqn4sql(originalQuery, model) {
    *                    -> if it is, target and source side are flipped in the where exists subquery
    * @returns {CQN.SELECT}
    */
-  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false) {
+  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, customArgs = null) {
     const { definition } = current
     const { definition: nextDefinition } = next
     const on = []
@@ -1946,9 +1985,12 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
 
+    const subquerySource = assocTarget(nextDefinition) || nextDefinition
+    const id = localized(subquerySource)
+    if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
-        ref: [localized(assocTarget(nextDefinition) || nextDefinition)],
+        ref: [customArgs ? { id, args: customArgs } : id],
         as: next.alias,
       },
       columns: [
@@ -1971,7 +2013,7 @@ function cqn4sql(originalQuery, model) {
    */
   function localized(definition) {
     if (!isLocalized(definition)) return definition.name
-    const view = model.definitions[`localized.${definition.name}`]
+    const view = getDefinition(`localized.${definition.name}`)
     return view?.name || definition.name
   }
 
@@ -1984,7 +2026,18 @@ function cqn4sql(originalQuery, model) {
    * @returns true if the given definition shall be localized
    */
   function isLocalized(definition) {
-    return inferred.SELECT?.localized && definition['@cds.localized'] !== false
+    return (
+      inferred.SELECT?.localized &&
+      definition['@cds.localized'] !== false &&
+      !inferred.SELECT.forUpdate &&
+      !inferred.SELECT.forShareLock
+    )
+  }
+
+  /** returns the CSN definition for the given name from the model */
+  function getDefinition(name) {
+    if (!name) return null
+    return model.definitions[name]
   }
 
   /**
@@ -1994,22 +2047,7 @@ function cqn4sql(originalQuery, model) {
    * @returns the csn definition of the association target or null if it is not an association
    */
   function assocTarget(assoc) {
-    return model.definitions[assoc.target] || null
-  }
-
-  /**
-   * Calculate the flat name for a deeply nested element:
-   * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
-   *
-   * @param {CSN.element} node an element
-   * @param {object} name the last part of the name, e.g. the name of the deeply nested element
-   * @returns the flat name of the element
-   */
-  function getFullName(node, name = node.name) {
-    // REVISIT: this is an unfortunate implementation
-    if (!node.parent || node.parent.kind === 'entity') return name
-
-    return getFullName(node.parent, `${node.parent.name}_${name}`)
+    return getDefinition(assoc.target) || null
   }
 
   /**
@@ -2079,6 +2117,31 @@ module.exports = Object.assign(cqn4sql, {
   notEqOps,
   notSupportedOps,
 })
+
+function calculateElementName(token) {
+  const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
+  let name
+  if (nonJoinRelevantAssoc)
+    // calculate fk name
+    name = token.ref.slice(nonJoinRelevantAssoc).join('_')
+  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  return name
+}
+
+/**
+ * Calculate the flat name for a deeply nested element:
+ * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
+ *
+ * @param {CSN.element} node an element
+ * @param {object} name the last part of the name, e.g. the name of the deeply nested element
+ * @returns the flat name of the element
+ */
+function getFullName(node, name = node.name) {
+  // REVISIT: this is an unfortunate implementation
+  if (!node.parent || node.parent.kind === 'entity') return name
+
+  return getFullName(node.parent, `${node.parent.name}_${name}`)
+}
 
 function copy(obj) {
   const walk = function (par, prop) {

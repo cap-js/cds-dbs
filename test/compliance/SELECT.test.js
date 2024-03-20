@@ -6,7 +6,7 @@ const cds = require('../cds.js')
 // Call default cds.test API
 
 describe('SELECT', () => {
-  const { data } = cds.test(__dirname + '/resources')
+  const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
 
   describe('from', () => {
@@ -23,6 +23,23 @@ describe('SELECT', () => {
     test('projection', async () => {
       const res = await cds.run(CQL`SELECT bool FROM basic.projection.globals`)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+    })
+
+    test('join', async () => {
+      const res = await cds.run(CQL`
+      SELECT A.bool
+      FROM basic.projection.globals as A
+      LEFT JOIN basic.projection.globals AS B
+      ON A.bool=B.bool`)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      for (let i = 0; i < res.length; i++) {
+        const val = res[i].bool
+        if (typeof val === 'object') {
+          assert.strictEqual(val, null)
+        } else {
+          assert.strictEqual(typeof val, 'boolean')
+        }
+      }
     })
 
     test('statics', async () => {
@@ -57,12 +74,12 @@ describe('SELECT', () => {
 
     test('like regex uses native regex support', async () => {
       let ret = await SELECT.from('basic.projection.string').where('string like', /ye./)
-      expect(ret.length).toBe(1)
+      expect(ret.length).to.eq(1)
     })
 
     test('= regex behaves like string', async () => {
-      await expect(SELECT.from('basic.projection.string').where('string =', /ye./)).resolves.toHaveProperty('length', 0)
-      await expect(SELECT.from('basic.projection.string').where('string =', /yes/)).resolves.toHaveProperty('length', 1)
+      expect(await SELECT.from('basic.projection.string').where('string =', /ye./)).to.have.property('length', 0)
+      expect(await SELECT.from('basic.projection.string').where('string =', /yes/)).to.have.property('length', 1)
     })
 
     test('from select', async () => {
@@ -102,9 +119,9 @@ describe('SELECT', () => {
           'func' as function : cds.String
         FROM basic.projection.globals
       `
-      cqn.SELECT.columns[0].val = function () {}
+      cqn.SELECT.columns[0].val = function () { }
 
-      await assert.rejects(cds.run(cqn))
+      await expect(cds.run(cqn)).rejected
     })
 
     test.skip('select xpr', async () => {
@@ -164,7 +181,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Authors'] },
-          columns: [{ ref: ['ID']}, { ref: ['name']}, { ref: ['books'], expand: ['*', ...nulls(197)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]
         },
       }
 
@@ -178,7 +195,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.Books'] },
-          columns: [{ ref: ['ID']}, { ref: ['title']}, { ref: ['author'], expand: ['*', ...nulls(198)]}]
+          columns: [{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]
         },
       }
 
@@ -188,7 +205,7 @@ describe('SELECT', () => {
     })
 
     test.skip('invalid cast (wrong)', async () => {
-      await assert.rejects(
+      await expect(
         cds.run(CQL`
         SELECT
             'String' as ![string] : cds.DoEsNoTeXiSt
@@ -197,7 +214,7 @@ describe('SELECT', () => {
         {
           message: 'Not supported type: cds.DoEsNoTeXiSt',
         },
-      )
+      ).rejected
     })
   })
 
@@ -224,7 +241,7 @@ describe('SELECT', () => {
     test('compare with DateTime column', async () => {
       const entity = `basic.literals.dateTime`
       const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0,-1) + '.000Z'
+      const timestamp = dateTime.slice(0, -1) + '.000Z'
       await DELETE.from(entity)
       await INSERT({ dateTime }).into(entity)
       const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
@@ -292,16 +309,141 @@ describe('SELECT', () => {
     })
   })
 
-  describe('forUpdate', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+  const generalLockTest = (lock4, shared = false) => {
+    const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
+
+    const setMax = max => {
+      let oldMax
+      beforeAll(async () => {
+        if (isSQLite()) return
+        await cds.db.disconnect()
+        oldMax = cds.db.pools._factory.options.max
+        cds.db.pools._factory.options.max = max
+      })
+
+      afterAll(async () => {
+        if (isSQLite()) return
+        cds.db.pools._factory.options.max = oldMax
+      })
+    }
+
+    let oldTimeout
+    beforeAll(async () => {
+      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
     })
+
+    afterAll(() => {
+      cds.db.pools.undefined._config.acquireTimeoutMillis =
+        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
+    })
+
+    describe('pool max = 1', () => {
+      setMax(1)
+      test('output converters apply to for update', async () => {
+        const query = lock4(true)
+        const [result] = await query
+        expect(result).to.have.all.keys(Object.keys(query.elements))
+      })
+
+      test('two locks on a single table', async () => {
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await expect(tx2.run(lock4(false))).rejected
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+
+      test('same lock twice on a single table', async () => {
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
+
+          // Lock false
+          await expect(tx2.run(lock4(false))).rejected
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+    })
+
+    describe('pool max > 1', () => {
+      setMax(2)
+      test('two locks on a single table', async () => {
+        if (isSQLite()) return
+
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock true
+          await tx1.run(lock4(true))
+
+          // Lock false
+          await tx2.run(lock4(false))
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+
+      test('same lock twice on a single table', async () => {
+        if (isSQLite()) return
+
+        const tx1 = await cds.tx()
+        const tx2 = await cds.tx()
+
+        try {
+          // Lock false
+          await tx1.run(lock4(false))
+
+          // Lock false
+          if (shared) {
+            const ret = await tx2.run(lock4(false))
+            expect(ret).is.not.undefined
+          } else {
+            await expect(tx2.run(lock4(false))).rejected
+          }
+        } finally {
+          await Promise.allSettled([tx1.commit(), tx2.commit()])
+        }
+      })
+    })
+  }
+
+  describe('forUpdate', () => {
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forUpdate({
+        of: ['bool'],
+        wait: 0,
+      })
+
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }])
+    )
   })
 
   describe('forShareLock', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
-    })
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forShareLock({
+        of: ['bool'],
+        wait: 0,
+      })
+
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }]),
+      true
+    )
   })
 
   describe('search', () => {
@@ -316,7 +458,7 @@ describe('SELECT', () => {
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
-      const renamed = result.map(row => ({key: row.ID, fullName: row.name}))
+      const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
       assert.strictEqual(renamed.$count, 1)
     })
   })

@@ -6,6 +6,12 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const keywords = cds.compiler.to.hdi.keywords
+// keywords come as array
+const hanaKeywords = keywords.reduce((prev, curr) => {
+  prev[curr] = 1
+  return prev
+}, {})
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
@@ -29,14 +35,15 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials.driver]?.driver || drivers.default.driver
+    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
     return {
       options: {
         min: 0,
         max: 10,
-        acquireTimeoutMillis: cds.env.profiles.includes('production') ? 1000 : 10000,
+        acquireTimeoutMillis,
         idleTimeoutMillis: 60000,
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
@@ -54,7 +61,14 @@ class HANAService extends SQLService {
           HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
-          if (!isMultitenant || err.code !== 10) throw err
+          if (isMultitenant) {
+            // REVISIT: throw the error and break retry loop
+            // Stop trying when the tenant does not exist or is rate limited
+            if (err.status == 404 || err.status == 429)
+              return new Promise(function (_, reject) {
+                setTimeout(() => reject(err), acquireTimeoutMillis)
+              })
+          } else if (err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
           return this.create(tenant)
         }
@@ -100,19 +114,38 @@ class HANAService extends SQLService {
 
   async onSELECT(req) {
     const { query, data } = req
+
+    if (!query.target) {
+      try { this.infer(query) } catch (e) { /**/ }
+    }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
     }
 
-    // REVISIT: disable this for queries like (SELECT 1)
-    // Will return multiple rows with objects inside
-    query.SELECT.expand = 'root'
-    const { cqn, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
+    if (!isLockQuery) {
+      // REVISIT: disable this for queries like (SELECT 1)
+      // Will return multiple rows with objects inside
+      query.SELECT.expand = 'root'
+    }
+
+    const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    delete query.SELECT.expand
+
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = this.wrapTemporary(temporary, withclause, blobs)
+    const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
       ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
+
+    if (isLockQuery) {
+      // Fetch actual locked results
+      const resultQuery = query.clone()
+      resultQuery.SELECT.forUpdate = undefined
+      resultQuery.SELECT.forShareLock = undefined
+      return this.onSELECT({ query: resultQuery, __proto__: req })
+    }
+
     if (rows.length) {
       rows = this.parseRows(rows)
     }
@@ -125,16 +158,16 @@ class HANAService extends SQLService {
 
   async onINSERT({ query, data }) {
     try {
-    const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done
-    const ps = await this.prepare(sql)
-    // HANA driver supports batch execution
-    const results = await (entries
-      ? HANAVERSION <= 2
-        ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-        : ps.run(entries[0])
-      : ps.run())
-    return new this.class.InsertResults(cqn, results)
+      const { sql, entries, cqn } = this.cqn2sql(query, data)
+      if (!sql) return // Do nothing when there is nothing to be done
+      const ps = await this.prepare(sql)
+      // HANA driver supports batch execution
+      const results = await (entries
+        ? HANAVERSION <= 2
+          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
+          : ps.run(entries[0])
+        : ps.run())
+      return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
@@ -265,6 +298,10 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+
+      if (q.SELECT.from?.join && !q.SELECT.columns) {
+        throw new Error('CQN query using joins must specify the selected columns.')
+      }
 
       const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
@@ -649,6 +686,10 @@ class HANAService extends SQLService {
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
     }
 
+    from_args(args) {
+      return `(${ObjectKeys(args).map(k => `${this.quote(k)} => ${this.expr(args[k])}`)})`
+    }
+
     orderBy(orderBy, localized) {
       return orderBy.map(
         localized
@@ -801,8 +842,11 @@ class HANAService extends SQLService {
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
+          // When a logic operator is found the expression is not a comparison
+          // When it is a local check it cannot be compared outside of the xpr
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators || (!local && up in logicOperators)) return true
+          if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue
@@ -812,17 +856,17 @@ class HANAService extends SQLService {
       return false
     }
 
-        list(list) {
-          const first = list.list[0]
-          // If the list only contains of lists it is replaced with a json function and a placeholder
-          if (this.values && first.list && !first.list.find(v => !v.val)) {
-            const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-            this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
-            return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
-          }
-          // Call super for normal SQL behavior
-          return super.list(list)
-        }
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => !v.val)) {
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
+        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
+      // Call super for normal SQL behavior
+      return super.list(list)
+    }
 
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
@@ -912,7 +956,7 @@ class HANAService extends SQLService {
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
     static Functions = require('./cql-functions')
 
@@ -930,8 +974,9 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647)`,
+      Vector: () => `NVARCHAR(2147483647)`,
 
-      // Javascript types
+      // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`
     }
@@ -944,6 +989,7 @@ class HANAService extends SQLService {
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Vector: e => `TO_REAL_VECTOR(${e})`,
     }
 
     static OutputConverters = {
@@ -954,6 +1000,7 @@ class HANAService extends SQLService {
       Time: e => `to_char(${e}, 'HH24:MI:SS')`,
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Vector: e => `TO_NVARCHAR(${e})`,
     }
   }
 
