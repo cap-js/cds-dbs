@@ -78,12 +78,20 @@ describe('Bookshop - Functions', () => {
       expect(negative.data.value.length).to.be.eq(2)
     })
 
-    test.skip('matchesPattern', async () => {
-      // REVISIT: ERROR: Property 'matchesPattern' does not exist in type 'CatalogService.Books'
-      const res = await GET(`/browse/Books?$filter=matchesPattern(author,'^A.*e$')`)
+    test('matchesPattern', async () => {
+      // We use QL API as the OData adapter does not yet support matchesPattern
+      const res1 = await SELECT.from('CatalogService.Books')
+        .columns('author', 'title')
+        .where`matchesPattern(author,${'^Ed'})`
 
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(2)
+      // function is case insensitive
+      const res2 = await SELECT.from('CatalogService.Books')
+        .columns('author', 'title')
+        .where`matchespattern(author,${'^Ed'})`
+
+      expect(res1.length).to.eq(res2.length).to.be.eq(2)
+      expect(res1).to.deep.eq(res2).to.deep.include({author: 'Edgar Allen Poe', title: 'Eleonora'})
+      expect(res1).to.deep.eq(res2).to.deep.include({author: 'Edgar Allen Poe', title: 'The Raven'})
     })
 
     test('tolower', async () => {
