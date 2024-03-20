@@ -165,7 +165,7 @@ class HANAService extends SQLService {
       const results = await (entries
         ? HANAVERSION <= 2
           ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : ps.run(entries[0])
+          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
         : ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
