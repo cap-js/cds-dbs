@@ -299,6 +299,10 @@ class HANAService extends SQLService {
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
 
+      if (q.SELECT.from?.join && !q.SELECT.columns) {
+        throw new Error('CQN query using joins must specify the selected columns.')
+      }
+
       const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
@@ -838,8 +842,11 @@ class HANAService extends SQLService {
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
+          // When a logic operator is found the expression is not a comparison
+          // When it is a local check it cannot be compared outside of the xpr
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators || (!local && up in logicOperators)) return true
+          if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue

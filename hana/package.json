@@ -21,6 +21,7 @@
   },
   "scripts": {
     "test": "npm start && jest --silent",
+    "test:remote": "jest --silent",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
