@@ -74,6 +74,7 @@ class HANAClientDriver extends driver {
           rsStreamsProm.resolve = resolve
           rsStreamsProm.reject = reject
         })
+        rsStreams.catch(() => {})
 
         rs._rowPosition = -1
         const _next = prom(rs, 'next')

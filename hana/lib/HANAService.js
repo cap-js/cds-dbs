@@ -126,10 +126,10 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
-let rows = (values?.length || blobs.length > 0)
+    let rows = (values?.length || blobs.length > 0)
       ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
-    
+
     if (isLockQuery) {
       // Fetch actual locked results
       const resultQuery = query.clone()
@@ -159,7 +159,7 @@ let rows = (values?.length || blobs.length > 0)
           ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
           : ps.run(entries[0])
         : ps.run())
-            return new this.class.InsertResults(cqn, results)
+      return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
@@ -179,9 +179,9 @@ let rows = (values?.length || blobs.length > 0)
 
     const values = temporary
       .map(t => {
-      const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-      return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
-    })
+        const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
+        return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
+      })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
     const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + ' ORDER BY "_path_" ASC')
@@ -362,12 +362,12 @@ let rows = (values?.length || blobs.length > 0)
                 func: 'concat',
                 args: parent
                   ? [
-                      {
-                        func: 'concat',
-                        args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
-                      },
-                      { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
-                    ]
+                    {
+                      func: 'concat',
+                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
+                    },
+                    { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
+                  ]
                   : [{ val: '$[', param: false }, { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] }],
               },
             ],
@@ -382,14 +382,14 @@ let rows = (values?.length || blobs.length > 0)
               ? [{ ref: ['$$RN$$'] }, '=', { val: 1, param: false }]
               : limit.offset?.val
                 ? [
-                    { ref: ['$$RN$$'] },
-                    '>',
-                    limit.offset,
-                    'AND',
-                    { ref: ['$$RN$$'] },
-                    '<=',
-                    { val: limit.rows.val + limit.offset.val },
-                  ]
+                  { ref: ['$$RN$$'] },
+                  '>',
+                  limit.offset,
+                  'AND',
+                  { ref: ['$$RN$$'] },
+                  '<=',
+                  { val: limit.rows.val + limit.offset.val },
+                ]
                 : [{ ref: ['$$RN$$'] }, '<=', { val: limit.rows.val }],
           )
         }
@@ -432,61 +432,61 @@ let rows = (values?.length || blobs.length > 0)
         .map(
           SELECT.expand === 'root'
             ? x => {
-                if (x === '*') return '*'
-                // means x is a sub select expand
-                if (x.elements) {
-                  expands[this.column_name(x)] = x.SELECT.one ? null : []
+              if (x === '*') return '*'
+              // means x is a sub select expand
+              if (x.elements) {
+                expands[this.column_name(x)] = x.SELECT.one ? null : []
 
-                  const parent = src
-                  let fkeys = x.element._foreignKeys
-                  if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
-                  fkeys.forEach(k => {
-                    if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                      parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
-                    }
-                  })
-
-                  x.SELECT.from = {
-                    join: 'inner',
-                    args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
-                    on: x.SELECT.where,
-                    as: x.SELECT.from.as,
+                const parent = src
+                let fkeys = x.element._foreignKeys
+                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
+                fkeys.forEach(k => {
+                  if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
+                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
-                  x.SELECT.where = undefined
-                  x.SELECT.expand = 'root'
-                  x.SELECT.parent = parent
+                })
 
-                  const values = this.values
-                  this.values = []
-                  parent.SELECT.expand = true
-                  this.SELECT(x)
-                  this.values = values
-                  return false
+                x.SELECT.from = {
+                  join: 'inner',
+                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
+                  on: x.SELECT.where,
+                  as: x.SELECT.from.as,
                 }
-                if (x.element?.type?.indexOf('Binary') > -1) {
-                  blobs[this.column_name(x)] = null
-                  return false
-                }
-                if (x.element?.elements || x.element?.items) {
-                  // support for structured types and arrays
-                  structures.push(x)
-                  return false
-                }
-                let xpr = this.expr(x)
-                const columnName = this.column_name(x)
-                if (columnName === '_path_') {
-                  path = xpr
-                  return false
-                }
-                const converter = x.element?.[this.class._convertOutput] || (e => e)
-                return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
+                x.SELECT.where = undefined
+                x.SELECT.expand = 'root'
+                x.SELECT.parent = parent
+
+                const values = this.values
+                this.values = []
+                parent.SELECT.expand = true
+                this.SELECT(x)
+                this.values = values
+                return false
               }
+              if (x.element?.type?.indexOf('Binary') > -1) {
+                blobs[this.column_name(x)] = null
+                return false
+              }
+              if (x.element?.elements || x.element?.items) {
+                // support for structured types and arrays
+                structures.push(x)
+                return false
+              }
+              let xpr = this.expr(x)
+              const columnName = this.column_name(x)
+              if (columnName === '_path_') {
+                path = xpr
+                return false
+              }
+              const converter = x.element?.[this.class._convertOutput] || (e => e)
+              return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
+            }
             : x => {
-                if (x === '*') return '*'
-                // means x is a sub select expand
-                if (x.elements) return false
-                return this.column_expr(x)
-              },
+              if (x === '*') return '*'
+              // means x is a sub select expand
+              if (x.elements) return false
+              return this.column_expr(x)
+            },
         )
         .filter(a => a)
 
@@ -582,9 +582,9 @@ let rows = (values?.length || blobs.length > 0)
           : [Readable.from(this.INSERT_entries_stream([e], 'hex'), { objectMode: false })]))
       } else {
         this.entries = [[
-            INSERT.entries[0] instanceof Readable
-              ? INSERT.entries[0]
-              : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'), { objectMode: false })
+          INSERT.entries[0] instanceof Readable
+            ? INSERT.entries[0]
+            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'), { objectMode: false })
         ]]
       }
 
@@ -668,13 +668,13 @@ let rows = (values?.length || blobs.length > 0)
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
       )}) SELECT ${collations.map(keyCompare ? c => c.switch : c => c.sql)} FROM (${dataSelect}) AS NEW ${keyCompare ? ` LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}` : ''
-      }`)
+        }`)
     }
 
     DROP(q) {
       const { target } = q
       const isView = target.query || target.projection
-      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
+      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
     }
 
     from_args(args) {
@@ -685,12 +685,12 @@ let rows = (values?.length || blobs.length > 0)
       return orderBy.map(
         localized
           ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized]
-                ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']
-                  }`
-                : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+            this.expr(c) +
+            (c.element?.[this.class._localized]
+              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']
+              }`
+              : '') +
+            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
@@ -884,14 +884,14 @@ let rows = (values?.length || blobs.length > 0)
       const requiredColumns = !elements
         ? []
         : Object.keys(elements)
-            .filter(e => {
-              if (elements[e]?.virtual) return false
-              if (columns.find(c => c.name === e)) return false
-              if (elements[e]?.[annotation]) return true
-              if (!isUpdate && elements[e]?.default) return true
-              return false
-            })
-            .map(name => ({ name, sql: 'NULL' }))
+          .filter(e => {
+            if (elements[e]?.virtual) return false
+            if (columns.find(c => c.name === e)) return false
+            if (elements[e]?.[annotation]) return true
+            if (!isUpdate && elements[e]?.default) return true
+            return false
+          })
+          .map(name => ({ name, sql: 'NULL' }))
 
       const keyZero = this.quote(
         ObjectKeys(elements).find(e => {
@@ -935,9 +935,9 @@ let rows = (values?.length || blobs.length > 0)
             (notManged
               ? `${converter(this.quote(name), element)} AS ${this.quote(name)}`
               : `CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${converter(
-                  this.quote(name),
-                  element,
-                )} END AS ${this.quote(name)}`) + (isUpdate ? `,${this.quote('$.' + name)}` : ''),
+                this.quote(name),
+                element,
+              )} END AS ${this.quote(name)}`) + (isUpdate ? `,${this.quote('$.' + name)}` : ''),
           sql: converter(notManged ? extract : `COALESCE(${extract}, ${managed})`, element),
         }
       })
@@ -1014,8 +1014,8 @@ let rows = (values?.length || blobs.length > 0)
         .map(
           q =>
             `EXEC '${q.replace(/'/g, "''").replace(';', '')}${
-              // Add "PAGE LOADABLE" for all tables created to use NSE by default and reduce memory consumption
-              /(^|')CREATE TABLE/.test(q) ? ' PAGE LOADABLE' : ''
+            // Add "PAGE LOADABLE" for all tables created to use NSE by default and reduce memory consumption
+            /(^|')CREATE TABLE/.test(q) ? ' PAGE LOADABLE' : ''
             }';`,
         )
         .join('\n')} END;`
@@ -1048,17 +1048,19 @@ let rows = (values?.length || blobs.length > 0)
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(async stmt => {
-      (await stmt).drop()
-    })
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(async stmt => {
-      (await stmt).drop()
-    })
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.rollback()
   }
 

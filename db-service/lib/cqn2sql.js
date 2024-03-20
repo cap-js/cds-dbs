@@ -195,7 +195,7 @@ class CQN2SQLRenderer {
   DROP(q) {
     const { target } = q
     const isView = target.query || target.projection
-    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.name(target.name)}`)
+    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(target.name))}`)
   }
 
   // SELECT Statements ------------------------------------------------
