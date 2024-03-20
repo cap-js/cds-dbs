@@ -1049,7 +1049,7 @@ let rows = (values?.length || blobs.length > 0)
   onCOMMIT() {
     DEBUG?.('COMMIT')
     this.dbc?.statements?.forEach(async stmt => {
-      await stmt.drop()
+      (await stmt).drop()
     })
     return this.dbc?.commit()
   }
@@ -1057,7 +1057,7 @@ let rows = (values?.length || blobs.length > 0)
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
     this.dbc?.statements?.forEach(async stmt => {
-      await stmt.drop()
+      (await stmt).drop()
     })
     return this.dbc?.rollback()
   }
