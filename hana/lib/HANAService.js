@@ -1048,28 +1048,16 @@ let rows = (values?.length || blobs.length > 0)
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(stmt => {
-      if (stmt instanceof Promise) {
-        stmt.then(res => {
-          res.drop()
-        })
-        return
-      }
-      stmt.drop()
+    this.dbc?.statements?.forEach(async stmt => {
+      await stmt.drop()
     })
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(stmt => {
-      if (stmt instanceof Promise) {
-        stmt.then(res => {
-          res.drop()
-        })
-        return
-      }
-      stmt.drop()
+    this.dbc?.statements?.forEach(async stmt => {
+      await stmt.drop()
     })
     return this.dbc?.rollback()
   }
