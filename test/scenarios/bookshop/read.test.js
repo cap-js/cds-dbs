@@ -265,6 +265,40 @@ describe('Bookshop - Read', () => {
     expect((await cds.db.run(query)).count).to.be.eq(2)
   })
 
+  it('joins without columns are rejected because of conflicts', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/Ambiguous wildcard elements/)
+  })
+
+  it('joins without columns are rejected in general', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['AdminService.RenameKeys'], as: 'rk' },
+            { ref: ['DraftService.DraftEnabledBooks'], as: 'deb' },
+          ],
+          on: [{ ref: ['deb', 'ID'] }, '=', { ref: ['rk', 'foo'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
+  })
+
   test('Delete Book', async () => {
     const res = await DELETE('/admin/Books(271)', admin)
     expect(res.status).to.be.eq(204)
