@@ -109,6 +109,13 @@ class HANAClientDriver extends driver {
       }
     }
 
+    ret.proc = async (data, outParameters) => {
+      // const rows = await ret.all(data)
+      const stmt = await ret._prep
+      const rows = await prom(stmt, 'execQuery')(data)
+      return this._getResultForProcedure(rows, outParameters, stmt)
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       values = Array.isArray(values) ? values : []
@@ -141,6 +148,36 @@ class HANAClientDriver extends driver {
 
   async validate() {
     return this._native.state() === 'connected'
+  }
+
+  _getResultForProcedure(rows, outParameters, stmt) {  
+    const result = {}
+    // build result from scalar params
+    const paramInfo = stmt.getParameterInfo()
+    if (paramInfo.some(p => p.direction > 1)) {
+      for (let i = 0; i < paramInfo.length; i++) {
+        if (paramInfo[i].direction > 1) {
+          result[paramInfo[i].name] = stmt.getParameterValue(i)
+        }
+      }
+    }
+
+    const resultSet = Array.isArray(rows) ? rows[0] : rows
+  
+    // merge table output params into scalar params
+    const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
+    if (params && params.length) {
+      for (let i = 0; i < params.length; i++) {
+        const parameterName = params[i].PARAMETER_NAME
+        result[parameterName] = []
+        while (resultSet.next()) {
+          result[parameterName].push(resultSet.getValues())
+        }
+        resultSet.nextResult()
+      }
+    }
+  
+    return result
   }
 
   _extractStreams(values) {

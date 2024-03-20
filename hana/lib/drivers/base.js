@@ -168,7 +168,7 @@ const prom = function (dbc, func) {
     const stack = {}
     Error.captureStackTrace(stack)
     return new Promise((resolve, reject) => {
-      dbc[func](...args, (err, res, output) => {
+      dbc[func](...args, (err, ...output) => {        
         if (err) {
           if (!(err instanceof Error)) {
             Object.setPrototypeOf(err, Error.prototype)
@@ -189,7 +189,7 @@ const prom = function (dbc, func) {
           }
           return reject(enhanceError(err, stack, sql))
         }
-        resolve(output || res)
+        resolve(output.length === 1 ? output[0] : output)
       })
     })
   }

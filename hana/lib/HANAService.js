@@ -988,6 +988,24 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
+  async onCall({ query, data }) {
+      DEBUG?.(query, data)
+
+      // procedure call metadata
+      let outParameters
+      const { name: procedureName, schema: procedureSchema } = _getProcedureNameAndSchema(query) || {}
+      if (procedureName) {
+        try {
+          outParameters = await this._getProcedureMetadata(procedureName, procedureSchema)
+        } catch (e) {
+          LOG._warn && LOG.warn('Unable to fetch procedure metadata due to error:', e)
+        }
+      }
+
+      const ps = await this.prepare(query)
+      return ps.proc(data, outParameters)     
+  }
+
   async onPlainSQL(req, next) {
     // HANA does not support IF EXISTS there for it is removed and the error codes are accepted
     if (/ IF EXISTS /i.test(req.query)) {
@@ -1000,6 +1018,10 @@ class HANAService extends SQLService {
         }
         throw err
       }
+    }
+
+    if (typeof req.query === 'string' && /^CALL /i.test(req.query.trim())) {
+      return this.onCall(req, next)
     }
 
     return super.onPlainSQL(req, next)
@@ -1094,6 +1116,14 @@ class HANAService extends SQLService {
       __database__: this.options.credentials,
     })
   }
+
+
+  async _getProcedureMetadata(name, schema) {
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
+        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+      } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
+    return await super.onPlainSQL({ query, data: [] })   
+  }  
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
@@ -1110,6 +1140,21 @@ function _not_unique(err, code) {
       code: 400, // FIXME: misusing code as (http) status
     })
   return err
+}
+
+function _getProcedureNameAndSchema(sql) {
+  // name delimited with "" allows any character
+  const match = sql
+    .trim()
+    .match(
+      /^call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
+    )
+  return (
+    match && {
+      name: match.groups.undelimited ?? match.groups.delimited,
+      schema: match.groups.schema_delimited || match.groups.schema_undelimited
+    }
+  )
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
