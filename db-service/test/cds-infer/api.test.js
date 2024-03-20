@@ -1,7 +1,11 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
+
 const { expect } = cds.test.in(__dirname + '/../bookshop')
 
 describe('infer elements', () => {

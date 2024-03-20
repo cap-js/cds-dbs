@@ -7,7 +7,10 @@ const cds = require('@sap/cds/lib')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('assign element onto columns', () => {
   let model
@@ -108,7 +111,7 @@ describe('assign element onto columns', () => {
       1 + 1 as Two,
       (select from bookshop.Authors { name }) as subquery
     }`
-      let inferred = cqn4sql(query) // cqn4sql will trigger recursive infer
+      let inferred = cqn4sql(query, model) // cqn4sql will trigger recursive infer
       let inferredSubquery = inferred.SELECT.columns[1]
 
       let { Authors } = model.entities

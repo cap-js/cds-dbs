@@ -1,3 +1,4 @@
+require('./search.test')
 require('./read.test')
 require('./insert.test')
 require('./delete.test')

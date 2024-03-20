@@ -21,7 +21,7 @@ const StandardFunctions = {
    * @returns {string}
    */
   search: function (ref, arg) {
-    if (!('val' in arg)) throw `Only single value arguments are allowed for $search`
+    if (!('val' in arg)) throw new Error(`Only single value arguments are allowed for $search`)
     const refs = ref.list || [ref],
       { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
@@ -99,6 +99,13 @@ const StandardFunctions = {
    * @returns {string}
    */
   matchesPattern: (x, y) => `(${x} regexp ${y})`,
+  /**
+   * Generates SQL statement that matches the given string against a regular expression
+   * @param {string} x
+   * @param {string} y
+   * @returns {string}
+   */
+  matchespattern: (x, y) => `(${x} regexp ${y})`,
   /**
    * Generates SQL statement that produces the lower case value of a given string
    * @param {string} x

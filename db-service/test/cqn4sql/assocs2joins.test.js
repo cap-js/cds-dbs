@@ -49,11 +49,11 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in select, three assocs, last navigates to foreign key', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.parent.ID }`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, books.genre.parent.ID as foo }`, model)
     const expected = CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID
         left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-        { Authors.ID, genre.parent_ID as books_genre_parent_ID }
+        { Authors.ID, genre.parent_ID as foo }
       `
     expect(query).to.deep.equal(expected)
   })
@@ -373,7 +373,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in select, same field with different filters requires alias', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`), model).to.throw(
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`, model)).to.throw(
       /Duplicate definition of element “author_name”/,
     )
   })
@@ -1213,5 +1213,125 @@ describe('comparisons of associations in on condition of elements needs to be ex
         buzUnmanaged.foo_ID as buzUnmanaged_foo_ID
       }`
     expect(query).to.eql(expected)
+  })
+})
+
+describe('optimize fk access', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
+  })
+  it('association (with multiple, structured, renamed fks) is key', () => {
+    const query = CQL`SELECT from ForeignKeyIsAssoc {
+      my.room as teachersRoom,
+    }`
+    const expected = CQL`SELECT from ForeignKeyIsAssoc as ForeignKeyIsAssoc {
+                          ForeignKeyIsAssoc.my_room_number as teachersRoom_number,
+                          ForeignKeyIsAssoc.my_room_name as teachersRoom_name,
+                          ForeignKeyIsAssoc.my_room_location as teachersRoom_info_location
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('two step path ends in foreign key simple ref', () => {
+    const query = CQL`SELECT from Classrooms {
+      pupils.pupil.ID as studentCount,
+    } where Classrooms.ID = 1`
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          pupils.pupil_ID as studentCount
+                        } where Classrooms.ID = 1`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('filters are always join relevant', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      pupil[ID = 5].ID as student,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Pupils as pupil on pupil.ID = ClassroomsPupils.pupil_ID
+                          and pupil.ID = 5
+                        {
+                          pupil.ID as student
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('optimized next to non-optimized', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      pupil[ID = 5].ID as nonOptimized,
+      pupil.ID as optimized,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Pupils as pupil on pupil.ID = ClassroomsPupils.pupil_ID
+                          and pupil.ID = 5
+                        {
+                          pupil.ID as nonOptimized,
+                          ClassroomsPupils.pupil_ID as optimized
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('optimized next to join relevant', () => {
+    const query = CQL`SELECT from ClassroomsPupils {
+      classroom.ID as classroom_ID,
+      classroom.name as classroom,
+    }`
+    const expected = CQL`SELECT from ClassroomsPupils as ClassroomsPupils
+                          left join Classrooms as classroom on classroom.ID = ClassroomsPupils.classroom_ID
+                        {
+                          ClassroomsPupils.classroom_ID as classroom_ID,
+                          classroom.name as classroom
+                        }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('two step path ends in foreign key simple ref in aggregation clauses', () => {
+    const query = CQL`SELECT from Classrooms {
+      pupils.pupil.ID as studentCount,
+    }
+      where pupils.pupil.ID = 1
+      group by pupils.pupil.ID
+      having pupils.pupil.ID = 1
+      order by pupils.pupil.ID
+    `
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          pupils.pupil_ID as studentCount
+                        } where pupils.pupil_ID = 1
+                          group by pupils.pupil_ID
+                          having pupils.pupil_ID = 1
+                          order by pupils.pupil_ID
+                        `
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('two step path ends in foreign key nested ref', () => {
+    const query = CQL`SELECT from Classrooms {
+      count(pupils.pupil.ID) as studentCount,
+    } where Classrooms.ID = 1`
+    const expected = CQL`SELECT from Classrooms as Classrooms left join ClassroomsPupils as pupils
+                        on pupils.classroom_ID = Classrooms.ID {
+                          count(pupils.pupil_ID) as studentCount
+                        } where Classrooms.ID = 1`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+
+  it('multi step path ends in foreign key', () => {
+    const query = CQL`SELECT from Classrooms {
+      count(pupils.pupil.classrooms.classroom.ID) as classCount,
+    } where    pupils.pupil.classrooms.classroom.ID = 1
+      order by pupils.pupil.classrooms.classroom.ID`
+    const expected = CQL`SELECT from Classrooms as Classrooms
+                        left join ClassroomsPupils as pupils on pupils.classroom_ID = Classrooms.ID
+                        left join Pupils as pupil on pupil.ID = pupils.pupil_ID
+                        left join ClassroomsPupils as classrooms2 on classrooms2.pupil_ID = pupil.ID
+                        {
+                          count(classrooms2.classroom_ID) as classCount
+                        } where    classrooms2.classroom_ID = 1
+                          order by classrooms2.classroom_ID`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 })

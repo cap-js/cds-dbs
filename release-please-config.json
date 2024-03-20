@@ -4,7 +4,7 @@
     "sqlite": {},
     "postgres": {},
     "hana": {
-      "release-as": "0.0.5"
+      "release-as": "0.0.7"
     }
   },
   "changelog-sections": [
