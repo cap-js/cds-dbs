@@ -286,7 +286,7 @@ describe('Bookshop - Read', () => {
       },
     }
 
-    expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
+    return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
   })
 
   test('Delete Book', async () => {
