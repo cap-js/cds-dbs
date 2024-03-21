@@ -133,7 +133,7 @@ describe('stored procedures', () => {
   })
 
   describe('with dynatrace', () => {
-    test('bla', async () => { // multiple parameters and table rows
+    test('multiple parameters and table rows', async () => {
       const exp = {
         TEST_1: [
           { ID: 1, title: '1' },
@@ -226,7 +226,7 @@ describe('stored procedures', () => {
       delete process.env.CDS_SKIP_DYNATRACE
     })
 
-    test('bla', async () => { // multiple parameters and table rows
+    test('multiple parameters and table rows', async () => {
       const exp = {
         TEST_1: [
           { ID: 1, title: '1' },

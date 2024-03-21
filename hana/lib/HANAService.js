@@ -1036,7 +1036,8 @@ class HANAService extends SQLService {
   }
 
   async onCall({ query, data }) {
-      const { name: procedureName, schema: procedureSchema } = _getProcedureNameAndSchema(query) || {}
+      const { name: procedureName, schema: procedureSchema } = _getProcedureNameAndSchema(query)
+      if (!procedureName) return
       const outParameters = await this._getProcedureMetadata(procedureName, procedureSchema)
       const ps = await this.prepare(query)
       return ps.proc(data, outParameters)     

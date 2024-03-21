@@ -110,7 +110,6 @@ class HANAClientDriver extends driver {
     }
 
     ret.proc = async (data, outParameters) => {
-      // const rows = await ret.all(data)
       const stmt = await ret._prep
       const rows = await prom(stmt, 'execQuery')(data)
       return this._getResultForProcedure(rows, outParameters, stmt)
@@ -150,15 +149,13 @@ class HANAClientDriver extends driver {
     return this._native.state() === 'connected'
   }
 
-  _getResultForProcedure(rows, outParameters, stmt) {  
+  _getResultForProcedure(rows, outParameters, stmt) {
     const result = {}
     // build result from scalar params
     const paramInfo = stmt.getParameterInfo()
-    if (paramInfo.some(p => p.direction > 1)) {
-      for (let i = 0; i < paramInfo.length; i++) {
-        if (paramInfo[i].direction > 1) {
-          result[paramInfo[i].name] = stmt.getParameterValue(i)
-        }
+    for (let i = 0; i < paramInfo.length; i++) {
+      if (paramInfo[i].direction > 1) {
+        result[paramInfo[i].name] = stmt.getParameterValue(i)
       }
     }
 
