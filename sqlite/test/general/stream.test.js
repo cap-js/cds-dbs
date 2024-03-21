@@ -83,6 +83,13 @@ describe('streaming', () => {
       const stream = await cds.stream(cqn)
       await checkSize(stream)
     })
+
+    test('READ stream property as array using SELECT CQN', async () => {
+      const { Images } = cds.entities('test')
+      const cqn = SELECT('data').from(Images).where('ID =', 1)
+      const stream = await cds.stream(cqn)
+      await checkSize(stream)
+    })
   })
 
   describe('Streaming API', () => {
