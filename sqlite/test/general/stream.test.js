@@ -208,7 +208,7 @@ describe('streaming', () => {
       }))
     })
 
-    describe.only('WRITE', () => {
+    describe('WRITE', () => {
       test('WRITE with incorrect data type results in error', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
 
