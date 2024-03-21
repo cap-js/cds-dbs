@@ -38,11 +38,12 @@ class HANAService extends SQLService {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
     return {
       options: {
         min: 0,
         max: 10,
-        acquireTimeoutMillis: cds.env.profiles.includes('production') ? 1000 : 10000,
+        acquireTimeoutMillis,
         idleTimeoutMillis: 60000,
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
@@ -60,7 +61,14 @@ class HANAService extends SQLService {
           HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
-          if (!isMultitenant || err.code !== 10) throw err
+          if (isMultitenant) {
+            // REVISIT: throw the error and break retry loop
+            // Stop trying when the tenant does not exist or is rate limited
+            if (err.status == 404 || err.status == 429)
+              return new Promise(function (_, reject) {
+                setTimeout(() => reject(err), acquireTimeoutMillis)
+              })
+          } else if (err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
           return this.create(tenant)
         }
@@ -157,7 +165,7 @@ class HANAService extends SQLService {
       const results = await (entries
         ? HANAVERSION <= 2
           ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : ps.run(entries[0])
+          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
         : ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
@@ -293,6 +301,10 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+
+      if (q.SELECT.from?.join && !q.SELECT.columns) {
+        throw new Error('CQN query using joins must specify the selected columns.')
+      }
 
       const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
@@ -833,8 +845,11 @@ class HANAService extends SQLService {
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
+          // When a logic operator is found the expression is not a comparison
+          // When it is a local check it cannot be compared outside of the xpr
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators || (!local && up in logicOperators)) return true
+          if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue

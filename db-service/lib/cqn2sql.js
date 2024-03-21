@@ -207,6 +207,11 @@ class CQN2SQLRenderer {
   SELECT(q) {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
       q.SELECT
+
+    if (from?.join && !q.SELECT.columns) {
+      throw new Error('CQN query using joins must specify the selected columns.')
+    }
+    
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
