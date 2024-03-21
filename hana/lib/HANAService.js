@@ -265,6 +265,57 @@ class HANAService extends SQLService {
     return this.ensureDBC().exec(sql)
   }
 
+  // Execute sql statement inside execution plan visualization API
+  async prepare_planviz(sql, hasBlobs) {
+    const stmt = await this.ensureDBC().prepare('CALL PLANVIZ_ACTION(?, ?)')
+
+    const { DATA: ID } = await stmt.get([208, sql])
+
+    const prep = await this.ensureDBC().prepare(`EXECUTE PLANVIZ STATEMENT ID '${ID}'`, hasBlobs)
+
+    const proxy = async (action, params) => {
+      const stmtID = this._stmtID ??= 0
+      this._stmtID++
+      const ret = await prep[action](params)
+      await stmt.run([514, `${ID}|${stmtID}`])
+      return ret
+    }
+
+    return {
+      run: params => proxy('run', params),
+      runBatch: params => proxy('runBatch', params),
+      get: params => proxy('get', params),
+      all: params => proxy('all', params),
+    }
+  }
+
+  async exec_planviz(sql) {
+    return (await this.prepare_planviz(sql)).run()
+  }
+
+  async save_planviz(folder) {
+    const traces = await this.dbc.exec(`SELECT HOST, FILE_NAME FROM SYS.M_TRACEFILES WHERE FILE_NAME LIKE '%.plv'`)
+    if (traces.length) {
+      const download = await this.dbc.prepare(
+        `SELECT
+STRING_AGG ( CONTENT, '' ORDER BY OFFSET) AS CONTENT
+FROM SYS.M_TRACEFILE_CONTENTS
+WHERE HOST = ? AND  FILE_NAME = ?
+GROUP BY FILE_NAME`
+      )
+
+      await fs.promises.mkdir(folder, { recursive: true })
+      for (const trace of traces) {
+        const [{ CONTENT }] = await download.all([trace.HOST, trace.FILE_NAME])
+        fs.promises.writeFile(path.resolve(folder, trace.FILE_NAME), CONTENT)
+      }
+
+      // Remove trace files from host
+      await this.dbc.exec(`ALTER SYSTEM REMOVE TRACES ('${traces[0].HOST}', ${traces.map(t => `'${t.FILE_NAME.replace(/'/g, "''")}'`)})`)
+    }
+    return traces.length
+  }
+
   /**
    * HDI specific deploy logic
    * @param {import('@sap/cds/apis/csn').CSN} model The CSN model to be deployed
