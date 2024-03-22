@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.1...postgres-v1.6.0) (2024-03-22)
+
+
+### Added
+
+* also support lowercase matchespattern function ([#528](https://github.com/cap-js/cds-dbs/issues/528)) ([6ea574e](https://github.com/cap-js/cds-dbs/commit/6ea574ee67ef5e42e4f8ccbe4fe91b46097de129))
+* forUpdate and forShareLock ([#148](https://github.com/cap-js/cds-dbs/issues/148)) ([99a1170](https://github.com/cap-js/cds-dbs/commit/99a1170e61de4fd0c505834c25a9c03fc34da85b))
+
+
+### Changed
+
+* use new cds build API @sap/cds-dk &gt;= 7.5.0 ([#508](https://github.com/cap-js/cds-dbs/issues/508)) ([ef22ebe](https://github.com/cap-js/cds-dbs/commit/ef22ebe68c6a554d4042a0a19bae3b2e1d56cb01))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.0...postgres-v1.5.1) (2024-02-16)
 
 
