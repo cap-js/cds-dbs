@@ -31,7 +31,7 @@
     "start": "docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.6.0",
+    "@cap-js/db-service": "^1.7.0",
     "pg": "^8"
   },
   "peerDependencies": {
