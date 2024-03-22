@@ -17,6 +17,10 @@
 
 * **`sqlite`:** use keyword list from compiler ([#526](https://github.com/cap-js/cds-dbs/issues/526)) ([a227c61](https://github.com/cap-js/cds-dbs/commit/a227c61312ba9e7d6a54944c822d5de0bb2d3f3c))
 
+### Changed
+
+* this package now requires `@cap-js/db-service >= v1.7.0` ([#545](https://github.com/cap-js/cds-dbs/issues/545)) ([2cec27d](https://github.com/cap-js/cds-dbs/commit/2cec27d91402804c3b2da25cc7169f0d81a7406a))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.5.0...sqlite-v1.5.1) (2024-02-16)
 
 

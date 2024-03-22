@@ -12,13 +12,13 @@
 * also support lowercase matchespattern function ([#528](https://github.com/cap-js/cds-dbs/issues/528)) ([6ea574e](https://github.com/cap-js/cds-dbs/commit/6ea574ee67ef5e42e4f8ccbe4fe91b46097de129))
 * forUpdate and forShareLock ([#148](https://github.com/cap-js/cds-dbs/issues/148)) ([99a1170](https://github.com/cap-js/cds-dbs/commit/99a1170e61de4fd0c505834c25a9c03fc34da85b))
 * **hana:** drop prepared statements after end of transaction ([#537](https://github.com/cap-js/cds-dbs/issues/537)) ([b1f864e](https://github.com/cap-js/cds-dbs/commit/b1f864e0a3a0e5efacd803d3709379cab76d61cc))
+* **hana:** Add views with parameters support ([#488](https://github.com/cap-js/cds-dbs/issues/488)) ([3790ec0](https://github.com/cap-js/cds-dbs/commit/3790ec0178aab2cdb429272bb3e813b13441785c))
 * **orderby:** allow to disable collations with [@cds](https://github.com/cds).collate: false ([#492](https://github.com/cap-js/cds-dbs/issues/492)) ([820f971](https://github.com/cap-js/cds-dbs/commit/820f971e1ad21fa8f8ca289c1e29b373365df484))
 
 
 ### Fixed
 
 * **cqn2sql:** Smart quoting of columns inside UPSERT rows ([#519](https://github.com/cap-js/cds-dbs/issues/519)) ([78fe10b](https://github.com/cap-js/cds-dbs/commit/78fe10b1df3691614dc77b1d4f82df10a1d641d3))
-* deep delete for views without navigation ([#434](https://github.com/cap-js/cds-dbs/issues/434)) ([3ebc9c2](https://github.com/cap-js/cds-dbs/commit/3ebc9c29362045916c9060528729320c0eae4391))
 * Getting rid of quirks mode ([#514](https://github.com/cap-js/cds-dbs/issues/514)) ([c9aa6e8](https://github.com/cap-js/cds-dbs/commit/c9aa6e835761ace38447f37cad6a5f39cb0b910c))
 * issue with reused select cqns ([#505](https://github.com/cap-js/cds-dbs/issues/505)) ([916d175](https://github.com/cap-js/cds-dbs/commit/916d1756422f0caf02c323052f2addafed39182a))
 * joins without columns are rejected ([#535](https://github.com/cap-js/cds-dbs/issues/535)) ([eb9beda](https://github.com/cap-js/cds-dbs/commit/eb9beda728de60081d7afbfcd49305eeb241f3fb))

@@ -16,6 +16,7 @@
 ### Changed
 
 * use new cds build API @sap/cds-dk &gt;= 7.5.0 ([#508](https://github.com/cap-js/cds-dbs/issues/508)) ([ef22ebe](https://github.com/cap-js/cds-dbs/commit/ef22ebe68c6a554d4042a0a19bae3b2e1d56cb01))
+* this package now requires `@cap-js/db-service >= v1.7.0` ([#545](https://github.com/cap-js/cds-dbs/issues/545)) ([2cec27d](https://github.com/cap-js/cds-dbs/commit/2cec27d91402804c3b2da25cc7169f0d81a7406a))
 
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.0...postgres-v1.5.1) (2024-02-16)
 
