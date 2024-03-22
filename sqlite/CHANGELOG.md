@@ -4,6 +4,23 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.5.1...sqlite-v1.6.0) (2024-03-22)
+
+
+### Added
+
+* forUpdate and forShareLock ([#148](https://github.com/cap-js/cds-dbs/issues/148)) ([99a1170](https://github.com/cap-js/cds-dbs/commit/99a1170e61de4fd0c505834c25a9c03fc34da85b))
+* **hana:** drop prepared statements after end of transaction ([#537](https://github.com/cap-js/cds-dbs/issues/537)) ([b1f864e](https://github.com/cap-js/cds-dbs/commit/b1f864e0a3a0e5efacd803d3709379cab76d61cc))
+
+
+### Fixed
+
+* **`sqlite`:** use keyword list from compiler ([#526](https://github.com/cap-js/cds-dbs/issues/526)) ([a227c61](https://github.com/cap-js/cds-dbs/commit/a227c61312ba9e7d6a54944c822d5de0bb2d3f3c))
+
+### Changed
+
+* this package now requires `@cap-js/db-service >= v1.7.0` ([#545](https://github.com/cap-js/cds-dbs/issues/545)) ([2cec27d](https://github.com/cap-js/cds-dbs/commit/2cec27d91402804c3b2da25cc7169f0d81a7406a))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.5.0...sqlite-v1.5.1) (2024-02-16)
 
 
