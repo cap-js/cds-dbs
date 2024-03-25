@@ -1,7 +1,7 @@
 const cds = require('@sap/cds/lib'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
-const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
@@ -25,14 +25,16 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
-        const elements = query.target?.elements; if (!elements) return
+        const elements = query.target?.elements
+        if (!elements) return
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
         if (!operation.columns && !operation.entries && !operation.data) return
         const columns =
           operation.columns ||
           Object.keys(
-            operation.data || operation.entries?.reduce((acc, obj) => {
+            operation.data ||
+            operation.entries?.reduce((acc, obj) => {
               return Object.assign(acc, obj)
             }, {}),
           )
@@ -115,7 +117,11 @@ class SQLService extends DatabaseService {
    */
   async onSELECT({ query, data }) {
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try {
+        this.infer(query)
+      } catch (e) {
+        /**/
+      }
     }
     if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
@@ -202,7 +208,31 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      let { compositions } = req.target
+      const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
+      if (transitions.target !== transitions.queryTarget) {
+        const keys = []
+        const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
+        for (const key in transitionsTarget) {
+          const exists = e => e && !e.virtual && !e.value && !e.isAssociation
+          if (exists(transitionsTarget[key])) keys.push(key)
+        }
+        const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
+        const query = DELETE.from({
+          ref: [
+            {
+              id: transitions.target.name,
+              where: [
+                { list: matchedKeys.map(k => transitions.mapping.get(k.ref[0])) },
+                'in',
+                SELECT.from(req.query.DELETE.from).columns(matchedKeys).where(req.query.DELETE.where),
+              ],
+            },
+          ],
+        })
+        return this.onDELETE({ query })
+      }
+      const table = getDBTable(req.query.target)
+      const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
@@ -214,11 +244,11 @@ class SQLService extends DatabaseService {
         }
         // Process child compositions depth-first
         let { depth = 0, visited = [] } = req
-        visited.push(req.target.name)
+        visited.push(req.query.target.name)
         await Promise.all(
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
-            if (c._target === req.target) {
+            if (c._target === req.query.target) {
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -229,7 +259,8 @@ class SQLService extends DatabaseService {
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
-            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+            query.target = c._target
+            return this.onDELETE({ query, depth, visited: [...visited] })
           }),
         )
       }
