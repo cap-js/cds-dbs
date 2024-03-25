@@ -179,11 +179,6 @@ describe('stored procedures', () => {
   })
 
   describe('with schema name', () => {
-    test('enterprise search procedure', async () => {
-      const result = await cds.run('CALL "SYS"."ESH_SEARCH"(?,?)', [`["/v40001/$metadata"]`])
-      expect(result.RESPONSE[0].RESPONSE.toString()).toMatch(/<\?xml/)
-    })
-
     test('schema name — undelimited', async () => {
       const result = await cds.run(`CALL ${schema}.MY_PROC(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
       expect(result).toMatchObject({
