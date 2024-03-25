@@ -11,8 +11,7 @@ describe('Bookshop - Order By', () => {
       // order by reference to the column unambiguously
       const query2 = SELECT.localized.from(`sap.capire.bookshop.Books`).columns(`createdBy`, `author.name`).orderBy(`createdBy`)
       const res = await query2
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(1)
+      expect(res.length).to.be.eq(5)
     })
 
 })
