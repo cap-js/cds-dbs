@@ -1035,10 +1035,8 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }) {
-      const { name: procedureName, schema: procedureSchema } = _getProcedureNameAndSchema(query)
-      if (!procedureName) return
-      const outParameters = await this._getProcedureMetadata(procedureName, procedureSchema)
+  async onCall({ query, data }, name, schema) {    
+      const outParameters = await this._getProcedureMetadata(name, schema)              
       const ps = await this.prepare(query)
       return ps.proc(data, outParameters)     
   }
@@ -1056,10 +1054,9 @@ class HANAService extends SQLService {
         throw err
       }
     }
-
-    if (typeof req.query === 'string' && /^CALL /i.test(req.query.trim())) {
-      return this.onCall(req, next)
-    }
+    
+    const proc = _getProcedureNameAndSchema(req.query)
+    if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
     return super.onPlainSQL(req, next)
   }
@@ -1152,7 +1149,7 @@ class HANAService extends SQLService {
     this.options.credentials = Object.assign({}, this.options.credentials, creds, {
       __database__: this.options.credentials,
     })
-  }
+}
 
 
   async _getProcedureMetadata(name, schema) {
@@ -1160,7 +1157,7 @@ class HANAService extends SQLService {
         schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
     return await super.onPlainSQL({ query, data: [] })   
-  }  
+  }   
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
@@ -1181,8 +1178,8 @@ function _not_unique(err, code) {
 
 function _getProcedureNameAndSchema(sql) {
   // name delimited with "" allows any character
-  const match = sql
-    .trim()
+  const match = sql    
+.trim()
     .match(
       /^call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
     )
@@ -1191,7 +1188,7 @@ function _getProcedureNameAndSchema(sql) {
       name: match.groups.undelimited ?? match.groups.delimited,
       schema: match.groups.schema_delimited || match.groups.schema_undelimited
     }
-  )
+      )
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

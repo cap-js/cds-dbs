@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "@cap-js/hana": "*",
-    "__@sap/hana-client": "*"
+    "@cap-js/hana": "*"
   }  
 }
