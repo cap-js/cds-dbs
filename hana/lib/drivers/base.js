@@ -172,7 +172,7 @@ const prom = function (dbc, func) {
     const stack = {}
     Error.captureStackTrace(stack)
     return new Promise((resolve, reject) => {
-      dbc[func](...args, (err, ...output) => {        
+      dbc[func](...args, (err, ...output) => {
         if (err) {
           if (!(err instanceof Error)) {
             Object.setPrototypeOf(err, Error.prototype)
