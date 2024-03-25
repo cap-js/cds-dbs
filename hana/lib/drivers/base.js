@@ -52,6 +52,10 @@ class HANADriver {
         const stmt = await prep
         return prom(stmt, 'exec')(params)
       },
+      drop: async () => {
+        const stmt = await prep
+        return stmt.drop()
+      }
     }
   }
 

@@ -255,7 +255,10 @@ class HANAService extends SQLService {
 
   // prepare and exec are both implemented inside the drivers
   prepare(sql, hasBlobs) {
-    return this.ensureDBC().prepare(sql, hasBlobs)
+    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
+    // we store the statements, to release them on commit/rollback all at once
+    this.dbc.statements.push(stmt)
+    return stmt
   }
 
   exec(sql) {
@@ -683,7 +686,7 @@ class HANAService extends SQLService {
     DROP(q) {
       const { target } = q
       const isView = target.query || target.projection
-      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
+      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
     }
 
     from_args(args) {
@@ -1063,16 +1066,25 @@ class HANAService extends SQLService {
 
   onBEGIN() {
     DEBUG?.('BEGIN')
+    if (this.dbc) this.dbc.statements = []
     return this.dbc?.begin()
   }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.rollback()
   }
 
