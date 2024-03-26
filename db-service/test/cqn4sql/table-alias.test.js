@@ -428,9 +428,11 @@ describe('table alias access', () => {
       // as down the line we always use collation expressions for localized sorting
       // we must prepend the table alias.
       // The simple reference will be wrapped in the expression and hence, expression name resolution rules kick in
-      // see also https://github.com/cap-js/cds-dbs/issues/543 
-      const query = SELECT.localized.from('bookshop.Books').columns('title', 'title as foo', 'author.name as author').orderBy('title', 'foo')
-      query.localized = true
+      // see also https://github.com/cap-js/cds-dbs/issues/543
+      const query = SELECT.localized
+        .from('bookshop.Books')
+        .columns('title', 'title as foo', 'author.name as author')
+        .orderBy('title', 'foo')
       let res = cqn4sql(query, model)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
       SELECT from bookshop.Books as Books
@@ -441,6 +443,26 @@ describe('table alias access', () => {
         author.name as author
       }
       ORDER BY Books.title, Books.title`)
+    })
+    it('for localized sorting, replace string expression', () => {
+      const query = CQL(`SELECT from bookshop.Books {
+        'simple string' as foo: cds.String,
+        substring('simple string') as bar: cds.String,
+        'simple' || 'string' as baz: cds.String,
+        author.name as author
+      } order by foo, bar, baz`)
+      query.SELECT.localized = true
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        'simple string' as foo: cds.String,
+        substring('simple string') as bar: cds.String,
+        'simple' || 'string' as baz: cds.String,
+        author.name as author
+      }
+      ORDER BY 'simple string', substring('simple string'), 'simple' || 'string'`)
     })
 
     it('supports ORDER BY clause with expressions', () => {

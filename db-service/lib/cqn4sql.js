@@ -879,16 +879,26 @@ function cqn4sql(originalQuery, model) {
         }
         const { target, definition } = col.$refLinks[0]
         let tableAlias = null
-        if (target.SELECT) { // usually TA is omitted if order by ref is a column
+        if (target.SELECT) {
+          // usually TA is omitted if order by ref is a column
           // if a localized sorting is requested, we add `COLLATE`s
           // later on, which transforms the simple name to an expression
           // --> in an expression, only source elements can be addressed, hence we must add TA
           if (target.SELECT.localized && definition.type === 'cds.String') {
             const referredCol = target.SELECT.columns.find(c => {
-              return c.as === col.ref[0] || c.ref.at(-1) === col.ref[0]
+              return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
             })
             col = referredCol
-            tableAlias = getQuerySourceName(col)
+            if (definition.kind === 'element') {
+              tableAlias = getQuerySourceName(col)
+            } else {
+              // we must replace the reference with the underlying expression
+              const { val, func, args, xpr } = col
+              if (val) res.push({ val })
+              if (func) res.push({ func, args })
+              if (xpr) res.push({ xpr })
+              continue
+            }
           }
         } else {
           tableAlias = getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
