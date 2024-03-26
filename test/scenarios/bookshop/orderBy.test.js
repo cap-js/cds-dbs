@@ -27,7 +27,7 @@ describe('Bookshop - Order By', () => {
   })
   test('collations with func', async () => {
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
-      concat('simple string') as bar: cds.String,
+      concat('simple', 'string') as bar: cds.String,
       author.name as author
     } order by bar`)
     const res = await cds.run(query)
