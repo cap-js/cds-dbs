@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.7.0...db-service-v1.8.0) (2024-03-26)
+
+
+### Added
+
+* support HANA stored procedures ([#542](https://github.com/cap-js/cds-dbs/issues/542)) ([52a00a0](https://github.com/cap-js/cds-dbs/commit/52a00a0d642ba3c58dcad97b3ea1456f1bf3b04a))
+
 ## [1.7.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.4...db-service-v1.7.0) (2024-03-22)
 
 
