@@ -35,6 +35,29 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
+  if (res.length > 1 && res[0].results) {
+    const summedResult = res[0]
+
+    summedResult.affectedRows = res.reduce((totalRows, result) => {
+      if (result.query?.target === target) {
+        return totalRows + result.affectedRows
+      }
+      return totalRows
+    }, summedResult.affectedRows || 0)
+
+    summedResult.results = res.slice(1).reduce(
+      (resultsArray, result) => {
+        if (result.results) {
+          resultsArray.push(result.results[0])
+        }
+        return resultsArray
+      },
+      summedResult.results.length ? summedResult.results : [summedResult.results],
+    )
+
+    return summedResult
+  }
+  
   return res[0] ?? 0 // TODO what todo with multiple result responses?
 }
 
