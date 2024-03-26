@@ -888,16 +888,18 @@ function cqn4sql(originalQuery, model) {
             const referredCol = target.SELECT.columns.find(c => {
               return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
             })
-            col = referredCol
-            if (definition.kind === 'element') {
-              tableAlias = getQuerySourceName(col)
-            } else {
-              // we must replace the reference with the underlying expression
-              const { val, func, args, xpr } = col
-              if (val) res.push({ val })
-              if (func) res.push({ func, args })
-              if (xpr) res.push({ xpr })
-              continue
+            if (referredCol) {
+              col = referredCol
+              if (definition.kind === 'element') {
+                tableAlias = getQuerySourceName(col)
+              } else {
+                // we must replace the reference with the underlying expression
+                const { val, func, args, xpr } = col
+                if (val) res.push({ val })
+                if (func) res.push({ func, args })
+                if (xpr) res.push({ xpr })
+                continue
+              }
             }
           }
         } else {
