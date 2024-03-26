@@ -795,19 +795,22 @@ function infer(originalQuery, model) {
             ? new cds.struct({ elements: inferredExpandSubquery.elements })
             : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
           return Object.defineProperty(res, '$assocExpand', { value: true })
-        } // struct
-        let elements = {}
-        expand.forEach(e => {
-          if (e === '*') {
-            elements = { ...elements, ...$leafLink.definition.elements }
-          } else {
-            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
-            if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
-            if (e.inline) elements = { ...elements, ...resolveInline(e) }
-            else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
-          }
-        })
-        return new cds.struct({ elements })
+        } else if ($leafLink.definition.elements) {
+          let elements = {}
+          expand.forEach(e => {
+            if (e === '*') {
+              elements = { ...elements, ...$leafLink.definition.elements }
+            } else {
+              inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
+              if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
+              if (e.inline) elements = { ...elements, ...resolveInline(e) }
+              else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
+            }
+          })
+          return new cds.struct({ elements })
+        } else {
+          throw new Error(`Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        }
       }
 
       function stepNotFoundInPredecessor(step, def) {

@@ -365,6 +365,17 @@ describe('negative', () => {
         ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
+
+    it('expand on `.items` not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails { address } }`, model)).to.throw(
+        "Unexpected “expand” on “emails”; can only be used after a reference to a structure, association or table alias"
+      )
+    })
+    it('expand on scalar not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name { address } }`, model)).to.throw(
+        "Unexpected “expand” on “name”; can only be used after a reference to a structure, association or table alias"
+      )
+    })
   })
 
   describe('infix filters', () => {
