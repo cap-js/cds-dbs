@@ -100,6 +100,13 @@ const StandardFunctions = {
    */
   matchesPattern: (x, y) => `(${x} regexp ${y})`,
   /**
+   * Generates SQL statement that matches the given string against a regular expression
+   * @param {string} x
+   * @param {string} y
+   * @returns {string}
+   */
+  matchespattern: (x, y) => `(${x} regexp ${y})`,
+  /**
    * Generates SQL statement that produces the lower case value of a given string
    * @param {string} x
    * @returns {string}
