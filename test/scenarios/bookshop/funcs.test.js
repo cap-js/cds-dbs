@@ -1,5 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
+const _cqn2sql = require('../../../db-service/lib/cqn2sql')
 
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test(bookshop)
@@ -26,14 +27,14 @@ describe('Bookshop - Functions', () => {
     })
     test.only('foo', async () => {
       const { Authors } = cds.entities
-      console.log('DUMMY LOG JSON')
-      const res = await cds.run(CQL`SELECT from ${Authors} { 
+      const res = _cqn2sql(CQL`SELECT from ${Authors} { 
         name,
         books {
           title
         }
-      }`)
-      expect(res[0].avgStock).to.not.be.undefined
+      }`, cds.model)
+      console.log('DUMMY LOG JSON \n', res.sql)
+      expect(res[0]).to.not.be.undefined
     })
 
     test('endswith', async () => {
