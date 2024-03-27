@@ -26,15 +26,20 @@ describe('Bookshop - Functions', () => {
       expect(res[0].avgStock).to.not.be.undefined
     })
     test.only('foo', async () => {
-      const { Authors } = cds.entities
-      const res = _cqn2sql(CQL`SELECT from ${Authors} { 
-        name,
-        books {
-          title
+      const { Authors, Books } = cds.entities
+      // const res = _cqn2sql(CQL`SELECT from ${Authors} { 
+      //   name,
+      //   books {
+      //     title
+      //   }
+      // }`, cds.model)
+      const res2 = _cqn2sql(CQL`SELECT from ${Books} { 
+        title,
+        author {
+          name
         }
       }`, cds.model)
-      console.log('DUMMY LOG JSON \n', res.sql)
-      expect(res.sql).to.equal(`SELECT * FROM BOOKS`)
+      expect(res2.sql).to.equal(`SELECT * FROM BOOKS`)
     })
 
     test('endswith', async () => {
