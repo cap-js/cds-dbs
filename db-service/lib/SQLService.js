@@ -281,17 +281,23 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
+
+    // Keep original query columns when potentially used insde conditions
+    const { having, groupBy } = query.SELECT
+    const columns = (having?.length || groupBy?.length)
+      ? query.SELECT.columns.filter(c => !c.expand)
+      : [{ val: 1 }]
+    const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
+        columns,
         localized: false,
         expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+    const { count } = await this.onSELECT({ query: cq })
+    return count
   }
 
   /**
