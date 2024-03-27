@@ -34,7 +34,7 @@ describe('Bookshop - Functions', () => {
         }
       }`, cds.model)
       console.log('DUMMY LOG JSON \n', res.sql)
-      expect(res[0]).to.not.be.undefined
+      expect(res.sql).to.equal(`SELECT * FROM BOOKS`)
     })
 
     test('endswith', async () => {
