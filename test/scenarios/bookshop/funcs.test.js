@@ -27,19 +27,19 @@ describe('Bookshop - Functions', () => {
     })
     test.only('foo', async () => {
       const { Authors, Books } = cds.entities
-      // const res = _cqn2sql(CQL`SELECT from ${Authors} { 
-      //   name,
-      //   books {
-      //     title
-      //   }
-      // }`, cds.model)
-      const res2 = _cqn2sql(CQL`SELECT from ${Books} { 
-        title,
-        author {
-          name
+      const res = _cqn2sql(CQL`SELECT from ${Authors} as BAZ { 
+        name,
+        books {
+          title
         }
       }`, cds.model)
-      expect(res2.sql).to.equal(`SELECT * FROM BOOKS`)
+      // const res2 = _cqn2sql(CQL`SELECT from ${Books} as BAZ { 
+      //   title,
+      //   author {
+      //     name
+      //   }
+      // }`, cds.model)
+      expect(res.sql).to.equal(`SELECT * FROM BOOKS`)
     })
 
     test('endswith', async () => {

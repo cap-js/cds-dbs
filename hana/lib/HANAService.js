@@ -130,6 +130,9 @@ class HANAService extends SQLService {
     }
 
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
+    if(query.SELECT.from?.as === 'BAZ') {
+      console.log('LOGGIN DUMMY JSON', sql)
+    }
     delete query.SELECT.expand
 
     // REVISIT: add prepare options when param:true is used
