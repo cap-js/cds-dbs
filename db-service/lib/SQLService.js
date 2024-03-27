@@ -65,21 +65,22 @@ class SQLService extends DatabaseService {
       return
     }
 
+    let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
-          rows.forEach(row => {
-            this._changeToStreams(col.SELECT.columns, row[name], false, compat)
-          })
+          changes = rows.find(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
       } else if (col.element?.type === 'cds.LargeBinary') {
+        changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
           })
       } else if (col.element?.type in BINARY_TYPES) {
+        changes = true
         if (one) rows[0][name] = this._buffer(rows[0][name])
         else
           rows.forEach(row => {
@@ -87,6 +88,7 @@ class SQLService extends DatabaseService {
           })
       }
     }
+    return changes
   }
 
   _stream(val) {
