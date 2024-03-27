@@ -24,6 +24,17 @@ describe('Bookshop - Functions', () => {
       }`)
       expect(res[0].avgStock).to.not.be.undefined
     })
+    test.only('foo', async () => {
+      const { Authors } = cds.entities
+      console.log('DUMMY LOG JSON')
+      const res = await cds.run(CQL`SELECT from ${Authors} { 
+        name,
+        books {
+          title
+        }
+      }`)
+      expect(res[0].avgStock).to.not.be.undefined
+    })
 
     test('endswith', async () => {
       const [res, wrong] = await Promise.all([

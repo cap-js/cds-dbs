@@ -20,7 +20,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "npm start && jest --silent",
+    "test": "npm start && DEBUG=sql jest --silent",
     "test:remote": "jest --silent",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",

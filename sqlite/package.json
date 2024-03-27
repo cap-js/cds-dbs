@@ -27,7 +27,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "jest --silent"
+    "test": "DEBUG=sql jest --silent"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.7.0",
