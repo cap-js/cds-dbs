@@ -12,6 +12,8 @@ exports[`cqn2sql ONE one results in limit 1 1`] = `"SELECT Foo.a,Foo.b,Foo.c FRO
 
 exports[`cqn2sql ORDER BY ORDER BY alias 1`] = `"SELECT Foo.a,Foo.b,count(Foo.x) as count1 FROM Foo as Foo ORDER BY count1 ASC"`;
 
+exports[`cqn2sql ORDER BY ORDER BY with @cds.collate false 1`] = `"SELECT FooCollate.ID,FooCollate.collateString,FooCollate.nonCollateString FROM FooCollate as FooCollate ORDER BY FooCollate.collateString COLLATE NOCASE ASC,FooCollate.nonCollateString ASC"`;
+
 exports[`cqn2sql WHERE EXISTS with nested EXISTS 1`] = `"SELECT T2.ID,T2.a,T2.b,T2.c,T2.x FROM Foo as T2 WHERE exists (SELECT 1 FROM Books as T1 WHERE T1.ID = 1 and exists (SELECT 1 FROM Foo2 as T0 WHERE T0.ID = 11 and T1.ID = T0.a) and T2.ID = T1.ID)"`;
 
 exports[`cqn2sql WHERE entries where one column holds entries smaller than 9 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x < 9"`;

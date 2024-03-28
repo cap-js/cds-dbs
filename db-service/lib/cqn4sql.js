@@ -111,7 +111,7 @@ function cqn4sql(originalQuery, model) {
 
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(originalQuery.sources)[0]
+        const queryTarget = Object.values(originalQuery.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
         keys.forEach(k => {
@@ -181,10 +181,9 @@ function cqn4sql(originalQuery, model) {
 
     if (inferred.SELECT.search) {
       // Search target can be a navigation, in that case use _target to get the correct entity
-      const where = transformSearchToWhere(inferred.SELECT.search, transformedFrom)
-      if (where) {
-        transformedQuery.SELECT.where = where
-      }
+      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
+      if (where) transformedQuery.SELECT.where = where
+      else if (having) transformedQuery.SELECT.having = having
     }
     return transformedQuery
   }
@@ -204,20 +203,26 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-   * Transforms a search expression to a WHERE clause for a SELECT operation.
+   * Transforms a search expression into a WHERE or HAVING clause for a SELECT operation, depending on the context of the query.
+   * The function decides whether to use a WHERE or HAVING clause based on the presence of aggregated columns in the search criteria.
    *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} search - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|undefined)} - If the target of the query contains searchable elements, the function returns an array that represents the WHERE clause.
-   *     If the SELECT query already contains a WHERE clause, this array includes the existing clause and appends an AND condition with the new 'contains' clause.
-   *     If the SELECT query does not contain a WHERE clause, the returned array solely consists of the 'contains' clause.
-   *     If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
+   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
+   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
+   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
+   *     - If the target entity of the query does not contain searchable elements, the function returns null.
    *
+   * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
+   * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearchToWhere(search, from) {
+  function transformSearch(search, from) {
     const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
-    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    // pass transformedQuery because we may need to search in the columns directly
+    // in case of aggregation
+    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
     if (searchIn.length > 0) {
       const xpr = search
       const contains = {
@@ -228,10 +233,16 @@ function cqn4sql(originalQuery, model) {
         ],
       }
 
-      if (transformedQuery.SELECT.where) {
-        return [asXpr(transformedQuery.SELECT.where), 'and', contains]
+      // if the query is grouped and the queries columns contain an aggregate function,
+      // we must put the search term into the `having` clause, as the search expression
+      // is defined on the aggregated result, not on the individual rows
+      let prop = 'where'
+
+      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
+      if (transformedQuery.SELECT[prop]) {
+        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
       } else {
-        return [contains]
+        return { [prop]: [contains] }
       }
     } else {
       return null
@@ -255,9 +266,12 @@ function cqn4sql(originalQuery, model) {
      */
     const alreadySeen = new Map()
     inferred.joinTree._roots.forEach(r => {
-      const args = r.queryArtifact.SELECT
-        ? [{ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias }]
-        : [{ ref: [localized(r.queryArtifact)], as: r.alias }]
+      const args = []
+      if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
+      else {
+        const id = localized(r.queryArtifact)
+        args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
+      }
       from = { join: 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
@@ -282,10 +296,13 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
+      const id = localized(getDefinition(nextAssoc.$refLink.definition.target))
+      const { args } = nextAssoc
       const arg = {
-        ref: [localized(getDefinition(nextAssoc.$refLink.definition.target))],
+        ref: [args ? { id, args } : id],
         as: nextAssoc.$refLink.alias,
       }
+
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
@@ -472,13 +489,17 @@ function cqn4sql(originalQuery, model) {
 
     function getTransformedColumn(col) {
       if (col.xpr) {
-        return { xpr: getTransformedTokenStream(col.xpr) }
+        const xpr = { xpr: getTransformedTokenStream(col.xpr) }
+        if (col.cast) xpr.cast = col.cast
+        return xpr
       } else if (col.func) {
-        return {
+        const func = {
           func: col.func,
           args: col.args && getTransformedTokenStream(col.args),
-          as: col.func,
+          as: col.func, // may be overwritten by the explicit alias
         }
+        if (col.cast) func.cast = col.cast
+        return func
       } else {
         return copy(col)
       }
@@ -680,7 +701,7 @@ function cqn4sql(originalQuery, model) {
     // select from books { { * } as bar }
     // only possible if there is exactly one query source
     if (!baseRef.length) {
-      const [tableAlias, definition] = Object.entries(inferred.sources)[0]
+      const [tableAlias, { definition }] = Object.entries(inferred.sources)[0]
       baseRef.push(tableAlias)
       baseRefLinks.push({ definition, source: definition })
     }
@@ -849,7 +870,8 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)) continue
+        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true))
+          continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
@@ -1260,7 +1282,7 @@ function cqn4sql(originalQuery, model) {
               }”`,
             )
           }
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true))
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
@@ -1552,7 +1574,7 @@ function cqn4sql(originalQuery, model) {
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
         if (stepLink.definition.target && nextStepLink) {
-          const { where } = nextStep
+          const { where, args } = nextStep
           if (isStructured(nextStepLink.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
@@ -1573,7 +1595,7 @@ function cqn4sql(originalQuery, model) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
-          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where))
+          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where, false, args))
         }
       }
 
@@ -1607,7 +1629,12 @@ function cqn4sql(originalQuery, model) {
 
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
-      transformedFrom.ref = [localized(transformedFrom.$refLinks[0].target)]
+
+      let args = from.ref.at(-1).args
+      const subquerySource = transformedFrom.$refLinks[0].target
+      if (subquerySource.params && !args) args = {}
+      const id = localized(subquerySource)
+      transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1738,7 +1765,8 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
-              const definition = prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
+              const definition =
+                prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
               thing.$refLinks[i] = { definition, target, alias: definition.name }
               return prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
@@ -1933,7 +1961,7 @@ function cqn4sql(originalQuery, model) {
    *                    -> if it is, target and source side are flipped in the where exists subquery
    * @returns {CQN.SELECT}
    */
-  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false) {
+  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, customArgs = null) {
     const { definition } = current
     const { definition: nextDefinition } = next
     const on = []
@@ -1957,9 +1985,12 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
 
+    const subquerySource = assocTarget(nextDefinition) || nextDefinition
+    const id = localized(subquerySource)
+    if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
-        ref: [localized(assocTarget(nextDefinition) || nextDefinition)],
+        ref: [customArgs ? { id, args: customArgs } : id],
         as: next.alias,
       },
       columns: [
@@ -1995,7 +2026,12 @@ function cqn4sql(originalQuery, model) {
    * @returns true if the given definition shall be localized
    */
   function isLocalized(definition) {
-    return inferred.SELECT?.localized && definition['@cds.localized'] !== false
+    return (
+      inferred.SELECT?.localized &&
+      definition['@cds.localized'] !== false &&
+      !inferred.SELECT.forUpdate &&
+      !inferred.SELECT.forShareLock
+    )
   }
 
   /** returns the CSN definition for the given name from the model */

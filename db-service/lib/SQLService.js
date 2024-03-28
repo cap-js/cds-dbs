@@ -129,10 +129,13 @@ class SQLService extends DatabaseService {
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    const expand = query.SELECT.expand
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
@@ -293,7 +296,7 @@ class SQLService extends DatabaseService {
    * @param {string} sql
    */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
+    return /^\s*(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /**
@@ -309,17 +312,23 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
+
+    // Keep original query columns when potentially used insde conditions
+    const { having, groupBy } = query.SELECT
+    const columns = (having?.length || groupBy?.length)
+      ? query.SELECT.columns.filter(c => !c.expand)
+      : [{ val: 1 }]
+    const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
+        columns,
         localized: false,
         expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+    const { count } = await this.onSELECT({ query: cq })
+    return count
   }
 
   /**

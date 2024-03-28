@@ -47,13 +47,16 @@ function infer(originalQuery, model) {
   Object.defineProperties(inferred, {
     // REVISIT: public, or for local reuse, or in cqn4sql only?
     sources: { value: sources, writable: true },
-    target: { value: aliases.length === 1 ? sources[aliases[0]] : originalQuery, writable: true }, // REVISIT: legacy?
+    target: {
+      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
+      writable: true,
+    }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
   Object.defineProperties(originalQuery, {
     sources: { value: sources, writable: true },
     target: {
-      value: aliases.length === 1 ? sources[aliases[0]] : originalQuery,
+      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
       writable: true,
     },
   })
@@ -94,7 +97,8 @@ function infer(originalQuery, model) {
   function inferTarget(from, querySources) {
     const { ref } = from
     if (ref) {
-      const first = ref[0].id || ref[0]
+      const { id, args } = ref[0]
+      const first = id || ref[0]
       let target = getDefinition(first) || cds.error`"${first}" not found in the definitions of your model`
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
@@ -113,17 +117,18 @@ function infer(originalQuery, model) {
         from.as ||
         (ref.length === 1 ? first.match(/[^.]+$/)[0] : ref[ref.length - 1].id || ref[ref.length - 1])
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
-      querySources[alias] = target
+      querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
       from.args.forEach(a => inferTarget(a, querySources))
     } else if (from.SELECT) {
       infer(from, model) // we need the .elements in the sources
-      querySources[from.as || ''] = from
+      querySources[from.as || ''] = { definition: from }
     } else if (typeof from === 'string') {
-      querySources[/([^.]*)$/.exec(from)[0]] =
-        getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
+      // TODO: Create unique alias, what about duplicates?
+      const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
+      querySources[/([^.]*)$/.exec(from)[0]] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }
@@ -244,7 +249,7 @@ function infer(originalQuery, model) {
   function inferCombinedElements() {
     const combinedElements = {}
     for (const index in sources) {
-      const tableAlias = sources[index]
+      const tableAlias = getDefinitionFromSources(sources, index)
       for (const key in tableAlias.elements) {
         if (key in combinedElements) combinedElements[key].push({ index, tableAlias })
         else combinedElements[key] = [{ index, tableAlias }]
@@ -509,13 +514,19 @@ function infer(originalQuery, model) {
             }
             nameSegments.push(id)
           } else if (firstStepIsTableAlias) {
-            column.$refLinks.push({ definition: sources[id], target: sources[id] })
+            column.$refLinks.push({
+              definition: getDefinitionFromSources(sources, id),
+              target: getDefinitionFromSources(sources, id),
+            })
           } else if (firstStepIsSelf) {
             column.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
           } else if (column.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
             // outer query accessed via alias
             const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
-            column.$refLinks.push({ definition: outerAlias.sources[id], target: outerAlias.sources[id] })
+            column.$refLinks.push({
+              definition: getDefinitionFromSources(outerAlias.sources, id),
+              target: getDefinitionFromSources(outerAlias.sources, id),
+            })
           } else if (id in $combinedElements) {
             if ($combinedElements[id].length > 1) stepIsAmbiguous(id) // exit
             const definition = $combinedElements[id][0].tableAlias.elements[id]
@@ -525,8 +536,8 @@ function infer(originalQuery, model) {
           } else if (expandOnTableAlias) {
             // expand on table alias
             column.$refLinks.push({
-              definition: sources[id],
-              target: sources[id],
+              definition: getDefinitionFromSources(sources, id),
+              target: getDefinitionFromSources(sources, id),
             })
           } else {
             stepNotFoundInCombinedElements(id) // REVISIT: fails with {__proto__:elements)
@@ -603,7 +614,8 @@ function infer(originalQuery, model) {
         }
 
         column.$refLinks[i].alias = !column.ref[i + 1] && column.as ? column.as : id.split('.').pop()
-        if (getDefinition(column.$refLinks[i].definition.target)?.['@cds.persistence.skip'] === true) isPersisted = false
+        if (getDefinition(column.$refLinks[i].definition.target)?.['@cds.persistence.skip'] === true)
+          isPersisted = false
         if (!column.ref[i + 1]) {
           const flatName = nameSegments.join('_')
           Object.defineProperty(column, 'flatName', { value: flatName, writable: true })
@@ -721,7 +733,8 @@ function infer(originalQuery, model) {
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
-            const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
+            const leafLinkElements =
+              getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
             Object.entries(leafLinkElements).forEach(([k, v]) => {
               const name = namePrefix ? `${namePrefix}_${k}` : k
               // if overwritten/excluded omit from wildcard elements
@@ -812,6 +825,7 @@ function infer(originalQuery, model) {
       function stepNotFoundInCombinedElements(step) {
         throw new Error(
           `"${step}" not found in the elements of ${Object.values(sources)
+            .map(s => s.definition)
             .map(def => `"${def.name || /* subquery */ def.as}"`)
             .join(', ')}`,
         )
@@ -972,12 +986,12 @@ function infer(originalQuery, model) {
       const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
 
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
-        const { elements } = sources[aliases[0]]
+        const { elements } = getDefinitionFromSources(sources, aliases[0])
         // only one query source and no overwritten columns
         Object.keys(elements)
           .filter(k => !exclude(k))
           .forEach(k => {
-            const element = sources[aliases[0]].elements[k]
+            const element = elements[k]
             if (element.type !== 'cds.LargeBinary') queryElements[k] = element
             if (element.value) {
               linkCalculatedElement(element)
@@ -1107,8 +1121,12 @@ function infer(originalQuery, model) {
 
   /** returns the CSN definition for the given name from the model */
   function getDefinition(name) {
-    if(!name) return null
+    if (!name) return null
     return model.definitions[name]
+  }
+
+  function getDefinitionFromSources(sources, id) {
+    return sources[id].definition
   }
 
   /**
@@ -1130,6 +1148,7 @@ function infer(originalQuery, model) {
     }, '')
   }
 }
+
 /**
  * Returns true if e is a foreign key of assoc.
  * this function is also compatible with unfolded csn (UCSN),

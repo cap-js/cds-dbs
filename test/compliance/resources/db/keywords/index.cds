@@ -12,4 +12,5 @@ entity Alter {
 entity ASC {
   key ID : Integer;
   alias: Integer;
+  ![select]: Integer;
 }
