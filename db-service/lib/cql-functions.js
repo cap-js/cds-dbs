@@ -223,7 +223,9 @@ const StandardFunctions = {
    */
   totaloffsetminutes: x => `case
     when substr(${x}, length(${x})) = 'z' then 0
-    else sign(cast(substr(${x}, length(${x})-5) as Integer))*(cast(strftime('%H',substr(${x},length(${x})-4)) as Integer)*60 + cast(strftime('%M', substr(${x},length(${x})-4)) as Integer))
+    else sign( cast( substr(${x}, length(${x}) - 5) as Integer )) *
+    ( cast( strftime('%H', substr(${x}, length(${x}) - 4 )) as Integer )*60 +
+    cast( strftime('%M', substr(${x},length(${x}) - 4 )) as Integer ))
   end`,
 
   // odata spec defines the value format for totalseconds as a duration like: P12DT23H59M59.999999999999S
