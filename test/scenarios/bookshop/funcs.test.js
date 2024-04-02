@@ -1,5 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
+cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test(bookshop)
@@ -261,7 +262,7 @@ describe('Bookshop - Functions', () => {
 
     test.skip('fractionalseconds', async () => {
       // okra error: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
-      // new adapter: no error, wrong result
+      // HANA error: invalid name of function or procedure: FRACTIONALSECONDS, works with SQLite
       const res = await GET(
         `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:00.321Z) eq 321&$top=1`,
       )
@@ -277,7 +278,7 @@ describe('Bookshop - Functions', () => {
     })
     test.skip('maxdatetime', async () => {
       // okra error: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
-      // new adapter error: 500 - sql error
+      // HANA error: invalid name of function or procedure: MAXDATETIME, works with SQLite
       const res = await GET(`/browse/Books?$select=ID&$filter=maxdatetime() eq 9999-12-31T23:59:59.999Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
@@ -285,7 +286,7 @@ describe('Bookshop - Functions', () => {
     })
     test.skip('mindatetime', async () => {
       // okra error: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
-      // new adapter error: 500 - sql error
+      // HANA error: invalid name of function or procedure: MINDATETIME, works with SQLite
       const res = await GET(`/browse/Books?$select=ID&$filter=mindatetime() eq 0001-01-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
@@ -305,7 +306,6 @@ describe('Bookshop - Functions', () => {
     })
     test('now', async () => {
       // REVISIT: this test does not really proof much
-      // new adapter error: 500 - sql error
       const res = await GET(`/browse/Books?$select=ID&$filter=now() gt 1970-03-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
@@ -328,9 +328,9 @@ describe('Bookshop - Functions', () => {
     })
     test.skip('totaloffsetminutes', async () => {
       // okra error: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
-      // new adapter: no error, wrong result
+      // new adapter: REVISIT: getting transformed date without timeoffset from service layer 
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`,
+        `/browse/Books?$select=ID&$filter=totaloffsetminutes('2000-01-01T23:45:13-10:30') eq -630&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
