@@ -19,7 +19,7 @@ class HDBDriver extends driver {
    * Instantiates the HDBDriver class
    * @param {import('./base').Credentials} creds The credentials for the HDBDriver instance
    */
-  constructor(creds) {
+  constructor(creds, forBlobs) {
     creds = {
       useCesu8: false,
       fetchSize: 1 << 16, // V8 default memory page size
@@ -36,10 +36,16 @@ class HDBDriver extends driver {
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
 
+    if (!forBlobs) {
+      this._blobs = new HDBDriver(creds, true)
+      this._blobs.destroy = () => { this._blobs = undefined }
+    }
+
     this.connected = false
   }
 
   set(variables) {
+    if (this._blobs) { this._blobs.set(variables) }
     const clientInfo = this._native._connection.getClientInfo()
     for (const key in variables) {
       clientInfo.setProperty(key, variables[key])
@@ -70,7 +76,17 @@ class HDBDriver extends driver {
     })
   }
 
+  async disconnect() {
+    if (this._blobs) { await this._blobs.disconnect() }
+    return super.disconnect()
+  }
+
   async prepare(sql, hasBlobs) {
+    if (hasBlobs && this._blobs) {
+      if (!this._blobs.connected) await this._blobs.connect()
+      return this._blobs.prepare(sql, hasBlobs)
+    }
+
     const ret = await super.prepare(sql)
 
     if (hasBlobs) {
