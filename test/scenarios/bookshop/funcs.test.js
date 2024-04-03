@@ -1,7 +1,17 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
+cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
+/*   let new_adapter
+  beforeAll(() => {
+    new_adapter = cds.env.features.odata_new_adapter
+    cds.env.features.odata_new_adapter = true
+  }) 
+  afterAll(() => {
+    cds.env.features.odata_new_adapter = new_adapter
+  }) */
+
   const { expect, GET } = cds.test(bookshop)
 
   describe('String Functions', () => {
@@ -236,9 +246,8 @@ describe('Bookshop - Functions', () => {
     })
 
     // REVISIT: does not seem database relevant
-    test.skip('date', async () => {
-      // HAHA error: 328 - invalid name of function or procedure: DATE, works on SQLite
-      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=date(createdAt) gt 2024-03-26&$top=1`)
+    test('date', async () => {
+      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=date(2023-03-29T15:44:58.999Z) eq 2023-03-29&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
@@ -251,18 +260,17 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test('date function with null value', async () => {
+    test('day function with null value', async () => {
       const { result } = await SELECT.one(`day(null) as result`)
       .from('sap.capire.bookshop.Books')
 
       expect(result).to.be.null
     })
 
-    test.skip('fractionalseconds', async () => {
+    test('fractionalseconds', async () => {
       // okra error: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
-      // HANA error: invalid name of function or procedure: FRACTIONALSECONDS, works on SQLite
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:00.321Z) eq 321&$top=1`,
+        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) eq 0.321&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
@@ -274,24 +282,22 @@ describe('Bookshop - Functions', () => {
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    test.skip('maxdatetime', async () => {
+    test('maxdatetime', async () => {
       // okra error: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
-      // HANA error: invalid name of function or procedure: MAXDATETIME, works on SQLite
       const res = await GET(`/browse/Books?$select=ID&$filter=maxdatetime() eq 9999-12-31T23:59:59.999Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    test.skip('mindatetime', async () => {
+    test('mindatetime', async () => {
       // okra error: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
-      // HANA error: invalid name of function or procedure: MINDATETIME, works on SQLite
       const res = await GET(`/browse/Books?$select=ID&$filter=mindatetime() eq 0001-01-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
     test('minute', async () => {
-      const res = await GET(`/browse/Books?$select=ID&$filter=minute(1970-01-01T00:32:00.000Z) eq 32&$top=1`)
+      const res = await GET(`/browse/Books?$select=ID&$filter=minute(1970-01-01T00:32:10.000Z) eq 32&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
@@ -302,25 +308,23 @@ describe('Bookshop - Functions', () => {
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    test.skip('now', async () => {
+    test('now', async () => {
       // REVISIT: this test does not really proof much
       // Postgres error: 42883 - function session_context(unknown) does not exist
-      const res = await GET(`/browse/Books?$select=ID&$filter=now() gt 1970-03-01T00:00:00.000Z&$top=1`)
+      const res = await GET(`/browse/Books?$select=ID&$filter=now() gt 2023-03-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
     test('second', async () => {
-      const res = await GET(`/browse/Books?$select=ID&$filter=second(1970-01-01T00:00:45.000Z) eq 45&$top=1`)
+      const res = await GET(`/browse/Books?$select=ID&$filter=second(1970-01-01T00:00:45.123Z) eq 45&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
     // REVISIT: does not seem database relevant
-    test.skip('time', async () => {
-      // Error on HANA with okra and new adapter: 328 - invalid name of function or procedure: TIME
-      // Works on SQLite
-      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=time(createdAt) gt 00:01:45&$top=1`)
+    test('time', async () => {
+      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=time(2023-03-29T15:44:58.999Z) eq 15:44:58&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)

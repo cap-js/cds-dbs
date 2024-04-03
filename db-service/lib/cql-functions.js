@@ -201,7 +201,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  fractionalseconds: x => `cast( strftime('%f0000',${x}) * 1000 as Integer )`,
+  fractionalseconds: x => `cast( substr( strftime('%f', ${x}), length(strftime('%f', ${x})) - 3) as REAL)`,
 
   /**
    * maximum date time value
@@ -224,7 +224,7 @@ const StandardFunctions = {
   totaloffsetminutes: x => `case
     when substr(${x}, length(${x})) = 'z' then 0
     else sign( cast( substr(${x}, length(${x}) - 5) as Integer )) *
-    ( cast( strftime('%H', substr(${x}, length(${x}) - 4 )) as Integer )*60 +
+    ( cast( strftime('%H', substr(${x}, length(${x}) - 4 )) as Integer ) * 60 +
     cast( strftime('%M', substr(${x},length(${x}) - 4 )) as Integer ))
   end`,
 
