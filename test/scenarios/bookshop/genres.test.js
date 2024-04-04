@@ -85,6 +85,7 @@ describe('Bookshop - Genres', () => {
     })
 
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
+    
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
     assert.deepEqual(res.data, {

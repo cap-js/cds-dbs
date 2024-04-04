@@ -1,4 +1,5 @@
 const cds = require('@sap/cds')
+const { Object_keys } = cds.utils
 const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
 
@@ -26,15 +27,20 @@ async function onDeep(req, next) {
   const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
 
-  const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
-  if (query.UPDATE && !beforeData.length) return 0
+  let queries
+  if (query.DELETE) {
+    queries = _deepDelete(query, target)
+  } else {
+    queries = _deepInUpsert(query, target)
+  }
 
-  const queries = getDeepQueries(query, beforeData, target)
-  const res = await Promise.all(queries.map(query => {
-    if (query.INSERT) return this.onINSERT({ query })
-    if (query.UPDATE) return this.onUPDATE({ query })
-    if (query.DELETE) return this.onSIMPLE({ query })
-  }))
+  const res = await Promise.all(
+    queries.map(query => {
+      if (query.DELETE) return this.onSIMPLE({ query })
+      if (query.UPSERT) return this.onUPSERT({ query })
+      if (query.INSERT) return this.onINSERT({ query })
+    }),
+  )
   return res[0] ?? 0 // TODO what todo with multiple result responses?
 }
 
@@ -149,43 +155,113 @@ const getExpandForDeep = (query, target) => {
   return SELECT(columns).from(entity).where(where)
 }
 
+const getDeleteQuery = (target, data, compName) => {
+  const notInKeys = whereIn(target.elements[compName]._target, data[compName], true)
+
+  const keys = entity_keys(target)
+  const _where = keys.reduce((where, key) => {
+    if (where.length) where.push('and')
+    where.push({ ref: [key] }, '=', { val: data[key] })
+    return where
+  }, [])
+
+  return DELETE.from({
+    ref: [{ id: target.name, where: _where }, compName],
+  }).where(notInKeys)
+}
+
+/**
+ * @param {import('@sap/cds/apis/cqn').Query} query
+ * @param {import('@sap/cds/apis/csn').Definition} target
+ * @returns {import('@sap/cds/apis/cqn').Query[]}
+ */
+const _deepDelete = async (query, target) => {
+  const dbData = await this.run(getExpandForDeep(query, target, true))
+  let diff = compareJson([], dbData, target)
+  if (!Array.isArray(diff)) {
+    diff = [diff]
+  }
+
+  return _getDeepDeleteQueries(diff, target, true)
+}
+
 /**
  * @param {import('@sap/cds/apis/cqn').Query} query
  * @param {unknown[]} dbData
  * @param {import('@sap/cds/apis/csn').Definition} target
- * @returns
+ * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const getDeepQueries = (query, dbData, target) => {
+const _deepInUpsert = (query, target) => {
   let queryData
   if (query.INSERT) {
     queryData = query.INSERT.entries
-  }
-  if (query.DELETE) {
-    queryData = []
   }
   if (query.UPDATE) {
     queryData = [query.UPDATE.data]
   }
 
-  let diff = compareJson(queryData, dbData, target)
-  if (!Array.isArray(diff)) {
-    diff = [diff]
-  }
-
-  return _getDeepQueries(diff, target, true)
+  return _getDeepInUpsertQueries(queryData, target, !!query.UPDATE)
 }
 
-const _hasManagedElements = target => {
-  return Object.keys(target.elements).filter(elementName => target.elements[elementName]['@cds.on.update']).length > 0
+/**
+ * @param {unknown[]} data
+ * @param {import('@sap/cds/apis/csn').Definition} target
+ * @returns {import('@sap/cds/apis/cqn').Query[]}
+ */
+const _getDeepInUpsertQueries = (data, target, isUpsert) => {
+  const queries = []
+
+  for (const dataEntry of data) {
+    if (dataEntry === undefined) continue
+    const subQueries = []
+
+    const toBeIgnoredProps = []
+    for (const prop in dataEntry) {
+      // handle deep operations
+      const propData = dataEntry[prop]
+
+      if (target.elements[prop] && _hasPersistenceSkip(target.elements[prop]._target)) {
+        toBeIgnoredProps.push(prop)
+      } else if (target.compositions?.[prop]) {
+        const arrayed = Array.isArray(propData) ? propData : [propData]
+        arrayed.forEach(subEntry => {
+          subQueries.push(..._getDeepInUpsertQueries([subEntry], target.elements[prop]._target, isUpsert))
+        })
+        const deleteQuery = getDeleteQuery(target, dataEntry, prop)
+        if (isUpsert) queries.push(deleteQuery)
+        toBeIgnoredProps.push(prop)
+      } else if (dataEntry[prop] === undefined) {
+        // restore current behavior, if property is undefined, not part of payload
+        toBeIgnoredProps.push(prop)
+      }
+    }
+
+    const dataCopy = {}
+
+    for (const key in dataEntry) {
+      if (toBeIgnoredProps.includes(key) || target.elements[key].virtual) continue
+      dataCopy[key] = dataEntry[key]
+    }
+
+    const QUERY = isUpsert ? UPSERT : INSERT
+
+    // first calculate subqueries and rm their properties, then build root query
+    queries.push(QUERY.into(target).entries(dataCopy))
+    queries.push(...subQueries)
+  }
+
+  queries.forEach(q => {
+    Object.defineProperty(q, handledDeep, { value: true })
+  })
+  return queries
 }
 
 /**
  * @param {unknown[]} diff
  * @param {import('@sap/cds/apis/csn').Definition} target
- * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepQueries = (diff, target, root = false) => {
+const _getDeepDeleteQueries = (diff, target) => {
   const queries = []
 
   for (const diffEntry of diff) {
@@ -202,7 +278,7 @@ const _getDeepQueries = (diff, target, root = false) => {
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
         arrayed.forEach(subEntry => {
-          subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target))
+          subQueries.push(..._getDeepDeleteQueries([subEntry], target.elements[prop]._target))
         })
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
@@ -220,23 +296,8 @@ const _getDeepQueries = (diff, target, root = false) => {
     }
 
     // first calculate subqueries and rm their properties, then build root query
-    if (op === 'create') {
-      queries.push(INSERT.into(target).entries(diffEntry))
-    } else if (op === 'delete') {
+    if (op === 'delete') {
       queries.push(DELETE.from(target).where(diffEntry))
-    } else if (op === 'update' || (op === undefined && (root || subQueries.length) && _hasManagedElements(target))) {
-      // TODO do we need the where here?
-      const keys = target.keys
-      const cqn = UPDATE(target).with(diffEntry)
-      for (const key in keys) {
-        if (keys[key].virtual) continue
-        if (!keys[key].isAssociation) {
-          cqn.where(key + '=', diffEntry[key])
-        }
-        delete diffEntry[key]
-      }
-      cqn.with(diffEntry)
-      queries.push(cqn)
     }
 
     queries.push(...subQueries)
@@ -248,8 +309,20 @@ const _getDeepQueries = (diff, target, root = false) => {
   return queries
 }
 
+const entity_keys = entity =>
+  Object_keys(entity.keys).filter(key => key !== 'IsActiveEntity' && !entity.keys[key].isAssociation)
+
+const whereIn = (target, data, not = false) => {
+  const keys = entity_keys(target)
+  const dataArray = data ? (Array.isArray(data) ? data : [data]) : []
+  if (not && !dataArray.length) return []
+  const left = { list: keys.map(k => ({ ref: [k] })) }
+  const op = not ? ['not', 'in'] : ['in']
+  const right = { list: dataArray.map(r => ({ list: keys.map(k => ({ val: r[k] })) })) }
+  return [left, ...op, right]
+}
+
 module.exports = {
   onDeep,
-  getDeepQueries,
   getExpandForDeep,
 }
