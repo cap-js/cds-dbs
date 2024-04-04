@@ -1,6 +1,7 @@
 const cds = require('@sap/cds')
 const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
+const { getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 
 const handledDeep = Symbol('handledDeep')
 
@@ -35,16 +36,22 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
+
+  // only INSERTS
   if (res.length > 1 && res[0].results) {
     const summedResult = res[0]
+    const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
 
-    summedResult.affectedRows = res.reduce((totalRows, result) => {
-      if (result.query?.target === target) {
+    // sum up the affected rows and entries
+    summedResult.affectedRows = res.slice(1).reduce((totalRows, result) => {
+      if (result.query?.target === transitions.target) {
+        summedResult.query.INSERT.entries.push(...result.query.INSERT.entries)
         return totalRows + result.affectedRows
       }
       return totalRows
     }, summedResult.affectedRows || 0)
 
+    // summ up the results
     summedResult.results = res.slice(1).reduce(
       (resultsArray, result) => {
         if (result.results) {
