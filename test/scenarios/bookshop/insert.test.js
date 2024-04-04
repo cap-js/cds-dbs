@@ -19,4 +19,21 @@ describe('Bookshop - Insert', () => {
     const resp = await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
     expect(resp | 0).to.be.eq(1)
   })
+
+  test('mass insert on unknown entities', async () => {
+    const books = 'sap_capire_bookshop_Books'
+    let affectedRows = await INSERT.into(books)
+      .entries([{
+        ID: 4711,
+        createdAt: (new Date()).toISOString(),
+      }, {
+        ID: 4712,
+        createdAt: (new Date()).toISOString(),
+      }])
+    expect(affectedRows | 0).to.be.eq(2)
+    
+    const res = await SELECT.from('sap.capire.bookshop.Books').where('ID in', [4711, 4712])
+    expect(res).to.have.length(2)
+  })
+    
 })
