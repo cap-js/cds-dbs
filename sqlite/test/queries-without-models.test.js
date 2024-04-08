@@ -1,3 +1,4 @@
+const impl = require.resolve('../index')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
 
@@ -6,7 +7,7 @@ if (!cds.DatabaseService.prototype.isDatabaseService) describe = describe.skip
 
 describe('Queries without models', () => {
   beforeAll(async () => {
-    let db = await cds.connect.to('db', { kind: 'better-sqlite' })
+    let db = cds.db = await cds.connect.to({ impl })
     await db.run(['CREATE table T1 (a,b)', 'CREATE table T2 (c,d,e)'])
   })
 
@@ -49,7 +50,7 @@ describe('Queries without models', () => {
 describe('Queries not in models', () => {
   beforeAll(async () => {
     let model = cds.linked(`entity Foo { key ID : UUID; bar: String }`)
-    let db = (cds.db = await cds.connect.to({ kind: 'better-sqlite', model }))
+    let db = cds.db = await cds.connect.to({ impl, model })
     await db.run(['CREATE table T1 (a,b)', 'CREATE table T2 (c,d,e)'])
   })
 

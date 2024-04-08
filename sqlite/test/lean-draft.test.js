@@ -1,6 +1,5 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const sleep = require('util').promisify(setTimeout)
 const cds = require('../../test/cds.js')
 
 describe('draft tests', () => {
@@ -19,7 +18,6 @@ describe('draft tests', () => {
   }
 
   beforeEach(async () => {
-    cds.env.drafts = undefined
     await Promise.allSettled([
       DELETE(`/processor/Travel(TravelUUID='${NEW_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
         auth: { username: 'user1', password: 'user1' },
@@ -401,6 +399,7 @@ describe('draft tests', () => {
       { PreserveChanges: true },
       { auth: { username: 'user2', password: 'user2' } },
     )
+    const DraftUUID = res.data.DraftAdministrativeData.DraftUUID
 
     res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
@@ -408,8 +407,11 @@ describe('draft tests', () => {
     )
     expect(res.data.value.length).to.be.eq(0)
 
-    cds.env.drafts = { cancellationTimeout: 0.000001 }
-    await sleep(1000)
+    // age the draft to simulate lock timeout
+    await cds.db
+      .update('DRAFT.DraftAdministrativeData')
+      .set({ LastChangeDateTime: '1970-01-01T00:00:00.000Z' })
+      .where({ DraftUUID })
 
     res = await GET(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)/DraftAdministrativeData`,

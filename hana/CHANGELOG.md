@@ -4,6 +4,43 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.6...hana-v0.1.0) (2024-03-22)
+
+
+### Added
+
+* also support lowercase matchespattern function ([#528](https://github.com/cap-js/cds-dbs/issues/528)) ([6ea574e](https://github.com/cap-js/cds-dbs/commit/6ea574ee67ef5e42e4f8ccbe4fe91b46097de129))
+* forUpdate and forShareLock ([#148](https://github.com/cap-js/cds-dbs/issues/148)) ([99a1170](https://github.com/cap-js/cds-dbs/commit/99a1170e61de4fd0c505834c25a9c03fc34da85b))
+* **hana:** drop prepared statements after end of transaction ([#537](https://github.com/cap-js/cds-dbs/issues/537)) ([b1f864e](https://github.com/cap-js/cds-dbs/commit/b1f864e0a3a0e5efacd803d3709379cab76d61cc))
+
+
+### Fixed
+
+* use keyword list from compiler ([#525](https://github.com/cap-js/cds-dbs/issues/525)) ([c6993d9](https://github.com/cap-js/cds-dbs/commit/c6993d9c0e823d403f49f55cfcfa8663971293c8))
+* improve search inside where clause detection ([#538](https://github.com/cap-js/cds-dbs/issues/538)) ([51b8af3](https://github.com/cap-js/cds-dbs/commit/51b8af3b42fba3f7b509d00675997d6c711cacc4))
+* reduce service manager calls for failing tenants ([#533](https://github.com/cap-js/cds-dbs/issues/533)) ([e95fd17](https://github.com/cap-js/cds-dbs/commit/e95fd176094ac8b1d95b3bc68538057bf28aadf1))
+* Add views with parameters support ([#488](https://github.com/cap-js/cds-dbs/issues/488)) ([3790ec0](https://github.com/cap-js/cds-dbs/commit/3790ec0178aab2cdb429272bb3e813b13441785c))
+* issue with reused select cqns ([#505](https://github.com/cap-js/cds-dbs/issues/505)) ([916d175](https://github.com/cap-js/cds-dbs/commit/916d1756422f0caf02c323052f2addafed39182a))
+* joins without columns are rejected ([#535](https://github.com/cap-js/cds-dbs/issues/535)) ([eb9beda](https://github.com/cap-js/cds-dbs/commit/eb9beda728de60081d7afbfcd49305eeb241f3fb))
+* mass insert for unknown entities ([#540](https://github.com/cap-js/cds-dbs/issues/540)) ([f2ea4af](https://github.com/cap-js/cds-dbs/commit/f2ea4affe65e76fa269766d3d02337ceb1138c65))
+
+### Changed
+
+* this package now requires `@cap-js/db-service >= v1.7.0` ([#545](https://github.com/cap-js/cds-dbs/issues/545)) ([2cec27d](https://github.com/cap-js/cds-dbs/commit/2cec27d91402804c3b2da25cc7169f0d81a7406a))
+
+## [0.0.6](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.5...hana-v0.0.6) (2024-02-28)
+
+
+### Added
+
+* cds.Vector support for the HANAService ([#442](https://github.com/cap-js/cds-dbs/issues/442)) ([1057a13](https://github.com/cap-js/cds-dbs/commit/1057a13a9297cb1720b6faaf107bb3116a8c4a3e))
+
+
+### Fixed
+
+* `TypeError` for `cds bind` in MTX scenario ([#482](https://github.com/cap-js/cds-dbs/issues/482)) ([38722fe](https://github.com/cap-js/cds-dbs/commit/38722fe7d7df9b2c9d622e969d528be205df383a))
+* Allow SELECT.join queries again with full infer call ([#469](https://github.com/cap-js/cds-dbs/issues/469)) ([5329ec0](https://github.com/cap-js/cds-dbs/commit/5329ec0a25036a1e42513e8bb9347b0ff8c7aa2d))
+
 ## [0.0.5](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.4...hana-v0.0.5) (2024-02-16)
 
 

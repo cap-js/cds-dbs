@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -21,13 +21,14 @@
   },
   "scripts": {
     "test": "npm start && jest --silent",
+    "test:remote": "jest --silent",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
     "hdb": "^0.19.5",
-    "@cap-js/db-service": "^1.6.0"
+    "@cap-js/db-service": "^1.7.0"
   },
   "peerDependencies": {
     "@sap/hana-client": ">=2",

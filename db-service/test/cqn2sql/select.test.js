@@ -1,6 +1,10 @@
 'use strict'
 const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
+const _cqn2sql = require('../../lib/cqn2sql')
+function cqn2sql(q, m = cds.model) {
+  
+  return _cqn2sql(q, m)
+} 
 const cqn = require('./cqn.js')
 
 // const getExpected = (sql, values) => {
@@ -59,7 +63,7 @@ describe('cqn2sql', () => {
       expect(() => {
         let q = cqn.selectNonExistent
         // Skip cqn4sql as infer requires the entity to exist
-        const render = q => new cqn2sql.class().render(q)
+        const render = q => new _cqn2sql.class().render(q)
         const { sql } = render(q)
         expect(sql).toMatchSnapshot()
         q = cds.ql.clone(q)
@@ -70,7 +74,7 @@ describe('cqn2sql', () => {
 
     test('with select from non existent entity with star wildcard (extended)', () => {
       expect(() => {
-        const customCqn2sql = class extends cqn2sql.class {
+        const customCqn2sql = class extends _cqn2sql.class {
           SELECT_columns({ SELECT }) {
             return SELECT.columns.map(x => `${this.quote(this.column_name(x))}`)
           }
@@ -240,6 +244,11 @@ describe('cqn2sql', () => {
   describe('ORDER BY', () => {
     test('ORDER BY alias', () => {
       const { sql } = cqn2sql(cqn.orderByWithAlias)
+      expect(sql).toMatchSnapshot()
+    })
+
+    test('ORDER BY with @cds.collate false', () => {
+      const { sql } = cqn2sql(cqn.orderByCollations)
       expect(sql).toMatchSnapshot()
     })
   })

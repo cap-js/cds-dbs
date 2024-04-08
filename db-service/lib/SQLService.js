@@ -114,16 +114,22 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
+    if (!query.target) {
+      try { this.infer(query) } catch (e) { /**/ }
+    }
     if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    const expand = query.SELECT.expand
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
@@ -267,7 +273,7 @@ class SQLService extends DatabaseService {
    * @param {string} sql
    */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
+    return /^\s*(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /**
@@ -283,17 +289,23 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
+
+    // Keep original query columns when potentially used insde conditions
+    const { having, groupBy } = query.SELECT
+    const columns = (having?.length || groupBy?.length)
+      ? query.SELECT.columns.filter(c => !c.expand)
+      : [{ val: 1 }]
+    const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
+        columns,
         localized: false,
         expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+    const { count } = await this.onSELECT({ query: cq })
+    return count
   }
 
   /**
@@ -433,6 +445,8 @@ SQLService.prototype.PreparedStatement = PreparedStatement
 
 const _target_name4 = q => {
   const target =
+    q._target_ref ||
+    q.from_into_ntt ||
     q.SELECT?.from ||
     q.INSERT?.into ||
     q.UPSERT?.into ||
@@ -446,7 +460,7 @@ const _target_name4 = q => {
   return first.id || first
 }
 
-const _unquirked = q => {
+const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
   if (!q) return q
   else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
   else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }

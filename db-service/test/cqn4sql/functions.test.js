@@ -22,7 +22,7 @@ describe('functions', () => {
 
           ) as author
         }`
-      const res = cqn4sql(q)
+      const res = cqn4sql(q, model)
       expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
       expect(res.SELECT.columns[0].SELECT).to.have.property('one').that.equals(true)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
@@ -36,7 +36,7 @@ describe('functions', () => {
         } where not exists (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and contains(toLower('foo'))
         )`
-      const res = cqn4sql(q)
+      const res = cqn4sql(q, model)
       expect(res).to.deep.equal(qx)
     })
     it('function with dot operator', () => {
@@ -48,7 +48,7 @@ describe('functions', () => {
         {
           func1(Books.ID, 'bar').func2(author.name, 'foo') as dotOperator
         }`
-      const res = cqn4sql(q)
+      const res = cqn4sql(q, model)
       expect(res).to.deep.equal(qx)
     })
   })

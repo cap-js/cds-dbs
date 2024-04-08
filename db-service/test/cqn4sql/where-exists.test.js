@@ -2,6 +2,9 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
+const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
+
+
 /**
  * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
  *       Especially w.r.t. to table aliases and bracing.
@@ -720,11 +723,7 @@ describe('EXISTS predicate in infix filter', () => {
   })
 })
 
-/**
- * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
- *       Especially w.r.t. to table aliases and bracing.
- */
-describe('Path in FROM which ends on association must be transformed to where exists', () => {
+describe('Scoped queries', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
@@ -813,6 +812,13 @@ describe('Path in FROM which ends on association must be transformed to where ex
     let query = cqn4sql(CQL`SELECT from bookshop.Books:author { name }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as author { author.name }
         WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+      )`)
+  })
+  it('unmanaged to one with (multiple) $self in on-condition', () => {
+    // $self in refs of length > 1 can just be ignored semantically
+    let query = cqn4sql(CQL`SELECT from bookshop.Books:coAuthorUnmanaged { name }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as coAuthorUnmanaged { coAuthorUnmanaged.name }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
       )`)
   })
   it('handles FROM path with association with explicit table alias', () => {
@@ -1222,7 +1228,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
               )
       )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
   it('on condition of to many composition in csn model has xpr and dangling filter', () => {
     const q = CQL`
@@ -1256,7 +1262,7 @@ describe('Path in FROM which ends on association must be transformed to where ex
           and detailsDeviations.material_ID = '1'
         )
     `
-    expect(cqn4sql(q)).to.deep.equal(expected)
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 
   /**
@@ -1316,28 +1322,30 @@ describe('cap issue', () => {
     // the described scenario didn't work because in a localized scenario, the localized `foo`
     // association (pointing to `localized.Foo`) was compared to the non-localized version
     // of the association (pointing to `Foo`) and hence, the alias was not properly replaced
-    const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
-    cqn.SELECT.localized = true
-    let query = cqn4sql(cqn, model)
-    // cleanup
-    delete cqn.SELECT.localized
-    const localized_ = cds.unfold ? '' : 'localized.'
-    expect(query).to.deep.equal(CQL(`
-    SELECT from localized.Boo as boos { boos.ID }
-        WHERE EXISTS (
-          SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
-        ) and
-        (
-          EXISTS (
-            SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from ${localized_}SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
-          )
-          or EXISTS (
-            SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from ${localized_}ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
+    let q = SELECT.localized `from Foo:boos { ID }
+      where exists foo.specialOwners[owner2_userID = $user.id]
+      or exists foo.activeOwners[owner_userID = $user.id]
+    `
+    let q2 = cqn4sql(q, model)
+    expect(cds.clone(q2)).to.deep.equal(CQL(`
+      SELECT from localized.Boo as boos { boos.ID } WHERE EXISTS (
+        SELECT 1 from localized.Foo as Foo3 WHERE Foo3.ID = boos.foo_ID
+      ) AND (
+        EXISTS (
+          SELECT 1 from localized.Foo as foo WHERE foo.ID = boos.foo_ID AND EXISTS (
+            SELECT 1 from ${transitive_?'localized.':''}SpecialOwner2 as specialOwners
+            WHERE specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id
           )
         )
-      `))
+        OR
+        EXISTS (
+          SELECT 1 from localized.Foo as foo2 WHERE foo2.ID = boos.foo_ID AND EXISTS (
+            SELECT 1 from ${transitive_?'localized.':''}ActiveOwner as activeOwners
+            WHERE activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id
+          )
+        )
+      )
+    `))
   })
 })
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {

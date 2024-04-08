@@ -484,7 +484,7 @@ describe('table alias access', () => {
     })
     it('in a scoped subquery, always assign unique subquery aliases', () => {
       const query = CQL`SELECT ID from bookshop.Item where exists (select ID from bookshop.Item:item)`
-      const res = cqn4sql(query)
+      const res = cqn4sql(query, model)
       const expected = CQL`
       SELECT Item.ID from bookshop.Item as Item where exists (
         SELECT item2.ID from bookshop.Item as item2 where exists (
