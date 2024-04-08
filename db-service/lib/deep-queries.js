@@ -175,7 +175,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
  */
 const getExpandForDeep = (query, target) => {
   const { entity, data = null, where } = query.UPDATE
-  const columns = _calculateExpandColumns(target, data, undefined ,undefined)
+  const columns = _calculateExpandColumns(target, data)
   return SELECT(columns).from(entity).where(where)
 }
 
