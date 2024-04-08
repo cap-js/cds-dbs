@@ -131,6 +131,7 @@ class SQLService extends DatabaseService {
         if (!rows.length) return
         
         const result = rows[0]
+        // stream is always on position 0. Further properties like etag are inserted later.
         let [key, val] = Object.entries(result)[0]
         result.value = val
         delete result[key]
