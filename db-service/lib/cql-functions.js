@@ -156,8 +156,9 @@ const StandardFunctions = {
    * Generates SQL statement that produces current point in time (date and time with time zone)
    * @returns {string}
    */
-  now: () => `session_context('$now')`,
-
+   now: function() {
+    return this.session_context('$now')
+  },
   /**
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
@@ -266,7 +267,7 @@ const StandardFunctions = {
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context('${x.val}')`,
+  session_context: x => `session_context('${x.val || x}')`,
 }
 
 const HANAFunctions = {
