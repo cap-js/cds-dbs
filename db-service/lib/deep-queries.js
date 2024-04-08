@@ -103,7 +103,7 @@ const getColumnsFromDataOrKeys = (data, target) => {
   }
 }
 
-const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = new Map(), event) => {
+const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = new Map()) => {
   const compositions = target.compositions || {}
 
   if (expandColumns.length === 0) {
@@ -153,18 +153,17 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
     if (composition.is2many) {
       // expandColumn.expand = getColumnsFromDataOrKeys(compositionData, composition._target)
       if (compositionData === null || compositionData.length === 0) {
-        if (event === 'UPDATE') continue
         // deep delete, get all subitems until recursion depth
-        _calculateExpandColumns(composition._target, null, expandColumn.expand, newElementMap, event)
+        _calculateExpandColumns(composition._target, null, expandColumn.expand, newElementMap)
         continue
       }
 
       for (const row of compositionData) {
-        _calculateExpandColumns(composition._target, row, expandColumn.expand, newElementMap, event)
+        _calculateExpandColumns(composition._target, row, expandColumn.expand, newElementMap)
       }
     } else {
       // to one
-      _calculateExpandColumns(composition._target, compositionData, expandColumn.expand, newElementMap, event)
+      _calculateExpandColumns(composition._target, compositionData, expandColumn.expand, newElementMap)
     }
   }
   return expandColumns
@@ -176,7 +175,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
  */
 const getExpandForDeep = (query, target) => {
   const { entity, data = null, where } = query.UPDATE
-  const columns = _calculateExpandColumns(target, data, undefined ,undefined ,'UPDATE')
+  const columns = _calculateExpandColumns(target, data, undefined ,undefined)
   return SELECT(columns).from(entity).where(where)
 }
 
