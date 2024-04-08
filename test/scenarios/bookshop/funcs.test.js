@@ -3,15 +3,6 @@ const bookshop = require('path').resolve(__dirname, '../../bookshop')
 cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
-/*   let new_adapter
-  beforeAll(() => {
-    new_adapter = cds.env.features.odata_new_adapter
-    cds.env.features.odata_new_adapter = true
-  }) 
-  afterAll(() => {
-    cds.env.features.odata_new_adapter = new_adapter
-  }) */
-
   const { expect, GET } = cds.test(bookshop)
 
   describe('String Functions', () => {
