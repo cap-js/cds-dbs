@@ -692,6 +692,11 @@ class HANAService extends SQLService {
       )
     }
 
+    limit({ rows, offset }) {
+      rows = { param: false, __proto__: rows }
+      return super.limit({ rows, offset })
+    }
+
     where(xpr) {
       xpr = { xpr }
       const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'

@@ -297,7 +297,7 @@ class CQN2SQLRenderer {
    * @returns {string}
    */
   column_alias4(x) {
-    return typeof x.as === 'string' ? x.as : x.func
+    return typeof x.as === 'string' ? x.as : x.func || x.val
   }
 
   /**
@@ -382,7 +382,7 @@ class CQN2SQLRenderer {
    */
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
-    return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
+    return !offset ? this.val(rows) : `${this.val(rows)} OFFSET ${this.val(offset)}`
   }
 
   /**
@@ -878,27 +878,36 @@ class CQN2SQLRenderer {
   }
 
   /**
-   * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
+   * Renders a value into the correct SQL syntax or a placeholder for a prepared statement
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
   val({ val, param }) {
+    const inline = !this.values || param === false
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
-      case 'undefined': return 'NULL'
-      case 'boolean': return `${val}`
-      case 'number': return `${val}` // REVISIT for HANA
+      case 'number': return `${val}`
+      case 'undefined': val = null
+        break
       case 'object':
-        if (val === null) return 'NULL'
+        if (val !== null) {
         if (val instanceof Date) val = val.toJSON() // returns null if invalid
         else if (val instanceof Readable); // go on with default below
         else if (Buffer.isBuffer(val)); // go on with default below
         else if (is_regexp(val)) val = val.source
         else val = JSON.stringify(val)
-      case 'string': // eslint-disable-line no-fallthrough
+        }
     }
-    if (!this.values || param === false) return this.string(val)
-    else this.values.push(val)
+    if (inline) {
+      switch (typeof val) {
+        case 'string': return this.string(val)
+        case 'object': return 'NULL'
+        case 'number': return `${val}`
+        default:
+          return `${val}`
+      }
+    }
+    this.values.push(val)
     return '?'
   }
 
