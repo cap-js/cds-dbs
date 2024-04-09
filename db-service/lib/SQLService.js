@@ -140,7 +140,15 @@ class SQLService extends DatabaseService {
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
         this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
+        if (!rows.length) return
+        
+        const result = rows[0]
+        // stream is always on position 0. Further properties like etag are inserted later.
+        let [key, val] = Object.entries(result)[0]
+        result.value = val
+        delete result[key]
+
+        return result
       }
     } else {
       this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
