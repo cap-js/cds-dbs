@@ -376,6 +376,17 @@ describe('negative', () => {
         "Unexpected “expand” on “name”; can only be used after a reference to a structure, association or table alias"
       )
     })
+
+    it('inline on `.items` not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails.{ address } }`, model)).to.throw(
+        "Unexpected “inline” on “emails”; can only be used after a reference to a structure, association or table alias"
+      )
+    })
+    it('inline on scalar not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name.{ address } }`, model)).to.throw(
+        "Unexpected “inline” on “name”; can only be used after a reference to a structure, association or table alias"
+      )
+    })
   })
 
   describe('infix filters', () => {
