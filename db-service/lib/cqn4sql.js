@@ -1059,7 +1059,7 @@ function cqn4sql(originalQuery, model) {
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
-    if (isWildcard && element.type === 'cds.LargeBinary') return []
+    if (isWildcard && (element.type === 'cds.LargeBinary' || element['@Core.MediaType'])) return []
     if (element.on && !element.keys)
       return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
