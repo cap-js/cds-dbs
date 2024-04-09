@@ -249,7 +249,7 @@ const _getDeepQueries = (diff, target, root = false) => {
     if (q.INSERT) {
       const target = q.target
       if (insertQueries.has(target)) {
-        insertQueries.get(target).entries.push(...q.INSERT.entries)
+        insertQueries.get(target).INSERT.entries.push(...q.INSERT.entries)
         return
       } else {
         insertQueries.set(target, q)
