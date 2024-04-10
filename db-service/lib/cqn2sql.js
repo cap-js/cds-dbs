@@ -886,23 +886,21 @@ class CQN2SQLRenderer {
     const inline = !this.values || param === false
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
-      case 'number': return `${val}`
       case 'undefined': val = null
         break
       case 'object':
         if (val !== null) {
-        if (val instanceof Date) val = val.toJSON() // returns null if invalid
-        else if (val instanceof Readable); // go on with default below
-        else if (Buffer.isBuffer(val)); // go on with default below
-        else if (is_regexp(val)) val = val.source
-        else val = JSON.stringify(val)
+          if (val instanceof Date) val = val.toJSON() // returns null if invalid
+          else if (val instanceof Readable); // go on with default below
+          else if (Buffer.isBuffer(val)); // go on with default below
+          else if (is_regexp(val)) val = val.source
+          else val = JSON.stringify(val)
         }
     }
     if (inline) {
       switch (typeof val) {
         case 'string': return this.string(val)
         case 'object': return 'NULL'
-        case 'number': return `${val}`
         default:
           return `${val}`
       }

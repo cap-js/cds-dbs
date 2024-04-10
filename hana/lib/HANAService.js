@@ -699,8 +699,8 @@ class HANAService extends SQLService {
 
     where(xpr) {
       xpr = { xpr }
-      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
-      return `${this.xpr(xpr)}${suffix}`
+      const suffix = this.is_comparator(xpr)
+      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
@@ -811,7 +811,7 @@ class HANAService extends SQLService {
         up in logicOperators &&
         !this.is_comparator({ xpr }, i - 1)
       ) {
-        return ` = TRUE ${x}`
+        return ` = ${this.val({ val: true })} ${x}`
       }
       if (
         (up === 'LIKE' && is_regexp(xpr[i + 1]?.val)) ||

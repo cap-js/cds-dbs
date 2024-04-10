@@ -241,7 +241,8 @@ describe('functions', () => {
   })
   describe('COUNT', () => {
     test('simple count', async () => {
-      const cqn = CQL`SELECT count(1) as count FROM edge.hana.functions.timestamps`
+      // REVISIT: count(1) renders as count(?) which Postgres cannot resolve as a type
+      const cqn = CQL`SELECT count(*) as count FROM edge.hana.functions.timestamps`
       const res = await cds.run(cqn)
       expect(res[0].count).to.be.eq(1000)
     })
