@@ -972,7 +972,7 @@ function cqn4sql(originalQuery, model) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
         // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
+        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') return
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
