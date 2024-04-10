@@ -1,5 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
+cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test(bookshop)
@@ -135,8 +136,26 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Collection Functions', () => {
-    test.skip('hassubset', () => { })
-    test.skip('hassubsequence', () => { })
+    test.skip('hassubset', async () => {
+      // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
+      // new adapter error: 400 - Function 'hassubset' is not supported
+      const { Books } = cds.entities('sap.capire.bookshop')
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1','2','3']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2','5','6']]))
+      const res = await GET(`/browse/Books?$filter=hassubset(footnotes, ['3','1'])`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
+    test.skip('hassubsequence', async () => {
+      // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
+      // new adapter error: 400 - Function 'hassubsequence' is not supported
+      const { Books } = cds.entities('sap.capire.bookshop')
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1','2','3']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2','5','6']]))
+      const res = await GET(`/browse/Books?$filter=hassubset(footnotes, ['1','3'])`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
   })
 
   describe('Arithmetic Functions', () => {
@@ -217,8 +236,13 @@ describe('Bookshop - Functions', () => {
       })
     })
 
-    // REVISIT: does not seem database relevant
-    test.skip('date', () => { })
+    test('date', async () => {
+      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=date(2023-03-29T15:44:58.999Z) eq 2023-03-29&$top=1`)
+
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
+
     test('day', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=day(1970-01-31T00:00:00.000Z) eq 31&$top=1`)
 
@@ -226,85 +250,119 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test('date function with null value', async () => {
+    test('day function with null value', async () => {
       const { result } = await SELECT.one(`day(null) as result`)
       .from('sap.capire.bookshop.Books')
 
       expect(result).to.be.null
     })
 
-    test.skip('fractionalseconds', async () => {
-      // REVISIT: ERROR: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
+    test('fractionalseconds', async () => {
+      // okra error: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:00.321Z) eq 321&$top=1`,
+        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) eq 0.321&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test('hour', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=hour(1970-01-01T07:00:00.000Z) eq 7&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    test.skip('maxdatetime', async () => {
-      // REVISIT: ERROR: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
+
+    test('maxdatetime', async () => {
+      // okra error: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
       const res = await GET(`/browse/Books?$select=ID&$filter=maxdatetime() eq 9999-12-31T23:59:59.999Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    test.skip('mindatetime', async () => {
-      // REVISIT: ERROR: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
+
+    test('mindatetime', async () => {
+      // okra error: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
       const res = await GET(`/browse/Books?$select=ID&$filter=mindatetime() eq 0001-01-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test('minute', async () => {
-      const res = await GET(`/browse/Books?$select=ID&$filter=minute(1970-01-01T00:32:00.000Z) eq 32&$top=1`)
+      const res = await GET(`/browse/Books?$select=ID&$filter=minute(1970-01-01T00:32:10.000Z) eq 32&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test('month', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=month(1970-03-01T00:00:00.000Z) eq 3&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test('now', async () => {
-      // REVISIT: this test does not really proof much
-      const res = await GET(`/browse/Books?$select=ID&$filter=now() gt 1970-03-01T00:00:00.000Z&$top=1`)
-
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(1)
+      const db = await cds.connect.to('db')
+      return db.run(async tx => {
+        Object.defineProperty(cds.context, 'timestamp', {value: new Date('1972-09-15T21:36:51.123Z')})
+        const cqn = {
+          SELECT: {
+          from: { ref: ['localized.CatalogService.Books'], as: 'Books' },
+          columns: [{ ref: ['Books', 'ID'] }],
+          where: [
+            {
+              func: 'now',
+              args: [],
+            },
+            '=',
+            {
+              val: '1972-09-15T21:36:51.123Z',
+            },
+          ],
+        },
+      }
+      const res = await tx.run(cqn)
+      expect(res.length).to.be.eq(5) 
     })
+  })
+
     test('second', async () => {
-      const res = await GET(`/browse/Books?$select=ID&$filter=second(1970-01-01T00:00:45.000Z) eq 45&$top=1`)
+      const res = await GET(`/browse/Books?$select=ID&$filter=second(1970-01-01T00:00:45.123Z) eq 45&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
-    // REVISIT: does not seem database relevant
-    test.skip('time', () => { })
+
+    test('time', async () => {
+      const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=time(2023-03-29T15:44:58.999Z) eq 15:44:58&$top=1`)
+
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
+
     test.skip('totaloffsetminutes', async () => {
-      // REVISIT: ERROR: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
+      // okra error: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
+      // new adapter: REVISIT: getting transformed date without timeoffset from service layer 
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes(2000-01-01T23:45:13+10:30) eq -630&$top=1`,
+        `/browse/Books?$select=ID&$filter=totaloffsetminutes('2000-01-01T23:45:13-10:30') eq -630&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test.skip('totalseconds', async () => {
-      // REVISIT: ERROR: Feature is not supported: Method "totalseconds" in $filter or $orderby query options
+      // okra error: Feature is not supported: Method "totalseconds" in $filter or $orderby query options
+      // new adapter error: 400 - Property 'duration' does not exist in 'CatalogService.Books'
       const res = await GET(`/browse/Books?$select=ID&$filter=totalseconds(duration'P1DT06H32M45.000S') gt 0&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+
     test('year', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=year(1971-01-01T00:00:00.000Z) eq 1971&$top=1`)
 
@@ -314,13 +372,35 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Type Functions', () => {
+    test.skip('cast', async () => {
+      // okra error: 501 - Feature is not supported: Expression "5" in $filter or $orderby query options
+      // new adapter error: 400 - Function 'cast' is not supported
+      const res = await GET(`/browse/Books?$filter=cast(price,Edm.Int32) eq 13`)
+
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
     test.skip('isOf', async () => {
-      // REVISIT: ERROR: Feature is not supported: Expression "false" in $filter or $orderby query options
-      // ??? "false"
+      // okra error: Feature is not supported: Expression "false" in $filter or $orderby query options
+      // "false" comes from expression.getKind() in ExpressionToCQN.js
+      // new adapter error: 400 - Function 'isof' is not supported
       const res = await GET(`/browse/Books?$filter=isof(createdAt,Edm.Date)`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
+  })
+
+  describe('Geo Functions', () => {
+    test.skip('geo.distance', async () => {
+      // okra error: 400 - Property 'geography' does not exist in type 'CatalogService.Books'
+      // new adapter error: 400 - Parsing URL failed at position 34: Expected "/" or a whitespace but "(" found.
+      const res = await GET(`/browse/Books?$filter=geo.distance(geography'POINT(-122.131577 47.678581)', geography'POINT(-122.374722,37.618888)') lt 900.0`)
+
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(1)
+    })
+    test.skip('geo.intersects', () => { })
+    test.skip('geo.length', () => { })
   })
 })
