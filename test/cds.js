@@ -36,8 +36,6 @@ let isolateCounter = 0
 // Overwrite cds.test with autoIsolation logic
 cds.test = Object.setPrototypeOf(function () {
 
-  let ret = cdsTest(...arguments)
-
   global.beforeAll(() => {
     try {
       const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
@@ -49,6 +47,8 @@ cds.test = Object.setPrototypeOf(function () {
       cds.env.requires.db = require('@cap-js/sqlite/test/service')
     }
   })
+  
+  let ret = cdsTest(...arguments)
 
   global.beforeAll(async () => {
     // Setup isolation after cds has prepare the project (e.g. cds.model)
