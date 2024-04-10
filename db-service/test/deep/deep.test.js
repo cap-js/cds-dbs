@@ -770,7 +770,7 @@ describe('test deep query generation', () => {
   })
 
   describe('INSERT', () => {
-    test.skip('creates sub inserts', () => {
+    test('creates sub inserts', () => {
       const query = INSERT.into(model.definitions.Root).entries([
         { ID: 1, toOneChild: { ID: 1 } },
         { ID: 2, toOneChild: { ID: 2, toManySubChild: [{ ID: 10 }] } },
