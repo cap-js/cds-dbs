@@ -22,6 +22,11 @@
   "cds": {
     "requires": {
       "db": "sql"
+    },
+    "features": {
+      "[new-odata-adapter]": {
+        "odata_new_adapter": true
+      }
     }
   }
 }
