@@ -1,5 +1,6 @@
 'use strict'
 
+const fs = require('fs').promises;
 const _cqn4sql = require('../../lib/cqn4sql')
 function cqn4sql(q, model = cds.model) {
   return _cqn4sql(q, model)
@@ -1430,5 +1431,19 @@ describe('expand on structure part II', () => {
 
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
+  })
+  it.skip('super deeply nested', async () => {
+    const complexQuery = await readJSONFile('/Users/patricebender/SAPDevelop/dev/cds-dbs/db-service/test/cqn4sql/model/deeplyNestedExpands.json')
+    const res = cqn4sql(complexQuery, cds.compile.for.nodejs(model))
+    expect(res).to.not.be.undefined
+    async function readJSONFile(filePath) {
+      try {
+        const rawData = await fs.readFile(filePath);
+        const jsonData = JSON.parse(rawData);
+        return jsonData;
+      } catch (err) {
+        console.error(err);
+      }
+    }
   })
 })

@@ -71,3 +71,24 @@ entity foo as  select from Employee {
     room
   }
 };
+
+context associationAndCompositionsDataService {
+  entity CategoryBackAndForth1 {
+  key cID1           : Integer;
+  name1: String;
+      otherCategory1 : Association to CategoryBackAndForth2;
+      parentCategory1 : Association to CategoryBackAndForth1;
+      childCategory1 : Composition of many CategoryBackAndForth1
+                         on childCategory1.parentCategory1 = $self;
+}
+
+entity CategoryBackAndForth2 {
+  key cID2           : Integer;
+      otherCategory2 : Composition of CategoryBackAndForth1;
+      parentCategory2 : Association to CategoryBackAndForth2;
+      childCategory2 : Composition of many CategoryBackAndForth2
+                         on childCategory2.parentCategory2 = $self;
+}
+
+
+}
