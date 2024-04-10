@@ -38,11 +38,12 @@ class HANAService extends SQLService {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
     return {
       options: {
         min: 0,
         max: 10,
-        acquireTimeoutMillis: cds.env.profiles.includes('production') ? 1000 : 10000,
+        acquireTimeoutMillis,
         idleTimeoutMillis: 60000,
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
@@ -60,7 +61,14 @@ class HANAService extends SQLService {
           HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
-          if (!isMultitenant || err.code !== 10) throw err
+          if (isMultitenant) {
+            // REVISIT: throw the error and break retry loop
+            // Stop trying when the tenant does not exist or is rate limited
+            if (err.status == 404 || err.status == 429)
+              return new Promise(function (_, reject) {
+                setTimeout(() => reject(err), acquireTimeoutMillis)
+              })
+          } else if (err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
           return this.create(tenant)
         }
@@ -157,7 +165,7 @@ class HANAService extends SQLService {
       const results = await (entries
         ? HANAVERSION <= 2
           ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : ps.run(entries[0])
+          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
         : ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
@@ -247,7 +255,10 @@ class HANAService extends SQLService {
 
   // prepare and exec are both implemented inside the drivers
   prepare(sql, hasBlobs) {
-    return this.ensureDBC().prepare(sql, hasBlobs)
+    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
+    // we store the statements, to release them on commit/rollback all at once
+    this.dbc.statements.push(stmt)
+    return stmt
   }
 
   exec(sql) {
@@ -290,6 +301,10 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+
+      if (q.SELECT.from?.join && !q.SELECT.columns) {
+        throw new Error('CQN query using joins must specify the selected columns.')
+      }
 
       const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
@@ -671,7 +686,7 @@ class HANAService extends SQLService {
     DROP(q) {
       const { target } = q
       const isView = target.query || target.projection
-      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.name(target.name)}`)
+      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
     }
 
     from_args(args) {
@@ -835,8 +850,11 @@ class HANAService extends SQLService {
         if (cur == null) continue
         if (typeof cur === 'string') {
           const up = cur.toUpperCase()
+          // When a logic operator is found the expression is not a comparison
+          // When it is a local check it cannot be compared outside of the xpr
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
-          if (up in compareOperators || (!local && up in logicOperators)) return true
+          if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
           if (up in caseOperators) break
           continue
@@ -1025,6 +1043,12 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
+  async onCall({ query, data }, name, schema) {    
+      const outParameters = await this._getProcedureMetadata(name, schema)              
+      const ps = await this.prepare(query)
+      return ps.proc(data, outParameters)     
+  }
+
   async onPlainSQL(req, next) {
     // HANA does not support IF EXISTS there for it is removed and the error codes are accepted
     if (/ IF EXISTS /i.test(req.query)) {
@@ -1038,22 +1062,34 @@ class HANAService extends SQLService {
         throw err
       }
     }
+    
+    const proc = this._getProcedureNameAndSchema(req.query)
+    if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
     return super.onPlainSQL(req, next)
   }
 
   onBEGIN() {
     DEBUG?.('BEGIN')
+    if (this.dbc) this.dbc.statements = []
     return this.dbc?.begin()
   }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
+    this.dbc?.statements?.forEach(stmt => stmt
+      .then(stmt => stmt.drop())
+      .catch(() => { })
+    )
     return this.dbc?.rollback()
   }
 
@@ -1130,6 +1166,27 @@ class HANAService extends SQLService {
     this.options.credentials = Object.assign({}, this.options.credentials, creds, {
       __database__: this.options.credentials,
     })
+  }
+
+  async _getProcedureMetadata(name, schema) {
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
+        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+      } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
+    return await super.onPlainSQL({ query, data: [] })   
+  }
+
+  _getProcedureNameAndSchema(sql) {
+    // name delimited with "" allows any character
+    const match = sql    
+      .match(
+        /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
+      )
+    return (
+      match && {
+        name: match.groups.undelimited ?? match.groups.delimited,
+        schema: match.groups.schema_delimited || match.groups.schema_undelimited
+      }
+    )
   }
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
