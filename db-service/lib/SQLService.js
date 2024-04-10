@@ -117,12 +117,7 @@ class SQLService extends DatabaseService {
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
-    if (
-      query.target
-      && !query.target._unresolved
-      && !query.SELECT.forUpdate
-      && !query.SELECT.forShareLock
-    ) {
+    if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -139,7 +134,15 @@ class SQLService extends DatabaseService {
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
         this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
+        if (!rows.length) return
+        
+        const result = rows[0]
+        // stream is always on position 0. Further properties like etag are inserted later.
+        let [key, val] = Object.entries(result)[0]
+        result.value = val
+        delete result[key]
+
+        return result
       }
     } else {
       this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
@@ -270,7 +273,7 @@ class SQLService extends DatabaseService {
    * @param {string} sql
    */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
+    return /^\s*(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /**
@@ -286,17 +289,23 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
+
+    // Keep original query columns when potentially used insde conditions
+    const { having, groupBy } = query.SELECT
+    const columns = (having?.length || groupBy?.length)
+      ? query.SELECT.columns.filter(c => !c.expand)
+      : [{ val: 1 }]
+    const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
+        columns,
         localized: false,
         expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+    const { count } = await this.onSELECT({ query: cq })
+    return count
   }
 
   /**

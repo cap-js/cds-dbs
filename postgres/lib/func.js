@@ -11,6 +11,8 @@ const StandardFunctions = {
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
+  matchesPattern: (x, y) => `regexp_like(${x}, ${y})`,
+  matchespattern: (x, y) => `regexp_like(${x}, ${y})`,
 
   // Date and Time Functions
   year: x => `date_part('year', ${castVal(x)})`,

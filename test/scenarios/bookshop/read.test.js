@@ -89,7 +89,20 @@ describe('Bookshop - Read', () => {
       .columns('a.name', 'b.title')
       .where('b.ID in', s)
       .orderBy('b.ID')
-    expect(res).to.deep.eq({"name": "Emily Brontë", "title": "Wuthering Heights"})
+    expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
+  })
+
+  test('forUpdate query from path expression', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const query = SELECT([{ ref: ['ID'] }])
+      .from({ ref: [{ id: Books.name, where: [{ ref: ['ID'] }, '=', { val: 201 }] }, 'author'] })
+      .forUpdate({
+        of: ['ID'],
+        wait: 0,
+      })
+
+    const forUpdateResults = await cds.run(query)
+    expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
   })
 
   test('Expand Book', async () => {
@@ -118,6 +131,16 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(2)
     expect(res.data.value[0].title).to.be.eq('The Raven')
     expect(res.data.value[1].descr).to.include('e r')
+  })
+
+  test('Search book with filter', async () => {
+    const res = await GET('/admin/Books?$search="e R"&$filter=ID eq 251 or ID eq 271', admin)
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+    expect(res.data.value[0].title).to.be.eq('The Raven')
+    expect(res.data.value[1].descr).to.include('e r')
+    expect(res.data.value[0].ID).to.be.eq(251)
+    expect(res.data.value[1].ID).to.be.eq(271)
   })
 
   test.skip('Expand Book($count,$top,$orderby)', async () => {
@@ -240,6 +263,40 @@ describe('Bookshop - Read', () => {
     }
 
     expect((await cds.db.run(query)).count).to.be.eq(2)
+  })
+
+  it('joins without columns are rejected because of conflicts', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/Ambiguous wildcard elements/)
+  })
+
+  it('joins without columns are rejected in general', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['AdminService.RenameKeys'], as: 'rk' },
+            { ref: ['DraftService.DraftEnabledBooks'], as: 'deb' },
+          ],
+          on: [{ ref: ['deb', 'ID'] }, '=', { ref: ['rk', 'foo'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
   })
 
   test('Delete Book', async () => {
