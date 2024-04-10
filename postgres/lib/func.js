@@ -6,7 +6,8 @@ const StandardFunctions = {
     if (x.val === '$now') sql += '::timestamp'
     return sql
   },
-  countdistinct: x => `count(distinct ${x || '*'})`,
+  count: x => `count(${x.val || x || '*'})`,
+  countdistinct: x => `count(distinct ${x.val || x || '*'})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
   startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
