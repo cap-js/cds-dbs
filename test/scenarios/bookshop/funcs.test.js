@@ -1,8 +1,10 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
+cds.test.in(bookshop)
+cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET } = cds.test(bookshop, '--profile', 'new-odata-adapter')
+  const { expect, GET } = cds.test()
 
   describe('String Functions', () => {
     test('concat', async () => {
