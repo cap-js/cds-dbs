@@ -47,7 +47,7 @@ cds.test = Object.setPrototypeOf(function () {
       cds.env.requires.db = require('@cap-js/sqlite/test/service')
     }
   })
-  
+
   let ret = cdsTest(...arguments)
 
   global.beforeAll(async () => {
