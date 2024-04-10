@@ -300,6 +300,9 @@ entity SoccerPlayers {
   key jerseyNumber: Integer;
   name: String;
   team: Association to SoccerTeams;
+  emails: many {
+    address: String;
+  }
 }
 
 entity TestPublisher {

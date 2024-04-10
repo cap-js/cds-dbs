@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "CDS database service for Postgres",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
   "repository": {
@@ -31,7 +31,7 @@
     "start": "docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.6.0",
+    "@cap-js/db-service": "^1.7.0",
     "pg": "^8"
   },
   "peerDependencies": {
