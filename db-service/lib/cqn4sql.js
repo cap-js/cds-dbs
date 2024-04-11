@@ -889,6 +889,9 @@ function cqn4sql(originalQuery, model) {
               return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
             })
             if (referredCol) {
+              // keep sort and nulls properties
+              referredCol.sort = col.sort
+              referredCol.nulls = col.nulls
               col = referredCol
               if (definition.kind === 'element') {
                 tableAlias = getQuerySourceName(col)
