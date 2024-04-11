@@ -290,10 +290,23 @@ const _getDeepQueries = (diff, target, root = false) => {
     queries.push(...subQueries)
   }
 
-  queries.forEach(q => {
+  const insertQueries = new Map()
+
+  return queries.map(q => {
+    // Merge all INSERT statements for each target
+    if (q.INSERT) {
+      const target = q.target
+      if (insertQueries.has(target)) {
+        insertQueries.get(target).INSERT.entries.push(...q.INSERT.entries)
+        return
+      } else {
+        insertQueries.set(target, q)
+      }
+    }
     Object.defineProperty(q, handledDeep, { value: true })
+    return q
   })
-  return queries
+    .filter(a => a)
 }
 
 module.exports = {
