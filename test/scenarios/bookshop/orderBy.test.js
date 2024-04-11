@@ -12,9 +12,11 @@ describe('Bookshop - Order By', () => {
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
       createdBy,
       author.name as author
-    } order by createdBy`)
+    } order by createdBy, author
+      limit 1`)
     const res = await cds.run(query)
-    expect(res.length).to.be.eq(5)
+    expect(res.length).to.be.eq(1)
+    expect(res[0].author).to.eq('Charlotte Brontë')
   })
   test('collations with val', async () => {
     if(cds.env.requires.db.impl === '@cap-js/hana')
@@ -22,25 +24,31 @@ describe('Bookshop - Order By', () => {
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
       'simple string' as foo: cds.String,
       author.name as author
-    } order by foo`)
+    } order by foo, author
+      limit 1`)
     query.SELECT.localized = true
     const res = await cds.run(query)
-    expect(res.length).to.be.eq(5)
+    expect(res.length).to.be.eq(1)
+    expect(res[0].author).to.eq('Charlotte Brontë')
   })
   test('collations with func', async () => {
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
       concat('simple', 'string') as bar: cds.String,
       author.name as author
-    } order by bar`)
+    } order by bar, author
+      limit 1`)
     const res = await cds.run(query)
-    expect(res.length).to.be.eq(5)
+    expect(res.length).to.be.eq(1)
+    expect(res[0].author).to.eq('Charlotte Brontë')
   })
   test('collations with xpr', async () => {
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
       'simple' || 'string' as baz: cds.String,
       author.name as author
-    } order by baz`)
+    } order by baz, author
+      limit 1`)
     const res = await cds.run(query)
-    expect(res.length).to.be.eq(5)
+    expect(res.length).to.be.eq(1)
+    expect(res[0].author).to.eq('Charlotte Brontë')
   })
 })
