@@ -153,6 +153,13 @@ const StandardFunctions = {
   current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
 
   /**
+   * Generates SQL statement that produces current point in time (date and time with time zone)
+   * @returns {string}
+   */
+   now: function() {
+    return this.session_context({val: '$now'})
+  },
+  /**
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
    * @returns {string}
@@ -189,29 +196,27 @@ const StandardFunctions = {
    * /
   second: x => `cast( strftime('%S',${x}) as Integer )`,
 
+  // REVISIT: make precision configurable
   /**
    * Generates SQL statement that produces the fractional seconds of a given timestamp
    * @param {string} x
    * @returns {string}
    */
-  fractionalseconds: x => `cast( strftime('%f0000',${x}) as Integer )`,
+  fractionalseconds: x => `cast( substr( strftime('%f', ${x}), length(strftime('%f', ${x})) - 3) as REAL)`,
 
   /**
    * maximum date time value
    * @returns {string}
    */
-  maxdatetime: () => '9999-12-31 23:59:59.999',
+  maxdatetime: () => "'9999-12-31T23:59:59.999Z'",
   /**
    * minimum date time value
    * @returns {string}
    */
-  mindatetime: () => '0001-01-01 00:00:00.000',
+  mindatetime: () => "'0001-01-01T00:00:00.000Z'",
 
   // odata spec defines the date time offset type as a normal ISO time stamp
   // Where the timezone can either be 'Z' (for UTC) or [+|-]xx:xx for the time offset
-  // sqlite understands this so by splitting the timezone from the actual date
-  // prefixing it with 1970 it allows sqlite to give back the number of seconds
-  // which can be divided by 60 back to minutes
   /**
    * Generates SQL statement that produces the offset in minutes of a given date time offset string
    * @param {string} x
@@ -219,7 +224,9 @@ const StandardFunctions = {
    */
   totaloffsetminutes: x => `case
     when substr(${x}, length(${x})) = 'z' then 0
-    else strftime('%s', '1970-01-01T00:00:00' || substr(${x}, length(${x}) - 5)) / 60
+    else sign( cast( substr(${x}, length(${x}) - 5) as Integer )) *
+    ( cast( strftime('%H', substr(${x}, length(${x}) - 4 )) as Integer ) * 60 +
+    cast( strftime('%M', substr(${x},length(${x}) - 4 )) as Integer ))
   end`,
 
   // odata spec defines the value format for totalseconds as a duration like: P12DT23H59M59.999999999999S

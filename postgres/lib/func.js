@@ -18,9 +18,14 @@ const StandardFunctions = {
   year: x => `date_part('year', ${castVal(x)})`,
   month: x => `date_part('month', ${castVal(x)})`,
   day: x => `date_part('day', ${castVal(x)})`,
+  time: x => `to_char(${castVal(x)}, 'HH24:MI:SS')`,
   hour: x => `date_part('hour', ${castVal(x)})`,
   minute: x => `date_part('minute', ${castVal(x)})`,
-  second: x => `date_part('second', ${castVal(x)})`,
+  second: x => `floor(date_part('second', ${castVal(x)}))`,
+  fractionalseconds: x => `CAST(date_part('second', ${castVal(x)}) - floor(date_part('second', ${castVal(x)})) AS DECIMAL)`,
+  now: function() {
+    return this.session_context({val: '$now'})
+  }
 }
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
