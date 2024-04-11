@@ -444,6 +444,26 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
+    it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
+      // as down the line we always use collation expressions for localized sorting
+      // we must prepend the table alias.
+      // The simple reference will be wrapped in the expression and hence, expression name resolution rules kick in
+      // see also https://github.com/cap-js/cds-dbs/issues/543
+      const query = SELECT.localized
+        .from('bookshop.Books')
+        .columns('title', 'title as foo', 'author.name as author')
+        .orderBy('title asc', 'foo desc')
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.title,
+        Books.title as foo,
+        author.name as author
+      }
+      ORDER BY Books.title asc, Books.title desc`)
+    })
     it('for localized sorting, replace string expression', () => {
       const query = CQL(`SELECT from bookshop.Books {
         'simple string' as foo: cds.String,
