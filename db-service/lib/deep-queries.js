@@ -144,6 +144,22 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
       expandColumns.push(expandColumn)
     }
 
+    // for deep update check if is recursiv and has looping association --> not supported --> would result in cqn4sql loop
+    if(target.name === compositions[compName].target){
+      const compDefinition = compositions[compName]
+      const innerCompositions = compDefinition?._target?.compositions
+      for(const innerCompName in innerCompositions){
+        if(innerCompName === compName) continue
+        if(innerCompName in compositions) {
+          const innerTargetName = innerCompositions[innerCompName].target
+          throw new Error(
+            `Transitive circular composition with recursiv association detected: \n\n` +
+            `  ${compDefinition._target.name} > ${innerTargetName} \n\n` +
+            `These are not supported by deep update.`,
+          )
+        }
+      }
+    }
     // expand deep
     // Make a copy and do not share the same map among brother compositions
     // as we're only interested in deep recursions, not wide recursions.
