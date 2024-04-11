@@ -211,7 +211,7 @@ class CQN2SQLRenderer {
     if (from?.join && !q.SELECT.columns) {
       throw new Error('CQN query using joins must specify the selected columns.')
     }
-    
+
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -290,7 +290,7 @@ class CQN2SQLRenderer {
       return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
     }
     ///////////////////////////////////////////////////////////////////////////////////////
-    let sql = this.expr(x)
+    let sql = this.expr({ param: false, __proto__: x })
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -893,6 +893,7 @@ class CQN2SQLRenderer {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
         break
+      case 'boolean': return `${val}`
       case 'object':
         if (val !== null) {
           if (val instanceof Date) val = val.toJSON() // returns null if invalid

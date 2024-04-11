@@ -14,7 +14,7 @@ exports[`cqn2sql ORDER BY ORDER BY alias 1`] = `"SELECT Foo.a,Foo.b,count(Foo.x)
 
 exports[`cqn2sql ORDER BY ORDER BY with @cds.collate false 1`] = `"SELECT FooCollate.ID,FooCollate.collateString,FooCollate.nonCollateString FROM FooCollate as FooCollate ORDER BY FooCollate.collateString COLLATE NOCASE ASC,FooCollate.nonCollateString ASC"`;
 
-exports[`cqn2sql WHERE EXISTS with nested EXISTS 1`] = `"SELECT T2.ID,T2.a,T2.b,T2.c,T2.x FROM Foo as T2 WHERE exists (SELECT ? as "1" FROM Books as T1 WHERE T1.ID = ? and exists (SELECT ? as "1" FROM Foo2 as T0 WHERE T0.ID = ? and T1.ID = T0.a) and T2.ID = T1.ID)"`;
+exports[`cqn2sql WHERE EXISTS with nested EXISTS 1`] = `"SELECT T2.ID,T2.a,T2.b,T2.c,T2.x FROM Foo as T2 WHERE exists (SELECT 1 as "1" FROM Books as T1 WHERE T1.ID = ? and exists (SELECT 1 as "1" FROM Foo2 as T0 WHERE T0.ID = ? and T1.ID = T0.a) and T2.ID = T1.ID)"`;
 
 exports[`cqn2sql WHERE entries where one column holds entries smaller than 9 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x < ?"`;
 
@@ -73,7 +73,7 @@ exports[`cqn2sql aggregation functions with select with functions in elements ne
 
 exports[`cqn2sql aggregation functions with select with functions in where clause new notation 1`] = `"SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo WHERE max(Foo.x) < ?"`;
 
-exports[`cqn2sql complex combinations AS, sub query 1`] = `"SELECT Foo.a,Foo.b as B,? as C,Foo.x + ? as D,(SELECT Foo2.ID,Foo2.a,Foo2.b,Foo2.c,Foo2.x FROM Foo as Foo2) as E FROM Foo as Foo"`;
+exports[`cqn2sql complex combinations AS, sub query 1`] = `"SELECT Foo.a,Foo.b as B,1 as C,Foo.x + ? as D,(SELECT Foo2.ID,Foo2.a,Foo2.b,Foo2.c,Foo2.x FROM Foo as Foo2) as E FROM Foo as Foo"`;
 
 exports[`cqn2sql complex combinations Exists in object mode in complex where 1`] = `
 {
@@ -148,15 +148,14 @@ exports[`cqn2sql functions new notation in filter with subselect as function par
 
 exports[`cqn2sql functions new notation in orderby with 1 arg new notation 1`] = `"SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo ORDER BY lower(Foo.c) DESC"`;
 
-exports[`cqn2sql quoted column aliases select with simple subselect and column aliases 1`] = `"SELECT Foo.a,Foo.b as B,? as C,Foo.x + ? as D,(SELECT Foo2.a,Foo2.b as B,? as False,Foo2.x + ? as Xpr FROM Foo as Foo2) as E FROM Foo as Foo"`;
+exports[`cqn2sql quoted column aliases select with simple subselect and column aliases 1`] = `"SELECT Foo.a,Foo.b as B,1 as C,Foo.x + ? as D,(SELECT Foo2.a,Foo2.b as B,false as False,Foo2.x + ? as Xpr FROM Foo as Foo2) as E FROM Foo as Foo"`;
 
-exports[`cqn2sql quoted column aliases select with subselect in exists and column aliases 1`] = `"SELECT T2.id,T2.version,T2.parent_ID FROM Author as T2 WHERE exists (SELECT ? as One,T1.code as Xpr1 FROM Books as T1 WHERE T1.ID = ? and exists (SELECT ? as Three,T0.x + ? as Xpr2 FROM Foo as T0 WHERE T0.ID = ? and T1.ID = T0.b))"`;
+exports[`cqn2sql quoted column aliases select with subselect in exists and column aliases 1`] = `"SELECT T2.id,T2.version,T2.parent_ID FROM Author as T2 WHERE exists (SELECT 1 as One,T1.code as Xpr1 FROM Books as T1 WHERE T1.ID = ? and exists (SELECT 3 as Three,T0.x + ? as Xpr2 FROM Foo as T0 WHERE T0.ID = ? and T1.ID = T0.b))"`;
 
 exports[`cqn2sql quoted column aliases select with subselect with in and column aliases 1`] = `
 {
-  "sql": "SELECT Foo.a as A,? as ABC,Foo.x + ? as Xpr1 FROM Foo as Foo WHERE ( Foo.x + ? ) < ? AND Foo.x IN (SELECT Foo2.a as B,Foo2.x - ? as Xpr2 FROM Foo as Foo2 WHERE Foo2.x < ?)",
+  "sql": "SELECT Foo.a as A,'abc' as ABC,Foo.x + ? as Xpr1 FROM Foo as Foo WHERE ( Foo.x + ? ) < ? AND Foo.x IN (SELECT Foo2.a as B,Foo2.x - ? as Xpr2 FROM Foo as Foo2 WHERE Foo2.x < ?)",
   "values": [
-    "abc",
     1,
     1,
     9,
@@ -168,7 +167,7 @@ exports[`cqn2sql quoted column aliases select with subselect with in and column 
 
 exports[`cqn2sql quoted column aliases simple select with column aliases 1`] = `
 {
-  "sql": "SELECT T.a as A,? as True,? as False,? as Null,count(*) as CountFunc FROM Foo as T",
+  "sql": "SELECT T.a as A,true as True,false as False,NULL as Null,count(*) as CountFunc FROM Foo as T",
 }
 `;
 
