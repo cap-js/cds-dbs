@@ -456,7 +456,6 @@ describe('table alias access', () => {
   
       const res = cqn4sql(query, model)
 
-      // TODO: assign a TA to the subquery from which we select
       const expected = CQL`
         SELECT from
           (SELECT 
