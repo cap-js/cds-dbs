@@ -4,6 +4,24 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.7.0...db-service-v1.8.0) (2024-04-12)
+
+
+### Added
+
+* Odata built-in query functions ([#558](https://github.com/cap-js/cds-dbs/issues/558)) ([6e63367](https://github.com/cap-js/cds-dbs/commit/6e6336757129c4a9dac56f93fd768bb41d071c46))
+* support HANA stored procedures ([#542](https://github.com/cap-js/cds-dbs/issues/542)) ([52a00a0](https://github.com/cap-js/cds-dbs/commit/52a00a0d642ba3c58dcad97b3ea1456f1bf3b04a))
+
+
+### Fixed
+
+* **`expand`:** Only accept on structures, assocs or table aliases ([#551](https://github.com/cap-js/cds-dbs/issues/551)) ([3248512](https://github.com/cap-js/cds-dbs/commit/32485129147cd1b376f1d2faf2ea7c7232ba3794))
+* **`order by`:** for localized sorting, prepend table alias ([#546](https://github.com/cap-js/cds-dbs/issues/546)) ([a273a92](https://github.com/cap-js/cds-dbs/commit/a273a9278b2551ed3381795effe28cf8de41b1bd))
+* etag with stream_compat ([#562](https://github.com/cap-js/cds-dbs/issues/562)) ([b0a3a41](https://github.com/cap-js/cds-dbs/commit/b0a3a418fbcff7eb7e7b8fa4ff031e1c0c0faac4))
+* exclude `cds.LargeBinary` from wildcard expansion ([#577](https://github.com/cap-js/cds-dbs/issues/577)) ([6661d63](https://github.com/cap-js/cds-dbs/commit/6661d635b2895a13d47e42495acf6fbd7247c535))
+* Reduce insert queries for deep update ([#568](https://github.com/cap-js/cds-dbs/issues/568)) ([55e5114](https://github.com/cap-js/cds-dbs/commit/55e511471743c0445d41e8297f5530abe167a270))
+* Reduced count query complexity when possible ([#553](https://github.com/cap-js/cds-dbs/issues/553)) ([3331f02](https://github.com/cap-js/cds-dbs/commit/3331f0224f02bd2e6cc9c6d2cd5f1c37a36ec8dd))
+
 ## [1.7.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.6.4...db-service-v1.7.0) (2024-03-22)
 
 
