@@ -444,7 +444,7 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
-    it('do not treat group by that way', async () => {
+    it('dont try to prepend table alias if we select from anonymous subquery', async () => {
       const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
       const query = SELECT.localized
         .columns('ID', 'title', 'author')
