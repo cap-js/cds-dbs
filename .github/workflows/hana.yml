@@ -14,6 +14,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     name: HANA Node.js ${{ matrix.node }}
 
     strategy:
