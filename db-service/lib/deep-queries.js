@@ -144,7 +144,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
       expandColumns.push(expandColumn)
     }
 
-    // for deep update check if is recursiv and has looping association --> not supported --> would result in cqn4sql loop
+    // for deep update check if is recursiv and has looping association --> would result in cqn4sql loop
     if(target.name === compositions[compName].target){
       for(const compName2 in compositions){
         if(compName2 === compName) continue
