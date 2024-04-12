@@ -9,6 +9,8 @@ const StandardFunctions = {
   indexof: (x, y) => `locate(${x},${y}) - 1`, // locate is 1 indexed
   startswith: (x, y) => `(CASE WHEN locate(${x},${y}) = 1 THEN TRUE ELSE FALSE END)`, // locate is 1 indexed
   endswith: (x, y) => `(CASE WHEN substring(${x},length(${x})+1 - length(${y})) = ${y} THEN TRUE ELSE FALSE END)`,
+  matchesPattern: (x, y) => `(CASE WHEN ${x} LIKE_REGEXPR ${y} THEN TRUE ELSE FALSE END)`,
+  matchespattern: (x, y) => `(CASE WHEN ${x} LIKE_REGEXPR ${y} THEN TRUE ELSE FALSE END)`,
   substring: (x, y, z) =>
     z
       ? `substring( ${x}, case when ${y} < 0 then length(${x}) + ${y} + 1 else ${y} + 1 end, ${z} )`
@@ -32,7 +34,13 @@ const StandardFunctions = {
   day: x => `DAYOFMONTH(${x})`,
   hour: x => `HOUR(${getTimeCast(x)})`,
   minute: x => `MINUTE(${getTimeCast(x)})`,
-  second: x => `SECOND(${getTimeCast(x)})`
+  second: x => `TO_INTEGER(SECOND(${getTimeCast(x)}))`,
+  date: x => `TO_DATE(${x})`,
+  time: x => `TO_TIME(${x})`,
+  maxdatetime: () => "'9999-12-31T23:59:59.999Z'",
+  mindatetime: () => "'0001-01-01T00:00:00.000Z'",
+  now: () => `session_context('$now')`,
+  fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`
 }
 
 module.exports = StandardFunctions

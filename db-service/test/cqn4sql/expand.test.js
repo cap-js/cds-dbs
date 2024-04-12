@@ -6,6 +6,7 @@ function cqn4sql(q, model = cds.model) {
 }
 const cds = require('@sap/cds/lib')
 const { expect } = cds.test
+const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 
 describe('Unfold expands on structure', () => {
   beforeAll(async () => {
@@ -281,8 +282,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('nested expand with unmanaged backlink', () => {
-    const localized_ = cds.unfold ? '' : 'localized.'
-    let expandQuery = CQL`select from bookshop.DataRestrictions {
+    let expandQuery = SELECT.localized `from bookshop.DataRestrictions {
       *,
       dataRestrictionAccessGroups {
         dataRestrictionID,
@@ -293,14 +293,14 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     }`
     let expected = CQL(`
-      select from ${localized_}bookshop.DataRestrictions as DataRestrictions {
+      SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictions as DataRestrictions {
         DataRestrictions.ID,
         (
-          select from ${localized_}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
+          SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
             dataRestrictionAccessGroups.dataRestrictionID,
             dataRestrictionAccessGroups.accessGroupID,
             (
-              select from localized.bookshop.AccessGroups as accessGroup {
+              SELECT from localized.bookshop.AccessGroups as accessGroup {
                 accessGroup.ID
               } where accessGroup.ID = dataRestrictionAccessGroups.accessGroupID
             ) as accessGroup
@@ -309,8 +309,7 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     `)
     // seems to only happen with the `for.nodejs(…)` compiled model
-    expandQuery.SELECT.localized = true
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.deep.equal(expected)
+    expect(cds.clone(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))).to.deep.equal(expected)
   })
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
