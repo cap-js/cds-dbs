@@ -87,6 +87,15 @@ describe('Bookshop - Genres', () => {
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
+    // REVISIT children: null for odata_new_adapter
+    cds.env.features.odata_new_adapter ?
+    assert.deepEqual(res.data, {
+      name: 'no more children',
+      descr: null,
+      ID: 100,
+      parent_ID: null,
+      children: null, // all children have been removed
+    }) :
     assert.deepEqual(res.data, {
       name: 'no more children',
       descr: null,
