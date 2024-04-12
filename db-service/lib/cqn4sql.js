@@ -884,7 +884,7 @@ function cqn4sql(originalQuery, model) {
           // if a localized sorting is requested, we add `COLLATE`s
           // later on, which transforms the simple name to an expression
           // --> in an expression, only source elements can be addressed, hence we must add TA
-          if (target.SELECT.localized && definition.type === 'cds.String') {
+          if (target.SELECT.localized && definition.type === 'cds.String' && target.SELECT.columns) {
             const referredCol = target.SELECT.columns.find(c => {
               return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
             })
