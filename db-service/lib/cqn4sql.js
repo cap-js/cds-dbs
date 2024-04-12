@@ -879,7 +879,7 @@ function cqn4sql(originalQuery, model) {
         }
         const { target, definition } = col.$refLinks[0]
         let tableAlias = null
-        if (target.SELECT) {
+        if (target.SELECT?.columns && inOrderBy) {
           // usually TA is omitted if order by ref is a column
           // if a localized sorting is requested, we add `COLLATE`s
           // later on, which transforms the simple name to an expression
