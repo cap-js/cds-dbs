@@ -37,35 +37,41 @@ async function onDeep(req, next) {
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
 
+  let summedResult = 1
   // only INSERTS
   if (res.length > 1 && res[0].results) {
-    const summedResult = res[0]
     const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
-
-    // sum up the affected rows and entries
-    summedResult.affectedRows = res.slice(1).reduce((totalRows, result) => {
-      if (result.query?.target === transitions.target) {
-        summedResult.query.INSERT.entries.push(...result.query.INSERT.entries)
-        return totalRows + result.affectedRows
+    for (const result of res) {
+      if (transitions.target === result?.query?.target) {
+        summedResult = result
+        break
       }
-      return totalRows
-    }, summedResult.affectedRows || 0)
+    }
 
-    // summ up the results
-    summedResult.results = res.slice(1).reduce(
-      (resultsArray, result) => {
-        if (result.results) {
-          resultsArray.push(result.results[0])
+    if (typeof summedResult === 'object') {
+      // sum up the affected rows and entries
+      summedResult.affectedRows = res.slice(1).reduce((totalRows, result) => {
+        if (result.query?.target === transitions.target) {
+          summedResult.query.INSERT.entries.push(...result.query.INSERT.entries)
+          return totalRows + result.affectedRows
         }
-        return resultsArray
-      },
-      summedResult.results.length ? summedResult.results : [summedResult.results],
-    )
+        return totalRows
+      }, summedResult.affectedRows || 0)
 
-    return summedResult
+      // summ up the results
+      summedResult.results = res.slice(1).reduce(
+        (resultsArray, result) => {
+          if (result.results) {
+            resultsArray.push(result.results[0])
+          }
+          return resultsArray
+        },
+        summedResult.results.length ? summedResult.results : [summedResult.results],
+      )
+    }
   }
   
-  return res[0] ?? 0 // TODO what todo with multiple result responses?
+  return summedResult ? summedResult : (res[0] ?? 0) // TODO what todo with multiple result responses?
 }
 
 const hasDeep = (q, target) => {
