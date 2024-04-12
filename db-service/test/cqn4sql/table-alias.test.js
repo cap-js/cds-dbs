@@ -444,6 +444,38 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
+    it('do not treat group by that way', async () => {
+      const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
+      const query = SELECT.localized
+        .columns('ID', 'title', 'author')
+        .from(subquery)
+        .orderBy('title')
+        .groupBy('title')
+  
+      query.SELECT.count = true
+  
+      const res = cqn4sql(query, model)
+
+      // TODO: assign a TA to the subquery from which we select
+      const expected = CQL`
+        SELECT from
+          (SELECT 
+            SimpleBook.ID, 
+            SimpleBook.title, 
+            SimpleBook.author_ID
+            from bookshop.SimpleBook as SimpleBook
+            order by SimpleBook.title
+          )
+        {
+          ID,
+          title,
+          author_ID
+        }
+        group by title
+        order by title
+      `
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
     it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
       const query = CQL`SELECT from bookshop.Books { 
         title,

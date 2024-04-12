@@ -30,7 +30,7 @@ describe('Bookshop - Order By', () => {
 
     const res = await cds.run(query)
     expect(res.length).to.be.eq(1)
-    expect(res[0]).to.eq({ title: 'Catweazle', pri: 150})
+    expect(res[0]).to.eql({ title: 'Catweazle', pri: 150})
   })
   test('collations with val', async () => {
     if(cds.env.requires.db.impl === '@cap-js/hana')
