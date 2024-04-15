@@ -727,6 +727,9 @@ function infer(originalQuery, model) {
       function resolveInline(col, namePrefix = col.as || col.flatName) {
         const { inline, $refLinks } = col
         const $leafLink = $refLinks[$refLinks.length - 1]
+        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(`Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        }
         let elements = {}
         inline.forEach(inlineCol => {
           inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true, baseColumn: col })
@@ -780,6 +783,9 @@ function infer(originalQuery, model) {
       function resolveExpand(col) {
         const { expand, $refLinks } = col
         const $leafLink = $refLinks?.[$refLinks.length - 1] || inferred.SELECT.from.$refLinks.at(-1) // fallback to anonymous expand
+        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(`Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        }
         const target = getDefinition($leafLink.definition.target)
         if (target) {
           const expandSubquery = {
@@ -795,19 +801,20 @@ function infer(originalQuery, model) {
             ? new cds.struct({ elements: inferredExpandSubquery.elements })
             : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
           return Object.defineProperty(res, '$assocExpand', { value: true })
-        } // struct
-        let elements = {}
-        expand.forEach(e => {
-          if (e === '*') {
-            elements = { ...elements, ...$leafLink.definition.elements }
-          } else {
-            inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
-            if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
-            if (e.inline) elements = { ...elements, ...resolveInline(e) }
-            else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
-          }
-        })
-        return new cds.struct({ elements })
+        } else if ($leafLink.definition.elements) {
+          let elements = {}
+          expand.forEach(e => {
+            if (e === '*') {
+              elements = { ...elements, ...$leafLink.definition.elements }
+            } else {
+              inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
+              if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
+              if (e.inline) elements = { ...elements, ...resolveInline(e) }
+              else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
+            }
+          })
+          return new cds.struct({ elements })
+        }
       }
 
       function stepNotFoundInPredecessor(step, def) {
