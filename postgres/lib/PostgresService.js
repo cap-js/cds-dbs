@@ -397,8 +397,8 @@ GROUP BY k
         // Adjusts json path expressions to be postgres specific
         .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
-        .replace('json_each(?)', 'jsonb_array_elements($1::jsonb)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
     }
 
     param({ ref }) {
