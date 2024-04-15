@@ -19,7 +19,7 @@ class HDBDriver extends driver {
    * Instantiates the HDBDriver class
    * @param {import('./base').Credentials} creds The credentials for the HDBDriver instance
    */
-  constructor(creds, forBlobs) {
+  constructor(creds) {
     creds = {
       useCesu8: false,
       fetchSize: 1 << 16, // V8 default memory page size
@@ -35,17 +35,12 @@ class HDBDriver extends driver {
     this._native = hdb.createClient(creds)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
-
-    if (!forBlobs) {
-      this._blobs = new HDBDriver(creds, true)
-      this._blobs.destroy = () => { this._blobs = undefined }
-    }
+    this._activeBlobStreams = 0
 
     this.connected = false
   }
 
   set(variables) {
-    if (this._blobs) { this._blobs.set(variables) }
     const clientInfo = this._native._connection.getClientInfo()
     for (const key in variables) {
       clientInfo.setProperty(key, variables[key])
@@ -76,17 +71,7 @@ class HDBDriver extends driver {
     })
   }
 
-  async disconnect() {
-    if (this._blobs) { await this._blobs.disconnect() }
-    return super.disconnect()
-  }
-
   async prepare(sql, hasBlobs) {
-    if (hasBlobs && this._blobs) {
-      if (!this._blobs.connected) await this._blobs.connect()
-      return this._blobs.prepare(sql, hasBlobs)
-    }
-
     const ret = await super.prepare(sql)
 
     if (hasBlobs) {
@@ -107,14 +92,22 @@ class HDBDriver extends driver {
               obj[col] = await text(row[col].createReadStream())
               continue
             }
-            obj[col] = i > 3
-              ? row[col] === null
-                ? null
-                : (
-                  row[col].createReadStream?.()
-                  || Readable.from(echoStream(row[col]), { objectMode: false })
-                )
-              : row[col]
+            if (i > 3) {
+              if (row[col] == null) {
+                obj[col] = null
+                continue
+              }
+              let blob = row[col].createReadStream?.()
+              if (blob) {
+                this._activeBlobStreams++
+                blob.on('end', () => { this._activeBlobStreams-- })
+              } else {
+                blob = Readable.from(echoStream(row[col]), { objectMode: false })
+              }
+              obj[col] = blob
+            } else {
+              obj[col] = row[col]
+            }
           }
           result.push(obj)
         }
@@ -151,8 +144,8 @@ class HDBDriver extends driver {
 
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
-    const isArray = Array.isArray(rows)        
-    const result = isArray ? {...rows[0]} : {...rows}
+    const isArray = Array.isArray(rows)
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
     const args = isArray ? rows.slice(1) : []
@@ -162,7 +155,7 @@ class HDBDriver extends driver {
         result[params[i].PARAMETER_NAME] = args[i]
       }
     }
-  
+
     return result
   }
 
@@ -181,6 +174,12 @@ class HDBDriver extends driver {
     return {
       values,
       streams,
+    }
+  }
+
+async _sendStreams(/*execProm, stmt, streams */) {
+    if (this._activeBlobStreams) {
+      this._native._connection._queue.busy = false
     }
   }
 }
@@ -438,6 +437,7 @@ const readString = function (state, isJson = false) {
 }
 
 const { readInt64LE } = require('hdb/lib/util/bignum.js')
+const { stream } = require('@sap/cds/lib')
 const readBlob = function (state, encoding) {
   // Check if the blob is null
   let ens = state.ensure(2)

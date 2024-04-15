@@ -29,8 +29,9 @@ class HANADriver {
       run: async params => {
         const { values, streams } = this._extractStreams(params)
         const stmt = await prep
-        let changes = await prom(stmt, 'exec')(values)
-        await this._sendStreams(stmt, streams)
+        const execProm = prom(stmt, 'exec')(values)
+        await this._sendStreams(execProm, stmt, streams)
+        let changes = await execProm
         // REVISIT: hana-client does not return any changes when doing an update with streams
         // This causes the best assumption to be that the changes are one
         // To get the correct information it is required to send a count with the update where clause
@@ -75,10 +76,12 @@ class HANADriver {
   /**
    * Sends streams to the prepared statement
    * @abstract
+   * @param {Promise} execProm
    * @param {import('@cap-js/db-service/lib/SQLService').PreparedStatement} stmt
    * @param {Array<ReadableStream>} streams
    */
-  async _sendStreams(stmt, streams) {
+  async _sendStreams(execProm, stmt, streams) {
+    execProm
     stmt
     streams
     return
