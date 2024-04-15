@@ -30,6 +30,11 @@ entity Books : managed {
   coAuthor_ID_unmanaged: Integer;
   coAuthorUnmanaged: Association to Authors on $self.coAuthorUnmanaged.ID = $self.coAuthor_ID_unmanaged;
 }
+entity SimpleBook {
+  key ID : Integer;
+  title  : localized String(111);
+  author : Association to Authors;
+}
 
 entity BooksWithWeirdOnConditions {
   key ID: Integer;
@@ -300,6 +305,9 @@ entity SoccerPlayers {
   key jerseyNumber: Integer;
   name: String;
   team: Association to SoccerTeams;
+  emails: many {
+    address: String;
+  }
 }
 
 entity TestPublisher {
