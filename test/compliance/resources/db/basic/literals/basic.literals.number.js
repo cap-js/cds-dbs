@@ -15,7 +15,7 @@ module.exports = [
     integer64: '-9223372036854775808',
   },
   {
-    decimal: '3.14156',
+    decimal: '3.14153',
     '=decimal': /^3.1415/
   },
   /*{
