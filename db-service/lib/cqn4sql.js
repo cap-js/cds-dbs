@@ -181,7 +181,7 @@ function cqn4sql(originalQuery, model) {
 
     if (inferred.SELECT.search?.searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
-      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
+      const { where, having } = transformSearch(inferred.SELECT.search)
       if (where) transformedQuery.SELECT.where = where
       else if (having) transformedQuery.SELECT.having = having
     }
@@ -209,11 +209,7 @@ function cqn4sql(originalQuery, model) {
    * @param {object} search - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
-   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
-   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
-   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
-   *     - If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {Object} - The function returns an object representing the WHERE or HAVING clause of the query.
    *
    * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
@@ -229,7 +225,6 @@ function cqn4sql(originalQuery, model) {
     // is defined on the aggregated result, not on the individual rows
     let prop = 'where'
 
-    // makes use of aggregation
     const usesAggregation =
       inferred.SELECT.groupBy &&
       (searchTerm.args[0].func || searchTerm.args[0].xpr || searchTerm.args[0].list?.some(c => c.func || c.xpr))

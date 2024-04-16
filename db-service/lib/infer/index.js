@@ -1178,7 +1178,7 @@ function infer(originalQuery, model) {
    *
    * @returns {(Object|null)} returns either:
    * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
-   * - or null, if no searchable columns are found in neither in `@cds.search` or in the target entity itself.
+   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
    */
   function getSearchTerm(search, from) {
     const entity = from.$refLinks.at(-1).definition._target || from.$refLinks.at(-1).definition
