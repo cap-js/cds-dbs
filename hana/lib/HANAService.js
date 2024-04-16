@@ -137,13 +137,13 @@ class HANAService extends SQLService {
     let rows
     try {
       rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+        : await this.exec(sqlScript)
     } catch (err) {
       // Ensure that the known entity still exists
-      if (cds.context.tenant && (err.code === 321 || err.code === 259)) {
+      if (/*this.context.tenant && */ (err.code === 321 || err.code === 259)) {
         // Clear current tenant connection pool
-        cds.disconnect(cds.context.tenant)
+        await this.disconnect(this.context.tenant)
       }
       throw err
     }
@@ -1048,10 +1048,10 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }, name, schema) {    
-      const outParameters = await this._getProcedureMetadata(name, schema)              
-      const ps = await this.prepare(query)
-      return ps.proc(data, outParameters)     
+  async onCall({ query, data }, name, schema) {
+    const outParameters = await this._getProcedureMetadata(name, schema)
+    const ps = await this.prepare(query)
+    return ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1067,7 +1067,7 @@ class HANAService extends SQLService {
         throw err
       }
     }
-    
+
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
@@ -1174,15 +1174,14 @@ class HANAService extends SQLService {
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
-        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
-    return await super.onPlainSQL({ query, data: [] })   
+    return await super.onPlainSQL({ query, data: [] })
   }
 
   _getProcedureNameAndSchema(sql) {
     // name delimited with "" allows any character
-    const match = sql    
+    const match = sql
       .match(
         /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
       )
