@@ -879,7 +879,7 @@ function cqn4sql(originalQuery, model) {
         }
         const { target, definition } = col.$refLinks[0]
         let tableAlias = null
-        if (target.SELECT) {
+        if (target.SELECT?.columns && inOrderBy) {
           // usually TA is omitted if order by ref is a column
           // if a localized sorting is requested, we add `COLLATE`s
           // later on, which transforms the simple name to an expression
@@ -889,6 +889,9 @@ function cqn4sql(originalQuery, model) {
               return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
             })
             if (referredCol) {
+              // keep sort and nulls properties
+              referredCol.sort = col.sort
+              referredCol.nulls = col.nulls
               col = referredCol
               if (definition.kind === 'element') {
                 tableAlias = getQuerySourceName(col)

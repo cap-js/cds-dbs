@@ -18,6 +18,21 @@ describe('Bookshop - Order By', () => {
     expect(res.length).to.be.eq(1)
     expect(res[0].author).to.eq('Charlotte Brontë')
   })
+  test('collations for aggregating queries with subselect', async () => {
+    const subquery = SELECT.localized.from('sap.capire.bookshop.Books').orderBy('title')
+    const query = SELECT.localized
+      .from(subquery)
+      .columns('title', 'sum(price) as pri')
+      .limit(1)
+      .groupBy('title')
+      .orderBy('title')
+
+    query.SELECT.count = true
+
+    const res = await cds.run(query)
+    expect(res.length).to.be.eq(1)
+    expect(res[0]).to.eql({ title: 'Catweazle', pri: 150})
+  })
   test('collations with val', async () => {
     if(cds.env.requires.db.impl === '@cap-js/hana')
       return // FIXME: the `val` is put into window function, which ends in an error on HANA

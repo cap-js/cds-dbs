@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.1.0...hana-v0.2.0) (2024-04-12)
+
+
+### Added
+
+* Odata built-in query functions ([#558](https://github.com/cap-js/cds-dbs/issues/558)) ([6e63367](https://github.com/cap-js/cds-dbs/commit/6e6336757129c4a9dac56f93fd768bb41d071c46))
+* support HANA stored procedures ([#542](https://github.com/cap-js/cds-dbs/issues/542)) ([52a00a0](https://github.com/cap-js/cds-dbs/commit/52a00a0d642ba3c58dcad97b3ea1456f1bf3b04a))
+
 ## [0.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.0.6...hana-v0.1.0) (2024-03-22)
 
 

@@ -444,6 +444,55 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
+    it('dont try to prepend table alias if we select from anonymous subquery', async () => {
+      const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
+      const query = SELECT.localized
+        .columns('ID', 'title', 'author')
+        .from(subquery)
+        .orderBy('title')
+        .groupBy('title')
+  
+      query.SELECT.count = true
+  
+      const res = cqn4sql(query, model)
+
+      const expected = CQL`
+        SELECT from
+          (SELECT 
+            SimpleBook.ID, 
+            SimpleBook.title, 
+            SimpleBook.author_ID
+            from bookshop.SimpleBook as SimpleBook
+            order by SimpleBook.title
+          )
+        {
+          ID,
+          title,
+          author_ID
+        }
+        group by title
+        order by title
+      `
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
+    it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
+      const query = CQL`SELECT from bookshop.Books { 
+        title,
+        title as foo,
+        author.name as author
+      } order by title asc nulls first, foo desc nulls last`
+      query.SELECT.localized = true
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.title,
+        Books.title as foo,
+        author.name as author
+      }
+      ORDER BY Books.title asc nulls first, Books.title desc nulls last`)
+    })
     it('for localized sorting, replace string expression', () => {
       const query = CQL(`SELECT from bookshop.Books {
         'simple string' as foo: cds.String,
