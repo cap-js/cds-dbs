@@ -30,7 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
-    this.on(['SELELCT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
+    this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
     return super.init()
   }
 
