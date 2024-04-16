@@ -134,9 +134,19 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows = (values?.length || blobs.length > 0)
+    let rows
+    try {
+      rows = (values?.length || blobs.length > 0)
       ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
+    } catch (err) {
+      // Ensure that the known entity still exists
+      if (cds.context.tenant && (err.code === 321 || err.code === 259)) {
+        // Clear current tenant connection pool
+        cds.disconnect(cds.context.tenant)
+      }
+      throw err
+    }
 
     if (isLockQuery) {
       // Fetch actual locked results
