@@ -488,9 +488,9 @@ GROUP BY k
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
-      Int64: expr => `to_char(${expr})`,
+      Int64: expr => `cast(${expr} as varchar)`,
       // Reading decimal as string to not loose precision
-      Decimal: expr => `to_char(${expr})`,
+      Decimal: expr => `cast(${expr} as varchar)`,
     }
   }
 
