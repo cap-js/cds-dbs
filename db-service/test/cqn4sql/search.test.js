@@ -222,3 +222,117 @@ describe('Replace attribute search by search predicate', () => {
       } group by Books.title having search(('very' + 'useful' + 'string'), 'x')`)
   })
 })
+
+describe('search w/ path expressions', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
+  })
+
+  it('one string element with one search element', () => {
+    let query = CQL`SELECT from search.BooksSearchAuthorName { ID, title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BooksSearchAuthorName as BooksSearchAuthorName left join search.Authors as author on author.ID = BooksSearchAuthorName.author_ID
+    {
+      BooksSearchAuthorName.ID,
+      BooksSearchAuthorName.title
+  } where search(author.lastName, 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('search all searchable fields in target', () => {
+    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
+    {
+      Books.ID,
+      Books.title
+  } where search((author.lastName, author.firstName), 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('search only some searchable fields via multiple association paths', () => {
+    let query = CQL`SELECT from search.BooksSearchAuthorAndAddress as Books { ID, title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BooksSearchAuthorAndAddress as Books
+      left join search.AuthorsSearchAddresses as authorWithAddress on authorWithAddress.ID = Books.authorWithAddress_ID
+      left join search.Addresses as address on address.ID = authorWithAddress.address_ID
+    {
+      Books.ID,
+      Books.title
+  } where search((authorWithAddress.note, address.city), 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+})
+
+describe('calculated elements', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
+  })
+
+  it('search calculated element via path expression', () => {
+    let query = CQL`SELECT from search.AuthorsSearchCalculatedAddress as Authors { lastName }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.AuthorsSearchCalculatedAddress as Authors
+        left join search.CalculatedAddresses as address on address.ID = Authors.address_ID
+    {
+      Authors.lastName
+    } where search((Authors.note, (address.street || ' ' || address.zip || '' || address.city)), 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('search calculated element only if explicitly requested', () => {
+    let query = CQL`SELECT from search.CalculatedAddressesWithoutAnno as Address { Address.ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.CalculatedAddressesWithoutAnno as Address
+    {
+      Address.ID
+  } where search((Address.city), 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+})
+
+describe('caching searchable fields', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
+  })
+
+  it('search all searchable fields in target', () => {
+    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
+    {
+      Books.ID,
+      Books.title
+  } where search((author.lastName, author.firstName), 'x')`
+
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    // test caching
+    expect(model.definitions['search.BooksSearchAuthor'])
+      .to.have.property('__searchableColumns')
+      .that.eqls([{ ref: ['author', 'lastName'] }, { ref: ['author', 'firstName'] }])
+
+    let secondRun = cqn4sql(query, model)
+    expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)
+  })
+})

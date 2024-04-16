@@ -179,7 +179,7 @@ function cqn4sql(originalQuery, model) {
       }
     }
 
-    if (inferred.SELECT.search) {
+    if (inferred.SELECT.search?.searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
       const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
       if (where) transformedQuery.SELECT.where = where
@@ -218,34 +218,27 @@ function cqn4sql(originalQuery, model) {
    * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearch(search, from) {
-    const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
+  function transformSearch(search) {
+    const searchTerm = getTransformedTokenStream([search.searchTerm])[0]
     // pass transformedQuery because we may need to search in the columns directly
     // in case of aggregation
-    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
+    const contains = searchTerm
 
-      // if the query is grouped and the queries columns contain an aggregate function,
-      // we must put the search term into the `having` clause, as the search expression
-      // is defined on the aggregated result, not on the individual rows
-      let prop = 'where'
+    // if the query is grouped and the queries columns contain an aggregate function,
+    // we must put the search term into the `having` clause, as the search expression
+    // is defined on the aggregated result, not on the individual rows
+    let prop = 'where'
 
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
-      if (transformedQuery.SELECT[prop]) {
-        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
-      } else {
-        return { [prop]: [contains] }
-      }
+    // makes use of aggregation
+    const usesAggregation =
+      inferred.SELECT.groupBy &&
+      (searchTerm.args[0].func || searchTerm.args[0].xpr || searchTerm.args[0].list?.some(c => c.func || c.xpr))
+
+    if (usesAggregation) prop = 'having'
+    if (transformedQuery.SELECT[prop]) {
+      return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
     } else {
-      return null
+      return { [prop]: [contains] }
     }
   }
 

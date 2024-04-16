@@ -2,6 +2,7 @@
 
 const cds = require('@sap/cds/lib')
 
+const { computeColumnsToBeSearched } = require('../search')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const cdsTypes = cds.linked({
@@ -286,7 +287,7 @@ function infer(originalQuery, model) {
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
-    const { columns, where, groupBy, having, orderBy } = _
+    const { columns, where, groupBy, having, orderBy, search } = _
     if (!columns) {
       inferElementsFromWildCard(aliases)
     } else {
@@ -355,6 +356,16 @@ function infer(originalQuery, model) {
     if (_.with)
       // consider UPDATE.with
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
+    if (search) {
+      const searchTerm = getSearchTerm(inferred.SELECT.search, inferred.SELECT.from)
+      if (searchTerm) {
+        searchTerm.args.forEach(arg => inferQueryElement(arg, false))
+        Object.defineProperty(search, 'searchTerm', {
+          writable: true,
+          value: searchTerm,
+        })
+      }
+    }
 
     return queryElements
 
@@ -727,8 +738,10 @@ function infer(originalQuery, model) {
       function resolveInline(col, namePrefix = col.as || col.flatName) {
         const { inline, $refLinks } = col
         const $leafLink = $refLinks[$refLinks.length - 1]
-        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
-          throw new Error(`Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        if (!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(
+            `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
+          )
         }
         let elements = {}
         inline.forEach(inlineCol => {
@@ -783,8 +796,10 @@ function infer(originalQuery, model) {
       function resolveExpand(col) {
         const { expand, $refLinks } = col
         const $leafLink = $refLinks?.[$refLinks.length - 1] || inferred.SELECT.from.$refLinks.at(-1) // fallback to anonymous expand
-        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
-          throw new Error(`Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        if (!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(
+            `Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
+          )
         }
         const target = getDefinition($leafLink.definition.target)
         if (target) {
@@ -1153,6 +1168,34 @@ function infer(originalQuery, model) {
       const dot = i === 1 && firstStepIsEntity ? ':' : '.' // divide with colon if first step is entity
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
+  }
+  /**
+   * For a given search expression return a function "search" which holds the search expression
+   * as well as the searchable columns as arguments.
+   *
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} from - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|null)} returns either:
+   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+   * - or null, if no searchable columns are found in neither in `@cds.search` or in the target entity itself.
+   */
+  function getSearchTerm(search, from) {
+    const entity = from.$refLinks.at(-1).definition._target || from.$refLinks.at(-1).definition
+    const searchIn = computeColumnsToBeSearched(inferred, entity, from.as)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const contains = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
+      }
+      return contains
+    } else {
+      return null
+    }
   }
 }
 
