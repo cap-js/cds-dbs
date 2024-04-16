@@ -57,7 +57,6 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          console.log('HANA connect', credentials.user)
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -189,7 +188,7 @@ class HANAService extends SQLService {
     } catch (err) {
       // TODO: check that the query target is defined in the model
       // Ensure that the known entity still exists
-      if (/*this.context.tenant && */ (err.code === 321 || err.code === 259)) {
+      if (/*this.context.tenant && */ err.code === 259) {
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
