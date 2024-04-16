@@ -30,6 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
+    this.on(['SELELCT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
     return super.init()
   }
 
@@ -134,19 +135,9 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows
-    try {
-      rows = (values?.length || blobs.length > 0)
+    let rows = (values?.length || blobs.length > 0)
         ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
         : await this.exec(sqlScript)
-    } catch (err) {
-      // Ensure that the known entity still exists
-      if (/*this.context.tenant && */ (err.code === 321 || err.code === 259)) {
-        // Clear current tenant connection pool
-        await this.disconnect(this.context.tenant)
-      }
-      throw err
-    }
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -188,6 +179,20 @@ class HANAService extends SQLService {
       return await super.onUPDATE(req)
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+    }
+  }
+
+  async onNOTFOUND(req, next) {
+    try {
+      return await next()
+    } catch (err) {
+      // TODO: check that the query target is defined in the model
+      // Ensure that the known entity still exists
+      if (/*this.context.tenant && */ (err.code === 321 || err.code === 259)) {
+        // Clear current tenant connection pool
+        this.disconnect(this.context.tenant)
+      }
+      throw err
     }
   }
 
