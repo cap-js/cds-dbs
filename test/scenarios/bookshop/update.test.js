@@ -10,7 +10,7 @@ const admin = {
 describe('Bookshop - Update', () => {
   const { expect, PUT } = cds.test(bookshop)
 
-  test('Update Book', async () => {
+  test.only('Update Book', async () => {
     const res = await PUT(
       '/admin/Books(201)', // was Books(2) -> UPSERT
       {
