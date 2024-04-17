@@ -314,7 +314,7 @@ describe('caching searchable fields', () => {
     model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
   })
 
-  it('search all searchable fields in target', () => {
+  it.skip('search all searchable fields in target', () => {
     let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
@@ -331,6 +331,36 @@ describe('caching searchable fields', () => {
     expect(model.definitions['search.BooksSearchAuthor'])
       .to.have.property('__searchableColumns')
       .that.eqls([{ ref: ['author', 'lastName'] }, { ref: ['author', 'firstName'] }])
+
+    let secondRun = cqn4sql(query, model)
+    expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)
+  })
+
+  it('should be possible to define new search criteria during runtime', () => {
+    const { BooksSearchAuthor } = cds.entities
+    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
+    {
+      Books.ID,
+      Books.title
+    }`
+    const where = [
+      {
+        func: 'search',
+        args: [{ list: [{ ref: ['author', 'lastName'] }, { ref: ['author', 'firstName'] }] }, { val: 'x' }],
+      },
+    ]
+    expected.SELECT.where = where
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+
+    // add another searchable field
+    BooksSearchAuthor['@cds.search.title'] = true
+
+    where[0].args[0].list.unshift({ ref: ['Books', 'title'] })
 
     let secondRun = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)

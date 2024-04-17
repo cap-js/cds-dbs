@@ -214,7 +214,8 @@ function cqn4sql(originalQuery, model) {
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
   function transformSearch(search) {
-    const searchTerm = getTransformedTokenStream([search.searchTerm])[0]
+    const searchTokenStream = [search.searchTerm]
+    const searchTerm = getTransformedTokenStream(searchTokenStream)[0]
     // pass transformedQuery because we may need to search in the columns directly
     // in case of aggregation
     const contains = searchTerm
