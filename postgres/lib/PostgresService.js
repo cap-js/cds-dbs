@@ -487,6 +487,10 @@ GROUP BY k
       Association: e => `jsonb(${e})`,
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
+      // Reading int64 as string to not loose precision
+      Int64: expr => `cast(${expr} as varchar)`,
+      // Reading decimal as string to not loose precision
+      Decimal: expr => `cast(${expr} as varchar)`,
     }
   }
 
