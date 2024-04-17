@@ -359,7 +359,6 @@ describe('caching searchable fields', () => {
 
     // add another searchable field
     BooksSearchAuthor['@cds.search.title'] = true
-
     where[0].args[0].list.unshift({ ref: ['Books', 'title'] })
 
     let secondRun = cqn4sql(query, model)
