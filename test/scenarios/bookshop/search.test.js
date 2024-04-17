@@ -15,5 +15,36 @@ describe('Bookshop - Search', () => {
       expect(res.length).to.be.eq(1)
     })
   })
+  describe('with path expressions', () => {
+    test('Search authors via books', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
 
+      let res = await SELECT.from(Books).columns('author.name', 'title').search('Brontë')
+      expect(res.length).to.be.eq(2) // Emily and Charlotte
+    })
+    test('Search authors address through calculated element in books', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.authorsAddress'] = true
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      // author name in res[0] must match "Emily Brontë"
+      expect(res.length).to.be.eq(1)
+      expect(res[0].author).to.be.eq('Emily Brontë')
+    })
+    test('Search authors calculated element via books', async () => {
+      const { Books } = cds.entities
+      const { Authors } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+      Authors['@cds.search.address'] = true // address is a calculated element
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      // author name in res[0] must match "Emily Brontë"
+      expect(res.length).to.be.eq(1)
+      expect(res[0].author).to.be.eq('Emily Brontë')
+    })
+  })
 })

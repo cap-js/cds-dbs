@@ -179,11 +179,10 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, a
       }
     })
   } else {
-    toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
-    // if (cqn.SELECT.groupBy) toBeSearched = toBeSearched.filter(tbs => cqn.SELECT.groupBy.some(gb => gb.ref[0] === tbs))
+    // no caching, as it makes it impossible to dynamically assign/unassign the @cds.search annotation multiple times
+    toBeSearched = _getSearchableColumns(entity)
     toBeSearched = toBeSearched.map(c => {
       const column = {ref: [...c.ref]}
-      // if (alias) column.ref.unshift(alias)
       return column
     })
   }
