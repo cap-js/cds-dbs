@@ -1,7 +1,6 @@
 'use strict'
 
 const cds = require('@sap/cds/lib')
-const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
 
