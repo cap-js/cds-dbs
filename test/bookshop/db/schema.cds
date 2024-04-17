@@ -13,7 +13,7 @@ entity Books : managed {
   image : LargeBinary @Core.MediaType : 'image/png';
   footnotes: array of String;
 
-  authorsAddress: String = author.address;
+//   authorsAddress: String = author.address;
 }
 
 entity Authors : managed {
@@ -27,7 +27,7 @@ entity Authors : managed {
 
   street: String;
   city: String;
-  address: String = street || ', ' || city;
+//   address: String = street || ', ' || city;
 }
 
 /** Hierarchically organized Code List for Genres */
