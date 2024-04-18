@@ -1,4 +1,5 @@
 const cds = require('@sap/cds')
+const { hasDeep } = require('../lib/deep-queries')
 
 // REVISIT: very deep & fragile dependencies to internal modules -> copy these into here
 const propagateForeignKeys = require('@sap/cds/libx/_runtime/common/utils/propagateForeignKeys')
@@ -58,9 +59,7 @@ module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
   // only for deep update
-  const containsObjectOrArray = obj =>
-    Object.values(obj).some(val => Array.isArray(val) || (typeof val === 'object' && val !== null))
-  if (req.event === 'UPDATE' && containsObjectOrArray(req.data)) {
+  if (req.event === 'UPDATE' && hasDeep(req.query, req.target)) {
     // REVISIT for deep update we need to inject the keys first
     enrichDataWithKeysFromWhere(req.data, req, this)
   }
