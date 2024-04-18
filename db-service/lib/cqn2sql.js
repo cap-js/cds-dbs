@@ -751,7 +751,7 @@ class CQN2SQLRenderer {
       for (let c in data) {
         const columnExistsInDatabase =
           elements && c in elements && !elements[c].virtual && !elements[c].isAssociation && !elements[c].value
-        if (columnExistsInDatabase) {
+        if (!elements || columnExistsInDatabase) {
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
