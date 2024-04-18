@@ -651,6 +651,24 @@ describe('Flattening', () => {
         co_ID
       `)
     })
+    // TODO
+    it('same as above but navigation along column in order by', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books  { ID, author, coAuthor as co }
+        order by Books.author, co.name`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+      left join bookshop.Authors as co on co.ID = Books.coAuthor_ID
+      {
+        Books.ID,
+        Books.author_ID,
+        Books.coAuthor_ID as co_ID
+      } order by
+        Books.author_ID,
+        co.name
+      `)
+    })
 
     it('rejects managed association with multiple FKs in ORDER BY clause', () => {
       expect(() =>

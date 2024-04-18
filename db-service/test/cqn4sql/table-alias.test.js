@@ -545,6 +545,22 @@ describe('table alias access', () => {
       let query = cqn4sql(input, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { func() as func } order by func`)
     })
+
+    it('do not try to resolve ref in columns if columns consists of star', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { * } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
+    })
+    it('same as above but author is explicit column', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { *, author } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
+    })
+  
   })
 
   describe('replace usage of implicit aliases in subqueries', () => {
