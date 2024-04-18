@@ -57,9 +57,12 @@ const generateUUIDandPropagateKeys = (entity, data, event) => {
 module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
-  if (req.event === 'UPDATE') {
+  // only for deep update
+  const containsObjectOrArray = obj =>
+    Object.values(obj).some(val => Array.isArray(val) || (typeof val === 'object' && val !== null))
+  if (req.event === 'UPDATE' && containsObjectOrArray(req.data)) {
     // REVISIT for deep update we need to inject the keys first
-    enrichDataWithKeysFromWhere (req.data, req, this)
+    enrichDataWithKeysFromWhere(req.data, req, this)
   }
 
   // REVISIT no input processing for INPUT with rows/values
