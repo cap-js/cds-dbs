@@ -349,17 +349,6 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test.skip('totaloffsetminutes', async () => {
-      // okra error: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
-      // new adapter: REVISIT: getting transformed date without timeoffset from service layer 
-      const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes('2000-01-01T23:45:13-10:30') eq -630&$top=1`,
-      )
-
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(1)
-    })
-
     test.skip('totalseconds', async () => {
       // okra error: Feature is not supported: Method "totalseconds" in $filter or $orderby query options
       // new adapter error: 400 - Property 'duration' does not exist in 'CatalogService.Books'
