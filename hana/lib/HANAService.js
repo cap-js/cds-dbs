@@ -30,7 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
-    this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
+    this.on('error', this.onNOTFOUND)
     return super.init()
   }
 
@@ -182,18 +182,13 @@ class HANAService extends SQLService {
     }
   }
 
-  async onNOTFOUND(req, next) {
-    try {
-      return await next()
-    } catch (err) {
-      // TODO: check that the query target is defined in the model
-      // Ensure that the known entity still exists
-      if (/*this.context.tenant && */ err.code === 259) {
-        // Clear current tenant connection pool
-        this.disconnect(this.context.tenant)
-      }
-      throw err
-    }
+  async onNOTFOUND(err, req) {
+    // TODO: check that the query target is defined in the model
+    // Ensure that the known entity still exists
+    if (/*this.context.tenant && */ err.code === 259 && req.query !== 'string') {
+      // Clear current tenant connection pool
+      this.disconnect(this.context.tenant)
+    } else throw err
   }
 
   // Allow for running complex expand queries in a single statement
