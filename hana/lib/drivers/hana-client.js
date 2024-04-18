@@ -74,7 +74,7 @@ class HANAClientDriver extends driver {
           rsStreamsProm.resolve = resolve
           rsStreamsProm.reject = reject
         })
-        rsStreams.catch(() => {})
+        rsStreams.catch(() => { })
 
         rs._rowPosition = -1
         const _next = prom(rs, 'next')
@@ -161,7 +161,7 @@ class HANAClientDriver extends driver {
     }
 
     const resultSet = Array.isArray(rows) ? rows[0] : rows
-  
+
     // merge table output params into scalar params
     const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
     if (params && params.length) {
@@ -174,7 +174,7 @@ class HANAClientDriver extends driver {
         resultSet.nextResult()
       }
     }
-  
+
     return result
   }
 
@@ -195,7 +195,8 @@ class HANAClientDriver extends driver {
     }
   }
 
-  async _sendStreams(stmt, streams) {
+  async _sendStreams(execProm, stmt, streams) {
+    await execProm
     // Sends all streams to the database
     const sendParameterData = prom(stmt, 'sendParameterData')
     for (let i = 0; i < streams.length; i++) {
@@ -203,7 +204,10 @@ class HANAClientDriver extends driver {
       if (!curStream) continue
       for await (const chunk of curStream) {
         curStream.pause()
-        await sendParameterData(i, Buffer.from(chunk))
+        const buffer = Buffer.from(chunk)
+        if (buffer.length > 0) {
+          await sendParameterData(i, buffer)
+        }
         curStream.resume()
       }
       await sendParameterData(i, null)
@@ -343,29 +347,16 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, encoding, binaryBuffe
 
     const getData = prom(rs, 'getData')
 
-    let decoder = new StringDecoder(encoding)
-
     let blobPosition = 0
-
     while (true) {
-      // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-      let start = 0
       const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
-      if (blobPosition === 0 && binaryBuffer.slice(0, 7).toString() === 'base64,') {
-        decoder = {
-          write: encoding === 'base64' ? c => c : chunk => Buffer.from(chunk.toString(), 'base64'),
-          end: () => Buffer.allocUnsafe(0),
-        }
-        start = 7
-      }
       blobPosition += read
       if (read < binaryBuffer.byteLength) {
-        yield decoder.write(binaryBuffer.slice(start, read))
+        yield binaryBuffer.slice(0, read)
         break
       }
-      yield decoder.write(binaryBuffer.slice(start).toString('base64'))
+      yield binaryBuffer
     }
-    yield decoder.end()
   } catch (e) {
     promChain.reject(e)
   } finally {
