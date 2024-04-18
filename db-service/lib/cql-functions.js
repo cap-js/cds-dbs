@@ -215,20 +215,6 @@ const StandardFunctions = {
    */
   mindatetime: () => "'0001-01-01T00:00:00.000Z'",
 
-  // odata spec defines the date time offset type as a normal ISO time stamp
-  // Where the timezone can either be 'Z' (for UTC) or [+|-]xx:xx for the time offset
-  /**
-   * Generates SQL statement that produces the offset in minutes of a given date time offset string
-   * @param {string} x
-   * @returns {string}
-   */
-  totaloffsetminutes: x => `case
-    when substr(${x}, length(${x})) = 'z' then 0
-    else sign( cast( substr(${x}, length(${x}) - 5) as Integer )) *
-    ( cast( strftime('%H', substr(${x}, length(${x}) - 4 )) as Integer ) * 60 +
-    cast( strftime('%M', substr(${x},length(${x}) - 4 )) as Integer ))
-  end`,
-
   // odata spec defines the value format for totalseconds as a duration like: P12DT23H59M59.999999999999S
   // P -> duration indicator
   // D -> days, T -> Time seperator, H -> hours, M -> minutes, S -> fractional seconds
