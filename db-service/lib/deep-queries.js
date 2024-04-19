@@ -1,6 +1,7 @@
 const cds = require('@sap/cds')
 const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
+const InsertResult = require('../lib/InsertResults')
 
 const handledDeep = Symbol('handledDeep')
 
@@ -35,7 +36,15 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
-  return res[0] ?? 0 // TODO what todo with multiple result responses?
+  return (
+    beforeData.length ||
+    new InsertResult(query, [
+      {
+        changes: Array.isArray(req.data) ? req.data.length : 1,
+        ...(res[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: res[0].results[0].lastInsertRowid } : {}),
+      },
+    ])
+  )
 }
 
 const hasDeep = (q, target) => {
