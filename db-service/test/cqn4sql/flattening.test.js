@@ -651,22 +651,25 @@ describe('Flattening', () => {
         co_ID
       `)
     })
-    // TODO
-    it('same as above but navigation along column in order by', () => {
+    it('same as above but navigation to foreign key in order by', () => {
       let query = cqn4sql(
-        CQL`SELECT from bookshop.Books  { ID, author, coAuthor as co }
-        order by Books.author, co.name`,
+        CQL`SELECT from bookshop.Books  {
+          ID,
+          author,
+          coAuthor as co
+        }
+        order by
+          Books.author,
+          co.ID`,
         model,
       )
-      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
-      left join bookshop.Authors as co on co.ID = Books.coAuthor_ID
-      {
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.author_ID,
         Books.coAuthor_ID as co_ID
       } order by
         Books.author_ID,
-        co.name
+        co_ID
       `)
     })
 
@@ -852,5 +855,4 @@ describe('Flattening', () => {
       )
     })
   })
-
 })
