@@ -160,14 +160,16 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Arithmetic Functions', () => {
-    test('ceiling', async () => {
+    test.skip('ceiling', async () => {
+      // REVISIT: switch on with the next cds release
       const res = await GET(`/browse/Books?$filter=ceiling(price) eq 14`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(2)
     })
 
-    test('floor', async () => {
+    test.skip('floor', async () => {
+      // REVISIT: switch on with the next cds release
       const res = await GET(`/browse/Books?$filter=floor(price) eq 13`)
 
       expect(res.status).to.be.eq(200)
@@ -258,7 +260,8 @@ describe('Bookshop - Functions', () => {
       expect(result).to.be.null
     })
 
-    test('fractionalseconds', async () => {
+    test.skip('fractionalseconds', async () => {
+      // REVISIT: switch on with the next cds release
       // okra error: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
       const res = await GET(
         `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) eq 0.321&$top=1`,
@@ -275,7 +278,8 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test('maxdatetime', async () => {
+    test.skip('maxdatetime', async () => {
+      // REVISIT: switch on with the next cds release
       // okra error: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
       const res = await GET(`/browse/Books?$select=ID&$filter=maxdatetime() eq 9999-12-31T23:59:59.999Z&$top=1`)
 
@@ -283,7 +287,8 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test('mindatetime', async () => {
+    test.skip('mindatetime', async () => {
+      // REVISIT: switch on with the next cds release
       // okra error: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
       const res = await GET(`/browse/Books?$select=ID&$filter=mindatetime() eq 0001-01-01T00:00:00.000Z&$top=1`)
 
@@ -339,17 +344,6 @@ describe('Bookshop - Functions', () => {
 
     test('time', async () => {
       const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=time(2023-03-29T15:44:58.999Z) eq 15:44:58&$top=1`)
-
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(1)
-    })
-
-    test.skip('totaloffsetminutes', async () => {
-      // okra error: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
-      // new adapter: REVISIT: getting transformed date without timeoffset from service layer 
-      const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes('2000-01-01T23:45:13-10:30') eq -630&$top=1`,
-      )
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)

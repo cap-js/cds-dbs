@@ -225,6 +225,9 @@ class SQLiteService extends SQLService {
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
       Int64: expr => `CAST(${expr} as TEXT)`,
+      
+      // Reading decimal as string to not loose precision
+      Decimal: expr => `CAST(${expr} as TEXT)`,
 
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,

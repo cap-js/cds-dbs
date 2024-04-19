@@ -614,7 +614,7 @@ class HANAService extends SQLService {
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
       )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}))`)
+      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR)`)
     }
 
     INSERT_rows(q) {
@@ -998,6 +998,7 @@ class HANAService extends SQLService {
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
+      // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
     }
 
     static OutputConverters = {
@@ -1009,6 +1010,10 @@ class HANAService extends SQLService {
       DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       Vector: e => `TO_NVARCHAR(${e})`,
+      // Reading int64 as string to not loose precision
+      Int64: expr => `TO_NVARCHAR(${expr})`,
+      // Reading decimal as string to not loose precision
+      Decimal: expr => `TO_NVARCHAR(${expr})`,
     }
   }
 
