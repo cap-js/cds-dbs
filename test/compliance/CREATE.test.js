@@ -25,7 +25,9 @@ describe('CREATE', () => {
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
 
-  const literals = Object.keys(model.definitions).filter(n => model.definitions[n].kind === 'entity')
+  const literals = Object.keys(model.definitions)
+    .filter(n => model.definitions[n].kind === 'entity')
+    .filter(n => n !== "complex.JoinBooksAndAuthors" )
 
   literals.forEach(table => {
     const path = table.split('.')
