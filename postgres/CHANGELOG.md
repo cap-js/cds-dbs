@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.6.0...postgres-v1.7.0) (2024-04-12)
+
+
+### Added
+
+* Odata built-in query functions ([#558](https://github.com/cap-js/cds-dbs/issues/558)) ([6e63367](https://github.com/cap-js/cds-dbs/commit/6e6336757129c4a9dac56f93fd768bb41d071c46))
+
 ## [1.6.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.1...postgres-v1.6.0) (2024-03-22)
 
 
