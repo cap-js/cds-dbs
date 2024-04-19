@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
-const { getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const InsertResult = require('../lib/InsertResults')
 
 const handledDeep = Symbol('handledDeep')
 
@@ -36,42 +36,13 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
-
-  let summedResult = 1
-  // only INSERTS
-  if (res.length > 1 && res[0].results) {
-    const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
-    for (const result of res) {
-      if (transitions.target === result?.query?.target) {
-        summedResult = result
-        break
-      }
-    }
-
-    if (typeof summedResult === 'object') {
-      // sum up the affected rows and entries
-      summedResult.affectedRows = res.slice(1).reduce((totalRows, result) => {
-        if (result.query?.target === transitions.target) {
-          summedResult.query.INSERT.entries.push(...result.query.INSERT.entries)
-          return totalRows + result.affectedRows
-        }
-        return totalRows
-      }, summedResult.affectedRows || 0)
-
-      // summ up the results
-      summedResult.results = res.slice(1).reduce(
-        (resultsArray, result) => {
-          if (result.results) {
-            resultsArray.push(result.results[0])
-          }
-          return resultsArray
-        },
-        summedResult.results.length ? summedResult.results : [summedResult.results],
-      )
-    }
-  }
   
-  return summedResult ? summedResult : (res[0] ?? 0) // TODO what todo with multiple result responses?
+  return (
+    beforeData.length ||
+    new InsertResult(query, [
+      { changes: Array.isArray(req.data) ? req.data.length : 1, lastInsertRowid: res[0].results[0].lastInsertRowid },
+    ])
+  )
 }
 
 const hasDeep = (q, target) => {
