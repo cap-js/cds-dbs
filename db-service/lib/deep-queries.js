@@ -265,4 +265,5 @@ module.exports = {
   onDeep,
   getDeepQueries,
   getExpandForDeep,
+  hasDeep,
 }
