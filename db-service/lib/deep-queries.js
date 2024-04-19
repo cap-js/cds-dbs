@@ -39,7 +39,10 @@ async function onDeep(req, next) {
   return (
     beforeData.length ||
     new InsertResult(query, [
-      { changes: Array.isArray(req.data) ? req.data.length : 1, lastInsertRowid: res[0].results[0].lastInsertRowid },
+      {
+        changes: Array.isArray(req.data) ? req.data.length : 1,
+        ...(res[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: res[0].results[0].lastInsertRowid } : {}),
+      },
     ])
   )
 }
