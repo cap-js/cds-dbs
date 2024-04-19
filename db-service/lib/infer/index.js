@@ -334,17 +334,38 @@ function infer(originalQuery, model) {
       // link $refLinks -> special name resolution rules for orderBy
       orderBy.forEach(token => {
         let $baseLink
+        let rejectJoinRelevantPath
         // first check if token ref is resolvable in query elements
         if (columns) {
-          const e = queryElements[token.ref?.[0]]
-          const isAssocExpand = e?.$assocExpand // expand on structure can be addressed
-          if (e && !isAssocExpand) $baseLink = { definition: { elements: queryElements }, target: inferred }
+          const firstStep = token.ref?.[0].id || token.ref?.[0]
+          const tokenPointsToQueryElements = columns.some(c => {
+            const columnName = c.as || c.flatName || c.ref?.at(-1).id || c.ref?.at(-1) || c.func
+            return columnName === firstStep
+          })
+          const needsElementsOfQueryAsBase =
+            tokenPointsToQueryElements &&
+            queryElements[token.ref?.[0]] &&
+            /* expand on structure can be addressed */ !queryElements[token.ref?.[0]].$assocExpand
+
+          // if the ref points into the query itself and follows an exposed association
+          // to a non-fk column, we must reject the ref, as we can't join with the queries own results
+          rejectJoinRelevantPath = needsElementsOfQueryAsBase
+          if (needsElementsOfQueryAsBase) $baseLink = { definition: { elements: queryElements }, target: inferred }
         } else {
           // fallback to elements of query source
           $baseLink = null
         }
 
         inferQueryElement(token, false, $baseLink)
+        if (token.isJoinRelevant && rejectJoinRelevantPath) {
+          // reverse the array, find the last association and calculate the index of the association in non-reversed order
+          const assocIndex =
+            token.$refLinks.length - 1 - token.$refLinks.reverse().findIndex(link => link.definition.isAssociation)
+
+          throw new Error(
+            `Can follow managed association “${token.ref[assocIndex].id || token.ref[assocIndex]}” only to the keys of its target, not to “${token.ref[assocIndex + 1].id || token.ref[assocIndex + 1]}”`,
+          )
+        }
       })
     }
 
@@ -467,7 +488,7 @@ function infer(originalQuery, model) {
      */
 
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
-      const { inExists, inExpr, inNestedProjection, inCalcElement, baseColumn } = context || {}
+      const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter } = context || {}
       if (column.param || column.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
       if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
@@ -604,10 +625,15 @@ function infer(originalQuery, model) {
               inferQueryElement(token, false, column.$refLinks[i], {
                 inExists: skipJoinsForFilter,
                 inExpr: !!token.xpr,
+                inInfixFilter: true,
               })
             } else if (token.func) {
               token.args?.forEach(arg =>
-                inferQueryElement(arg, false, column.$refLinks[i], { inExists: skipJoinsForFilter, inExpr: true }),
+                inferQueryElement(arg, false, column.$refLinks[i], {
+                  inExists: skipJoinsForFilter,
+                  inExpr: true,
+                  inInfixFilter: true,
+                }),
               )
             }
           })
@@ -668,7 +694,7 @@ function infer(originalQuery, model) {
          * @param {CSN.Element} assoc if this is an association, the next step must be a foreign key of the element.
          */
         function rejectNonFkAccess(assoc) {
-          if (!inNestedProjection && !inCalcElement && assoc.target) {
+          if (inInfixFilter && assoc.target) {
             // only fk access in infix filter
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             // no unmanaged assoc in infix filter path
@@ -678,7 +704,7 @@ function infer(originalQuery, model) {
               )
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
-              throw new Error(`Only foreign keys of "${assoc.name}" can be accessed in infix filter`)
+              throw new Error(`Only foreign keys of "${assoc.name}" can be accessed in infix filter, not "${nextStep}"`)
           }
         }
       })
@@ -727,12 +753,14 @@ function infer(originalQuery, model) {
       function resolveInline(col, namePrefix = col.as || col.flatName) {
         const { inline, $refLinks } = col
         const $leafLink = $refLinks[$refLinks.length - 1]
-        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
-          throw new Error(`Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        if (!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(
+            `Unexpected “inline” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
+          )
         }
         let elements = {}
         inline.forEach(inlineCol => {
-          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, inNestedProjection: true, baseColumn: col })
+          inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, baseColumn: col })
           if (inlineCol === '*') {
             const wildCardElements = {}
             // either the `.elements´ of the struct or the `.elements` of the assoc target
@@ -783,8 +811,10 @@ function infer(originalQuery, model) {
       function resolveExpand(col) {
         const { expand, $refLinks } = col
         const $leafLink = $refLinks?.[$refLinks.length - 1] || inferred.SELECT.from.$refLinks.at(-1) // fallback to anonymous expand
-        if(!$leafLink.definition.target && !$leafLink.definition.elements) {
-          throw new Error(`Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`)
+        if (!$leafLink.definition.target && !$leafLink.definition.elements) {
+          throw new Error(
+            `Unexpected “expand” on “${col.ref.map(idOnly)}”; can only be used after a reference to a structure, association or table alias`,
+          )
         }
         const target = getDefinition($leafLink.definition.target)
         if (target) {
@@ -807,7 +837,7 @@ function infer(originalQuery, model) {
             if (e === '*') {
               elements = { ...elements, ...$leafLink.definition.elements }
             } else {
-              inferQueryElement(e, false, $leafLink, { inExpr: true, inNestedProjection: true })
+              inferQueryElement(e, false, $leafLink, { inExpr: true })
               if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
               if (e.inline) elements = { ...elements, ...resolveInline(e) }
               else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
