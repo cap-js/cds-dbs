@@ -435,7 +435,7 @@ GROUP BY k
       return this.string(`${defaultValue}`)
     }
 
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
 
