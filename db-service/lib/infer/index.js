@@ -180,14 +180,16 @@ function infer(originalQuery, model) {
             // only fk access in infix filter
             const nextStep = ref[1]?.id || ref[1]
             // no unmanaged assoc in infix filter path
-            if (!expandOrExists && e.on)
+            if (!expandOrExists && e.on) {
+              const err = `Unexpected unmanaged association “${e.name}” in filter expression of “${$baseLink.definition.name}”`
               throw new Error(
-                `"${e.name}" in path "${arg.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
+                err
               )
+            }
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
               throw new Error(
-                `Only foreign keys of "${e.name}" can be accessed in infix filter, but found "${nextStep}"`,
+                `Only foreign keys of “${e.name}” can be accessed in infix filter, but found “${nextStep}”`,
               )
           }
           arg.$refLinks.push({ definition: e, target: definition })

@@ -392,7 +392,7 @@ describe('negative', () => {
   describe('infix filters', () => {
     it('rejects non fk traversal in infix filter in from', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-        /Only foreign keys of "author" can be accessed in infix filter, but found "name"/,
+        /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
     })
     it('rejects non fk traversal in infix filter in where exists', () => {
