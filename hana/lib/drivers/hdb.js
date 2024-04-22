@@ -55,19 +55,7 @@ class HDBDriver extends driver {
    * @returns {Promise<any>}
    */
   async connect() {
-    this.connected = prom(this._native, 'connect')(this._creds)
-    return this.connected.then(async () => {
-      const [version] = await Promise.all([
-        prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"'),
-        this._creds.schema && prom(this._native, 'exec')(`SET SCHEMA ${this._creds.schema}`),
-      ])
-      const split = version[0].VERSION.split('.')
-      this.server = {
-        major: split[0],
-        minor: split[2],
-        patch: split[3],
-      }
-    })
+    return super.connect([`SET SCHEMA ${this._creds.schema}`])
   }
 
   async prepare(sql, hasBlobs) {
@@ -135,8 +123,8 @@ class HDBDriver extends driver {
 
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
-    const isArray = Array.isArray(rows)        
-    const result = isArray ? {...rows[0]} : {...rows}
+    const isArray = Array.isArray(rows)
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
     const args = isArray ? rows.slice(1) : []
@@ -146,7 +134,7 @@ class HDBDriver extends driver {
         result[params[i].PARAMETER_NAME] = args[i]
       }
     }
-  
+
     return result
   }
 

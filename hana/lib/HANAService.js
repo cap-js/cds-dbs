@@ -994,6 +994,10 @@ class HANAService extends SQLService {
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
+
+      // Custom ISO function applies timezone when inserting
+      DateTime: e => `ISO(${e})`,
+      Timestamp: e => `ISO(${e})`,
     }
 
     static OutputConverters = {
@@ -1043,10 +1047,10 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }, name, schema) {    
-      const outParameters = await this._getProcedureMetadata(name, schema)              
-      const ps = await this.prepare(query)
-      return ps.proc(data, outParameters)     
+  async onCall({ query, data }, name, schema) {
+    const outParameters = await this._getProcedureMetadata(name, schema)
+    const ps = await this.prepare(query)
+    return ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1062,7 +1066,7 @@ class HANAService extends SQLService {
         throw err
       }
     }
-    
+
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
@@ -1169,15 +1173,14 @@ class HANAService extends SQLService {
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
-        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
-    return await super.onPlainSQL({ query, data: [] })   
+    return await super.onPlainSQL({ query, data: [] })
   }
 
   _getProcedureNameAndSchema(sql) {
     // name delimited with "" allows any character
-    const match = sql    
+    const match = sql
       .match(
         /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
       )

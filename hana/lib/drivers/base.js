@@ -126,17 +126,45 @@ class HANADriver {
    * Connects the driver using the provided credentials
    * @returns {Promise<any>}
    */
-  async connect() {
+  async connect(sqls = []) {
     this.connected = prom(this._native, 'connect')(this._creds)
-    return this.connected.then(async () => {
-      const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
-      const split = version[0].VERSION.split('.')
-      this.server = {
-        major: split[0],
-        minor: split[2],
-        patch: split[3],
-      }
-    })
+    await this.connected
+    for (const sql of sqls) {
+      await prom(this._native, 'exec')(sql)
+    }
+
+    const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
+    const split = version[0].VERSION.split('.')
+    this.server = {
+      major: split[0],
+      minor: split[2],
+      patch: split[3],
+    }
+
+    await prom(this._native, 'exec')(`
+    CREATE OR REPLACE FUNCTION ISO(RAW NVARCHAR(32))
+      RETURNS RET TIMESTAMP LANGUAGE SQLSCRIPT AS
+      BEGIN
+        DECLARE REGEXP NVARCHAR(255);
+        DECLARE TIMEZONE NVARCHAR(32);
+        DECLARE MULTIPLIER INTEGER;
+        DECLARE HOURS INTEGER;
+        DECLARE MINUTES INTEGER;
+
+        REGEXP := '(([-+])([[:digit:]]{2}):?([[:digit:]]{2})?|Z)$';
+        TIMEZONE := SUBSTR_REGEXPR(:REGEXP IN RAW GROUP 1);
+        RET := TO_TIMESTAMP(RAW);
+        IF :TIMEZONE = 'Z' THEN
+          RETURN;
+        END IF;
+
+        MULTIPLIER := TO_INTEGER(SUBSTR_REGEXPR(:REGEXP IN TIMEZONE GROUP 2) || '1');
+        HOURS := TO_INTEGER(SUBSTR_REGEXPR(:REGEXP IN TIMEZONE GROUP 3));
+        MINUTES := COALESCE(TO_INTEGER(SUBSTR_REGEXPR(:REGEXP IN TIMEZONE GROUP 4)),0);
+
+        RET := ADD_SECONDS(:RET, (HOURS * 60 + MINUTES) * 60 * MULTIPLIER * -1);
+      END;
+    `)
   }
 
   /**
