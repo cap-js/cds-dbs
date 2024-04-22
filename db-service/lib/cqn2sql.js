@@ -749,8 +749,9 @@ class CQN2SQLRenderer {
     if (_with) _add(_with, x => this.expr(x))
     function _add(data, sql4) {
       for (let c in data) {
-        if (!elements || (c in elements && !elements[c].virtual)) {
-          if (cds.unfold && elements?.[c].is_struct) continue // skip structs from universal csn
+        const columnExistsInDatabase =
+          elements && c in elements && !elements[c].virtual && !elements[c].isAssociation && !elements[c].value
+        if (!elements || columnExistsInDatabase) {
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
