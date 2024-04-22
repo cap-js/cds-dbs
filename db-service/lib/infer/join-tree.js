@@ -169,6 +169,7 @@ class JoinTree {
         if (
           r.queryArtifact === head.target ||
           r.queryArtifact === head.target.target /** might as well be a query for order by */
+          // r.queryArtifact.target === head.target /** selecting from sub-select*/
         )
           node = r
       })
@@ -176,6 +177,7 @@ class JoinTree {
       i += 1 // skip first step which is table alias
     }
 
+    if(!node) return 
     while (i < col.ref.length) {
       const step = col.ref[i]
       const { where, args } = step

@@ -84,3 +84,10 @@ entity LBooks {
   width : Decimal;
   area : Decimal = length * width;
 }
+
+entity Simple {
+  key ID: Integer;
+  name: String;
+  my: Association to Simple;
+  myName: String = my.name;
+}
