@@ -141,6 +141,7 @@ class HANADriver {
       patch: split[3],
     }
 
+    // Consider that '-' is only allowed as timezone after ':' or 'T'
     await prom(this._native, 'exec')(`
     CREATE OR REPLACE FUNCTION ISO(RAW NVARCHAR(32))
       RETURNS RET TIMESTAMP LANGUAGE SQLSCRIPT AS
@@ -154,7 +155,7 @@ class HANADriver {
         REGEXP := '(([-+])([[:digit:]]{2}):?([[:digit:]]{2})?|Z)$';
         TIMEZONE := SUBSTR_REGEXPR(:REGEXP IN RAW GROUP 1);
         RET := TO_TIMESTAMP(RAW);
-        IF :TIMEZONE = 'Z' THEN
+        IF :TIMEZONE = 'Z' OR :TIMEZONE IS NULL THEN
           RETURN;
         END IF;
 
