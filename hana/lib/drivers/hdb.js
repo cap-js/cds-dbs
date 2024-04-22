@@ -55,7 +55,7 @@ class HDBDriver extends driver {
    * @returns {Promise<any>}
    */
   async connect() {
-    return super.connect([`SET SCHEMA ${this._creds.schema}`])
+    return super.connect(this._creds.schema ? [`SET SCHEMA ${this._creds.schema}`] : [])
   }
 
   async prepare(sql, hasBlobs) {
