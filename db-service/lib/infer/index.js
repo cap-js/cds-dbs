@@ -182,9 +182,7 @@ function infer(originalQuery, model) {
             // no unmanaged assoc in infix filter path
             if (!expandOrExists && e.on) {
               const err = `Unexpected unmanaged association “${e.name}” in filter expression of “${$baseLink.definition.name}”`
-              throw new Error(
-                err
-              )
+              throw new Error(err)
             }
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
@@ -703,7 +701,7 @@ function infer(originalQuery, model) {
             // no unmanaged assoc in infix filter path
             if (!inExists && assoc.on) {
               const err = `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`
-                throw new Error(err)
+              throw new Error(err)
             }
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
