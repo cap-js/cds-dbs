@@ -284,6 +284,19 @@ describe('SELECT', () => {
   })
 
   describe('groupby', () => {
+    
+    // REVISIT error in cqn4sql: "Cannot read property [0] of undefined" (in transformSearch() line 222)
+    // original cds test: cds/tests/_runtime/odata/__tests__/integration/generic-query-options.test.js:
+    // 'READ entity collection with groupby and aggregation filter on aggregated away properties with search %o'
+    test('with search results in error', async () => {
+      await cds.run(SELECT.from(
+        SELECT.
+          from({ref: ['complex.Books']}).
+          where([{ref: ['title']}, '=', 'foo'])
+        )
+      .groupBy('title')
+      .search({val: 'non'}))
+    })
     test.skip('missing', () => {
       throw new Error('not supported')
     })
