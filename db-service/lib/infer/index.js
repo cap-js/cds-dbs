@@ -186,7 +186,9 @@ function infer(originalQuery, model) {
               )
             // no non-fk traversal in infix filter
             if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
-              throw new Error(`Only foreign keys of "${e.name}" can be accessed in infix filter`)
+              throw new Error(
+                `Only foreign keys of "${e.name}" can be accessed in infix filter, but found "${nextStep}"`,
+              )
           }
           arg.$refLinks.push({ definition: e, target: definition })
           // filter paths are flattened
@@ -615,11 +617,10 @@ function infer(originalQuery, model) {
           if (!column.$refLinks[i].definition.target || danglingFilter)
             throw new Error('A filter can only be provided when navigating along associations')
           if (!column.expand) Object.defineProperty(column, 'isJoinRelevant', { value: true })
-          // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
-          let skipJoinsForFilter = inExists
+          let skipJoinsForFilter = false
           step.where.forEach(token => {
             if (token === 'exists') {
-              // no joins for infix filters along `exists <path>`
+              // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
               skipJoinsForFilter = true
             } else if (token.ref || token.xpr) {
               inferQueryElement(token, false, column.$refLinks[i], {
@@ -698,13 +699,15 @@ function infer(originalQuery, model) {
             // only fk access in infix filter
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             // no unmanaged assoc in infix filter path
-            if (!inExists && assoc.on)
-              throw new Error(
-                `"${assoc.name}" in path "${column.ref.map(idOnly).join('.')}" must not be an unmanaged association`,
-              )
+            if (!inExists && assoc.on) {
+              const err = `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`
+                throw new Error(err)
+            }
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
-              throw new Error(`Only foreign keys of "${assoc.name}" can be accessed in infix filter, not "${nextStep}"`)
+              throw new Error(
+                `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
+              )
           }
         }
       })

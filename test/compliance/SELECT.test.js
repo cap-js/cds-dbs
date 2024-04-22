@@ -1,11 +1,13 @@
 const assert = require('assert')
 
+const chaiAsPromised = require('chai-as-promised');
 const cds = require('../cds.js')
 
 // Set cds.root before requiring cds.Service as it resolves and caches package.json
 // Call default cds.test API
 
 describe('SELECT', () => {
+  // chai.use(chaiAsPromised)
   const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
 
@@ -264,8 +266,7 @@ describe('SELECT', () => {
           ]
         }
       }
-      const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 1, 'Ensure that a row is coming back')
+      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
     })
 
     test('exists path expression (unmanaged)', async () => {
@@ -282,8 +283,7 @@ describe('SELECT', () => {
           ]
         }
       }
-      const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 1, 'Ensure that a row is coming back')
+      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
     })
 
     test.skip('ref select', async () => {
