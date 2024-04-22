@@ -918,7 +918,7 @@ class HANAService extends SQLService {
       return [...columns, ...requiredColumns].map(({ name, sql }) => {
         const element = elements?.[name] || {}
         // Don't apply input converters for place holders
-        const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
+        const converter = element[inputConverterKey] || (e => e)
         const val = _managed[element[annotation]?.['=']]
         let managed
         if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
@@ -990,8 +990,8 @@ class HANAService extends SQLService {
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Binary: e => e === '?' ? e : `HEXTOBIN(${e})`,
+      Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
