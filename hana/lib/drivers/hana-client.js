@@ -74,7 +74,7 @@ class HANAClientDriver extends driver {
           rsStreamsProm.resolve = resolve
           rsStreamsProm.reject = reject
         })
-        rsStreams.catch(() => {})
+        rsStreams.catch(() => { })
 
         rs._rowPosition = -1
         const _next = prom(rs, 'next')
@@ -108,6 +108,20 @@ class HANAClientDriver extends driver {
 
         return result
       }
+    }
+
+    ret.run = async params => {
+      const { values, streams } = this._extractStreams(params)
+      const stmt = await ret._prep
+      let changes = await prom(stmt, 'exec')(values)
+      await this._sendStreams(stmt, streams)
+      // REVISIT: hana-client does not return any changes when doing an update with streams
+      // This causes the best assumption to be that the changes are one
+      // To get the correct information it is required to send a count with the update where clause
+      if (streams.length && changes === 0) {
+        changes = 1
+      }
+      return { changes }
     }
 
     ret.proc = async (data, outParameters) => {
@@ -161,7 +175,7 @@ class HANAClientDriver extends driver {
     }
 
     const resultSet = Array.isArray(rows) ? rows[0] : rows
-  
+
     // merge table output params into scalar params
     const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
     if (params && params.length) {
@@ -174,7 +188,7 @@ class HANAClientDriver extends driver {
         resultSet.nextResult()
       }
     }
-  
+
     return result
   }
 

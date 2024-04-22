@@ -368,23 +368,23 @@ describe('negative', () => {
 
     it('expand on `.items` not possible', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails { address } }`, model)).to.throw(
-        "Unexpected “expand” on “emails”; can only be used after a reference to a structure, association or table alias"
+        'Unexpected “expand” on “emails”; can only be used after a reference to a structure, association or table alias',
       )
     })
     it('expand on scalar not possible', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name { address } }`, model)).to.throw(
-        "Unexpected “expand” on “name”; can only be used after a reference to a structure, association or table alias"
+        'Unexpected “expand” on “name”; can only be used after a reference to a structure, association or table alias',
       )
     })
 
     it('inline on `.items` not possible', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails.{ address } }`, model)).to.throw(
-        "Unexpected “inline” on “emails”; can only be used after a reference to a structure, association or table alias"
+        'Unexpected “inline” on “emails”; can only be used after a reference to a structure, association or table alias',
       )
     })
     it('inline on scalar not possible', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name.{ address } }`, model)).to.throw(
-        "Unexpected “inline” on “name”; can only be used after a reference to a structure, association or table alias"
+        'Unexpected “inline” on “name”; can only be used after a reference to a structure, association or table alias',
       )
     })
   })
@@ -404,6 +404,22 @@ describe('negative', () => {
           model,
         ),
       ).to.throw(/Only foreign keys of "author" can be accessed in infix filter/)
+    })
+  })
+
+  describe('order by', () => {
+    it('reject join relevant path via queries own columns', () => {
+      let query = CQL`SELECT from bookshop.Books  {
+        ID,
+        author,
+        coAuthor as co
+      }
+      order by
+        Books.author,
+        co.name`
+      expect(() => {
+        cqn4sql(query, model)
+      }).to.throw(/Can follow managed association “co” only to the keys of its target, not to “name”/)
     })
   })
 })

@@ -233,7 +233,7 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
