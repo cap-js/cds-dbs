@@ -136,7 +136,7 @@ const _getSearchableColumns = entity => {
 /**
  * @returns {Array<object>} - array of columns
  */
-const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }, alias) => {
+const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) => {
   let toBeSearched = []
 
   // aggregations case

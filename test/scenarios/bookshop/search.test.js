@@ -48,5 +48,15 @@ describe('Bookshop - Search', () => {
       expect(res.length).to.be.eq(1)
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
+
+    test('with search results in error', async () => {
+      await cds.run(SELECT.from(
+        SELECT.
+          from({ref: ['sap.capire.bookshop.Books']}).
+          where([{ref: ['title']}, '=', {val: 'foo'}])
+        )
+      .groupBy('title')
+      .search({val: 'non'}))
+    })
   })
 })
