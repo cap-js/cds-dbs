@@ -20,7 +20,30 @@ describe('table alias access', () => {
 
     it('creates unique alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
-      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`,
+      )
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID } )`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { __select__.ID }) as __select__2 { __select__2.ID }`,
+      )
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases in case of joins', () => {
+      let query = cqn4sql(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID, author } ) { author.name }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from (
+        SELECT from bookshop.Books as __select__ { __select__.ID, __select__.author_ID }
+      ) as __select__2 left join bookshop.Authors as author on author.ID = __select__2.author_ID
+      {
+        author.name as author_name
+      }`)
     })
 
     it('preserves table alias at field access', () => {
@@ -446,14 +469,10 @@ describe('table alias access', () => {
     })
     it('prepend artificial table alias if we select from anonymous subquery', async () => {
       const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
-      const query = SELECT.localized
-        .columns('ID', 'title', 'author')
-        .from(subquery)
-        .orderBy('title')
-        .groupBy('title')
-  
+      const query = SELECT.localized.columns('ID', 'title', 'author').from(subquery).orderBy('title').groupBy('title')
+
       query.SELECT.count = true
-  
+
       const res = cqn4sql(query, model)
 
       const expected = CQL`
@@ -561,7 +580,6 @@ describe('table alias access', () => {
       { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
       expect(query).to.deep.equal(expected)
     })
-  
   })
 
   describe('replace usage of implicit aliases in subqueries', () => {
