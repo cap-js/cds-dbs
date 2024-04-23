@@ -31,12 +31,6 @@ class HANADriver {
         const stmt = await prep
         let changes = await prom(stmt, 'exec')(values)
         await this._sendStreams(stmt, streams)
-        // REVISIT: hana-client does not return any changes when doing an update with streams
-        // This causes the best assumption to be that the changes are one
-        // To get the correct information it is required to send a count with the update where clause
-        if (streams.length && changes === 0) {
-          changes = 1
-        }
         return { changes }
       },
       runBatch: async params => {
