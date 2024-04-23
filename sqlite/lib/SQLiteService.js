@@ -1,6 +1,12 @@
 const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds/lib')
-const sqlite = require('better-sqlite3')
+let sqlite
+try {
+  sqlite = require('better-sqlite3')
+} catch (err) {
+  // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+  sqlite = require('./sql.js.js')
+}
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
@@ -20,9 +26,10 @@ class SQLiteService extends SQLService {
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
-      create: tenant => {
+      create: async tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
+        await dbc.ready
 
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
@@ -224,7 +231,7 @@ class SQLiteService extends SQLService {
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
       Int64: expr => `CAST(${expr} as TEXT)`,
-      
+
       // Reading decimal as string to not loose precision
       Decimal: expr => `CAST(${expr} as TEXT)`,
 

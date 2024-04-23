@@ -33,6 +33,9 @@
     "@cap-js/db-service": "^1.7.0",
     "better-sqlite3": "^9.3.0"
   },
+  "optionalDependencies": {
+    "sql.js": "^1.10.3"
+  },
   "peerDependencies": {
     "@sap/cds": ">=7.6"
   },
