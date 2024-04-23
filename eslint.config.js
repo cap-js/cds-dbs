@@ -49,14 +49,14 @@ module.exports = [
     },
     rules: {
       ...eslint_ts.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': ['warn'],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': ['warn'],
     },
   },
   {
     files: ['**/hana/**/*.js'],
     rules: {
-      'no-console': 'warn',
+      'no-console': 'off',
     },
   },
 ]
