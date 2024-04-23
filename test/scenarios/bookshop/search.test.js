@@ -25,8 +25,7 @@ describe('Bookshop - Search', () => {
       expect(res.length).to.be.eq(2) // Emily and Charlotte
     })
 
-    // TODO: enable once calculated elements are not considered for updates -> #592
-    test.skip('Search authors address through calculated element in books', async () => {
+    test('Search authors address through calculated element in books', async () => {
       const { Books } = cds.entities
       // ad-hoc search expression
       Books['@cds.search.authorsAddress'] = true
@@ -36,7 +35,7 @@ describe('Bookshop - Search', () => {
       expect(res.length).to.be.eq(1)
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
-    test.skip('Search authors calculated element via books', async () => {
+    test('Search authors calculated element via books', async () => {
       const { Books } = cds.entities
       const { Authors } = cds.entities
       // ad-hoc search expression
@@ -49,14 +48,18 @@ describe('Bookshop - Search', () => {
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
 
-    test('with search results in error', async () => {
-      await cds.run(SELECT.from(
-        SELECT.
-          from({ref: ['sap.capire.bookshop.Books']}).
-          where([{ref: ['title']}, '=', {val: 'foo'}])
+    // TODO: why does this not work?
+    test.skip('search on result of subselect', async () => {
+      const res = await cds.run(
+        SELECT.from(
+          SELECT.from({ ref: ['sap.capire.bookshop.Books'] })
+            .columns('title')
         )
-      .groupBy('title')
-      .search({val: 'non'}))
+        .columns('title')
+        .groupBy('title')
+        .search({ val: 'Wuthering' }),
+      )
+      expect(res.length).to.be.eq(1)
     })
   })
 })
