@@ -1576,12 +1576,13 @@ function cqn4sql(originalQuery, model) {
       return { transformedFrom }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
-      if (from.as)
+      if (from.as) {
         // preserve explicit TA
         transformedFrom.as = from.as
-      // select from anonymous query, use artificial alias
-      else
+      } else {
+        // select from anonymous query, use artificial alias
         transformedFrom.as = Object.keys(originalQuery.sources)[0]
+      }
       return { transformedFrom }
     } else {
       return _transformFrom()
