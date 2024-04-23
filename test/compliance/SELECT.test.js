@@ -1,6 +1,4 @@
 const assert = require('assert')
-
-const chaiAsPromised = require('chai-as-promised');
 const cds = require('../cds.js')
 
 // Set cds.root before requiring cds.Service as it resolves and caches package.json
