@@ -209,9 +209,9 @@ const formatPrivilegeError = function (row) {
   return `MISSING ${GRANT}${row.PRIVILEGE} ON ${row.SCHEMA_NAME}.${row.OBJECT_NAME}`
 }
 
-const enhanceError = function (err, stack, sql, message) {
+const enhanceError = function (err, stack, query, message) {
   return Object.assign(err, stack, {
-    sql,
+    query,
     message: message ? message : err.message,
   })
 }
