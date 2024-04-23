@@ -193,13 +193,14 @@ describe('Unfold expands on associations to special subselects', () => {
   // - they can return multiple rows
   it('rejects unmanaged association in infix filter of expand path', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
-      /"books" in path "books.title" must not be an unmanaged association/,
+      /Unexpected unmanaged association “books” in filter expression of “author”/,
     )
+
   })
   it('rejects non-fk access in infix filter of expand path', () => {
     expect(() =>
       cqn4sql(CQL`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model),
-    ).to.throw(/Only foreign keys of "sibling" can be accessed in infix filter/)
+    ).to.throw(/Only foreign keys of “sibling” can be accessed in infix filter/)
   })
   it('unfold expand, one field', () => {
     const q = CQL`SELECT from bookshop.Books {
