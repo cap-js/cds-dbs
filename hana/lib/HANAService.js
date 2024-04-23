@@ -970,7 +970,9 @@ class HANAService extends SQLService {
     // TypeMap used for the JSON_TABLE column definition
     static InsertTypeMap = {
       ...super.TypeMap,
+      UInt8: () => 'INT',
       Int16: () => 'INT',
+      Int64: () => `BIGINT`,
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
       LargeString: () => `NVARCHAR(2147483647)`,
@@ -981,7 +983,14 @@ class HANAService extends SQLService {
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
-      number: () => `DOUBLE`
+      number: () => `DOUBLE`,
+
+      // HANA types
+      'cds.hana.TINYINT': () => 'INT',
+      'cds.hana.REAL': () => 'DECIMAL',
+      'cds.hana.CHAR': e => `NVARCHAR(${e.length || 1})`,
+      'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
+      'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
@@ -994,6 +1003,10 @@ class HANAService extends SQLService {
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
+
+      // HANA types
+      'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
+      'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`,
     }
 
     static OutputConverters = {
@@ -1009,6 +1022,10 @@ class HANAService extends SQLService {
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
       Decimal: expr => `TO_NVARCHAR(${expr})`,
+
+      // HANA types
+      'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
+      'cds.hana.ST_GEOMETRY': e => `TO_NVARCHAR(${e})`,
     }
   }
 
@@ -1043,10 +1060,10 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }, name, schema) {    
-      const outParameters = await this._getProcedureMetadata(name, schema)              
-      const ps = await this.prepare(query)
-      return ps.proc(data, outParameters)     
+  async onCall({ query, data }, name, schema) {
+    const outParameters = await this._getProcedureMetadata(name, schema)
+    const ps = await this.prepare(query)
+    return ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1062,7 +1079,7 @@ class HANAService extends SQLService {
         throw err
       }
     }
-    
+
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
@@ -1169,15 +1186,14 @@ class HANAService extends SQLService {
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
-        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
-    return await super.onPlainSQL({ query, data: [] })   
+    return await super.onPlainSQL({ query, data: [] })
   }
 
   _getProcedureNameAndSchema(sql) {
     // name delimited with "" allows any character
-    const match = sql    
+    const match = sql
       .match(
         /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
       )

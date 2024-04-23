@@ -206,8 +206,7 @@ GROUP BY k
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
             // Don't ask about the dollar signs
-            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${
-              query.name
+            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${query.name
             }' AND ID=$${i + 1})`,
           )
           return
@@ -443,6 +442,7 @@ GROUP BY k
       ...super.TypeMap,
       // REVISIT: check whether we should use native UUID support
       UUID: () => `VARCHAR(36)`,
+      UInt8: () => `INT`,
       String: e => `VARCHAR(${e.length || 5000})`,
       Binary: () => `BYTEA`,
       Double: () => 'FLOAT8',
@@ -452,6 +452,13 @@ GROUP BY k
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
+
+      // HANA Types
+      'cds.hana.CLOB': () => 'BYTEA',
+      'cds.hana.BINARY': () => 'BYTEA',
+      'cds.hana.TINYINT': () => 'SMALLINT',
+      'cds.hana.ST_POINT': () => 'POINT',
+      'cds.hana.ST_GEOMETRY': () => 'POLYGON',
     }
 
     // Used for INSERT statements
@@ -472,6 +479,12 @@ GROUP BY k
       DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Binary: e => `DECODE(${e},'base64')`,
       LargeBinary: e => `DECODE(${e},'base64')`,
+
+      // HANA Types
+      'cds.hana.CLOB': e => `DECODE(${e},'base64')`,
+      'cds.hana.BINARY': e => `DECODE(${e},'base64')`,
+      'cds.hana.ST_POINT': e => `POINT(((${e})::json->>'x')::float, ((${e})::json->>'y')::float)`,
+      'cds.hana.ST_GEOMETRY': e => `POLYGON(${e})`,
     }
 
     static OutputConverters = {
@@ -491,6 +504,9 @@ GROUP BY k
       Int64: expr => `cast(${expr} as varchar)`,
       // Reading decimal as string to not loose precision
       Decimal: expr => `cast(${expr} as varchar)`,
+
+      // Convert point back to json format
+      'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
     }
   }
 
@@ -565,7 +581,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
       })
     } finally {
       await this.disconnect()
@@ -593,7 +609,7 @@ class QueryStream extends Query {
           })
           this.connection.flush()
         }
-        : () => {},
+        : () => { },
     })
     this.push = this.stream.push.bind(this.stream)
 
@@ -708,7 +724,7 @@ class ParameterStream extends Writable {
   }
 
   // Used by the client to handle timeouts
-  callback() {}
+  callback() { }
 
   _write(chunk, enc, cb) {
     return this.flush(chunk, cb)

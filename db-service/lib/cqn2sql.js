@@ -165,12 +165,14 @@ class CQN2SQLRenderer {
   /** @type {Object<string,import('@sap/cds/apis/csn').Definition>} */
   static TypeMap = {
     // Utilizing cds.linked inheritance
+    UUID: () => `NVARCHAR(36)`,
     String: e => `NVARCHAR(${e.length || 5000})`,
     Binary: e => `VARBINARY(${e.length || 5000})`,
-    Int64: () => 'BIGINT',
-    Int32: () => 'INTEGER',
+    UInt8: () => 'TINYINT',
     Int16: () => 'SMALLINT',
-    UInt8: () => 'SMALLINT',
+    Int32: () => 'INT',
+    Int64: () => 'BIGINT',
+    Integer: () => 'INT',
     Integer64: () => 'BIGINT',
     LargeString: () => 'NCLOB',
     LargeBinary: () => 'BLOB',
@@ -178,12 +180,11 @@ class CQN2SQLRenderer {
     Composition: () => false,
     array: () => 'NCLOB',
     // HANA types
-    /* Disabled as these types are linked to normal cds types
-    'cds.hana.TINYINT': () => 'REAL',
+    'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
     'cds.hana.CHAR': e => `CHAR(${e.length || 1})`,
     'cds.hana.ST_POINT': () => 'ST_POINT',
-    'cds.hana.ST_GEOMETRY': () => 'ST_GEO',*/
+    'cds.hana.ST_GEOMETRY': () => 'ST_GEOMETRY',
   }
 
   // DROP Statements ------------------------------------------------
