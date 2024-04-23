@@ -125,7 +125,7 @@ function infer(originalQuery, model) {
     } else if (from.SELECT) {
       const subqueryInFrom = infer(from, model) // we need the .elements in the sources
       // if no explicit alias is provided, we make up one
-      const subqueryAlias = from.as || subqueryInFrom.joinTree.addNextAvailableTableAlias('__select__')
+      const subqueryAlias = from.as || subqueryInFrom.joinTree.addNextAvailableTableAlias('__select__', subqueryInFrom.outerQueries)
       querySources[subqueryAlias] = { definition: from }
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?

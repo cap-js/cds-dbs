@@ -31,7 +31,6 @@ describe('table alias access', () => {
         CQL`SELECT from (SELECT from bookshop.Books as __select__ { __select__.ID }) as __select__2 { __select__2.ID }`,
       )
     })
-
     it('the unique alias for anonymous query does not collide with user provided aliases in case of joins', () => {
       let query = cqn4sql(
         CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID, author } ) { author.name }`,
@@ -44,6 +43,34 @@ describe('table alias access', () => {
       {
         author.name as author_name
       }`)
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases nested', () => {
+      // author association bubbles up to the top query where the join finally is done
+      // --> note that the most outer query uses user defined __select__ alias
+      let query = cqn4sql(
+        CQL`
+      SELECT from (
+        SELECT from (
+          SELECT from bookshop.Books { ID, author }
+        )
+      ) as __select__
+      {
+        __select__.author.name
+      }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.ID, Books.author_ID }
+            ) as __select__2 { __select__2.ID, __select__2.author_ID }
+        ) as __select__ left join bookshop.Authors as author on author.ID = __select__.author_ID
+        {
+          author.name as author_name
+        }`,
+      )
     })
 
     it('preserves table alias at field access', () => {
