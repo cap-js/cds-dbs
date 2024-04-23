@@ -1,5 +1,5 @@
 const cds = require('../cds.js')
-const Books = 'complex.Books'
+const Books = 'complex.associations.Books'
 
 describe('UPDATE', () => {
   describe('entity', () => {

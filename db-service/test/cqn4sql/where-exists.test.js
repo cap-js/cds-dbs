@@ -218,7 +218,7 @@ describe('EXISTS predicate in where', () => {
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
           model,
         ),
-      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
     it('MUST fail if following managed assoc in filter', () => {
       expect(() =>
@@ -226,7 +226,7 @@ describe('EXISTS predicate in where', () => {
           CQL`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
           model,
         ),
-      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
 
     it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
@@ -719,7 +719,7 @@ describe('EXISTS predicate in infix filter', () => {
     `
     expect(() => {
       cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    }).to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
+    }).to.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
   })
 })
 
