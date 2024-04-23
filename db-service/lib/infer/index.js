@@ -123,8 +123,10 @@ function infer(originalQuery, model) {
     } else if (from.args) {
       from.args.forEach(a => inferTarget(a, querySources))
     } else if (from.SELECT) {
-      infer(from, model) // we need the .elements in the sources
-      querySources[from.as || ''] = { definition: from }
+      const subqueryInFrom = infer(from, model) // we need the .elements in the sources
+      // if no explicit alias is provided, we make up one
+      const subqueryAlias = from.as || subqueryInFrom.joinTree.addNextAvailableTableAlias('__select__')
+      querySources[subqueryAlias] = { definition: from }
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`

@@ -18,9 +18,9 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
-    it('omits alias for anonymous query which selects from other query', () => {
+    it('creates unique alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
-      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) { ID }`)
+      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`)
     })
 
     it('preserves table alias at field access', () => {
@@ -444,7 +444,7 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
-    it('dont try to prepend table alias if we select from anonymous subquery', async () => {
+    it('prepend artificial table alias if we select from anonymous subquery', async () => {
       const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
       const query = SELECT.localized
         .columns('ID', 'title', 'author')
@@ -464,14 +464,14 @@ describe('table alias access', () => {
             SimpleBook.author_ID
             from bookshop.SimpleBook as SimpleBook
             order by SimpleBook.title
-          )
+          ) __select__
         {
-          ID,
-          title,
-          author_ID
+          __select__.ID,
+          __select__.title,
+          __select__.author_ID
         }
-        group by title
-        order by title
+        group by __select__.title
+        order by __select__.title
       `
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
@@ -836,7 +836,7 @@ describe('table alias access', () => {
         }`,
       )
     })
-    it('no alias for function args or expressions on top of anonymous subquery', () => {
+    it('prepends unique alias for function args or expressions on top of anonymous subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from ( SELECT from bookshop.Orders ) {
           sum(ID) as foo,
@@ -849,9 +849,9 @@ describe('table alias access', () => {
           SELECT from bookshop.Orders as Orders {
             Orders.ID
           }
-        ) {
-          sum(ID) as foo,
-          ID + 42 as anotherFoo
+        ) as __select__ {
+          sum(__select__.ID) as foo,
+          __select__.ID + 42 as anotherFoo
         }`,
       )
     })

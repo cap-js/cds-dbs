@@ -1579,6 +1579,9 @@ function cqn4sql(originalQuery, model) {
       if (from.as)
         // preserve explicit TA
         transformedFrom.as = from.as
+      // select from anonymous query, use artificial alias
+      else
+        transformedFrom.as = Object.keys(originalQuery.sources)[0]
       return { transformedFrom }
     } else {
       return _transformFrom()

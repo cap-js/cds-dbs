@@ -509,9 +509,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
-  // TODO
-  
-  it.skip('wildcard select from subquery', () => {
+  it('wildcard select from subquery', () => {
     let query = cqn4sql(
       CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`,
       model,
@@ -526,16 +524,17 @@ describe('Unfolding calculated elements in select list', () => {
           Simple.my_ID,
           my.name as myName
         }
-    ) {
-      ID,
-      name,
-      my_ID,
-      myName
+    ) as __select__ {
+      __select__.ID,
+      __select__.name,
+      __select__.my_ID,
+      __select__.myName
     }
     `
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
-  it.skip('wildcard select from subquery + join relevant path expression', () => {
+
+  it('wildcard select from subquery + join relevant path expression', () => {
     let query = cqn4sql(
       CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } ) {
         my.name as otherName
@@ -545,17 +544,15 @@ describe('Unfolding calculated elements in select list', () => {
     const expected = CQL`
     SELECT from (
       SELECT from booksCalc.Simple as Simple
-      left join booksCalc.Simple as my on my.ID = Simple.my_ID 
+      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID 
         {
           Simple.ID,
           Simple.name,
-          Simple.my_ID
+          Simple.my_ID,
+          my2.name as myName
         }
-    ) {
-      ID,
-      name,
-      my_ID,
-      myName
+    ) as __select__ left join booksCalc.Simple as my on my.ID = __select__.my_ID {
+      my.name as otherName
     }
     `
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
