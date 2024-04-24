@@ -176,6 +176,8 @@ class JoinTree {
       i += 1 // skip first step which is table alias
     }
 
+    // if no root node was found, the column is selected from a subquery
+    if(!node) return
     while (i < col.ref.length) {
       const step = col.ref[i]
       const { where, args } = step
