@@ -260,7 +260,8 @@ function infer(originalQuery, model) {
           $baseLink = null
         }
 
-        inferQueryElement(token, queryElements, $baseLink, { inExpr: true })
+
+        inferQueryElement(token, queryElements, $baseLink, { inQueryModifier: true })
         if (token.isJoinRelevant && rejectJoinRelevantPath) {
           // reverse the array, find the last association and calculate the index of the association in non-reversed order
           const assocIndex =
@@ -274,7 +275,7 @@ function infer(originalQuery, model) {
     }
 
     // walk over all paths in other query properties
-    if (where) walkTokenStream(where)
+    if (where) walkTokenStream(where, true)
     if (groupBy) walkTokenStream(groupBy)
     if (having) walkTokenStream(having)
     if (_.with)
@@ -291,7 +292,7 @@ function infer(originalQuery, model) {
      *
      * @param {array} tokenStream
      */
-    function walkTokenStream(tokenStream) {
+    function walkTokenStream(tokenStream, inExpr) {
       let skipJoins
       const processToken = t => {
         if (t === 'exists') {
@@ -301,7 +302,7 @@ function infer(originalQuery, model) {
           // don't miss an exists within an expression
           t.xpr.forEach(processToken)
         } else {
-          inferQueryElement(t, queryElements, null, { inExists: skipJoins, inExpr: true })
+          inferQueryElement(t, queryElements, null, { inExists: skipJoins, inQueryModifier: true, inExpr })
           skipJoins = false
         }
       }
@@ -394,12 +395,12 @@ function infer(originalQuery, model) {
    */
 
   function inferQueryElement(column, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter } = context
+    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier } = context
     if (column.param || column.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (column.args) column.args.forEach(arg => inferQueryElement(arg, null, $baseLink, context)) // e.g. function in expression
     if (column.list) column.list.forEach(arg => inferQueryElement(arg, null, $baseLink, context))
     if (column.xpr)
-      column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
+      column.xpr.forEach(token => inferQueryElement(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
 
     if (!column.ref) {
       if (column.expand && queryElements) queryElements[column.as] = resolveExpand(column)
@@ -593,7 +594,7 @@ function infer(originalQuery, model) {
       }
 
       function insertIntoQueryElements() {
-        return queryElements && !inExpr && !inInfixFilter
+        return queryElements && !inExpr && !inInfixFilter && !inQueryModifier
       }
 
       /**
@@ -630,7 +631,7 @@ function infer(originalQuery, model) {
       }
     }
     const leafArt = column.$refLinks[column.$refLinks.length - 1].definition
-    const virtual = (leafArt.virtual || !isPersisted)
+    const virtual = (leafArt.virtual || !isPersisted) && !inExpr
     // check if we need to merge the column `ref` into the join tree of the query
     if (!inExists && !virtual && !inCalcElement) {
       // for a ref inside an `inline` we need to consider the column `ref` which has the `inline` prop
