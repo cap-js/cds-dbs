@@ -31,7 +31,7 @@ jobs:
 
       - run: npm ci
       # Remove better-sqlite3 to force switching to sql.js
-      - run: npm install sql.js && rm -rf /node_modules/better-sqlite3/
+      - run: npm install sql.js && rm -rf node_modules/better-sqlite3/
       - run: npm test -w sqlite -- --maxWorkers=1
         env:
           FORCE_COLOR: true
