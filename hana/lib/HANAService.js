@@ -342,11 +342,13 @@ class HANAService extends SQLService {
           orderBy.forEach(c => {
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
-              if (!columns.find(c => c.ref + '' === ref)) {
+              const match = columns.find(col => col.ref + '' === ref)
+              if (!match) {
+                c.as = `$$${c.ref.join('.')}$$`
                 const clone = { __proto__: c, ref: c.ref }
                 columns.push(clone)
               }
-              c.ref = [c.ref[1]]
+              c.ref = [this.column_name(match || c)]
             }
           })
         }
