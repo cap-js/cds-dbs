@@ -889,7 +889,6 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   val({ val, param }) {
-    const inline = !this.values || param === false
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
@@ -904,7 +903,7 @@ class CQN2SQLRenderer {
           else val = JSON.stringify(val)
         }
     }
-    if (inline) {
+    if (!this.values || param === false) {
       switch (typeof val) {
         case 'string': return this.string(val)
         case 'object': return 'NULL'
