@@ -170,7 +170,7 @@ describe('CREATE', () => {
                   }
 
                   if (throws !== false)
-                    assert.equal('resolved', throws, 'Ensure that the correct error message is being thrown.')
+                    assert.equal('did_not_throw', throws, 'Ensure that the correct error message is being thrown.')
 
                   const columns = []
                   for (let col in entity.elements) {
@@ -198,10 +198,12 @@ describe('CREATE', () => {
                     }
                     if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {
                       assert.equal(result[k].compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
+                    } else if (expect[k] instanceof RegExp) {
+                      assert.match(result[k], expect[k], msg)
                     } else if (typeof expect[k] === 'object' && expect[k]) {
                       assert.deepEqual(result[k], expect[k], msg)
                     } else {
-                      assert.equal(result[k], expect[k], msg)
+                      assert.strictEqual(result[k], expect[k], msg)
                     }
                   }))
                 })

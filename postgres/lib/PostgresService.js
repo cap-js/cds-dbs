@@ -397,8 +397,8 @@ GROUP BY k
         // Adjusts json path expressions to be postgres specific
         .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
-        .replace('json_each(?)', 'jsonb_array_elements($1::jsonb)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
     }
 
     param({ ref }) {
@@ -435,7 +435,7 @@ GROUP BY k
       return this.string(`${defaultValue}`)
     }
 
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
 
@@ -487,6 +487,10 @@ GROUP BY k
       Association: e => `jsonb(${e})`,
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
+      // Reading int64 as string to not loose precision
+      Int64: expr => `cast(${expr} as varchar)`,
+      // Reading decimal as string to not loose precision
+      Decimal: expr => `cast(${expr} as varchar)`,
     }
   }
 
