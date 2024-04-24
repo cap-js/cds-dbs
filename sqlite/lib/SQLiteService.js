@@ -3,7 +3,9 @@ const cds = require('@sap/cds/lib')
 let sqlite
 try {
   sqlite = require('better-sqlite3')
+  process.stdout.write('Using default sqlite driver better-sqlite3\n')
 } catch (err) {
+  process.stdout.write('Using fallback sqlite driver sql.js\n')
   // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
   sqlite = require('./sql.js.js')
 }
