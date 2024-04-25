@@ -204,7 +204,7 @@ function infer(originalQuery, model) {
           if (as === undefined) cds.error`Expecting expression to have an alias name`
           if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
           if (col.xpr || col.SELECT) {
-            queryElements[as] = getElementForXprOrSubquery(col)
+            queryElements[as] = getElementForXprOrSubquery(col, queryElements)
           } else if (col.func) {
             col.args?.forEach(arg => inferQueryElement(arg, queryElements, null, {inExpr: true})) // {func}.args are optional
             queryElements[as] = getElementForCast(col)
@@ -554,7 +554,7 @@ function infer(originalQuery, model) {
         // if column is casted, we overwrite it's origin with the new type
         if (column.cast) {
           const base = getElementForCast(column)
-          if (queryElements) queryElements[column.as || flatName] = getCopyWithAnnos(column, base)
+          if (insertIntoQueryElements()) queryElements[column.as || flatName] = getCopyWithAnnos(column, base)
         } else if (column.expand) {
           const elements = resolveExpand(column)
           let elementName
@@ -565,7 +565,7 @@ function infer(originalQuery, model) {
           if (queryElements) queryElements[elementName] = elements
         } else if (column.inline && queryElements) {
           const elements = resolveInline(column)
-          queryElements = { ...queryElements, ...elements }
+          Object.assign(queryElements, elements);
         } else {
           // shortcut for `ref: ['$user']` -> `ref: ['$user', 'id']`
           const leafArt =
@@ -987,7 +987,7 @@ function infer(originalQuery, model) {
    * @param {object} col
    * @returns object
    */
-  function getElementForXprOrSubquery(col) {
+  function getElementForXprOrSubquery(col, queryElements) {
     const { xpr } = col
     let skipJoins = false
     xpr?.forEach(token => {
@@ -995,7 +995,7 @@ function infer(originalQuery, model) {
         // no joins for infix filters along `exists <path>`
         skipJoins = true
       } else {
-        inferQueryElement(token, false, null, { inExists: skipJoins, inExpr: true })
+        inferQueryElement(token, queryElements, null, { inExists: skipJoins, inExpr: true })
         skipJoins = false
       }
     })
