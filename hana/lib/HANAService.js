@@ -453,6 +453,7 @@ class HANAService extends SQLService {
                 let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
+                  if (!k?.parentElement?.name) return // not all associations have foreign key references
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
