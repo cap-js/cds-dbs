@@ -979,6 +979,10 @@ class HANAService extends SQLService {
       array: () => `NVARCHAR(2147483647)`,
       Vector: () => `NVARCHAR(2147483647)`,
 
+      // Keep as nvarchar until ISO transformation
+      DateTime: () => `NVARCHAR(32)`,
+      Timestamp: () => `NVARCHAR(32)`,
+
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`
