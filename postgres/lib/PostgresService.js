@@ -144,18 +144,29 @@ GROUP BY k
       text: sql,
       name: sha,
     }
+
+    const enhanceError = (err, sql) => Object.assign(err, { query: sql + '\n' + new Array(err.position).fill(' ').join('') + '^' })
+
     return {
       run: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        let newQuery = this._prepareStreams(query, values)
-        if (typeof newQuery.then === 'function') newQuery = await newQuery
-        const result = await this.dbc.query(newQuery)
-        return { changes: result.rowCount }
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          let newQuery = this._prepareStreams(query, values)
+          if (typeof newQuery.then === 'function') newQuery = await newQuery
+          const result = await this.dbc.query(newQuery)
+          return { changes: result.rowCount }
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       get: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        const result = await this.dbc.query({ ...query, values: this._getValues(values) })
-        return result.rows[0]
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          const result = await this.dbc.query({ ...query, values: this._getValues(values) })
+          return result.rows[0]
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       all: async values => {
         // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
@@ -163,7 +174,7 @@ GROUP BY k
           const result = await this.dbc.query({ ...query, values: this._getValues(values) })
           return result.rows
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
       stream: async (values, one) => {
@@ -171,7 +182,7 @@ GROUP BY k
           const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
           return await this.dbc.query(streamQuery)
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
     }
@@ -206,8 +217,7 @@ GROUP BY k
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
             // Don't ask about the dollar signs
-            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${
-              query.name
+            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${query.name
             }' AND ID=$${i + 1})`,
           )
           return
@@ -565,7 +575,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
       })
     } finally {
       await this.disconnect()
@@ -593,7 +603,7 @@ class QueryStream extends Query {
           })
           this.connection.flush()
         }
-        : () => {},
+        : () => { },
     })
     this.push = this.stream.push.bind(this.stream)
 
@@ -708,7 +718,7 @@ class ParameterStream extends Writable {
   }
 
   // Used by the client to handle timeouts
-  callback() {}
+  callback() { }
 
   _write(chunk, enc, cb) {
     return this.flush(chunk, cb)
