@@ -16,11 +16,21 @@ describe('Bookshop - Search', () => {
     })
   })
   describe('with path expressions', () => {
-
-    // reset search cache before each test
+    // reset search terms and cache before each test
     beforeEach(async () => {
-      const { Books } = cds.entities
-      delete Books.__searchableColumns
+      const { Books, Authors } = cds.entities
+
+      resetSearchTerms(Books)
+      resetSearchTerms(Authors)
+
+      function resetSearchTerms(entity) {
+        delete entity.__searchableColumns
+        Object.keys(entity).forEach(key => {
+          if (key.startsWith('@cds.search')) {
+            delete entity[key]
+          }
+        })
+      }
     })
 
     test('Search authors via books', async () => {
@@ -55,18 +65,21 @@ describe('Bookshop - Search', () => {
       expect(res[0].author).to.be.eq('Emily Brontë')
     })
 
-    // TODO: why does this not work?
-    test.skip('search on result of subselect', async () => {
+    test('search on result of subselect', async () => {
       const res = await cds.run(
-        SELECT.from(
-          SELECT.from({ ref: ['sap.capire.bookshop.Books'] })
-            .columns('title')
-        )
-        .columns('title')
-        .groupBy('title')
-        .search({ val: 'Wuthering' }),
+        SELECT.from(SELECT.from({ ref: ['sap.capire.bookshop.Books'] }).columns('title'))
+          .columns('title')
+          .search('Wuthering'),
       )
       expect(res.length).to.be.eq(1)
+    })
+    test('search on result of subselect via path expression', async () => {
+      const query = SELECT.from(SELECT.from({ ref: ['sap.capire.bookshop.Books'] }).columns('title', 'author'))
+        .columns('title', 'author')
+        .search('Brontë')
+      query.SELECT.from['@cds.search.author'] = true
+      const res = await cds.run(query)
+      expect(res.length).to.be.eq(2)
     })
   })
 })

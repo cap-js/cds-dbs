@@ -179,8 +179,13 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
       }
     })
   } else {
-    // first check cache
-    toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
+    if(entity.kind === 'entity') {
+      // first check cache
+      toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
+    } else {
+      // if we search on a subquery, we don't have a cache
+      toBeSearched = _getSearchableColumns(entity)
+    }
     toBeSearched = toBeSearched.map(c => {
       const column = {ref: [...c.ref]}
       return column
