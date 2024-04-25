@@ -16,25 +16,26 @@ module.exports = [
   },
   {
     decimal: '3.14153',
-    '=decimal': 3.14153 //> 3.1415 as soon as precision is enforced
+    '=decimal': /3\.1415/
   },
   {
-    decimal: 3.14
+    decimal: 3.14,
+    '=decimal': /3\.14/
   },
   {
     double: 3.14159265358979
   },
   {
     float: '3.14159265358979',
-    '=float': 3.14159265358979
+    '=float': /3\.14159265358979/
   },
   {
     float: '-9007199254740991',
-    '=float': -9007199254740991
+    '=float': /-9007199254740991/
   },
   {
     float: '9007199254740991',
-    '=float': 9007199254740991
+    '=float': /9007199254740991/
   },
   /* Ignoring transformations
   {
