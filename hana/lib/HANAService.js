@@ -994,7 +994,6 @@ class HANAService extends SQLService {
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
-      // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
     }
 
     static OutputConverters = {
