@@ -1,7 +1,21 @@
 const cds = require('@sap/cds')
-const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
 const InsertResult = require('../lib/InsertResults')
+
+// REVISIT: remove old path with cds^8
+let _compareJson
+const compareJson = (...args) => {
+  if (!_compareJson) {
+    try {
+      // new path
+      _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
+    } catch {
+      // old path
+      _compareJson = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson').compareJson
+    }
+  }
+  return _compareJson(...args)
+}
 
 const handledDeep = Symbol('handledDeep')
 
