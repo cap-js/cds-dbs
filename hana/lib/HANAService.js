@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const { expr } = require('@sap/cds/lib/ql/parse')
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
 const hanaKeywords = keywords.reduce((prev, curr) => {
@@ -1009,7 +1010,7 @@ class HANAService extends SQLService {
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
     }
   }
 
