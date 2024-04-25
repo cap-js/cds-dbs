@@ -728,9 +728,12 @@ class HANAService extends SQLService {
       const compareOperators = {
         '==': true,
         '!=': false,
+        // Prevent 'is (not) null' from becoming 'is (not) ?'
+        'is': true,
+        'is not': false,
+
         // These operators are not allowed in column expressions
         /* REVISIT: Only adjust these operators when inside the column expression
-        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -746,13 +749,14 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
+            const effective = super.operator(xpr[i], i, xpr)
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (x in compareOperators) {
+            if (effective in compareOperators) {
               endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[x]
+              const ifNull = compareOperators[effective]
 
               const compare = [left, x, right]
 
