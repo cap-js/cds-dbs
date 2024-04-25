@@ -225,6 +225,7 @@ class SQLiteService extends SQLService {
       // Reading int64 as string to not loose precision
       Int64: expr => `CAST(${expr} as TEXT)`,
       
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.string_decimals ? expr => `CAST(${expr} as TEXT)` : undefined,
 

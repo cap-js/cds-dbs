@@ -489,6 +489,7 @@ GROUP BY k
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `cast(${expr} as varchar)`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.string_decimals ? expr => `cast(${expr} as varchar)` : undefined,
     }
