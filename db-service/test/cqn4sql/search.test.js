@@ -314,7 +314,7 @@ describe('caching searchable fields', () => {
     model = cds.model = cds.compile.for.nodejs(await cds.load(`${__dirname}/../bookshop/db/search`).then(cds.linked))
   })
 
-  it.skip('search all searchable fields in target', () => {
+  it('should cache searchable fields for entity', () => {
     let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
@@ -336,7 +336,8 @@ describe('caching searchable fields', () => {
     expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)
   })
 
-  it('should be possible to define new search criteria during runtime', () => {
+  // it is not required to set the searchable fields dynamically
+  it.skip('should be possible to define new search criteria during runtime', () => {
     const { BooksSearchAuthor } = cds.entities
     let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
