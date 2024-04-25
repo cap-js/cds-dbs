@@ -13,7 +13,7 @@ entity Books : managed {
   image : LargeBinary @Core.MediaType : 'image/png';
   footnotes: array of String;
 
-   authorsAddress: String = author.address;
+  authorsAddress: String = author.address;
 }
 
 entity Authors : managed {

@@ -16,6 +16,13 @@ describe('Bookshop - Search', () => {
     })
   })
   describe('with path expressions', () => {
+
+    // reset search cache before each test
+    beforeEach(async () => {
+      const { Books } = cds.entities
+      delete Books.__searchableColumns
+    })
+
     test('Search authors via books', async () => {
       const { Books } = cds.entities
       // ad-hoc search expression

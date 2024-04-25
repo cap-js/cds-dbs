@@ -179,8 +179,8 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
       }
     })
   } else {
-    // no caching, as it makes it impossible to dynamically assign/unassign the @cds.search annotation multiple times
-    toBeSearched = _getSearchableColumns(entity)
+    // first check cache
+    toBeSearched = entity.own('__searchableColumns') || entity.set('__searchableColumns', _getSearchableColumns(entity))
     toBeSearched = toBeSearched.map(c => {
       const column = {ref: [...c.ref]}
       return column
