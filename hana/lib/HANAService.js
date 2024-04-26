@@ -306,14 +306,14 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
         if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
         return q.as
       }
-      q.as = walkAlias(q)
+      q.as ??= walkAlias(q)
       const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
 
@@ -339,17 +339,22 @@ class HANAService extends SQLService {
 
         if (orderBy) {
           // Ensure that all columns used in the orderBy clause are exposed
-          orderBy.forEach(c => {
+          orderBy = orderBy.map((c, i) => {
+            if (!c.ref) {
+              c.as = `$$ORDERBY_${i}$$`
+              columns.push(c)
+              return { ref: [c.as], sort: c.sort }
+            }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
               const match = columns.find(col => col.ref + '' === ref)
               if (!match) {
                 c.as = `$$${c.ref.join('.')}$$`
-                const clone = { __proto__: c, ref: c.ref }
-                columns.push(clone)
+                columns.push(c)
               }
-              c.ref = [this.column_name(match || c)]
+              return { ref: [this.column_name(c)], sort: c.sort }
             }
+            return c
           })
         }
 
