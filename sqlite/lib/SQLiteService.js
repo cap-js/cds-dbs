@@ -80,7 +80,7 @@ class SQLiteService extends SQLService {
         stream: (..._) => this._stream(stmt, ..._),
       }
     } catch (e) {
-      e.message += ' in:\n' + (e.sql = sql)
+      e.message += ' in:\n' + (e.query = sql)
       throw e
     }
   }
