@@ -772,7 +772,8 @@ class HANAService extends SQLService {
                   xpr: [
                     'CASE',
                     'WHEN',
-                    ...[left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
+                    // coalesce is used to match the left and right hand types in case one is a placeholder
+                    ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
                     { val: ifNull },
                     'ELSE',
