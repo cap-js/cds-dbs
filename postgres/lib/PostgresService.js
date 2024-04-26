@@ -441,6 +441,13 @@ GROUP BY k
       return 'FOR SHARE'
     }
 
+    // Postgres requires own quote function, becuase the effective name is lower case
+    quote(s) {
+      if (typeof s !== 'string') return '"' + s + '"'
+      if (s.toUpperCase() in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      return s
+    }
+
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }
