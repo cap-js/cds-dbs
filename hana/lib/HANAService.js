@@ -352,7 +352,7 @@ class HANAService extends SQLService {
                 c.as = `$$${c.ref.join('.')}$$`
                 columns.push(c)
               }
-              return { ref: [this.column_name(c)], sort: c.sort }
+              return { ref: [this.column_name(match || c)], sort: c.sort }
             }
             return c
           })
@@ -1050,10 +1050,10 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }, name, schema) {    
-      const outParameters = await this._getProcedureMetadata(name, schema)              
-      const ps = await this.prepare(query)
-      return ps.proc(data, outParameters)     
+  async onCall({ query, data }, name, schema) {
+    const outParameters = await this._getProcedureMetadata(name, schema)
+    const ps = await this.prepare(query)
+    return ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1069,7 +1069,7 @@ class HANAService extends SQLService {
         throw err
       }
     }
-    
+
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
@@ -1179,12 +1179,12 @@ class HANAService extends SQLService {
     const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
         schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
-    return await super.onPlainSQL({ query, data: [] })   
+    return await super.onPlainSQL({ query, data: [] })
   }
 
   _getProcedureNameAndSchema(sql) {
     // name delimited with "" allows any character
-    const match = sql    
+    const match = sql
       .match(
         /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
       )
