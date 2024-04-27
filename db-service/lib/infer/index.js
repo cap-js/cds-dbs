@@ -2,7 +2,6 @@
 
 const cds = require('@sap/cds/lib')
 
-const { computeColumnsToBeSearched } = require('../search')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const cdsTypes = cds.linked({
@@ -25,7 +24,7 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
  */
 function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
-  const inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const inferred = originalQuery
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
@@ -381,16 +380,6 @@ function infer(originalQuery, model) {
     if (_.with)
       // consider UPDATE.with
       Object.values(_.with).forEach(val => inferQueryElement(val, false))
-    if (search) {
-      const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
-      if (searchTerm) {
-        searchTerm.args.forEach(arg => inferQueryElement(arg, false))
-        Object.defineProperty(search, 'searchTerm', {
-          writable: true,
-          value: searchTerm,
-        })
-      }
-    }
 
     return queryElements
 
@@ -1199,34 +1188,6 @@ function infer(originalQuery, model) {
       const dot = i === 1 && firstStepIsEntity ? ':' : '.' // divide with colon if first step is entity
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
-  }
-  /**
-   * For a given search expression return a function "search" which holds the search expression
-   * as well as the searchable columns as arguments.
-   *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {object} query - The FROM clause of the CQN statement.
-   *
-   * @returns {(Object|null)} returns either:
-   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
-   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
-   */
-  function getSearchTerm(search, query) {
-    const entity = query.target
-    const searchIn = computeColumnsToBeSearched(inferred, entity)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
-      return contains
-    } else {
-      return null
-    }
   }
 }
 

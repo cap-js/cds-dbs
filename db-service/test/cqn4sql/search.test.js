@@ -60,10 +60,12 @@ describe('Replace attribute search by search predicate', () => {
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
+    // todo, not necessary to add the search predicate as xpr
+    const expected = CQL`SELECT from bookshop.Genres as Genres {
       Genres.ID
-    } where (Genres.ID < 4 or Genres.ID > 5)
-        and search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`)
+    } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y')) and (Genres.ID < 4 or Genres.ID > 5)`
+    expected.SELECT.where[0] = { xpr: [expected.SELECT.where[0]] }
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('string fields inside struct', () => {
@@ -123,18 +125,19 @@ describe('Replace attribute search by search predicate', () => {
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
-      CQL`
+    const expected = CQL`
       SELECT from bookshop.Books as books
       {
         books.ID,
-      } where (
-        exists(
+      } where
+        exists (
           SELECT 1 from bookshop.Authors as Authors
           where Authors.ID = books.author_ID
         )
-      ) and
-      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `,
+      and
+      search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
+      expected,
     )
   })
   it('Search with aggregated column and groupby must be put into having', () => {

@@ -57,7 +57,7 @@ const _isColumnCalculated = (query, columnName) => {
 
 const _getSearchableColumns = entity => {
   const columnsOptions = { removeIgnore: true, filterVirtual: true }
-  const columns = getColumns(entity, columnsOptions)
+  const columns = entity.SELECT?.columns || getColumns(entity, columnsOptions)
   const cdsSearchTerm = '@cds.search'
   const cdsSearchKeys = []
   const cdsSearchColumnMap = new Map()
@@ -86,6 +86,8 @@ const _getSearchableColumns = entity => {
 
   const searchableColumns = columns.filter(column => {
     const annotatedColumnValue = cdsSearchColumnMap.get(column.name)
+    const elementName = column.as || column.ref?.at(-1) || column.name
+    const element = entity.elements[elementName]
 
     // the element is searchable if it is annotated with the @cds.search, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
@@ -103,7 +105,7 @@ const _getSearchableColumns = entity => {
     // if it is not annotated and the column is typed as a string (excluding elements/elements expressions)
     return (
       annotatedColumnValue === undefined &&
-      column._type === DEFAULT_SEARCHABLE_TYPE &&
+      element?.type === DEFAULT_SEARCHABLE_TYPE &&
       !_isColumnCalculated(entity?.query, column.name)
     )
   })
@@ -143,6 +145,8 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
     cqn.SELECT.columns?.forEach(column => {
+      const elementName = column.as || column.ref?.at(-1)
+      const element = cqn.elements[elementName]
       if (column.func || column.xpr) {
         // exclude $count by SELECT of number of Items in a Collection
         if (
@@ -154,7 +158,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
         }
 
         // only strings can be searched
-        if (column.element.type !== DEFAULT_SEARCHABLE_TYPE) {
+        if (element?.type !== DEFAULT_SEARCHABLE_TYPE) {
           if (column.xpr) return
           if (column.func && !(column.func in aggregateFunctions)) return
         }
@@ -172,7 +176,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
 
       // no need to set ref[0] to alias, because columns were already properly transformed
       if (column.ref) {
-        if (column.element.type !== DEFAULT_SEARCHABLE_TYPE) return
+        if (element?.type !== DEFAULT_SEARCHABLE_TYPE) return
         column = { ref: [...column.ref] }
         toBeSearched.push(column)
         return
