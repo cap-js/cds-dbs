@@ -855,7 +855,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
-        if ('func' in cur && cur.func === 'CONTAINS') return true
+        if (cur.func === 'CONTAINS') return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
       return false
