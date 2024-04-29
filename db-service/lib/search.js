@@ -145,7 +145,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
   // in the new parser groupBy is moved to sub select.
   if (cqn._aggregated || /* new parser */ cqn.SELECT.groupBy || cqn.SELECT?.from?.SELECT?.groupBy) {
     cqn.SELECT.columns?.forEach(column => {
-      const elementName = column.as || column.ref?.at(-1)
+      const elementName = column.as || column.ref?.at(-1) || column.name
       const element = cqn.elements[elementName]
       if (column.func || column.xpr) {
         // exclude $count by SELECT of number of Items in a Collection

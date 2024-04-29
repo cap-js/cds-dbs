@@ -290,7 +290,7 @@ function infer(originalQuery, model) {
    */
   function inferQueryElements($combinedElements) {
     let queryElements = {}
-    const { columns, where, groupBy, having, orderBy, search } = _
+    const { columns, where, groupBy, having, orderBy } = _
     if (!columns) {
       inferElementsFromWildCard(aliases)
     } else {
