@@ -1,7 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 cds.test.in(bookshop)
-cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test()
@@ -344,17 +343,6 @@ describe('Bookshop - Functions', () => {
 
     test('time', async () => {
       const res = await GET(`/browse/Books?$select=ID,createdAt&$filter=time(2023-03-29T15:44:58.999Z) eq 15:44:58&$top=1`)
-
-      expect(res.status).to.be.eq(200)
-      expect(res.data.value.length).to.be.eq(1)
-    })
-
-    test.skip('totaloffsetminutes', async () => {
-      // okra error: Feature is not supported: Method "totaloffsetminutes" in $filter or $orderby query options
-      // new adapter: REVISIT: getting transformed date without timeoffset from service layer 
-      const res = await GET(
-        `/browse/Books?$select=ID&$filter=totaloffsetminutes('2000-01-01T23:45:13-10:30') eq -630&$top=1`,
-      )
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)

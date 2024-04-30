@@ -1,6 +1,21 @@
 const cds = require('@sap/cds')
-const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
+const InsertResult = require('../lib/InsertResults')
+
+// REVISIT: remove old path with cds^8
+let _compareJson
+const compareJson = (...args) => {
+  if (!_compareJson) {
+    try {
+      // new path
+      _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
+    } catch {
+      // old path
+      _compareJson = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson').compareJson
+    }
+  }
+  return _compareJson(...args)
+}
 
 const handledDeep = Symbol('handledDeep')
 
@@ -35,7 +50,15 @@ async function onDeep(req, next) {
     if (query.UPDATE) return this.onUPDATE({ query })
     if (query.DELETE) return this.onSIMPLE({ query })
   }))
-  return res[0] ?? 0 // TODO what todo with multiple result responses?
+  return (
+    beforeData.length ||
+    new InsertResult(query, [
+      {
+        changes: Array.isArray(req.data) ? req.data.length : 1,
+        ...(res[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: res[0].results[0].lastInsertRowid } : {}),
+      },
+    ])
+  )
 }
 
 const hasDeep = (q, target) => {
@@ -265,4 +288,5 @@ module.exports = {
   onDeep,
   getDeepQueries,
   getExpandForDeep,
+  hasDeep,
 }
