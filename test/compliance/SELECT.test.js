@@ -263,6 +263,23 @@ describe('SELECT', () => {
       assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
     })
 
+    test('combine expr and other compare', async () => {
+      const cqn = CQL`SELECT bool FROM basic.literals.globals`
+      cqn.SELECT.where = [
+        {
+          xpr: [
+            {
+              xpr: [{ ref: ['bool'] }, '!=', { val: true }]
+            }
+          ]
+        },
+        'and',
+        { ref: ['bool'] }, '=', { val: false }
+      ]
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+      
     test('exists path expression', async () => {
       const cqn = {
         SELECT: {
