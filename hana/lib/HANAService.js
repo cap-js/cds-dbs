@@ -313,7 +313,7 @@ class HANAService extends SQLService {
         if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
         return q.as
       }
-      q.as ??= walkAlias(q)
+      q.as = walkAlias(q)
       const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
 
@@ -343,7 +343,7 @@ class HANAService extends SQLService {
             if (!c.ref) {
               c.as = `$$ORDERBY_${i}$$`
               columns.push(c)
-              return { ref: [c.as], sort: c.sort }
+              return { __proto__: c, ref: [c.as], sort: c.sort }
             }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
@@ -352,7 +352,7 @@ class HANAService extends SQLService {
                 c.as = `$$${c.ref.join('.')}$$`
                 columns.push(c)
               }
-              return { ref: [this.column_name(match || c)], sort: c.sort }
+              return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
             return c
           })
@@ -467,7 +467,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
+                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
