@@ -879,7 +879,7 @@ class HANAService extends SQLService {
       // cds-compiler effectiveName uses toUpperCase for hana dialect, but not for hdbcds
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toUpperCase() + '"'
-      if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s.toUpperCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$#0-9]*$/.test(s)) return '"' + s.toUpperCase() + '"'
       return s
     }
 
