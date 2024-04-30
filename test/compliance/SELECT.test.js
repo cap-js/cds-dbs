@@ -204,6 +204,19 @@ describe('SELECT', () => {
       assert.strictEqual(Object.keys(res[0].author).length, 200)
     })
 
+    test('expand association with static values', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.associations.unmanaged.Authors'] },
+          columns: [{ ref: ['ID'] }, { ref: ['static'], expand: ['*'] }]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(res[0].static.length, 1)
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await expect(
         cds.run(CQL`

@@ -453,6 +453,7 @@ class HANAService extends SQLService {
                 let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
+                  if (!k?.parentElement?.name) return // not all associations have foreign key references
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -994,7 +995,6 @@ class HANAService extends SQLService {
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
-      // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
     }
 
     static OutputConverters = {
@@ -1008,8 +1008,9 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
     }
   }
 
