@@ -428,7 +428,12 @@ function infer(originalQuery, model) {
     column.ref.forEach((step, i) => {
       const id = step.id || step
       if (i === 0) {
-          if ($baseLink) {
+        if (id in pseudos.elements) {
+          // pseudo path
+          column.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
+          pseudoPath = true // only first path step must be well defined
+          nameSegments.push(id)
+        } else if ($baseLink) {
           const { definition, target } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           if (elements && id in elements) {
@@ -469,11 +474,6 @@ function infer(originalQuery, model) {
             definition: getDefinitionFromSources(sources, id),
             target: getDefinitionFromSources(sources, id),
           })
-        } else if (id in pseudos.elements) {
-          // pseudo path
-          column.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
-          pseudoPath = true // only first path step must be well defined
-          nameSegments.push(id)
         } else {
           stepNotFoundInCombinedElements(id) // REVISIT: fails with {__proto__:elements)
         }
@@ -493,7 +493,8 @@ function infer(originalQuery, model) {
         const target = getDefinition(definition.target) || column.$refLinks[i - 1].target
         if (element) {
           if ($baseLink) rejectNonFkAccess(element)
-          const $refLink = { definition: elements[id], target }
+          const e = elements[id]
+          const $refLink = { definition: e, target }
           column.$refLinks.push($refLink)
         } else if (firstStepIsSelf) {
           stepNotFoundInColumnList(id)
@@ -528,13 +529,13 @@ function infer(originalQuery, model) {
         const danglingFilter = !(column.ref[i + 1] || column.expand || column.inline || inExists)
         if (!inFrom && (!column.$refLinks[i].definition.target || danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
-        if (!column.expand) Object.defineProperty(column, 'isJoinRelevant', { value: true })
+        if (!column.expand && !inFrom) Object.defineProperty(column, 'isJoinRelevant', { value: true })
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
-          } else if (token.ref || token.xpr) {
+          } else if (token.ref || token.xpr || token.list) {
             inferQueryElement(token, false, column.$refLinks[i], {
               inExists: skipJoinsForFilter,
               inExpr: !!token.xpr,
@@ -652,7 +653,7 @@ function infer(originalQuery, model) {
       }
     }
     if (leafArt.value && !leafArt.value.stored) {
-      linkCalculatedElement(column, $baseLink, baseColumn)
+      linkCalculatedElement(column, $baseLink, baseColumn, context)
     }
 
     /**
@@ -756,7 +757,7 @@ function infer(originalQuery, model) {
           if (e === '*') {
             elements = { ...elements, ...$leafLink.definition.elements }
           } else {
-            inferQueryElement(e, false, $leafLink, { inExpr: true })
+            inferQueryElement(e, false, $leafLink, { inExpr: true, ...context })
             if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
             if (e.inline) elements = { ...elements, ...resolveInline(e) }
             else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
@@ -795,14 +796,14 @@ function infer(originalQuery, model) {
       throw new Error(err.join(','))
     }
   }
-  function linkCalculatedElement(column, baseLink, baseColumn) {
+  function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
     const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
     if (alreadySeenCalcElements.has(calcElement)) return
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr, func } = calcElement.value
     if (ref || xpr) {
       baseLink = { definition: calcElement.parent, target: calcElement.parent }
-      inferQueryElement(calcElement.value, null, baseLink, { inCalcElement: true })
+      inferQueryElement(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
           ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
@@ -819,7 +820,7 @@ function infer(originalQuery, model) {
           arg,
           false,
           { definition: calcElement.parent, target: calcElement.parent },
-          { inCalcElement: true },
+          { inCalcElement: true, ...context },
         )
         const basePath =
           column.$refLinks?.length > 1

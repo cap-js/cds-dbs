@@ -814,7 +814,7 @@ describe('Scoped queries', () => {
         WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
       )`)
   })
-  it.only('unmanaged to one with (multiple) $self in on-condition', () => {
+  it('unmanaged to one with (multiple) $self in on-condition', () => {
     // $self in refs of length > 1 can just be ignored semantically
     let query = cqn4sql(CQL`SELECT from bookshop.Books:coAuthorUnmanaged { name }`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as coAuthorUnmanaged { coAuthorUnmanaged.name }
