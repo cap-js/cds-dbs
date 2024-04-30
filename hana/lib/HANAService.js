@@ -186,9 +186,8 @@ class HANAService extends SQLService {
     try {
       return await next()
     } catch (err) {
-      // TODO: check that the query target is defined in the model
       // Ensure that the known entity still exists
-      if (/*this.context.tenant && */ err.code === 259) {
+      if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
