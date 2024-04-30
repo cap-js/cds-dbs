@@ -10,6 +10,9 @@
           "url": ":memory:"
         }
       }
+    },
+    "features": {
+      "string_decimals": true
     }
   }
 }

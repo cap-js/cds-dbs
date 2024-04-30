@@ -781,7 +781,7 @@ class HANAService extends SQLService {
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ''
+              xpr[i + 1] = ' = TRUE'
             }
           }
         }
@@ -855,6 +855,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
+        if ('_internal' in cur) return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
       return false
