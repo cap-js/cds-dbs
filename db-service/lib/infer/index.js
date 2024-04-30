@@ -51,6 +51,7 @@ function infer(originalQuery, model) {
     target: {
       value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
       writable: true,
+      configurable:true,
     }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
@@ -59,6 +60,7 @@ function infer(originalQuery, model) {
     target: {
       value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
       writable: true,
+      configurable: true,
     },
   })
   if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
@@ -71,12 +73,12 @@ function infer(originalQuery, model) {
      */
     const elements = inferQueryElements()
     Object.defineProperties(inferred, {
-      $combinedElements: { value: $combinedElements, writable: true },
-      elements: { value: elements, writable: true },
-      joinTree: { value: joinTree, writable: true }, // REVISIT: eliminate
+      $combinedElements: { value: $combinedElements, writable: true, configurable: true },
+      elements: { value: elements, writable: true, configurable: true },
+      joinTree: { value: joinTree, writable: true, configurable: true }, // REVISIT: eliminate
     })
     // also enrich original query -> writable because it may be inferred again
-    Object.defineProperty(originalQuery, 'elements', { value: elements, writable: true })
+    Object.defineProperty(originalQuery, 'elements', { value: elements, writable: true, configurable:true, })
   }
   return inferred
 
