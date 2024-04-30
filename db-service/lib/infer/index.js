@@ -407,7 +407,11 @@ function infer(originalQuery, model) {
       return
     }
 
-    init$refLinks(argument)
+    // initialize $refLinks
+    Object.defineProperty(argument, '$refLinks', {
+      value: [],
+      writable: true,
+    })
     let isPersisted = true
     let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
     if (!inFrom) {
@@ -1086,14 +1090,6 @@ function infer(originalQuery, model) {
     if (from.as && base.name !== from.as) Object.defineProperty(result, 'name', { value: from.as }) // TODO double check if this is needed
     // in subqueries we need the linked element if an outer query accesses it
     return Object.setPrototypeOf(result, base)
-  }
-
-  // REVISIT: functions without return are by nature side-effect functions -> bad
-  function init$refLinks(arg) {
-    Object.defineProperty(arg, '$refLinks', {
-      value: [],
-      writable: true,
-    })
   }
 
   function getCdsTypeForVal(val) {
