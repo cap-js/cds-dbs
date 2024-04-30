@@ -21,7 +21,7 @@ describe('negative', () => {
         /A filter can only be provided when navigating along associations/,
       )
     })
-    it.skip('filter must not be provided along a structure in from path expression', () => {
+    it('filter must not be provided along a structure in from path expression', () => {
       expect(() => {
         _inferred(CQL`SELECT from bookshop.Books:dedication[sub.foo = 'bar'].addressee`, model)
       }).to.throw('A filter can only be provided when navigating along associations')

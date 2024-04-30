@@ -112,7 +112,7 @@ function infer(originalQuery, model) {
       if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
-      inferArgument(from, null, null, { inFrom: true }) // REVISIT: remove
+      inferArgument(from, null, null, { inFrom: true })
       const alias =
         from.uniqueSubqueryAlias ||
         from.as ||
@@ -130,7 +130,6 @@ function infer(originalQuery, model) {
         from.as || subqueryInFrom.joinTree.addNextAvailableTableAlias('__select__', subqueryInFrom.outerQueries)
       querySources[subqueryAlias] = { definition: from }
     } else if (typeof from === 'string') {
-      // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
       querySources[/([^.]*)$/.exec(from)[0]] = { definition }
     } else if (from.SET) {
@@ -388,7 +387,15 @@ function infer(originalQuery, model) {
    *                 on a path, such as filtering on a non-association type.
    */
   function inferArgument(argument, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inExpr, inCalcElement, /* inline, expand, calculated elements */ baseColumn, inInfixFilter, /* orderBy, groupBy, having */ inQueryModifier, inFrom } = context
+    const {
+      inExists,
+      inExpr,
+      inCalcElement,
+      inInfixFilter,
+      inFrom,
+      inQueryModifier, // orderBy, groupBy, having
+      baseColumn, // inline, expand, calculated elements
+    } = context
     if (argument.param || argument.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (argument.args) argument.args.forEach(arg => inferArgument(arg, null, $baseLink, context)) // e.g. function in expression
     if (argument.list) argument.list.forEach(arg => inferArgument(arg, null, $baseLink, context))
@@ -519,9 +526,18 @@ function infer(originalQuery, model) {
       }
 
       if (step.where) {
-        const danglingFilter = !(argument.ref[i + 1] || argument.expand || argument.inline || inExists)
-        if (!inFrom && (!argument.$refLinks[i].definition.target || danglingFilter))
+        // Checks if there is a dangling filter at the end of a path.
+        // A dangling filter is not followed by another reference, expansion, or inline and is not within an EXISTS clause.
+        const hasDanglingFilter = !(argument.ref[i + 1] || argument.expand || argument.inline || inExists)
+
+        const definition = argument.$refLinks[i].definition
+        // Ensures that a filter is valid only under specific conditions:
+        // 1. The filter must be on associations, except when it is directly on an entity specified in the from.ref clause, like `SELECT from Books[42]`.
+        // 2. A dangling filter is invalid unless it is used in the from.ref, like `SELECT from Books:author[name = 'foo']`
+        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && hasDanglingFilter)) {
           throw new Error('A filter can only be provided when navigating along associations')
+        }
+
         if (!argument.expand && !inFrom) Object.defineProperty(argument, 'isJoinRelevant', { value: true })
         let skipJoinsForFilter = false
         step.where.forEach(token => {
@@ -536,7 +552,8 @@ function infer(originalQuery, model) {
                 inFrom,
               }),
             )
-          } else if (typeof token !== 'string') { // xpr, ref, val
+          } else if (typeof token !== 'string') {
+            // xpr, ref, val
             inferArgument(token, false, argument.$refLinks[i], {
               inExists: skipJoinsForFilter,
               inInfixFilter: true,
@@ -788,6 +805,35 @@ function infer(originalQuery, model) {
       throw new Error(err.join(','))
     }
   }
+  /**
+   * Processes and links a calculated element. This function recursively identifies
+   * calculated elements within a column, ensures they are not processed multiple times, and handles
+   * their integration into the query's join tree if necessary. It deals with calculated elements that
+   * are derived from both expressions and function calls, recursively processing any nested elements.
+   *
+   * @param {object} column - The column that contains the calculated element to be linked.
+   * @param {object} baseLink - The base link context used for resolving the calculated element's references.
+   *                            This may be adjusted during processing to reflect the parent of the calculated element.
+   * @param {object} baseColumn - Base column context that may provide additional reference paths to be merged
+   *                              into the join tree alongside the calculated element's path.
+   * @param {object} [context={}] - Additional processing context that may influence how calculated elements
+   *                                are processed, such as flags indicating if the current processing is within
+   *                                a calculated element.
+   *
+   * This function identifies the calculated element within the column based on its `$refLinks` or defaults
+   * to the column itself if no `$refLinks` are found. It then ensures this element has not been processed before,
+   * registers it in a cache, and proceeds to handle different scenarios:
+   * - If the element is an expression or reference, it recursively infers arguments within this context,
+   *   merging any necessary paths into the queries join tree.
+   * - If the element involves a function call, it processes each argument of the function in a similar manner.
+   *
+   * Throughout its operation, it adjusts the base link context and merges paths as necessary, ensuring
+   * that calculated elements are correctly integrated into the query's join tree, affecting how joins are
+   * constructed during SQL generation.
+   *
+   * @throws {Error} If calculated elements contain errors in their path definitions or if recursive processing
+   *                 of nested elements identifies issues that cannot be resolved within the current query context.
+   */
   function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
     const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
     if (alreadySeenCalcElements.has(calcElement)) return
