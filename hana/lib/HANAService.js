@@ -306,7 +306,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
@@ -339,15 +339,22 @@ class HANAService extends SQLService {
 
         if (orderBy) {
           // Ensure that all columns used in the orderBy clause are exposed
-          orderBy.forEach(c => {
+          orderBy = orderBy.map((c, i) => {
+            if (!c.ref) {
+              c.as = `$$ORDERBY_${i}$$`
+              columns.push(c)
+              return { __proto__: c, ref: [c.as], sort: c.sort }
+            }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
-              if (!columns.find(c => c.ref + '' === ref)) {
-                const clone = { __proto__: c, ref: c.ref }
-                columns.push(clone)
+              const match = columns.find(col => col.ref + '' === ref)
+              if (!match) {
+                c.as = `$$${c.ref.join('.')}$$`
+                columns.push(c)
               }
-              c.ref = [c.ref[1]]
+              return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            return c
           })
         }
 
@@ -461,7 +468,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
+                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
@@ -1045,10 +1052,10 @@ class HANAService extends SQLService {
     return super.dispatch(req)
   }
 
-  async onCall({ query, data }, name, schema) {    
-      const outParameters = await this._getProcedureMetadata(name, schema)              
-      const ps = await this.prepare(query)
-      return ps.proc(data, outParameters)     
+  async onCall({ query, data }, name, schema) {
+    const outParameters = await this._getProcedureMetadata(name, schema)
+    const ps = await this.prepare(query)
+    return ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1064,7 +1071,7 @@ class HANAService extends SQLService {
         throw err
       }
     }
-    
+
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
@@ -1174,12 +1181,12 @@ class HANAService extends SQLService {
     const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
         schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
-    return await super.onPlainSQL({ query, data: [] })   
+    return await super.onPlainSQL({ query, data: [] })
   }
 
   _getProcedureNameAndSchema(sql) {
     // name delimited with "" allows any character
-    const match = sql    
+    const match = sql
       .match(
         /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
       )
