@@ -1,6 +1,3 @@
-// REVISIT: remove with next major
-process.env.CDS_FEATURES_STRING__DECIMALS = true
-
 require('./CREATE.test')
 require('./DELETE.test')
 require('./DROP.test')
