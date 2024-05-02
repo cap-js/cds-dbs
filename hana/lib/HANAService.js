@@ -460,6 +460,7 @@ class HANAService extends SQLService {
                 let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
+                  if (!k?.parentElement?.name) return // not all associations have foreign key references
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -787,7 +788,7 @@ class HANAService extends SQLService {
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ''
+              xpr[i + 1] = ' = TRUE'
             }
           }
         }
@@ -861,6 +862,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
+        if ('_internal' in cur) return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
       return false
@@ -884,7 +886,7 @@ class HANAService extends SQLService {
       // cds-compiler effectiveName uses toUpperCase for hana dialect, but not for hdbcds
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toUpperCase() + '"'
-      if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s.toUpperCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$#0-9]*$/.test(s)) return '"' + s.toUpperCase() + '"'
       return s
     }
 
@@ -1000,7 +1002,6 @@ class HANAService extends SQLService {
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
-      // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
     }
 
     static OutputConverters = {
@@ -1014,8 +1015,9 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
     }
   }
 
