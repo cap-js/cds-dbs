@@ -204,6 +204,19 @@ describe('SELECT', () => {
       assert.strictEqual(Object.keys(res[0].author).length, 200)
     })
 
+    test('expand association with static values', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.associations.unmanaged.Authors'] },
+          columns: [{ ref: ['ID'] }, { ref: ['static'], expand: ['*'] }]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(res[0].static.length, 1)
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       await expect(
         cds.run(CQL`
@@ -250,6 +263,23 @@ describe('SELECT', () => {
       assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
     })
 
+    test('combine expr and other compare', async () => {
+      const cqn = CQL`SELECT bool FROM basic.literals.globals`
+      cqn.SELECT.where = [
+        {
+          xpr: [
+            {
+              xpr: [{ ref: ['bool'] }, '!=', { val: true }]
+            }
+          ]
+        },
+        'and',
+        { ref: ['bool'] }, '=', { val: false }
+      ]
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+      
     test('exists path expression', async () => {
       const cqn = {
         SELECT: {
