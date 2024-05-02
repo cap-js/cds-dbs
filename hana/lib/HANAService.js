@@ -866,7 +866,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
-        if (cur.func === 'CONTAINS') return true
+        if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
         if ('_internal' in cur) return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
