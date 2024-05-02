@@ -19,8 +19,9 @@ describe('Parameterized view', () => {
     },
     // ===== just works queries =====
     {
+      // cast is required as the SQL becomes (? * ?)
       // all books with <= 22 stock
-      available: CXL`11 * 2`,
+      available: CXL`cast(11 * 2 as cds.Integer)`,
       books: 3,
     }, {
       // the book with the least stock

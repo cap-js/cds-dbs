@@ -1,7 +1,10 @@
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
 const isVal = x => x && 'val' in x
 const getTimeType = x => isTime.test(x.val) ? 'TIME' : 'TIMESTAMP'
 const getTimeCast = x => isVal(x) ? `TO_${getTimeType(x)}(${x})` : x
+const getDateType = x => isDate.test(x.val) ? 'DATE' : 'TIMESTAMP'
+const getDateCast = x => isVal(x) ? `TO_${getDateType(x)}(${x})` : x
 
 const StandardFunctions = {
   tolower: x => `lower(${x})`,
@@ -31,7 +34,9 @@ const StandardFunctions = {
   },
 
   // Date and Time Functions
-  day: x => `DAYOFMONTH(${x})`,
+  year: x => `YEAR(${getDateCast(x)})`,
+  month: x => `MONTH(${getDateCast(x)})`,
+  day: x => `DAYOFMONTH(${getDateCast(x)})`,
   hour: x => `HOUR(${getTimeCast(x)})`,
   minute: x => `MINUTE(${getTimeCast(x)})`,
   second: x => `TO_INTEGER(SECOND(${getTimeCast(x)}))`,

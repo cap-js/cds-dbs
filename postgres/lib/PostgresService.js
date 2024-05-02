@@ -298,21 +298,17 @@ GROUP BY k
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
       const index = columns.findIndex(col => query.elements[col.ref?.[col.ref.length - 1]].type === 'cds.LargeBinary')
-      const binary = columns[index]
+      const binary = columns.splice(index, 1)
       // SELECT without binary column
-      columns.splice(index, 1)
-      const { sql, values } = this.cqn2sql(query, data)
-      let ps = this.prepare(sql)
-      let res = await ps.all(values)
-      if (res.length === 0) return
-      res = res.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))[0]
+      let res = await super.onSELECT({ query, data })
+      if (!res) return res
       // SELECT only binary column
-      query.SELECT.columns = [binary]
+      query.SELECT.columns = binary
       const { sql: streamSql, values: valuesStream } = this.cqn2sql(query, data)
-      ps = this.prepare(streamSql)
+      const ps = this.prepare(streamSql)
       const stream = await ps.stream(valuesStream, true)
       // merge results
-      res[binary.as || binary.ref[binary.ref.length - 1]] = stream
+      res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
       return res
     }
     return super.onSELECT({ query, data })
@@ -439,6 +435,14 @@ GROUP BY k
       const { wait } = lock
       if (wait === 0) return 'FOR SHARE NOWAIT'
       return 'FOR SHARE'
+    }
+
+    // Postgres requires own quote function, becuase the effective name is lower case
+    quote(s) {
+      if (typeof s !== 'string') return '"' + s + '"'
+      if (s.includes('"')) return '"' + s.replace(/"/g, '""').toLowerCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      return s
     }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {

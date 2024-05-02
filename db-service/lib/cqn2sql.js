@@ -211,7 +211,7 @@ class CQN2SQLRenderer {
     if (from?.join && !q.SELECT.columns) {
       throw new Error('CQN query using joins must specify the selected columns.')
     }
-    
+
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -290,7 +290,7 @@ class CQN2SQLRenderer {
       return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
     }
     ///////////////////////////////////////////////////////////////////////////////////////
-    let sql = this.expr(x)
+    let sql = this.expr({ param: false, __proto__: x })
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -302,7 +302,7 @@ class CQN2SQLRenderer {
    * @returns {string}
    */
   column_alias4(x) {
-    return typeof x.as === 'string' ? x.as : x.func
+    return typeof x.as === 'string' ? x.as : x.func || x.val
   }
 
   /**
@@ -387,7 +387,7 @@ class CQN2SQLRenderer {
    */
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
-    return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
+    return !offset ? this.val(rows) : `${this.val(rows)} OFFSET ${this.val(offset)}`
   }
 
   /**
@@ -884,27 +884,34 @@ class CQN2SQLRenderer {
   }
 
   /**
-   * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
+   * Renders a value into the correct SQL syntax or a placeholder for a prepared statement
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
   val({ val, param }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
-      case 'undefined': return 'NULL'
+      case 'undefined': val = null
+        break
       case 'boolean': return `${val}`
-      case 'number': return `${val}` // REVISIT for HANA
       case 'object':
-        if (val === null) return 'NULL'
-        if (val instanceof Date) val = val.toJSON() // returns null if invalid
-        else if (val instanceof Readable); // go on with default below
-        else if (Buffer.isBuffer(val)); // go on with default below
-        else if (is_regexp(val)) val = val.source
-        else val = JSON.stringify(val)
-      case 'string': // eslint-disable-line no-fallthrough
+        if (val !== null) {
+          if (val instanceof Date) val = val.toJSON() // returns null if invalid
+          else if (val instanceof Readable); // go on with default below
+          else if (Buffer.isBuffer(val)); // go on with default below
+          else if (is_regexp(val)) val = val.source
+          else val = JSON.stringify(val)
+        }
     }
-    if (!this.values || param === false) return this.string(val)
-    else this.values.push(val)
+    if (!this.values || param === false) {
+      switch (typeof val) {
+        case 'string': return this.string(val)
+        case 'object': return 'NULL'
+        default:
+          return `${val}`
+      }
+    }
+    this.values.push(val)
     return '?'
   }
 
@@ -968,8 +975,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    // Column names like "Order" clash with "ORDER" keyword so toUpperCase is required
-    if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
   }
 
