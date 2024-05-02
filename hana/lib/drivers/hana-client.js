@@ -1,7 +1,6 @@
 const { Readable, Stream } = require('stream')
 
 const hdb = require('@sap/hana-client')
-const { StringDecoder } = require('string_decoder')
 const { driver, prom, handleLevel } = require('./base')
 
 const streamUnsafe = false
