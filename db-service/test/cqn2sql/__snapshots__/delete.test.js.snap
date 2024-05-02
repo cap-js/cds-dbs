@@ -12,4 +12,4 @@ exports[`delete test with from ref 1`] = `"DELETE FROM Foo as Foo"`;
 
 exports[`delete test with from ref and alias 1`] = `"DELETE FROM Foo as lala"`;
 
-exports[`delete test with from string and where clause 1`] = `"DELETE FROM Foo as Foo WHERE Foo.x < 9"`;
+exports[`delete test with from string and where clause 1`] = `"DELETE FROM Foo as Foo WHERE Foo.x < ?"`;

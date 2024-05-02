@@ -715,10 +715,15 @@ class HANAService extends SQLService {
       )
     }
 
+    limit({ rows, offset }) {
+      rows = { param: false, __proto__: rows }
+      return super.limit({ rows, offset })
+    }
+
     where(xpr) {
       xpr = { xpr }
-      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
-      return `${this.xpr(xpr)}${suffix}`
+      const suffix = this.is_comparator(xpr)
+      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
@@ -731,9 +736,9 @@ class HANAService extends SQLService {
       const compareOperators = {
         '==': true,
         '!=': false,
+
         // These operators are not allowed in column expressions
         /* REVISIT: Only adjust these operators when inside the column expression
-        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -749,16 +754,14 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
-            // Convert =, == and != into is (not) null operator where required
-            x = xpr[i] = super.operator(xpr[i], i, xpr)
-
+            const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (x in compareOperators) {
+            if (effective in compareOperators) {
               endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[x]
+              const ifNull = compareOperators[effective]
 
               const compare = [left, x, right]
 
@@ -774,7 +777,8 @@ class HANAService extends SQLService {
                   xpr: [
                     'CASE',
                     'WHEN',
-                    ...[left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
+                    // coalesce is used to match the left and right hand types in case one is a placeholder
+                    ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
                     { val: ifNull },
                     'ELSE',
@@ -829,7 +833,7 @@ class HANAService extends SQLService {
         up in logicOperators &&
         !this.is_comparator({ xpr }, i - 1)
       ) {
-        return ` = TRUE ${x}`
+        return ` = ${this.val({ val: true })} ${x}`
       }
       if (
         (up === 'LIKE' && is_regexp(xpr[i + 1]?.val)) ||
