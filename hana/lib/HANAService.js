@@ -866,6 +866,7 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
+        if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
         if ('_internal' in cur) return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
@@ -1255,6 +1256,9 @@ const compareOperators = {
   'IS NOT': 1,
   'EXISTS': 1,
   'BETWEEN': 1,
+  'CONTAINS': 1,
+  'MEMBER OF': 1,
+  'LIKE_REGEXPR': 1,
 }
 
 module.exports = HANAService
