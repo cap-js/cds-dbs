@@ -216,7 +216,7 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      const transitions = getTransition(req.query.target, this, false, req.query.cmd || 'DELETE')
+      const transitions = getTransition(req.target, this, false, req.query.cmd || 'DELETE')
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
@@ -237,9 +237,9 @@ class SQLService extends DatabaseService {
             },
           ],
         })
-        return this.onDELETE({ query })
+        return this.onDELETE({ query, target: transitions.target })
       }
-      const table = getDBTable(req.query.target)
+      const table = getDBTable(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -252,11 +252,11 @@ class SQLService extends DatabaseService {
         }
         // Process child compositions depth-first
         let { depth = 0, visited = [] } = req
-        visited.push(req.query.target.name)
+        visited.push(req.target.name)
         await Promise.all(
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
-            if (c._target === req.query.target) {
+            if (c._target === req.target) {
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -268,7 +268,7 @@ class SQLService extends DatabaseService {
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
             query.target = c._target
-            return this.onDELETE({ query, depth, visited: [...visited] })
+            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
       }
