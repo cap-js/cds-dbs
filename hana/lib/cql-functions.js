@@ -22,6 +22,7 @@ const StandardFunctions = {
   countdistinct: x => `count(distinct ${x || '*'})`,
   average: x => `avg(${x})`,
   contains: (...args) => args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
+  concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
     if (!('val' in arg)) throw `HANA only supports single value arguments for $search`
     const refs = ref.list || [ref],
