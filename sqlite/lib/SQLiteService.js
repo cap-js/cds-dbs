@@ -80,7 +80,7 @@ class SQLiteService extends SQLService {
         stream: (..._) => this._stream(stmt, ..._),
       }
     } catch (e) {
-      e.message += ' in:\n' + (e.sql = sql)
+      e.message += ' in:\n' + (e.query = sql)
       throw e
     }
   }
@@ -167,7 +167,8 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
-      if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
+      if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
+      else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
       else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
         const date = new Date(v.val)
@@ -189,12 +190,10 @@ class SQLiteService extends SQLService {
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-
       // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
       DateTime: e => `ISO(${e})`,
@@ -203,37 +202,31 @@ class SQLiteService extends SQLService {
 
     static OutputConverters = {
       ...super.OutputConverters,
-
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
       Association: expr => `${expr}->'$'`,
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
-
       // SQLite has no booleans so we need to convert 0 and 1
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
-
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
-
       // Timestamps are returned with ms, as written by InputConverters.
       // And as cds.builtin.classes.Timestamp inherits from DateTime we need
       // to override the DateTime converter above
       Timestamp: undefined,
-
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
       Int64: expr => `CAST(${expr} as TEXT)`,
-      
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `CAST(${expr} as TEXT)`,
-
+      Decimal: cds.env.features.string_decimals ? expr => `CAST(${expr} as TEXT)` : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     // Used for CREATE TABLE statements
     static TypeMap = {

@@ -18,9 +18,59 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
-    it('omits alias for anonymous query which selects from other query', () => {
+    it('creates unique alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
-      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) { ID }`)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`,
+      )
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID } )`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { __select__.ID }) as __select__2 { __select__2.ID }`,
+      )
+    })
+    it('the unique alias for anonymous query does not collide with user provided aliases in case of joins', () => {
+      let query = cqn4sql(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID, author } ) { author.name }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from (
+        SELECT from bookshop.Books as __select__ { __select__.ID, __select__.author_ID }
+      ) as __select__2 left join bookshop.Authors as author on author.ID = __select__2.author_ID
+      {
+        author.name as author_name
+      }`)
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases nested', () => {
+      // author association bubbles up to the top query where the join finally is done
+      // --> note that the most outer query uses user defined __select__ alias
+      let query = cqn4sql(
+        CQL`
+      SELECT from (
+        SELECT from (
+          SELECT from bookshop.Books { ID, author }
+        )
+      ) as __select__
+      {
+        __select__.author.name
+      }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.ID, Books.author_ID }
+            ) as __select__2 { __select__2.ID, __select__2.author_ID }
+        ) as __select__ left join bookshop.Authors as author on author.ID = __select__.author_ID
+        {
+          author.name as author_name
+        }`,
+      )
     })
 
     it('preserves table alias at field access', () => {
@@ -444,16 +494,12 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
-    it('dont try to prepend table alias if we select from anonymous subquery', async () => {
+    it('prepend artificial table alias if we select from anonymous subquery', async () => {
       const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
-      const query = SELECT.localized
-        .columns('ID', 'title', 'author')
-        .from(subquery)
-        .orderBy('title')
-        .groupBy('title')
-  
+      const query = SELECT.localized.columns('ID', 'title', 'author').from(subquery).orderBy('title').groupBy('title')
+
       query.SELECT.count = true
-  
+
       const res = cqn4sql(query, model)
 
       const expected = CQL`
@@ -464,14 +510,14 @@ describe('table alias access', () => {
             SimpleBook.author_ID
             from bookshop.SimpleBook as SimpleBook
             order by SimpleBook.title
-          )
+          ) __select__
         {
-          ID,
-          title,
-          author_ID
+          __select__.ID,
+          __select__.title,
+          __select__.author_ID
         }
-        group by title
-        order by title
+        group by __select__.title
+        order by __select__.title
       `
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
@@ -544,6 +590,22 @@ describe('table alias access', () => {
       let input = CQL`SELECT from bookshop.Books { func() } order by func`
       let query = cqn4sql(input, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { func() as func } order by func`)
+    })
+
+    it('do not try to resolve ref in columns if columns consists of star', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { * } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
+    })
+    // doesnt work, can't join with the query source itself
+    it.skip('same as above but author is explicit column', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { *, author } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
     })
   })
 
@@ -819,7 +881,7 @@ describe('table alias access', () => {
         }`,
       )
     })
-    it('no alias for function args or expressions on top of anonymous subquery', () => {
+    it('prepends unique alias for function args or expressions on top of anonymous subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from ( SELECT from bookshop.Orders ) {
           sum(ID) as foo,
@@ -832,9 +894,9 @@ describe('table alias access', () => {
           SELECT from bookshop.Orders as Orders {
             Orders.ID
           }
-        ) {
-          sum(ID) as foo,
-          ID + 42 as anotherFoo
+        ) as __select__ {
+          sum(__select__.ID) as foo,
+          __select__.ID + 42 as anotherFoo
         }`,
       )
     })

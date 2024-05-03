@@ -2,15 +2,21 @@
 
 exports[`.update data alone still works 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=NULL,a=NULL",
-  "values": [],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?,a=?",
+  "values": [
+    1,
+    null,
+    null,
+  ],
 }
 `;
 
 exports[`.update set enhances data 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?",
+  "sql": "UPDATE Foo2 AS Foo2 SET a=?,ID=?,name=?",
   "values": [
+    2,
+    1,
     "'asd'",
   ],
 }
@@ -18,44 +24,59 @@ exports[`.update set enhances data 1`] = `
 
 exports[`.update set overwrites data 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET a=2,ID=1,name=?,a=6",
+  "sql": "UPDATE Foo2 AS Foo2 SET a=?,ID=?,name=?,a=?",
   "values": [
+    2,
+    1,
     "'asd'",
+    6,
   ],
 }
 `;
 
 exports[`.update test with entity and values with operators 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=42,name=?,a=Foo2.a - 1",
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?,a=Foo2.a - ?",
   "values": [
+    42,
     "'asd'",
+    1,
   ],
 }
 `;
 
 exports[`.update test with entity of type string 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2",
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?,a=?",
   "values": [
+    1,
     "'asd'",
+    2,
   ],
 }
 `;
 
 exports[`.update test with entity of type string and where clause 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?,a=2 WHERE Foo2.a < 9",
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?,a=? WHERE Foo2.a < ?",
   "values": [
+    1,
     "'asd'",
+    2,
+    9,
   ],
 }
 `;
 
 exports[`.update test with setting a value to null 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=NULL,a=2 WHERE Foo2.a < 9",
-  "values": [],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?,a=? WHERE Foo2.a < ?",
+  "values": [
+    1,
+    null,
+    2,
+    9,
+  ],
 }
 `;
 
@@ -68,8 +89,9 @@ exports[`.update test with subselect - sflight example 1`] = `
 
 exports[`.update virtual and non-existing fields filtered out from with 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1,name=?",
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?,name=?",
   "values": [
+    1,
     "'asd'",
   ],
 }
@@ -77,7 +99,9 @@ exports[`.update virtual and non-existing fields filtered out from with 1`] = `
 
 exports[`.update virtual and non-existing filtered out from data 1`] = `
 {
-  "sql": "UPDATE Foo2 AS Foo2 SET ID=1",
-  "values": [],
+  "sql": "UPDATE Foo2 AS Foo2 SET ID=?",
+  "values": [
+    1,
+  ],
 }
 `;

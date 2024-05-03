@@ -1,7 +1,6 @@
 const { Readable, Stream } = require('stream')
 
 const hdb = require('@sap/hana-client')
-const { StringDecoder } = require('string_decoder')
 const { driver, prom, handleLevel } = require('./base')
 
 const streamUnsafe = false
@@ -74,7 +73,7 @@ class HANAClientDriver extends driver {
           rsStreamsProm.resolve = resolve
           rsStreamsProm.reject = reject
         })
-        rsStreams.catch(() => {})
+        rsStreams.catch(() => { })
 
         rs._rowPosition = -1
         const _next = prom(rs, 'next')
@@ -97,7 +96,7 @@ class HANAClientDriver extends driver {
             row[col] = i > 3 ?
               rs.isNull(i)
                 ? null
-                : Readable.from(streamBlob(rsStreams, rs._rowPosition, i, 'binary'))
+                : Readable.from(streamBlob(rsStreams, rs._rowPosition, i), { objectMode: false })
               : values[i]
           }
 
@@ -108,6 +107,20 @@ class HANAClientDriver extends driver {
 
         return result
       }
+    }
+
+    ret.run = async params => {
+      const { values, streams } = this._extractStreams(params)
+      const stmt = await ret._prep
+      let changes = await prom(stmt, 'exec')(values)
+      await this._sendStreams(stmt, streams)
+      // REVISIT: hana-client does not return any changes when doing an update with streams
+      // This causes the best assumption to be that the changes are one
+      // To get the correct information it is required to send a count with the update where clause
+      if (streams.length && changes === 0) {
+        changes = 1
+      }
+      return { changes }
     }
 
     ret.proc = async (data, outParameters) => {
@@ -139,7 +152,7 @@ class HANAClientDriver extends driver {
         if (rs.getRowCount() === 0) return null
         await prom(rs, 'next')()
         if (rs.isNull(0)) return null
-        return Readable.from(streamBlob(rs, undefined, 0, 'binary'), { objectMode: false })
+        return Readable.from(streamBlob(rs, undefined, 0), { objectMode: false })
       }
       return Readable.from(rsIterator(rs, one), { objectMode: false })
     }
@@ -161,7 +174,7 @@ class HANAClientDriver extends driver {
     }
 
     const resultSet = Array.isArray(rows) ? rows[0] : rows
-  
+
     // merge table output params into scalar params
     const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
     if (params && params.length) {
@@ -174,7 +187,7 @@ class HANAClientDriver extends driver {
         resultSet.nextResult()
       }
     }
-  
+
     return result
   }
 
@@ -203,7 +216,8 @@ class HANAClientDriver extends driver {
       if (!curStream) continue
       for await (const chunk of curStream) {
         curStream.pause()
-        await sendParameterData(i, Buffer.from(chunk))
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+        if (buffer.length) await sendParameterData(i, buffer)
         curStream.resume()
       }
       await sendParameterData(i, null)
@@ -279,7 +293,9 @@ async function* rsIterator(rs, one) {
       yield buffer
       buffer = ''
 
-      for await (const chunk of streamBlob(rs, undefined, columnIndex, 'base64', binaryBuffer)) {
+      const stream = Readable.from(streamBlob(rs, undefined, columnIndex, binaryBuffer), { objectMode: false })
+      stream.setEncoding('base64')
+      for await (const chunk of stream) {
         yield chunk
       }
       buffer += '"'
@@ -302,7 +318,7 @@ async function* rsIterator(rs, one) {
   yield buffer
 }
 
-async function* streamBlob(rs, rowIndex = -1, columnIndex, encoding, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
+async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
   const promChain = {
     resolve: () => { },
     reject: () => { }
@@ -343,29 +359,18 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, encoding, binaryBuffe
 
     const getData = prom(rs, 'getData')
 
-    let decoder = new StringDecoder(encoding)
-
     let blobPosition = 0
 
     while (true) {
       // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-      let start = 0
       const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
-      if (blobPosition === 0 && binaryBuffer.slice(0, 7).toString() === 'base64,') {
-        decoder = {
-          write: encoding === 'base64' ? c => c : chunk => Buffer.from(chunk.toString(), 'base64'),
-          end: () => Buffer.allocUnsafe(0),
-        }
-        start = 7
-      }
       blobPosition += read
       if (read < binaryBuffer.byteLength) {
-        yield decoder.write(binaryBuffer.slice(start, read))
+        yield binaryBuffer.slice(0, read)
         break
       }
-      yield decoder.write(binaryBuffer.slice(start).toString('base64'))
+      yield binaryBuffer
     }
-    yield decoder.end()
   } catch (e) {
     promChain.reject(e)
   } finally {
