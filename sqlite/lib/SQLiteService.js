@@ -167,7 +167,8 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
-      if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
+      if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
+      else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
       else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
         const date = new Date(v.val)
