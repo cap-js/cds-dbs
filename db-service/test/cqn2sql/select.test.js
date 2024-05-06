@@ -2,9 +2,9 @@
 const cds = require('@sap/cds/lib')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
-  
+
   return _cqn2sql(q, m)
-} 
+}
 const cqn = require('./cqn.js')
 
 // const getExpected = (sql, values) => {
@@ -262,8 +262,9 @@ describe('cqn2sql', () => {
     test('one with additional limit with offset', () => {
       // Original DB layer expectation is to mix limit and one
       // One has priority over limit.rows, but limit.offset is still applied
-      const { sql } = cqn2sql(cqn.oneWithLimit)
-      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT 1 OFFSET 5')
+      const { sql, values } = cqn2sql(cqn.oneWithLimit)
+      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT ? OFFSET ?')
+      expect(values).toEqual([1, 5])
     })
   })
 
