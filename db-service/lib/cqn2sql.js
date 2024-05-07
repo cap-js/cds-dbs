@@ -832,17 +832,31 @@ class CQN2SQLRenderer {
   operator(x, i, xpr) {
 
     // Translate = to IS NULL for rhs operand being NULL literal
-    if (x === '=') return xpr[i + 1]?.val === null ? 'is' : '='
+    if (x === '=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : '='
 
     // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '==') return xpr[i + 1]?.val === null ? 'is' : _not_null(i - 1) && _not_null(i + 1) ? '=' : this.is_not_distinct_from_
+    if (x === '==') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '='
+        : this.is_not_distinct_from_
 
     // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(i - 1) && _not_null(i + 1) ? '<>' : this.is_distinct_from_
+    if (x === '!=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is not'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '<>'
+        : this.is_distinct_from_
 
     else return x
+
+    function _inline_null(n) {
+      n.param = false
+    }
 
     /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
     function _not_null(i) {
