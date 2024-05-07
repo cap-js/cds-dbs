@@ -30,6 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
+    this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
     return super.init()
   }
 
@@ -135,8 +136,8 @@ class HANAService extends SQLService {
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+        : await this.exec(sqlScript)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -178,6 +179,19 @@ class HANAService extends SQLService {
       return await super.onUPDATE(req)
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+    }
+  }
+
+  async onNOTFOUND(req, next) {
+    try {
+      return await next()
+    } catch (err) {
+      // Ensure that the known entity still exists
+      if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
+        // Clear current tenant connection pool
+        this.disconnect(this.context.tenant)
+      }
+      throw err
     }
   }
 
