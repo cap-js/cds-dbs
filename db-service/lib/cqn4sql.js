@@ -2143,7 +2143,7 @@ function cqn4sql(originalQuery, model) {
     }
   }
   function getTransformedFunctionArgs(args, $baseLink = null) {
-    let result = args
+    let result = null
     if (Array.isArray(args)) {
       result = args.map(t => {
         if (!t.val)
@@ -2152,6 +2152,7 @@ function cqn4sql(originalQuery, model) {
         return t
       })
     } else if (typeof args === 'object') {
+      result = {}
       for (const prop in args) {
         const t = args[prop]
         if (!t.val)
