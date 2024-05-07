@@ -754,14 +754,39 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
-            const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
+            // IS (NOT) NULL translation when required
+            if (x === '=' || x === '!=') {
+              const left = xpr[i - 1]
+              const right = xpr[i + 1]
+              const leftType = left?.element?.type
+              const rightType = right?.element?.type
+              // Prevent HANA from throwing and unify nonsense behavior
+              if (left?.val === null && rightType in lobTypes) {
+                left.param = false // Force null to be inlined
+                xpr[i + 1] = { param: false, val: null } // Remove illegal type ref for compare operator
+              }
+              if (right?.val === null) {
+                if (
+                  !leftType || // Literal translation when left hand type is unknown
+                  leftType in lobTypes
+                ) {
+                  xpr[i] = x = x === '=' ? 'IS' : 'IS NOT'
+                  right.param = false // Force null to be inlined
+                } else {
+                  x = x === '=' ? '==' : '!='
+                }
+              }
+            }
+
+            // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (effective in compareOperators) {
+            if (x in compareOperators) {
               endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[effective]
+              const ifNull = compareOperators[x]
+              x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
 
@@ -1259,6 +1284,11 @@ const compareOperators = {
   'CONTAINS': 1,
   'MEMBER OF': 1,
   'LIKE_REGEXPR': 1,
+}
+const lobTypes = {
+  'cds.LargeBinary': 1,
+  'cds.LargeString': 1,
+  'cds.hana.CLOB': 1,
 }
 
 module.exports = HANAService
