@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
@@ -38,8 +38,9 @@ describe('expressions', () => {
         where: [{ ref: ['x'] }, '=', { val: null }],
       },
     }
-    const { sql } = cqn2sql(cqn)
+    const { sql, values } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NULL/i)
+    expect(values).toEqual([])
   })
 
   // We should never have supported that!
@@ -50,8 +51,9 @@ describe('expressions', () => {
         where: [{ val: null }, '=', { ref: ['x'] }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null = Foo.x/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? = Foo.x/i)
+    expect(values).toEqual([null])
   })
 
   // We should never have supported that!
@@ -62,8 +64,9 @@ describe('expressions', () => {
         where: [{ val: null }, '=', { val: null }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE NULL IS NULL/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? IS NULL/i)
+    expect(values).toEqual([null])
   })
 
   test('ref != null', () => {
@@ -73,8 +76,9 @@ describe('expressions', () => {
         where: [{ ref: ['x'] }, '!=', { val: null }],
       },
     }
-    const { sql } = cqn2sql(cqn)
+    const { sql, values } = cqn2sql(cqn)
     expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NOT NULL/i)
+    expect(values).toEqual([])
   })
 
   test('val != val', () => {
@@ -84,8 +88,9 @@ describe('expressions', () => {
         where: [{ val: 5 }, '!=', { val: 6 }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 <> 6/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? <> \?/i)
+    expect(values).toEqual([5, 6])
   })
 
   test('ref != ref', () => {
@@ -109,8 +114,9 @@ describe('expressions', () => {
         where: [{ val: null }, '!=', { ref: ['x'] }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE null is distinct from Foo.x/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? is distinct from Foo.x/i)
+    expect(values).toEqual([null])
   })
 
   test('ref != 5', () => {
@@ -120,8 +126,9 @@ describe('expressions', () => {
         where: [{ ref: ['x'] }, '!=', { val: 5 }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is distinct from 5/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x is distinct from \?/i)
+    expect(values).toEqual([5])
   })
 
   test('ref <> 5', () => {
@@ -131,8 +138,9 @@ describe('expressions', () => {
         where: [{ ref: ['x'] }, '<>', { val: 5 }],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x <> 5/i)
+    const { sql, values } = cqn2sql(cqn)
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x <> \?/i)
+    expect(values).toEqual([5])
   })
 
   test('ref != 5 and more', () => {
@@ -142,10 +150,11 @@ describe('expressions', () => {
         where: [{ ref: ['x'] }, '=', { val: 7 }, 'or', { ref: ['x'] }, '!=', { val: 5 }],
       },
     }
-    const { sql } = cqn2sql(cqn)
+    const { sql, values } = cqn2sql(cqn)
     expect(sql).toMatch(
-      /SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = 7 or Foo.x is distinct from 5/i,
+      /SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x = \? or Foo.x is distinct from \?/i,
     )
+    expect(values).toEqual([7, 5])
   })
 
   // We don't have to support that
@@ -158,8 +167,8 @@ describe('expressions', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE 5 is distinct from Foo.x',
-      values: [],
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ? is distinct from Foo.x',
+      values: [5],
     })
   })
 
@@ -177,10 +186,11 @@ describe('expressions', () => {
         ],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from 5) or (Foo.x is NULL)',
-    )
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toEqual({
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from ?) or (Foo.x is NULL)',
+      values: [5]
+    })
   })
 
   test('ref is like pattern', () => {
@@ -365,9 +375,11 @@ describe('expressions', () => {
         ],
       },
     }
-    const { sql } = cqn2sql(cqn)
-    expect(sql).toEqual(
-      'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ROW_NUMBER(1) OVER (PARTITION BY Foo.b ORDER BY Foo.x desc)',
-    )
+
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toEqual({
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE ROW_NUMBER(?) OVER (PARTITION BY Foo.b ORDER BY Foo.x desc)',
+      values: [1]
+    })
   })
 })

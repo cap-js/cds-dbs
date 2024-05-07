@@ -144,18 +144,29 @@ GROUP BY k
       text: sql,
       name: sha,
     }
+
+    const enhanceError = (err, sql) => Object.assign(err, { query: sql + '\n' + new Array(err.position).fill(' ').join('') + '^' })
+
     return {
       run: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        let newQuery = this._prepareStreams(query, values)
-        if (typeof newQuery.then === 'function') newQuery = await newQuery
-        const result = await this.dbc.query(newQuery)
-        return { changes: result.rowCount }
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          let newQuery = this._prepareStreams(query, values)
+          if (typeof newQuery.then === 'function') newQuery = await newQuery
+          const result = await this.dbc.query(newQuery)
+          return { changes: result.rowCount }
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       get: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        const result = await this.dbc.query({ ...query, values: this._getValues(values) })
-        return result.rows[0]
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          const result = await this.dbc.query({ ...query, values: this._getValues(values) })
+          return result.rows[0]
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       all: async values => {
         // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
@@ -163,7 +174,7 @@ GROUP BY k
           const result = await this.dbc.query({ ...query, values: this._getValues(values) })
           return result.rows
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
       stream: async (values, one) => {
@@ -171,7 +182,7 @@ GROUP BY k
           const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
           return await this.dbc.query(streamQuery)
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
     }
@@ -287,21 +298,17 @@ GROUP BY k
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
       const index = columns.findIndex(col => query.elements[col.ref?.[col.ref.length - 1]].type === 'cds.LargeBinary')
-      const binary = columns[index]
+      const binary = columns.splice(index, 1)
       // SELECT without binary column
-      columns.splice(index, 1)
-      const { sql, values } = this.cqn2sql(query, data)
-      let ps = this.prepare(sql)
-      let res = await ps.all(values)
-      if (res.length === 0) return
-      res = res.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))[0]
+      let res = await super.onSELECT({ query, data })
+      if (!res) return res
       // SELECT only binary column
-      query.SELECT.columns = [binary]
+      query.SELECT.columns = binary
       const { sql: streamSql, values: valuesStream } = this.cqn2sql(query, data)
-      ps = this.prepare(streamSql)
+      const ps = this.prepare(streamSql)
       const stream = await ps.stream(valuesStream, true)
       // merge results
-      res[binary.as || binary.ref[binary.ref.length - 1]] = stream
+      res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
       return res
     }
     return super.onSELECT({ query, data })
@@ -430,6 +437,14 @@ GROUP BY k
       return 'FOR SHARE'
     }
 
+    // Postgres requires own quote function, becuase the effective name is lower case
+    quote(s) {
+      if (typeof s !== 'string') return '"' + s + '"'
+      if (s.includes('"')) return '"' + s.replace(/"/g, '""').toLowerCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      return s
+    }
+
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }
@@ -502,8 +517,9 @@ GROUP BY k
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `cast(${expr} as varchar)`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `cast(${expr} as varchar)`,
+      Decimal: cds.env.features.string_decimals ? expr => `cast(${expr} as varchar)` : undefined,
 
       // Convert point back to json format
       'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,

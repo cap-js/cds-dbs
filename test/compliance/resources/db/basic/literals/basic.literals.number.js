@@ -57,15 +57,11 @@ module.exports = [
   },
   {
     decimal: '3.14153',
-    '=decimal': /^3.1415/
+    '=decimal': /^3\.1415/
   },
-  /*{
-    decimal: '12345678910', // TODO: should properly consider precision
-    '!': 'should throw an error'
-  },*/
   {
     decimal: 3.14,
-    '=decimal': /^3.14/
+    '=decimal': /^3\.14/
   },
   {
     double: 3.14159265358979
@@ -76,12 +72,12 @@ module.exports = [
   },
   {
     float: '-9007199254740991',
-    '=float': /^-9007199254740991/
+    '=float': /-9007199254740991/
   },
   {
     float: '9007199254740991',
     '=float': /^9007199254740991/
-  }
+  },
   /* Ignoring transformations
   {
     decimal: 3.141592653589793,
@@ -90,6 +86,6 @@ module.exports = [
   {
     decimal: 31415,
     '=decimal': 5
-  }
-  */,
+  },
+  */
 ]

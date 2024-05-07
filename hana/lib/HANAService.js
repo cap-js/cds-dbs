@@ -306,7 +306,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
@@ -339,15 +339,22 @@ class HANAService extends SQLService {
 
         if (orderBy) {
           // Ensure that all columns used in the orderBy clause are exposed
-          orderBy.forEach(c => {
+          orderBy = orderBy.map((c, i) => {
+            if (!c.ref) {
+              c.as = `$$ORDERBY_${i}$$`
+              columns.push(c)
+              return { __proto__: c, ref: [c.as], sort: c.sort }
+            }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
-              if (!columns.find(c => c.ref + '' === ref)) {
-                const clone = { __proto__: c, ref: c.ref }
-                columns.push(clone)
+              const match = columns.find(col => col.ref + '' === ref)
+              if (!match) {
+                c.as = `$$${c.ref.join('.')}$$`
+                columns.push(c)
               }
-              c.ref = [c.ref[1]]
+              return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            return c
           })
         }
 
@@ -453,6 +460,7 @@ class HANAService extends SQLService {
                 let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
+                  if (!k?.parentElement?.name) return // not all associations have foreign key references
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -460,7 +468,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
+                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
@@ -707,10 +715,15 @@ class HANAService extends SQLService {
       )
     }
 
+    limit({ rows, offset }) {
+      rows = { param: false, __proto__: rows }
+      return super.limit({ rows, offset })
+    }
+
     where(xpr) {
       xpr = { xpr }
-      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
-      return `${this.xpr(xpr)}${suffix}`
+      const suffix = this.is_comparator(xpr)
+      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
@@ -723,9 +736,9 @@ class HANAService extends SQLService {
       const compareOperators = {
         '==': true,
         '!=': false,
+
         // These operators are not allowed in column expressions
         /* REVISIT: Only adjust these operators when inside the column expression
-        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -741,9 +754,31 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
-            // Convert =, == and != into is (not) null operator where required
-            x = xpr[i] = super.operator(xpr[i], i, xpr)
+            // IS (NOT) NULL translation when required
+            if (x === '=' || x === '!=') {
+              const left = xpr[i - 1]
+              const right = xpr[i + 1]
+              const leftType = left?.element?.type
+              const rightType = right?.element?.type
+              // Prevent HANA from throwing and unify nonsense behavior
+              if (left?.val === null && rightType in lobTypes) {
+                left.param = false // Force null to be inlined
+                xpr[i + 1] = { param: false, val: null } // Remove illegal type ref for compare operator
+              }
+              if (right?.val === null) {
+                if (
+                  !leftType || // Literal translation when left hand type is unknown
+                  leftType in lobTypes
+                ) {
+                  xpr[i] = x = x === '=' ? 'IS' : 'IS NOT'
+                  right.param = false // Force null to be inlined
+                } else {
+                  x = x === '=' ? '==' : '!='
+                }
+              }
+            }
 
+            // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
             if (x in compareOperators) {
@@ -751,6 +786,7 @@ class HANAService extends SQLService {
               const left = xpr[i - 1]
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
+              x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
 
@@ -766,7 +802,8 @@ class HANAService extends SQLService {
                   xpr: [
                     'CASE',
                     'WHEN',
-                    ...[left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
+                    // coalesce is used to match the left and right hand types in case one is a placeholder
+                    ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
                     { val: ifNull },
                     'ELSE',
@@ -780,7 +817,7 @@ class HANAService extends SQLService {
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ''
+              xpr[i + 1] = ' = TRUE'
             }
           }
         }
@@ -821,7 +858,7 @@ class HANAService extends SQLService {
         up in logicOperators &&
         !this.is_comparator({ xpr }, i - 1)
       ) {
-        return ` = TRUE ${x}`
+        return ` = ${this.val({ val: true })} ${x}`
       }
       if (
         (up === 'LIKE' && is_regexp(xpr[i + 1]?.val)) ||
@@ -854,6 +891,8 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
+        if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
+        if ('_internal' in cur) return true
         if ('xpr' in cur) return this.is_comparator(cur)
       }
       return false
@@ -877,7 +916,7 @@ class HANAService extends SQLService {
       // cds-compiler effectiveName uses toUpperCase for hana dialect, but not for hdbcds
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toUpperCase() + '"'
-      if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s.toUpperCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$#0-9]*$/.test(s)) return '"' + s.toUpperCase() + '"'
       return s
     }
 
@@ -1020,8 +1059,9 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
@@ -1258,6 +1298,14 @@ const compareOperators = {
   'IS NOT': 1,
   'EXISTS': 1,
   'BETWEEN': 1,
+  'CONTAINS': 1,
+  'MEMBER OF': 1,
+  'LIKE_REGEXPR': 1,
+}
+const lobTypes = {
+  'cds.LargeBinary': 1,
+  'cds.LargeString': 1,
+  'cds.hana.CLOB': 1,
 }
 
 module.exports = HANAService

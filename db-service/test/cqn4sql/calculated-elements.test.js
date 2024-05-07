@@ -509,6 +509,55 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
+  it('wildcard select from subquery', () => {
+    let query = cqn4sql(
+      CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my on my.ID = Simple.my_ID 
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my.name as myName
+        }
+    ) as __select__ {
+      __select__.ID,
+      __select__.name,
+      __select__.my_ID,
+      __select__.myName
+    }
+    `
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('wildcard select from subquery + join relevant path expression', () => {
+    let query = cqn4sql(
+      CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } ) {
+        my.name as otherName
+      }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID 
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my2.name as myName
+        }
+    ) as __select__ left join booksCalc.Simple as my on my.ID = __select__.my_ID {
+      my.name as otherName
+    }
+    `
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
   it('replacement for calculated element is considered for wildcard expansion', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price, youngAuthorName }`,
