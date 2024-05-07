@@ -506,8 +506,10 @@ function cqn4sql(originalQuery, model) {
         ret ??= {}
         ret.xpr = getTransformedTokenStream(col.xpr)
       }
-      if (col.cast) ret.cast = col.cast
-      if (ret) return ret
+      if (ret) {
+        if (col.cast) ret.cast = col.cast
+        return ret
+      }
       return copy(col)
     }
 
