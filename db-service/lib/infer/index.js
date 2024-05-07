@@ -893,7 +893,7 @@ function infer(originalQuery, model) {
       const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
       if (alreadySeenCalcElements.has(calcElement)) return
       else alreadySeenCalcElements.add(calcElement)
-      const { ref, xpr, func } = calcElement.value
+      const { ref, xpr } = calcElement.value
       if (ref || xpr) {
         baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
         attachRefLinksToArg(calcElement.value, baseLink, true)
@@ -909,7 +909,7 @@ function infer(originalQuery, model) {
       }
 
       if (calcElement.value.args) {
-        function processArgument(arg, calcElement, column) {
+        const processArgument = (arg, calcElement, column) => {
           inferQueryElement(
             arg,
             false,
