@@ -488,21 +488,27 @@ function cqn4sql(originalQuery, model) {
     }
 
     function getTransformedColumn(col) {
-      if (col.xpr) {
-        const xpr = { xpr: getTransformedTokenStream(col.xpr) }
-        if (col.cast) xpr.cast = col.cast
-        return xpr
-      } else if (col.func) {
-        const func = {
+      let ret
+      if (col.func) {
+        ret = {
           func: col.func,
-          args: col.args && getTransformedTokenStream(col.args),
+          args: col.args && (Array.isArray(col.args)
+            ? getTransformedTokenStream(col.args)
+            : Object.keys(col.args).reduce((ret, prop) => {
+              ret[prop] = getTransformedTokenStream([col.args[prop]])[0]
+              return ret
+            }, {})
+          ),
           as: col.func, // may be overwritten by the explicit alias
         }
-        if (col.cast) func.cast = col.cast
-        return func
-      } else {
-        return copy(col)
       }
+      if (col.xpr) {
+        ret ??= {}
+        ret.xpr = getTransformedTokenStream(col.xpr)
+      }
+      if (col.cast) ret.cast = col.cast
+      if (ret) return ret
+      return copy(col)
     }
 
     function handleEmptyColumns(columns) {
@@ -1306,8 +1312,7 @@ function cqn4sql(originalQuery, model) {
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
-                next.definition.type
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${next.definition.type
               }”`,
             )
           }
@@ -1427,15 +1432,30 @@ function cqn4sql(originalQuery, model) {
             }
           } else if (token.SELECT) {
             result = transformSubquery(token)
-          } else if (token.xpr) {
-            result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
-          } else if (token.func && token.args) {
-            result.args = token.args.map(t => {
-              if (!t.val)
-                // this must not be touched
-                return getTransformedTokenStream([t], $baseLink)[0]
-              return t
-            })
+          } else {
+            if (token.xpr) {
+              result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
+            }
+            if (token.func && token.args) {
+              if (Array.isArray(token.args)) {
+                result.args = token.args.map(t => {
+                  if (!t.val)
+                    // this must not be touched
+                    return getTransformedTokenStream([t], $baseLink)[0]
+                  return t
+                })
+              } else if (typeof token.args === 'object') {
+                result.args = {}
+                for (const prop in token.args) {
+                  const t = token.args[prop]
+                  if (!t.val)
+                    // this must not be touched
+                    result.args[prop] = getTransformedTokenStream([t], $baseLink)[0]
+                  else
+                    result.args[prop] = t
+                }
+              }
+            }
           }
 
           transformedTokenStream.push(result)
@@ -1472,8 +1492,7 @@ function cqn4sql(originalQuery, model) {
       // make sure we can compare both structures
       if (flatRhs.length !== flatLhs.length) {
         throw new Error(
-          `Can't compare "${definition.name}" with "${
-            value.$refLinks[value.$refLinks.length - 1].definition.name
+          `Can't compare "${definition.name}" with "${value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
         )
       }

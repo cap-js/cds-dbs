@@ -305,10 +305,15 @@ function infer(originalQuery, model) {
           if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
           if (col.xpr || col.SELECT) {
             queryElements[as] = getElementForXprOrSubquery(col)
-          } else if (col.func) {
-            col.args?.forEach(arg => inferQueryElement(arg, false)) // {func}.args are optional
+          }
+          if (col.func) {
+            if (col.args) { // {func}.args are optional
+              if (Array.isArray(col.args)) col.args.forEach(arg => inferQueryElement(arg, false))
+              if (typeof col.args === 'object') Object.keys(col.args).forEach(prop => inferQueryElement(col.args[prop], false))
+            }
             queryElements[as] = getElementForCast(col)
-          } else {
+          }
+          if (!queryElements[as]) {
             // either binding parameter (col.param) or value
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
@@ -494,7 +499,10 @@ function infer(originalQuery, model) {
     function inferQueryElement(column, insertIntoQueryElements = true, $baseLink = null, context) {
       const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter } = context || {}
       if (column.param || column.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-      if (column.args) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
+      if (column.args) {
+        if (Array.isArray(column.args)) column.args.forEach(arg => inferQueryElement(arg, false, $baseLink, context)) // e.g. function in expression
+        else if (typeof column.args === 'object') Object.keys(column.args).forEach(prop => inferQueryElement(column.args[prop], false, $baseLink, context))
+      }
       if (column.list) column.list.forEach(arg => inferQueryElement(arg, false, $baseLink, context))
       if (column.xpr)
         column.xpr.forEach(token => inferQueryElement(token, false, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
@@ -600,12 +608,12 @@ function infer(originalQuery, model) {
           }
           const foreignKeyAlias = Array.isArray(definition.keys)
             ? definition.keys.find(k => {
-                if (k.ref.every((step, j) => column.ref[i + j] === step)) {
-                  skipAliasedFkSegmentsOfNameStack.push(...k.ref.slice(1))
-                  return true
-                }
-                return false
-              })?.as
+              if (k.ref.every((step, j) => column.ref[i + j] === step)) {
+                skipAliasedFkSegmentsOfNameStack.push(...k.ref.slice(1))
+                return true
+              }
+              return false
+            })?.as
             : null
           if (foreignKeyAlias) nameSegments.push(foreignKeyAlias)
           else if (skipAliasedFkSegmentsOfNameStack[0] === id) skipAliasedFkSegmentsOfNameStack.shift()
