@@ -34,6 +34,11 @@
     "@sap/hana-client": ">=2",
     "@sap/cds": ">=7.6"
   },
+  "peerDependenciesMeta": {
+    "@sap/hana-client": {
+      "optional": true
+    }
+  },
   "cds": {
     "requires": {
       "kinds": {
