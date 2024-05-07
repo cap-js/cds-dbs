@@ -492,13 +492,7 @@ function cqn4sql(originalQuery, model) {
       if (col.func) {
         ret = {
           func: col.func,
-          args: col.args && (Array.isArray(col.args)
-            ? getTransformedTokenStream(col.args)
-            : Object.keys(col.args).reduce((ret, prop) => {
-              ret[prop] = getTransformedTokenStream([col.args[prop]])[0]
-              return ret
-            }, {})
-          ),
+          args: getTransformedFunctionArgs(col.args),
           as: col.func, // may be overwritten by the explicit alias
         }
       }
@@ -545,7 +539,7 @@ function cqn4sql(originalQuery, model) {
     } else if (val) {
       res = { val }
     } else if (func) {
-      res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
+      res = { args: getTransformedFunctionArgs(value.args, baseLink), func: value.func }
     }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
@@ -939,7 +933,7 @@ function cqn4sql(originalQuery, model) {
         let transformedColumn
         if (col.SELECT) transformedColumn = transformSubquery(col)
         else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
-        else if (col.func) transformedColumn = { args: getTransformedTokenStream(col.args), func: col.func }
+        else if (col.func) transformedColumn = { args: getTransformedFunctionArgs(col.args), func: col.func }
         // val
         else transformedColumn = copy(col)
         if (col.sort) transformedColumn.sort = col.sort
@@ -1314,7 +1308,8 @@ function cqn4sql(originalQuery, model) {
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${next.definition.type
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
+                next.definition.type
               }”`,
             )
           }
@@ -1439,24 +1434,7 @@ function cqn4sql(originalQuery, model) {
               result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
             }
             if (token.func && token.args) {
-              if (Array.isArray(token.args)) {
-                result.args = token.args.map(t => {
-                  if (!t.val)
-                    // this must not be touched
-                    return getTransformedTokenStream([t], $baseLink)[0]
-                  return t
-                })
-              } else if (typeof token.args === 'object') {
-                result.args = {}
-                for (const prop in token.args) {
-                  const t = token.args[prop]
-                  if (!t.val)
-                    // this must not be touched
-                    result.args[prop] = getTransformedTokenStream([t], $baseLink)[0]
-                  else
-                    result.args[prop] = t
-                }
-              }
+              result.args = getTransformedFunctionArgs(token.args, $baseLink)
             }
           }
 
@@ -1494,7 +1472,8 @@ function cqn4sql(originalQuery, model) {
       // make sure we can compare both structures
       if (flatRhs.length !== flatLhs.length) {
         throw new Error(
-          `Can't compare "${definition.name}" with "${value.$refLinks[value.$refLinks.length - 1].definition.name
+          `Can't compare "${definition.name}" with "${
+            value.$refLinks[value.$refLinks.length - 1].definition.name
           }": the operands must have the same structure`,
         )
       }
@@ -2163,6 +2142,26 @@ function cqn4sql(originalQuery, model) {
       return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index)
     }
   }
+  function getTransformedFunctionArgs(args, $baseLink = null) {
+    let result = args
+    if (Array.isArray(args)) {
+      result = args.map(t => {
+        if (!t.val)
+          // this must not be touched
+          return getTransformedTokenStream([t], $baseLink)[0]
+        return t
+      })
+    } else if (typeof args === 'object') {
+      for (const prop in args) {
+        const t = args[prop]
+        if (!t.val)
+          // this must not be touched
+          result[prop] = getTransformedTokenStream([t], $baseLink)[0]
+        else result[prop] = t
+      }
+    }
+    return result
+  }
 }
 
 module.exports = Object.assign(cqn4sql, {
@@ -2247,6 +2246,7 @@ function setElementOnColumns(col, element) {
     writable: true,
   })
 }
+
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
