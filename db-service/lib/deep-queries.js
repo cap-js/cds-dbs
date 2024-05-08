@@ -262,7 +262,7 @@ const _getDeepQueries = (diff, target, root = false) => {
       queries.push(cqn)
     }
 
-    queries.push(...subQueries)
+    for (const q of subQueries) queries.push(q)
   }
 
   const insertQueries = new Map()
