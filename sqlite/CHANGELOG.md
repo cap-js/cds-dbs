@@ -15,7 +15,6 @@
 ### Fixed
 
 * Change `sql` property to `query` for errors ([#611](https://github.com/cap-js/cds-dbs/issues/611)) ([585577a](https://github.com/cap-js/cds-dbs/commit/585577a9817e7749fb71958c26c4bfa20981c663))
-* **hana:** Remove encoding from hana-client streams ([#623](https://github.com/cap-js/cds-dbs/issues/623)) ([fed8f6f](https://github.com/cap-js/cds-dbs/commit/fed8f6f36c5d97b664852a79050ce0a5e35a5c6d))
 * Improved placeholders and limit clause ([#567](https://github.com/cap-js/cds-dbs/issues/567)) ([d5d5dbb](https://github.com/cap-js/cds-dbs/commit/d5d5dbb7219bcef6134440715cf756fdd439f076))
 
 ## [1.6.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.5.1...sqlite-v1.6.0) (2024-03-22)
