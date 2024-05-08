@@ -157,25 +157,6 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
-  test('Insert Book', async () => {
-    const res = await POST(
-      '/admin/Books',
-      {
-        ID: 2,
-        title: 'Poems : Pocket Poets',
-        descr:
-          "The Everyman's Library Pocket Poets hardcover series is popular for its compact size and reasonable price which does not compromise content. Poems: Bronte contains poems that demonstrate a sensibility elemental in its force with an imaginative discipline and flexibility of the highest order. Also included are an Editor's Note and an index of first lines.",
-        author: { ID: 101 },
-        genre: { ID: 12 },
-        stock: 5,
-        price: '12.05',
-        currency: { code: 'USD' },
-      },
-      admin,
-    )
-    expect(res.status).to.be.eq(201)
-  })
-
   test('Sorting Books', async () => {
     const res = await POST(
       '/admin/Books',
@@ -192,19 +173,23 @@ describe('Bookshop - Read', () => {
       },
       admin,
     )
-    expect(res.status).to.be.eq(201)
+    try {
+      expect(res.status).to.be.eq(201)
 
-    const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
-    expect(res2.status).to.be.eq(200)
-    expect(res2.data.value[1].title).to.be.eq('dracula')
+      const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
+      expect(res2.status).to.be.eq(200)
+      expect(res2.data.value[1].title).to.be.eq('dracula')
 
-    const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
-    const res3 = await cds.run(q)
-    expect(res3[res3.length - 1].title).to.be.eq('dracula')
+      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      const res3 = await cds.run(q)
+      expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
-    q.SELECT.localized = true
-    const res4 = await cds.run(q)
-    expect(res4[1].title).to.be.eq('dracula')
+      q.SELECT.localized = true
+      const res4 = await cds.run(q)
+      expect(res4[1].title).to.be.eq('dracula')
+    } finally {
+      await DELETE('/admin/Books(280)', admin)
+    }
   })
 
   test('Filter Books(multiple functions)', async () => {
@@ -215,23 +200,28 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(3)
   })
 
-  test.skip('Insert Booky', async () => {
-    const res = await POST(
-      '/admin/Booky',
-      {
-        ID: 2000,
-        totle: 'Poems : Pocket Poets',
-        description:
-          "The Everyman's Library Pocket Poets hardcover series is popular for its compact size and reasonable price which does not compromise content. Poems: Bronte contains poems that demonstrate a sensibility elemental in its force with an imaginative discipline and flexibility of the highest order. Also included are an Editor's Note and an index of first lines.",
-        author: { ID: 101 },
-        genre: { ID: 12 },
-        stock: 5,
-        price: '12.05',
-        currency: { code: 'USD' },
-      },
+  test('Filter Books(LargeBinary type)', async () => {
+    expect(await GET(
+      `/admin/Books?$filter=image ne null`,
       admin,
-    )
-    expect(res.status).to.be.eq(201)
+    )).to.have.nested.property('data.value.length', 0)
+
+    expect(await GET(
+      `/admin/Books?$filter=null ne image`,
+      admin,
+    )).to.have.nested.property('data.value.length', 0)
+
+
+    expect(await GET(
+      `/admin/Books?$filter=image eq null`,
+      admin,
+    )).to.have.nested.property('data.value.length', 5)
+
+    // intentionally not tranformed `null = image` SQL which always returns `null`
+    expect(await GET(
+      `/admin/Books?$filter=null eq image`,
+      admin,
+    )).to.have.nested.property('data.value.length', 0)
   })
 
   it('joins as subselect are executable', async () => {
@@ -297,11 +287,6 @@ describe('Bookshop - Read', () => {
     }
 
     return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
-  })
-
-  test('Delete Book', async () => {
-    const res = await DELETE('/admin/Books(271)', admin)
-    expect(res.status).to.be.eq(204)
   })
 
 })

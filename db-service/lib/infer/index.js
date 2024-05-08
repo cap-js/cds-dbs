@@ -51,7 +51,7 @@ function infer(originalQuery, model) {
     target: {
       value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
       writable: true,
-      configurable:true,
+      configurable: true,
     }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
@@ -78,7 +78,7 @@ function infer(originalQuery, model) {
       joinTree: { value: joinTree, writable: true, configurable: true }, // REVISIT: eliminate
     })
     // also enrich original query -> writable because it may be inferred again
-    Object.defineProperty(originalQuery, 'elements', { value: elements, writable: true, configurable:true, })
+    Object.defineProperty(originalQuery, 'elements', { value: elements, writable: true, configurable: true })
   }
   return inferred
 
@@ -208,9 +208,10 @@ function infer(originalQuery, model) {
           if (col.xpr || col.SELECT) {
             queryElements[as] = getElementForXprOrSubquery(col, queryElements)
           } else if (col.func) {
-            col.args?.forEach(arg => inferArgument(arg, queryElements, null, { inExpr: true })) // {func}.args are optional
+            applyToFunctionArgs(col.args, inferArgument, [queryElements, null, { inExpr: true }])
             queryElements[as] = getElementForCast(col)
-          } else {
+          }
+          if (!queryElements[as]) {
             // either binding parameter (col.param) or value
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
@@ -399,7 +400,7 @@ function infer(originalQuery, model) {
       baseColumn, // inline, expand, calculated elements
     } = context
     if (argument.param || argument.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-    if (argument.args) argument.args.forEach(arg => inferArgument(arg, null, $baseLink, context)) // e.g. function in expression
+    if (argument.args) applyToFunctionArgs(argument.args, inferArgument, [null, $baseLink, context]) // e.g. function in expression
     if (argument.list) argument.list.forEach(arg => inferArgument(arg, null, $baseLink, context))
     if (argument.xpr)
       argument.xpr.forEach(token => inferArgument(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
@@ -551,13 +552,15 @@ function infer(originalQuery, model) {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
           } else if (token.func) {
-            token.args?.forEach(arg =>
-              inferArgument(arg, false, argument.$refLinks[i], {
+            applyToFunctionArgs(token.args, inferArgument, [
+              false,
+              argument.$refLinks[i],
+              {
                 inExists: skipJoinsForFilter,
                 inInfixFilter: true,
                 inFrom,
-              }),
-            )
+              },
+            ])
           } else if (typeof token !== 'string') {
             // xpr, ref, val
             inferArgument(token, false, argument.$refLinks[i], {
@@ -858,20 +861,22 @@ function infer(originalQuery, model) {
       }
       mergePathsIntoJoinTree(calcElement.value, basePath)
     }
-    if (func)
-      calcElement.value.args?.forEach(arg => {
-        inferArgument(
-          arg,
-          false,
-          { definition: calcElement.parent, target: calcElement.parent },
-          { inCalcElement: true, ...context },
-        )
-        const basePath =
-          column.$refLinks?.length > 1
-            ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
-            : { $refLinks: [], ref: [] }
-        mergePathsIntoJoinTree(arg, basePath)
-      }) // {func}.args are optional
+    function processArgument(arg, calcElement, column) {
+      inferArgument(arg, false, { definition: calcElement.parent, target: calcElement.parent }, { inCalcElement: true })
+      const basePath =
+        column.$refLinks?.length > 1
+          ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
+          : { $refLinks: [], ref: [] }
+      mergePathsIntoJoinTree(arg, basePath)
+    }
+
+    if (calcElement.value.args) {
+      if (Array.isArray(calcElement.value.args)) {
+        calcElement.value.args.forEach(arg => processArgument(arg, calcElement, column))
+      } else if (typeof calcElement.value.args === 'object') {
+        Object.values(calcElement.value.args).forEach((v) => processArgument(v, calcElement, column))
+      }
+    }
 
     /**
      * Calculates all paths from a given ref and merges them into the join tree.
@@ -1149,5 +1154,10 @@ function isForeignKeyOf(e, assoc) {
   return e in (assoc.elements || assoc.foreignKeys)
 }
 const idOnly = ref => ref.id || ref
+
+function applyToFunctionArgs(funcArgs, cb, cbArgs) {
+  if (Array.isArray(funcArgs)) funcArgs.forEach(arg => cb(arg, ...cbArgs))
+  else if (typeof funcArgs === 'object') Object.keys(funcArgs).forEach(prop => cb(funcArgs[prop], ...cbArgs))
+}
 
 module.exports = infer
