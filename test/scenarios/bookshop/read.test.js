@@ -224,6 +224,12 @@ describe('Bookshop - Read', () => {
     )).to.have.nested.property('data.value.length', 0)
   })
 
+  test('Filter Books(complex filter in apply)', async () => {
+    const res = await GET(`/browse/Books?$apply=filter(((ID eq 201 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+  })
+
   it('joins as subselect are executable', async () => {
     const subselect = {
       SELECT: {

@@ -136,8 +136,8 @@ class HANAService extends SQLService {
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-        : await this.exec(sqlScript)
+      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+      : await this.exec(sqlScript)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -907,7 +907,10 @@ class HANAService extends SQLService {
         }
         if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
         if ('_internal' in cur) return true
-        if ('xpr' in cur) return this.is_comparator(cur)
+        if ('xpr' in cur) {
+          const nested = this.is_comparator(cur)
+          if (nested) return true
+        }
       }
       return false
     }
