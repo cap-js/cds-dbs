@@ -54,6 +54,14 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('in function with named param', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, ageNamedParams as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      Authors.ID,
+      years_between(DOB => Authors.dateOfBirth, DOD => Authors.dateOfDeath) as f
+    }`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem is function', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle }`, model)
@@ -510,10 +518,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('wildcard select from subquery', () => {
-    let query = cqn4sql(
-      CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`,
-      model,
-    )
+    let query = cqn4sql(CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`, model)
     const expected = CQL`
     SELECT from (
       SELECT from booksCalc.Simple as Simple
