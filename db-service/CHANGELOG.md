@@ -4,6 +4,32 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.8.0...db-service-v1.9.0) (2024-05-08)
+
+
+### Added
+
+* Add missing `func` cqn structures ([#629](https://github.com/cap-js/cds-dbs/issues/629)) ([9d7539a](https://github.com/cap-js/cds-dbs/commit/9d7539ab0fc7e70a6a00c0bd9cb4b3e362976e16))
+
+
+### Fixed
+
+* **`order by`:** reject non-fk traversals of own columns in order by ([#599](https://github.com/cap-js/cds-dbs/issues/599)) ([3288d63](https://github.com/cap-js/cds-dbs/commit/3288d63f0ee6a96580a3b2138ecb24a944371cf1))
+* Align all quote functions with @sap/cds-compiler ([#619](https://github.com/cap-js/cds-dbs/issues/619)) ([42e9828](https://github.com/cap-js/cds-dbs/commit/42e9828baf11ec55281ea634ce56ce93e6741b91))
+* assign artificial alias if selecting from anonymous subquery ([#608](https://github.com/cap-js/cds-dbs/issues/608)) ([e1a7711](https://github.com/cap-js/cds-dbs/commit/e1a77119f0a5241cfe4f50a37a473f2325ba5bde))
+* avoid spread operator ([#630](https://github.com/cap-js/cds-dbs/issues/630)) ([a39fb65](https://github.com/cap-js/cds-dbs/commit/a39fb65f9419fe60e0324741039d004b40082903))
+* flat update with arbitrary where clauses ([#598](https://github.com/cap-js/cds-dbs/issues/598)) ([f108798](https://github.com/cap-js/cds-dbs/commit/f108798c6c8035f9cdd0b9c6b8f334f1454c2faa))
+* improved `=` and `!=` with val `null` for HANA and Postgres ([#626](https://github.com/cap-js/cds-dbs/issues/626)) ([cbcfe3b](https://github.com/cap-js/cds-dbs/commit/cbcfe3b15e8ebcf7e844dc5406e4bc228d4c94c9))
+* Improved placeholders and limit clause ([#567](https://github.com/cap-js/cds-dbs/issues/567)) ([d5d5dbb](https://github.com/cap-js/cds-dbs/commit/d5d5dbb7219bcef6134440715cf756fdd439f076))
+* multiple result responses ([#602](https://github.com/cap-js/cds-dbs/issues/602)) ([bf0bed4](https://github.com/cap-js/cds-dbs/commit/bf0bed4549fe816e35481b0c9a7547a522a5a593))
+* only consider persisted columns for simple operations ([#592](https://github.com/cap-js/cds-dbs/issues/592)) ([6e31bda](https://github.com/cap-js/cds-dbs/commit/6e31bda1bb15b1770b75c8971773806a26f7d452))
+
+
+### Changed
+
+* require `&gt;= sap/cds-compiler@4.9` ([f4d09e2](https://github.com/cap-js/cds-dbs/commit/f4d09e27c3b07dd88925e196aefc1087d8357f7a))
+* require `&gt;= sap/cds@7.9.0` ([#627](https://github.com/cap-js/cds-dbs/issues/627)) ([f4d09e2](https://github.com/cap-js/cds-dbs/commit/f4d09e27c3b07dd88925e196aefc1087d8357f7a))
+
 ## [1.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.7.0...db-service-v1.8.0) (2024-04-12)
 
 
