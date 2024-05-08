@@ -46,7 +46,7 @@ describe('insert', () => {
     })
 
     // no filtering in INSERT
-    xtest('test filter in insert rows into columns with not existing column', async () => {
+    test.skip('test filter in insert rows into columns with not existing column', async () => {
       const cqnInsert = {
         INSERT: {
           into: { ref: ['Foo2'] },

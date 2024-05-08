@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
@@ -27,7 +27,7 @@ describe('drop', () => {
     expect({ sql }).toMatchSnapshot()
   })
 
-  xtest('test drop table with ref', () => {
+  test.skip('test drop table with ref', () => {
     const { sql } = cqn2sql({
       DROP: {
         table: { ref: ['Foo'] },
@@ -37,7 +37,7 @@ describe('drop', () => {
     // Cannot destructure property 'ref' of 'from' as it is undefined.
   })
 
-  xtest('test drop table with ref', () => {
+  test.skip('test drop table with ref', () => {
     const { sql } = cqn2sql({
       DROP: {
         view: { ref: ['Foo'] },
@@ -47,7 +47,7 @@ describe('drop', () => {
     // Cannot destructure property 'ref' of 'from' as it is undefined.
   })
 
-  xtest('test drop view with string view', () => {
+  test.skip('test drop view with string view', () => {
     const { sql } = cqn2sql({
       DROP: {
         view: 'Foo',
@@ -57,7 +57,7 @@ describe('drop', () => {
     //TypeError: Cannot destructure property 'ref' of 'from' as it is undefined.
   })
 
-  xtest('test drop table with CQN entity', () => {
+  test.skip('test drop table with CQN entity', () => {
     const { sql } = cqn2sql({
       DROP: {
         entity: { ref: 'Books' },

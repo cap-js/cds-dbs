@@ -270,7 +270,7 @@ describe('streaming', () => {
       })
 
       // TODO: breaks on Postgres, because INSERT tries to decode it as base64 string (InputConverters)
-      xtest('WRITE dataset from json generator stream', async () => {
+      test.skip('WRITE dataset from json generator stream', async () => {
         const { Images } = cds.entities('test')
 
         const start = 2000

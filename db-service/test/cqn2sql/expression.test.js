@@ -10,7 +10,7 @@ beforeAll(async () => {
 })
 
 describe('expressions', () => {
-  // xtest('parameterized numbers', () => {
+  // test.skip('parameterized numbers', () => {
   //   const opts = { parameterized_numbers: true }
   //   const xpr = [{ ref: ['x'] }, '<', { val: 9 }]
   //   const expected = { sql: 'x < ?', values: [9] }
@@ -20,7 +20,7 @@ describe('expressions', () => {
   //   expect(result).toEqual(expected)
   // })
 
-  xtest('ref, String operator and value', () => {
+  test.skip('ref, String operator and value', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
@@ -226,7 +226,7 @@ describe('expressions', () => {
     expect({ sql, values }).toMatchSnapshot()
   })
 
-  xtest('ref is placeholder with param', () => {
+  test.skip('ref is placeholder with param', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
@@ -241,7 +241,7 @@ describe('expressions', () => {
       }*/
   })
 
-  xtest('ref is placeholder without param', () => {
+  test.skip('ref is placeholder without param', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },

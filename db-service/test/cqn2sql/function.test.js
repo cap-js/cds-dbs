@@ -48,7 +48,7 @@ describe('function', () => {
     expect({ sql, values }).toMatchSnapshot()
   })
 
-  xtest('contains complex', () => {
+  test.skip('contains complex', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
@@ -66,7 +66,7 @@ describe('function', () => {
     // requires adjustment of instr to support logical operators
   })
 
-  xtest('contains complex new notation', () => {
+  test.skip('contains complex new notation', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
@@ -112,7 +112,7 @@ describe('function', () => {
     })
   })
 
-  xtest('not contains complex', () => {
+  test.skip('not contains complex', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },
@@ -132,7 +132,7 @@ describe('function', () => {
     })
   })
 
-  xtest('contains values with wildcards/escape characters', () => {
+  test.skip('contains values with wildcards/escape characters', () => {
     const getExprWithVal = val => {
       return {
         SELECT: {
@@ -166,7 +166,7 @@ describe('function', () => {
     // expected 'Te^%st' , result 'Te%st'
   })
 
-  xtest('contains will not modify the original object', () => {
+  test.skip('contains will not modify the original object', () => {
     const cqn = {
       SELECT: {
         from: { ref: ['Foo'] },

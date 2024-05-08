@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 const cqn = require('./cqn.js')
 
 beforeAll(async () => {
@@ -12,7 +12,7 @@ beforeAll(async () => {
 })
 
 describe('create with select statements', () => {
-  xtest('Generate SQL from CREATE stmt with entity name + as SELECT stmt', () => {
+  test.skip('Generate SQL from CREATE stmt with entity name + as SELECT stmt', () => {
     const cqnCreate = {
       CREATE: {
         entity: 'Foo',
@@ -34,7 +34,7 @@ describe('create with select statements', () => {
     expect({ sql }).toMatchSnapshot()
   })
 
-  xtest('Generate SQL from CREATE stmt with CSN entity', () => {
+  test.skip('Generate SQL from CREATE stmt with CSN entity', () => {
     const cqnCreate = {
       CREATE: {
         entity: cds.model.definitions['Books'],

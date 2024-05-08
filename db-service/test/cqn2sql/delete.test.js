@@ -3,7 +3,7 @@ const cds = require('@sap/cds/lib')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
@@ -169,7 +169,7 @@ describe('delete', () => {
     expect(sql).toMatchSnapshot()
   })
   // Do we need this test ?
-  xtest("test complex reverse cascade delete for entity with 'exists'", () => {
+  test.skip("test complex reverse cascade delete for entity with 'exists'", () => {
     const cqnDelete = {
       DELETE: {
         from: 'sub1_1_1',

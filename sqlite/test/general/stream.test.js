@@ -335,7 +335,7 @@ describe('streaming', () => {
         await Promise.all([wrap(out1000), wrap(out1001)])
       }))
 
-      xtest('WRITE dataset from json generator stream', async () => cds.tx(async () => {
+      test.skip('WRITE dataset from json generator stream', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
 
         const start = 2000
