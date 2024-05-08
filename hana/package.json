@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "hdb": "^0.19.5",
-    "@cap-js/db-service": "^1.7.0"
+    "@cap-js/db-service": "^1.9.0"
   },
   "peerDependencies": {
     "@sap/hana-client": ">=2",
