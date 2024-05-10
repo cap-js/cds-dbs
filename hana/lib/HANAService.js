@@ -30,6 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
+    this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
     return super.init()
   }
 
@@ -135,8 +136,8 @@ class HANAService extends SQLService {
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+        : await this.exec(sqlScript)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -178,6 +179,19 @@ class HANAService extends SQLService {
       return await super.onUPDATE(req)
     } catch (err) {
       throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+    }
+  }
+
+  async onNOTFOUND(req, next) {
+    try {
+      return await next()
+    } catch (err) {
+      // Ensure that the known entity still exists
+      if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
+        // Clear current tenant connection pool
+        this.disconnect(this.context.tenant)
+      }
+      throw err
     }
   }
 
@@ -754,14 +768,39 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
-            const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
+            // IS (NOT) NULL translation when required
+            if (x === '=' || x === '!=') {
+              const left = xpr[i - 1]
+              const right = xpr[i + 1]
+              const leftType = left?.element?.type
+              const rightType = right?.element?.type
+              // Prevent HANA from throwing and unify nonsense behavior
+              if (left?.val === null && rightType in lobTypes) {
+                left.param = false // Force null to be inlined
+                xpr[i + 1] = { param: false, val: null } // Remove illegal type ref for compare operator
+              }
+              if (right?.val === null) {
+                if (
+                  !leftType || // Literal translation when left hand type is unknown
+                  leftType in lobTypes
+                ) {
+                  xpr[i] = x = x === '=' ? 'IS' : 'IS NOT'
+                  right.param = false // Force null to be inlined
+                } else {
+                  x = x === '=' ? '==' : '!='
+                }
+              }
+            }
+
+            // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (effective in compareOperators) {
+            if (x in compareOperators) {
               endWithCompare = true
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[effective]
+              const ifNull = compareOperators[x]
+              x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
 
@@ -984,7 +1023,9 @@ class HANAService extends SQLService {
     // TypeMap used for the JSON_TABLE column definition
     static InsertTypeMap = {
       ...super.TypeMap,
+      UInt8: () => 'INT',
       Int16: () => 'INT',
+      Int64: () => `BIGINT`,
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
       LargeString: () => `NVARCHAR(2147483647)`,
@@ -995,7 +1036,14 @@ class HANAService extends SQLService {
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
-      number: () => `DOUBLE`
+      number: () => `DOUBLE`,
+
+      // HANA types
+      'cds.hana.TINYINT': () => 'INT',
+      'cds.hana.REAL': () => 'DECIMAL',
+      'cds.hana.CHAR': e => `NVARCHAR(${e.length || 1})`,
+      'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
+      'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
@@ -1007,6 +1055,11 @@ class HANAService extends SQLService {
       Binary: e => `HEXTOBIN(${e})`,
       Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
+      // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
+
+      // HANA types
+      'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
+      'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`,
     }
 
     static OutputConverters = {
@@ -1023,6 +1076,10 @@ class HANAService extends SQLService {
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
+
+      // HANA types
+      'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
+      'cds.hana.ST_GEOMETRY': e => `TO_NVARCHAR(${e})`,
     }
   }
 
@@ -1183,8 +1240,7 @@ class HANAService extends SQLService {
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${
-        schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
       } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
     return await super.onPlainSQL({ query, data: [] })
   }
@@ -1259,6 +1315,11 @@ const compareOperators = {
   'CONTAINS': 1,
   'MEMBER OF': 1,
   'LIKE_REGEXPR': 1,
+}
+const lobTypes = {
+  'cds.LargeBinary': 1,
+  'cds.LargeString': 1,
+  'cds.hana.CLOB': 1,
 }
 
 module.exports = HANAService

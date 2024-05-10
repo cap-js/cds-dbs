@@ -4,9 +4,15 @@ entity globals {
     bool : Boolean;
 }
 
+entity uuid {
+    uuid : UUID;
+}
+
 entity number {
-    integer   : Integer;
-    integer64 : Integer64;
+    integer8  : UInt8;
+    integer16 : Int16;
+    integer32 : Int32;
+    integer64 : Int64;
     double    : cds.Double;
     // Decimal: (p,s) p = 1 - 38, s = 0 - p
     // p = number of total decimal digits
