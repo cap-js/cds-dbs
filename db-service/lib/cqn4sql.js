@@ -1664,7 +1664,7 @@ function cqn4sql(originalQuery, model) {
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
       let args = from.ref.at(-1).args
-      const subquerySource = getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
+      const subquerySource = transformedFrom.$refLinks[0].target
       if (subquerySource.params && !args) args = {}
       const id = localized(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
