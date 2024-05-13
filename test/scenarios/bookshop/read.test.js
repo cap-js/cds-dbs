@@ -225,7 +225,7 @@ describe('Bookshop - Read', () => {
   })
 
   test('Filter Books(complex filter in apply)', async () => {
-    const res = await GET(`/browse/Books?$apply=filter(((ID eq 201 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
+    const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
   })
