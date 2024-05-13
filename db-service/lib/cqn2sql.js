@@ -800,8 +800,8 @@ class CQN2SQLRenderer {
     if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
-    if ('xpr' in x) return wrap(this.xpr(x))
     if ('func' in x) return wrap(this.func(x))
+    if ('xpr' in x) return wrap(this.xpr(x))
     if ('list' in x) return wrap(this.list(x))
     if ('SELECT' in x) return wrap(`(${this.SELECT(x)})`)
     else throw cds.error`Unsupported expr: ${x}`
@@ -936,9 +936,32 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').func} param0
    * @returns {string} SQL
    */
-  func({ func, args }) {
-    args = (args || []).map(e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
-    return this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+  func({ func, args, xpr }) {
+    const wrap = e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) })
+    args = args || []
+    if (Array.isArray(args)) {
+      args = args.map(wrap)
+    } else if (typeof args === 'object') {
+      const org = args
+      const wrapped = {
+        toString: () => {
+          const ret = []
+          for (const prop in org) {
+            ret.push(`${this.quote(prop)} => ${wrapped[prop]}`)
+          }
+          return ret.join(',')
+        }
+      }
+      for (const prop in args) {
+        wrapped[prop] = wrap(args[prop])
+      }
+      args = wrapped
+    } else {
+      cds.error`Invalid arguments provided for function '${func}' (${args})`
+    }
+    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    if (xpr) return `${fn} ${this.xpr({ xpr })}`
+    return fn
   }
 
   /**

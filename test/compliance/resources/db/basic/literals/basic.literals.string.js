@@ -32,6 +32,9 @@ module.exports = [
     char: 'A',
   },
   {
+    char: '대', // Ensure multi byte utf-8 characters also fit into a single character column
+  },
+  {
     large: () => [...new Array(1000)].map(alphabetize).join(''),
   },
   {
