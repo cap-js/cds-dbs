@@ -1028,6 +1028,7 @@ class HANAService extends SQLService {
       Int64: () => `BIGINT`,
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
+      String: e => `NVARCHAR(${(e.length || 5000) * 4})`,
       LargeString: () => `NVARCHAR(2147483647)`,
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
@@ -1041,7 +1042,7 @@ class HANAService extends SQLService {
       // HANA types
       'cds.hana.TINYINT': () => 'INT',
       'cds.hana.REAL': () => 'DECIMAL',
-      'cds.hana.CHAR': e => `NVARCHAR(${e.length || 1})`,
+      'cds.hana.CHAR': e => `NVARCHAR(${(e.length || 1) * 4})`,
       'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
       'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
     }
