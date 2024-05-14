@@ -13,7 +13,7 @@ If the path exists within an `xpr` we do not filter it out, but process it as a 
 
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 let model
 beforeAll(async () => {
@@ -137,7 +137,7 @@ describe('virtual fields', () => {
       }`,
       model,
     )
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo 
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo
         left join bookshop.Foo as toFoo on toFoo.ID = Foo.toFoo_ID
       {
         Foo.ID,
@@ -168,7 +168,7 @@ describe('paths with @cds.persistence.skip', () => {
   it('ignores column if assoc in path expression has target ”@cds.persistence.skip” in order by / group by', () => {
     const q = CQL`SELECT from bookshop.NotSkipped {
       ID
-    } group by skipped.notSkipped.text 
+    } group by skipped.notSkipped.text
       order by skipped.notSkipped.text`
     const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped
     {

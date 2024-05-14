@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('functions', () => {
   let model
@@ -75,7 +75,7 @@ describe('functions', () => {
           left join bookshop.Authors as author on author.ID = Books.author_ID and
           'King' = getAuthorsName( author => author.ID )
         {
-          author.ID as foo 
+          author.ID as foo
         }`
       const res = cqn4sql(q, model)
       expect(res).to.deep.equal(qx)
