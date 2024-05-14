@@ -48,7 +48,7 @@ function cqn4sql(originalQuery, model) {
 
   if (inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
-    if (!inferred.SELECT.element) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    if (!inferred.SELECT.target) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
     const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
     if (searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
