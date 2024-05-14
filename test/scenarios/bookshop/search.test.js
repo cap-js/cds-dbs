@@ -73,7 +73,7 @@ describe('Bookshop - Search', () => {
       )
       expect(res.length).to.be.eq(1)
     })
-    test.only('search on result of subselect via path expression', async () => {
+    test('search on result of subselect via path expression', async () => {
       const query = SELECT.from(SELECT.from({ ref: ['sap.capire.bookshop.Books'] }).columns('title', 'author'))
         .columns('title', 'author')
         .search('Brontë')

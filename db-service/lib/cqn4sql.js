@@ -47,7 +47,8 @@ function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
 
   if (inferred.SELECT?.search) {
-    if (!inferred.SELECT.target) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    // we need an instance of query because the elements of the query are needed for the calculation of the search columns
+    if (!inferred.SELECT.element) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
     const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
     if (searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
@@ -2091,14 +2092,14 @@ function cqn4sql(originalQuery, model) {
     const searchIn = computeColumnsToBeSearched(inferred, entity)
     if (searchIn.length > 0) {
       const xpr = search
-      const contains = {
+      const searchFunc = {
         func: 'search',
         args: [
           searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
           xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
         ],
       }
-      return contains
+      return searchFunc
     } else {
       return null
     }
