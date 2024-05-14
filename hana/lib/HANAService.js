@@ -136,8 +136,8 @@ class HANAService extends SQLService {
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-        ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-        : await this.exec(sqlScript)
+      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+      : await this.exec(sqlScript)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -907,7 +907,10 @@ class HANAService extends SQLService {
         }
         if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
         if ('_internal' in cur) return true
-        if ('xpr' in cur) return this.is_comparator(cur)
+        if ('xpr' in cur) {
+          const nested = this.is_comparator(cur)
+          if (nested) return true
+        }
       }
       return false
     }
@@ -1028,6 +1031,7 @@ class HANAService extends SQLService {
       Int64: () => `BIGINT`,
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
+      String: e => `NVARCHAR(${(e.length || 5000) * 4})`,
       LargeString: () => `NVARCHAR(2147483647)`,
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
@@ -1041,7 +1045,7 @@ class HANAService extends SQLService {
       // HANA types
       'cds.hana.TINYINT': () => 'INT',
       'cds.hana.REAL': () => 'DECIMAL',
-      'cds.hana.CHAR': e => `NVARCHAR(${e.length || 1})`,
+      'cds.hana.CHAR': e => `NVARCHAR(${(e.length || 1) * 4})`,
       'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
       'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
     }

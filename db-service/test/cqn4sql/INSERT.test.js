@@ -1,7 +1,7 @@
 // not much to do for cqn4sql in case of INSERT/UPSERT
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('INSERT', () => {

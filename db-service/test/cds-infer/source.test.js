@@ -1,7 +1,7 @@
 'use strict'
 // test the calculation of the sources of the query
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test.in(__dirname + '/../bookshop')
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
