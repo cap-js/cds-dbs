@@ -1,5 +1,5 @@
 const cds = require('@sap/cds/lib'),
-  DEBUG = cds.debug('sql|db')
+  DEBUG = cds.debug('sqlite|hana|sql|db')
 const { Readable } = require('stream')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
