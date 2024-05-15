@@ -1233,6 +1233,21 @@ describe('optimize fk access', () => {
 
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
+  it('association as key leads to non-key field', () => {
+    const query = CQL`SELECT from Pupils {
+      ID
+    } group by classrooms.classroom.ID, classrooms.classroom.name`
+    const expected = CQL`SELECT from Pupils as Pupils
+                        left join ClassroomsPupils as classrooms
+                          on classrooms.pupil_ID = Pupils.ID
+                        left join Classrooms as classroom
+                          on classroom.ID = classrooms.classroom_ID
+                        {
+                          Pupils.ID
+                        } group by classroom.ID, classroom.name`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
   it('two step path ends in foreign key simple ref', () => {
     const query = CQL`SELECT from Classrooms {
       pupils.pupil.ID as studentCount,
