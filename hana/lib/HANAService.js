@@ -206,7 +206,7 @@ class HANAService extends SQLService {
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + ' ORDER BY "_path_" ASC')
+    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
     DEBUG?.(ret)
     return ret
   }
