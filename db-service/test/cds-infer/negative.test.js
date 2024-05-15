@@ -1,10 +1,13 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('negative', () => {
   let model
@@ -362,14 +365,45 @@ describe('negative', () => {
         ),
       ).to.throw(/"title" not found in the elements of "bookshop.Authors"/)
     })
+
+    it('expand on `.items` not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails { address } }`, model)).to.throw(
+        'Unexpected “expand” on “emails”; can only be used after a reference to a structure, association or table alias',
+      )
+    })
+    it('expand on scalar not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name { address } }`, model)).to.throw(
+        'Unexpected “expand” on “name”; can only be used after a reference to a structure, association or table alias',
+      )
+    })
+
+    it('inline on `.items` not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name, emails.{ address } }`, model)).to.throw(
+        'Unexpected “inline” on “emails”; can only be used after a reference to a structure, association or table alias',
+      )
+    })
+    it('inline on scalar not possible', () => {
+      expect(() => _inferred(CQL`SELECT from bookshop.SoccerPlayers { name.{ address } }`, model)).to.throw(
+        'Unexpected “inline” on “name”; can only be used after a reference to a structure, association or table alias',
+      )
+    })
   })
 
   describe('infix filters', () => {
     it('rejects non fk traversal in infix filter in from', () => {
       expect(() => _inferred(CQL`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-        /Only foreign keys of "author" can be accessed in infix filter/,
+        /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
     })
+    it('rejects non fk traversal in infix filter in where exists', () => {
+      let query = CQL`SELECT from bookshop.Books where exists author.books[author.name = 'John Doe']`
+      expect(() => _inferred(query)).to.throw(/Only foreign keys of “author” can be accessed in infix filter, but found “name”/,) // revisit: better error location ""bookshop.Books:author"
+    })
+    it('rejects unmanaged traversal in infix filter in where exists', () => {
+      let query = CQL`SELECT from bookshop.Books where exists author.books[coAuthorUnmanaged.name = 'John Doe']`
+      expect(() => _inferred(query)).to.throw(/Unexpected unmanaged association “coAuthorUnmanaged” in filter expression of “books”/,) // revisit: better error location ""bookshop.Books:author"
+    })
+
     it('rejects non fk traversal in infix filter in column', () => {
       expect(() =>
         _inferred(
@@ -378,7 +412,23 @@ describe('negative', () => {
       }`,
           model,
         ),
-      ).to.throw(/Only foreign keys of "author" can be accessed in infix filter/)
+      ).to.throw(/Only foreign keys of “author” can be accessed in infix filter/)
+    })
+  })
+
+  describe('order by', () => {
+    it('reject join relevant path via queries own columns', () => {
+      let query = CQL`SELECT from bookshop.Books  {
+        ID,
+        author,
+        coAuthor as co
+      }
+      order by
+        Books.author,
+        co.name`
+      expect(() => {
+        cqn4sql(query, model)
+      }).to.throw(/Can follow managed association “co” only to the keys of its target, not to “name”/)
     })
   })
 })

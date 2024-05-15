@@ -1,8 +1,12 @@
 'use strict'
 
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const _cqn4sql = require('../../lib/cqn4sql')
+function cqn4sql(q, model = cds.model) {
+  return _cqn4sql(q, model)
+}
+const cds = require('@sap/cds')
 const { expect } = cds.test
+const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 
 describe('Unfold expands on structure', () => {
   beforeAll(async () => {
@@ -189,13 +193,14 @@ describe('Unfold expands on associations to special subselects', () => {
   // - they can return multiple rows
   it('rejects unmanaged association in infix filter of expand path', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
-      /"books" in path "books.title" must not be an unmanaged association/,
+      /Unexpected unmanaged association “books” in filter expression of “author”/,
     )
+
   })
   it('rejects non-fk access in infix filter of expand path', () => {
     expect(() =>
       cqn4sql(CQL`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model),
-    ).to.throw(/Only foreign keys of "sibling" can be accessed in infix filter/)
+    ).to.throw(/Only foreign keys of “sibling” can be accessed in infix filter/)
   })
   it('unfold expand, one field', () => {
     const q = CQL`SELECT from bookshop.Books {
@@ -278,7 +283,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('nested expand with unmanaged backlink', () => {
-    let expandQuery = CQL`select from bookshop.DataRestrictions {
+    let expandQuery = SELECT.localized `from bookshop.DataRestrictions {
       *,
       dataRestrictionAccessGroups {
         dataRestrictionID,
@@ -288,25 +293,24 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     }`
-    let expected = CQL`
-      select from localized.bookshop.DataRestrictions as DataRestrictions {
+    let expected = CQL(`
+      SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictions as DataRestrictions {
         DataRestrictions.ID,
         (
-          select from localized.bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
+          SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
             dataRestrictionAccessGroups.dataRestrictionID,
             dataRestrictionAccessGroups.accessGroupID,
             (
-              select from localized.bookshop.AccessGroups as accessGroup {
+              SELECT from localized.bookshop.AccessGroups as accessGroup {
                 accessGroup.ID
               } where accessGroup.ID = dataRestrictionAccessGroups.accessGroupID
             ) as accessGroup
           } where DataRestrictions.ID = dataRestrictionAccessGroups.dataRestrictionID
         ) as dataRestrictionAccessGroups
       }
-    `
+    `)
     // seems to only happen with the `for.nodejs(…)` compiled model
-    expandQuery.SELECT.localized = true
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.deep.equal(expected)
+    expect(cds.clone(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))).to.deep.equal(expected)
   })
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
@@ -962,7 +966,7 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books 
+      const qx = CQL`SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,

@@ -43,13 +43,17 @@ class Node {
    * @param {parent} parent
    * @param {where} where
    */
-  constructor($refLink, parent, where = null) {
+  constructor($refLink, parent, where = null, args = null) {
     /** @type {$refLink} - A reference link to this node. */
     this.$refLink = $refLink
     /** @type {parent} - The parent Node of this node. */
     this.parent = parent
     /** @type {where} - An optional condition to be applied to this node. */
     this.where = where
+    /** @type {args} - optional parameter object to be applied to this node. */
+    const targetHasParams = $refLink.definition._target?.params || $refLink.definition._target?.['@cds.persistence.udf']
+    if (!args && targetHasParams) args = {} // if no args are provided, provide empty argument list
+    this.args = args
     /** @type {children} - A Map of children nodes belonging to this node. */
     this.children = new Map()
   }
@@ -63,9 +67,13 @@ class Root {
    * @param {[alias, queryArtifact]} querySource
    */
   constructor(querySource) {
-    const [alias, queryArtifact] = querySource
+    let [alias, { definition, args }] = querySource
     /** @type {queryArtifact} - The artifact used to make the query. */
-    this.queryArtifact = queryArtifact
+    this.queryArtifact = definition
+    /** @type {args} - optional parameter object to be applied to this node. */
+    const definitionHasParams = definition.params || definition['@cds.persistence.udf']
+    if (!args && definitionHasParams) args = {} // if no args are provided, provide empty argument list
+    this.args = args
     /** @type {alias} - The alias of the artifact. */
     this.alias = alias
     /** @type {parent} - The parent Node of this root, null for the root Node. */
@@ -168,10 +176,12 @@ class JoinTree {
       i += 1 // skip first step which is table alias
     }
 
+    // if no root node was found, the column is selected from a subquery
+    if(!node) return
     while (i < col.ref.length) {
       const step = col.ref[i]
-      const { where } = step
-      const id = where ? step.id + JSON.stringify(where) : step
+      const { where, args } = step
+      const id = joinId(step, args, where)
       const next = node.children.get(id)
       const $refLink = col.$refLinks[i]
       if (next) {
@@ -181,12 +191,13 @@ class JoinTree {
         col.$refLinks[i].alias = node.$refLink.alias
         col.$refLinks[i].definition = node.$refLink.definition
         col.$refLinks[i].target = node.$refLink.target
+        col.$refLinks[i].onlyForeignKeyAccess = node.$refLink.onlyForeignKeyAccess
       } else {
         if (col.expand && !col.ref[i + 1]) {
           node.$refLink.onlyForeignKeyAccess = false
           return true
         }
-        const child = new Node($refLink, node, where)
+        const child = new Node($refLink, node, where, args)
         if (child.$refLink.definition.isAssociation) {
           if (child.where || col.inline) {
             // filter is always join relevant
@@ -201,7 +212,7 @@ class JoinTree {
         const elements =
           node.$refLink?.definition.isAssociation &&
           (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
-        if (node.$refLink && (!elements || !(child.$refLink.alias in elements)))
+        if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements)))
           // foreign key access
           node.$refLink.onlyForeignKeyAccess = false
 
@@ -211,6 +222,14 @@ class JoinTree {
       i += 1
     }
     return true
+
+    function joinId(step, args, where) {
+      let appendix
+      if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
+      else if (where) appendix = JSON.stringify(where)
+      else if (args) appendix = JSON.stringify(args)
+      return appendix ? step.id + appendix : step
+    }
   }
 
   /**

@@ -79,6 +79,32 @@ describe('Bookshop - Read', () => {
     expect(res.length).to.be.eq(2)
   })
 
+  test('reuse already executed select as subselect', async () => {
+    let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
+    let res = await s
+
+    res = await SELECT.one.from('sap.capire.bookshop.Books as b')
+      .join('sap.capire.bookshop.Authors as a')
+      .on('a.ID = b.author_ID')
+      .columns('a.name', 'b.title')
+      .where('b.ID in', s)
+      .orderBy('b.ID')
+    expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
+  })
+
+  test('forUpdate query from path expression', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const query = SELECT([{ ref: ['ID'] }])
+      .from({ ref: [{ id: Books.name, where: [{ ref: ['ID'] }, '=', { val: 201 }] }, 'author'] })
+      .forUpdate({
+        of: ['ID'],
+        wait: 0,
+      })
+
+    const forUpdateResults = await cds.run(query)
+    expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
+  })
+
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',
@@ -107,6 +133,16 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[1].descr).to.include('e r')
   })
 
+  test('Search book with filter', async () => {
+    const res = await GET('/admin/Books?$search="e R"&$filter=ID eq 251 or ID eq 271', admin)
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+    expect(res.data.value[0].title).to.be.eq('The Raven')
+    expect(res.data.value[1].descr).to.include('e r')
+    expect(res.data.value[0].ID).to.be.eq(251)
+    expect(res.data.value[1].ID).to.be.eq(271)
+  })
+
   test.skip('Expand Book($count,$top,$orderby)', async () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
@@ -119,25 +155,6 @@ describe('Bookshop - Read', () => {
     expect(res.data.title).to.be.eq('Eleonora')
     expect(res.data.author.name).to.be.eq('Edgar Allen Poe')
     expect(res.data.author.books.length).to.be.eq(2)
-  })
-
-  test('Insert Book', async () => {
-    const res = await POST(
-      '/admin/Books',
-      {
-        ID: 2,
-        title: 'Poems : Pocket Poets',
-        descr:
-          "The Everyman's Library Pocket Poets hardcover series is popular for its compact size and reasonable price which does not compromise content. Poems: Bronte contains poems that demonstrate a sensibility elemental in its force with an imaginative discipline and flexibility of the highest order. Also included are an Editor's Note and an index of first lines.",
-        author: { ID: 101 },
-        genre: { ID: 12 },
-        stock: 5,
-        price: '12.05',
-        currency: { code: 'USD' },
-      },
-      admin,
-    )
-    expect(res.status).to.be.eq(201)
   })
 
   test('Sorting Books', async () => {
@@ -156,42 +173,126 @@ describe('Bookshop - Read', () => {
       },
       admin,
     )
-    expect(res.status).to.be.eq(201)
+    try {
+      expect(res.status).to.be.eq(201)
 
-    const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
-    expect(res2.status).to.be.eq(200)
-    expect(res2.data.value[1].title).to.be.eq('dracula')
+      const res2 = await GET('/browse/Books?$orderby=title', { headers: { 'accept-language': 'de' } })
+      expect(res2.status).to.be.eq(200)
+      expect(res2.data.value[1].title).to.be.eq('dracula')
 
-    const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
-    const res3 = await cds.run(q)
-    expect(res3[res3.length - 1].title).to.be.eq('dracula')
+      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      const res3 = await cds.run(q)
+      expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
-    q.SELECT.localized = true
-    const res4 = await cds.run(q)
-    expect(res4[1].title).to.be.eq('dracula')
+      q.SELECT.localized = true
+      const res4 = await cds.run(q)
+      expect(res4[1].title).to.be.eq('dracula')
+    } finally {
+      await DELETE('/admin/Books(280)', admin)
+    }
   })
 
-  test.skip('Insert Booky', async () => {
-    const res = await POST(
-      '/admin/Booky',
-      {
-        ID: 2000,
-        totle: 'Poems : Pocket Poets',
-        description:
-          "The Everyman's Library Pocket Poets hardcover series is popular for its compact size and reasonable price which does not compromise content. Poems: Bronte contains poems that demonstrate a sensibility elemental in its force with an imaginative discipline and flexibility of the highest order. Also included are an Editor's Note and an index of first lines.",
-        author: { ID: 101 },
-        genre: { ID: 12 },
-        stock: 5,
-        price: '12.05',
-        currency: { code: 'USD' },
-      },
+  test('Filter Books(multiple functions)', async () => {
+    const res = await GET(
+      `/admin/Books?$filter=contains(descr,'Edgar') or contains(descr,'Autobiography')`,
       admin,
     )
-    expect(res.status).to.be.eq(201)
+    expect(res.data.value.length).to.be.eq(3)
   })
 
-  test('Delete Book', async () => {
-    const res = await DELETE('/admin/Books(271)', admin)
-    expect(res.status).to.be.eq(204)
+  test('Filter Books(LargeBinary type)', async () => {
+    expect(await GET(
+      `/admin/Books?$filter=image ne null`,
+      admin,
+    )).to.have.nested.property('data.value.length', 0)
+
+    expect(await GET(
+      `/admin/Books?$filter=null ne image`,
+      admin,
+    )).to.have.nested.property('data.value.length', 0)
+
+
+    expect(await GET(
+      `/admin/Books?$filter=image eq null`,
+      admin,
+    )).to.have.nested.property('data.value.length', 5)
+
+    // intentionally not tranformed `null = image` SQL which always returns `null`
+    expect(await GET(
+      `/admin/Books?$filter=null eq image`,
+      admin,
+    )).to.have.nested.property('data.value.length', 0)
   })
+
+  test('Filter Books(complex filter in apply)', async () => {
+    const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value.length).to.be.eq(2)
+  })
+
+  it('joins as subselect are executable', async () => {
+    const subselect = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [
+          { ref: ['a', 'name'], as: 'aname' },
+          { ref: ['b', 'title'], as: 'btitle' },
+        ],
+      },
+    }
+    subselect.as = 'ab'
+
+    const query = {
+      SELECT: {
+        one: true,
+        from: subselect,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['ab', 'aname'] }, '=', { val: 'Edgar Allen Poe' }],
+      },
+    }
+
+    expect((await cds.db.run(query)).count).to.be.eq(2)
+  })
+
+  it('joins without columns are rejected because of conflicts', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/Ambiguous wildcard elements/)
+  })
+
+  it('joins without columns are rejected in general', async () => {
+    const query = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['AdminService.RenameKeys'], as: 'rk' },
+            { ref: ['DraftService.DraftEnabledBooks'], as: 'deb' },
+          ],
+          on: [{ ref: ['deb', 'ID'] }, '=', { ref: ['rk', 'foo'] }],
+        },
+      },
+    }
+
+    return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
+  })
+
 })

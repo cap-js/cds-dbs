@@ -1,5 +1,5 @@
 const assert = require('assert')
-const  { Readable } = require('stream')
+const { Readable } = require('stream')
 const { buffer } = require('stream/consumers')
 const cds = require('../cds.js')
 const fspath = require('path')
@@ -59,7 +59,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.run(async tx => {
           deploy = Promise.resolve()
@@ -79,7 +79,7 @@ describe('CREATE', () => {
               },
             }),
           )
-          await deploy.catch(() => {})
+          await deploy.catch(() => { })
         })
       })
 
@@ -101,7 +101,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.disconnect()
       })
@@ -165,12 +165,12 @@ describe('CREATE', () => {
                   } catch (e) {
                     if (throws === false) throw e
                     // Check for error test cases
-                    assert.equal(e.message, throws, 'Ensure that the correct error message is being thrown.')
+                    assert.match(e.message, throws, 'Ensure that the correct error message is being thrown.')
                     return
                   }
 
                   if (throws !== false)
-                    assert.equal('resolved', throws, 'Ensure that the correct error message is being thrown.')
+                    assert.equal('did_not_throw', throws, 'Ensure that the correct error message is being thrown.')
 
                   const columns = []
                   for (let col in entity.elements) {
@@ -181,7 +181,7 @@ describe('CREATE', () => {
                   const sel = await tx.run({
                     SELECT: {
                       from: { ref: [table] },
-                      columns 
+                      columns
                     },
                   })
 
@@ -198,10 +198,12 @@ describe('CREATE', () => {
                     }
                     if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {
                       assert.equal(result[k].compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
+                    } else if (expect[k] instanceof RegExp) {
+                      assert.match(result[k], expect[k], msg)
                     } else if (typeof expect[k] === 'object' && expect[k]) {
                       assert.deepEqual(result[k], expect[k], msg)
                     } else {
-                      assert.equal(result[k], expect[k], msg)
+                      assert.strictEqual(result[k], expect[k], msg)
                     }
                   }))
                 })

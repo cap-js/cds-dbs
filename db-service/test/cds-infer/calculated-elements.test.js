@@ -1,7 +1,7 @@
 'use strict'
 
 const _inferred = require('../../lib/infer')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Infer types of calculated elements in select list', () => {

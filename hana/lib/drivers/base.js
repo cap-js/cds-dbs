@@ -31,12 +31,6 @@ class HANADriver {
         const stmt = await prep
         let changes = await prom(stmt, 'exec')(values)
         await this._sendStreams(stmt, streams)
-        // REVISIT: hana-client does not return any changes when doing an update with streams
-        // This causes the best assumption to be that the changes are one
-        // To get the correct information it is required to send a count with the update where clause
-        if (streams.length && changes === 0) {
-          changes = 1
-        }
         return { changes }
       },
       runBatch: async params => {
@@ -52,6 +46,10 @@ class HANADriver {
         const stmt = await prep
         return prom(stmt, 'exec')(params)
       },
+      drop: async () => {
+        const stmt = await prep
+        return stmt.drop()
+      }
     }
   }
 
@@ -93,6 +91,13 @@ class HANADriver {
   set(variables) {
     variables
     throw new Error('Implementation missing "set"')
+  }
+
+  /**
+   * Starts a new transaction
+   */
+  async begin() {
+    this._native.setAutoCommit(false)
   }
 
   /**
@@ -161,8 +166,11 @@ const prom = function (dbc, func) {
     const stack = {}
     Error.captureStackTrace(stack)
     return new Promise((resolve, reject) => {
-      dbc[func](...args, (err, res, output) => {
+      dbc[func](...args, (err, ...output) => {
         if (err) {
+          if (!(err instanceof Error)) {
+            Object.setPrototypeOf(err, Error.prototype)
+          }
           const sql = typeof args[0] === 'string' && args[0]
           // Enhance insufficient privilege errors with details
           if (err.code === 258) {
@@ -179,7 +187,7 @@ const prom = function (dbc, func) {
           }
           return reject(enhanceError(err, stack, sql))
         }
-        resolve(output || res)
+        resolve(output.length === 1 ? output[0] : output)
       })
     })
   }
@@ -195,9 +203,9 @@ const formatPrivilegeError = function (row) {
   return `MISSING ${GRANT}${row.PRIVILEGE} ON ${row.SCHEMA_NAME}.${row.OBJECT_NAME}`
 }
 
-const enhanceError = function (err, stack, sql, message) {
+const enhanceError = function (err, stack, query, message) {
   return Object.assign(err, stack, {
-    sql,
+    query,
     message: message ? message : err.message,
   })
 }
