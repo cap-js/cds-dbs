@@ -206,7 +206,7 @@ class HANAService extends SQLService {
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + ' ORDER BY "_path_" ASC')
+    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
     DEBUG?.(ret)
     return ret
   }
@@ -535,8 +535,8 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM DUMMY FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) AS "_json_"`
-          : `TO_NCLOB('{}') AS "_json_"`
+          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) AS "_json_"`
+          : `'{}' AS "_json_"`
 
         let jsonColumn = rawJsonColumn
         if (structures.length) {
