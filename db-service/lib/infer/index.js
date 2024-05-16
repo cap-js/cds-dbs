@@ -1,6 +1,6 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')

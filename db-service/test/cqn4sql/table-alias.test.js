@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('table alias access', () => {
   let model
@@ -285,9 +285,9 @@ describe('table alias access', () => {
       {
         ![FROM].title as group,
       }
-      where ![FROM].title = 'foo' 
+      where ![FROM].title = 'foo'
       group by ![FROM].title
-      having ![FROM].title = 'foo' 
+      having ![FROM].title = 'foo'
       order by ![FROM].title
       `)
     })
@@ -504,9 +504,9 @@ describe('table alias access', () => {
 
       const expected = CQL`
         SELECT from
-          (SELECT 
-            SimpleBook.ID, 
-            SimpleBook.title, 
+          (SELECT
+            SimpleBook.ID,
+            SimpleBook.title,
             SimpleBook.author_ID
             from bookshop.SimpleBook as SimpleBook
             order by SimpleBook.title
@@ -522,7 +522,7 @@ describe('table alias access', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
     it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
-      const query = CQL`SELECT from bookshop.Books { 
+      const query = CQL`SELECT from bookshop.Books {
         title,
         title as foo,
         author.name as author
@@ -820,7 +820,7 @@ describe('table alias access', () => {
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
             (SELECT from bookshop.Books as Books2 { Books2.author_ID,
-              (SELECT from bookshop.Books as Books3 { 
+              (SELECT from bookshop.Books as Books3 {
                 (SELECT from bookshop.Authors as author {
                   (SELECT from bookshop.Books as books4 {
                     books4.ID
@@ -919,7 +919,7 @@ describe('table alias access', () => {
           SELECT from bookshop.Books as Books {
             sum(Books.stock) as totalStock,
             Books.ID,
-            Books.stock, 
+            Books.stock,
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,

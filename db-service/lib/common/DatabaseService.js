@@ -1,7 +1,7 @@
 const SessionContext = require('./session-context')
 const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 /** @typedef {unknown} DatabaseDriver */
 

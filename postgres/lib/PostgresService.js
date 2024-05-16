@@ -1,6 +1,6 @@
 const { SQLService } = require('@cap-js/db-service')
 const { Client, Query } = require('pg')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
