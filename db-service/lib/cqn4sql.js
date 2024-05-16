@@ -2175,10 +2175,10 @@ module.exports = Object.assign(cqn4sql, {
 function calculateElementName(token) {
   const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
   let name
-  if (nonJoinRelevantAssoc)
+  if (nonJoinRelevantAssoc !== -1)
     // calculate fk name
     name = token.ref.slice(nonJoinRelevantAssoc).join('_')
-  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
   return name
 }
 
