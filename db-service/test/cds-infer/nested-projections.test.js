@@ -162,7 +162,7 @@ describe('nested projections', () => {
           {
             title,
             descr,
-            author. { name }
+            author.{ name }
           } as bookInfos
         }`
         let { Books } = model.entities
