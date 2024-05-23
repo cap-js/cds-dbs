@@ -279,7 +279,7 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
-      
+
     test('exists path expression', async () => {
       const cqn = {
         SELECT: {
@@ -294,7 +294,7 @@ describe('SELECT', () => {
           ]
         }
       }
-      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
+      await expect(cds.run(cqn)).to.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
     })
 
     test('exists path expression (unmanaged)', async () => {
@@ -311,7 +311,7 @@ describe('SELECT', () => {
           ]
         }
       }
-      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
+      await expect(cds.run(cqn)).to.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
     })
 
     test.skip('ref select', async () => {

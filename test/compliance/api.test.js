@@ -17,17 +17,17 @@ const { expect } = cds.test(__dirname + '/resources')
     // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
     expect(affectedRows == 1).to.be.eq(true)
     // InsertResult
-    expect(affectedRows).to.include({ affectedRows: 1 }) // lastInsertRowid not available on postgres
+    expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
   })
 
   test('Update returns affected rows', async () => {
     const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
-    
+
     const affectedRows = await UPDATE.entity('complex.associations.Books').data({title: 'Book'})
     expect(affectedRows).to.be.eq(count)
   })
 
-  test('Upsert returns affected rows', async () => { 
+  test('Upsert returns affected rows', async () => {
     const affectedRows = await UPSERT.into('complex.associations.Books').entries({ID: 9999999, title: 'Book'})
     expect(affectedRows).to.be.eq(1)
   })

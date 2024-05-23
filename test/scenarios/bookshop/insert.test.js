@@ -31,9 +31,9 @@ describe('Bookshop - Insert', () => {
         createdAt: (new Date()).toISOString(),
       }])
     expect(affectedRows | 0).to.be.eq(2)
-    
+
     const res = await SELECT.from('sap.capire.bookshop.Books').where('ID in', [4711, 4712])
     expect(res).to.have.length(2)
   })
-    
+
 })

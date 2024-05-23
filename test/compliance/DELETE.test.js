@@ -1,3 +1,5 @@
+require('@sap/cds')
+
 describe('DELETE', () => {
   describe('from', () => {
     test.skip('missing', () => {

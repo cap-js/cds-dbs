@@ -843,7 +843,7 @@ describe('Variations on ON', () => {
         }
       `
     // inferred element name equals original ref navigation
-    expect(transformed.elements).to.include.key('toSelf_struct_one')
+    expect(transformed.elements).to.have.property('toSelf_struct_one')
     expect(transformed).to.deep.equal(expected)
   })
 })

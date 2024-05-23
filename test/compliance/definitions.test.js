@@ -1,3 +1,5 @@
+require('@sap/cds')
+
 describe('definitions', () => {
   describe('types', () => {
     test.skip('missing', () => {
