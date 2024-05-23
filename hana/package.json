@@ -32,7 +32,7 @@
   },
   "peerDependencies": {
     "@sap/hana-client": ">=2",
-    "@sap/cds": ">=7.6"
+    "@sap/cds": ">=7.6 || ^8.0.0-beta"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
