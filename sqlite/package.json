@@ -34,7 +34,7 @@
     "better-sqlite3": "^10.0.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.6"
+    "@sap/cds": ">=7.6 || ^8.0.0-beta"
   },
   "cds": {
     "requires": {
