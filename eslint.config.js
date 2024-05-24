@@ -1,7 +1,6 @@
 'use strict'
 
 const eslint_js = require('@eslint/js')
-const typescript_parser = require('@typescript-eslint/parser')
 const globals = require('globals')
 
 module.exports = [
@@ -33,19 +32,6 @@ module.exports = [
       'no-extra-semi': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: 'lazy' }],
       'no-console': 'error',
-    },
-  },
-  {
-    files: ['**/*.ts'],
-    languageOptions: {
-      parser: typescript_parser,
-      globals: {
-        ...globals.node,
-      },
-    },
-    rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': ['warn'],
     },
   },
   {
