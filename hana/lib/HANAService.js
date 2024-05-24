@@ -133,11 +133,13 @@ class HANAService extends SQLService {
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
+    const explain = query.SELECT.explain
+
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+      ? await (await this[explain ? 'prepare_planviz' : 'prepare'](sqlScript, blobs.length, explain)).all(values || [])
+      : await this[explain ? 'exec_planviz' : 'exec'](sqlScript, explain)
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -280,31 +282,47 @@ class HANAService extends SQLService {
   }
 
   // Execute sql statement inside execution plan visualization API
-  async prepare_planviz(sql, hasBlobs) {
+  async prepare_planviz(sql, hasBlobs, dir) {
     const stmt = await this.ensureDBC().prepare('CALL PLANVIZ_ACTION(?, ?)')
+    await stmt.run([110, null]) // Enable planviz
 
-    const { DATA: ID } = await stmt.get([208, sql])
-
+    const getProp = (res, prop) => res[prop] || res[1][0][prop]
+    const ID = getProp(await stmt.all([201, sql]), 'DATA')
     const prep = await this.ensureDBC().prepare(`EXECUTE PLANVIZ STATEMENT ID '${ID}'`, hasBlobs)
 
-    const proxy = async (action, params) => {
+    const proxy = async function (action, params) {
       const stmtID = this._stmtID ??= 0
       this._stmtID++
       const ret = await prep[action](params)
-      await stmt.run([514, `${ID}|${stmtID}`])
+      if (dir) {
+        const save = async () => {
+          // write to disk
+          await fs.promises.mkdir(dir, { recursive: true })
+          await fs.promises.writeFile(
+            path.resolve(dir, `${ID}|${stmtID}.plv`),
+            getProp(await stmt.all([402, `${ID}|${stmtID}`]), 'XML_PLAN'),
+          )
+        }
+        if (ret instanceof Readable) {
+          ret.once('end', save)
+        } else {
+          await save()
+        }
+      }
       return ret
     }
 
     return {
-      run: params => proxy('run', params),
-      runBatch: params => proxy('runBatch', params),
-      get: params => proxy('get', params),
-      all: params => proxy('all', params),
+      run(params) { return proxy.call(this, 'run', params) },
+      runBatch(params) { return proxy.call(this, 'runBatch', params) },
+      get(params) { return proxy.call(this, 'get', params) },
+      all(params) { return proxy.call(this, 'all', params) },
+      stream(params) { return proxy.call(this, 'stream', params) },
     }
   }
 
-  async exec_planviz(sql) {
-    return (await this.prepare_planviz(sql)).run()
+  async exec_planviz(sql, dir) {
+    return (await this.prepare_planviz(sql, false, dir)).all([])
   }
 
   async save_planviz(folder) {
@@ -610,7 +628,7 @@ GROUP BY FILE_NAME`
         if (blobColumns.length)
           outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
         this._outputColumns = outputColumns
-        sql = `*,${path} as _path_,${rawJsonColumn}`
+        sql = `*,${path} as _path_`
       }
       return sql
     }
@@ -760,6 +778,10 @@ GROUP BY FILE_NAME`
       const { target } = q
       const isView = target.query || target.projection
       return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
+    }
+
+    explain() {
+      return ''
     }
 
     from_args(args) {
