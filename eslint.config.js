@@ -1,7 +1,6 @@
 'use strict'
 
 const eslint_js = require('@eslint/js')
-const eslint_ts = require('@typescript-eslint/eslint-plugin')
 const typescript_parser = require('@typescript-eslint/parser')
 const globals = require('globals')
 
@@ -38,9 +37,6 @@ module.exports = [
   },
   {
     files: ['**/*.ts'],
-    plugins: {
-      '@typescript-eslint': eslint_ts,
-    },
     languageOptions: {
       parser: typescript_parser,
       globals: {
@@ -48,7 +44,6 @@ module.exports = [
       },
     },
     rules: {
-      ...eslint_ts.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': ['warn'],
     },
