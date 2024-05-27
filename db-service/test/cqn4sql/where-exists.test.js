@@ -1,6 +1,6 @@
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 

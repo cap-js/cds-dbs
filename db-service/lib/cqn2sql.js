@@ -1,4 +1,4 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
@@ -165,12 +165,14 @@ class CQN2SQLRenderer {
   /** @type {Object<string,import('@sap/cds/apis/csn').Definition>} */
   static TypeMap = {
     // Utilizing cds.linked inheritance
+    UUID: () => `NVARCHAR(36)`,
     String: e => `NVARCHAR(${e.length || 5000})`,
     Binary: e => `VARBINARY(${e.length || 5000})`,
-    Int64: () => 'BIGINT',
-    Int32: () => 'INTEGER',
+    UInt8: () => 'TINYINT',
     Int16: () => 'SMALLINT',
-    UInt8: () => 'SMALLINT',
+    Int32: () => 'INT',
+    Int64: () => 'BIGINT',
+    Integer: () => 'INT',
     Integer64: () => 'BIGINT',
     LargeString: () => 'NCLOB',
     LargeBinary: () => 'BLOB',
@@ -178,12 +180,11 @@ class CQN2SQLRenderer {
     Composition: () => false,
     array: () => 'NCLOB',
     // HANA types
-    /* Disabled as these types are linked to normal cds types
-    'cds.hana.TINYINT': () => 'REAL',
+    'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
     'cds.hana.CHAR': e => `CHAR(${e.length || 1})`,
     'cds.hana.ST_POINT': () => 'ST_POINT',
-    'cds.hana.ST_GEOMETRY': () => 'ST_GEO',*/
+    'cds.hana.ST_GEOMETRY': () => 'ST_GEOMETRY',
   }
 
   // DROP Statements ------------------------------------------------
@@ -799,8 +800,8 @@ class CQN2SQLRenderer {
     if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
-    if ('xpr' in x) return wrap(this.xpr(x))
     if ('func' in x) return wrap(this.func(x))
+    if ('xpr' in x) return wrap(this.xpr(x))
     if ('list' in x) return wrap(this.list(x))
     if ('SELECT' in x) return wrap(`(${this.SELECT(x)})`)
     else throw cds.error`Unsupported expr: ${x}`
@@ -832,17 +833,31 @@ class CQN2SQLRenderer {
   operator(x, i, xpr) {
 
     // Translate = to IS NULL for rhs operand being NULL literal
-    if (x === '=') return xpr[i + 1]?.val === null ? 'is' : '='
+    if (x === '=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : '='
 
     // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '==') return xpr[i + 1]?.val === null ? 'is' : _not_null(i - 1) && _not_null(i + 1) ? '=' : this.is_not_distinct_from_
+    if (x === '==') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '='
+        : this.is_not_distinct_from_
 
     // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(i - 1) && _not_null(i + 1) ? '<>' : this.is_distinct_from_
+    if (x === '!=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is not'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '<>'
+        : this.is_distinct_from_
 
     else return x
+
+    function _inline_null(n) {
+      n.param = false
+    }
 
     /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
     function _not_null(i) {
@@ -921,9 +936,32 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').func} param0
    * @returns {string} SQL
    */
-  func({ func, args }) {
-    args = (args || []).map(e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
-    return this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+  func({ func, args, xpr }) {
+    const wrap = e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) })
+    args = args || []
+    if (Array.isArray(args)) {
+      args = args.map(wrap)
+    } else if (typeof args === 'object') {
+      const org = args
+      const wrapped = {
+        toString: () => {
+          const ret = []
+          for (const prop in org) {
+            ret.push(`${this.quote(prop)} => ${wrapped[prop]}`)
+          }
+          return ret.join(',')
+        }
+      }
+      for (const prop in args) {
+        wrapped[prop] = wrap(args[prop])
+      }
+      args = wrapped
+    } else {
+      cds.error`Invalid arguments provided for function '${func}' (${args})`
+    }
+    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    if (xpr) return `${fn} ${this.xpr({ xpr })}`
+    return fn
   }
 
   /**

@@ -1,5 +1,5 @@
 const impl = require.resolve('../index')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 // eslint-disable-next-line no-global-assign

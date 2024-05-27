@@ -1,5 +1,5 @@
 const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')

@@ -1,5 +1,5 @@
 'use strict'
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
@@ -39,8 +39,8 @@ describe('expressions', () => {
       },
     }
     const { sql, values } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS \?/i)
-    expect(values).toEqual([null])
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NULL/i)
+    expect(values).toEqual([])
   })
 
   // We should never have supported that!
@@ -65,8 +65,8 @@ describe('expressions', () => {
       },
     }
     const { sql, values } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? IS \?/i)
-    expect(values).toEqual([null, null])
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE \? IS NULL/i)
+    expect(values).toEqual([null])
   })
 
   test('ref != null', () => {
@@ -77,8 +77,8 @@ describe('expressions', () => {
       },
     }
     const { sql, values } = cqn2sql(cqn)
-    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NOT \?/i)
-    expect(values).toEqual([null])
+    expect(sql).toMatch(/SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x IS NOT NULL/i)
+    expect(values).toEqual([])
   })
 
   test('val != val', () => {
@@ -188,8 +188,8 @@ describe('expressions', () => {
     }
     const { sql, values } = cqn2sql(cqn)
     expect({ sql, values }).toEqual({
-      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from ?) or (Foo.x is ?)',
-      values: [5, null]
+      sql: 'SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x is distinct from ?) or (Foo.x is NULL)',
+      values: [5]
     })
   })
 
