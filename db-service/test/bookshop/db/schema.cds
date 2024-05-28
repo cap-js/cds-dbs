@@ -34,6 +34,7 @@ entity SimpleBook {
   key ID : Integer;
   title  : localized String(111);
   author : Association to Authors;
+  activeAuthors : Association to Authors on activeAuthors.ID = author.ID and $now = $now and $user.id = $user.tenant;
 }
 
 entity BooksWithWeirdOnConditions {
