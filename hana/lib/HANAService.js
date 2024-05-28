@@ -133,8 +133,10 @@ class HANAService extends SQLService {
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
+    const isSimple = temporary.length + blobs.length + withclause.length === 0
+
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0)
       ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
       : await this.exec(sqlScript)
@@ -147,7 +149,7 @@ class HANAService extends SQLService {
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
-    if (rows.length) {
+    if (rows.length && !isSimple) {
       rows = this.parseRows(rows)
     }
     if (cqn.SELECT.count) {
@@ -251,11 +253,13 @@ class HANAService extends SQLService {
           } else {
             // REVISIT: identify why sometimes not all parent rows are returned
             level.data.push?.(data)
-            levels.push({
-              data: data,
-              path: row._path_,
-              expands,
-            })
+            if (row._path_ !== level.path) {
+              levels.push({
+                data: data,
+                path: row._path_,
+                expands,
+              })
+            }
             break
           }
         } else {
@@ -440,7 +444,7 @@ class HANAService extends SQLService {
       q.SELECT.one = one
       q.SELECT.limit = limit
 
-      if (expand === 'root') {
+      if (expand === 'root' && this._outputColumns) {
         this.cqn = q
         const fromSQL = this.from({ ref: [alias] })
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
@@ -528,6 +532,15 @@ class HANAService extends SQLService {
         this._blobs = blobs
         const blobColumns = Object.keys(blobs)
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
+        if (
+          cds.env.features.hana_simple_queries &&
+          structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
+          !q?.src?.SELECT?.parent &&
+          this.temporary.length === 0
+        ) {
+          return `${sql}`
+        }
+
         expands = this.string(JSON.stringify(expands))
         blobs = this.string(JSON.stringify(blobs))
         // When using FOR JSON the whole dataset is put into a single blob
@@ -535,31 +548,31 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) AS "_json_"`
-          : `'{}' AS "_json_"`
+          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          : `'{}'`
 
         let jsonColumn = rawJsonColumn
         if (structures.length) {
           // Appending the structured columns to prevent them from being quoted and escaped
           // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
           const structuresConcat = structures
-            .map(x => {
+            .map((x, i) => {
               const name = this.column_name(x)
-              return `',"${name}":' || COALESCE(${this.quote(name)},'null')`
+              return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
             })
             .join(' || ')
           jsonColumn = sql.length
-            ? `SUBSTRING("_json_", 1, LENGTH("_json_") - 1) || ${structuresConcat} || '}' as "_json_"`
-            : `'{' || '${structuresConcat.substring(2)} || '}' as "_json_"`
+            ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
+            : `${structuresConcat} || '}'`
         }
 
         // Calculate final output columns once
         let outputColumns = ''
-        outputColumns = `_path_ as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn}`
+        outputColumns = `_path_ as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
         if (blobColumns.length)
           outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
         this._outputColumns = outputColumns
-        sql = `*,${path} as _path_,${rawJsonColumn}`
+        sql = `*,${path} as _path_`
       }
       return sql
     }
@@ -1231,7 +1244,7 @@ class HANAService extends SQLService {
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
       const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
