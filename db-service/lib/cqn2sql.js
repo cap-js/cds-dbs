@@ -206,7 +206,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, explain } =
       q.SELECT
 
     if (from?.join && !q.SELECT.columns) {
@@ -217,6 +217,7 @@ class CQN2SQLRenderer {
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
     let sql = `SELECT`
+    if (explain) sql = `${this.explain()} ${sql}`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
     if (!_empty(from)) sql += ` FROM ${this.from(from)}`
@@ -305,7 +306,13 @@ class CQN2SQLRenderer {
   column_alias4(x) {
     return typeof x.as === 'string' ? x.as : x.func || x.val
   }
-
+  /**
+   * Renders a explain clause into generic SQL
+   * @returns {string} SQL
+   */
+  explain() {
+    return 'EXPLAIN'
+  }
   /**
    * Renders a FROM clause into generic SQL
    * @param {import('./infer/cqn').source} from

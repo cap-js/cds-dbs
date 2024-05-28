@@ -356,6 +356,10 @@ GROUP BY k
       return this._orderBy(orderBy, localized && locale, locale)
     }
 
+    explain() {
+      return 'EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON)'
+    }
+
     from(from) {
       if (from.ref?.[0] === 'sqlite.schema') {
         return '(SELECT table_name as name from information_schema.tables where table_schema = current_schema()) as schema'
