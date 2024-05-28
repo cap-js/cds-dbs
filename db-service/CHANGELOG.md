@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.0...db-service-v1.9.1) (2024-05-16)
+
+
+### Fixed
+
+* dont mistake non-key access with foreign key ([#642](https://github.com/cap-js/cds-dbs/issues/642)) ([2cd2349](https://github.com/cap-js/cds-dbs/commit/2cd234994d6a9e99765e56f7548a42a35279a790))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.8.0...db-service-v1.9.0) (2024-05-08)
 
 
