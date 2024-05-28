@@ -6,7 +6,6 @@ function cqn4sql(q, model = cds.model) {
 }
 const cds = require('@sap/cds')
 const { expect } = cds.test
-const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 
 describe('Unfold expands on structure', () => {
   beforeAll(async () => {
