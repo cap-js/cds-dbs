@@ -3,7 +3,7 @@ const initSqlJs = require('sql.js');
 const init = initSqlJs({})
 
 class WasmSqlite {
-  constructor(database) {
+  constructor(/*database*/) {
     // TODO: load / store database file contents
     this.ready = init
       .then(SQL => { this.db = new SQL.Database() })
