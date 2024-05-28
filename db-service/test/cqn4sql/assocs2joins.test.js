@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Unfolding Association Path Expressions to Joins', () => {
@@ -1230,6 +1230,36 @@ describe('optimize fk access', () => {
                           ForeignKeyIsAssoc.my_room_name as teachersRoom_name,
                           ForeignKeyIsAssoc.my_room_location as teachersRoom_info_location
                         }`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('association as key leads to non-key field', () => {
+    const query = CQL`SELECT from Pupils {
+      ID
+    } group by classrooms.classroom.ID, classrooms.classroom.name`
+    const expected = CQL`SELECT from Pupils as Pupils
+                        left join ClassroomsPupils as classrooms
+                          on classrooms.pupil_ID = Pupils.ID
+                        left join Classrooms as classroom
+                          on classroom.ID = classrooms.classroom_ID
+                        {
+                          Pupils.ID
+                        } group by classroom.ID, classroom.name`
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+  it('association as key leads to nested non-key field', () => {
+    const query = CQL`SELECT from Pupils {
+      ID
+    } group by classrooms.classroom.ID, classrooms.classroom.info.capacity`
+    const expected = CQL`SELECT from Pupils as Pupils
+                        left join ClassroomsPupils as classrooms
+                          on classrooms.pupil_ID = Pupils.ID
+                        left join Classrooms as classroom
+                          on classroom.ID = classrooms.classroom_ID
+                        {
+                          Pupils.ID
+                        } group by classroom.ID, classroom.info_capacity`
 
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })

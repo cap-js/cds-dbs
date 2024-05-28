@@ -1,4 +1,4 @@
-const cds = require('@sap/cds/lib'),
+const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
@@ -135,7 +135,7 @@ class SQLService extends DatabaseService {
       if (query._streaming) {
         this._changeToStreams(cqn.SELECT.columns, rows, true, true)
         if (!rows.length) return
-        
+
         const result = rows[0]
         // stream is always on position 0. Further properties like etag are inserted later.
         let [key, val] = Object.entries(result)[0]

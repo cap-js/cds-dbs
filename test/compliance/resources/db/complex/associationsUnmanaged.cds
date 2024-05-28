@@ -11,4 +11,5 @@ entity Authors {
   key ID : Integer;
   name   : String(111);
   books  : Association to many Books on books.author = $self;
+  static  : Association to many Books on static.author = $self and static.ID > 0;
 }

@@ -1,8 +1,8 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
@@ -210,5 +210,47 @@ describe('function', () => {
     }
     const { sql } = cqn2sql(cqn)
     expect(sql).toEqual('SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE current_date')
+  })
+
+  test('fn with named arguments', () => {
+    const func = {
+      func: 'convert_currency',
+      args: {
+        amount: { ref: ['a'] },
+        source_unit: { ref: ['b'] },
+        target_unit: { val: 'USD' },
+      }
+    }
+    const cqn = {
+      SELECT: {
+        columns: [func],
+        from: { ref: ['Foo'] },
+        where: [func],
+      },
+    }
+
+    const { sql, values } = cqn2sql(cqn)
+    expect({ sql, values }).toEqual({
+      sql: 'SELECT convert_currency(amount => Foo.a,source_unit => Foo.b,target_unit => ?) as convert_currency FROM Foo as Foo WHERE convert_currency(amount => Foo.a,source_unit => Foo.b,target_unit => ?)',
+      values: ['USD', 'USD'],
+    })
+  })
+
+  test('fn with xpr extension', () => {
+    const cqn = {
+      SELECT: {
+        from: { ref: ['Foo'] },
+        columns: [{
+          func: 'row_number',
+          args: [],
+          xpr: ['over', { xpr: ['partition', 'by', { ref: ['a'] }] }]
+        }]
+      },
+    }
+
+    const { sql } = cqn2sql(cqn)
+    expect({ sql }).toEqual({
+      sql: 'SELECT row_number() over (partition by Foo.a) as row_number FROM Foo as Foo',
+    })
   })
 })

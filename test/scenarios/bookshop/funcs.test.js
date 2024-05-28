@@ -1,7 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
 cds.test.in(bookshop)
-cds.env.features.odata_new_adapter = true
 
 describe('Bookshop - Functions', () => {
   const { expect, GET } = cds.test()
@@ -11,6 +10,11 @@ describe('Bookshop - Functions', () => {
       const res = await GET(`/browse/Books?$filter=concat(concat(author,', '),title) eq 'Edgar Allen Poe, Eleonora'`)
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
+
+      // Test concat with more then 2 arguments
+      const { Books } = cds.entities('CatalogService')
+      const cqnRes = await SELECT.from(Books).where`concat(author, ${', '}, title) = ${'Edgar Allen Poe, Eleonora'}`
+      expect(cqnRes.length).to.be.eq(1)
     })
 
     test('contains', async () => {
@@ -92,8 +96,8 @@ describe('Bookshop - Functions', () => {
         .where`matchespattern(author,${'^Ed'})`
 
       expect(res1.length).to.eq(res2.length).to.be.eq(2)
-      expect(res1).to.deep.eq(res2).to.deep.include({author: 'Edgar Allen Poe', title: 'Eleonora'})
-      expect(res1).to.deep.eq(res2).to.deep.include({author: 'Edgar Allen Poe', title: 'The Raven'})
+      expect(res1).to.deep.eq(res2).to.deep.include({ author: 'Edgar Allen Poe', title: 'Eleonora' })
+      expect(res1).to.deep.eq(res2).to.deep.include({ author: 'Edgar Allen Poe', title: 'The Raven' })
     })
 
     test('tolower', async () => {
@@ -141,8 +145,8 @@ describe('Bookshop - Functions', () => {
       // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
       // new adapter error: 400 - Function 'hassubset' is not supported
       const { Books } = cds.entities('sap.capire.bookshop')
-      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1','2','3']]))
-      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2','5','6']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1', '2', '3']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2', '5', '6']]))
       const res = await GET(`/browse/Books?$filter=hassubset(footnotes, ['3','1'])`)
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
@@ -151,8 +155,8 @@ describe('Bookshop - Functions', () => {
       // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
       // new adapter error: 400 - Function 'hassubsequence' is not supported
       const { Books } = cds.entities('sap.capire.bookshop')
-      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1','2','3']]))
-      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2','5','6']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1', '2', '3']]))
+      await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2', '5', '6']]))
       const res = await GET(`/browse/Books?$filter=hassubset(footnotes, ['1','3'])`)
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
@@ -255,7 +259,7 @@ describe('Bookshop - Functions', () => {
 
     test('day function with null value', async () => {
       const { result } = await SELECT.one(`day(null) as result`)
-      .from('sap.capire.bookshop.Books')
+        .from('sap.capire.bookshop.Books')
 
       expect(result).to.be.null
     })
@@ -313,27 +317,27 @@ describe('Bookshop - Functions', () => {
     test('now', async () => {
       const db = await cds.connect.to('db')
       return db.run(async tx => {
-        Object.defineProperty(cds.context, 'timestamp', {value: new Date('1972-09-15T21:36:51.123Z')})
+        Object.defineProperty(cds.context, 'timestamp', { value: new Date('1972-09-15T21:36:51.123Z') })
         const cqn = {
           SELECT: {
-          from: { ref: ['localized.CatalogService.Books'], as: 'Books' },
-          columns: [{ ref: ['Books', 'ID'] }],
-          where: [
-            {
-              func: 'now',
-              args: [],
-            },
-            '=',
-            {
-              val: '1972-09-15T21:36:51.123Z',
-            },
-          ],
-        },
-      }
-      const res = await tx.run(cqn)
-      expect(res.length).to.be.eq(5) 
+            from: { ref: ['localized.CatalogService.Books'], as: 'Books' },
+            columns: [{ ref: ['Books', 'ID'] }],
+            where: [
+              {
+                func: 'now',
+                args: [],
+              },
+              '=',
+              {
+                val: '1972-09-15T21:36:51.123Z',
+              },
+            ],
+          },
+        }
+        const res = await tx.run(cqn)
+        expect(res.length).to.be.eq(5)
+      })
     })
-  })
 
     test('second', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=second(1970-01-01T00:00:45.123Z) eq 45&$top=1`)
