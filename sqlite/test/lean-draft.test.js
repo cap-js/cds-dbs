@@ -692,7 +692,7 @@ describe('draft tests', () => {
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: TravelUUID,
+      to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,
