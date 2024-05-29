@@ -533,7 +533,7 @@ class HANAService extends SQLService {
         const blobColumns = Object.keys(blobs)
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
-          cds.env.features.hana_simple_queries &&
+          cds.env.features.sql_simple_queries &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
