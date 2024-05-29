@@ -126,8 +126,14 @@ describe('UUID Generation', () => {
       toOneChild: null,
     })
     expect(resUpdate.status).toBe(200)
-
     expect(resUpdate.data).toMatchObject({
+      '@odata.context': '$metadata#RootUUID/$entity',
+      ID: uuid,
+      name: null,
+    })
+
+    const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild`)
+    expect(resRead.data).toMatchObject({
       '@odata.context': '$metadata#RootUUID/$entity',
       ID: uuid,
       name: null,
