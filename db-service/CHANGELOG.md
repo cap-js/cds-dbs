@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.2...db-service-v1.10.0) (2024-05-29)
+
+
+### Added
+
+* Add simple queries feature flag ([#660](https://github.com/cap-js/cds-dbs/issues/660)) ([3335202](https://github.com/cap-js/cds-dbs/commit/33352024201a96cc6bdfa30a0fe3fff4227dee10))
+
 ## [1.9.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.1...db-service-v1.9.2) (2024-05-28)
 
 
