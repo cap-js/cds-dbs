@@ -692,7 +692,7 @@ describe('draft tests', () => {
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: null, // Should be TravelUUID!
+      to_Travel_TravelUUID: TravelUUID,
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,
