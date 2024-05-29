@@ -7,8 +7,8 @@ describe('deep operations with @cds.persistence.skip', () => {
     const res = await POST('/bla/RootUUID', {
       ID: uuid,
       toOneSkip: {
-        text: 'abc'
-      }
+        text: 'abc',
+      },
     })
     expect(res.status).toBe(201)
 
@@ -19,7 +19,7 @@ describe('deep operations with @cds.persistence.skip', () => {
       ID: uuid,
       name: null,
       toOneChild_ID: null,
-      toOneSkip_ID: expect.any(String)
+      toOneSkip_ID: expect.any(String),
     })
     expect(res.data.toOneSkip_ID).toBeDefined()
   })
@@ -28,7 +28,7 @@ describe('deep operations with @cds.persistence.skip', () => {
     const uuid = cds.utils.uuid()
     const res = await POST('/bla/RootUUID', {
       ID: uuid,
-      toManySkip: [{ text: 'a' }, { text: 'b' }]
+      toManySkip: [{ text: 'a' }, { text: 'b' }],
     })
     expect(res.status).toBe(201)
 
@@ -39,7 +39,7 @@ describe('deep operations with @cds.persistence.skip', () => {
       ID: uuid,
       name: null,
       toOneChild_ID: null,
-      toOneSkip_ID: null
+      toOneSkip_ID: null,
     })
   })
 
@@ -51,9 +51,9 @@ describe('deep operations with @cds.persistence.skip', () => {
         text: 'abc',
         toManySubChild: [
           { text: 'a', toOneSkipChild: { text: 'aa' } },
-          { text: 'b', toOneSkipChild: { text: 'bb' } }
-        ]
-      }
+          { text: 'b', toOneSkipChild: { text: 'bb' } },
+        ],
+      },
     })
     expect(res.status).toBe(201)
 
@@ -71,18 +71,18 @@ describe('deep operations with @cds.persistence.skip', () => {
             ID: expect.any(String),
             backlink_ID: res.data.toOneChild.ID,
             text: 'a',
-            toOneSkipChild_ID: expect.any(String)
+            toOneSkipChild_ID: expect.any(String),
           },
           {
             ID: expect.any(String),
             backlink_ID: res.data.toOneChild.ID,
             text: 'b',
-            toOneSkipChild_ID: expect.any(String)
-          }
-        ]
+            toOneSkipChild_ID: expect.any(String),
+          },
+        ],
       },
       toOneChild_ID: res.data.toOneChild.ID,
-      toOneSkip_ID: null
+      toOneSkip_ID: null,
     })
   })
 
@@ -91,16 +91,16 @@ describe('deep operations with @cds.persistence.skip', () => {
     const resPost = await POST('/bla/RootUUID', {
       ID: uuid,
       toOneSkip: {
-        text: 'abc'
-      }
+        text: 'abc',
+      },
     })
     expect(resPost.status).toBe(201)
 
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
       name: 'abc',
       toOneSkip: {
-        text: 'cd'
-      }
+        text: 'cd',
+      },
     })
     expect(resUpdate.status).toBe(200)
 
@@ -109,7 +109,7 @@ describe('deep operations with @cds.persistence.skip', () => {
       ID: uuid,
       name: 'abc',
       toOneChild_ID: null,
-      toOneSkip_ID: expect.any(String)
+      toOneSkip_ID: expect.any(String),
     })
   })
 
@@ -118,8 +118,8 @@ describe('deep operations with @cds.persistence.skip', () => {
     const resPost = await POST('/bla/RootUUID', {
       ID: uuid,
       toOneSkip: {
-        text: 'abc'
-      }
+        text: 'abc',
+      },
     })
     expect(resPost.status).toBe(201)
 
