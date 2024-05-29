@@ -404,6 +404,42 @@ describe('table alias access', () => {
        `,
       )
     })
+
+    it('in filter expression', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            author.ID as author
+          } where author[$self.ID = 207].name LIKE '%Broent%'`,
+        model,
+      )
+      let expected = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author
+                                  on author.ID = Books.author_ID and Books.ID = 207 {
+                                    Books.ID,
+                                    Books.author_ID as author
+                                  } where author.name LIKE '%Broent%'`
+      expect(query).to.deep.equal(expected)
+    })
+
+    // this is not supported by the compiler, but seems to work just fine for us, keep or remove?
+    it('in filter expression of exists', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            author.name as author
+          } where exists author[$self.author LIKE '%Broent%']`,
+        model,
+      )
+      let expected = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author
+                                  on author.ID = Books.author_ID {
+                                    Books.ID,
+                                    author.name as author
+                                  } where exists (
+                                    SELECT 1 from bookshop.Authors as author2
+                                    where author2.ID = Books.author_ID and author.name LIKE '%Broent%'
+                                  )`
+      expect(query).to.deep.equal(expected)
+    })
   })
 
   describe('in ORDER BY', () => {
