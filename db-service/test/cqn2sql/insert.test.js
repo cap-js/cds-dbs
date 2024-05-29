@@ -1,7 +1,7 @@
 'use strict'
 const { text } = require('stream/consumers')
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const _cqn2sql = require('../../lib/cqn2sql')
 
 describe('insert', () => {

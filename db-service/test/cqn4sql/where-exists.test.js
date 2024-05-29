@@ -1,6 +1,6 @@
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 
@@ -217,7 +217,7 @@ describe('EXISTS predicate in where', () => {
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
           model,
         ),
-      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
     it('MUST fail if following managed assoc in filter', () => {
       expect(() =>
@@ -225,7 +225,7 @@ describe('EXISTS predicate in where', () => {
           CQL`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
           model,
         ),
-      ).to.throw('Only foreign keys of "addressee" can be accessed in infix filter')
+      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
 
     it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
@@ -718,7 +718,7 @@ describe('EXISTS predicate in infix filter', () => {
     `
     expect(() => {
       cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    }).to.throw(/Only foreign keys of "participant" can be accessed in infix filter/)
+    }).to.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
   })
 })
 
@@ -1299,52 +1299,6 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
-
-describe('cap issue', () => {
-  let model
-  beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
-    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
-  })
-  it('MUST ... two EXISTS both on same path in where with real life example', () => {
-    // make sure that in a localized scenario, all aliases
-    // are properly replaced in the on-conditions.
-
-    // the issue here was that we had a where condition like
-    // `where exists foo[id=1] or exists foo[id=2]`
-    // with `foo` being an association `foo : Association to one Foo on foo.ID = foo_ID;`.
-    // While building up the where exists subqueries, we calculate unique table aliases for `foo`,
-    // which results in a table alias `foo2` for the second condition of the initial where clause.
-    // Now, if we incorporate the on-condition into the where clause of the second where exists subquery,
-    // we must replace the table alias `foo` from the on-condition with `foo2`.
-
-    // the described scenario didn't work because in a localized scenario, the localized `foo`
-    // association (pointing to `localized.Foo`) was compared to the non-localized version
-    // of the association (pointing to `Foo`) and hence, the alias was not properly replaced
-    const cqn = CQL`SELECT from Foo:boos { ID } where exists foo.specialOwners[owner2_userID = $user.id] or exists foo.activeOwners[owner_userID = $user.id]`
-    cqn.SELECT.localized = true
-    let query = cqn4sql(cqn, model)
-    // cleanup
-    delete cqn.SELECT.localized
-    const localized_ = cds.unfold ? '' : 'localized.'
-    expect(query).to.deep.equal(CQL(`
-    SELECT from localized.Boo as boos { boos.ID }
-        WHERE EXISTS (
-          SELECT 1 from localized.Foo as Foo3 where Foo3.ID = boos.foo_ID
-        ) and
-        (
-          EXISTS (
-            SELECT 1 from localized.Foo as foo where foo.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from ${localized_}SpecialOwner2 as specialOwners where specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id )
-          )
-          or EXISTS (
-            SELECT 1 from localized.Foo as foo2 where foo2.ID = boos.foo_ID
-              and EXISTS ( SELECT 1 from ${localized_}ActiveOwner as activeOwners where activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id )
-          )
-        )
-      `))
-  })
-})
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {

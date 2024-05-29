@@ -176,6 +176,8 @@ class JoinTree {
       i += 1 // skip first step which is table alias
     }
 
+    // if no root node was found, the column is selected from a subquery
+    if(!node) return
     while (i < col.ref.length) {
       const step = col.ref[i]
       const { where, args } = step
@@ -197,7 +199,7 @@ class JoinTree {
         }
         const child = new Node($refLink, node, where, args)
         if (child.$refLink.definition.isAssociation) {
-          if (child.where || col.inline) {
+          if (child.where || child.$refLink.definition.on || col.inline) {
             // filter is always join relevant
             // if the column ends up in an `inline` -> each assoc step is join relevant
             child.$refLink.onlyForeignKeyAccess = false
@@ -210,9 +212,11 @@ class JoinTree {
         const elements =
           node.$refLink?.definition.isAssociation &&
           (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
-        if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements)))
-          // foreign key access
+        if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements))) {
+          // no foreign key access
           node.$refLink.onlyForeignKeyAccess = false
+          col.$refLinks[i - 1] = node.$refLink
+        }
 
         node.children.set(id, child)
         node = child

@@ -3,7 +3,7 @@
 // this property holds either the corresponding csn definition to which the column refers
 // or an object - potentially with type information - for expressions or values.
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')

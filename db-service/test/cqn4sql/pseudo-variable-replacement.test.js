@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Pseudo Variables', () => {
@@ -87,6 +87,22 @@ describe('Pseudo Variables', () => {
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
                                                  and ( author.name = $user.name or author.dateOfDeath < $now )
       { Books.ID, author.dateOfBirth as author_dateOfBirth }
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
+  it('stay untouched in generated join', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.SimpleBook {
+      ID
+    } where activeAuthors.name = $user.name`,
+      model,
+    )
+
+    const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook
+      left outer join bookshop.Authors as activeAuthors on activeAuthors.ID = SimpleBook.author_ID and $now = $now and $user.id = $user.tenant
+      { SimpleBook.ID }
+      where activeAuthors.name = $user.name
     `
     expect(query).to.deep.equal(expected)
   })

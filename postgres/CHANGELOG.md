@@ -4,6 +4,49 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.8.0...postgres-v1.9.0) (2024-05-29)
+
+
+### Added
+
+* Add simple queries feature flag ([#660](https://github.com/cap-js/cds-dbs/issues/660)) ([3335202](https://github.com/cap-js/cds-dbs/commit/33352024201a96cc6bdfa30a0fe3fff4227dee10))
+
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.7.0...postgres-v1.8.0) (2024-05-08)
+
+
+### Added
+
+* select decimals as strings if cds.env.features.string_decimals ([#616](https://github.com/cap-js/cds-dbs/issues/616)) ([39addbf](https://github.com/cap-js/cds-dbs/commit/39addbfe01da757d86a4d65e62eda86e59fc9b87))
+
+
+### Fixed
+
+* Align all quote functions with @sap/cds-compiler ([#619](https://github.com/cap-js/cds-dbs/issues/619)) ([42e9828](https://github.com/cap-js/cds-dbs/commit/42e9828baf11ec55281ea634ce56ce93e6741b91))
+* Change `sql` property to `query` for errors ([#611](https://github.com/cap-js/cds-dbs/issues/611)) ([585577a](https://github.com/cap-js/cds-dbs/commit/585577a9817e7749fb71958c26c4bfa20981c663))
+* Improved placeholders and limit clause ([#567](https://github.com/cap-js/cds-dbs/issues/567)) ([d5d5dbb](https://github.com/cap-js/cds-dbs/commit/d5d5dbb7219bcef6134440715cf756fdd439f076))
+* Use json datatype for `INSERT` ([#582](https://github.com/cap-js/cds-dbs/issues/582)) ([f1c9c89](https://github.com/cap-js/cds-dbs/commit/f1c9c89036a7f8e4709c67d713d06926630aa36d))
+
+## [1.7.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.6.0...postgres-v1.7.0) (2024-04-12)
+
+
+### Added
+
+* Odata built-in query functions ([#558](https://github.com/cap-js/cds-dbs/issues/558)) ([6e63367](https://github.com/cap-js/cds-dbs/commit/6e6336757129c4a9dac56f93fd768bb41d071c46))
+
+## [1.6.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.1...postgres-v1.6.0) (2024-03-22)
+
+
+### Added
+
+* also support lowercase matchespattern function ([#528](https://github.com/cap-js/cds-dbs/issues/528)) ([6ea574e](https://github.com/cap-js/cds-dbs/commit/6ea574ee67ef5e42e4f8ccbe4fe91b46097de129))
+* forUpdate and forShareLock ([#148](https://github.com/cap-js/cds-dbs/issues/148)) ([99a1170](https://github.com/cap-js/cds-dbs/commit/99a1170e61de4fd0c505834c25a9c03fc34da85b))
+
+
+### Changed
+
+* use new cds build API @sap/cds-dk &gt;= 7.5.0 ([#508](https://github.com/cap-js/cds-dbs/issues/508)) ([ef22ebe](https://github.com/cap-js/cds-dbs/commit/ef22ebe68c6a554d4042a0a19bae3b2e1d56cb01))
+* this package now requires `@cap-js/db-service >= v1.7.0` ([#545](https://github.com/cap-js/cds-dbs/issues/545)) ([2cec27d](https://github.com/cap-js/cds-dbs/commit/2cec27d91402804c3b2da25cc7169f0d81a7406a))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.5.0...postgres-v1.5.1) (2024-02-16)
 
 
