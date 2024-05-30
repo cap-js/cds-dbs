@@ -18,13 +18,5 @@
     "genres": "cds serve test/genres.cds",
     "start": "cds run",
     "watch": "cds watch"
-  },
-  "cds": {
-    "requires": {
-      "db": "sql"
-    },
-    "features": {
-      "odata_new_adapter": true
-    }
   }
 }
