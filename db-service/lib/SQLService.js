@@ -367,10 +367,8 @@ class SQLService extends DatabaseService {
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
       !this.model?.definitions[_target_name4(q)]
-    ) {
-      return _unquirked(q)
-    }
-    return cqn4sql(q, this.model)
+    ) return q
+    else return cqn4sql(q, this.model)
   }
 
   /**
@@ -458,18 +456,6 @@ const _target_name4 = q => {
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
-}
-
-const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
-  if (!q) return q
-  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
-  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
-  return q
 }
 
 const sqls = new (class extends SQLService {

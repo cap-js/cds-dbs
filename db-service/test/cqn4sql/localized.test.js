@@ -1,4 +1,3 @@
-// process.env.CDS_ENV = 'better-sqlite'
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
