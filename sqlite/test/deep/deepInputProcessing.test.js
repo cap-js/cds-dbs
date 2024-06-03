@@ -133,7 +133,7 @@ describe('UUID Generation', () => {
     })
 
     const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild`)
-    expect(resRead.data).toMatchObject({
+    expect(resRead.data).to.containSubset({
       ID: uuid,
       name: null,
       toOneChild: null,
