@@ -12,8 +12,6 @@
   "devDependencies": {
     "@capire/sflight": "github:sap-samples/cap-sflight",
     "@sap/hana-client": "^2.16.26",
-    "@typescript-eslint/eslint-plugin": "^7.6.0",
-    "@typescript-eslint/parser": "^7.6.0",
     "axios": "^1",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
