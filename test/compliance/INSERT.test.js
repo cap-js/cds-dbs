@@ -1,3 +1,5 @@
+require('@sap/cds')
+
 describe('INSERT', () => {
   describe('into', () => {
     test.skip('missing', () => {

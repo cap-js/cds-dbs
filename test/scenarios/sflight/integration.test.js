@@ -19,7 +19,7 @@ describe('Integration', () => {
     require(path.resolve(sflightPath, 'test/odata.test.js'))
   })
 
-  xdescribe.each(dirs)('%s', dir => {
+  describe.skip.each(dirs)('%s', dir => {
     // Install all dev dependencies for the UI5 apps
     beforeAll(() => npm(`app/${dir}/`, ['ci']), 60 * 1000)
 

@@ -15,7 +15,7 @@ describe('UPDATE', () => {
   })
 
   describe('where', () => {
-    cds.test(__dirname + '/resources')
+    const {expect} = cds.test(__dirname + '/resources')
     test('flat with or on key', async () => {
       const entires = [
         {
@@ -29,7 +29,7 @@ describe('UPDATE', () => {
       ]
 
       const insert = await cds.run(INSERT.into(Books).entries(entires))
-      expect(insert.affectedRows).toEqual(2)
+      expect(insert.affectedRows).to.equal(2)
 
       const update = await cds.run(
         UPDATE.entity(Books)
@@ -43,7 +43,7 @@ describe('UPDATE', () => {
             },
           }),
       )
-      expect(update).toEqual(2)
+      expect(update).to.equal(2)
     })
     test.skip('missing', () => {
       throw new Error('not supported')
