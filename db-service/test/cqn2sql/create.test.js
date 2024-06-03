@@ -3,15 +3,15 @@ const cds = require('@sap/cds')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 const cqn = require('./cqn.js')
 
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
-  //csn = await getTestModel('testModel')
-})
-
 describe('create with select statements', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+    //csn = await getTestModel('testModel')
+  })
+
   xtest('Generate SQL from CREATE stmt with entity name + as SELECT stmt', () => {
     const cqnCreate = {
       CREATE: {

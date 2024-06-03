@@ -1,8 +1,8 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, DELETE, expect } = cds.test(__dirname, 'testModel.cds')
-
 describe('delete on rename', () => {
+  const { POST, DELETE, expect } = cds.test(__dirname, 'testModel.cds')
+
   test('delete on projection with renamed elements', async () => {
     let res
     res = await POST('/rename/SProjDeep', {

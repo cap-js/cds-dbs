@@ -4,10 +4,11 @@ function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
 }
 
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
-})
 describe('function', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  })
+
   test('contains complex', () => {
     const cqn = {
       SELECT: {

@@ -1,8 +1,8 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, PUT, sleep, expect } = cds.test(__dirname, 'model.cds')
-
 describe('Managed thingies', () => {
+  const { POST, PUT, sleep, expect } = cds.test(__dirname, 'model.cds')
+
   test('INSERT execute on db only', async () => {
     const db = await cds.connect.to('db')
     return db.tx(async () => {

@@ -1,7 +1,8 @@
 const cds = require('../../../test/cds.js')
-const { GET, POST, expect } = cds.test(__dirname, 'model.cds')
 
 describe('localized', () => {
+  const { GET, POST, expect } = cds.test(__dirname, 'model.cds')
+
   beforeAll(async () => {
     return await POST('/test/fooLocalized', {
       ID: 5,

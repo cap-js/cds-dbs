@@ -1,17 +1,18 @@
 const cds = require('../../../test/cds.js')
-const {expect} = cds.test(__dirname, 'model.cds')
-const { fs, path } = cds.utils
 const { Readable } = require('stream')
 
-const checkSize = async stream => {
-  let size = 0
-  for await (const chunk of stream) {
-    size += chunk.length
-  }
-  expect(size).to.equal(7891)
-}
-
 describe('streaming', () => {
+  const { expect } = cds.test(__dirname, 'model.cds')
+  const { fs, path } = cds.utils
+
+  const checkSize = async stream => {
+    let size = 0
+    for await (const chunk of stream) {
+      size += chunk.length
+    }
+    expect(size).to.equal(7891)
+  }
+
   describe('cds.stream', () => {
     beforeAll(async () => {
       let data = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
@@ -314,6 +315,7 @@ describe('streaming', () => {
         try {
           expect(changes).to.equal(2)
         } catch (e) {
+          e
           // @sap/hana-client does not allow for returning the number of affected rows
         }
 
@@ -357,6 +359,7 @@ describe('streaming', () => {
         try {
           expect(changes | 0).to.equal(count)
         } catch (e) {
+          e
           // @sap/hana-client does not allow for returning the number of affected rows
         }
       }))

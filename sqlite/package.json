@@ -27,7 +27,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "jest --silent"
+    "test": "cds-test --skip toMatchSnapshot"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.9.0",

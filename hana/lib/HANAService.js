@@ -117,7 +117,7 @@ class HANAService extends SQLService {
     const { query, data } = req
 
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch (e) { e }
     }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)

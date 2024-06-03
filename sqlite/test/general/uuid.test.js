@@ -1,7 +1,8 @@
 const cds = require('../../../test/cds.js')
-const {expect} = cds.test(__dirname, 'model.cds')
 
 describe('UUID Generation', () => {
+  const {expect} = cds.test(__dirname, 'model.cds')
+
   test('INSERT with one entry', async () => {
     const db = await cds.connect.to('db')
     return db.tx(async () => {

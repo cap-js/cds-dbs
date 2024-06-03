@@ -5,10 +5,11 @@ function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
 } 
 
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
-})
 describe('drop', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  })
+
   test('test drop table with string entity', () => {
     const { sql } = cqn2sql({
       DROP: {

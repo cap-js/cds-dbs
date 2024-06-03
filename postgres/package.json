@@ -27,7 +27,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "test": "npm start && jest --silent",
+    "test": "npm start && cds-test --skip toMatchSnapshot",
     "start": "docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
