@@ -1,6 +1,8 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const _simple_queries = cds.env.features.sql_simple_queries
+const _strict_booleans = _simple_queries < 2
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -9,6 +11,7 @@ const BINARY_TYPES = {
 }
 
 const { Readable } = require('stream')
+const { c } = require('@sap/cds/lib/utils/tar')
 
 const DEBUG = (() => {
   let DEBUG = cds.debug('sql-json')
@@ -258,10 +261,10 @@ class CQN2SQLRenderer {
     if (!SELECT.columns) return sql
 
     const isRoot = SELECT.expand === 'root'
-    const isSimple = cds.env.features.sql_simple_queries &&
+    const isSimple = _simple_queries &&
       isRoot && // Simple queries are only allowed to have a root
       !ObjectKeys(q.elements).some(e =>
-        q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
+        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
         q.elements[e].isAssociation || // Indicates columns contains an expand
         q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
         q.elements[e].items // Array types require to be inlined with a json result
