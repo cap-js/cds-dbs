@@ -21,6 +21,14 @@ const BINARY_TYPES = {
 
 class SQLService extends DatabaseService {
   init() {
+    this.on(['UPDATE', 'DELETE'], ({ query}, next) => {
+      const cqn = query.UPDATE ?? query.DELETE
+      if (!cqn.where && !cqn.from?.ref.at(-1).where && !cqn.entity?.ref.at(-1).where) {
+        const op = query.DELETE ? 'delete' : 'update'
+        return cds.error(`Trying to ${op} all entites. Call .where(...) explicitely, to ${op} all entities.`)
+      }
+      return next()
+    })
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
@@ -33,8 +41,8 @@ class SQLService extends DatabaseService {
           operation.columns ||
           Object.keys(
             operation.data || operation.entries?.reduce((acc, obj) => {
-              return Object.assign(acc, obj)
-            }, {}),
+                return Object.assign(acc, obj)
+              }, {}),
           )
         const invalidColumns = columns.filter(c => !(c in elements))
 
@@ -232,8 +240,8 @@ class SQLService extends DatabaseService {
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
-                `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
-                `These are not supported by deep delete.`,
+                  `  ${visited.join(' > ')} > ${c._target.name} \n\n` +
+                  `These are not supported by deep delete.`,
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
@@ -461,16 +469,16 @@ const _target_name4 = q => {
 }
 
 const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
-  if (!q) return q
-  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
-  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
-  return q
-}
+      if (!q) return q
+      else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
+      else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
+      else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
+      else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
+      else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
+      else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
+      else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
+      return q
+    }
 
 const sqls = new (class extends SQLService {
   get factory() {
