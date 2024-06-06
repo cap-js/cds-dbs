@@ -6,7 +6,7 @@ exports[`delete test simple cascade delete for entity with 'not exists' 1`] = `"
 
 exports[`delete test simple cascade delete for entity with 'not in' 1`] = `"DELETE FROM Foo as Foo WHERE Foo.x not in (SELECT Foo2.a FROM Foo2 as Foo2)"`;
 
-exports[`delete test with from entity 1`] = `"DELETE FROM Foo as Foo"`;
+exports[`delete test with from entity 1`] = `"DELETE FROM Foo as Foo WHERE ? = ?"`;
 
 exports[`delete test with from ref 1`] = `"DELETE FROM Foo as Foo"`;
 

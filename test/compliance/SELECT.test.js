@@ -255,7 +255,7 @@ describe('SELECT', () => {
       const entity = `basic.literals.dateTime`
       const dateTime = '1970-02-02T10:09:34Z'
       const timestamp = dateTime.slice(0, -1) + '.000Z'
-      await DELETE.from(entity)
+      await DELETE.from(entity).where('1=1')
       await INSERT({ dateTime }).into(entity)
       const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
       assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
