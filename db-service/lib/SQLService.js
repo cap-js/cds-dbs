@@ -23,7 +23,7 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['UPDATE', 'DELETE'], ({ query}, next) => {
       const cqn = query.UPDATE ?? query.DELETE
-      if (!cqn.where && !cqn.from?.ref.at(-1).where && !cqn.entity?.ref.at(-1).where) {
+      if (!cqn.where && !cqn.from?.ref?.at(-1).where && !cqn.entity?.ref?.at(-1).where) {
         const op = query.DELETE ? 'delete' : 'update'
         return cds.error(`Trying to ${op} all entites. Call .where(...) explicitely, to ${op} all entities.`)
       }
