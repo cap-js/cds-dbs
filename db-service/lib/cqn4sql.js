@@ -45,7 +45,7 @@ const { pseudos } = require('./infer/pseudos')
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
-  const hasCustomJoins = originalQuery.SELECT?.from.args && !originalQuery.joinTree
+  const hasCustomJoins = originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
