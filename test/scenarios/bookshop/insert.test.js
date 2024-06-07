@@ -35,5 +35,11 @@ describe('Bookshop - Insert', () => {
     const res = await SELECT.from('sap.capire.bookshop.Books').where('ID in', [4711, 4712])
     expect(res).to.have.length(2)
   })
+
+  test('insert with arrayed elements', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const resp = await cds.run(INSERT({ footnotes: ['first', 'second'], ID: 121, title: 'Guiness Book of World Records' }).into(Books))
+    expect(resp | 0).to.be.eq(1)
+  })
     
 })
