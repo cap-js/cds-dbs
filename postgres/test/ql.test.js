@@ -180,7 +180,7 @@ describe('QL to PostgreSQL', () => {
 
     test('-> multiple rows', async () => {
       const { Beers } = cds.entities('csw')
-      const affectedRows = await cds.run(UPDATE(Beers).set({ abv: 1.0 }))
+      const affectedRows = await cds.run(UPDATE(Beers).set({ abv: 1.0 })).where('1=1')
       expect(affectedRows).to.equal(11)
     })
   })
