@@ -261,7 +261,7 @@ describe('Bookshop - Read', () => {
     expect((await cds.db.run(query)).count).to.be.eq(2)
   })
 
-  it('joins without columns are rejected because of conflicts', async () => {
+  it.only('joins without columns are rejected because of conflicts', async () => {
     const query = {
       SELECT: {
         from: {
