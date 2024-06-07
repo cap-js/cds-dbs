@@ -127,9 +127,13 @@ class SQLiteService extends SQLService {
     stmt = stmt.__proto__ || stmt
     stmt.raw(true)
     const get = stmt.get(binding_params)
-    // if (!get) return []
+    if (!get) return []
     const rs = stmt.iterate(binding_params)
-    return Readable.from(this._iterator(rs, one), { objectMode: false })
+    const stream = Readable.from(this._iterator(rs, one), { objectMode: false })
+    stream.on('close', () => {
+      rs.return() // finish result set when closed early
+    })
+    return stream
   }
 
   exec(sql) {
