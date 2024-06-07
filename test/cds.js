@@ -14,7 +14,7 @@ typeMapping.cdsToSqlTypes.postgres = {
   'cds.hana.ST_GEOMETRY': 'POLYGON',
 }
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 module.exports = cds
 
 // Adding cds.hana types to cds.builtin.types

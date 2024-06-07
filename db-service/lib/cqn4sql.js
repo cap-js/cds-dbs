@@ -1,6 +1,6 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
@@ -1792,6 +1792,10 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
+              if (res in pseudos.elements) {
+                thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
+                return pseudos.elements[res]
+              }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
@@ -1820,8 +1824,9 @@ function cqn4sql(originalQuery, model) {
               lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else {
-            const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
-            const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
+            const lhsLeafArt = lhs.ref && lhs.$refLinks.at(-1).definition
+            const rhsLeafArt = rhs.ref && rhs.$refLinks.at(-1).definition
+            // compare structures in on-condition
             if ((lhsLeafArt?.target && rhsLeafArt?.target) || (lhsLeafArt?.elements && rhsLeafArt?.elements)) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
@@ -1878,7 +1883,7 @@ function cqn4sql(originalQuery, model) {
           }
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
-        } else if (lhs.ref) {
+        } else if (lhs.ref && lhs.$refLinks[0]?.target !== pseudos) {
           if (lhs.ref[0] === '$self') {
             // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
@@ -1886,11 +1891,7 @@ function cqn4sql(originalQuery, model) {
             // otherwise $self is replaced by the alias of the entity
             else result[i].ref.splice(0, 1, targetSideRefLink.alias)
           } else if (lhs.ref.length > 1) {
-            if (
-              !(lhs.ref[0] in pseudos.elements) &&
-              lhs.ref[0] !== assocRefLink.alias &&
-              lhs.ref[0] !== targetSideRefLink.alias
-            ) {
+            if (lhs.ref[0] !== assocRefLink.alias && lhs.ref[0] !== targetSideRefLink.alias) {
               // we need to find correct table alias for the structured access
               const { definition } = lhs.$refLinks[0]
               if (definition === assocRefLink.definition) {
@@ -1904,7 +1905,8 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
               }
             }
-          } else if (lhs.ref.length === 1) result[i].ref.unshift(targetSideRefLink.alias)
+          } else if (lhs.ref.length === 1)
+            result[i].ref.unshift(targetSideRefLink.alias)
         }
       }
       return result
@@ -2198,10 +2200,10 @@ module.exports = Object.assign(cqn4sql, {
 function calculateElementName(token) {
   const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
   let name
-  if (nonJoinRelevantAssoc)
+  if (nonJoinRelevantAssoc !== -1)
     // calculate fk name
     name = token.ref.slice(nonJoinRelevantAssoc).join('_')
-  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
   return name
 }
 

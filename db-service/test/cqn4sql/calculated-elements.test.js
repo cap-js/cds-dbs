@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Unfolding calculated elements in select list', () => {
@@ -369,7 +369,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author 
+          SELECT from booksCalc.Authors as author
           left join booksCalc.Addresses as address on address.ID = author.address_ID
           {
             author.firstName || ' ' || author.lastName as name,
@@ -392,7 +392,7 @@ describe('Unfolding calculated elements in select list', () => {
         author.firstName || ' ' || author.lastName as author_name,
         address.street || ', ' || address.city as author_addressText,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -413,7 +413,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -522,7 +522,7 @@ describe('Unfolding calculated elements in select list', () => {
     const expected = CQL`
     SELECT from (
       SELECT from booksCalc.Simple as Simple
-      left join booksCalc.Simple as my on my.ID = Simple.my_ID 
+      left join booksCalc.Simple as my on my.ID = Simple.my_ID
         {
           Simple.ID,
           Simple.name,
@@ -549,7 +549,7 @@ describe('Unfolding calculated elements in select list', () => {
     const expected = CQL`
     SELECT from (
       SELECT from booksCalc.Simple as Simple
-      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID 
+      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID
         {
           Simple.ID,
           Simple.name,
@@ -611,7 +611,7 @@ describe('Unfolding calculated elements in select list', () => {
       authorName,
       authorFullName,
       authorAge
-    } 
+    }
     `,
       model,
     )
@@ -743,7 +743,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price}
-    } 
+    }
     `,
       model,
     )
@@ -790,7 +790,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price, youngAuthorName}
-    } 
+    }
     `,
       model,
     )
@@ -883,7 +883,7 @@ describe('Unfolding calculated elements in other places', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
     const expected = CQL`SELECT from booksCalc.Books as books {
       books.ID
-    } where exists (select 1 from booksCalc.Authors as Authors 
+    } where exists (select 1 from booksCalc.Authors as Authors
                       where Authors.ID = books.author_ID
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
                         and (books.stock * ((books.length * books.width) * books.height)) < 4

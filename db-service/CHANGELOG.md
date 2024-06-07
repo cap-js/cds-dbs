@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.2...db-service-v1.10.0) (2024-05-29)
+
+
+### Added
+
+* Add simple queries feature flag ([#660](https://github.com/cap-js/cds-dbs/issues/660)) ([3335202](https://github.com/cap-js/cds-dbs/commit/33352024201a96cc6bdfa30a0fe3fff4227dee10))
+
+## [1.9.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.1...db-service-v1.9.2) (2024-05-28)
+
+
+### Fixed
+
+* do not prepend table alias to session variables ([#656](https://github.com/cap-js/cds-dbs/issues/656)) ([24e8b19](https://github.com/cap-js/cds-dbs/commit/24e8b1995aff3ea971e22849d2f85605f45b0a26))
+
+## [1.9.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.0...db-service-v1.9.1) (2024-05-16)
+
+
+### Fixed
+
+* dont mistake non-key access with foreign key ([#642](https://github.com/cap-js/cds-dbs/issues/642)) ([2cd2349](https://github.com/cap-js/cds-dbs/commit/2cd234994d6a9e99765e56f7548a42a35279a790))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.8.0...db-service-v1.9.0) (2024-05-08)
 
 

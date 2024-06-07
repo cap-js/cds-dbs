@@ -4,9 +4,8 @@ const _cqn4sql = require('../../lib/cqn4sql')
 function cqn4sql(q, model = cds.model) {
   return _cqn4sql(q, model)
 }
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
-const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 
 describe('Unfold expands on structure', () => {
   beforeAll(async () => {
@@ -282,36 +281,6 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
-  it('nested expand with unmanaged backlink', () => {
-    let expandQuery = SELECT.localized `from bookshop.DataRestrictions {
-      *,
-      dataRestrictionAccessGroups {
-        dataRestrictionID,
-        accessGroupID,
-        accessGroup {
-          ID
-        }
-      }
-    }`
-    let expected = CQL(`
-      SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictions as DataRestrictions {
-        DataRestrictions.ID,
-        (
-          SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
-            dataRestrictionAccessGroups.dataRestrictionID,
-            dataRestrictionAccessGroups.accessGroupID,
-            (
-              SELECT from localized.bookshop.AccessGroups as accessGroup {
-                accessGroup.ID
-              } where accessGroup.ID = dataRestrictionAccessGroups.accessGroupID
-            ) as accessGroup
-          } where DataRestrictions.ID = dataRestrictionAccessGroups.dataRestrictionID
-        ) as dataRestrictionAccessGroups
-      }
-    `)
-    // seems to only happen with the `for.nodejs(…)` compiled model
-    expect(cds.clone(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))).to.deep.equal(expected)
-  })
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
     const q = {
