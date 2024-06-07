@@ -114,7 +114,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data } = req
+    const { query, data, hasPostProcessing } = req
 
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
@@ -134,11 +134,13 @@ class HANAService extends SQLService {
     delete query.SELECT.expand
 
     const isSimple = temporary.length + blobs.length + withclause.length === 0
+    const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
+    const canStream = hasPostProcessing === false && !isLockQuery
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
+    let rows = (values?.length || blobs.length > 0 || canStream)
+      ? await (await this.prepare(sqlScript, blobs.length))[canStream ? 'stream' : 'all'](values || [], isOne)
       : await this.exec(sqlScript)
 
     if (isLockQuery) {
@@ -156,7 +158,7 @@ class HANAService extends SQLService {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return isOne && !canStream ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {

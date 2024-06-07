@@ -114,29 +114,15 @@ class HDBDriver extends driver {
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
-      const cols = rs.metadata
-      // If the query only returns a single row with a single blob it is the final stream
-      if (cols.length === 1 && cols[0].length === -1) {
-        const rowStream = rs.createObjectStream()
-        const { done, value } = await rowStream[Symbol.asyncIterator]().next()
-        if (done || !value[cols[0].columnName]) return null
-        const blobStream = value[cols[0].columnName].createReadStream()
-        blobStream.on('close', () => {
-          rowStream.end()
-          rs.close()
-        })
-        return blobStream
-      }
-      // Create ResultSet stream from ResultSet iterator
-      return Readable.from(rsIterator(rs, one))
+      return Readable.from(rsIterator(rs, one), { objectMode: false })
     }
     return ret
   }
 
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
-    const isArray = Array.isArray(rows)        
-    const result = isArray ? {...rows[0]} : {...rows}
+    const isArray = Array.isArray(rows)
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
     const args = isArray ? rows.slice(1) : []
@@ -146,7 +132,7 @@ class HDBDriver extends driver {
         result[params[i].PARAMETER_NAME] = args[i]
       }
     }
-  
+
     return result
   }
 

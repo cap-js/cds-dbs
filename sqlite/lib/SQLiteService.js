@@ -77,7 +77,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._allStream(stmt, ..._),
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -99,6 +99,7 @@ class SQLiteService extends SQLService {
   }
 
   async *_iterator(rs, one) {
+    const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -109,13 +110,26 @@ class SQLiteService extends SQLService {
       return
     }
 
-    yield '['
+    let buffer = '[' + first.value[0]
     // Print first value as stand alone to prevent comma check inside the loop
-    yield first.value[0]
     for (const row of rs) {
-      yield `,${row[0]}`
+      buffer += `,${row[0]}`
+      if (buffer.length > pageSize) {
+        yield buffer
+        buffer = ''
+      }
     }
-    yield ']'
+    buffer += ']'
+    yield buffer
+  }
+
+  async _allStream(stmt, binding_params, one) {
+    stmt = stmt.__proto__ || stmt
+    stmt.raw(true)
+    const get = stmt.get(binding_params)
+    // if (!get) return []
+    const rs = stmt.iterate(binding_params)
+    return Readable.from(this._iterator(rs, one), { objectMode: false })
   }
 
   exec(sql) {

@@ -113,7 +113,7 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
+  async onSELECT({ query, data, hasPostProcessing }) {
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
@@ -125,9 +125,10 @@ class SQLService extends DatabaseService {
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
     delete query.SELECT.expand
+    const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await ps.all(values)
+    let rows = await hasPostProcessing === false ? ps.stream(values, isOne) : ps.all(values)
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
@@ -153,7 +154,7 @@ class SQLService extends DatabaseService {
       return SQLService._arrayWithCount(rows, await this.count(query, rows))
     }
 
-    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return hasPostProcessing !== false && isOne ? rows[0] : rows
   }
 
   /**
