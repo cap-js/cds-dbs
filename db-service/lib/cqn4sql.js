@@ -45,8 +45,9 @@ const { pseudos } = require('./infer/pseudos')
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const hasCustomJoins = originalQuery.SELECT?.from.args && !originalQuery.joinTree
 
-  if (inferred.SELECT?.search) {
+  if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
     if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
     const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
@@ -61,7 +62,7 @@ function cqn4sql(originalQuery, model) {
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
   //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
-  if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return originalQuery
+  if (hasCustomJoins) return originalQuery
 
   let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
