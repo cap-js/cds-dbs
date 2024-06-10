@@ -646,7 +646,7 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${INSERT.into.as ? ` AS ${this.quote(INSERT.into.as)}` : ''} (${this.columns.map(c =>
         this.quote(c),
       )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR)`)
