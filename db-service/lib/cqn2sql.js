@@ -32,6 +32,12 @@ class CQN2SQLRenderer {
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
     this.model = srv?.model
+
+    // Overwrite smart quoting
+    if (cds.env.cdsc.sqlMapping === 'quoted') {
+      this.class.prototype.name = (name) => name.id || name
+      this.class.prototype.quote = (s) => `"${s.replace(/"/g, '""')}"`
+    }
   }
 
   static _add_mixins(aspect, mixins) {
