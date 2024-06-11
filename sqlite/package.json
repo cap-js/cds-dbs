@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=16",
+    "node": ">=18",
     "npm": ">=8"
   },
   "scripts": {
