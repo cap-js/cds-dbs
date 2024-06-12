@@ -138,12 +138,12 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows 
+    let rows
     if (values?.length || blobs.length > 0) {
-      const ps = await this[explain ? 'prepare_planviz' : 'prepare'](sqlScript, blobs.length)
+      const ps = await this[explain ? 'prepare_planviz' : 'prepare'](sqlScript, blobs.length, explain)
       rows = this.ensureDBC() && await ps.all(values || [])
     } else {
-      rows = await this[explain ? 'exec_planviz' : 'exec'](sqlScript)
+      rows = await this[explain ? 'exec_planviz' : 'exec'](sqlScript, explain)
     }
 
     if (isLockQuery) {
@@ -155,7 +155,7 @@ class HANAService extends SQLService {
     }
 
     if (rows.length && !isSimple) {
-      rows = this.parseRows(rows)
+      // rows = this.parseRows(rows)
     }
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
@@ -215,7 +215,7 @@ class HANAService extends SQLService {
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
     const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
     DEBUG?.(ret)
-    return ret
+    return ret + ' WITH HINT( USE_HEX_PLAN, NO_HEX_SHARED_SUBPLAN )'
   }
 
   // Structure flat rows into expands and include raw blobs as raw buffers
@@ -620,7 +620,7 @@ GROUP BY FILE_NAME`
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          ? `(SELECT ${sql} FROM DUMMY FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
