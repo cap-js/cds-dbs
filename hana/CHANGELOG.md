@@ -4,6 +4,31 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.4.0...hana-v0.5.0) (2024-05-29)
+
+
+### Added
+
+* simple queries ([#654](https://github.com/cap-js/cds-dbs/issues/654)) ([ba77f9e](https://github.com/cap-js/cds-dbs/commit/ba77f9e4bdee8793b9e661fc7db2fa04854d8d01))
+
+## [0.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.3.0...hana-v0.4.0) (2024-05-16)
+
+
+### Added
+
+* Allow hex engine to be used ([#641](https://github.com/cap-js/cds-dbs/issues/641)) ([bca0c01](https://github.com/cap-js/cds-dbs/commit/bca0c012f8dfe0fcf526db2a6197eb86d7d4c8cc))
+
+
+### Fixed
+
+* Improve comparator check for combined and nested expressions ([#632](https://github.com/cap-js/cds-dbs/issues/632)) ([8e1cb4b](https://github.com/cap-js/cds-dbs/commit/8e1cb4b030ac84ffc9b13b52d6dac7850f300c9a))
+* Support multi byte characters ([#639](https://github.com/cap-js/cds-dbs/issues/639)) ([4cfa77f](https://github.com/cap-js/cds-dbs/commit/4cfa77f437c50afffec39e45ff795c732dfbe10a))
+
+
+### Changed
+
+* `@sap/hana-client` optional peer dependency ([#631](https://github.com/cap-js/cds-dbs/issues/631)) ([89d7149](https://github.com/cap-js/cds-dbs/commit/89d7149b5c6dc86315e8a0d767d0e95c12dcc55f))
+
 ## [0.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.2.0...hana-v0.3.0) (2024-05-08)
 
 

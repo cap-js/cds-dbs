@@ -91,6 +91,22 @@ describe('Pseudo Variables', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('stay untouched in generated join', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.SimpleBook {
+      ID
+    } where activeAuthors.name = $user.name`,
+      model,
+    )
+
+    const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook
+      left outer join bookshop.Authors as activeAuthors on activeAuthors.ID = SimpleBook.author_ID and $now = $now and $user.id = $user.tenant
+      { SimpleBook.ID }
+      where activeAuthors.name = $user.name
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
   it('stay untouched in where exists', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books {
