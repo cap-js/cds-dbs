@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('table alias access', () => {
   let model
@@ -18,9 +18,59 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
-    it('omits alias for anonymous query which selects from other query', () => {
+    it('creates unique alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
-      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) { ID }`)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`,
+      )
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID } )`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { __select__.ID }) as __select__2 { __select__2.ID }`,
+      )
+    })
+    it('the unique alias for anonymous query does not collide with user provided aliases in case of joins', () => {
+      let query = cqn4sql(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID, author } ) { author.name }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from (
+        SELECT from bookshop.Books as __select__ { __select__.ID, __select__.author_ID }
+      ) as __select__2 left join bookshop.Authors as author on author.ID = __select__2.author_ID
+      {
+        author.name as author_name
+      }`)
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases nested', () => {
+      // author association bubbles up to the top query where the join finally is done
+      // --> note that the most outer query uses user defined __select__ alias
+      let query = cqn4sql(
+        CQL`
+      SELECT from (
+        SELECT from (
+          SELECT from bookshop.Books { ID, author }
+        )
+      ) as __select__
+      {
+        __select__.author.name
+      }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.ID, Books.author_ID }
+            ) as __select__2 { __select__2.ID, __select__2.author_ID }
+        ) as __select__ left join bookshop.Authors as author on author.ID = __select__.author_ID
+        {
+          author.name as author_name
+        }`,
+      )
     })
 
     it('preserves table alias at field access', () => {
@@ -235,9 +285,9 @@ describe('table alias access', () => {
       {
         ![FROM].title as group,
       }
-      where ![FROM].title = 'foo' 
+      where ![FROM].title = 'foo'
       group by ![FROM].title
-      having ![FROM].title = 'foo' 
+      having ![FROM].title = 'foo'
       order by ![FROM].title
       `)
     })
@@ -444,39 +494,35 @@ describe('table alias access', () => {
       }
       ORDER BY Books.title, Books.title`)
     })
-    it('dont try to prepend table alias if we select from anonymous subquery', async () => {
+    it('prepend artificial table alias if we select from anonymous subquery', async () => {
       const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
-      const query = SELECT.localized
-        .columns('ID', 'title', 'author')
-        .from(subquery)
-        .orderBy('title')
-        .groupBy('title')
-  
+      const query = SELECT.localized.columns('ID', 'title', 'author').from(subquery).orderBy('title').groupBy('title')
+
       query.SELECT.count = true
-  
+
       const res = cqn4sql(query, model)
 
       const expected = CQL`
         SELECT from
-          (SELECT 
-            SimpleBook.ID, 
-            SimpleBook.title, 
+          (SELECT
+            SimpleBook.ID,
+            SimpleBook.title,
             SimpleBook.author_ID
             from bookshop.SimpleBook as SimpleBook
             order by SimpleBook.title
-          )
+          ) __select__
         {
-          ID,
-          title,
-          author_ID
+          __select__.ID,
+          __select__.title,
+          __select__.author_ID
         }
-        group by title
-        order by title
+        group by __select__.title
+        order by __select__.title
       `
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
     })
     it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
-      const query = CQL`SELECT from bookshop.Books { 
+      const query = CQL`SELECT from bookshop.Books {
         title,
         title as foo,
         author.name as author
@@ -561,7 +607,6 @@ describe('table alias access', () => {
       { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
       expect(query).to.deep.equal(expected)
     })
-  
   })
 
   describe('replace usage of implicit aliases in subqueries', () => {
@@ -775,7 +820,7 @@ describe('table alias access', () => {
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
             (SELECT from bookshop.Books as Books2 { Books2.author_ID,
-              (SELECT from bookshop.Books as Books3 { 
+              (SELECT from bookshop.Books as Books3 {
                 (SELECT from bookshop.Authors as author {
                   (SELECT from bookshop.Books as books4 {
                     books4.ID
@@ -836,7 +881,7 @@ describe('table alias access', () => {
         }`,
       )
     })
-    it('no alias for function args or expressions on top of anonymous subquery', () => {
+    it('prepends unique alias for function args or expressions on top of anonymous subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from ( SELECT from bookshop.Orders ) {
           sum(ID) as foo,
@@ -849,9 +894,9 @@ describe('table alias access', () => {
           SELECT from bookshop.Orders as Orders {
             Orders.ID
           }
-        ) {
-          sum(ID) as foo,
-          ID + 42 as anotherFoo
+        ) as __select__ {
+          sum(__select__.ID) as foo,
+          __select__.ID + 42 as anotherFoo
         }`,
       )
     })
@@ -874,7 +919,7 @@ describe('table alias access', () => {
           SELECT from bookshop.Books as Books {
             sum(Books.stock) as totalStock,
             Books.ID,
-            Books.stock, 
+            Books.stock,
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,

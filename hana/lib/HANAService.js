@@ -30,6 +30,7 @@ class HANAService extends SQLService {
     this.on(['BEGIN'], this.onBEGIN)
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
+    this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
     return super.init()
   }
 
@@ -99,7 +100,7 @@ class HANAService extends SQLService {
   }
 
   ensureDBC() {
-    return this.dbc || cds.error`Database is disconnected`
+    return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
   }
 
   async set(variables) {
@@ -132,11 +133,17 @@ class HANAService extends SQLService {
     const { cqn, sql, temporary, blobs, withclause, values } = this.cqn2sql(query, data)
     delete query.SELECT.expand
 
+    const isSimple = temporary.length + blobs.length + withclause.length === 0
+
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = isLockQuery ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+    const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let rows 
+    if (values?.length || blobs.length > 0) {
+      const ps = await this.prepare(sqlScript, blobs.length)
+      rows = this.ensureDBC() && await ps.all(values || [])
+    } else {
+      rows = await this.exec(sqlScript)
+    }
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -146,14 +153,14 @@ class HANAService extends SQLService {
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
-    if (rows.length) {
+    if (rows.length && !isSimple) {
       rows = this.parseRows(rows)
     }
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] || null : rows
+    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -164,9 +171,9 @@ class HANAService extends SQLService {
       // HANA driver supports batch execution
       const results = await (entries
         ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
-        : ps.run())
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
@@ -181,6 +188,19 @@ class HANAService extends SQLService {
     }
   }
 
+  async onNOTFOUND(req, next) {
+    try {
+      return await next()
+    } catch (err) {
+      // Ensure that the known entity still exists
+      if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
+        // Clear current tenant connection pool
+        this.disconnect(this.context.tenant)
+      }
+      throw err
+    }
+  }
+
   // Allow for running complex expand queries in a single statement
   wrapTemporary(temporary, withclauses, blobs) {
     const blobColumn = b => `"${b.replace(/"/g, '""')}"`
@@ -192,7 +212,7 @@ class HANAService extends SQLService {
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + ' ORDER BY "_path_" ASC')
+    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
     DEBUG?.(ret)
     return ret
   }
@@ -237,11 +257,13 @@ class HANAService extends SQLService {
           } else {
             // REVISIT: identify why sometimes not all parent rows are returned
             level.data.push?.(data)
-            levels.push({
-              data: data,
-              path: row._path_,
-              expands,
-            })
+            if (row._path_ !== level.path) {
+              levels.push({
+                data: data,
+                path: row._path_,
+                expands,
+              })
+            }
             break
           }
         } else {
@@ -306,7 +328,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      const { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
@@ -339,15 +361,22 @@ class HANAService extends SQLService {
 
         if (orderBy) {
           // Ensure that all columns used in the orderBy clause are exposed
-          orderBy.forEach(c => {
+          orderBy = orderBy.map((c, i) => {
+            if (!c.ref) {
+              c.as = `$$ORDERBY_${i}$$`
+              columns.push(c)
+              return { __proto__: c, ref: [c.as], sort: c.sort }
+            }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
-              if (!columns.find(c => c.ref + '' === ref)) {
-                const clone = { __proto__: c, ref: c.ref }
-                columns.push(clone)
+              const match = columns.find(col => col.ref + '' === ref)
+              if (!match) {
+                c.as = `$$${c.ref.join('.')}$$`
+                columns.push(c)
               }
-              c.ref = [c.ref[1]]
+              return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            return c
           })
         }
 
@@ -419,7 +448,7 @@ class HANAService extends SQLService {
       q.SELECT.one = one
       q.SELECT.limit = limit
 
-      if (expand === 'root') {
+      if (expand === 'root' && this._outputColumns) {
         this.cqn = q
         const fromSQL = this.from({ ref: [alias] })
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
@@ -453,6 +482,7 @@ class HANAService extends SQLService {
                 let fkeys = x.element._foreignKeys
                 if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
                 fkeys.forEach(k => {
+                  if (!k?.parentElement?.name) return // not all associations have foreign key references
                   if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
                     parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
                   }
@@ -460,7 +490,7 @@ class HANAService extends SQLService {
 
                 x.SELECT.from = {
                   join: 'inner',
-                  args: [{ ref: [parent.alias], as: parent.as }, x.SELECT.from],
+                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
                   on: x.SELECT.where,
                   as: x.SELECT.from.as,
                 }
@@ -506,6 +536,15 @@ class HANAService extends SQLService {
         this._blobs = blobs
         const blobColumns = Object.keys(blobs)
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
+        if (
+          cds.env.features.sql_simple_queries &&
+          structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
+          !q?.src?.SELECT?.parent &&
+          this.temporary.length === 0
+        ) {
+          return `${sql}`
+        }
+
         expands = this.string(JSON.stringify(expands))
         blobs = this.string(JSON.stringify(blobs))
         // When using FOR JSON the whole dataset is put into a single blob
@@ -513,31 +552,31 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM DUMMY FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) AS "_json_"`
-          : `TO_NCLOB('{}') AS "_json_"`
+          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          : `'{}'`
 
         let jsonColumn = rawJsonColumn
         if (structures.length) {
           // Appending the structured columns to prevent them from being quoted and escaped
           // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
           const structuresConcat = structures
-            .map(x => {
+            .map((x, i) => {
               const name = this.column_name(x)
-              return `',"${name}":' || COALESCE(${this.quote(name)},'null')`
+              return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
             })
             .join(' || ')
           jsonColumn = sql.length
-            ? `SUBSTRING("_json_", 1, LENGTH("_json_") - 1) || ${structuresConcat} || '}' as "_json_"`
-            : `'{' || '${structuresConcat.substring(2)} || '}' as "_json_"`
+            ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
+            : `${structuresConcat} || '}'`
         }
 
         // Calculate final output columns once
         let outputColumns = ''
-        outputColumns = `_path_ as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn}`
+        outputColumns = `_path_ as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
         if (blobColumns.length)
           outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
         this._outputColumns = outputColumns
-        sql = `*,${path} as _path_,${rawJsonColumn}`
+        sql = `*,${path} as _path_`
       }
       return sql
     }
@@ -707,10 +746,15 @@ class HANAService extends SQLService {
       )
     }
 
+    limit({ rows, offset }) {
+      rows = { param: false, __proto__: rows }
+      return super.limit({ rows, offset })
+    }
+
     where(xpr) {
       xpr = { xpr }
-      const suffix = this.is_comparator(xpr) ? '' : ' = TRUE'
-      return `${this.xpr(xpr)}${suffix}`
+      const suffix = this.is_comparator(xpr)
+      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
@@ -723,9 +767,9 @@ class HANAService extends SQLService {
       const compareOperators = {
         '==': true,
         '!=': false,
+
         // These operators are not allowed in column expressions
         /* REVISIT: Only adjust these operators when inside the column expression
-        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -741,9 +785,31 @@ class HANAService extends SQLService {
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
-            // Convert =, == and != into is (not) null operator where required
-            x = xpr[i] = super.operator(xpr[i], i, xpr)
+            // IS (NOT) NULL translation when required
+            if (x === '=' || x === '!=') {
+              const left = xpr[i - 1]
+              const right = xpr[i + 1]
+              const leftType = left?.element?.type
+              const rightType = right?.element?.type
+              // Prevent HANA from throwing and unify nonsense behavior
+              if (left?.val === null && rightType in lobTypes) {
+                left.param = false // Force null to be inlined
+                xpr[i + 1] = { param: false, val: null } // Remove illegal type ref for compare operator
+              }
+              if (right?.val === null) {
+                if (
+                  !leftType || // Literal translation when left hand type is unknown
+                  leftType in lobTypes
+                ) {
+                  xpr[i] = x = x === '=' ? 'IS' : 'IS NOT'
+                  right.param = false // Force null to be inlined
+                } else {
+                  x = x === '=' ? '==' : '!='
+                }
+              }
+            }
 
+            // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
             if (x in compareOperators) {
@@ -751,6 +817,7 @@ class HANAService extends SQLService {
               const left = xpr[i - 1]
               const right = xpr[i + 1]
               const ifNull = compareOperators[x]
+              x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
 
@@ -766,7 +833,8 @@ class HANAService extends SQLService {
                   xpr: [
                     'CASE',
                     'WHEN',
-                    ...[left, 'IS', 'NULL', 'AND', right, 'IS', 'NULL'],
+                    // coalesce is used to match the left and right hand types in case one is a placeholder
+                    ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
                     { val: ifNull },
                     'ELSE',
@@ -780,7 +848,7 @@ class HANAService extends SQLService {
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ''
+              xpr[i + 1] = ' = TRUE'
             }
           }
         }
@@ -821,7 +889,7 @@ class HANAService extends SQLService {
         up in logicOperators &&
         !this.is_comparator({ xpr }, i - 1)
       ) {
-        return ` = TRUE ${x}`
+        return ` = ${this.val({ val: true })} ${x}`
       }
       if (
         (up === 'LIKE' && is_regexp(xpr[i + 1]?.val)) ||
@@ -854,7 +922,12 @@ class HANAService extends SQLService {
           if (up in caseOperators) break
           continue
         }
-        if ('xpr' in cur) return this.is_comparator(cur)
+        if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
+        if ('_internal' in cur) return true
+        if ('xpr' in cur) {
+          const nested = this.is_comparator(cur)
+          if (nested) return true
+        }
       }
       return false
     }
@@ -877,7 +950,7 @@ class HANAService extends SQLService {
       // cds-compiler effectiveName uses toUpperCase for hana dialect, but not for hdbcds
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toUpperCase() + '"'
-      if (s.toUpperCase() in this.class.ReservedWords || /^\d|[$' @./\\]/.test(s)) return '"' + s.toUpperCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$#0-9]*$/.test(s)) return '"' + s.toUpperCase() + '"'
       return s
     }
 
@@ -970,13 +1043,16 @@ class HANAService extends SQLService {
     // TypeMap used for the JSON_TABLE column definition
     static InsertTypeMap = {
       ...super.TypeMap,
+      UInt8: () => 'INT',
       Int16: () => 'INT',
+      Int64: () => `BIGINT`,
       UUID: () => `NVARCHAR(36)`,
       Boolean: () => `NVARCHAR(5)`,
+      String: e => `NVARCHAR(${(e.length || 5000) * 4})`,
       LargeString: () => `NVARCHAR(2147483647)`,
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
-      array: () => `NVARCHAR(2147483647)`,
+      array: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
 
       // Keep as nvarchar until ISO transformation
@@ -985,7 +1061,14 @@ class HANAService extends SQLService {
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
-      number: () => `DOUBLE`
+      number: () => `DOUBLE`,
+
+      // HANA types
+      'cds.hana.TINYINT': () => 'INT',
+      'cds.hana.REAL': () => 'DECIMAL',
+      'cds.hana.CHAR': e => `NVARCHAR(${(e.length || 1) * 4})`,
+      'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
+      'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
     }
 
     // HANA JSON_TABLE function does not support BOOLEAN types
@@ -998,10 +1081,12 @@ class HANAService extends SQLService {
       Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
-
       // Custom ISO function applies timezone when inserting
       DateTime: e => `ISO(${e})`,
       Timestamp: e => `ISO(${e})`,
+      // HANA types
+      'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
+      'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`
     }
 
     static OutputConverters = {
@@ -1015,8 +1100,13 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
+      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
+
+      // HANA types
+      'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
+      'cds.hana.ST_GEOMETRY': e => `TO_NVARCHAR(${e})`,
     }
   }
 
@@ -1024,7 +1114,7 @@ class HANAService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     try {
       let ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
+      return (this.ensureDBC() && await ps.run(values)).changes
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
@@ -1054,7 +1144,7 @@ class HANAService extends SQLService {
   async onCall({ query, data }, name, schema) {
     const outParameters = await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
-    return ps.proc(data, outParameters)
+    return this.ensureDBC() && ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1121,7 +1211,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
       res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -1163,8 +1253,8 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
+      res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
@@ -1249,6 +1339,14 @@ const compareOperators = {
   'IS NOT': 1,
   'EXISTS': 1,
   'BETWEEN': 1,
+  'CONTAINS': 1,
+  'MEMBER OF': 1,
+  'LIKE_REGEXPR': 1,
+}
+const lobTypes = {
+  'cds.LargeBinary': 1,
+  'cds.LargeString': 1,
+  'cds.hana.CLOB': 1,
 }
 
 module.exports = HANAService

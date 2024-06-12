@@ -261,6 +261,17 @@ describe('streaming', () => {
         await checkSize(stream2_)
       }))
 
+      test('WRITE stream property from READ stream', async () => cds.tx(async () => {
+        const { Images } = cds.entities('test')
+        const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
+
+        const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
+        expect(changes).toEqual(1)
+
+        const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
+        await checkSize(stream_)
+      }))
+
       test('WRITE multiple blob properties', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const blob1 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))

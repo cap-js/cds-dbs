@@ -1,5 +1,5 @@
 const assert = require('assert')
-const  { Readable } = require('stream')
+const { Readable } = require('stream')
 const { buffer } = require('stream/consumers')
 const cds = require('../cds.js')
 const fspath = require('path')
@@ -59,7 +59,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.run(async tx => {
           deploy = Promise.resolve()
@@ -79,7 +79,7 @@ describe('CREATE', () => {
               },
             }),
           )
-          await deploy.catch(() => {})
+          await deploy.catch(() => { })
         })
       })
 
@@ -101,7 +101,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.disconnect()
       })
@@ -165,7 +165,7 @@ describe('CREATE', () => {
                   } catch (e) {
                     if (throws === false) throw e
                     // Check for error test cases
-                    assert.equal(e.message, throws, 'Ensure that the correct error message is being thrown.')
+                    assert.match(e.message, throws, 'Ensure that the correct error message is being thrown.')
                     return
                   }
 
@@ -181,7 +181,7 @@ describe('CREATE', () => {
                   const sel = await tx.run({
                     SELECT: {
                       from: { ref: [table] },
-                      columns 
+                      columns
                     },
                   })
 

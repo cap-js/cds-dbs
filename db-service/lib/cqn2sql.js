@@ -1,4 +1,4 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 
@@ -165,12 +165,14 @@ class CQN2SQLRenderer {
   /** @type {Object<string,import('@sap/cds/apis/csn').Definition>} */
   static TypeMap = {
     // Utilizing cds.linked inheritance
+    UUID: () => `NVARCHAR(36)`,
     String: e => `NVARCHAR(${e.length || 5000})`,
     Binary: e => `VARBINARY(${e.length || 5000})`,
-    Int64: () => 'BIGINT',
-    Int32: () => 'INTEGER',
+    UInt8: () => 'TINYINT',
     Int16: () => 'SMALLINT',
-    UInt8: () => 'SMALLINT',
+    Int32: () => 'INT',
+    Int64: () => 'BIGINT',
+    Integer: () => 'INT',
     Integer64: () => 'BIGINT',
     LargeString: () => 'NCLOB',
     LargeBinary: () => 'BLOB',
@@ -178,12 +180,11 @@ class CQN2SQLRenderer {
     Composition: () => false,
     array: () => 'NCLOB',
     // HANA types
-    /* Disabled as these types are linked to normal cds types
-    'cds.hana.TINYINT': () => 'REAL',
+    'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
     'cds.hana.CHAR': e => `CHAR(${e.length || 1})`,
     'cds.hana.ST_POINT': () => 'ST_POINT',
-    'cds.hana.ST_GEOMETRY': () => 'ST_GEO',*/
+    'cds.hana.ST_GEOMETRY': () => 'ST_GEOMETRY',
   }
 
   // DROP Statements ------------------------------------------------
@@ -211,7 +212,7 @@ class CQN2SQLRenderer {
     if (from?.join && !q.SELECT.columns) {
       throw new Error('CQN query using joins must specify the selected columns.')
     }
-    
+
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -256,18 +257,41 @@ class CQN2SQLRenderer {
     const SELECT = q.SELECT
     if (!SELECT.columns) return sql
 
-    let cols = SELECT.columns.map(x => {
-      const name = this.column_name(x)
-      let col = `'$."${name}"',${this.output_converter4(x.element, this.quote(name))}`
-      if (x.SELECT?.count) {
-        // Return both the sub select and the count for @odata.count
-        const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        return [col, `'${name}@odata.count',${this.expr(qc)}`]
-      }
-      return col
-    }).flat()
-
     const isRoot = SELECT.expand === 'root'
+    const isSimple = cds.env.features.sql_simple_queries &&
+      isRoot && // Simple queries are only allowed to have a root
+      !ObjectKeys(q.elements).some(e =>
+        q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
+        q.elements[e].isAssociation || // Indicates columns contains an expand
+        q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
+        q.elements[e].items // Array types require to be inlined with a json result
+      )
+
+    let cols = SELECT.columns.map(isSimple
+      ? x => {
+        const name = this.column_name(x)
+        const escaped = `${name.replace(/"/g, '""')}`
+        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
+        if (x.SELECT?.count) {
+          // Return both the sub select and the count for @odata.count
+          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
+          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
+        }
+        return col
+      }
+      : x => {
+        const name = this.column_name(x)
+        const escaped = `${name.replace(/"/g, '""')}`
+        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
+        if (x.SELECT?.count) {
+          // Return both the sub select and the count for @odata.count
+          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
+          return [col, `'$."${escaped}@odata.count"',${this.expr(qc)}`]
+        }
+        return col
+      }).flat()
+
+    if (isSimple) return `SELECT ${cols} FROM (${sql})`
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
@@ -290,7 +314,7 @@ class CQN2SQLRenderer {
       return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
     }
     ///////////////////////////////////////////////////////////////////////////////////////
-    let sql = this.expr(x)
+    let sql = this.expr({ param: false, __proto__: x })
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -302,7 +326,7 @@ class CQN2SQLRenderer {
    * @returns {string}
    */
   column_alias4(x) {
-    return typeof x.as === 'string' ? x.as : x.func
+    return typeof x.as === 'string' ? x.as : x.func || x.val
   }
 
   /**
@@ -387,7 +411,7 @@ class CQN2SQLRenderer {
    */
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
-    return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
+    return !offset ? this.val(rows) : `${this.val(rows)} OFFSET ${this.val(offset)}`
   }
 
   /**
@@ -799,8 +823,8 @@ class CQN2SQLRenderer {
     if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
-    if ('xpr' in x) return wrap(this.xpr(x))
     if ('func' in x) return wrap(this.func(x))
+    if ('xpr' in x) return wrap(this.xpr(x))
     if ('list' in x) return wrap(this.list(x))
     if ('SELECT' in x) return wrap(`(${this.SELECT(x)})`)
     else throw cds.error`Unsupported expr: ${x}`
@@ -832,17 +856,31 @@ class CQN2SQLRenderer {
   operator(x, i, xpr) {
 
     // Translate = to IS NULL for rhs operand being NULL literal
-    if (x === '=') return xpr[i + 1]?.val === null ? 'is' : '='
+    if (x === '=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : '='
 
     // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '==') return xpr[i + 1]?.val === null ? 'is' : _not_null(i - 1) && _not_null(i + 1) ? '=' : this.is_not_distinct_from_
+    if (x === '==') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '='
+        : this.is_not_distinct_from_
 
     // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '!=') return xpr[i + 1]?.val === null ? 'is not' : _not_null(i - 1) && _not_null(i + 1) ? '<>' : this.is_distinct_from_
+    if (x === '!=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is not'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '<>'
+        : this.is_distinct_from_
 
     else return x
+
+    function _inline_null(n) {
+      n.param = false
+    }
 
     /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
     function _not_null(i) {
@@ -884,27 +922,34 @@ class CQN2SQLRenderer {
   }
 
   /**
-   * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
+   * Renders a value into the correct SQL syntax or a placeholder for a prepared statement
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
   val({ val, param }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
-      case 'undefined': return 'NULL'
+      case 'undefined': val = null
+        break
       case 'boolean': return `${val}`
-      case 'number': return `${val}` // REVISIT for HANA
       case 'object':
-        if (val === null) return 'NULL'
-        if (val instanceof Date) val = val.toJSON() // returns null if invalid
-        else if (val instanceof Readable); // go on with default below
-        else if (Buffer.isBuffer(val)); // go on with default below
-        else if (is_regexp(val)) val = val.source
-        else val = JSON.stringify(val)
-      case 'string': // eslint-disable-line no-fallthrough
+        if (val !== null) {
+          if (val instanceof Date) val = val.toJSON() // returns null if invalid
+          else if (val instanceof Readable); // go on with default below
+          else if (Buffer.isBuffer(val)); // go on with default below
+          else if (is_regexp(val)) val = val.source
+          else val = JSON.stringify(val)
+        }
     }
-    if (!this.values || param === false) return this.string(val)
-    else this.values.push(val)
+    if (!this.values || param === false) {
+      switch (typeof val) {
+        case 'string': return this.string(val)
+        case 'object': return 'NULL'
+        default:
+          return `${val}`
+      }
+    }
+    this.values.push(val)
     return '?'
   }
 
@@ -914,9 +959,32 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').func} param0
    * @returns {string} SQL
    */
-  func({ func, args }) {
-    args = (args || []).map(e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
-    return this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+  func({ func, args, xpr }) {
+    const wrap = e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) })
+    args = args || []
+    if (Array.isArray(args)) {
+      args = args.map(wrap)
+    } else if (typeof args === 'object') {
+      const org = args
+      const wrapped = {
+        toString: () => {
+          const ret = []
+          for (const prop in org) {
+            ret.push(`${this.quote(prop)} => ${wrapped[prop]}`)
+          }
+          return ret.join(',')
+        }
+      }
+      for (const prop in args) {
+        wrapped[prop] = wrap(args[prop])
+      }
+      args = wrapped
+    } else {
+      cds.error`Invalid arguments provided for function '${func}' (${args})`
+    }
+    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    if (xpr) return `${fn} ${this.xpr({ xpr })}`
+    return fn
   }
 
   /**
@@ -968,8 +1036,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    // Column names like "Order" clash with "ORDER" keyword so toUpperCase is required
-    if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
   }
 

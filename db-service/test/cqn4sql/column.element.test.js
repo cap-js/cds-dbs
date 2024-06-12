@@ -2,7 +2,7 @@
 // for convenience, we attach a non-enumerable property 'element' onto each column with a ref
 // this property holds the corresponding csn definition to which the column refers
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
@@ -135,7 +135,7 @@ describe('assign element onto columns with flat model', () => {
       expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf.__proto__)
     } else {
       expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf)
-      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)  
+      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)
     }
 
 

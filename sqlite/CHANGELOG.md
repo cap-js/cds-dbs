@@ -4,6 +4,26 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.0...sqlite-v1.7.1) (2024-05-16)
+
+
+### Fixed
+
+* **deps:** update dependency better-sqlite3 to v10 ([#636](https://github.com/cap-js/cds-dbs/issues/636)) ([0cc60e7](https://github.com/cap-js/cds-dbs/commit/0cc60e72ec18e1704a07e0a9bfee5388de682ec7))
+
+## [1.7.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.6.0...sqlite-v1.7.0) (2024-05-08)
+
+
+### Added
+
+* select decimals as strings if cds.env.features.string_decimals ([#616](https://github.com/cap-js/cds-dbs/issues/616)) ([39addbf](https://github.com/cap-js/cds-dbs/commit/39addbfe01da757d86a4d65e62eda86e59fc9b87))
+
+
+### Fixed
+
+* Change `sql` property to `query` for errors ([#611](https://github.com/cap-js/cds-dbs/issues/611)) ([585577a](https://github.com/cap-js/cds-dbs/commit/585577a9817e7749fb71958c26c4bfa20981c663))
+* Improved placeholders and limit clause ([#567](https://github.com/cap-js/cds-dbs/issues/567)) ([d5d5dbb](https://github.com/cap-js/cds-dbs/commit/d5d5dbb7219bcef6134440715cf756fdd439f076))
+
 ## [1.6.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.5.1...sqlite-v1.6.0) (2024-03-22)
 
 
