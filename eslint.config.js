@@ -30,7 +30,7 @@ module.exports = [
     },
     rules: {
       'no-extra-semi': 'off',
-      'no-unused-vars': ['warn', { argsIgnorePattern: 'lazy' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: 'lazy', caughtErrorsIgnorePattern: '^e$' }],
       'no-console': 'error',
     },
   },
