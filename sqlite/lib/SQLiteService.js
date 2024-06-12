@@ -76,8 +76,7 @@ class SQLiteService extends SQLService {
       return {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
-        all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        all: (..._) => stmt.all(..._)        
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)

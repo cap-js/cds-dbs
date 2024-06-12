@@ -176,15 +176,7 @@ GROUP BY k
         } catch (e) {
           throw enhanceError(e, sql)
         }
-      },
-      stream: async (values, one) => {
-        try {
-          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
-          return await this.dbc.query(streamQuery)
-        } catch (e) {
-          throw enhanceError(e, sql)
-        }
-      },
+      }
     }
   }
 
