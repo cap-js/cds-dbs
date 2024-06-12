@@ -113,9 +113,7 @@ cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(async () => {
     if (ret.data._autoIsolation && !ret.data._deployed) {
-      ret.data._deployed = cds.deploy(cds.options.from[0])
-      await ret.data._deployed
-      if (cds.db.kind === 'hana') {
+      if (cds.db.options.impl === '@cap-js/hana') {
         // Consider that '-' is only allowed as timezone after ':' or 'T'
         await cds.run(`
         CREATE OR REPLACE FUNCTION ISO(RAW NVARCHAR(36))
@@ -142,6 +140,9 @@ cds.test = Object.setPrototypeOf(function () {
           END;
         `)
       }
+
+      ret.data._deployed = cds.deploy(cds.options.from[0])
+      await ret.data._deployed
     }
   })
 
