@@ -430,7 +430,16 @@ class PreparedStatement {
   async all(binding_params) {
     binding_params
     return [{}]
-  } 
+  }
+  /**
+   * Executes a prepared SELECT query and returns a stream of the result
+   * @abstract
+   * @param {unknown|unknown[]} binding_params
+   * @returns {ReadableStream<string|Buffer>} A stream of the result
+   */
+  async stream(binding_params) {
+    binding_params
+  }
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
