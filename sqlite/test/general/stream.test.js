@@ -23,7 +23,7 @@ describe('streaming', () => {
 
     afterAll(async () => {
       const { Images } = cds.entities('test')
-      await DELETE.from(Images)
+      await DELETE.from(Images).where('1=1')
     })
 
     test('READ stream property with .from and .where', async () => cds.tx(async () => {
@@ -105,7 +105,7 @@ describe('streaming', () => {
 
     afterAll(async () => {
       const { Images } = cds.entities('test')
-      await DELETE.from(Images)
+      await DELETE.from(Images).where('1=1')
     })
 
     describe('READ', () => {
