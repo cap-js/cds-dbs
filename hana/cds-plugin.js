@@ -10,10 +10,10 @@ if (cds.requires.db?.impl === '@cap-js/hana') {
 
 // monkey patch as not extendable as class
 const compiler_to_hdi = cds.compiler.to.hdi
-cds.compiler.to.hdi = function capjs_compile_hdi(...args) {
+cds.compiler.to.hdi = Object.assign(function capjs_compile_hdi(...args) {
   const artifacts = compiler_to_hdi(...args)
   artifacts['ISO.hdbfunction'] = 
-  `CREATE OR REPLACE FUNCTION ISO(RAW NVARCHAR(36))
+  `FUNCTION ISO(RAW NVARCHAR(36))
     RETURNS RET TIMESTAMP LANGUAGE SQLSCRIPT AS
     BEGIN
       DECLARE REGEXP NVARCHAR(255);
@@ -34,6 +34,8 @@ cds.compiler.to.hdi = function capjs_compile_hdi(...args) {
     END;`
 
   return artifacts
-}
+},
+{...compiler_to_hdi} // take over other stuff like keywords
+)
 
 // TODO: we can override cds.compile.to.sql/.delta in a similar fashion for our tests
