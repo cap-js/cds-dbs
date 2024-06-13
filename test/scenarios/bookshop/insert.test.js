@@ -41,5 +41,15 @@ describe('Bookshop - Insert', () => {
     const resp = await cds.run(INSERT({ footnotes: ['first', 'second'], ID: 121, title: 'Guiness Book of World Records' }).into(Books))
     expect(resp | 0).to.be.eq(1)
   })
+
+  test('big decimals', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const entry = { ID: 2348, title: 'Moby Dick', price: '12345678901234567890.12345'}
+    await cds.run(INSERT(entry).into(Books))
+    // intentionally comparing with plain SQL to avoid output converters
+    const written = await cds.run(`SELECT price as "price" FROM ${Books.name.replace(/\./g, '_')} WHERE ID = 2348`)
+    if (typeof written.price !== 'string') return // do not compare on sqlite because of rounding
+    expect(written[0].price).to.be.eq(entry.price)
+  })
     
 })
