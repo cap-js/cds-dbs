@@ -1054,6 +1054,7 @@ class HANAService extends SQLService {
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
+      Decimal: () => `DECIMAL`,
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
