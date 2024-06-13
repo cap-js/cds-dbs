@@ -48,7 +48,7 @@ describe('Bookshop - Insert', () => {
     await cds.run(INSERT(entry).into(Books))
     // intentionally comparing with plain SQL to avoid output converters
     const written = await cds.run(`SELECT price as "price" FROM ${Books.name.replace(/\./g, '_')} WHERE ID = 2348`)
-    if (typeof written.price !== 'string') return // do not compare on sqlite because of rounding
+    if (typeof written[0].price !== 'string') return // do not compare on sqlite because of rounding
     expect(written[0].price).to.be.eq(entry.price)
   })
     
