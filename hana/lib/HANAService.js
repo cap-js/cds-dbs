@@ -60,6 +60,23 @@ class HANAService extends SQLService {
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
+
+          // Check whether the ISO function is available in the current deployment
+          if (!service.hasIsoFunction) {
+            service.hasIsoFunction = dbc.exec(`SELECT ISO('') FROM DUMMY`).catch(() => {
+              if (!service.class.CQN2SQL.InputConverters.Timestamp) {
+                service.class.CQN2SQL.InputConverters = service.class.CQN2SQL.InputConverters.__proto__
+              }
+            }, () => {
+              service.class.CQN2SQL.InputConverters = {
+                __proto__: service.class.CQN2SQL.InputConverters,
+                DateTime: undefined,
+                Timestamp: undefined
+              }
+            })
+          }
+          await service.hasIsoFunction
+
           return dbc
         } catch (err) {
           if (isMultitenant) {
@@ -137,7 +154,7 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows 
+    let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
       rows = this.ensureDBC() && await ps.all(values || [])

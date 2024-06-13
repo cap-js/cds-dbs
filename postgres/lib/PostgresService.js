@@ -500,8 +500,8 @@ GROUP BY k
       Int64: e => `CAST(${e} as bigint)`,
       Date: e => `CAST(${e} as DATE)`,
       Time: e => `CAST(${e} as TIME)`,
-      DateTime: e => `CAST(${e} as TIMESTAMP)`,
-      Timestamp: e => `CAST(${e} as TIMESTAMP)`,
+      DateTime: e => `CAST(${e} as TIMESTAMP WITH TIME ZONE)`,
+      Timestamp: e => `CAST(${e} as TIMESTAMP WITH TIME ZONE)`,
       // REVISIT: Remove that with upcomming fixes in cds.linked
       Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
