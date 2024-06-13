@@ -243,7 +243,7 @@ describe('streaming', () => {
 
         try {
           expect(changes).toEqual(2)
-        } catch (e) {
+        } catch {
           // @sap/hana-client does not allow for returning the number of affected rows
         }
 
@@ -291,7 +291,7 @@ describe('streaming', () => {
         const changes = await INSERT.into(Images).entries(stream)
         try {
           expect(changes).toEqual(count)
-        } catch (e) {
+        } catch {
           // @sap/hana-client does not allow for returning the number of affected rows
         }
       })

@@ -566,7 +566,7 @@ GROUP BY k
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-    } catch (e) {
+    } catch {
       // Failed to reset database
     } finally {
       await this.dbc.end()
