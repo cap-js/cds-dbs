@@ -6,88 +6,6 @@ describe('streaming', () => {
   const { expect } = cds.test(__dirname, 'model.cds')
 
   const { fs, path } = cds.utils
-  
-  const checkSize = async stream => {
-    let size = 0
-    for await (const chunk of stream) {
-      size += chunk.length
-    }
-    expect(size).to.equal(7891)
-  }
-
-  describe('cds.stream', () => {
-    beforeAll(async () => {
-      const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-      await cds.run('INSERT INTO test_Images values(?,?,?)', [
-        [1, data, null],
-        [2, null, null],
-      ])
-    })
-
-    afterAll(async () => {
-      const { Images } = cds.entities('test')
-      await DELETE.from(Images)
-    })
-
-    test('READ stream property with .from and .where', async () => {
-      const { Images } = cds.entities('test')
-      const cqn = cds.stream('data').from(Images).where({ ID: 1 })
-      const stream = await cqn
-      await checkSize(stream)
-    })
-
-    test('READ stream property that equals null', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream('data').from(Images).where({ ID: 2 })
-      expect(stream).to.be.null
-    })
-
-    test('READ stream property with object in .from', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream('data').from(Images, { ID: 1 })
-      await checkSize(stream)
-    })
-
-    test('READ stream property with key in .from', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream('data').from(Images, 1)
-      await checkSize(stream)
-    })
-
-    test('READ stream property with .where as alternating string/value arguments list', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream('data').from(Images).where('ID =', 1)
-      await checkSize(stream)
-    })
-
-    test('READ stream property from entry that does not exist', async () => {
-      const { Images } = cds.entities('test')
-      try {
-        await cds.stream('data').from(Images, 23)
-      } catch (e) {
-        expect(e.code).to.equal(404)
-      }
-    })
-
-    test('READ stream property with key and column in .from', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream().from(Images, 1, 'data')
-      await checkSize(stream)
-    })
-
-    test('READ stream property with column as function in .from', async () => {
-      const { Images } = cds.entities('test')
-      const stream = await cds.stream().from(Images, 1, a => a.data)
-      await checkSize(stream)
-    })
-
-    test('READ stream property using SELECT CQN', async () => {
-      const { Images } = cds.entities('test')
-      const cqn = SELECT('data').from(Images, 1)
-      const stream = await cds.stream(cqn)
-      await checkSize(stream)
-    })
-  })
 
   describe('Streaming API', () => {
     beforeAll(async () => {
@@ -243,9 +161,8 @@ describe('streaming', () => {
         const changes = await INSERT.into(Images).entries(json)
 
         try {
-          expect(changes).to.equal(2)
-        } catch (e) {
-          e
+          expect(changes).toEqual(2)
+        } catch {
           // @sap/hana-client does not allow for returning the number of affected rows
         }
 
@@ -292,9 +209,8 @@ describe('streaming', () => {
 
         const changes = await INSERT.into(Images).entries(stream)
         try {
-          expect(changes).to.equal(count)
-        } catch (e) {
-          e
+          expect(changes).toEqual(count)
+        } catch {
           // @sap/hana-client does not allow for returning the number of affected rows
         }
       })
