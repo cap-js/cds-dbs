@@ -145,20 +145,16 @@ const dataTest = async function (entity, table, type, obj) {
         result[k] = await buffer(result[k])
       }
       if (expect[k] instanceof Readable) {
-        Object.defineProperty(expect, k, { value: await buffer(expect[k]) })
+        expect[k] = await buffer(expect[k])
       }
       if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {
         assert.equal(result[k].compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
+      } else if (expect[k] instanceof RegExp) {
+        assert.match(result[k], expect[k], msg)
       } else if (typeof expect[k] === 'object' && expect[k]) {
         assert.deepEqual(result[k], expect[k], msg)
       } else {
-        try {
-          assert.equal(result[k], expect[k], msg)
-        } catch (e) {
-          result
-          expect
-          throw e
-        }
+        assert.strictEqual(result[k], expect[k], msg)
       }
       checks++
     }

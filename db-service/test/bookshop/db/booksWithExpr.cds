@@ -48,6 +48,7 @@ entity Authors {
   dateOfDeath  : Date;
   
   age: Integer = years_between(dateOfBirth, dateOfDeath);
+  ageNamedParams: Integer = years_between(DOB => dateOfBirth, DOD => dateOfDeath);
 
   books : Association to many Books on books.author = $self;
   address : Association to Addresses;
@@ -83,4 +84,11 @@ entity LBooks {
   length : Decimal;
   width : Decimal;
   area : Decimal = length * width;
+}
+
+entity Simple {
+  key ID: Integer;
+  name: String;
+  my: Association to Simple;
+  myName: String = my.name;
 }

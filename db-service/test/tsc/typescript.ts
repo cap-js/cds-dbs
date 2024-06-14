@@ -118,7 +118,7 @@ export class TestCQN2SQL extends CQN2SQL {
     super(context)
   }
 
-  SELECT(cqn: any): string {
+  SELECT(cqn: JSON): string {
     cqn
     return ''
   }
@@ -173,10 +173,10 @@ type sourceElementResult<TARGET extends source, COL extends sourceElements<TARGE
 }
 
 class SELECT<TARGET extends source, COLS extends sourceElements<TARGET>> {
-  from = <SRC extends source>(x: SRC): SELECT<SRC, COLS> => {
+  from = <SRC extends source>(_x: SRC): SELECT<SRC, COLS> => {
     return this
   }
-  columns = <COL extends sourceElements<TARGET>>(x: sourceElementRef<TARGET, COL>[]): SELECT<TARGET, COL> => {
+  columns = <COL extends sourceElements<TARGET>>(_x: sourceElementRef<TARGET, COL>[]): SELECT<TARGET, COL> => {
     return this
   }
   then = <RET extends sourceElementResult<TARGET, COLS>>(
@@ -185,6 +185,7 @@ class SELECT<TARGET extends source, COLS extends sourceElements<TARGET>> {
   ): void => {
     try {
       // This is not a real solution, but it would work in javascript
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       resolve({ ID: 1 } as any)
     } catch (e) {
       reject(new Error('oops'))

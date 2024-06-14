@@ -6,7 +6,7 @@
 
 const { SELECT } = require('@sap/cds/lib/ql/cds-ql')
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('entities and views with parameters', () => {
   let model

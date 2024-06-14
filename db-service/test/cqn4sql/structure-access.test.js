@@ -1,7 +1,7 @@
 // access of structured elements with dot notation
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 // "... to flat fields" is not entirely true, as we also have tests with paths ending on a structure
 // -> move them to separate section?
