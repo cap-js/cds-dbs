@@ -37,7 +37,11 @@ const dataTest = async function (entity, table, type, obj) {
     if (typeof v === 'function') {
       Object.defineProperty(t, p, {
         get: v,
-        enumerable: true
+        set(v) {
+          Object.defineProperty(t, p, { value: v })
+        },
+        enumerable: true,
+        configurable: true,
       })
     } else {
       t[p] = v

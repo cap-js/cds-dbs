@@ -2,10 +2,10 @@ const dstring = size => ({ d: 'default'.slice(0, size), o: 'not default'.slice(0
 
 const columns = {
   integer: { d: 10, o: 20 },
-  integer64: { d: 11, o: 21 },
+  integer64: { d: '11', o: '21' },
   double: { d: 1.1, o: 2.2 },
-  float: { d: 1.1, o: 2.2 },
-  decimal: { d: 1.12345, o: 2.12345 },
+  float: { d: '1.1', o: '2.2' },
+  decimal: { d: '1.12345', o: '2.12345' },
   string: dstring(255),
   char: dstring(1),
   short: dstring(10),
