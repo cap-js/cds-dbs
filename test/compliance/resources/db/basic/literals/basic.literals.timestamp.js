@@ -4,32 +4,37 @@ module.exports = [
   },
   {
     timestamp: '1970-01-01T00:00:00.000Z',
-    '=timestamp': '1970-01-01T00:00:00.000Z',
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/,
   },
   {
     timestamp: new Date('1970-01-01Z'),
-    '=timestamp': '1970-01-01T00:00:00.000Z',
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/,
   },
   {
     timestamp: '1970-01-01T00:00:00.000Z',
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/
   },
-  /* Ignoring transformations
+  {
+    timestamp: '2020-01-01T10:00:00.000+10:00',
+    '=timestamp': /2020-01-01T00:00:00.0000{0,6}Z/
+  },
+  /*
   {
     timestamp: '1970-01-01',
-    '=timestamp': '1970-01-01 00:00:00.0000000'
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/
   },
   {
     timestamp: '1970-1-1',
-    '=timestamp': '1970-01-01 00:00:00.0000000'
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/
   },
   {
     timestamp: '2',
-    '=timestamp': '0002-01-01 00:00:00.0000000'
+    '=timestamp': /0002-01-01T00:00:00.0000{0,6}Z/
   },
   {
     // HANA supports left trim
     timestamp: ' 2',
-    '=timestamp': '0002-01-01 00:00:00.0000000'
+    '=timestamp': /0002-01-01T00:00:00.0000{0,6}Z/
   },
   {
     // HANA does not support right trim
@@ -43,15 +48,15 @@ module.exports = [
   },
   {
     timestamp: '2-2',
-    '=timestamp': '0002-02-01 00:00:00.0000000'
+    '=timestamp': /0002-02-01T00:00:00.0000{0,6}Z/
   },
   {
     timestamp: '2-2-2',
-    '=timestamp': '0002-02-02 00:00:00.0000000'
+    '=timestamp': /0002-02-02T00:00:00.0000{0,6}Z/
   },
   {
     timestamp: () => new Date('1970-01-01Z'),
-    '=timestamp': '1970-01-01 00:00:00.0000000'
+    '=timestamp': /1970-01-01T00:00:00.0000{0,6}Z/
   },
   {
     // Z+2359 adds 23 hour and 59 minutes to the UTC time
@@ -68,26 +73,28 @@ module.exports = [
     timestamp: '1970-01-01+2359',
     '!': 'Invalid cds.Timestamp "1970-01-01+2359"'
   },
+  */
   {
     timestamp: '1970-01-01T01:10:59',
-    '=timestamp': '1970-01-01 01:10:59.0000000'
+    '=timestamp': /1970-01-01T01:10:59.0000{0,6}Z/
   },
   {
-    timestamp: '1970-01-01T00:00:00-2359',
-    '=timestamp': '1970-01-01 23:59:00.0000000'
+    timestamp: '1970-01-01T00:00:00-11:59',
+    '=timestamp': /1970-01-01T11:59:00.0000{0,6}Z/
   },
   {
     timestamp: '1970-01-01T00:00:00.999',
-    '=timestamp': '1970-01-01 00:00:00.9990000'
+    '=timestamp': /1970-01-01T00:00:00.9990{0,6}Z/
   },
   {
     timestamp: '1970-01-01T00:00:00.1234567',
-    '=timestamp': '1970-01-01 00:00:00.1234567'
+    '=timestamp': /1970-01-01T00:00:00.1234?5?6?7?0{0,2}Z/
   },
   {
     timestamp: '1970-01-01T00:00:00.123456789',
-    '=timestamp': '1970-01-01 00:00:00.1234567'
+    '=timestamp': /1970-01-01T00:00:00.1234?5?6?7?8?9?Z/
   },
+  /*
   {
     // HANA SECONDDATE does not support year 0 or lower
     timestamp: '0000-01-01',

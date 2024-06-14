@@ -112,6 +112,11 @@ cds.test = Object.setPrototypeOf(function () {
   ret.data.autoIsolation(true)
 
   global.beforeAll(async () => {
+    if (cds.db.options.impl === '@cap-js/hana') {
+      await cds.run(`CREATE OR REPLACE ${require('../hana/cds-plugin.js').ISO}`)
+      await cds.disconnect() // Reset database connection to retrigger ISO detection
+    }
+
     if (ret.data._autoIsolation && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
