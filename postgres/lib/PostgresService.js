@@ -413,11 +413,11 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
+        // Adjusts json path expressions to be postgres specific (only ->>[<number>])
+        .replace(/->>'\$(?:(?:\[(\d*)\]))'/g, (a, b) => `->>${b}`)
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+      )
     }
 
     UPSERT(q, isUpsert = false) {
@@ -425,11 +425,23 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
+        // Adjusts json path expressions to be postgres specific (only ->>[<number>])
+        .replace(/->>'\$(?:(?:\[(\d*)\]))'/g, (a, b) => `->>${b}`)
         // Adjusts json function to be postgres specific
-        .replace('json_each(?)', 'jsonb_array_elements($1::jsonb)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `jsonb_typeof(${b}->'${c}')`))
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+      )
+    }
+
+    managed_extract(name, element, converter) {
+      const ret = converter(`value->>'${name.replace(/'/g, "''")}'`)
+      return {
+        extract: ret,
+        sql: ret,
+      }
+    }
+
+    managed_default(name, managed, src) {
+      return `(CASE WHEN json_typeof(value->'${name.replace(/'/g, "''")}') IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {

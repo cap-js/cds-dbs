@@ -1,7 +1,10 @@
 const dstring = size => ({ d: 'default'.slice(0, size), o: 'not default'.slice(0, size) })
 
 const columns = {
-  integer: { d: 10, o: 20 },
+  bool: { d: false, o: true },
+  integer8: { d: 8, o: 18 },
+  integer16: { d: 9, o: 19 },
+  integer32: { d: 10, o: 20 },
   integer64: { d: '11', o: '21' },
   double: { d: 1.1, o: 2.2 },
   float: { d: '1.1', o: '2.2' },

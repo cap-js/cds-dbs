@@ -137,7 +137,7 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows 
+    let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
       rows = this.ensureDBC() && await ps.all(values || [])
@@ -960,7 +960,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return (
         fn?.(element) ||
         element._type?.replace('cds.', '').toUpperCase() ||
-        cds.error`Unsupported type: ${element.type} `
+        cds.error`Unsupported type: ${element.type}`
       )
     }
 
@@ -983,7 +983,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
     static TypeMap = {
       ...super.TypeMap,
-      UUID: () => `NVARCHAR(36)`,
     }
 
     // TypeMap used for the JSON_TABLE column definition
@@ -1017,9 +1016,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // HANA JSON_TABLE function does not support BOOLEAN types
     static InputConverters = {
       ...super.InputConverters,
-      // REVISIT: Precision is not enforced on table level with these converters it is enforced
-      // Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      // Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
 
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
