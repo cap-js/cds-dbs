@@ -4,8 +4,15 @@ const { Readable } = require('stream')
 
 describe('streaming', () => {
   const { expect } = cds.test(__dirname, 'model.cds')
-
   const { fs, path } = cds.utils
+
+  const checkSize = async stream => {
+    let size = 0
+    for await (const chunk of stream) {
+      size += chunk.length
+    }
+    expect(size).to.equal(7891)
+  }
 
   describe('Streaming API', () => {
     beforeAll(async () => {
