@@ -1250,11 +1250,6 @@ function _not_unique(err, code) {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
-const _managed = {
-  '$user.id': '$user.id',
-  $user: '$user.id',
-  $now: '$now',
-}
 
 const caseOperators = {
   'CASE': 1,

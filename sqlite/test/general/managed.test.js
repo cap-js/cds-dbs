@@ -53,7 +53,6 @@ describe('Managed thingies', () => {
 
     // Ensure that a second UPSERT updates the managed fields
     await db.tx(async () => {
-      console.log(cds.context.timestamp.toISOString())
       await UPSERT.into('test.foo').entries({ ID: 3 })
 
       const result = await SELECT.from('test.foo').where({ ID: 3 })
