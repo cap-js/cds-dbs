@@ -11,7 +11,6 @@ const BINARY_TYPES = {
 }
 
 const { Readable } = require('stream')
-const { c } = require('@sap/cds/lib/utils/tar')
 
 const DEBUG = (() => {
   let DEBUG = cds.debug('sql-json')
