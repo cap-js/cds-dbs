@@ -1094,11 +1094,6 @@ class CQN2SQLRenderer {
   }
 }
 
-// REVISIT: Workaround for JSON.stringify to work with buffers
-Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
-}
-
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {
   '$user.id': '$user.id',
