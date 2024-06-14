@@ -42,7 +42,7 @@ describe('Bookshop - Insert', () => {
     expect(resp | 0).to.be.eq(1)
   })
 
-  test.only('big decimals', async () => {
+  test('big decimals', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
 
     const entry = { ID: 2348, title: 'Moby Dick', price: '12345678901234567890.12345' }
