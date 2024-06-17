@@ -22,10 +22,6 @@
     "lib",
     "CHANGELOG.md"
   ],
-  "engines": {
-    "node": ">=18",
-    "npm": ">=8"
-  },
   "scripts": {
     "test": "npm start && jest --silent",
     "start": "docker-compose -f pg-stack.yml up -d"
