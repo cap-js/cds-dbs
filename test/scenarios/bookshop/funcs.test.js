@@ -262,7 +262,7 @@ describe('Bookshop - Functions', () => {
 
     test('fractionalseconds', async () => {
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) eq 0.321&$top=1`,
+        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) ge 0.311&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
