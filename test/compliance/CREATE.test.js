@@ -190,10 +190,8 @@ describe('CREATE', () => {
 
                   await Promise.all(Object.keys(expect).map(async k => {
                     const msg = `Ensure that the Database echos correct data back, property ${k} does not match expected result.`
-                    if (result[k] instanceof Readable) {
+                    if (result[k] instanceof Readable && expect[k] instanceof Readable) {
                       result[k] = await buffer(result[k])
-                    }
-                    if (expect[k] instanceof Readable) {
                       expect[k] = await buffer(expect[k])
                     }
                     if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {

@@ -137,7 +137,7 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows 
+    let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
       rows = this.ensureDBC() && await ps.all(values || [])
@@ -233,7 +233,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
+      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -479,12 +479,10 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                let fkeys = x.element._foreignKeys
-                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
-                fkeys.forEach(k => {
-                  if (!k?.parentElement?.name) return // not all associations have foreign key references
-                  if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
+                this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
+                  const columnName = this.column_name(ref)
+                  if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
+                    parent.SELECT.columns.push(ref)
                   }
                 })
 
@@ -1283,10 +1281,6 @@ class HANAService extends SQLService {
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
-
-Buffer.prototype.toJSON = function () {
-  return this.toString('hex')
-}
 
 function _not_unique(err, code) {
   if (err.code === 301)
