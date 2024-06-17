@@ -117,7 +117,7 @@ class HANAService extends SQLService {
     const { query, data } = req
 
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch { /**/ }
     }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
@@ -1052,6 +1052,7 @@ class HANAService extends SQLService {
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
+      Decimal: () => `DECIMAL`,
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
