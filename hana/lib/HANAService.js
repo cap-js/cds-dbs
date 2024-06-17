@@ -100,7 +100,7 @@ class HANAService extends SQLService {
   }
 
   ensureDBC() {
-    return this.dbc || cds.error`Database is disconnected`
+    return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
   }
 
   async set(variables) {
@@ -117,7 +117,7 @@ class HANAService extends SQLService {
     const { query, data } = req
 
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch { /**/ }
     }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
@@ -137,9 +137,13 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows = (values?.length || blobs.length > 0)
-      ? await (await this.prepare(sqlScript, blobs.length)).all(values || [])
-      : await this.exec(sqlScript)
+    let rows 
+    if (values?.length || blobs.length > 0) {
+      const ps = await this.prepare(sqlScript, blobs.length)
+      rows = this.ensureDBC() && await ps.all(values || [])
+    } else {
+      rows = await this.exec(sqlScript)
+    }
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -167,9 +171,9 @@ class HANAService extends SQLService {
       // HANA driver supports batch execution
       const results = await (entries
         ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
-        : ps.run())
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
@@ -1050,6 +1054,7 @@ class HANAService extends SQLService {
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
+      Decimal: () => `DECIMAL`,
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
@@ -1104,7 +1109,7 @@ class HANAService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     try {
       let ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
+      return (this.ensureDBC() && await ps.run(values)).changes
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
@@ -1134,7 +1139,7 @@ class HANAService extends SQLService {
   async onCall({ query, data }, name, schema) {
     const outParameters = await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
-    return ps.proc(data, outParameters)
+    return this.ensureDBC() && ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1201,7 +1206,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
       res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -1243,7 +1248,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
       res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
