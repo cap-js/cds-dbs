@@ -96,7 +96,7 @@ class HDBDriver extends driver {
                 ? null
                 : (
                   row[col].createReadStream?.()
-                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                  || row[col]
                 )
               : row[col]
           }

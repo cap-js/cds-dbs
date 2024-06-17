@@ -117,7 +117,7 @@ class SQLService extends DatabaseService {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch { /**/ }
     }
     if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
