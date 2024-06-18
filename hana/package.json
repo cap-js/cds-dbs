@@ -15,10 +15,6 @@
     "lib",
     "CHANGELOG.md"
   ],
-  "engines": {
-    "node": ">=16",
-    "npm": ">=8"
-  },
   "scripts": {
     "test": "npm start && jest --silent",
     "test:remote": "jest --silent",
