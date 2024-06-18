@@ -310,12 +310,7 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-    ///////////////////////////////////////////////////////////////////////////////////////
-    // REVISIT: that should move out of here!
-    if (x?.element?.['@cds.extension']) {
-      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////
+    
     let sql = this.expr({ param: false, __proto__: x })
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
@@ -480,7 +475,7 @@ class CQN2SQLRenderer {
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+    this.columns = columns
 
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
@@ -494,21 +489,6 @@ class CQN2SQLRenderer {
       !!q.UPSERT,
     )
     const extraction = extractions
-      .map(c => {
-        const element = elements?.[c.name]
-        if (element?.['@cds.extension']) {
-          return false
-        }
-        if (c.name === 'extensions__') {
-          const merges = extractions.filter(c => elements?.[c.name]?.['@cds.extension'])
-          if (merges.length) {
-            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(
-              c => this.string('$."' + c.name + '"') + ',' + c.sql,
-            )})`
-          }
-        }
-        return c
-      })
       .filter(a => a)
       .map(c => c.sql)
 
@@ -782,14 +762,6 @@ class CQN2SQLRenderer {
         }
       }
     }
-
-    columns = columns.map(c => {
-      if (q.elements?.[c.name]?.['@cds.extension']) return {
-        name: 'extensions__',
-        sql: `jsonb_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
-      }
-      return c
-    })
 
     const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
 
