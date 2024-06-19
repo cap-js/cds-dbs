@@ -817,7 +817,10 @@ function cqn4sql(originalQuery, model) {
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.setPrototypeOf(correlated, Object.getPrototypeOf(SELECT()))
+    Object.defineProperty(correlated, 'elements', {
+      value: expanded.elements,
+      writable: true,
+    })
     return correlated
 
     function _correlate(subq, outer) {
