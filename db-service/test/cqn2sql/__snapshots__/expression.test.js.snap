@@ -27,8 +27,11 @@ exports[`expressions ref is like pattern 1`] = `
 
 exports[`expressions ref is regular expression 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x between 1 and 20",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x between ? and ?",
+  "values": [
+    1,
+    20,
+  ],
 }
 `;
 
@@ -48,8 +51,11 @@ exports[`expressions ref list with one ref is in list of sub select 1`] = `
 
 exports[`expressions with complex xpr 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x < 9) AND (Foo.x > 1)",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE (Foo.x < ?) AND (Foo.x > ?)",
+  "values": [
+    9,
+    1,
+  ],
 }
 `;
 
@@ -62,7 +68,10 @@ exports[`expressions with exists 1`] = `
 
 exports[`expressions with long xpr 1`] = `
 {
-  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x < 9 AND Foo.x > 1",
-  "values": [],
+  "sql": "SELECT Foo.ID,Foo.a,Foo.b,Foo.c,Foo.x FROM Foo as Foo WHERE Foo.x < ? AND Foo.x > ?",
+  "values": [
+    9,
+    1,
+  ],
 }
 `;

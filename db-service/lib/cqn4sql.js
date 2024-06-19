@@ -1,6 +1,6 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
@@ -488,21 +488,23 @@ function cqn4sql(originalQuery, model) {
     }
 
     function getTransformedColumn(col) {
-      if (col.xpr) {
-        const xpr = { xpr: getTransformedTokenStream(col.xpr) }
-        if (col.cast) xpr.cast = col.cast
-        return xpr
-      } else if (col.func) {
-        const func = {
+      let ret
+      if (col.func) {
+        ret = {
           func: col.func,
-          args: col.args && getTransformedTokenStream(col.args),
+          args: getTransformedFunctionArgs(col.args),
           as: col.func, // may be overwritten by the explicit alias
         }
-        if (col.cast) func.cast = col.cast
-        return func
-      } else {
-        return copy(col)
       }
+      if (col.xpr) {
+        ret ??= {}
+        ret.xpr = getTransformedTokenStream(col.xpr)
+      }
+      if (ret) {
+        if (col.cast) ret.cast = col.cast
+        return ret
+      }
+      return copy(col)
     }
 
     function handleEmptyColumns(columns) {
@@ -537,7 +539,7 @@ function cqn4sql(originalQuery, model) {
     } else if (val) {
       res = { val }
     } else if (func) {
-      res = { args: getTransformedTokenStream(value.args, baseLink), func: value.func }
+      res = { args: getTransformedFunctionArgs(value.args, baseLink), func: value.func }
     }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
@@ -854,7 +856,7 @@ function cqn4sql(originalQuery, model) {
   function getTransformedOrderByGroupBy(columns, inOrderBy = false) {
     const res = []
     for (let i = 0; i < columns.length; i++) {
-      const col = columns[i]
+      let col = columns[i]
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
@@ -877,8 +879,37 @@ function cqn4sql(originalQuery, model) {
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
           continue
         }
-        const { target } = col.$refLinks[0]
-        const tableAlias = target.SELECT ? null : getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
+        const { target, definition } = col.$refLinks[0]
+        let tableAlias = null
+        if (target.SELECT?.columns && inOrderBy) {
+          // usually TA is omitted if order by ref is a column
+          // if a localized sorting is requested, we add `COLLATE`s
+          // later on, which transforms the simple name to an expression
+          // --> in an expression, only source elements can be addressed, hence we must add TA
+          if (target.SELECT.localized && definition.type === 'cds.String') {
+            const referredCol = target.SELECT.columns.find(c => {
+              return c.as === col.ref[0] || c.ref?.at(-1) === col.ref[0]
+            })
+            if (referredCol) {
+              // keep sort and nulls properties
+              referredCol.sort = col.sort
+              referredCol.nulls = col.nulls
+              col = referredCol
+              if (definition.kind === 'element') {
+                tableAlias = getQuerySourceName(col)
+              } else {
+                // we must replace the reference with the underlying expression
+                const { val, func, args, xpr } = col
+                if (val) res.push({ val })
+                if (func) res.push({ func, args })
+                if (xpr) res.push({ xpr })
+                continue
+              }
+            }
+          }
+        } else {
+          tableAlias = getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
+        }
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition
         if (leaf.virtual === true) continue // already in getFlatColumnForElement
         let baseName
@@ -902,7 +933,7 @@ function cqn4sql(originalQuery, model) {
         let transformedColumn
         if (col.SELECT) transformedColumn = transformSubquery(col)
         else if (col.xpr) transformedColumn = { xpr: getTransformedTokenStream(col.xpr) }
-        else if (col.func) transformedColumn = { args: getTransformedTokenStream(col.args), func: col.func }
+        else if (col.func) transformedColumn = { args: getTransformedFunctionArgs(col.args), func: col.func }
         // val
         else transformedColumn = copy(col)
         if (col.sort) transformedColumn.sort = col.sort
@@ -972,7 +1003,7 @@ function cqn4sql(originalQuery, model) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
         // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || (element['@Core.MediaType'] && !element['@Core.IsURL'])) return
+        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') return
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1398,15 +1429,13 @@ function cqn4sql(originalQuery, model) {
             }
           } else if (token.SELECT) {
             result = transformSubquery(token)
-          } else if (token.xpr) {
-            result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
-          } else if (token.func && token.args) {
-            result.args = token.args.map(t => {
-              if (!t.val)
-                // this must not be touched
-                return getTransformedTokenStream([t], $baseLink)[0]
-              return t
-            })
+          } else {
+            if (token.xpr) {
+              result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
+            }
+            if (token.func && token.args) {
+              result.args = getTransformedFunctionArgs(token.args, $baseLink)
+            }
           }
 
           transformedTokenStream.push(result)
@@ -1547,9 +1576,13 @@ function cqn4sql(originalQuery, model) {
       return { transformedFrom }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
-      if (from.as)
+      if (from.as) {
         // preserve explicit TA
         transformedFrom.as = from.as
+      } else {
+        // select from anonymous query, use artificial alias
+        transformedFrom.as = Object.keys(originalQuery.sources)[0]
+      }
       return { transformedFrom }
     } else {
       return _transformFrom()
@@ -1765,6 +1798,10 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
+              if (res in pseudos.elements) {
+                thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
+                return pseudos.elements[res]
+              }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
@@ -1793,8 +1830,9 @@ function cqn4sql(originalQuery, model) {
               lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else {
-            const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
-            const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
+            const lhsLeafArt = lhs.ref && lhs.$refLinks.at(-1).definition
+            const rhsLeafArt = rhs.ref && rhs.$refLinks.at(-1).definition
+            // compare structures in on-condition
             if ((lhsLeafArt?.target && rhsLeafArt?.target) || (lhsLeafArt?.elements && rhsLeafArt?.elements)) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
@@ -1851,7 +1889,7 @@ function cqn4sql(originalQuery, model) {
           }
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
-        } else if (lhs.ref) {
+        } else if (lhs.ref && lhs.$refLinks[0]?.target !== pseudos) {
           if (lhs.ref[0] === '$self') {
             // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
@@ -1859,11 +1897,7 @@ function cqn4sql(originalQuery, model) {
             // otherwise $self is replaced by the alias of the entity
             else result[i].ref.splice(0, 1, targetSideRefLink.alias)
           } else if (lhs.ref.length > 1) {
-            if (
-              !(lhs.ref[0] in pseudos.elements) &&
-              lhs.ref[0] !== assocRefLink.alias &&
-              lhs.ref[0] !== targetSideRefLink.alias
-            ) {
+            if (lhs.ref[0] !== assocRefLink.alias && lhs.ref[0] !== targetSideRefLink.alias) {
               // we need to find correct table alias for the structured access
               const { definition } = lhs.$refLinks[0]
               if (definition === assocRefLink.definition) {
@@ -1877,7 +1911,8 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
               }
             }
-          } else if (lhs.ref.length === 1) result[i].ref.unshift(targetSideRefLink.alias)
+          } else if (lhs.ref.length === 1)
+            result[i].ref.unshift(targetSideRefLink.alias)
         }
       }
       return result
@@ -2109,6 +2144,27 @@ function cqn4sql(originalQuery, model) {
       return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index)
     }
   }
+  function getTransformedFunctionArgs(args, $baseLink = null) {
+    let result = null
+    if (Array.isArray(args)) {
+      result = args.map(t => {
+        if (!t.val)
+          // this must not be touched
+          return getTransformedTokenStream([t], $baseLink)[0]
+        return t
+      })
+    } else if (typeof args === 'object') {
+      result = {}
+      for (const prop in args) {
+        const t = args[prop]
+        if (!t.val)
+          // this must not be touched
+          result[prop] = getTransformedTokenStream([t], $baseLink)[0]
+        else result[prop] = t
+      }
+    }
+    return result
+  }
 }
 
 module.exports = Object.assign(cqn4sql, {
@@ -2121,10 +2177,10 @@ module.exports = Object.assign(cqn4sql, {
 function calculateElementName(token) {
   const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
   let name
-  if (nonJoinRelevantAssoc)
+  if (nonJoinRelevantAssoc !== -1)
     // calculate fk name
     name = token.ref.slice(nonJoinRelevantAssoc).join('_')
-  else name = token.$refLinks[token.$refLinks.length - 1].definition.name
+  else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
   return name
 }
 
@@ -2193,6 +2249,7 @@ function setElementOnColumns(col, element) {
     writable: true,
   })
 }
+
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

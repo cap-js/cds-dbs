@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('functions', () => {
   let model
@@ -48,6 +48,116 @@ describe('functions', () => {
         {
           func1(Books.ID, 'bar').func2(author.name, 'foo') as dotOperator
         }`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+  })
+
+  describe('with named parameters', () => {
+    it('in column', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         getAuthorsName( author => author.name, book => title ) as foo
+        } `
+      const qx = CQL`
+        SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          getAuthorsName( author => author.name, book => Books.title ) as foo
+        }`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+    it('in infix filter', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         author[ 'King' = getAuthorsName( author => ID ) ].ID as foo
+        } `
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID and
+          'King' = getAuthorsName( author => author.ID )
+        {
+          author.ID as foo
+        }`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+    it('in where', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         ID
+        } where getAuthorsName( author => author.name ) = 'King'`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID
+        } where getAuthorsName( author => author.name ) = 'King'`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+
+    it('in order by', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         ID
+        } order by getAuthorsName( author => author.name )`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID
+        } order by getAuthorsName( author => author.name )`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+
+    it('in group by', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         ID
+        } group by getAuthorsName( author => author.name )`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID
+        } group by getAuthorsName( author => author.name )`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+
+    it('in having', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         ID
+        } having getAuthorsName( author => author.name ) = 'King'`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID
+        } having getAuthorsName( author => author.name ) = 'King'`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+
+    it('in xpr', () => {
+      const q = CQL`SELECT from bookshop.Books {
+         ID
+        } where ('Stephen ' + getAuthorsName( author => author.name )) = 'Stephen King'`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID
+        } where ('Stephen ' + getAuthorsName( author => author.name )) = 'Stephen King'`
+      const res = cqn4sql(q, model)
+      expect(res).to.deep.equal(qx)
+    })
+    it('in from', () => {
+      const q = CQL`SELECT from bookshop.Books[getAuthorsName( author => author.ID ) = 1] {
+         ID
+        }`
+      const qx = CQL`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID
+        } where getAuthorsName( author => Books.author_ID ) = 1`
       const res = cqn4sql(q, model)
       expect(res).to.deep.equal(qx)
     })

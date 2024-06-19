@@ -72,6 +72,9 @@ describe('Bookshop - Genres', () => {
 
     // deep update, which deletes all children of 100 and inserts one new children
     let res = await PUT(`/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
+    expect(res.status).to.be.eq(200)
+
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
 
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
@@ -86,8 +89,10 @@ describe('Bookshop - Genres', () => {
 
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
     expect(res.status).to.be.eq(200)
-    delete res.data['@odata.context']
+
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
     assert.deepEqual(res.data, {
+      '@odata.context': '$metadata#Genres(children())/$entity',
       name: 'no more children',
       descr: null,
       ID: 100,

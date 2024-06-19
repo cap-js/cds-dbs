@@ -1,11 +1,11 @@
 'use strict'
 const { text } = require('stream/consumers')
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const _cqn2sql = require('../../lib/cqn2sql')
 function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
-} 
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)

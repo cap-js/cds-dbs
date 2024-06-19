@@ -96,7 +96,7 @@ class HDBDriver extends driver {
                 ? null
                 : (
                   row[col].createReadStream?.()
-                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                  || row[col]
                 )
               : row[col]
           }
@@ -104,6 +104,11 @@ class HDBDriver extends driver {
         }
         return result
       }
+    }
+
+    ret.proc = async (data, outParameters) => {
+      const rows = await ret.all(data)
+      return this._getResultForProcedure(rows, outParameters)
     }
 
     ret.stream = async (values, one) => {
@@ -126,6 +131,23 @@ class HDBDriver extends driver {
       return Readable.from(rsIterator(rs, one))
     }
     return ret
+  }
+
+  _getResultForProcedure(rows, outParameters) {
+    // on hdb, rows already contains results for scalar params
+    const isArray = Array.isArray(rows)        
+    const result = isArray ? {...rows[0]} : {...rows}
+
+    // merge table output params into scalar params
+    const args = isArray ? rows.slice(1) : []
+    if (args && args.length && outParameters) {
+      const params = outParameters.filter(md => !(md.PARAMETER_NAME in (isArray ? rows[0] : rows)))
+      for (let i = 0; i < params.length; i++) {
+        result[params[i].PARAMETER_NAME] = args[i]
+      }
+    }
+  
+    return result
   }
 
   _extractStreams(values) {

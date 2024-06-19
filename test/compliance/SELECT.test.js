@@ -1,11 +1,11 @@
 const assert = require('assert')
-
 const cds = require('../cds.js')
 
 // Set cds.root before requiring cds.Service as it resolves and caches package.json
 // Call default cds.test API
 
 describe('SELECT', () => {
+  // chai.use(chaiAsPromised)
   const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
 
@@ -180,7 +180,7 @@ describe('SELECT', () => {
       const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
       const cqn = {
         SELECT: {
-          from: { ref: ['complex.Authors'] },
+          from: { ref: ['complex.associations.Authors'] },
           columns: [{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]
         },
       }
@@ -194,7 +194,7 @@ describe('SELECT', () => {
       const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
       const cqn = {
         SELECT: {
-          from: { ref: ['complex.Books'] },
+          from: { ref: ['complex.associations.Books'] },
           columns: [{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]
         },
       }
@@ -202,6 +202,19 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
       assert.strictEqual(Object.keys(res[0].author).length, 200)
+    })
+
+    test('expand association with static values', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ['complex.associations.unmanaged.Authors'] },
+          columns: [{ ref: ['static'], expand: ['*'] }]
+        },
+      }
+
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.strictEqual(res[0].static.length, 1)
     })
 
     test.skip('invalid cast (wrong)', async () => {
@@ -248,6 +261,57 @@ describe('SELECT', () => {
       assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
       const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
       assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+    })
+
+    test('combine expr and other compare', async () => {
+      const cqn = CQL`SELECT bool FROM basic.literals.globals`
+      cqn.SELECT.where = [
+        {
+          xpr: [
+            {
+              xpr: [{ ref: ['bool'] }, '!=', { val: true }]
+            }
+          ]
+        },
+        'and',
+        { ref: ['bool'] }, '=', { val: false }
+      ]
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+      
+    test('exists path expression', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ["complex.associations.Books"] },
+          where: [
+            "exists",
+            {
+              ref: [
+                "author",
+                { id: "books", where: [{ ref: ["author", "name"] }, "=", { val: "Emily" }] }]
+            }
+          ]
+        }
+      }
+      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
+    })
+
+    test('exists path expression (unmanaged)', async () => {
+      const cqn = {
+        SELECT: {
+          from: { ref: ["complex.associations.unmanaged.Books"] },
+          where: [
+            "exists",
+            {
+              ref: [
+                "author",
+                { id: "books", where: [{ ref: ["author", "name"] }, "=", { val: "Emily" }] }]
+            }
+          ]
+        }
+      }
+      expect(cds.run(cqn)).to.eventually.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
     })
 
     test.skip('ref select', async () => {
@@ -454,7 +518,7 @@ describe('SELECT', () => {
 
   describe('count', () => {
     test('count is preserved with .map', async () => {
-      const query = SELECT.from('complex.Authors')
+      const query = SELECT.from('complex.associations.Authors')
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
