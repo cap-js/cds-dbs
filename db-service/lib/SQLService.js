@@ -284,7 +284,7 @@ class SQLService extends DatabaseService {
    * @returns {Promise<number>}
    */
   async count(query, ret) {
-    if (ret) {
+    if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
