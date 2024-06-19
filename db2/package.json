@@ -1,0 +1,56 @@
+{
+  "name": "@cap-js/db2",
+  "version": "1.0.0",
+  "description": "CDS database service for DB2",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm start && jest --silent",
+    "start": "docker-compose -f db2-stack.yml up -d",
+    "status": "docker compose -f db2-stack.yml ps",
+    "stop": "docker compose -f db2-stack.yml stop"
+  },
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@cap-js/db-service": "^1.9.2"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=7.6",
+    "@sap/cds-dk": ">=7.5"
+  },
+  "peerDependenciesMeta": {
+    "@sap/cds-dk": {
+      "optional": true
+    }
+  },
+  "cds": {
+    "requires": {
+      "kinds": {
+        "sql": {
+          "[production]": {
+            "kind": "postgres"
+          }
+        },
+        "db2": {
+          "impl": "@cap-js/db2",
+          "dialect": "db2",
+          "vcap": {
+            "label": "db2-db"
+          },
+          "schema_evolution": "auto"
+        }
+      },
+      "db": "sql"
+    }
+  }
+}
