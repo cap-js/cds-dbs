@@ -71,7 +71,7 @@ class SQLService extends DatabaseService {
       if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
-          changes = rows.find(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
       } else if (col.element?.type === 'cds.LargeBinary') {
         changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
