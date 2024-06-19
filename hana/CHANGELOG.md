@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.5.0...hana-v1.0.0) (2024-06-19)
+
+
+### Fixed
+
+* Binary columns now return as Buffer for HANAService ([#689](https://github.com/cap-js/cds-dbs/issues/689)) ([179bd92](https://github.com/cap-js/cds-dbs/commit/179bd92729d57905d63ae55cca74c6c765eae290))
+* Improve error message for disconnected connections ([#678](https://github.com/cap-js/cds-dbs/issues/678)) ([eb4ef37](https://github.com/cap-js/cds-dbs/commit/eb4ef37e3ecf2fbc1080e3c8b662075eb543f313))
+* insertion of arrayed elements ([#677](https://github.com/cap-js/cds-dbs/issues/677)) ([92cf307](https://github.com/cap-js/cds-dbs/commit/92cf307b57bf01f70e82b7019e9f85feac877a0a))
+* insertion of large decimals ([#686](https://github.com/cap-js/cds-dbs/issues/686)) ([ae8abff](https://github.com/cap-js/cds-dbs/commit/ae8abff74511adb2df1e260673bb69ee3e834451))
+* Support static conditions inside unmanaged associations ([#682](https://github.com/cap-js/cds-dbs/issues/682)) ([e17ddfd](https://github.com/cap-js/cds-dbs/commit/e17ddfd5fa0ec43277f2f5b254f3ee894cc89c07))
+
 ## [0.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.4.0...hana-v0.5.0) (2024-05-29)
 
 

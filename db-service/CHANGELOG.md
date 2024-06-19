@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.0...db-service-v1.10.1) (2024-06-19)
+
+
+### Fixed
+
+* Only check first row if no changes required ([#552](https://github.com/cap-js/cds-dbs/issues/552)) ([39b0b85](https://github.com/cap-js/cds-dbs/commit/39b0b85d5cb4807f63f10acea13fb4d688fa1dcd))
+
 ## [1.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.2...db-service-v1.10.0) (2024-05-29)
 
 
