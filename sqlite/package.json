@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "CDS database service for SQLite",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/sqlite#cds-database-service-for-sqlite",
   "repository": {
@@ -22,10 +22,6 @@
     "lib",
     "CHANGELOG.md"
   ],
-  "engines": {
-    "node": ">=16",
-    "npm": ">=8"
-  },
   "scripts": {
     "test": "cds-test --skip toMatchSnapshot"
   },

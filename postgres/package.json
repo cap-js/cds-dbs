@@ -22,10 +22,6 @@
     "lib",
     "CHANGELOG.md"
   ],
-  "engines": {
-    "node": ">=16",
-    "npm": ">=8"
-  },
   "scripts": {
     "test": "npm start && cds-test --skip toMatchSnapshot",
     "start": "docker-compose -f pg-stack.yml up -d"
