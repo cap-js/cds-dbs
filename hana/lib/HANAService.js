@@ -124,8 +124,7 @@ class HANAService extends SQLService {
     }
 
     const isLockQuery = query.SELECT.forUpdate || query.SELECT.forShareLock
-    if (!isLockQuery) {
-      // REVISIT: disable this for queries like (SELECT 1)
+    if (!isLockQuery && query.SELECT.expand !== false) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -349,7 +348,7 @@ class HANAService extends SQLService {
           q.SELECT.one = undefined
           q.SELECT.orderBy = undefined
         }
-        q.SELECT.expand = false
+        q.SELECT.expand = undefined
 
         const outputColumns = [...columns.filter(c => c.as !== '_path_')]
 
@@ -521,12 +520,19 @@ class HANAService extends SQLService {
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
-            : x => {
-              if (x === '*') return '*'
-              // means x is a sub select expand
-              if (x.elements) return false
-              return this.column_expr(x)
-            },
+            : SELECT.expand === false // Force simple query
+              ? x => {
+                if (x === '*') return '*'
+                // means x is a sub select expand
+                if (x.elements) return false
+                return `${this.column_expr({ __proto__: x, as: '' })} AS "${this.column_name(x).replace(/"/g, '""')}"`
+              }
+              : x => {
+                if (x === '*') return '*'
+                // means x is a sub select expand
+                if (x.elements) return false
+                return this.column_expr(x)
+              },
         )
         .filter(a => a)
 

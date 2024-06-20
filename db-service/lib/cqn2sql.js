@@ -269,31 +269,36 @@ class CQN2SQLRenderer {
         q.elements[e].items // Array types require to be inlined with a json result
       )
 
+    let hasConverters = false
     let cols = SELECT.columns.map(isSimple
       ? x => {
         const name = this.column_name(x)
-        const escaped = `${name.replace(/"/g, '""')}`
-        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
+        const converter = x.element?.[this.class._convertOutput]
+        hasConverters = hasConverters || !!converter
+        const quoted = this.quote(name)
+        let col = converter?.(quoted, x.element) || quoted
         if (x.SELECT?.count) {
+          hasConverters = true
+          // REVISIT: should be moved to protocol adapters
           // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
+          return [col, `${this.count(x)} AS "${name.replace(/"/g, '""')}@odata.count"`]
         }
         return col
       }
       : x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
+        const converter = x.element?.[this.class._convertOutput] || (a => a)
+        let col = `'$."${escaped}"',${converter(this.quote(name), x.element)}`
         if (x.SELECT?.count) {
+          // REVISIT: should be moved to protocol adapters
           // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `'$."${escaped}@odata.count"',${this.expr(qc)}`]
+          return [col, `'$."${escaped}@odata.count"',${this.count(x)}`]
         }
         return col
       }).flat()
 
-    if (isSimple) return `SELECT ${cols} FROM (${sql})`
+    if (isSimple) return hasConverters ? `SELECT ${cols} FROM (${sql})` : sql
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
@@ -702,17 +707,6 @@ class CQN2SQLRenderer {
     return this.sql
   }
 
-  /**
-   * Wraps the provided SQL expression for output processing
-   * @param {import('./infer/cqn').element} element
-   * @param {string} expr
-   * @returns {string} SQL
-   */
-  output_converter4(element, expr) {
-    const fn = element?.[this.class._convertOutput]
-    return fn?.(expr, element) || expr
-  }
-
   /** @type {import('./converters').Converters} */
   static InputConverters = {} // subclasses to override
 
@@ -1040,6 +1034,41 @@ class CQN2SQLRenderer {
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
     if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
+  }
+
+  /**
+   * Converts the provided query into the correct count query
+   * @param {import('./infer/cqn').SELECT} q
+   * @returns {import('./infer/cqn').SELECT} count query
+   */
+  static count(q) {
+    const { where, having, groupBy } = q.SELECT
+    // Keep original query columns when potentially used insde conditions
+    const hasAfterConditions = (having?.length || groupBy?.length)
+    const hasConditions = hasAfterConditions || where?.length
+    // Don't use SELECT.one as it adds an limit 1 to the query which is not needed
+    return SELECT([{ func: 'count' }]).from(
+      q.target && !hasConditions
+        ? q.target // Just count from the entity directly
+        : cds.ql.clone(q, {
+          columns: hasAfterConditions
+            ? q.SELECT.columns.filter(c => !c.expand)
+            : [{ val: 1 }],
+          localized: false,
+          expand: undefined,
+          limit: undefined,
+          orderBy: undefined,
+        }),
+    )
+  }
+
+  /**
+   * Converts the provided query into the correct count query
+   * @param {import('./infer/cqn').SELECT} q
+   * @returns {string} SQL
+   */
+  count(q) {
+    return this.expr(this.class.count(q))
   }
 
   /**
