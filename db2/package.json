@@ -40,7 +40,7 @@
       "kinds": {
         "sql": {
           "[production]": {
-            "kind": "postgres"
+            "kind": "db2"
           }
         },
         "db2": {
