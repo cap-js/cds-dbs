@@ -208,7 +208,7 @@ describe('SELECT', () => {
       const cqn = {
         SELECT: {
           from: { ref: ['complex.associations.unmanaged.Authors'] },
-          columns: [{ ref: ['ID'] }, { ref: ['static'], expand: ['*'] }]
+          columns: [{ ref: ['static'], expand: ['*'] }]
         },
       }
 
