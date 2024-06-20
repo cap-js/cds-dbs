@@ -4,7 +4,8 @@
   "description": "CDS database service for DB2",
   "main": "index.js",
   "scripts": {
-    "test": "npm start && jest --silent",
+    "test": "npm start && mocha",
+    "test:watch": "npx mocha --watch",
     "start": "docker-compose -f db2-stack.yml up -d",
     "status": "docker compose -f db2-stack.yml ps",
     "stop": "docker compose -f db2-stack.yml stop"
@@ -22,7 +23,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@cap-js/db-service": "^1.9.2"
+    "@cap-js/db-service": "^1.9.2",
+    "ibm_db": "^3.2.4"
   },
   "peerDependencies": {
     "@sap/cds": ">=7.6",
@@ -52,5 +54,9 @@
       },
       "db": "sql"
     }
+  },
+  "devDependencies": {
+    "chai": "^4.4.1",
+    "mocha": "^10.4.0"
   }
 }

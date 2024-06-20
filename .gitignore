@@ -140,3 +140,5 @@ dist
 
 # cds temp folders
 **/_out
+
+**/database
