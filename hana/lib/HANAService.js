@@ -114,7 +114,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data, hasPostProcessing } = req
+    const { query, data, hasPostProcessing, iterator } = req
 
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
@@ -135,12 +135,12 @@ class HANAService extends SQLService {
 
     const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
-    const canStream = hasPostProcessing === false && !isLockQuery
+    const canStream = (hasPostProcessing === false || iterator) && !isLockQuery
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     let rows = (values?.length || blobs.length > 0 || canStream)
-      ? await (await this.prepare(sqlScript, blobs.length))[canStream ? 'stream' : 'all'](values || [], isOne)
+      ? await (await this.prepare(sqlScript, blobs.length))[canStream ? 'stream' : 'all'](values || [], isOne, iterator)
       : await this.exec(sqlScript)
 
     if (isLockQuery) {

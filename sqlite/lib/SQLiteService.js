@@ -98,7 +98,7 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iteratorRaw(rs, one) {
     const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
@@ -123,13 +123,13 @@ class SQLiteService extends SQLService {
     yield buffer
   }
 
-  async _allStream(stmt, binding_params, one) {
+  async _allStream(stmt, binding_params, one, objectMode) {
     stmt = stmt.__proto__ || stmt
     stmt.raw(true)
     const get = stmt.get(binding_params)
     if (!get) return []
     const rs = stmt.iterate(binding_params)
-    const stream = Readable.from(this._iterator(rs, one), { objectMode: false })
+    const stream = Readable.from(objectMode ? rs : this._iteratorRaw(rs, one), { objectMode })
     stream.on('close', () => {
       rs.return() // finish result set when closed early
     })

@@ -111,10 +111,10 @@ class HDBDriver extends driver {
       return this._getResultForProcedure(rows, outParameters)
     }
 
-    ret.stream = async (values, one) => {
+    ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
-      return Readable.from(rsIterator(rs, one), { objectMode: false })
+      return Readable.from(rsIterator(rs, one), { objectMode })
     }
     return ret
   }

@@ -113,11 +113,11 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data, hasPostProcessing }) {
+  async onSELECT({ query, data, hasPostProcessing, iterator }) {
     if (!query.target) {
       try { this.infer(query) } catch (e) { /**/ }
     }
-    if (query.target && !query.target._unresolved) {
+    if (query.SELECT.expand !== false && query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -128,7 +128,7 @@ class SQLService extends DatabaseService {
     const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await hasPostProcessing === false ? ps.stream(values, isOne) : ps.all(values)
+    let rows = await (hasPostProcessing === false || iterator) ? ps.stream(values, isOne, iterator) : ps.all(values)
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
