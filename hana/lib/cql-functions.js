@@ -27,7 +27,7 @@ const StandardFunctions = {
     // REVISIT: remove once the protocol adapter only creates vals
     if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
     // REVISIT: make this more configurable
-    return (`(CASE WHEN SCORE('${arg.val}' IN ${ref} FUZZY MINIMAL TOKEN SCORE 0.5 minimal score 0.5 SEARCH MODE 'string') > 0.0 THEN TRUE ELSE FALSE END)`)
+    return (`(CASE WHEN SCORE(${arg} IN ${ref} FUZZY MINIMAL TOKEN SCORE 0.7 SIMILARITY CALCULATION MODE 'search') > 0 THEN TRUE ELSE FALSE END)`)
   },
 
   // Date and Time Functions
