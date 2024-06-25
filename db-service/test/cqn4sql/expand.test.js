@@ -416,6 +416,20 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
   })
 
+  it('correctly builds correlated subquery if selecting from subquery', () => {
+    const q = CQL`SELECT from (select author from bookshop.Books) as book {
+      author { name }
+    }`
+    const qx = CQL`SELECT from (select Books.author_ID from bookshop.Books as Books) as book {
+      (SELECT
+          author.name
+        from bookshop.Authors as author
+        where book.author_ID = author.ID) as author
+    }`
+    const res = cqn4sql(q)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
+  })
+
   it('unfold expand, several fields with alias', () => {
     const q = CQL`SELECT from bookshop.Books {
       author { name, dateOfBirth as dob, placeOfBirth as pob}
