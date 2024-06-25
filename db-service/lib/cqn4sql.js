@@ -787,7 +787,7 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...transformedQuery.SELECT.from.ref,
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
@@ -1911,8 +1911,7 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
               }
             }
-          } else if (lhs.ref.length === 1)
-            result[i].ref.unshift(targetSideRefLink.alias)
+          } else if (lhs.ref.length === 1) result[i].ref.unshift(targetSideRefLink.alias)
         }
       }
       return result
