@@ -295,4 +295,34 @@ describe('Bookshop - Read', () => {
     return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
   })
 
+  it.only('Object stream', async () => {
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const streamConsumers = require('stream/consumers')
+      let data = fs.createReadStream(path.join(__dirname, '../../../sqlite/test/general/samples/test.jpg'))
+      const originalImageData = fs.readFileSync(path.join(__dirname, '../../../sqlite/test/general/samples/test.jpg'))
+
+      const { Books } = cds.entities('sap.capire.bookshop')
+
+      await UPDATE(Books).with({ image: data }).where({ val: true })
+
+      const query = SELECT(['*', { ref: ['image'] }, { ref: ['author'], expand: ['*'] }]).from(Books)
+      const req = new cds.Request({ query, iterator: true })
+      await cds.tx(async tx => {
+        const stream = await tx.dispatch(req)
+        for await (const row of stream) {
+          const buffer = await streamConsumers.buffer(row.image)
+          if (originalImageData.compare(buffer)) throw new Error('Blob stream does not contain the original data')
+          for await (const author of row.author) {
+            debugger
+          }
+          debugger
+        }
+      })
+    } catch (err) {
+      debugger
+    }
+  })
+
 })

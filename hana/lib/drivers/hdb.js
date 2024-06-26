@@ -114,7 +114,7 @@ class HDBDriver extends driver {
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
-      return Readable.from(rsIterator(rs, one), { objectMode })
+      return rsIterator(rs, one, objectMode)
     }
     return ret
   }
@@ -159,7 +159,366 @@ function* echoStream(ret) {
   yield ret
 }
 
-async function* rsIterator(rs, one) {
+async function rsNext(state, objectMode) {
+  let done = state.done()
+  if (done) {
+    done = await done
+    if (done) return { done }
+  }
+
+  const _path = readString(state)
+  const path = (typeof _path === 'string' ? _path : await _path).toString('utf-8')
+  const _blobs = readString(state)
+  const blobs = JSON.parse(typeof _blobs === 'string' ? _blobs : await _blobs)
+  const _expands = readString(state)
+  const expands = JSON.parse(typeof _expands === 'string' ? _expands : await _expands)
+
+  handleLevel(state.levels, path, expands)
+
+  // REVISIT: allow streaming with both NVARCHAR and NCLOB
+  // Read JSON blob data
+  const value = readString(state, !objectMode)
+
+  done = state.done()
+  if (done) {
+    done = await done
+  }
+  return {
+    // Iterator pattern
+    done,
+    value,
+
+    // Additional row information
+    path,
+    blobs,
+    expands,
+  }
+}
+
+async function rsNextObjectMode(state) {
+  let { done, value, path, blobs, expands } = await rsNext(state, true)
+  if (done) return { done }
+
+  const json = JSON.parse(value)
+
+  // Convert incoming blobs into their own native Readable streams
+  for (const blobColumn of state.blobs) {
+    // Skip all blobs that are not part of this row
+    if (!(blobColumn in blobs)) {
+      state.read(2)
+      continue
+    }
+
+    let binaryStream = new Readable({
+      read() {
+        if (binaryStream._prefetch) {
+          this.push(binaryStream._prefetch)
+          binaryStream._prefetch = null
+        }
+        this.resume()
+      }
+    })
+    readBlob(state, {
+      end() { binaryStream.push(null) },
+      write(chunk) {
+        if (!binaryStream.readableDidRead) {
+          binaryStream._prefetch = chunk
+          binaryStream.pause()
+          return new Promise((resolve, reject) => {
+            binaryStream.once('error', reject)
+            binaryStream.once('resume', resolve)
+          })
+        }
+        binaryStream.push(chunk)
+      }
+    })
+      ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
+    json[blobColumn] = binaryStream // Return delayed blob read stream or null
+  }
+
+  const level = state.levels[state.levels.length - 1]
+
+  // Expose expanded columns as recursive Readable streams
+  for (const expandName in expands) {
+    const stream = level.expands[expandName] = json[expandName] = new Readable({
+      objectMode: true,
+      read() {
+        state.stream.resume()
+      }
+    })
+    state.streams.push(stream)
+    stream.once('end', () => {
+      state.streams = state.streams.filter(a => a !== stream)
+    })
+  }
+
+  // Push current
+  const resultStream = level.result
+  resultStream.push(json)
+  resultStream._hasResult = true
+
+  return {
+    // Iterator pattern
+    done,
+    value: json,
+
+    // Additional row information
+    path,
+  }
+}
+
+async function rsNextRaw(state) {
+  const { done, value, path, blobs, expands } = await rsNext(state, true)
+  if (done) return { done }
+
+  const json = JSON.parse(readString(state))
+
+  // Convert incoming blobs into their own native Readable streams
+  for (const blobColumn of state.blobs) {
+    // Skip all blobs that are not part of this row
+    if (!(blobColumn in blobs)) {
+      state.read(2)
+      continue
+    }
+
+    let binaryStream = new Readable({
+      read() {
+        if (binaryStream._prefetch) {
+          this.push(binaryStream._prefetch)
+          binaryStream._prefetch = null
+        }
+        this.resume()
+      }
+    })
+    readBlob(state, {
+      end() { binaryStream.push(null) },
+      write(chunk) {
+        if (!binaryStream.readableDidRead) {
+          binaryStream._prefetch = chunk
+          binaryStream.pause()
+          return new Promise((resolve, reject) => {
+            binaryStream.once('error', reject)
+            binaryStream.once('resume', resolve)
+          })
+        }
+        binaryStream.push(chunk)
+      }
+    })
+      ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
+    json[blobColumn] = binaryStream // Return delayed blob read stream or null
+  }
+
+  const level = state.levels[state.levels.length - 1]
+
+  // Expose expanded columns as recursive Readable streams
+  for (const expandName in expands) {
+    level.expands[expandName] = json[expandName] = new Readable({
+      objectMode: true,
+      read() { }
+    })
+  }
+
+  return {
+    // Iterator pattern
+    done,
+    value,
+
+    // Additional row information
+    path,
+  }
+}
+
+async function rsIterator(rs, one, objectMode) {
+  // Raw binary data stream unparsed
+  const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
+
+  const blobs = rs.metadata.slice(4).map(b => b.columnName)
+  const levels = [
+    {
+      index: 0,
+      suffix: ']',
+      path: '$[',
+      expands: {},
+    },
+  ]
+
+  const state = {
+    rs,
+    levels,
+    blobs,
+    reading: 0,
+    writing: 0,
+    buffer: Buffer.allocUnsafe(0),
+    yields: [],
+    done() {
+      // Validate whether the current buffer is finished reading
+      if (this.buffer.byteLength <= this.reading) {
+        return raw.next().then(next => {
+          if (next.done || next.value.byteLength === 0) {
+            this.stream.push(null)
+            return true
+          }
+          if (this.writing) this.stream.push(this.buffer.slice(0, this.writing))
+          // Update state
+          this.buffer = next.value
+          this.reading = 0
+          this.writing = 0
+        })
+          .catch(() => {
+            // TODO: check whether the error is early close
+            return true
+          })
+      }
+    },
+    ensure(size) {
+      const totalSize = this.reading + size
+      if (this.buffer.byteLength >= totalSize) {
+        return
+      }
+      return raw.next().then(next => {
+        if (next.done) {
+          throw new Error('Trying to read more bytes than are available')
+        }
+        // Write processed buffer to stream
+        if (this.writing) this.stream.push(this.buffer.slice(0, this.writing))
+        // Keep unread buffer and prepend to new buffer
+        const leftover = this.buffer.slice(this.reading)
+        // Update state
+        this.buffer = Buffer.concat([leftover, next.value])
+        this.reading = 0
+        this.writing = 0
+      })
+    },
+    read(nr) {
+      this.reading += nr
+    },
+    write(length, encoding) {
+      const bytesLeft = this.buffer.byteLength - this.reading
+      if (bytesLeft < length) {
+        // Copy leftover bytes
+        if (encoding) {
+          let slice = Buffer.from(iconv.decode(this.buffer.slice(this.reading), 'cesu8'), 'binary')
+          this.prefetchDecodedSize = slice.byteLength
+          const encoded = Buffer.from(encoding.write(slice))
+          if (this.writing + encoded.byteLength > this.buffer.byteLength) {
+            this.stream.push(this.buffer.slice(0, this.writing))
+            this.stream.push(encoded)
+          } else {
+            this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
+            this.writing += encoded.byteLength
+            this.stream.push(this.buffer.slice(0, this.writing))
+          }
+        } else {
+          this.buffer.copyWithin(this.writing, this.reading)
+          this.writing += bytesLeft
+          this.stream.push(this.buffer.slice(0, this.writing))
+        }
+
+        return raw.next().then(next => {
+          length = length - bytesLeft
+          if (next.done) {
+            throw new Error('Trying to read more byte then are available')
+          }
+          // Update state
+          this.buffer = next.value
+          this.reading = 0
+          this.writing = 0
+          return this.write(length, encoding)
+        })
+      }
+      if (encoding) {
+        let slice = Buffer.from(iconv.decode(this.buffer.slice(this.reading, this.reading + length), 'cesu8'), 'binary')
+        this.prefetchDecodedSize = slice.byteLength
+        const encoded = Buffer.from(encoding.write(slice))
+        const nextWriting = this.writing + encoded.byteLength
+        const nextReading = this.reading + length
+        if (nextWriting > this.buffer.byteLength || nextWriting > nextReading) {
+          this.stream.push(this.buffer.slice(0, this.writing))
+          this.stream.push(encoded)
+          this.buffer = this.buffer.slice(nextReading)
+          this.reading = 0
+          this.writing = 0
+        } else {
+          this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
+          this.writing += encoded.byteLength
+          this.reading += length
+        }
+      } else {
+        this.buffer.copyWithin(this.writing, this.reading, this.reading + length)
+        this.writing += length
+        this.reading += length
+      }
+    },
+    inject(str) {
+      if (str == null) return
+      str = Buffer.from(str)
+      if (this.writing + str.byteLength > this.reading) {
+        this.stream.push(this.buffer.slice(0, this.writing))
+        this.stream.push(str)
+        this.buffer = this.buffer.slice(this.reading)
+        this.writing = 0
+        this.reading = 0
+        return
+      }
+      str.copy(this.buffer, this.writing)
+      this.writing += str.byteLength
+    },
+    slice(length) {
+      const ens = this.ensure(length)
+      if (ens) return ens.then(() => this.slice(length))
+      const ret = this.buffer.slice(this.reading, this.reading + length)
+      this.reading += length
+      return ret
+    },
+  }
+
+  // Mostly ignore buffer manipulation for objectMode
+  if (objectMode) {
+    state.write = function write(length, encoding) {
+      let slice = this.buffer.slice(this.reading, this.reading + length)
+      this.prefetchDecodedSize = slice.byteLength
+      this.reading += length
+      return encoding.write(slice)
+    }
+    state.inject = function inject() { }
+  }
+
+  const stream = new Readable({
+    objectMode,
+    async read() {
+      while (true) {
+        let result = await (objectMode ? rsNextObjectMode(state) : rsNextRaw(state))
+        if (result.done) { return this.push(null) }
+      }
+    },
+    // Clean up current state
+    end() {
+      state.inject(
+        levels
+          .reverse()
+          .map(l => l.suffix)
+          .join(''),
+      )
+
+      if (state.writing) {
+        state.yields.push(state.buffer.slice(0, state.writing))
+      }
+
+      rs.close()
+    }
+  })
+  levels[0].result = state.stream = stream
+  state.streams = [state.stream]
+
+  let isDone = state.done()
+  if (isDone) {
+    isDone = await isDone
+  }
+
+  return stream
+}
+
+async function* rsIteratorRaw(rs, one) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
@@ -233,7 +592,7 @@ async function* rsIterator(rs, one) {
             this.yields.push(this.buffer.slice(0, this.writing))
             this.yields.push(encoded)
           } else {
-            this.buffer.copy(encoded, this.writing)
+            this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
             this.writing += encoded.byteLength
             this.yields.push(this.buffer.slice(0, this.writing))
           }
@@ -268,7 +627,7 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         } else {
-          this.buffer.copy(encoded, this.writing)
+          this.buffer.copy(encoded, this.writing) // REVISIT: make sure this is the correct copy direction
           this.writing += encoded.byteLength
           this.reading += length
         }
@@ -279,6 +638,7 @@ async function* rsIterator(rs, one) {
       }
     },
     inject(str) {
+      if (str == null) return
       str = Buffer.from(str)
       if (this.writing + str.byteLength > this.reading) {
         this.yields.push(this.buffer.slice(0, this.writing))
