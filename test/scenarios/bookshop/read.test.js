@@ -1,3 +1,5 @@
+const { Readable, Writable } = require('stream')
+const { pipeline } = require('stream/promises')
 const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
@@ -305,23 +307,74 @@ describe('Bookshop - Read', () => {
 
       const { Books } = cds.entities('sap.capire.bookshop')
 
-      await UPDATE(Books).with({ image: data }).where({ val: true })
-
-      const query = SELECT(['*', { ref: ['image'] }, { ref: ['author'], expand: ['*'] }]).from(Books)
-      const req = new cds.Request({ query, iterator: true })
-      await cds.tx(async tx => {
-        const stream = await tx.dispatch(req)
-        for await (const row of stream) {
-          const buffer = await streamConsumers.buffer(row.image)
-          if (originalImageData.compare(buffer)) throw new Error('Blob stream does not contain the original data')
-          for await (const author of row.author) {
-            debugger
-          }
-          debugger
+      let i = 1000
+      const gen = function* () {
+        yield `[{"ID":${i++},"title":"${i}","author_ID":101,"genre_ID":11}`
+        for (; i < 100000; i++) {
+          yield `,{"ID":${i++},"title":"${i}","author_ID":101,"genre_ID":11}`
         }
+        yield ']'
+      }
+
+      const withImage = false
+      const withExpands = true
+
+      await INSERT(Readable.from(gen(), { objectMode: false })).into(Books)
+      if (withImage) await UPDATE(Books).with({ image: data }).where({ val: true })
+
+      process.stdout.write(`DEPLOYED\n`)
+
+      const query = SELECT([
+        '*',
+        ...(withImage ? [{ ref: ['image'] }] : []),
+        ...(withExpands ? [{ ref: ['author'], expand: ['*'] }, { ref: ['genre'], expand: ['*'] }] : []),
+      ]).from(Books)
+      const req = new cds.Request({ query, iterator: true })
+
+      await cds.tx(async tx => {
+        let rows = 0
+        const s = performance.now()
+
+        const stream = await tx.dispatch(req)
+
+        const devNull = function () {
+          return new Writable({
+            objectMode: true, write(chunk, encoding, callback) {
+              rows++
+              callback()
+            }
+          })
+        }
+
+        await pipeline(
+          stream,
+          async function* (source) {
+            for await (const row of source) {
+
+              if (withImage) {
+                const buffer = await streamConsumers.buffer(row.image)
+                if (originalImageData.compare(buffer)) throw new Error('Blob stream does not contain the original data')
+              }
+
+              if (withExpands) {
+                Promise.all([
+                  pipeline(row.genre, devNull()),
+                  pipeline(row.author, devNull()),
+                ])
+              }
+
+              yield row
+            }
+          },
+          devNull()
+        )
+
+        const dur = performance.now() - s
+        process.stdout.write(`Duration: ${dur}ms Rows: ${rows} (${rows / dur} rows/ms)\n`)
       })
     } catch (err) {
       debugger
+      throw err
     }
   })
 

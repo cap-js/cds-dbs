@@ -247,15 +247,15 @@ async function rsNextObjectMode(state) {
       }
     })
     state.streams.push(stream)
-    stream.once('end', () => {
-      state.streams = state.streams.filter(a => a !== stream)
+    stream.once('end', function () {
+      state.streams.filter(a => a !== stream)
     })
   }
 
   // Push current
   const resultStream = level.result
   resultStream.push(json)
-  resultStream._hasResult = true
+  resultStream._reading--
 
   return {
     // Iterator pattern
@@ -355,7 +355,8 @@ async function rsIterator(rs, one, objectMode) {
       if (this.buffer.byteLength <= this.reading) {
         return raw.next().then(next => {
           if (next.done || next.value.byteLength === 0) {
-            this.stream.push(null)
+            // yield for raw mode
+            handleLevel(this.levels, this.levels[0].path, {})
             return true
           }
           if (this.writing) this.stream.push(this.buffer.slice(0, this.writing))
@@ -365,6 +366,7 @@ async function rsIterator(rs, one, objectMode) {
           this.writing = 0
         })
           .catch(() => {
+            handleLevel(this.levels, this.levels[0].path, {})
             // TODO: check whether the error is early close
             return true
           })
@@ -486,10 +488,17 @@ async function rsIterator(rs, one, objectMode) {
   const stream = new Readable({
     objectMode,
     async read() {
-      while (true) {
-        let result = await (objectMode ? rsNextObjectMode(state) : rsNextRaw(state))
-        if (result.done) { return this.push(null) }
+      if (this._running) {
+        this._reading++
+        return
       }
+      this._running = true
+      this._reading = 1
+      while (this._reading > 0) {
+        let result = await (objectMode ? rsNextObjectMode(state) : rsNextRaw(state))
+        if (result.done) return this.push(null)
+      }
+      this._running = false
     },
     // Clean up current state
     end() {
