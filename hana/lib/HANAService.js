@@ -1092,9 +1092,8 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
-      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
+      Decimal: expr => `TO_NVARCHAR(${expr})`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
