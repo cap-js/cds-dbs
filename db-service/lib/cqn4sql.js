@@ -1573,7 +1573,7 @@ function cqn4sql(originalQuery, model) {
           transformedFrom.args.push(f)
         }
       })
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
       if (from.as) {
@@ -1583,7 +1583,7 @@ function cqn4sql(originalQuery, model) {
         // select from anonymous query, use artificial alias
         transformedFrom.as = Object.keys(originalQuery.sources)[0]
       }
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else {
       return _transformFrom()
     }

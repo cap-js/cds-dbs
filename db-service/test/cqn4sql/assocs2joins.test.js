@@ -725,6 +725,26 @@ describe('Unfolding Association Path Expressions to Joins', () => {
       `)
   })
 
+  it.only('properly rewrite association chains if intermediate assoc is not fk', () => {
+    // this issue came up for ref: [genre.parent.ID] because "ID" is fk of "parent"
+    // but "parent" is not fk of "genre"
+    const q = CQL`SELECT from (select genre from bookshop.Books) as book {
+      genre { name }
+    } group by genre.parent.ID, genre.parent.name`
+    const qx = CQL`
+    SELECT from (select Books.genre_ID from bookshop.Books as Books) as book
+                                left join bookshop.Genres as genre on genre.ID = book.genre_ID
+                                left join bookshop.Genres as parent on parent.ID = genre.parent_ID
+    {
+      (SELECT
+          genre2.name
+        from bookshop.Genres as genre2
+        where book.genre_ID = genre2.ID) as genre
+    } group by parent.ID, parent.name`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
+  })
+
   // some notes for later:
   //   what if only field we fetch from assoc target is virtual? -> make join, but don't fetch anything (?)
 })
