@@ -519,7 +519,7 @@ class HANAService extends SQLService {
                 path = xpr
                 return false
               }
-              if (x.element.type === 'cds.Boolean') hasBooleans = true
+              if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
