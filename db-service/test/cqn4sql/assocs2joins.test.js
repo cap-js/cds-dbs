@@ -725,7 +725,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
       `)
   })
 
-  it.only('properly rewrite association chains if intermediate assoc is not fk', () => {
+  it('properly rewrite association chains if intermediate assoc is not fk', () => {
     // this issue came up for ref: [genre.parent.ID] because "ID" is fk of "parent"
     // but "parent" is not fk of "genre"
     const q = CQL`SELECT from (select genre from bookshop.Books) as book {
