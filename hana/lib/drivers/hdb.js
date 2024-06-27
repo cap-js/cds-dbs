@@ -268,12 +268,12 @@ async function rsNextObjectMode(state) {
 }
 
 async function rsNextRaw(state) {
-  const { done, value, path, blobs, expands } = await rsNext(state, true)
+  const { done, value, path, blobs } = await rsNext(state)
   if (done) return { done }
 
-  const json = JSON.parse(readString(state))
+  // Read and write JSON blob data
+  let hasProperties = value > 2
 
-  // Convert incoming blobs into their own native Readable streams
   for (const blobColumn of state.blobs) {
     // Skip all blobs that are not part of this row
     if (!(blobColumn in blobs)) {
@@ -281,42 +281,16 @@ async function rsNextRaw(state) {
       continue
     }
 
-    let binaryStream = new Readable({
-      read() {
-        if (binaryStream._prefetch) {
-          this.push(binaryStream._prefetch)
-          binaryStream._prefetch = null
-        }
-        this.resume()
-      }
-    })
-    readBlob(state, {
-      end() { binaryStream.push(null) },
-      write(chunk) {
-        if (!binaryStream.readableDidRead) {
-          binaryStream._prefetch = chunk
-          binaryStream.pause()
-          return new Promise((resolve, reject) => {
-            binaryStream.once('error', reject)
-            binaryStream.once('resume', resolve)
-          })
-        }
-        binaryStream.push(chunk)
-      }
-    })
-      ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
-    json[blobColumn] = binaryStream // Return delayed blob read stream or null
+    if (hasProperties) state.inject(',')
+    hasProperties = true
+    state.inject(`${JSON.stringify(blobColumn)}:`)
+
+    const blobLength = readBlob(state, new StringDecoder('base64'))
+    if (typeof blobLength !== 'number') await blobLength
   }
 
-  const level = state.levels[state.levels.length - 1]
-
-  // Expose expanded columns as recursive Readable streams
-  for (const expandName in expands) {
-    level.expands[expandName] = json[expandName] = new Readable({
-      objectMode: true,
-      read() { }
-    })
-  }
+  const level = state.levels.at(-1)
+  level.hasProperties = hasProperties
 
   return {
     // Iterator pattern
@@ -350,10 +324,15 @@ async function rsIterator(rs, one, objectMode) {
     writing: 0,
     buffer: Buffer.allocUnsafe(0),
     yields: [],
+    next() {
+      const ret = this._prefetch || raw.next()
+      this._prefetch = raw.next()
+      return ret
+    },
     done() {
       // Validate whether the current buffer is finished reading
       if (this.buffer.byteLength <= this.reading) {
-        return raw.next().then(next => {
+        return this.next().then(next => {
           if (next.done || next.value.byteLength === 0) {
             // yield for raw mode
             handleLevel(this.levels, this.levels[0].path, {})
@@ -377,7 +356,7 @@ async function rsIterator(rs, one, objectMode) {
       if (this.buffer.byteLength >= totalSize) {
         return
       }
-      return raw.next().then(next => {
+      return this.next().then(next => {
         if (next.done) {
           throw new Error('Trying to read more bytes than are available')
         }
@@ -416,7 +395,7 @@ async function rsIterator(rs, one, objectMode) {
           this.stream.push(this.buffer.slice(0, this.writing))
         }
 
-        return raw.next().then(next => {
+        return this.next().then(next => {
           length = length - bytesLeft
           if (next.done) {
             throw new Error('Trying to read more byte then are available')
