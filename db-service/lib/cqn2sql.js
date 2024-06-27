@@ -488,9 +488,7 @@ class CQN2SQLRenderer {
       elements,
       !!q.UPSERT,
     )
-    const extraction = extractions
-      .filter(a => a)
-      .map(c => c.sql)
+    const extraction = extractions.map(c => c.sql)
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
