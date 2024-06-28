@@ -137,7 +137,7 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows 
+    let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
       rows = this.ensureDBC() && await ps.all(values || [])
@@ -233,7 +233,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
+      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -468,6 +468,7 @@ class HANAService extends SQLService {
       const structures = []
       let expands = {}
       let blobs = {}
+      let hasBooleans = false
       let path = `'$['`
       let sql = SELECT.columns
         .map(
@@ -479,12 +480,10 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                let fkeys = x.element._foreignKeys
-                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
-                fkeys.forEach(k => {
-                  if (!k?.parentElement?.name) return // not all associations have foreign key references
-                  if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
+                this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
+                  const columnName = this.column_name(ref)
+                  if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
+                    parent.SELECT.columns.push(ref)
                   }
                 })
 
@@ -520,6 +519,7 @@ class HANAService extends SQLService {
                 path = xpr
                 return false
               }
+              if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
@@ -538,6 +538,7 @@ class HANAService extends SQLService {
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
@@ -613,7 +614,7 @@ class HANAService extends SQLService {
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
-      this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+      this.columns = columns
 
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
@@ -621,7 +622,6 @@ class HANAService extends SQLService {
         !!q.UPSERT,
       )
 
-      // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
@@ -1075,7 +1075,7 @@ class HANAService extends SQLService {
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
@@ -1095,9 +1095,8 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
-      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
+      Decimal: expr => `TO_NVARCHAR(${expr})`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
@@ -1283,10 +1282,6 @@ class HANAService extends SQLService {
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
-
-Buffer.prototype.toJSON = function () {
-  return this.toString('hex')
-}
 
 function _not_unique(err, code) {
   if (err.code === 301)
