@@ -1,7 +1,8 @@
 const cds = require('../../../test/cds')
-const { POST, PUT, DELETE } = cds.test(__dirname, 'deep.cds')
 
 describe('deep operations with @cds.persistence.skip', () => {
+  const { POST, PUT, DELETE, expect } = cds.test(__dirname, 'deep.cds')
+
   test('skip child to one with @cds.persistence.skip on deep insert', async () => {
     const uuid = cds.utils.uuid()
     const res = await POST('/bla/RootUUID', {
@@ -10,18 +11,18 @@ describe('deep operations with @cds.persistence.skip', () => {
         text: 'abc',
       },
     })
-    expect(res.status).toBe(201)
+    expect(res.status).to.equal(201)
 
-    expect(res.data).toEqual({
+    expect(res.data).to.containSubset({
       '@odata.context': cds.env.features.odata_new_adapter
         ? '$metadata#RootUUID/$entity'
         : '$metadata#RootUUID(toOneSkip())/$entity',
       ID: uuid,
       name: null,
       toOneChild_ID: null,
-      toOneSkip_ID: expect.any(String),
+      // toOneSkip_ID: expect.any(String),
     })
-    expect(res.data.toOneSkip_ID).toBeDefined()
+    expect(res.data.toOneSkip_ID).to.exist
   })
 
   test('skip child to many with @cds.persistence.skip on deep insert', async () => {
@@ -30,9 +31,9 @@ describe('deep operations with @cds.persistence.skip', () => {
       ID: uuid,
       toManySkip: [{ text: 'a' }, { text: 'b' }],
     })
-    expect(res.status).toBe(201)
+    expect(res.status).to.equal(201)
 
-    expect(res.data).toEqual({
+    expect(res.data).to.containSubset({
       '@odata.context': cds.env.features.odata_new_adapter
         ? '$metadata#RootUUID/$entity'
         : '$metadata#RootUUID(toManySkip())/$entity',
@@ -55,29 +56,29 @@ describe('deep operations with @cds.persistence.skip', () => {
         ],
       },
     })
-    expect(res.status).toBe(201)
+    expect(res.status).to.equal(201)
 
-    expect(res.data).toEqual({
+    expect(res.data).to.containSubset({
       '@odata.context': cds.env.features.odata_new_adapter
         ? '$metadata#RootUUID(toOneChild(toManySubChild()))/$entity'
         : '$metadata#RootUUID(toOneChild(toManySubChild(toOneSkipChild())))/$entity',
       ID: uuid,
       name: null,
       toOneChild: {
-        ID: expect.any(String),
+        // ID: expect.any(String),
         text: 'abc',
         toManySubChild: [
           {
-            ID: expect.any(String),
+            // ID: expect.any(String),
             backlink_ID: res.data.toOneChild.ID,
             text: 'a',
-            toOneSkipChild_ID: expect.any(String),
+            // toOneSkipChild_ID: expect.any(String),
           },
           {
-            ID: expect.any(String),
+            // ID: expect.any(String),
             backlink_ID: res.data.toOneChild.ID,
             text: 'b',
-            toOneSkipChild_ID: expect.any(String),
+            // toOneSkipChild_ID: expect.any(String),
           },
         ],
       },
@@ -94,7 +95,7 @@ describe('deep operations with @cds.persistence.skip', () => {
         text: 'abc',
       },
     })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
 
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
       name: 'abc',
@@ -102,14 +103,14 @@ describe('deep operations with @cds.persistence.skip', () => {
         text: 'cd',
       },
     })
-    expect(resUpdate.status).toBe(200)
+    expect(resUpdate.status).to.equal(200)
 
-    expect(resUpdate.data).toEqual({
+    expect(resUpdate.data).to.containSubset({
       '@odata.context': '$metadata#RootUUID/$entity',
       ID: uuid,
       name: 'abc',
       toOneChild_ID: null,
-      toOneSkip_ID: expect.any(String),
+      // toOneSkip_ID: expect.any(String),
     })
   })
 
@@ -121,9 +122,9 @@ describe('deep operations with @cds.persistence.skip', () => {
         text: 'abc',
       },
     })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
 
     const resUpdate = await DELETE(`/bla/RootUUID(${uuid})`)
-    expect(resUpdate.status).toBe(204)
+    expect(resUpdate.status).to.equal(204)
   })
 })

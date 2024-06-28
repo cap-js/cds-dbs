@@ -7,7 +7,7 @@ const cds = require('../../test/cds.js')
 process.env.DEBUG && jest.setTimeout(100000)
 
 // fake the manifestation of the db connection
-Client.prototype.connect = jest.fn(() => Promise.resolve({}))
+Client.prototype.connect = () => {}
 
 describe('connect to pg db', () => {
   test('in docker', async () => {

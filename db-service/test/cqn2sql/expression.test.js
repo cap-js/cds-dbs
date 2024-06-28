@@ -5,11 +5,12 @@ function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
 }
 
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
-})
-
 describe('expressions', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  })
+  
+
   // xtest('parameterized numbers', () => {
   //   const opts = { parameterized_numbers: true }
   //   const xpr = [{ ref: ['x'] }, '<', { val: 9 }]

@@ -1,3 +1,4 @@
+require('@sap/cds')
 describe('DROP', () => {
   // TODO: reference to ./definitions.test.js
   describe('entity', () => {
