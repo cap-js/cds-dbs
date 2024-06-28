@@ -60,6 +60,23 @@ class HANAService extends SQLService {
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
+
+          // Check whether the ISO function is available in the current deployment
+          if (!service.hasIsoFunction) {
+            service.hasIsoFunction = dbc.exec(`SELECT ISO('') FROM DUMMY`).catch(() => {
+              if (!service.class.CQN2SQL.InputConverters.Timestamp) {
+                service.class.CQN2SQL.InputConverters = service.class.CQN2SQL.InputConverters.__proto__
+              }
+            }, () => {
+              service.class.CQN2SQL.InputConverters = {
+                __proto__: service.class.CQN2SQL.InputConverters,
+                DateTime: undefined,
+                Timestamp: undefined
+              }
+            })
+          }
+          await service.hasIsoFunction
+
           return dbc
         } catch (err) {
           if (isMultitenant) {
@@ -970,7 +987,7 @@ class HANAService extends SQLService {
         ? []
         : Object.keys(elements)
           .filter(e => {
-            if (elements[e]?.virtual) return false
+            if (elements[e]?.virtual || elements[e]?.isAssociation) return false
             if (columns.find(c => c.name === e)) return false
             if (elements[e]?.[annotation]) return true
             if (!isUpdate && elements[e]?.default) return true
@@ -988,7 +1005,7 @@ class HANAService extends SQLService {
       return [...columns, ...requiredColumns].map(({ name, sql }) => {
         const element = elements?.[name] || {}
         // Don't apply input converters for place holders
-        const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
+        const converter = element[inputConverterKey] || (e => e)
         const val = _managed[element[annotation]?.['=']]
         let managed
         if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
@@ -1053,6 +1070,10 @@ class HANAService extends SQLService {
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
+      // Keep as nvarchar until ISO transformation
+      DateTime: () => `NVARCHAR(32)`,
+      Timestamp: () => `NVARCHAR(32)`,
+
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`,
@@ -1071,14 +1092,16 @@ class HANAService extends SQLService {
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Binary: e => e === '?' ? e : `HEXTOBIN(${e})`,
+      Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
-
+      // Custom ISO function applies timezone when inserting
+      DateTime: e => `ISO(${e})`,
+      Timestamp: e => `ISO(${e})`,
       // HANA types
       'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
-      'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`,
+      'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`
     }
 
     static OutputConverters = {

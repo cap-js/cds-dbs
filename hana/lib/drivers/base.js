@@ -120,17 +120,20 @@ class HANADriver {
    * Connects the driver using the provided credentials
    * @returns {Promise<any>}
    */
-  async connect() {
+  async connect(sqls = []) {
     this.connected = prom(this._native, 'connect')(this._creds)
-    return this.connected.then(async () => {
-      const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
-      const split = version[0].VERSION.split('.')
-      this.server = {
-        major: split[0],
-        minor: split[2],
-        patch: split[3],
-      }
-    })
+    await this.connected
+    for (const sql of sqls) {
+      await prom(this._native, 'exec')(sql)
+    }
+
+    const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
+    const split = version[0].VERSION.split('.')
+    this.server = {
+      major: split[0],
+      minor: split[2],
+      patch: split[3],
+    }
   }
 
   /**
