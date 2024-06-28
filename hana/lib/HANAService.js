@@ -614,7 +614,7 @@ class HANAService extends SQLService {
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
-      this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+      this.columns = columns
 
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
@@ -622,7 +622,6 @@ class HANAService extends SQLService {
         !!q.UPSERT,
       )
 
-      // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
