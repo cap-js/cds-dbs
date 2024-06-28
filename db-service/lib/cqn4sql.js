@@ -799,6 +799,39 @@ function cqn4sql(originalQuery, model) {
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
 
+    // if there is a group by on the main query, all
+    // columns of the expand must be in the groupBy
+    if (transformedQuery.SELECT.groupBy) {
+      const groupByLookup = new Set(transformedQuery.SELECT.groupBy.map(c => c.ref && c.ref.map(idOnly).join('.')))
+      const baseRef =
+        column.$refLinks[0].definition.SELECT || column.$refLinks[0].definition.kind === 'entity'
+          ? column.ref.slice(1)
+          : column.ref
+      // to be attached to dummy query
+      const elements = {}
+      const expandedColumns = column.expand.map(col => {
+        const fullRef = [...baseRef, ...col.ref]
+
+        if (!groupByLookup.has(fullRef.join('.'))) {
+          throw new Error(`"${fullRef.join('.')}": The expanded column must be part of the group by clause.`)
+        }
+
+        const columnCopy = { ref: fullRef, as: col.as || undefined }
+        return columnCopy
+      })
+
+      const SELECT = {}
+      Object.defineProperties(SELECT, {
+        from: { value: { ref: ['DUMMY'] }, enumerable: true },
+        columns: { value: expandedColumns, enumerable: true },
+        expand: { value: true },
+        one: { value: column.$refLinks.at(-1).definition.is2one },
+      })
+      return {
+        SELECT,
+        as: columnAlias,
+      }
+    }
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
     const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
@@ -815,7 +848,7 @@ function cqn4sql(originalQuery, model) {
         from,
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
-        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
+        one: column.$refLinks.at(-1).definition.is2one,
       },
     }
     const expanded = transformSubquery(subquery)

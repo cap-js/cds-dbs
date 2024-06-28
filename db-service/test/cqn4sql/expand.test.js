@@ -194,7 +194,6 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
       /Unexpected unmanaged association “books” in filter expression of “author”/,
     )
-
   })
   it('rejects non-fk access in infix filter of expand path', () => {
     expect(() =>
@@ -280,7 +279,6 @@ describe('Unfold expands on associations to special subselects', () => {
     }`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
-
 
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
     const q = {
@@ -1031,6 +1029,68 @@ describe('Unfold expands on associations to special subselects', () => {
     `)
   })
 })
+
+describe('Expands with aggregations are special', () => {
+  let model
+  beforeAll(async () => {
+    cds.model = model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
+  })
+
+  it('simple aggregation', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { name }
+    } group by author.name`
+
+    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+      Books.ID,
+      (SELECT from DUMMY { author.name }) as author
+    } group by author.name`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it('with multiple expands', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { name },
+      genre { name }
+    } group by author.name, genre.name`
+
+    const qx = CQL`SELECT from bookshop.Books as Books
+    left join bookshop.Authors as author on author.ID = Books.author_ID
+    left join bookshop.Genres as genre on genre.ID = Books.genre_ID
+    {
+      Books.ID,
+      (SELECT from DUMMY { author.name }) as author,
+      (SELECT from DUMMY { genre.name }) as genre
+    } group by author.name, genre.name`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it.skip('with nested expands', () => {
+    const q = CQL`SELECT from bookshop.Genres {
+      ID,
+      Genres.parent { parent { name } },
+    } group by parent.parent.name`
+
+    const qx = CQL`SELECT from bookshop.Books as Books
+    left join bookshop.Authors as author on author.ID = Books.author_ID
+    left join bookshop.Genres as genre on genre.ID = Books.genre_ID
+    {
+      Books.ID,
+      (SELECT from DUMMY { author.name }) as author,
+      (SELECT from DUMMY { genre.name }) as genre
+    } group by author.name, genre.name`
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
+  it.skip('what about the filter condition of the expand?', () => {
+    CQL`SELECT from bookshop.Books {
+      author[name='King'] { name }
+    } group by author.name`
+  })
+})
 // the tests in here are a copy of the tests in `./inline.test.js`
 // and should behave exactly the same.
 // `.inline` and `.expand` on a `struct` are semantically equivalent.
@@ -1108,7 +1168,9 @@ describe('expand on structure part II', () => {
         (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
         (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
     }`
-    expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))))).to.eql(expected)
+    expect(
+      JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))),
+    ).to.eql(expected)
   })
 
   it('multi expand with star but foreign key does not survive in structured mode', () => {
