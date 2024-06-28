@@ -468,6 +468,7 @@ class HANAService extends SQLService {
       const structures = []
       let expands = {}
       let blobs = {}
+      let hasBooleans = false
       let path = `'$['`
       let sql = SELECT.columns
         .map(
@@ -518,6 +519,7 @@ class HANAService extends SQLService {
                 path = xpr
                 return false
               }
+              if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
@@ -536,6 +538,7 @@ class HANAService extends SQLService {
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
@@ -1072,7 +1075,7 @@ class HANAService extends SQLService {
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
