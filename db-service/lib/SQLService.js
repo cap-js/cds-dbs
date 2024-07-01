@@ -116,6 +116,8 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
+    // REVISIT: for custom joins, infer is called twice, which is bad
+    //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
       try { this.infer(query) } catch { /**/ }
     }
