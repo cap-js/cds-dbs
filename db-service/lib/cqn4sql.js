@@ -919,12 +919,12 @@ function cqn4sql(originalQuery, model) {
         {
           SELECT: {
             value: Object.defineProperties(SELECT, {
-              expand: { value: true }, // non-enumerable
-              one: { value: column.$refLinks.at(-1).definition.is2one }, // non-enumerable
+              expand: { value: true, writable: true }, // non-enumerable
+              one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
             }),
             enumerable: true,
           },
-          as: { value: subqueryAlias, enumerable: true },
+          as: { value: subqueryAlias, enumerable: true, writable: true },
           elements: { value: elements }, // non-enumerable
         },
       )

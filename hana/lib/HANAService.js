@@ -487,12 +487,33 @@ class HANAService extends SQLService {
                   }
                 })
 
-                x.SELECT.from = {
-                  join: 'inner',
-                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-                  on: x.SELECT.where,
-                  as: x.SELECT.from.as,
+                if (x.SELECT.from) {
+                  x.SELECT.from = {
+                    join: 'inner',
+                    args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+                    on: x.SELECT.where,
+                    as: x.SELECT.from.as,
+                  }
+                } else {
+                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
+                  x.SELECT.columns.forEach(col => {
+                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+                    if (col.ref?.length > 1) {
+                      const colName = this.column_name(col)
+                      if (col.ref[0] !== parent.as) {
+                        // Inject foreign columns into parent select
+                        const as = `$$${col.ref.join('.')}$$`
+                        parent.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                        col.as = colName
+                        col.ref = [parent.as, as]
+                      } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                        // Inject local columns into parent select
+                        parent.SELECT.columns.push({ __proto__: col })
+                      }
+                    }
+                  })
                 }
+
                 x.SELECT.where = undefined
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
@@ -531,6 +552,8 @@ class HANAService extends SQLService {
             },
         )
         .filter(a => a)
+
+      if (sql.length === 0) sql = '*'
 
       if (SELECT.expand === 'root') {
         this._blobs = blobs
@@ -584,6 +607,10 @@ class HANAService extends SQLService {
 
     SELECT_expand(_, sql) {
       return sql
+    }
+
+    from_dummy() {
+      return ' FROM DUMMY'
     }
 
     extractForeignKeys(xpr, alias, foreignKeys = []) {
