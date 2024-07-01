@@ -798,44 +798,20 @@ function cqn4sql(originalQuery, model) {
       (column.$refLinks[0].definition.kind === 'entity'
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
-
     // if there is a group by on the main query, all
     // columns of the expand must be in the groupBy
     if (transformedQuery.SELECT.groupBy) {
-      const groupByLookup = new Set(transformedQuery.SELECT.groupBy.map(c => c.ref && c.ref.map(idOnly).join('.')))
       const baseRef =
         column.$refLinks[0].definition.SELECT || column.$refLinks[0].definition.kind === 'entity'
           ? column.ref.slice(1)
           : column.ref
-      // to be attached to dummy query
-      const elements = {}
-      const expandedColumns = column.expand.map(col => {
-        const fullRef = [...baseRef, ...col.ref]
 
-        if (!groupByLookup.has(fullRef.join('.'))) {
-          throw new Error(`"${fullRef.join('.')}": The expanded column must be part of the group by clause.`)
-        }
-
-        const columnCopy = { ref: fullRef, as: col.as || undefined }
-        return columnCopy
-      })
-
-      const SELECT = {}
-      Object.defineProperties(SELECT, {
-        from: { value: { ref: ['DUMMY'] }, enumerable: true },
-        columns: { value: expandedColumns, enumerable: true },
-        expand: { value: true },
-        one: { value: column.$refLinks.at(-1).definition.is2one },
-      })
-      return {
-        SELECT,
-        as: columnAlias,
-      }
+      return _subqueryForGroupBy(column, baseRef, columnAlias)
     }
+
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
     const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
-
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
     const subqueryBase = Object.fromEntries(
@@ -883,6 +859,51 @@ function cqn4sql(originalQuery, model) {
         return x
       }
       return subq
+    }
+
+    function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
+      const groupByLookup = new Map(transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(idOnly).join('.'), c]))
+
+      // to be attached to dummy query
+      const elements = {}
+      const expandedColumns = column.expand.map(expand => {
+        const fullRef = [...baseRef, ...expand.ref]
+
+        if (expand.expand) {
+          subqueryAlias = expand.as || expand.ref.map(idOnly).join('_')
+          const nested = _subqueryForGroupBy(expand, fullRef, subqueryAlias)
+          return nested
+        }
+
+        const groupByRef = groupByLookup.get(fullRef.join('.'))
+        if (!groupByRef) {
+          throw new Error(`"${fullRef.join('.')}": The expanded column must be part of the group by clause.`)
+        }
+
+        const columnCopy = Object.create(groupByRef)
+        if (expand.as) {
+          columnCopy.as = expand.as
+        }
+        if (columnCopy.isJoinRelevant) {
+          const tableAlias = getQuerySourceName(columnCopy)
+          const name = calculateElementName(columnCopy)
+          columnCopy.ref = [tableAlias, name]
+        }
+        return columnCopy
+      })
+
+      const SELECT = {}
+      Object.defineProperties(SELECT, {
+        from: { value: null, enumerable: true },
+        columns: { value: expandedColumns, enumerable: true },
+        expand: { value: true },
+        one: { value: column.$refLinks.at(-1).definition.is2one },
+      })
+
+      return {
+        SELECT,
+        as: subqueryAlias,
+      }
     }
   }
 

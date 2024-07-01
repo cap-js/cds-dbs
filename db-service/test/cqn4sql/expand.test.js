@@ -1046,6 +1046,7 @@ describe('Expands with aggregations are special', () => {
       Books.ID,
       (SELECT from DUMMY { author.name }) as author
     } group by author.name`
+    qx.SELECT.columns[1].SELECT.from = null
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
@@ -1064,23 +1065,53 @@ describe('Expands with aggregations are special', () => {
       (SELECT from DUMMY { author.name }) as author,
       (SELECT from DUMMY { genre.name }) as genre
     } group by author.name, genre.name`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[2].SELECT.from = null
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
-  it.skip('with nested expands', () => {
+  it('with nested expands', () => {
     const q = CQL`SELECT from bookshop.Genres {
       ID,
       Genres.parent { parent { name } },
     } group by parent.parent.name`
 
-    const qx = CQL`SELECT from bookshop.Books as Books
-    left join bookshop.Authors as author on author.ID = Books.author_ID
-    left join bookshop.Genres as genre on genre.ID = Books.genre_ID
+    const qx = CQL`SELECT from bookshop.Genres as Genres
+    left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
+    left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     {
-      Books.ID,
-      (SELECT from DUMMY { author.name }) as author,
-      (SELECT from DUMMY { genre.name }) as genre
-    } group by author.name, genre.name`
+      Genres.ID,
+      (
+        SELECT from DUMMY {
+          (SELECT from DUMMY { parent2.name }) as parent
+        }
+      ) as parent,
+    } group by parent2.name`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it('with nested expands and non-nested sibling', () => {
+    const q = CQL`SELECT from bookshop.Genres {
+      ID,
+      Genres.parent { parent { name }, name },
+    } group by parent.parent.name, parent.name`
+
+    const qx = CQL`SELECT from bookshop.Genres as Genres
+    left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
+    left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+    {
+      Genres.ID,
+      (
+        SELECT from DUMMY {
+          (SELECT from DUMMY { parent2.name }) as parent,
+          parent.name
+        }
+      ) as parent,
+    } group by parent2.name, parent.name`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
