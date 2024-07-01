@@ -1050,6 +1050,22 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+  it('expand path with filter must be an exact match in group by', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      Books.ID,
+      author[name='King'] { name }
+    } group by author[name='King'].name`
+
+    const qx = CQL`SELECT from bookshop.Books as Books
+    left join bookshop.Authors as author on author.ID = Books.author_ID and author.name = 'King' {
+      Books.ID,
+      (SELECT from DUMMY { author.name }) as author
+    } group by author.name`
+    qx.SELECT.columns[1].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
   it('with multiple expands', () => {
     const q = CQL`SELECT from bookshop.Books {
       ID,
@@ -1116,10 +1132,51 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
-  it.skip('what about the filter condition of the expand?', () => {
-    CQL`SELECT from bookshop.Books {
+  // negative tests
+  it('simple path not part of group by', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { name, ID }
+    } group by author.name`
+
+    expect(() => cqn4sql(q, model)).to.throw(/The expanded column "author.ID" must be part of the group by clause/)
+  })
+  it('nested path not part of group by', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { books {title}, ID }
+    } group by author.ID`
+
+    expect(() => cqn4sql(q, model)).to.throw(
+      /The expanded column "author.books.title" must be part of the group by clause/,
+    )
+  })
+  it('deeply nested path not part of group by', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { books { author { name } } , ID }
+    } group by author.ID`
+
+    expect(() => cqn4sql(q, model)).to.throw(
+      /The expanded column "author.books.author.name" must be part of the group by clause/,
+    )
+  })
+
+  it('expand path with filter must be an exact match in group by', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      Books.ID,
       author[name='King'] { name }
     } group by author.name`
+
+    expect(() => cqn4sql(q, model)).to.throw(`The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`)
+  })
+  it('expand path with filter must be an exact match in group by (2)', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      Books.ID,
+      author { name }
+    } group by author[name='King'].name`
+
+    expect(() => cqn4sql(q, model)).to.throw(`The expanded column "author.name" must be part of the group by clause`)
   })
 })
 // the tests in here are a copy of the tests in `./inline.test.js`

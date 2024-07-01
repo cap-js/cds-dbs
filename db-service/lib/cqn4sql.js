@@ -798,6 +798,7 @@ function cqn4sql(originalQuery, model) {
       (column.$refLinks[0].definition.kind === 'entity'
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
+
     // if there is a group by on the main query, all
     // columns of the expand must be in the groupBy
     if (transformedQuery.SELECT.groupBy) {
@@ -861,8 +862,22 @@ function cqn4sql(originalQuery, model) {
       return subq
     }
 
+    /**
+     * Generates a special subquery for the `expand` of the `column`.
+     * All columns in the `expand` must be part of the GROUP BY clause of the main query.
+     * If this is the case, the subqueries columns match the corresponding references of the group by.
+     * Nested expands are also supported.
+     *
+     * @param {Object} column - To expand.
+     * @param {Array} baseRef - The base reference for the expanded column.
+     * @param {string} subqueryAlias - The alias of the `expand` subquery column.
+     * @returns {Object} - The subquery object.
+     * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
+     */
     function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
-      const groupByLookup = new Map(transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(idOnly).join('.'), c]))
+      const groupByLookup = new Map(
+        transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(refWithConditions).join('.'), c]),
+      )
 
       // to be attached to dummy query
       const elements = {}
@@ -870,14 +885,16 @@ function cqn4sql(originalQuery, model) {
         const fullRef = [...baseRef, ...expand.ref]
 
         if (expand.expand) {
-          subqueryAlias = expand.as || expand.ref.map(idOnly).join('_')
-          const nested = _subqueryForGroupBy(expand, fullRef, subqueryAlias)
+          const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
           return nested
         }
 
-        const groupByRef = groupByLookup.get(fullRef.join('.'))
+        const groupByRef = groupByLookup.get(fullRef.map(refWithConditions).join('.'))
         if (!groupByRef) {
-          throw new Error(`"${fullRef.join('.')}": The expanded column must be part of the group by clause.`)
+          throw new Error(
+            `The expanded column "${fullRef.map(refWithConditions).join('.')}" must be part of the group by clause`,
+          )
         }
 
         const columnCopy = Object.create(groupByRef)
@@ -889,21 +906,28 @@ function cqn4sql(originalQuery, model) {
           const name = calculateElementName(columnCopy)
           columnCopy.ref = [tableAlias, name]
         }
+        elements[expand.as || expand.ref.map(idOnly).join('_')] = columnCopy.$refLinks.at(-1).definition
         return columnCopy
       })
 
-      const SELECT = {}
-      Object.defineProperties(SELECT, {
-        from: { value: null, enumerable: true },
-        columns: { value: expandedColumns, enumerable: true },
-        expand: { value: true },
-        one: { value: column.$refLinks.at(-1).definition.is2one },
-      })
-
-      return {
-        SELECT,
-        as: subqueryAlias,
+      const SELECT = {
+        from: null,
+        columns: expandedColumns,
       }
+      return Object.defineProperties(
+        {},
+        {
+          SELECT: {
+            value: Object.defineProperties(SELECT, {
+              expand: { value: true }, // non-enumerable
+              one: { value: column.$refLinks.at(-1).definition.is2one }, // non-enumerable
+            }),
+            enumerable: true,
+          },
+          as: { value: subqueryAlias, enumerable: true },
+          elements: { value: elements }, // non-enumerable
+        },
+      )
     }
   }
 
@@ -2305,4 +2329,12 @@ function setElementOnColumns(col, element) {
 
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
+const refWithConditions = step => {
+  let appendix
+  const { args, where } = step
+  if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
+  else if (where) appendix = JSON.stringify(where)
+  else if (args) appendix = JSON.stringify(args)
+  return appendix ? step.id + appendix : step
+}
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
