@@ -13,6 +13,7 @@
   "files": [
     "cds-plugin.js",
     "lib",
+    "bin",
     "CHANGELOG.md"
   ],
   "scripts": {
@@ -34,6 +35,9 @@
     "@sap/hana-client": {
       "optional": true
     }
+  },
+  "bin": {
+    "hana": "./bin/hana.js"
   },
   "cds": {
     "requires": {
