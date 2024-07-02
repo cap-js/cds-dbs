@@ -516,7 +516,7 @@ function infer(originalQuery, model) {
       // if any path step points to an artifact with `@cds.persistence.skip`
       // we must ignore the element from the queries elements
       let isPersisted = true
-      const firstStepIsTableAlias = column.ref.length > 1 && column.ref[0] in sources
+      const firstStepIsTableAlias = !$baseLink && column.ref.length > 1 && column.ref[0] in sources
       const firstStepIsSelf =
         !firstStepIsTableAlias && column.ref.length > 1 && ['$self', '$projection'].includes(column.ref[0])
       const expandOnTableAlias = column.ref.length === 1 && column.ref[0] in sources && (column.expand || column.inline)
@@ -529,7 +529,14 @@ function infer(originalQuery, model) {
       column.ref.forEach((step, i) => {
         const id = step.id || step
         if (i === 0) {
-          if (id in pseudos.elements) {
+          if (firstStepIsSelf) {
+            column.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
+          } else if (firstStepIsTableAlias) {
+            column.$refLinks.push({
+              definition: getDefinitionFromSources(sources, id),
+              target: getDefinitionFromSources(sources, id),
+            })
+          } else if (id in pseudos.elements) {
             // pseudo path
             column.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
             pseudoPath = true // only first path step must be well defined
@@ -546,13 +553,6 @@ function infer(originalQuery, model) {
               stepNotFoundInPredecessor(id, definition.name)
             }
             nameSegments.push(id)
-          } else if (firstStepIsTableAlias) {
-            column.$refLinks.push({
-              definition: getDefinitionFromSources(sources, id),
-              target: getDefinitionFromSources(sources, id),
-            })
-          } else if (firstStepIsSelf) {
-            column.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
           } else if (column.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
             // outer query accessed via alias
             const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
