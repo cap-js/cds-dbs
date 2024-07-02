@@ -222,6 +222,7 @@ class CQN2SQLRenderer {
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
     if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
@@ -344,6 +345,14 @@ class CQN2SQLRenderer {
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join)
       return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+  }
+
+  /**
+   * Renders a FROM clause for when the query does not have a target
+   * @returns {string} SQL
+   */
+  from_dummy() {
+    return ''
   }
 
   /**
