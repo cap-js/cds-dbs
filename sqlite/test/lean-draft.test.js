@@ -837,8 +837,6 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.data).to.containSubset({
-      '@odata.context':
-        '$metadata#Travel(BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID,DraftAdministrativeData(DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus(code,createDeleteHidden,fieldControl,name),to_Agency(AgencyID,Name),to_Customer(CustomerID,LastName))/$entity',
       BeginDate: '2032-10-22',
       BookingFee: 12,
       CurrencyCode_code: null,

@@ -100,7 +100,7 @@ class HANAService extends SQLService {
   }
 
   ensureDBC() {
-    return this.dbc || cds.error`Database is disconnected`
+    return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
   }
 
   async set(variables) {
@@ -117,7 +117,7 @@ class HANAService extends SQLService {
     const { query, data, hasPostProcessing, iterator } = req
 
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch { /**/ }
     }
     if (!query.target || query.target._unresolved) {
       return super.onSELECT(req)
@@ -139,9 +139,13 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    let rows = (values?.length || blobs.length > 0 || canStream)
-      ? await (await this.prepare(sqlScript, blobs.length))[canStream ? 'stream' : 'all'](values || [], isOne, iterator)
-      : await this.exec(sqlScript)
+    let rows
+    if (values?.length || blobs.length > 0 || canStream) {
+      const ps = await this.prepare(sqlScript, blobs.length)
+      rows = this.ensureDBC() && await ps[canStream ? 'stream' : 'all'](values || [], isOne, iterator)
+    } else {
+      rows = await this.exec(sqlScript)
+    }
 
     if (isLockQuery) {
       // Fetch actual locked results
@@ -169,9 +173,9 @@ class HANAService extends SQLService {
       // HANA driver supports batch execution
       const results = await (entries
         ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? await ps.runBatch(entries) : await ps.run(entries[0])
-        : ps.run())
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
@@ -231,7 +235,7 @@ class HANAService extends SQLService {
       const expands = JSON.parse(row._expands_)
       const blobs = JSON.parse(row._blobs_)
       const data = Object.assign(JSON.parse(row._json_), expands, blobs)
-      Object.keys(blobs).forEach(k => (data[k] = this._stream(row[k] || data[k])))
+      Object.keys(blobs).forEach(k => (data[k] = row[k] || data[k]))
 
       // REVISIT: try to unify with handleLevel from base driver used for streaming
       while (levels.length) {
@@ -466,6 +470,7 @@ class HANAService extends SQLService {
       const structures = []
       let expands = {}
       let blobs = {}
+      let hasBooleans = false
       let path = `'$['`
       let sql = SELECT.columns
         .map(
@@ -477,21 +482,40 @@ class HANAService extends SQLService {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
-                let fkeys = x.element._foreignKeys
-                if (typeof fkeys === 'function') fkeys = fkeys.call(x.element)
-                fkeys.forEach(k => {
-                  if (!k?.parentElement?.name) return // not all associations have foreign key references
-                  if (!parent.SELECT.columns.find(c => this.column_name(c) === k.parentElement.name)) {
-                    parent.SELECT.columns.push({ ref: [parent.as, k.parentElement.name] })
+                this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
+                  const columnName = this.column_name(ref)
+                  if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
+                    parent.SELECT.columns.push(ref)
                   }
                 })
 
-                x.SELECT.from = {
-                  join: 'inner',
-                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-                  on: x.SELECT.where,
-                  as: x.SELECT.from.as,
+                if (x.SELECT.from) {
+                  x.SELECT.from = {
+                    join: 'inner',
+                    args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+                    on: x.SELECT.where,
+                    as: x.SELECT.from.as,
+                  }
+                } else {
+                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
+                  x.SELECT.columns.forEach(col => {
+                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+                    if (col.ref?.length > 1) {
+                      const colName = this.column_name(col)
+                      if (col.ref[0] !== parent.as) {
+                        // Inject foreign columns into parent select
+                        const as = `$$${col.ref.join('.')}$$`
+                        parent.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                        col.as = colName
+                        col.ref = [parent.as, as]
+                      } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                        // Inject local columns into parent select
+                        parent.SELECT.columns.push({ __proto__: col })
+                      }
+                    }
+                  })
                 }
+
                 x.SELECT.where = undefined
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
@@ -518,6 +542,7 @@ class HANAService extends SQLService {
                 path = xpr
                 return false
               }
+              if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
@@ -530,12 +555,15 @@ class HANAService extends SQLService {
         )
         .filter(a => a)
 
+      if (sql.length === 0) sql = '*'
+
       if (SELECT.expand === 'root') {
         this._blobs = blobs
         const blobColumns = Object.keys(blobs)
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
@@ -583,6 +611,10 @@ class HANAService extends SQLService {
       return sql
     }
 
+    from_dummy() {
+      return ' FROM DUMMY'
+    }
+
     extractForeignKeys(xpr, alias, foreignKeys = []) {
       // REVISIT: this is a quick method of extracting the foreign keys it could be nicer
       // Find all foreign keys used in the expression so they can be exposed to the follow up expand queries
@@ -611,7 +643,7 @@ class HANAService extends SQLService {
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
-      this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+      this.columns = columns
 
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
@@ -619,7 +651,6 @@ class HANAService extends SQLService {
         !!q.UPSERT,
       )
 
-      // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
@@ -1050,8 +1081,9 @@ class HANAService extends SQLService {
       LargeString: () => `NVARCHAR(2147483647)`,
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
-      array: () => `NVARCHAR(2147483647)`,
+      array: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
+      Decimal: () => `DECIMAL`,
 
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
@@ -1072,7 +1104,7 @@ class HANAService extends SQLService {
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
@@ -1092,9 +1124,8 @@ class HANAService extends SQLService {
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
-      // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `TO_NVARCHAR(${expr})` : undefined,
+      Decimal: expr => `TO_NVARCHAR(${expr})`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
@@ -1106,7 +1137,7 @@ class HANAService extends SQLService {
     const { sql, values } = this.cqn2sql(query, data)
     try {
       let ps = await this.prepare(sql)
-      return (await ps.run(values)).changes
+      return (this.ensureDBC() && await ps.run(values)).changes
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
       if (event === 'DROP ENTITY' && (err.code === 259 || err.code === 321)) {
@@ -1136,7 +1167,7 @@ class HANAService extends SQLService {
   async onCall({ query, data }, name, schema) {
     const outParameters = await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
-    return ps.proc(data, outParameters)
+    return this.ensureDBC() && ps.proc(data, outParameters)
   }
 
   async onPlainSQL(req, next) {
@@ -1203,7 +1234,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
       res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
@@ -1245,7 +1276,7 @@ class HANAService extends SQLService {
       this.dbc = con
 
       const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = await stmt.run([creds.user, creds.password, creds.schema, !clean])
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
       res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
@@ -1280,10 +1311,6 @@ class HANAService extends SQLService {
 }
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
-
-Buffer.prototype.toJSON = function () {
-  return this.toString('hex')
-}
 
 function _not_unique(err, code) {
   if (err.code === 301)

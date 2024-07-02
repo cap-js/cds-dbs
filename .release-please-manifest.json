@@ -1,6 +1,6 @@
 {
-  "db-service": "1.10.0",
-  "sqlite": "1.7.1",
+  "db-service": "1.10.2",
+  "sqlite": "1.7.2",
   "postgres": "1.9.0",
-  "hana": "0.5.0"
+  "hana": "1.0.0"
 }

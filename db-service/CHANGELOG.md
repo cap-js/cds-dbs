@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.1...db-service-v1.10.2) (2024-06-25)
+
+
+### Fixed
+
+* **`expand`:** enable expanding from subquery ([#709](https://github.com/cap-js/cds-dbs/issues/709)) ([5ed03e5](https://github.com/cap-js/cds-dbs/commit/5ed03e5ed64eb46e6f22af120d7285fbcb127a7c)), closes [#708](https://github.com/cap-js/cds-dbs/issues/708)
+
+## [1.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.0...db-service-v1.10.1) (2024-06-19)
+
+
+### Fixed
+
+* Only check first row if no changes required ([#552](https://github.com/cap-js/cds-dbs/issues/552)) ([39b0b85](https://github.com/cap-js/cds-dbs/commit/39b0b85d5cb4807f63f10acea13fb4d688fa1dcd))
+
 ## [1.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.2...db-service-v1.10.0) (2024-05-29)
 
 

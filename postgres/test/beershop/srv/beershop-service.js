@@ -5,7 +5,7 @@ module.exports = srv => {
     let db
     try {
       db = await cds.connect.to('db')
-    } catch (err) {
+    } catch {
       db = cds.db
     }
     await cds.deploy('./srv/', {}).to(db)
