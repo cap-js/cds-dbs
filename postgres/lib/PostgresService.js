@@ -529,7 +529,7 @@ GROUP BY k
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
-      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+      Int64: expr => `cast(${expr} as varchar)`,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
