@@ -12,7 +12,6 @@
       }
     },
     "features": {
-      "string_decimals": true,
       "ieee754compatible": true
     }
   }
