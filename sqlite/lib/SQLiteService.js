@@ -1,6 +1,13 @@
 const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds')
-const sqlite = require('better-sqlite3')
+const cds = require('@sap/cds/lib')
+let sqlite
+try {
+  sqlite = require('better-sqlite3')
+} catch (err) {
+  // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+  sqlite = require('./sql.js.js')
+}
+
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
@@ -20,9 +27,10 @@ class SQLiteService extends SQLService {
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
-      create: tenant => {
+      create: async tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
+        await dbc.ready
 
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
