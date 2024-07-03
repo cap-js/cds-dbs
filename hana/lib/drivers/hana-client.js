@@ -1,5 +1,6 @@
 const { Readable, Stream } = require('stream')
 
+const cds = require('@sap/cds')
 const hdb = require('@sap/hana-client')
 const { driver, prom, handleLevel } = require('./base')
 const LOG = cds.log('@sap/hana-client')
