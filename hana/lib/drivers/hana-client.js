@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 const hdb = require('@sap/hana-client')
 const { driver, prom, handleLevel } = require('./base')
 const LOG = cds.log('@sap/hana-client')
+if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.")
 
 const streamUnsafe = false
 
@@ -19,7 +20,6 @@ class HANAClientDriver extends driver {
    * @param {import('./base').Credentials} creds The credentials for the HANAClientDriver instance
    */
   constructor(creds) {
-    if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.")
     // Enable native @sap/hana-client connection pooling
     creds = Object.assign({}, creds, {
       // REVISIT: add pooling related credentials when switching to native pools
