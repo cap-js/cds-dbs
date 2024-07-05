@@ -225,11 +225,11 @@ function cqn4sql(originalQuery, model) {
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
   function transformSearch(searchTerm) {
+    let prop = 'where'
+    
     // if the query is grouped and the queries columns contain an aggregate function,
     // we must put the search term into the `having` clause, as the search expression
     // is defined on the aggregated result, not on the individual rows
-    let prop = 'where'
-
     const usesAggregation =
       inferred.SELECT.groupBy &&
       (searchTerm.args[0].func || searchTerm.args[0].xpr || searchTerm.args[0].list?.some(c => c.func || c.xpr))
