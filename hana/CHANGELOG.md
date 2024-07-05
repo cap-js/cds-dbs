@@ -4,14 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.0.0...hana-v1.0.1) (2024-07-04)
-
-
-### Fixed
-
-* Allow numeric Booleans `0` and `1` ([#714](https://github.com/cap-js/cds-dbs/issues/714)) ([82c4dbe](https://github.com/cap-js/cds-dbs/commit/82c4dbe43c271e1b3efb509e44f952a91ea36b83))
-* Support expand with group by clause ([#721](https://github.com/cap-js/cds-dbs/issues/721)) ([90c9e6a](https://github.com/cap-js/cds-dbs/commit/90c9e6a4da9d4a3451ec0ed60dd0815c04600134))
-
 ## [1.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.5.0...hana-v1.0.0) (2024-06-19)
 
 
