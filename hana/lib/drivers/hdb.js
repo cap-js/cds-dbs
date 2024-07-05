@@ -6,6 +6,7 @@ const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+const { resultSetStream } = require('./stream')
 
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
@@ -155,154 +156,6 @@ class HDBDriver extends driver {
   }
 }
 
-function rsNext(state, objectMode) {
-  let done = state.done()
-  if (done?.then) return done.then(done => {
-    if (done) return { done }
-    return rsNext(state, objectMode)
-  })
-  if (done) return { done }
-
-  let _path = readString(state)
-  // if (_path.then) _path = await _path
-  const path = (_path)
-  let _blobs = readString(state)
-  // if (_blobs.then) _blobs = await _blobs
-  const blobs = _blobs.length === 2 ? {} : JSON.parse(_blobs)
-  let _expands = readString(state)
-  // if (_expands.then) _expands = await _expands
-  const expands = _expands.length === 2 ? {} : JSON.parse(_expands)
-
-  state.inject(handleLevel(state.levels, path, expands))
-
-  // REVISIT: allow streaming with both NVARCHAR and NCLOB
-  // Read JSON blob data
-  const value = readString(state, !objectMode)
-
-  return {
-    // Iterator pattern
-    done,
-    value,
-
-    // Additional row information
-    path,
-    blobs,
-    expands,
-  }
-}
-
-function rsNextObjectMode(state, next) {
-  if (!next) next = rsNext(state, true)
-  if (next.then) return next.then(next => rsNextObjectMode(state, next))
-  const { done, value, path, blobs, expands } = next
-  if (done) return next
-
-  const json = JSON.parse(value)
-
-  // Convert incoming blobs into their own native Readable streams
-  for (const blobColumn of state.blobs) {
-    // Skip all blobs that are not part of this row
-    if (!(blobColumn in blobs)) {
-      state.read(2)
-      continue
-    }
-
-    let binaryStream = new Readable({
-      read() {
-        if (binaryStream._prefetch) {
-          this.push(binaryStream._prefetch)
-          binaryStream._prefetch = null
-        }
-        this.resume()
-      }
-    })
-    readBlob(state, {
-      end() { binaryStream.push(null) },
-      write(chunk) {
-        if (!binaryStream.readableDidRead) {
-          binaryStream._prefetch = chunk
-          binaryStream.pause()
-          return new Promise((resolve, reject) => {
-            binaryStream.once('error', reject)
-            binaryStream.once('resume', resolve)
-          })
-        }
-        binaryStream.push(chunk)
-      }
-    })
-      ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
-    json[blobColumn] = binaryStream // Return delayed blob read stream or null
-  }
-
-  const level = state.levels.at(-1)
-
-  // Expose expanded columns as recursive Readable streams
-  for (const expandName in expands) {
-    level.expands[expandName] = json[expandName] = new Readable({
-      objectMode: true,
-      read() {
-        state.stream.resume()
-      }
-    })
-  }
-
-  // Push current
-  const resultStream = level.result
-  resultStream.push(json)
-  resultStream._reading--
-
-  return {
-    // Iterator pattern
-    done,
-    value: json,
-
-    // Additional row information
-    path,
-  }
-}
-
-function rsNextRaw(state, next) {
-  if (!next) next = rsNext(state)
-  if (next.then) return next.then(next => rsNextRaw(state, next))
-  const { done, value, path, blobs } = next
-  if (done) return next
-
-  // Read and write JSON blob data
-  let hasProperties = value > 2
-
-  const nextBlob = function (state, i = 0) {
-    if (state.blobs.length <= i) return
-    const blobColumn = state.blobs[i]
-
-    // Skip all blobs that are not part of this row
-    if (!(blobColumn in blobs)) {
-      state.read(2)
-      return nextBlob(state, i + 1)
-    }
-
-    if (hasProperties) state.inject(',')
-    hasProperties = true
-    state.inject(`${JSON.stringify(blobColumn)}:`)
-
-    const blobLength = readBlob(state, new StringDecoder('base64'))
-    if (blobLength.then) return blobLength.then(() => nextBlob(state, i + 1))
-  }
-
-  nextBlob(state, 0)
-
-  const level = state.levels.at(-1)
-  level.hasProperties = hasProperties
-
-  return {
-    // Iterator pattern
-    done,
-    value,
-
-    // Additional row information
-    path,
-  }
-}
-
 async function rsIterator(rs, one, objectMode) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
@@ -324,7 +177,8 @@ async function rsIterator(rs, one, objectMode) {
     reading: 0,
     writing: 0,
     buffer: Buffer.allocUnsafe(0),
-    yields: [],
+    columnIndex: 0,
+    // yields: [],
     next() {
       const ret = this._prefetch || raw.next()
       this._prefetch = raw.next()
@@ -343,6 +197,7 @@ async function rsIterator(rs, one, objectMode) {
           if (this.writing) this.stream.push(this.buffer.subarray(0, this.writing))
           // Update state
           this.buffer = next.value
+          this.columnIndex = 0
           this.reading = 0
           this.writing = 0
         })
@@ -454,6 +309,13 @@ async function rsIterator(rs, one, objectMode) {
       this.reading += length
       return ret
     },
+    readString() {
+      this.columnIndex++
+      return readString(this, this.columnIndex === 4)
+    },
+    readBlob() {
+      return readBlob(state, new StringDecoder('base64'))
+    }
   }
 
   // Mostly ignore buffer manipulation for objectMode
@@ -465,49 +327,39 @@ async function rsIterator(rs, one, objectMode) {
       return encoding.write(slice)
     }
     state.inject = function inject() { }
-  }
-
-  const stream = new Readable({
-    objectMode,
-    async read() {
-      if (this._running) {
-        this._reading++
-        return
-      }
-      this._running = true
-      this._reading = 1
-
-      const _next = objectMode ? rsNextObjectMode.bind(null, state) : rsNextRaw.bind(null, state)
-      while (this._reading > 0) {
-        let result = _next()
-        if (result.then) result = await result
-        if (result.done) return this.push(null)
-      }
-      this._running = false
-    },
-    // Clean up current state
-    end() {
-      state.inject(
-        levels
-          .reverse()
-          .map(l => l.suffix)
-          .join(''),
-      )
-
-      if (state.writing) {
-        state.yields.push(state.buffer.slice(0, state.writing))
-      }
-
-      rs.close()
+    state.readString = function _readString() {
+      return readString(this)
     }
-  })
-  levels[0].result = state.stream = stream
-
-  if (!objectMode && !one) {
-    state.inject('[')
+    state.readBlob = function _readBlob() {
+      const binaryStream = new Readable({
+        read() {
+          if (binaryStream._prefetch) {
+            this.push(binaryStream._prefetch)
+            binaryStream._prefetch = null
+          }
+          this.resume()
+        }
+      })
+      readBlob(state, {
+        end() { binaryStream.push(null) },
+        write(chunk) {
+          if (!binaryStream.readableDidRead) {
+            binaryStream._prefetch = chunk
+            binaryStream.pause()
+            return new Promise((resolve, reject) => {
+              binaryStream.once('error', reject)
+              binaryStream.once('resume', resolve)
+            })
+          }
+          binaryStream.push(chunk)
+        }
+      })
+        ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
+      return binaryStream
+    }
   }
 
-  return stream
+  return resultSetStream(state, one, objectMode)
 }
 
 const readString = function (state, isJson = false) {
