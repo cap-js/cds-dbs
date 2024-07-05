@@ -784,7 +784,7 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...transformedQuery.SELECT.from.ref,
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
@@ -795,6 +795,17 @@ function cqn4sql(originalQuery, model) {
       (column.$refLinks[0].definition.kind === 'entity'
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
+
+    // if there is a group by on the main query, all
+    // columns of the expand must be in the groupBy
+    if (transformedQuery.SELECT.groupBy) {
+      const baseRef =
+        column.$refLinks[0].definition.SELECT || column.$refLinks[0].definition.kind === 'entity'
+          ? column.ref.slice(1)
+          : column.ref
+
+      return _subqueryForGroupBy(column, baseRef, columnAlias)
+    }
 
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
@@ -812,7 +823,7 @@ function cqn4sql(originalQuery, model) {
         from,
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
-        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
+        one: column.$refLinks.at(-1).definition.is2one,
       },
     }
     const expanded = transformSubquery(subquery)
@@ -850,6 +861,74 @@ function cqn4sql(originalQuery, model) {
         return x
       }
       return subq
+    }
+
+    /**
+     * Generates a special subquery for the `expand` of the `column`.
+     * All columns in the `expand` must be part of the GROUP BY clause of the main query.
+     * If this is the case, the subqueries columns match the corresponding references of the group by.
+     * Nested expands are also supported.
+     *
+     * @param {Object} column - To expand.
+     * @param {Array} baseRef - The base reference for the expanded column.
+     * @param {string} subqueryAlias - The alias of the `expand` subquery column.
+     * @returns {Object} - The subquery object.
+     * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
+     */
+    function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
+      const groupByLookup = new Map(
+        transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(refWithConditions).join('.'), c]),
+      )
+
+      // to be attached to dummy query
+      const elements = {}
+      const expandedColumns = column.expand.map(expand => {
+        const fullRef = [...baseRef, ...expand.ref]
+
+        if (expand.expand) {
+          const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          return nested
+        }
+
+        const groupByRef = groupByLookup.get(fullRef.map(refWithConditions).join('.'))
+        if (!groupByRef) {
+          throw new Error(
+            `The expanded column "${fullRef.map(refWithConditions).join('.')}" must be part of the group by clause`,
+          )
+        }
+
+        const columnCopy = Object.create(groupByRef)
+        if (expand.as) {
+          columnCopy.as = expand.as
+        }
+        if (columnCopy.isJoinRelevant) {
+          const tableAlias = getQuerySourceName(columnCopy)
+          const name = calculateElementName(columnCopy)
+          columnCopy.ref = [tableAlias, name]
+        }
+        elements[expand.as || expand.ref.map(idOnly).join('_')] = columnCopy.$refLinks.at(-1).definition
+        return columnCopy
+      })
+
+      const SELECT = {
+        from: null,
+        columns: expandedColumns,
+      }
+      return Object.defineProperties(
+        {},
+        {
+          SELECT: {
+            value: Object.defineProperties(SELECT, {
+              expand: { value: true, writable: true }, // non-enumerable
+              one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
+            }),
+            enumerable: true,
+          },
+          as: { value: subqueryAlias, enumerable: true, writable: true },
+          elements: { value: elements }, // non-enumerable
+        },
+      )
     }
   }
 
@@ -1573,7 +1652,7 @@ function cqn4sql(originalQuery, model) {
           transformedFrom.args.push(f)
         }
       })
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
       if (from.as) {
@@ -1583,7 +1662,7 @@ function cqn4sql(originalQuery, model) {
         // select from anonymous query, use artificial alias
         transformedFrom.as = Object.keys(inferred.sources)[0]
       }
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else {
       return _transformFrom()
     }
@@ -1911,8 +1990,7 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
               }
             }
-          } else if (lhs.ref.length === 1)
-            result[i].ref.unshift(targetSideRefLink.alias)
+          } else if (lhs.ref.length === 1) result[i].ref.unshift(targetSideRefLink.alias)
         }
       }
       return result
@@ -2281,4 +2359,12 @@ function setElementOnColumns(col, element) {
 
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
+const refWithConditions = step => {
+  let appendix
+  const { args, where } = step
+  if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
+  else if (where) appendix = JSON.stringify(where)
+  else if (args) appendix = JSON.stringify(args)
+  return appendix ? step.id + appendix : step
+}
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

@@ -468,6 +468,7 @@ class HANAService extends SQLService {
       const structures = []
       let expands = {}
       let blobs = {}
+      let hasBooleans = false
       let path = `'$['`
       let sql = SELECT.columns
         .map(
@@ -486,12 +487,33 @@ class HANAService extends SQLService {
                   }
                 })
 
-                x.SELECT.from = {
-                  join: 'inner',
-                  args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-                  on: x.SELECT.where,
-                  as: x.SELECT.from.as,
+                if (x.SELECT.from) {
+                  x.SELECT.from = {
+                    join: 'inner',
+                    args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+                    on: x.SELECT.where,
+                    as: x.SELECT.from.as,
+                  }
+                } else {
+                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
+                  x.SELECT.columns.forEach(col => {
+                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+                    if (col.ref?.length > 1) {
+                      const colName = this.column_name(col)
+                      if (col.ref[0] !== parent.as) {
+                        // Inject foreign columns into parent select
+                        const as = `$$${col.ref.join('.')}$$`
+                        parent.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                        col.as = colName
+                        col.ref = [parent.as, as]
+                      } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                        // Inject local columns into parent select
+                        parent.SELECT.columns.push({ __proto__: col })
+                      }
+                    }
+                  })
                 }
+
                 x.SELECT.where = undefined
                 x.SELECT.expand = 'root'
                 x.SELECT.parent = parent
@@ -518,6 +540,7 @@ class HANAService extends SQLService {
                 path = xpr
                 return false
               }
+              if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
               return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
@@ -530,12 +553,15 @@ class HANAService extends SQLService {
         )
         .filter(a => a)
 
+      if (sql.length === 0) sql = '*'
+
       if (SELECT.expand === 'root') {
         this._blobs = blobs
         const blobColumns = Object.keys(blobs)
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
@@ -583,6 +609,10 @@ class HANAService extends SQLService {
       return sql
     }
 
+    from_dummy() {
+      return ' FROM DUMMY'
+    }
+
     extractForeignKeys(xpr, alias, foreignKeys = []) {
       // REVISIT: this is a quick method of extracting the foreign keys it could be nicer
       // Find all foreign keys used in the expression so they can be exposed to the follow up expand queries
@@ -611,7 +641,7 @@ class HANAService extends SQLService {
       const columns = elements
         ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
         : ObjectKeys(INSERT.entries[0])
-      this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+      this.columns = columns
 
       const extractions = this.managed(
         columns.map(c => ({ name: c })),
@@ -619,7 +649,6 @@ class HANAService extends SQLService {
         !!q.UPSERT,
       )
 
-      // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
@@ -1073,7 +1102,7 @@ class HANAService extends SQLService {
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
       Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' THEN TRUE WHEN ${e} = 'false' THEN FALSE END`,
+      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       Vector: e => `TO_REAL_VECTOR(${e})`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
