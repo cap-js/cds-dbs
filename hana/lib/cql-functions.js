@@ -24,14 +24,10 @@ const StandardFunctions = {
   contains: (...args) => args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
-    if (!('val' in arg)) throw `HANA only supports single value arguments for $search`
-    const refs = ref.list || [ref],
-      { toString } = ref
-    return (
-      '(CASE WHEN (' +
-      refs.map(ref2 => `coalesce(locate(${this.tolower(toString(ref2))},${this.tolower(arg)}),0)>0`).join(' or ') +
-      ') THEN TRUE ELSE FALSE END)'
-    )
+    // REVISIT: remove once the protocol adapter only creates vals
+    if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
+    // REVISIT: make this more configurable
+    return (`(CASE WHEN SCORE(${arg} IN ${ref} FUZZY MINIMAL TOKEN SCORE 0.7 SIMILARITY CALCULATION MODE 'search') > 0 THEN TRUE ELSE FALSE END)`)
   },
 
   // Date and Time Functions
