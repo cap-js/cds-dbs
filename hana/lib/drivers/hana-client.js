@@ -1,9 +1,13 @@
 const { Readable, Stream } = require('stream')
 const { pipeline } = require('stream/promises')
 
+const cds = require('@sap/cds')
 const hdb = require('@sap/hana-client')
 const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
+
+const LOG = cds.log('@sap/hana-client')
+if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.\nLearn more: https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/31a8c93a574b4f8fb6a8366d2c758f21.html")
 
 const streamUnsafe = false
 
