@@ -38,7 +38,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
-    const { credentials, kind } = service
+    const { credentials, kind } = service.options
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
