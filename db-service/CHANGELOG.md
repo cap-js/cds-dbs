@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.3](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.2...db-service-v1.10.3) (2024-07-05)
+
+
+### Fixed
+
+* rewrite assoc chains if intermediate assoc is not fk ([#715](https://github.com/cap-js/cds-dbs/issues/715)) ([3873f9a](https://github.com/cap-js/cds-dbs/commit/3873f9adce3ff26cafb2b18b9d2115758b0f0830))
+* Support expand with group by clause ([#721](https://github.com/cap-js/cds-dbs/issues/721)) ([90c9e6a](https://github.com/cap-js/cds-dbs/commit/90c9e6a4da9d4a3451ec0ed60dd0815c04600134))
+
 ## [1.10.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.1...db-service-v1.10.2) (2024-06-25)
 
 
