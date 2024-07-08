@@ -47,5 +47,71 @@ describe.skip('Bookshop - Search', () => {
       expect(res.length).to.be.eq(1)
     })
   })
+  describe('with path expressions', () => {
+    // reset search terms and cache before each test
+    beforeEach(async () => {
+      const { Books, Authors } = cds.entities
 
+      resetSearchTerms(Books)
+      resetSearchTerms(Authors)
+
+      function resetSearchTerms(entity) {
+        delete entity.__searchableColumns
+        Object.keys(entity).forEach(key => {
+          if (key.startsWith('@cds.search')) {
+            delete entity[key]
+          }
+        })
+      }
+    })
+
+    test('Search authors via books', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+
+      let res = await SELECT.from(Books).columns('author.name', 'title').search('Brontë')
+      expect(res.length).to.be.eq(2) // Emily and Charlotte
+    })
+
+    test('Search authors address through calculated element in books', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.authorsAddress'] = true
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      // author name in res[0] must match "Emily Brontë"
+      expect(res.length).to.be.eq(1)
+      expect(res[0].author).to.be.eq('Emily Brontë')
+    })
+    test('Search authors calculated element via books', async () => {
+      const { Books } = cds.entities
+      const { Authors } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+      Authors['@cds.search.address'] = true // address is a calculated element
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      // author name in res[0] must match "Emily Brontë"
+      expect(res.length).to.be.eq(1)
+      expect(res[0].author).to.be.eq('Emily Brontë')
+    })
+
+    test('search on result of subselect', async () => {
+      const res = await cds.run(
+        SELECT.from(SELECT.from({ ref: ['sap.capire.bookshop.Books'] }).columns('title'))
+          .columns('title')
+          .search('Wuthering'),
+      )
+      expect(res.length).to.be.eq(1)
+    })
+    test('search on result of subselect via path expression', async () => {
+      const query = SELECT.from(SELECT.from({ ref: ['sap.capire.bookshop.Books'] }).columns('title', 'author'))
+        .columns('title', 'author')
+        .search('Brontë')
+      query.SELECT.from['@cds.search.author'] = true
+      const res = await cds.run(query)
+      expect(res.length).to.be.eq(2)
+    })
+  })
 })
