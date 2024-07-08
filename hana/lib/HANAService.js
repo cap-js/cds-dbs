@@ -37,8 +37,8 @@ class HANAService extends SQLService {
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
-    const isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const service = this
+    const isMultitenant =  service.options.credentials.sm_url || 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
     return {
       options: {
