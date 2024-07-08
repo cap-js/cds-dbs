@@ -1,0 +1,11 @@
+{
+  "credentials": {
+    "host": "localhost",
+    "port": "50000",
+    "database": "testdb",
+    "user": "db2inst1",
+    "password": "HariboMachtKinderFroh"
+  },
+  "dialect": "db2",
+  "impl": "@quadrio/db2"
+}

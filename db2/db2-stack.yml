@@ -1,0 +1,13 @@
+services:
+  db2:
+    image: ibmcom/db2
+    privileged: true
+    environment:
+      name: mydb2
+      LICENSE: accept
+      DB2INST1_PASSWORD: HariboMachtKinderFroh
+      DBNAME: testdb
+    ports: 
+      - 50000:50000
+    volumes:  
+      - ./database:/database

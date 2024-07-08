@@ -1,0 +1,64 @@
+{
+  "name": "@quadrio/db2",
+  "version": "1.0.0",
+  "description": "CDS database service for DB2",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm start && mocha",
+    "test:watch": "npx mocha --watch",
+    "start": "docker-compose -f db2-stack.yml up -d",
+    "status": "docker compose -f db2-stack.yml ps",
+    "stop": "docker compose -f db2-stack.yml stop"
+  },
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=16",
+    "npm": ">=8"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@quadrio/db-service": "^1.9.2",
+    "ibm_db": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=7.6",
+    "@sap/cds-dk": ">=7.5"
+  },
+  "peerDependenciesMeta": {
+    "@sap/cds-dk": {
+      "optional": true
+    }
+  },
+  "cds": {
+    "requires": {
+      "kinds": {
+        "sql": {
+          "[production]": {
+            "kind": "db2"
+          }
+        },
+        "db2": {
+          "impl": "@quadrio/db2",
+          "dialect": "db2",
+          "vcap": {
+            "label": "db2-db"
+          },
+          "schema_evolution": "auto"
+        }
+      },
+      "db": "sql"
+    }
+  },
+  "devDependencies": {
+    "chai": "^4.4.1",
+    "chai-as-promised": "^8.0.0",
+    "chai-subset": "^1.6.0",
+    "mocha": "^10.4.0"
+  }
+}
