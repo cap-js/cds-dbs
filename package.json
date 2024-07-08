@@ -7,14 +7,15 @@
     "db-service",
     "sqlite",
     "postgres",
-    "hana"
+    "hana",
+    "db2"
   ],
   "devDependencies": {
     "@capire/sflight": "github:sap-samples/cap-sflight",
     "@sap/hana-client": "^2.16.26",
     "axios": "^1",
-    "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
+    "chai": "^4.4.1",
+    "chai-as-promised": "^7.1.2",
     "chai-subset": "^1.6.0",
     "eslint": "^9.0.0",
     "express": "^4",

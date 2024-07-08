@@ -1,5 +1,5 @@
 {
-  "name": "@cap-js/hana",
+  "name": "@quadrio/hana",
   "version": "0.5.0",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",

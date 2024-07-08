@@ -7,5 +7,5 @@
     "password": "HariboMachtKinderFroh"
   },
   "dialect": "db2",
-  "impl": "@cap-js/db2"
+  "impl": "@quadrio/db2"
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@cap-js/db-service",
+  "name": "@quadrio/db-service",
   "version": "1.10.0",
   "description": "CDS base database service",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
@@ -31,5 +31,10 @@
   "peerDependencies": {
     "@sap/cds": ">=7.9"
   },
-  "license": "SEE LICENSE"
+  "license": "SEE LICENSE",
+  "devDependencies": {
+    "chai": "^4.4.1",
+    "chai-as-promised": "^8.0.0",
+    "chai-subset": "^1.6.0"
+  }
 }
