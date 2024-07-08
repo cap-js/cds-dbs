@@ -311,8 +311,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-    
-    let sql = this.expr({ param: false, __proto__: x })
+  
+    let sql = typeof x.val === 'string' ? this.expr(x): this.expr({ param: false, __proto__: x })
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
