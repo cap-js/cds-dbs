@@ -45,7 +45,8 @@ const { pseudos } = require('./infer/pseudos')
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
-  const hasCustomJoins = originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
+  const hasCustomJoins =
+    originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
@@ -226,7 +227,7 @@ function cqn4sql(originalQuery, model) {
    */
   function transformSearch(searchTerm) {
     let prop = 'where'
-    
+
     // if the query is grouped and the queries columns contain an aggregate function,
     // we must put the search term into the `having` clause, as the search expression
     // is defined on the aggregated result, not on the individual rows
@@ -878,7 +879,7 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
-      const expandedColumns = column.expand.map(expand => {
+      const expandedColumns = column.expand.flatMap(expand => {
         const fullRef = [...baseRef, ...expand.ref]
 
         if (expand.expand) {
@@ -898,13 +899,11 @@ function cqn4sql(originalQuery, model) {
         if (expand.as) {
           columnCopy.as = expand.as
         }
-        if (columnCopy.isJoinRelevant) {
-          const tableAlias = getQuerySourceName(columnCopy)
-          const name = calculateElementName(columnCopy)
-          columnCopy.ref = [tableAlias, name]
-        }
-        elements[expand.as || expand.ref.map(idOnly).join('_')] = columnCopy.$refLinks.at(-1).definition
-        return columnCopy
+        const res = getFlatColumnsFor(columnCopy, { tableAlias: getQuerySourceName(columnCopy) })
+        res.forEach(c => {
+          elements[c.as || c.ref.at(-1)] = c.element
+        })
+        return res
       })
 
       const SELECT = {
@@ -935,15 +934,6 @@ function cqn4sql(originalQuery, model) {
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
-      } else if (col.isJoinRelevant) {
-        const tableAlias = getQuerySourceName(col)
-        const name = calculateElementName(col)
-        const transformedColumn = {
-          ref: [tableAlias, name],
-        }
-        if (col.sort) transformedColumn.sort = col.sort
-        if (col.nulls) transformedColumn.nulls = col.nulls
-        res.push(transformedColumn)
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
@@ -1001,8 +991,14 @@ function cqn4sql(originalQuery, model) {
          */
         if (inOrderBy && flatColumns.length > 1)
           throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
-        if (col.nulls) flatColumns[0].nulls = col.nulls
-        if (col.sort) flatColumns[0].sort = col.sort
+        flatColumns.forEach(fc => {
+          if (col.nulls)
+            fc.nulls = col.nulls
+          if (col.sort)
+            fc.sort = col.sort
+          if (fc.as)
+            delete fc.as
+        })
         res.push(...flatColumns)
       } else {
         let transformedColumn
