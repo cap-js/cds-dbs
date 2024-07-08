@@ -1050,6 +1050,34 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+  it('aggregation with structure', () => {
+    const q = CQL`SELECT from bookshop.Authors as Authors {
+      ID,
+      books { dedication }
+    } group by books.dedication`
+
+    const qx = CQL`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+      Authors.ID,
+      (SELECT from DUMMY { books.dedication_addressee_ID, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication }) as books
+    } group by books.dedication_addressee_ID, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication`
+    qx.SELECT.columns[1].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it('optimized foreign key access', () => {
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { name, ID }
+    } group by author.name, author.ID`
+
+    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+      Books.ID,
+      (SELECT from DUMMY { author.name, Books.author_ID }) as author
+    } group by author.name, Books.author_ID`
+    qx.SELECT.columns[1].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
   it('expand path with filter must be an exact match in group by', () => {
     const q = CQL`SELECT from bookshop.Books {
       Books.ID,
