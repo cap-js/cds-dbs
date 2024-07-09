@@ -124,7 +124,7 @@ class SQLiteService extends SQLService {
   }
 
   async _allStream(stmt, binding_params, one, objectMode) {
-    stmt = stmt.__proto__ || stmt
+    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
     stmt.raw(true)
     const get = stmt.get(binding_params)
     if (!get) return []
