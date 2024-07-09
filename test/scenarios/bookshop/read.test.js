@@ -1,5 +1,3 @@
-const { Readable, Writable } = require('stream')
-const { pipeline } = require('stream/promises')
 const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
