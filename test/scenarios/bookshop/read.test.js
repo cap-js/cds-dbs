@@ -44,6 +44,11 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
   })
 
+  test('same as above, with foreign key optimization', async () => {
+    const res = await GET('/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name, author/ID),aggregate(price with sum as totalAmount))', admin)
+    expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
