@@ -4,7 +4,7 @@ Welcome to the SAP HANA database service for [SAP Cloud Application Programming 
 
 ## Setup
 
-In general, all you need to do is to install one of the database packages, as follows:
+All you need to do is to install the database package, as follows:
 
 ```sh
 npm add @cap-js/hana

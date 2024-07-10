@@ -4,9 +4,7 @@ Welcome to the SQLite database service for [SAP Cloud Application Programming Mo
 
 ## Setup
 
-In general, all you need to do is to install one of the database packages, as follows:
-
-Using SQLite for development:
+If you want to use SQLite for development, all you need to do is to install the database package, as follows
 
 ```sh
 npm add @cap-js/sqlite -D
