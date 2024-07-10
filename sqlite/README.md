@@ -1,6 +1,6 @@
 # CDS database service for SQLite
 
-Welcome to the new SQLite database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture and [*better-sqlite* driver](https://www.npmjs.com/package/better-sqlite3) .
+Welcome to the SQLite database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on streamlined database architecture and [*better-sqlite* driver](https://www.npmjs.com/package/better-sqlite3).
 
 ## Setup
 

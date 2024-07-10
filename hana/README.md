@@ -1,6 +1,6 @@
 # CDS database service for SAP HANA
 
-Welcome to the new SAP HANA database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture.
+Welcome to the SAP HANA database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on streamlined database architecture.
 
 ## Setup
 
@@ -11,7 +11,6 @@ npm add @cap-js/hana
 ```
 
 Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-hana).
-
 
 ## Support
 
