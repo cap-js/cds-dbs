@@ -4,6 +4,21 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.3...db-service-v1.11.0) (2024-07-08)
+
+
+### Added
+
+* **search:** enable deep search with path expressions ([#590](https://github.com/cap-js/cds-dbs/issues/590)) ([e9e9461](https://github.com/cap-js/cds-dbs/commit/e9e9461362b3a521c06075e32fb1405c8ee4dee6))
+
+### Changed
+
+* `search` interprets only first search term instead of raising an error ([#707](https://github.com/cap-js/cds-dbs/issues/707)) ([0b9108c](https://github.com/cap-js/cds-dbs/commit/0b9108c11a61b18704e36f93fbd654e0942bf40a))
+
+### Fixed
+
+* optimize foreign key access for expand with aggregations ([#734](https://github.com/cap-js/cds-dbs/issues/734)) ([77b7978](https://github.com/cap-js/cds-dbs/commit/77b79788931c9c45f156d54a4b2ec76ba9ba629a))
+
 ## [1.10.3](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.2...db-service-v1.10.3) (2024-07-05)
 
 
