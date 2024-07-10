@@ -168,7 +168,10 @@ exports[`cqn2sql quoted column aliases select with subselect with in and column 
 
 exports[`cqn2sql quoted column aliases simple select with column aliases 1`] = `
 {
-  "sql": "SELECT T.a as A,true as True,false as False,NULL as Null,count(*) as CountFunc FROM Foo as T",
+  "sql": "SELECT T.a as A,true as True,false as False,? as Null,count(*) as CountFunc FROM Foo as T",
+  "values": [
+    null,
+  ],
 }
 `;
 

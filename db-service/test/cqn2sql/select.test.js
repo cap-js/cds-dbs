@@ -482,8 +482,8 @@ describe('cqn2sql', () => {
           ],
         },
       }
-      const { sql } = cqn2sql(cqn)
-      expect({ sql }).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     // aliases should be quoted only for HANA
