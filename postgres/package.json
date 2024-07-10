@@ -62,7 +62,7 @@
           }
         },
         "postgres": {
-          "impl": "@cap-js/postgres",
+          "impl": "@quadrio/postgres",
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"

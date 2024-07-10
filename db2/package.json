@@ -8,7 +8,8 @@
     "test:watch": "npx mocha --watch",
     "start": "docker-compose -f db2-stack.yml up -d",
     "status": "docker compose -f db2-stack.yml ps",
-    "stop": "docker compose -f db2-stack.yml stop"
+    "stop": "docker compose -f db2-stack.yml stop",
+    "test:jest": "npm start && jest"
   },
   "files": [
     "cds-plugin.js",
