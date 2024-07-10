@@ -4,7 +4,7 @@
 
 This is a monorepo for our SQL Database Services.
 
-It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [sqlite](./sqlite/), [postgres](./postgres/) and [hana](./hana/).
+It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [SQLite](./sqlite/), [PostgreSQL](./postgres/) and [SAP HANA](./hana/).
 Each of the subfolders is published as individual npm module.
 
 Documentation can be found at [cap.cloud.sap](https://cap.cloud.sap/docs/guides/databases).
