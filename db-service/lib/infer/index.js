@@ -24,7 +24,7 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
  */
 function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
-  const inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const inferred = originalQuery
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
