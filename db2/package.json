@@ -46,7 +46,7 @@
         },
         "db2": {
           "impl": "@quadrio/db2",
-          "dialect": "db2",
+          "dialect": "plain",
           "vcap": {
             "label": "db2-db"
           },
@@ -56,10 +56,5 @@
       "db": "sql"
     }
   },
-  "devDependencies": {
-    "chai": "^4.4.1",
-    "chai-as-promised": "^8.0.0",
-    "chai-subset": "^1.6.0",
-    "mocha": "^10.4.0"
-  }
+  "devDependencies": {}
 }

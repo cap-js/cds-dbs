@@ -10,9 +10,9 @@ class DB2Service extends SQLService {
   init () {
     if (!this.options.indendentDeploy) {
       cds.options = cds.options || {}
-      cds.options.dialect = 'postgres'
+      cds.options.dialect = 'plain'
     }
-    this.kind = 'db2'
+    this.kind = 'plain'
     this._queryCache = {}
     return super.init(...arguments)
   }

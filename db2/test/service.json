@@ -6,6 +6,6 @@
     "user": "db2inst1",
     "password": "HariboMachtKinderFroh"
   },
-  "dialect": "db2",
+  "dialect": "plain",
   "impl": "@quadrio/db2"
 }
