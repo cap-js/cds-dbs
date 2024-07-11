@@ -132,7 +132,7 @@ class SQLService extends DatabaseService {
     const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await (hasPostProcessing === false || iterator) ? ps.stream(values, isOne, iterator) : ps.all(values)
+    let rows = (hasPostProcessing === false || iterator) ? await ps.stream(values, isOne, iterator) : await ps.all(values)
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
