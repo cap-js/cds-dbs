@@ -56,9 +56,9 @@ describe('Bookshop - Read', () => {
     expect(
       res.data.value.every(
       item =>
-        Object.prototype.hasOwnProperty.call(item, 'author') &&
-        Object.prototype.hasOwnProperty.call(item.author, 'ID') && // foreign key is renamed to element name in target
-        !Object.prototype.hasOwnProperty.call(item.author, 'author_ID'),
+        'author' in item &&
+        'ID' in item.author && // foreign key is renamed to element name in target
+        !('author_ID' in item.author),
       ),
     ).to.be.true
   })
