@@ -47,7 +47,7 @@ However, some preliminary checks and cleanups help:
 
 ### schema migration
 
-`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from HANA and SQLite.  
+`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from SAP HANA and SQLite.  
 Enabling schema migration in an existing `cds-pg`-based project consists of generating and deploying a "csn-snapshot" of your database structure.
 
 #### local development

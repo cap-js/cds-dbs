@@ -4,6 +4,43 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.3...db-service-v1.11.0) (2024-07-08)
+
+
+### Added
+
+* **search:** enable deep search with path expressions ([#590](https://github.com/cap-js/cds-dbs/issues/590)) ([e9e9461](https://github.com/cap-js/cds-dbs/commit/e9e9461362b3a521c06075e32fb1405c8ee4dee6))
+
+### Changed
+
+* `search` interprets only first search term instead of raising an error ([#707](https://github.com/cap-js/cds-dbs/issues/707)) ([0b9108c](https://github.com/cap-js/cds-dbs/commit/0b9108c11a61b18704e36f93fbd654e0942bf40a))
+
+### Fixed
+
+* optimize foreign key access for expand with aggregations ([#734](https://github.com/cap-js/cds-dbs/issues/734)) ([77b7978](https://github.com/cap-js/cds-dbs/commit/77b79788931c9c45f156d54a4b2ec76ba9ba629a))
+
+## [1.10.3](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.2...db-service-v1.10.3) (2024-07-05)
+
+
+### Fixed
+
+* rewrite assoc chains if intermediate assoc is not fk ([#715](https://github.com/cap-js/cds-dbs/issues/715)) ([3873f9a](https://github.com/cap-js/cds-dbs/commit/3873f9adce3ff26cafb2b18b9d2115758b0f0830))
+* Support expand with group by clause ([#721](https://github.com/cap-js/cds-dbs/issues/721)) ([90c9e6a](https://github.com/cap-js/cds-dbs/commit/90c9e6a4da9d4a3451ec0ed60dd0815c04600134))
+
+## [1.10.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.1...db-service-v1.10.2) (2024-06-25)
+
+
+### Fixed
+
+* **`expand`:** enable expanding from subquery ([#709](https://github.com/cap-js/cds-dbs/issues/709)) ([5ed03e5](https://github.com/cap-js/cds-dbs/commit/5ed03e5ed64eb46e6f22af120d7285fbcb127a7c)), closes [#708](https://github.com/cap-js/cds-dbs/issues/708)
+
+## [1.10.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.0...db-service-v1.10.1) (2024-06-19)
+
+
+### Fixed
+
+* Only check first row if no changes required ([#552](https://github.com/cap-js/cds-dbs/issues/552)) ([39b0b85](https://github.com/cap-js/cds-dbs/commit/39b0b85d5cb4807f63f10acea13fb4d688fa1dcd))
+
 ## [1.10.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.9.2...db-service-v1.10.0) (2024-05-29)
 
 

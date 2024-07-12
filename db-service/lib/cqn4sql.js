@@ -1,9 +1,9 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
+const { computeColumnsToBeSearched } = require('./search')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -44,8 +44,26 @@ const { pseudos } = require('./infer/pseudos')
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
-  const inferred = infer(originalQuery, model)
-  if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
+  let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const hasCustomJoins =
+    originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
+
+  if (!hasCustomJoins && inferred.SELECT?.search) {
+    // we need an instance of query because the elements of the query are needed for the calculation of the search columns
+    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
+    if (searchTerm) {
+      // Search target can be a navigation, in that case use _target to get the correct entity
+      const { where, having } = transformSearch(searchTerm)
+      if (where) inferred.SELECT.where = where
+      else if (having) inferred.SELECT.having = having
+    }
+  }
+  inferred = infer(inferred, model)
+  // if the query has custom joins we don't want to transform it
+  // TODO: move all the way to the top of this function once cds.infer supports joins as well
+  //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
+  if (hasCustomJoins) return originalQuery
 
   let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
@@ -111,7 +129,7 @@ function cqn4sql(originalQuery, model) {
 
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(originalQuery.sources)[0].definition
+        const queryTarget = Object.values(inferred.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
         keys.forEach(k => {
@@ -155,7 +173,7 @@ function cqn4sql(originalQuery, model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard(originalQuery.SELECT?.excluding)
+      transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -178,13 +196,6 @@ function cqn4sql(originalQuery, model) {
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }
-
-    if (inferred.SELECT.search) {
-      // Search target can be a navigation, in that case use _target to get the correct entity
-      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
-      if (where) transformedQuery.SELECT.where = where
-      else if (having) transformedQuery.SELECT.having = having
-    }
     return transformedQuery
   }
 
@@ -206,46 +217,29 @@ function cqn4sql(originalQuery, model) {
    * Transforms a search expression into a WHERE or HAVING clause for a SELECT operation, depending on the context of the query.
    * The function decides whether to use a WHERE or HAVING clause based on the presence of aggregated columns in the search criteria.
    *
-   * @param {object} search - The search expression to be applied to the searchable columns within the query source.
+   * @param {object} searchTerm - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
-   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
-   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
-   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
-   *     - If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {Object} - The function returns an object representing the WHERE or HAVING clause of the query.
    *
    * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearch(search, from) {
-    const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
-    // pass transformedQuery because we may need to search in the columns directly
-    // in case of aggregation
-    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
+  function transformSearch(searchTerm) {
+    let prop = 'where'
 
-      // if the query is grouped and the queries columns contain an aggregate function,
-      // we must put the search term into the `having` clause, as the search expression
-      // is defined on the aggregated result, not on the individual rows
-      let prop = 'where'
+    // if the query is grouped and the queries columns contain an aggregate function,
+    // we must put the search term into the `having` clause, as the search expression
+    // is defined on the aggregated result, not on the individual rows
+    const usesAggregation =
+      inferred.SELECT.groupBy &&
+      (searchTerm.args[0].func || searchTerm.args[0].xpr || searchTerm.args[0].list?.some(c => c.func || c.xpr))
 
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
-      if (transformedQuery.SELECT[prop]) {
-        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
-      } else {
-        return { [prop]: [contains] }
-      }
+    if (usesAggregation) prop = 'having'
+    if (inferred.SELECT[prop]) {
+      return { [prop]: [asXpr(inferred.SELECT.where), 'and', searchTerm] }
     } else {
-      return null
+      return { [prop]: [searchTerm] }
     }
   }
 
@@ -484,7 +478,7 @@ function cqn4sql(originalQuery, model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      setElementOnColumns(transformedColumn, originalQuery.elements[col.as])
+      setElementOnColumns(transformedColumn, inferred.elements[col.as])
     }
 
     function getTransformedColumn(col) {
@@ -787,7 +781,7 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...transformedQuery.SELECT.from.ref,
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
         ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
       ]
     }
@@ -799,9 +793,20 @@ function cqn4sql(originalQuery, model) {
         ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
         : column.ref.map(idOnly).join('_'))
 
+    // if there is a group by on the main query, all
+    // columns of the expand must be in the groupBy
+    if (transformedQuery.SELECT.groupBy) {
+      const baseRef =
+        column.$refLinks[0].definition.SELECT || column.$refLinks[0].definition.kind === 'entity'
+          ? column.ref.slice(1)
+          : column.ref
+
+      return _subqueryForGroupBy(column, baseRef, columnAlias)
+    }
+
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -815,12 +820,15 @@ function cqn4sql(originalQuery, model) {
         from,
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
-        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
+        one: column.$refLinks.at(-1).definition.is2one,
       },
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
+    Object.defineProperty(correlated, 'elements', {
+      value: expanded.elements,
+      writable: true,
+    })
     return correlated
 
     function _correlate(subq, outer) {
@@ -851,6 +859,72 @@ function cqn4sql(originalQuery, model) {
       }
       return subq
     }
+
+    /**
+     * Generates a special subquery for the `expand` of the `column`.
+     * All columns in the `expand` must be part of the GROUP BY clause of the main query.
+     * If this is the case, the subqueries columns match the corresponding references of the group by.
+     * Nested expands are also supported.
+     *
+     * @param {Object} column - To expand.
+     * @param {Array} baseRef - The base reference for the expanded column.
+     * @param {string} subqueryAlias - The alias of the `expand` subquery column.
+     * @returns {Object} - The subquery object.
+     * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
+     */
+    function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
+      const groupByLookup = new Map(
+        transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(refWithConditions).join('.'), c]),
+      )
+
+      // to be attached to dummy query
+      const elements = {}
+      const expandedColumns = column.expand.flatMap(expand => {
+        const fullRef = [...baseRef, ...expand.ref]
+
+        if (expand.expand) {
+          const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          return nested
+        }
+
+        const groupByRef = groupByLookup.get(fullRef.map(refWithConditions).join('.'))
+        if (!groupByRef) {
+          throw new Error(
+            `The expanded column "${fullRef.map(refWithConditions).join('.')}" must be part of the group by clause`,
+          )
+        }
+
+        const columnCopy = Object.create(groupByRef)
+        if (expand.as) {
+          columnCopy.as = expand.as
+        }
+        const res = getFlatColumnsFor(columnCopy, { tableAlias: getQuerySourceName(columnCopy) })
+        res.forEach(c => {
+          elements[c.as || c.ref.at(-1)] = c.element
+        })
+        return res
+      })
+
+      const SELECT = {
+        from: null,
+        columns: expandedColumns,
+      }
+      return Object.defineProperties(
+        {},
+        {
+          SELECT: {
+            value: Object.defineProperties(SELECT, {
+              expand: { value: true, writable: true }, // non-enumerable
+              one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
+            }),
+            enumerable: true,
+          },
+          as: { value: subqueryAlias, enumerable: true, writable: true },
+          elements: { value: elements }, // non-enumerable
+        },
+      )
+    }
   }
 
   function getTransformedOrderByGroupBy(columns, inOrderBy = false) {
@@ -860,15 +934,6 @@ function cqn4sql(originalQuery, model) {
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
-      } else if (col.isJoinRelevant) {
-        const tableAlias = getQuerySourceName(col)
-        const name = calculateElementName(col)
-        const transformedColumn = {
-          ref: [tableAlias, name],
-        }
-        if (col.sort) transformedColumn.sort = col.sort
-        if (col.nulls) transformedColumn.nulls = col.nulls
-        res.push(transformedColumn)
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
@@ -926,8 +991,14 @@ function cqn4sql(originalQuery, model) {
          */
         if (inOrderBy && flatColumns.length > 1)
           throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
-        if (col.nulls) flatColumns[0].nulls = col.nulls
-        if (col.sort) flatColumns[0].sort = col.sort
+        flatColumns.forEach(fc => {
+          if (col.nulls)
+            fc.nulls = col.nulls
+          if (col.sort)
+            fc.sort = col.sort
+          if (fc.as)
+            delete fc.as
+        })
         res.push(...flatColumns)
       } else {
         let transformedColumn
@@ -973,7 +1044,7 @@ function cqn4sql(originalQuery, model) {
       const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
         getLastStringSegment(last.id || last),
-        originalQuery.outerQueries,
+        inferred.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
     }
@@ -1573,7 +1644,7 @@ function cqn4sql(originalQuery, model) {
           transformedFrom.args.push(f)
         }
       })
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
       if (from.as) {
@@ -1581,9 +1652,9 @@ function cqn4sql(originalQuery, model) {
         transformedFrom.as = from.as
       } else {
         // select from anonymous query, use artificial alias
-        transformedFrom.as = Object.keys(originalQuery.sources)[0]
+        transformedFrom.as = Object.keys(inferred.sources)[0]
       }
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else {
       return _transformFrom()
     }
@@ -1624,7 +1695,7 @@ function cqn4sql(originalQuery, model) {
            * --> This is an artificial query, which will later be correlated
            * with the main query alias. see @function expandColumn()
            */
-          if (!(originalQuery.SELECT?.expand === true)) {
+          if (!(inferred.SELECT?.expand === true)) {
             as = getNextAvailableTableAlias(as)
           }
           nextStepLink.alias = as
@@ -1911,8 +1982,7 @@ function cqn4sql(originalQuery, model) {
                 result[i].ref = [targetSideRefLink.alias, lhs.ref.join('_')]
               }
             }
-          } else if (lhs.ref.length === 1)
-            result[i].ref.unshift(targetSideRefLink.alias)
+          } else if (lhs.ref.length === 1) result[i].ref.unshift(targetSideRefLink.alias)
         }
       }
       return result
@@ -2086,6 +2156,35 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
+   * For a given search expression return a function "search" which holds the search expression
+   * as well as the searchable columns as arguments.
+   *
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} query - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|null)} returns either:
+   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
+   */
+  function getSearchTerm(search, query) {
+    const entity = query.SELECT.from.SELECT ? query.SELECT.from : query.target
+    const searchIn = computeColumnsToBeSearched(inferred, entity)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const searchFunc = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
+      }
+      return searchFunc
+    } else {
+      return null
+    }
+  }
+
+  /**
    * Calculates the name of the source which can be used to address the given node.
    *
    * @param {object} node a csn object with a `ref` and `$refLinks`
@@ -2130,11 +2229,11 @@ function cqn4sql(originalQuery, model) {
          * - but differs from the explicit alias, assigned by cqn4sql (i.e. <subquery>.from.uniqueSubqueryAlias)
          */
         if (
-          originalQuery.SELECT?.from.uniqueSubqueryAlias &&
-          !originalQuery.SELECT?.from.as &&
+          inferred.SELECT?.from.uniqueSubqueryAlias &&
+          !inferred.SELECT?.from.as &&
           firstStep === getLastStringSegment(transformedQuery.SELECT.from.ref[0])
         ) {
-          return originalQuery.SELECT?.from.uniqueSubqueryAlias
+          return inferred.SELECT?.from.uniqueSubqueryAlias
         }
         return node.ref[0]
       }
@@ -2252,4 +2351,12 @@ function setElementOnColumns(col, element) {
 
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
+const refWithConditions = step => {
+  let appendix
+  const { args, where } = step
+  if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
+  else if (where) appendix = JSON.stringify(where)
+  else if (args) appendix = JSON.stringify(args)
+  return appendix ? step.id + appendix : step
+}
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl

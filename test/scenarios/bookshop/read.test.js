@@ -39,6 +39,16 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books with groupby with path expression and expand result', async () => {
+    const res = await GET('/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))', admin)
+    expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
+  })
+
+  test('same as above, with foreign key optimization', async () => {
+    const res = await GET('/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name, author/ID),aggregate(price with sum as totalAmount))', admin)
+    expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
@@ -116,31 +126,6 @@ describe('Bookshop - Read', () => {
     expect(res.data.title).to.be.eq('Eleonora')
     expect(res.data.author.name).to.be.eq('Edgar Allen Poe')
     expect(res.data.author.books.length).to.be.eq(2)
-  })
-
-  test('Search book', async () => {
-    const res = await GET('/admin/Books?$search=cat', admin)
-    expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(1)
-    expect(res.data.value[0].title).to.be.eq('Catweazle')
-  })
-
-  test('Search book with space and quotes', async () => {
-    const res = await GET('/admin/Books?$search="e R"', admin)
-    expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(2)
-    expect(res.data.value[0].title).to.be.eq('The Raven')
-    expect(res.data.value[1].descr).to.include('e r')
-  })
-
-  test('Search book with filter', async () => {
-    const res = await GET('/admin/Books?$search="e R"&$filter=ID eq 251 or ID eq 271', admin)
-    expect(res.status).to.be.eq(200)
-    expect(res.data.value.length).to.be.eq(2)
-    expect(res.data.value[0].title).to.be.eq('The Raven')
-    expect(res.data.value[1].descr).to.include('e r')
-    expect(res.data.value[0].ID).to.be.eq(251)
-    expect(res.data.value[1].ID).to.be.eq(271)
   })
 
   test.skip('Expand Book($count,$top,$orderby)', async () => {
