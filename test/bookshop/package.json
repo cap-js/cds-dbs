@@ -18,5 +18,10 @@
     "genres": "cds serve test/genres.cds",
     "start": "cds run",
     "watch": "cds watch"
+  },
+  "cds": {
+    "features": {
+      "ieee754compatible": true
+    }
   }
 }
