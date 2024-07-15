@@ -21,7 +21,9 @@ const StandardFunctions = {
    * @returns {string}
    */
   search: function (ref, arg) {
-    if (!('val' in arg)) throw `SQLite only supports single value arguments for $search`
+    if (!('val' in arg)) throw new Error(`Only single value arguments are allowed for $search`)
+    // only apply first search term, rest is ignored
+    arg.val = arg.__proto__.val = arg.val.split(' ')[0].replace(/"/g, '')
     const refs = ref.list || [ref],
       { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
@@ -31,7 +33,7 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  concat: (...args) => args.map(a => a.xpr ? `(${a})` : a).join(' || '),
+  concat: (...args) => args.map(a => (a.xpr ? `(${a})` : a)).join(' || '),
 
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string contains the second string
@@ -100,6 +102,13 @@ const StandardFunctions = {
    */
   matchesPattern: (x, y) => `(${x} regexp ${y})`,
   /**
+   * Generates SQL statement that matches the given string against a regular expression
+   * @param {string} x
+   * @param {string} y
+   * @returns {string}
+   */
+  matchespattern: (x, y) => `(${x} regexp ${y})`,
+  /**
    * Generates SQL statement that produces the lower case value of a given string
    * @param {string} x
    * @returns {string}
@@ -141,79 +150,72 @@ const StandardFunctions = {
 
   // Date and Time Functions
 
-  current_date: p => p ? `current_date(${p})`: 'current_date',
-  current_time: p => p ? `current_time(${p})`: 'current_time',
-  current_timestamp: p => p ? `current_timestamp(${p})`: 'current_timestamp',
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
 
+  /**
+   * Generates SQL statement that produces current point in time (date and time with time zone)
+   * @returns {string}
+   */
+   now: function() {
+    return this.session_context({val: '$now'})
+  },
   /**
    * Generates SQL statement that produces the year of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   year: x => `cast( strftime('%Y',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the month of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   month: x => `cast( strftime('%m',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the day of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   day: x => `cast( strftime('%d',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the hours of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   hour: x => `cast( strftime('%H',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the minutes of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   minute: x => `cast( strftime('%M',${x}) as Integer )`,
   /**
    * Generates SQL statement that produces the seconds of a given timestamp
    * @param {string} x
    * @returns {string}
-   */
+   * /
   second: x => `cast( strftime('%S',${x}) as Integer )`,
 
+  // REVISIT: make precision configurable
   /**
    * Generates SQL statement that produces the fractional seconds of a given timestamp
    * @param {string} x
    * @returns {string}
    */
-  fractionalseconds: x => `cast( strftime('%f0000',${x}) as Integer )`,
+  fractionalseconds: x => `cast( substr( strftime('%f', ${x}), length(strftime('%f', ${x})) - 3) as REAL)`,
 
   /**
    * maximum date time value
    * @returns {string}
    */
-  maxdatetime: () => '9999-12-31 23:59:59.999',
+  maxdatetime: () => "'9999-12-31T23:59:59.999Z'",
   /**
    * minimum date time value
    * @returns {string}
    */
-  mindatetime: () => '0001-01-01 00:00:00.000',
-
-  // odata spec defines the date time offset type as a normal ISO time stamp
-  // Where the timezone can either be 'Z' (for UTC) or [+|-]xx:xx for the time offset
-  // sqlite understands this so by splitting the timezone from the actual date
-  // prefixing it with 1970 it allows sqlite to give back the number of seconds
-  // which can be divided by 60 back to minutes
-  /**
-   * Generates SQL statement that produces the offset in minutes of a given date time offset string
-   * @param {string} x
-   * @returns {string}
-   */
-  totaloffsetminutes: x => `case
-    when substr(${x}, length(${x})) = 'z' then 0
-    else strftime('%s', '1970-01-01T00:00:00' || substr(${x}, length(${x}) - 5)) / 60
-  end`,
+  mindatetime: () => "'0001-01-01T00:00:00.000Z'",
 
   // odata spec defines the value format for totalseconds as a duration like: P12DT23H59M59.999999999999S
   // P -> duration indicator
@@ -341,7 +343,7 @@ const HANAFunctions = {
    */
   years_between(x, y) {
     return `floor(${this.months_between(x, y)} / 12)`
-  }
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

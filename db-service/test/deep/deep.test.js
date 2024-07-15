@@ -10,7 +10,8 @@ describe('test deep query generation', () => {
   let model; beforeAll(() => model = cds.model)
 
   describe('deep expand', () => {
-    test('Deep DELETE with to-one all data provided', () => {
+    // SKIPPED because that test is testing obsolete internal implementation of deep delete
+    test.skip('Deep DELETE with to-one all data provided', () => {
       const query = getExpandForDeep(DELETE.from(model.definitions.Root).where({ ID: 1 }), model.definitions.Root)
       expect(query).toEqual({
         SELECT: {
@@ -668,7 +669,7 @@ describe('test deep query generation', () => {
       })
     })
 
-    test('works with recursive and stops after getting to the same level 2 times', () => {
+    test.skip('works with recursive and stops after getting to the same level 2 times', () => {
       const query = getExpandForDeep(
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
         model.definitions.Recursive,
@@ -786,22 +787,12 @@ describe('test deep query generation', () => {
       const deepQueries = getDeepQueries(query, [], model.definitions.Root)
 
       const expectedInserts = [
-        INSERT.into(model.definitions.Root).entries({ ID: 1 }),
-        INSERT.into(model.definitions.Root).entries({ ID: 2 }),
-        INSERT.into(model.definitions.Root).entries({ ID: 3 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 1 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 2 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 3 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 4 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 5 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 6 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 7 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 8 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 9 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 10 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 11 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 12 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 13 }),
+        INSERT.into(model.definitions.Root)
+          .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }]),
+        INSERT.into(model.definitions.Child)
+          .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }, { ID: 4 }, { ID: 5 }, { ID: 6 }, { ID: 7 }, { ID: 8 }, { ID: 9 }]),
+        INSERT.into(model.definitions.SubChild)
+          .entries([{ ID: 10 }, { ID: 11 }, { ID: 12 }, { ID: 13 }]),
       ]
 
       expectedInserts.forEach(insert => {

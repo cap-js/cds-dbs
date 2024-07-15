@@ -2,24 +2,36 @@ const session = require('./session.json')
 
 const StandardFunctions = {
   session_context: x => {
-    let sql = `current_setting('${ session[x.val] || x.val }')`
+    let sql = `current_setting('${session[x.val] || x.val}')`
     if (x.val === '$now') sql += '::timestamp'
     return sql
   },
-  countdistinct: x => `count(distinct ${x || '*'})`,
+  count: x => `count(${x?.val || x || '*'})`,
+  countdistinct: x => `count(distinct ${x.val || x || '*'})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
-  indexof: (x, y) => `strpos(${x},${y}) - 1`, // sqlite instr is 1 indexed
-  startswith: (x, y) => `strpos(${x},${y}) = 1`, // sqlite instr is 1 indexed
+  indexof: (x, y) => `strpos(${x},${y}) - 1`, // strpos is 1 indexed
+  startswith: (x, y) => `strpos(${x},${y}) = 1`, // strpos is 1 indexed
   endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
+  matchesPattern: (x, y) => `regexp_like(${x}, ${y})`,
+  matchespattern: (x, y) => `regexp_like(${x}, ${y})`,
 
   // Date and Time Functions
-  year: x => `date_part('year',(${x})::TIMESTAMP)`,
-  month: x => `date_part('month',(${x})::TIMESTAMP)`,
-  day: x => `date_part('day',(${x})::TIMESTAMP)`,
-  hour: x => `date_part('hour',(${x})::TIMESTAMP)`,
-  minute: x => `date_part('minute',(${x})::TIMESTAMP)`,
-  second: x => `date_part('second',(${x})::TIMESTAMP)`,
+  year: x => `date_part('year', ${castVal(x)})`,
+  month: x => `date_part('month', ${castVal(x)})`,
+  day: x => `date_part('day', ${castVal(x)})`,
+  time: x => `to_char(${castVal(x)}, 'HH24:MI:SS')`,
+  hour: x => `date_part('hour', ${castVal(x)})`,
+  minute: x => `date_part('minute', ${castVal(x)})`,
+  second: x => `floor(date_part('second', ${castVal(x)}))`,
+  fractionalseconds: x => `CAST(date_part('second', ${castVal(x)}) - floor(date_part('second', ${castVal(x)})) AS DECIMAL)`,
+  now: function() {
+    return this.session_context({val: '$now'})
+  }
 }
+
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const isVal = x => x && 'val' in x
+const castVal = (x) => `${x}${isVal(x) ? isTime.test(x.val) ? '::TIME' : '::TIMESTAMP' : ''}`
 
 const HANAFunctions = {
   // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html

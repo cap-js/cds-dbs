@@ -32,10 +32,15 @@ entity Books {
   authorAdrText = author.addressText;
 
   authorAge: Integer = years_between( author.sortCode, author.sortCode );
+  authorAgeNativePG: Integer = DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth);
+  
+  // calculated element is `xpr` which has subsequent `xpr`
+  authorAgeInDogYears: Integer = ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7;
 }
 
 entity Authors {
   key ID : Integer;
+
   firstName : String;
   lastName : String;
   
@@ -43,6 +48,7 @@ entity Authors {
   dateOfDeath  : Date;
   
   age: Integer = years_between(dateOfBirth, dateOfDeath);
+  ageNamedParams: Integer = years_between(DOB => dateOfBirth, DOD => dateOfDeath);
 
   books : Association to many Books on books.author = $self;
   address : Association to Addresses;
@@ -78,4 +84,11 @@ entity LBooks {
   length : Decimal;
   width : Decimal;
   area : Decimal = length * width;
+}
+
+entity Simple {
+  key ID: Integer;
+  name: String;
+  my: Association to Simple;
+  myName: String = my.name;
 }

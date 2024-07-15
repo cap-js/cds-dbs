@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Pseudo Variables', () => {
@@ -91,6 +91,22 @@ describe('Pseudo Variables', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('stay untouched in generated join', () => {
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.SimpleBook {
+      ID
+    } where activeAuthors.name = $user.name`,
+      model,
+    )
+
+    const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook
+      left outer join bookshop.Authors as activeAuthors on activeAuthors.ID = SimpleBook.author_ID and $now = $now and $user.id = $user.tenant
+      { SimpleBook.ID }
+      where activeAuthors.name = $user.name
+    `
+    expect(query).to.deep.equal(expected)
+  })
+
   it('stay untouched in where exists', () => {
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books {
@@ -108,18 +124,18 @@ describe('Pseudo Variables', () => {
   })
 
   it('must not be prefixed by table alias', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, Books.$now }`), model).to.throw(
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, Books.$now }`, model)).to.throw(
       '"$now" not found in "bookshop.Books"',
     )
   })
 
   it('must not be prefixed by struc or assoc', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author.$user }`), model).to.throw(
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, author.$user }`, model)).to.throw(
       '"$user" not found in "author"',
     )
   })
   it('only well defined pseudo variables are allowed', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, $whatever }`), model).to.throw(
+    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID, $whatever }`, model)).to.throw(
       '"$whatever" not found in the elements of "bookshop.Books"',
     )
   })

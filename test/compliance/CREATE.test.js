@@ -1,4 +1,6 @@
 const assert = require('assert')
+const { Readable } = require('stream')
+const { buffer } = require('stream/consumers')
 const cds = require('../cds.js')
 const fspath = require('path')
 // Add the test names you want to run as only
@@ -57,7 +59,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.run(async tx => {
           deploy = Promise.resolve()
@@ -77,7 +79,7 @@ describe('CREATE', () => {
               },
             }),
           )
-          await deploy.catch(() => {})
+          await deploy.catch(() => { })
         })
       })
 
@@ -99,7 +101,7 @@ describe('CREATE', () => {
               })
             }
           })
-          .catch(() => {})
+          .catch(() => { })
 
         await db.disconnect()
       })
@@ -125,6 +127,9 @@ describe('CREATE', () => {
                 (_, b) => {
                   if (Buffer.isBuffer(b) || b?.type === 'Buffer') {
                     return `Buffer(${b.byteLength || b.data?.length})`
+                  }
+                  if (b instanceof Readable) {
+                    return 'Readable'
                   }
                   if (typeof b === 'function') return `${b}`
                   return b
@@ -160,33 +165,45 @@ describe('CREATE', () => {
                   } catch (e) {
                     if (throws === false) throw e
                     // Check for error test cases
-                    assert.equal(e.message, throws, 'Ensure that the correct error message is being thrown.')
+                    assert.match(e.message, throws, 'Ensure that the correct error message is being thrown.')
                     return
                   }
 
                   if (throws !== false)
-                    assert.equal('resolved', throws, 'Ensure that the correct error message is being thrown.')
+                    assert.equal('did_not_throw', throws, 'Ensure that the correct error message is being thrown.')
+
+                  const columns = []
+                  for (let col in entity.elements) {
+                    columns.push({ ref: [col] })
+                  }
 
                   // Extract data set
                   const sel = await tx.run({
                     SELECT: {
                       from: { ref: [table] },
+                      columns
                     },
                   })
 
                   // TODO: Can we expect all Database to respond in insert order ?
                   const result = sel[sel.length - 1]
 
-                  Object.keys(expect).forEach(k => {
+                  await Promise.all(Object.keys(expect).map(async k => {
                     const msg = `Ensure that the Database echos correct data back, property ${k} does not match expected result.`
+                    if (result[k] instanceof Readable && expect[k] instanceof Readable) {
+                      result[k] = await buffer(result[k])
+                      expect[k] = await buffer(expect[k])
+                    }
                     if (result[k] instanceof Buffer && expect[k] instanceof Buffer) {
                       assert.equal(result[k].compare(expect[k]), 0, `${msg} (Buffer contents are different)`)
+                    } else if (expect[k] instanceof RegExp) {
+                      assert.match(result[k], expect[k], msg)
                     } else if (typeof expect[k] === 'object' && expect[k]) {
                       assert.deepEqual(result[k], expect[k], msg)
                     } else {
-                      assert.equal(result[k], expect[k], msg)
+                      assert.strictEqual(result[k], expect[k], msg)
                     }
-                  })
+                  }))
                 })
               },
             )

@@ -1,8 +1,11 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
-const { expect } = cds.test.in(__dirname + '/bookshop')
-const _inferred = require('../../lib/infer')
+const cds = require('@sap/cds')
+const { expect } = cds.test
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('nested projections', () => {
   describe('expand', () => {
@@ -159,7 +162,7 @@ describe('nested projections', () => {
           {
             title,
             descr,
-            author. { name }
+            author.{ name }
           } as bookInfos
         }`
         let { Books } = model.entities
@@ -172,6 +175,34 @@ describe('nested projections', () => {
               descr: Books.elements.descr,
               author_name: Books.elements.author._target.elements.name,
             },
+          })
+      })
+      it('wildcard expand with explicit table alias', () => {
+        const q = CQL`SELECT from bookshop.Books {
+          Books { *, 'overwrite ID' as ID }
+        }`
+        let { Books } = model.entities
+        const inferred = _inferred(q)
+        expect(inferred.elements)
+          .to.have.property('Books')
+          .that.has.property('elements')
+          .that.eql({
+            ...Books.elements, // everything from books
+            ID: { val: 'overwrite ID', as: 'ID' } // except ID is overwritten
+          })
+      })
+      it('wildcard expand without explicit table alias', () => {
+        const q = CQL`SELECT from bookshop.Books {
+          { *, 'overwrite ID' as ID } as FOO
+        }`
+        let { Books } = model.entities
+        const inferred = _inferred(q)
+        expect(inferred.elements)
+          .to.have.property('FOO')
+          .that.has.property('elements')
+          .that.eql({
+            ...Books.elements, // everything from books
+            ID: { val: 'overwrite ID', as: 'ID' } // except ID is overwritten
           })
       })
     })

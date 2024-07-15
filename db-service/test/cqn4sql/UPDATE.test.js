@@ -1,7 +1,7 @@
 // cqn4sql must flatten and transform where exists shortcuts into subqueries
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('UPDATE', () => {
@@ -15,7 +15,7 @@ describe('UPDATE', () => {
   it('normalize update target format', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
-    const query = cqn4sql(u)
+    const query = cqn4sql(u, model)
     const expected = JSON.parse(
       '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
@@ -26,7 +26,7 @@ describe('UPDATE', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').data({ ID: 5, name: 'test' })
     const query = cqn4sql(u, model)
-    expect(query.__proto__.UPDATE.__proto__).to.haveOwnProperty('data')
+    expect(query.UPDATE).to.have.property('data')
   })
   it('xpr in UPDATE with "with" are be considered', () => {
     const { UPDATE } = cds.ql
@@ -70,24 +70,61 @@ describe('UPDATE', () => {
     })
   })
 
-  // we do not really understand a token stream such as a where clause,
-  // hence we cannot easily rewrite a path expression into a `where exists` subquery
-  // for the moment, we should issue a proper error instead of dumping.
-  it('Update with join clause is rejected', () => {
+  it('Update with path expressions in where is handled', () => {
     const { UPDATE } = cds.ql
-    let u = UPDATE.entity('bookshop.Books').where(
+    let u = UPDATE.entity({ ref: ['bookshop.Books'] }).where(
       `author.name LIKE '%Bron%' or ( author.name LIKE '%King' and title = 'The Dark Tower') and stock >= 15`,
     )
-    expect(() => cqn4sql(u)).to.throw(
-      'Path expressions for UPDATE statements are not supported. Use “where exists” with infix filters instead.',
-    )
+
+    let expected = UPDATE.entity({ ref: ['bookshop.Books'] })
+
+    expected.UPDATE.where = [
+      { list: [{ ref: ['Books2', 'ID'] }] },
+      'in',
+      CQL`
+            (SELECT Books.ID from bookshop.Books as Books
+              left join bookshop.Authors as author on author.ID = Books.author_ID
+              where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15
+            )
+      `,
+    ]
+    expected.UPDATE.entity = {
+      as: 'Books2',
+      ref: ['bookshop.Books'],
+    }
+    let res = cqn4sql(u, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('Update with path expressions to many', () => {
+    const { UPDATE } = cds.ql
+    let u = UPDATE.entity({ ref: ['bookshop.Authors'] }).where(`books.title LIKE '%Heights%'`)
+
+    let expected = UPDATE.entity({ ref: ['bookshop.Authors'] })
+
+    expected.UPDATE.where = [
+      { list: [{ ref: ['Authors2', 'ID'] }] },
+      'in',
+      CQL`
+      (SELECT Authors.ID from bookshop.Authors as Authors
+                left join bookshop.Books as books on books.author_ID = Authors.ID
+                where books.title LIKE '%Heights%'
+              )
+    `
+    ]
+    expected.UPDATE.entity = {
+      as: 'Authors2',
+      ref: ['bookshop.Authors'],
+    }
+    let res = cqn4sql(u, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 
   // table alias in subquery should address Books instead of bookshop.Books
   it('UPDATE with where exists expansion', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').where('exists author')
-    const query = cqn4sql(u)
+    const query = cqn4sql(u, model)
     // console.log(JSON.stringify(query))
     // how to express this in CQN?
     // DELETE.from({ref: ['bookshop.Authors'], as: 'author'}).where('exists ( SELECT 1 from bookshop.Books as Books where author_ID = author.ID)')

@@ -1,20 +1,49 @@
 const { SQLService } = require('@cap-js/db-service')
-const { Readable } = require('stream')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
+const { Readable } = require('stream')
+
+const keywords = cds.compiler.to.sql.sqlite.keywords
+// keywords come as array
+const sqliteKeywords = keywords.reduce((prev, curr) => {
+  prev[curr] = 1
+  return prev
+}, {})
 
 class SQLiteService extends SQLService {
+  init() {
+    return super.init(...arguments)
+  }
+
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
+
+        const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
-        dbc.function('regexp', { deterministic: true }, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', { deterministic: true }, d => d && new Date(d).toISOString())
+        dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
+        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+
+        // define date and time functions in js to allow for throwing errors
+        const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+        const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
+        const toDate = (d, allowTime = false) => {
+          const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
+          if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
+          return date
+        }
+        dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
+        dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
+        dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
+        dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
+        dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
+        dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -51,7 +80,7 @@ class SQLiteService extends SQLService {
         stream: (..._) => this._stream(stmt, ..._),
       }
     } catch (e) {
-      e.message += ' in:\n' + (e.sql = sql)
+      e.message += ' in:\n' + (e.query = sql)
       throw e
     }
   }
@@ -59,13 +88,11 @@ class SQLiteService extends SQLService {
   async _run(stmt, binding_params) {
     for (let i = 0; i < binding_params.length; i++) {
       const val = binding_params[i]
+      if (val instanceof Readable) {
+        binding_params[i] = await convStrm[val.type === 'json' ? 'text' : 'buffer'](val)
+      }
       if (Buffer.isBuffer(val)) {
-        binding_params[i] = Buffer.from(val.base64Slice())
-      } else if (typeof val === 'object' && val && val.pipe) {
-        // REVISIT: stream.setEncoding('base64') sometimes misses the last bytes
-        // if (val.type === 'binary') val.setEncoding('base64')
-        binding_params[i] = await convStrm.buffer(val)
-        if (val.type === 'binary') binding_params[i] = Buffer.from(binding_params[i].toString('base64'))
+        binding_params[i] = Buffer.from(val.toString('base64'))
       }
     }
     return stmt.run(binding_params)
@@ -91,40 +118,39 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  async _stream(stmt, binding_params, one) {
-    const columns = stmt.columns()
-    // Stream single blob column
-    if (columns.length === 1 && columns[0].name !== '_json_') {
-      // Setting result set to raw to keep better-sqlite from doing additional processing
-      stmt.raw(true)
-      const rows = stmt.all(binding_params)
-      // REVISIT: return undefined when no rows are found
-      if (rows.length === 0) return undefined
-      if (rows[0][0] === null) return null
-      // Buffer.from only applies encoding when the input is a string
-      let raw = Buffer.from(rows[0][0].toString(), 'base64')
-      stmt.raw(false)
-      return new Readable({
-        read(size) {
-          if (raw.length === 0) return this.push(null)
-          const chunk = raw.slice(0, size)
-          raw = raw.slice(size)
-          this.push(chunk)
-        },
-      })
-    }
-
-    stmt.raw(true)
-    const rs = stmt.iterate(binding_params)
-    return Readable.from(this._iterator(rs, one))
-  }
-
   exec(sql) {
     return this.dbc.exec(sql)
   }
 
-  static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+  _prepareStreams(values) {
+    let any
+    values.forEach((v, i) => {
+      if (v instanceof Readable) {
+        any = values[i] = convStrm.buffer(v)
+      }
+    })
+    return any ? Promise.all(values) : values
+  }
 
+  async onSIMPLE({ query, data }) {
+    const { sql, values } = this.cqn2sql(query, data)
+    let ps = await this.prepare(sql)
+    const vals = await this._prepareStreams(values)
+    return (await ps.run(vals)).changes
+  }
+
+  onPlainSQL({ query, data }, next) {
+    if (typeof query === 'string') {
+      // REVISIT: this is a hack the target of $now might not be a timestamp or date time
+      // Add input converter to CURRENT_TIMESTAMP inside views using $now
+      if (/^CREATE VIEW.* CURRENT_TIMESTAMP[( ]/is.test(query)) {
+        query = query.replace(/CURRENT_TIMESTAMP/gi, "STRFTIME('%Y-%m-%dT%H:%M:%fZ','NOW')")
+      }
+    }
+    return super.onPlainSQL({ query, data }, next)
+  }
+
+  static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
     column_alias4(x, q) {
       let alias = super.column_alias4(x, q)
       if (alias) return alias
@@ -141,20 +167,33 @@ class SQLiteService extends SQLService {
     }
 
     val(v) {
+      if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
+      else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
       // intercept DateTime values and convert to Date objects to compare ISO Strings
-      if (/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[Z+-]/.test(v.val)) v.val = new Date(v.val)
+      else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(.\d{1,9})?(Z|[+-]\d{2}(:?\d{2})?)$/.test(v.val)) {
+        const date = new Date(v.val)
+        if (!Number.isNaN(date.getTime())) {
+          v.val = date
+        }
+      }
       return super.val(v)
+    }
+
+    forUpdate() {
+      return ''
+    }
+
+    forShareLock() {
+      return ''
     }
 
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
       Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => `strftime('%H:%M:%S',${e})`,
-
       // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
       DateTime: e => `ISO(${e})`,
@@ -163,39 +202,31 @@ class SQLiteService extends SQLService {
 
     static OutputConverters = {
       ...super.OutputConverters,
-
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
-      struct: expr => `${expr}->'$'`, // Association + Composition inherits from struct
+      Association: expr => `${expr}->'$'`,
+      struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
-
       // SQLite has no booleans so we need to convert 0 and 1
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
-
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
-
       // Timestamps are returned with ms, as written by InputConverters.
       // And as cds.builtin.classes.Timestamp inherits from DateTime we need
       // to override the DateTime converter above
       Timestamp: undefined,
-
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
-      Int64: expr => `CAST(${expr} as TEXT)`,
-
+      Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
+      // REVISIT: always cast to string in next major
+      // Reading decimal as string to not loose precision
+      Decimal: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions,
-      // Ensure ISO strings are returned for date/time functions
-      current_timestamp: () => 'ISO(current_timestamp)',
-      // SQLite doesn't support arguments for current_date and current_time
-      current_date: () => 'current_date',
-      current_time: () => 'current_time',
-    }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -207,10 +238,14 @@ class SQLiteService extends SQLService {
       Timestamp: () => 'TIMESTAMP_TEXT',
     }
 
-    get is_distinct_from_() { return 'is not' }
-    get is_not_distinct_from_() { return 'is' }
+    get is_distinct_from_() {
+      return 'is not'
+    }
+    get is_not_distinct_from_() {
+      return 'is'
+    }
 
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
   }
 
   // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
@@ -221,7 +256,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS') || err
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
   }
 
@@ -229,13 +264,13 @@ class SQLiteService extends SQLService {
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
     }
   }
 }
 
 // function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign ({
+//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
 //     code: 'MUST_NOT_BE_NULL',
 //     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
 //     message: 'Value is required',
@@ -244,11 +279,12 @@ class SQLiteService extends SQLService {
 
 function _not_unique(err, code) {
   if (err.message.match(/unique constraint/i))
-    return Object.assign({
+    return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  return err
 }
 
 module.exports = SQLiteService

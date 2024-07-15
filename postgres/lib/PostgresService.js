@@ -1,6 +1,6 @@
 const { SQLService } = require('@cap-js/db-service')
 const { Client, Query } = require('pg')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
@@ -13,6 +13,7 @@ class PostgresService extends SQLService {
       cds.options.dialect = 'postgres'
     }
     this.kind = 'postgres'
+    this._queryCache = {}
     return super.init(...arguments)
   }
 
@@ -78,7 +79,7 @@ class PostgresService extends SQLService {
     }
 
     return Promise.all([
-      (await this.prepare(`SELECT set_config(key::text,$1->>key,false) FROM json_each($1);`)).run([
+      (await this.prepare(`SELECT set_config(key::text,$1->>key,false) FROM jsonb_each($1);`)).run([
         JSON.stringify(env),
       ]),
       ...(this.options?.credentials?.schema
@@ -135,25 +136,37 @@ GROUP BY k
   }
 
   prepare(sql) {
-    const query = {
+    // Track queries name for postgres referencing prepare statements
+    // sha1 as it needs to be less then 63 character
+    const sha = crypto.createHash('sha1').update(sql).digest('hex')
+    const query = this._queryCache[sha] = this._queryCache[sha] || {
       _streams: 0,
       text: sql,
-      // Track queries name for postgres referencing prepare statements
-      // sha1 as it needs to be less then 63 characters
-      name: crypto.createHash('sha1').update(sql).digest('hex'),
+      name: sha,
     }
+
+    const enhanceError = (err, sql) => Object.assign(err, { query: sql + '\n' + new Array(err.position).fill(' ').join('') + '^' })
+
     return {
       run: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        let newQuery = this._prepareStreams(query, values)
-        if (typeof newQuery.then === 'function') newQuery = await newQuery
-        const result = await this.dbc.query(newQuery)
-        return { changes: result.rowCount }
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          let newQuery = this._prepareStreams(query, values)
+          if (typeof newQuery.then === 'function') newQuery = await newQuery
+          const result = await this.dbc.query(newQuery)
+          return { changes: result.rowCount }
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       get: async values => {
-        // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
-        const result = await this.dbc.query({ ...query, values: this._getValues(values) })
-        return result.rows[0]
+        try {
+          // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
+          const result = await this.dbc.query({ ...query, values: this._getValues(values) })
+          return result.rows[0]
+        } catch (e) {
+          throw enhanceError(e, sql)
+        }
       },
       all: async values => {
         // REVISIT: SQLService provides empty values as {} for plain SQL statements - PostgreSQL driver expects array or nothing - see issue #78
@@ -161,7 +174,7 @@ GROUP BY k
           const result = await this.dbc.query({ ...query, values: this._getValues(values) })
           return result.rows
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
       stream: async (values, one) => {
@@ -169,7 +182,7 @@ GROUP BY k
           const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
           return await this.dbc.query(streamQuery)
         } catch (e) {
-          throw Object.assign(e, { sql: sql + '\n' + new Array(e.position).fill(' ').join('') + '^' })
+          throw enhanceError(e, sql)
         }
       },
     }
@@ -194,7 +207,7 @@ GROUP BY k
       values.forEach((value, i) => {
         if (value instanceof Readable) {
           const streamID = query._streams++
-          const isBinary = value.type === 'binary'
+          const isBinary = value.type !== 'json'
           const paramStream = new ParameterStream(query.name, streamID)
           if (isBinary) value.setEncoding('base64')
           value.pipe(paramStream)
@@ -204,8 +217,7 @@ GROUP BY k
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
             // Don't ask about the dollar signs
-            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${
-              query.name
+            `(SELECT ${isBinary ? `DECODE(PARAM,'base64')` : 'PARAM'} FROM "$$$$PARAMETER_BUFFER$$$$" WHERE NAME='${query.name
             }' AND ID=$${i + 1})`,
           )
           return
@@ -281,14 +293,51 @@ GROUP BY k
     return super.onPlainSQL(req, next)
   }
 
+  async onSELECT({ query, data }) {
+    // workaround for chunking odata streaming
+    if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
+      const columns = query.SELECT.columns
+      const index = columns.findIndex(col => query.elements[col.ref?.[col.ref.length - 1]].type === 'cds.LargeBinary')
+      const binary = columns.splice(index, 1)
+      // SELECT without binary column
+      let res = await super.onSELECT({ query, data })
+      if (!res) return res
+      // SELECT only binary column
+      query.SELECT.columns = binary
+      const { sql: streamSql, values: valuesStream } = this.cqn2sql(query, data)
+      const ps = this.prepare(streamSql)
+      const stream = await ps.stream(valuesStream, true)
+      // merge results
+      res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
+      return res
+    }
+    return super.onSELECT({ query, data })
+  }
+
+  async onINSERT(req) {
+    try {
+      return await super.onINSERT(req)
+    } catch (err) {
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+    }
+  }
+
+  async onUPDATE(req) {
+    try {
+      return await super.onUPDATE(req)
+    } catch (err) {
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
+    }
+  }
+
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
     _orderBy(orderBy, localized, locale) {
       return orderBy.map(
         localized
           ? c =>
-              this.expr(c) +
-              (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
-              (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+            this.expr(c) +
+            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
+            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
       )
     }
@@ -321,7 +370,8 @@ GROUP BY k
       return super.column_alias4(x, q)
     }
 
-    SELECT_expand({ SELECT }, sql) {
+    SELECT_expand(q, sql) {
+      const { SELECT } = q
       if (!SELECT.columns) return sql
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
@@ -336,11 +386,22 @@ GROUP BY k
         }
         return col
       })
+      const isRoot = SELECT.expand === 'root'
+      const isSimple = cds.env.features.sql_simple_queries &&
+        isRoot && // Simple queries are only allowed to have a root
+        !Object.keys(q.elements).some(e =>
+          q.elements[e].isAssociation || // Indicates columns contains an expand
+          q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
+          q.elements[e].items // Array types require to be inlined with a json result
+        )
+
+      const subQuery = `SELECT ${cols} FROM (${sql}) as ${queryAlias}`
+      if (isSimple) return subQuery
+
       // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
-      let obj = `row_to_json(${queryAlias}.*)`
-      return `SELECT ${
-        SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(json_agg(${obj}),'[]'::json)`
-      } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+      let obj = `to_jsonb(${queryAlias}.*)`
+      return `SELECT ${SELECT.one || isRoot ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
+        } as _json_ FROM (${subQuery}) as ${queryAlias}`
     }
 
     doubleQuote(name) {
@@ -355,7 +416,7 @@ GROUP BY k
         // Adjusts json path expressions to be postgres specific
         .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
-        .replace('json_each(?)', 'json_array_elements($1::JSON)')
+        .replace('json_each(?)', 'json_array_elements($1::json)')
         .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
     }
 
@@ -375,11 +436,33 @@ GROUP BY k
       else return super.operator(x, i, xpr)
     }
 
+    // Postgres does not support locking columns only tables which makes of unapplicable
+    // Postgres does not support "wait n" it only supports "nowait"
+    forUpdate(update) {
+      const { wait } = update
+      if (wait === 0) return 'FOR UPDATE NOWAIT'
+      return 'FOR UPDATE'
+    }
+
+    forShareLock(lock) {
+      const { wait } = lock
+      if (wait === 0) return 'FOR SHARE NOWAIT'
+      return 'FOR SHARE'
+    }
+
+    // Postgres requires own quote function, becuase the effective name is lower case
+    quote(s) {
+      if (typeof s !== 'string') return '"' + s + '"'
+      if (s.includes('"')) return '"' + s.replace(/"/g, '""').toLowerCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      return s
+    }
+
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
       return this.string(`${defaultValue}`)
     }
 
-    static Functions = { ...super.Functions, ...require('./func') }
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
 
@@ -387,6 +470,7 @@ GROUP BY k
       ...super.TypeMap,
       // REVISIT: check whether we should use native UUID support
       UUID: () => `VARCHAR(36)`,
+      UInt8: () => `INT`,
       String: e => `VARCHAR(${e.length || 5000})`,
       Binary: () => `BYTEA`,
       Double: () => 'FLOAT8',
@@ -396,6 +480,13 @@ GROUP BY k
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
+
+      // HANA Types
+      'cds.hana.CLOB': () => 'BYTEA',
+      'cds.hana.BINARY': () => 'BYTEA',
+      'cds.hana.TINYINT': () => 'SMALLINT',
+      'cds.hana.ST_POINT': () => 'POINT',
+      'cds.hana.ST_GEOMETRY': () => 'POLYGON',
     }
 
     // Used for INSERT statements
@@ -416,6 +507,12 @@ GROUP BY k
       DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Binary: e => `DECODE(${e},'base64')`,
       LargeBinary: e => `DECODE(${e},'base64')`,
+
+      // HANA Types
+      'cds.hana.CLOB': e => `DECODE(${e},'base64')`,
+      'cds.hana.BINARY': e => `DECODE(${e},'base64')`,
+      'cds.hana.ST_POINT': e => `POINT(((${e})::json->>'x')::float, ((${e})::json->>'y')::float)`,
+      'cds.hana.ST_GEOMETRY': e => `POLYGON(${e})`,
     }
 
     static OutputConverters = {
@@ -428,8 +525,17 @@ GROUP BY k
       Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       UTCDateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
       UTCTimestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
-      struct: e => `json(${e})`,
-      array: e => `json(${e})`,
+      Association: e => `jsonb(${e})`,
+      struct: e => `jsonb(${e})`,
+      array: e => `jsonb(${e})`,
+      // Reading int64 as string to not loose precision
+      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+      // REVISIT: always cast to string in next major
+      // Reading decimal as string to not loose precision
+      Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+
+      // Convert point back to json format
+      'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
     }
   }
 
@@ -457,9 +563,10 @@ GROUP BY k
         DROP USER IF EXISTS "${creds.user}";
         CREATE GROUP "${creds.usergroup}";
         CREATE USER "${creds.user}" WITH CREATEROLE IN GROUP "${creds.usergroup}" PASSWORD '${creds.user}';
+        GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-    } catch (e) {
+    } catch {
       // Failed to reset database
     } finally {
       await this.dbc.end()
@@ -503,7 +610,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => {})
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
       })
     } finally {
       await this.disconnect()
@@ -523,15 +630,15 @@ class QueryStream extends Query {
     this.stream = new Readable({
       read: this.rows
         ? () => {
-            this.stream.pause()
-            // Request more rows
-            this.connection.execute({
-              portal: this.portal,
-              rows: this.rows,
-            })
-            this.connection.flush()
-          }
-        : () => {},
+          this.stream.pause()
+          // Request more rows
+          this.connection.execute({
+            portal: this.portal,
+            rows: this.rows,
+          })
+          this.connection.flush()
+        }
+        : () => { },
     })
     this.push = this.stream.push.bind(this.stream)
 
@@ -646,7 +753,7 @@ class ParameterStream extends Writable {
   }
 
   // Used by the client to handle timeouts
-  callback() {}
+  callback() { }
 
   _write(chunk, enc, cb) {
     return this.flush(chunk, cb)
@@ -709,6 +816,16 @@ class ParameterStream extends Writable {
     this._finish()
     this.connection = null
   }
+}
+
+function _not_unique(err, code) {
+  if (err.code === '23505')
+    return Object.assign(err, {
+      originalMessage: err.message, // FIXME: required because of next line
+      message: code, // FIXME: misusing message as code
+      code: 400, // FIXME: misusing code as (http) status
+    })
+  return err
 }
 
 module.exports = PostgresService

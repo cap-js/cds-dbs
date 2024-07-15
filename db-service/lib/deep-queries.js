@@ -1,6 +1,21 @@
 const cds = require('@sap/cds')
-const { compareJson } = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson')
 const { _target_name4 } = require('./SQLService')
+const InsertResult = require('../lib/InsertResults')
+
+// REVISIT: remove old path with cds^8
+let _compareJson
+const compareJson = (...args) => {
+  if (!_compareJson) {
+    try {
+      // new path
+      _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
+    } catch {
+      // old path
+      _compareJson = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson').compareJson
+    }
+  }
+  return _compareJson(...args)
+}
 
 const handledDeep = Symbol('handledDeep')
 
@@ -17,38 +32,37 @@ const handledDeep = Symbol('handledDeep')
  */
 async function onDeep(req, next) {
   const { query } = req
+  if (handledDeep in query) return next()
+
   // REVISIT: req.target does not match the query.INSERT target for path insert
   // const target = query.sources[Object.keys(query.sources)[0]]
-  if (!this.model?.definitions[_target_name4(req.query)]) {
-    return next()
-  }
+  if (!this.model?.definitions[_target_name4(req.query)]) return next()
+
   const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
-  const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
 
-  if (query.UPDATE && !beforeData.length) {
-    return 0
-  }
+  const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
+  if (query.UPDATE && !beforeData.length) return 0
 
   const queries = getDeepQueries(query, beforeData, target)
-  const res = await Promise.all(
-    queries.map(query => {
-      if (query.INSERT) return this.onINSERT({ query })
-      if (query.UPDATE) return this.onUPDATE({ query })
-      if (query.DELETE) return this.onSIMPLE({ query })
-    }),
+  const res = await Promise.all(queries.map(query => {
+    if (query.INSERT) return this.onINSERT({ query })
+    if (query.UPDATE) return this.onUPDATE({ query })
+    if (query.DELETE) return this.onSIMPLE({ query })
+  }))
+  return (
+    beforeData.length ||
+    new InsertResult(query, [
+      {
+        changes: Array.isArray(req.data) ? req.data.length : 1,
+        ...(res[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: res[0].results[0].lastInsertRowid } : {}),
+      },
+    ])
   )
-  return res[0] ?? 0 // TODO what todo with multiple result responses?
 }
 
-const hasDeep = (query, target) => {
-  if (handledDeep in query) return
-  if (query.DELETE) {
-    for (let c in target?.compositions) return true
-    return false
-  }
-  const data =
-    query.INSERT?.entries || (query.UPDATE?.data && [query.UPDATE.data]) || (query.UPDATE?.with && [query.UPDATE.with])
+const hasDeep = (q, target) => {
+  const data = q.INSERT?.entries || (q.UPDATE?.data && [q.UPDATE.data]) || (q.UPDATE?.with && [q.UPDATE.with])
   if (data)
     for (const c in target.compositions) {
       for (const row of data) if (row[c] !== undefined) return true
@@ -110,7 +124,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
     const seen = elementMap.get(fqn)
     if (seen && seen >= DEEP_DELETE_MAX_RECURSION_DEPTH) {
       // recursion -> abort
-      return
+      return expandColumns
     }
 
     let expandColumn = expandColumns.find(expandColumn => expandColumn.ref[0] === composition.name)
@@ -145,6 +159,7 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
       _calculateExpandColumns(composition._target, compositionData, expandColumn.expand, newElementMap)
     }
   }
+  return expandColumns
 }
 
 /**
@@ -152,18 +167,9 @@ const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = 
  * @param {import('@sap/cds/apis/csn').Definition} target
  */
 const getExpandForDeep = (query, target) => {
-  const from = query.DELETE?.from || query.UPDATE?.entity
-  const data = query.UPDATE?.data || null
-  const where = query.DELETE?.where || query.UPDATE?.where
-
-  /** @type {import("@sap/cds/apis/ql").SELECT<unknown>} */
-  const cqn = SELECT.from(from)
-  if (where) cqn.SELECT.where = where
-
-  const columns = []
-  _calculateExpandColumns(target, data, columns)
-  cqn.columns(columns)
-  return cqn
+  const { entity, data = null, where } = query.UPDATE
+  const columns = _calculateExpandColumns(target, data)
+  return SELECT(columns).from(entity).where(where)
 }
 
 /**
@@ -256,17 +262,31 @@ const _getDeepQueries = (diff, target, root = false) => {
       queries.push(cqn)
     }
 
-    queries.push(...subQueries)
+    for (const q of subQueries) queries.push(q)
   }
 
-  queries.forEach(q => {
+  const insertQueries = new Map()
+
+  return queries.map(q => {
+    // Merge all INSERT statements for each target
+    if (q.INSERT) {
+      const target = q.target
+      if (insertQueries.has(target)) {
+        insertQueries.get(target).INSERT.entries.push(...q.INSERT.entries)
+        return
+      } else {
+        insertQueries.set(target, q)
+      }
+    }
     Object.defineProperty(q, handledDeep, { value: true })
+    return q
   })
-  return queries
+    .filter(a => a)
 }
 
 module.exports = {
   onDeep,
   getDeepQueries,
   getExpandForDeep,
+  hasDeep,
 }

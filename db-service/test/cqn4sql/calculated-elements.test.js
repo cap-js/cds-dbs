@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Unfolding calculated elements in select list', () => {
@@ -54,12 +54,52 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+  it('in function with named param', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, ageNamedParams as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      Authors.ID,
+      years_between(DOB => Authors.dateOfBirth, DOD => Authors.dateOfDeath) as f
+    }`
+    expect(query).to.deep.equal(expected)
+  })
 
   it('calc elem is function', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, ctitle }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
         Books.ID,
         substring(Books.title, 3, Books.stock) as ctitle
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('calc elem is xpr with multiple functions as args', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeNativePG }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('calc elem is xpr with nested xpr which has multiple functions as args', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, authorAgeInDogYears }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      {
+        Books.ID,
+        ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
+      }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('calc elem is xpr with multiple functions as args - back and forth', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, author.books.authorAgeNativePG }`, model)
+    const expected = CQL`SELECT from booksCalc.Books as Books
+      left join booksCalc.Authors as author on author.ID = Books.author_ID
+      left join booksCalc.Books as books2 on books2.author_ID = author.ID
+      left join booksCalc.Authors as author2 on author2.ID = books2.author_ID
+      {
+        Books.ID,
+        DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) as author_books_authorAgeNativePG
       }`
     expect(query).to.deep.equal(expected)
   })
@@ -329,7 +369,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author 
+          SELECT from booksCalc.Authors as author
           left join booksCalc.Addresses as address on address.ID = author.address_ID
           {
             author.firstName || ' ' || author.lastName as name,
@@ -352,7 +392,7 @@ describe('Unfolding calculated elements in select list', () => {
         author.firstName || ' ' || author.lastName as author_name,
         address.street || ', ' || address.city as author_addressText,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -373,7 +413,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -434,7 +474,10 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -466,8 +509,57 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('wildcard select from subquery', () => {
+    let query = cqn4sql(CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`, model)
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my on my.ID = Simple.my_ID
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my.name as myName
+        }
+    ) as __select__ {
+      __select__.ID,
+      __select__.name,
+      __select__.my_ID,
+      __select__.myName
+    }
+    `
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('wildcard select from subquery + join relevant path expression', () => {
+    let query = cqn4sql(
+      CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } ) {
+        my.name as otherName
+      }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my2.name as myName
+        }
+    ) as __select__ left join booksCalc.Simple as my on my.ID = __select__.my_ID {
+      my.name as otherName
+    }
+    `
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
@@ -498,7 +590,10 @@ describe('Unfolding calculated elements in select list', () => {
           author.firstName || ' ' || author.lastName as authorFullName,
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
@@ -516,7 +611,7 @@ describe('Unfolding calculated elements in select list', () => {
       authorName,
       authorFullName,
       authorAge
-    } 
+    }
     `,
       model,
     )
@@ -616,9 +711,9 @@ describe('Unfolding calculated elements in select list', () => {
   it('exists cannot leverage calculated elements w/ path expressions', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
-    expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model)).to.throw(
-      'Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”',
-    )
+    expect(() =>
+      cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model),
+    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”')
   })
 
   it('exists cannot leverage calculated elements in CASE', () => {
@@ -639,7 +734,7 @@ describe('Unfolding calculated elements in select list', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books:youngAuthorName { ID }`, model)).to.throw(
-      'No association “youngAuthorName” in entity “booksCalc.Books”',
+      'Query source must be a an entity or an association',
     )
   })
 
@@ -648,7 +743,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price}
-    } 
+    }
     `,
       model,
     )
@@ -681,7 +776,10 @@ describe('Unfolding calculated elements in select list', () => {
           (author2.firstName || ' ' || author2.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
 
-          years_between( author2.sortCode, author2.sortCode ) as authorAge
+          years_between( author2.sortCode, author2.sortCode ) as authorAge,
+          DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author2.dateOfDeath) - DATE_PART('year', author2.dateOfBirth) ) * 7 as authorAgeInDogYears
         } where Authors.ID = books.author_ID
       ) as books
     }`
@@ -692,7 +790,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price, youngAuthorName}
-    } 
+    }
     `,
       model,
     )
@@ -722,7 +820,10 @@ describe('Unfolding calculated elements in select list', () => {
           (author.firstName || ' ' || author.lastName) || ' ' || (address.street || ', ' || address.city) as authorFullNameWithAddress,
           address.street || ', ' || address.city as authorAdrText,
 
-          years_between( author.sortCode, author.sortCode ) as authorAge
+          years_between( author.sortCode, author.sortCode ) as authorAge,
+          DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) as authorAgeNativePG,
+
+          ( DATE_PART('year', author.dateOfDeath) - DATE_PART('year', author.dateOfBirth) ) * 7 as authorAgeInDogYears
         } where Authors.ID = books.author_ID
       ) as books
     }`
@@ -782,7 +883,7 @@ describe('Unfolding calculated elements in other places', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
     const expected = CQL`SELECT from booksCalc.Books as books {
       books.ID
-    } where exists (select 1 from booksCalc.Authors as Authors 
+    } where exists (select 1 from booksCalc.Authors as Authors
                       where Authors.ID = books.author_ID
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
                         and (books.stock * ((books.length * books.width) * books.height)) < 4

@@ -1,9 +1,12 @@
 'use strict'
 // test the calculation of the sources of the query
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test.in(__dirname + '/../bookshop')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('simple', () => {
   let model
@@ -48,7 +51,7 @@ describe('scoped queries', () => {
     let inferred = _inferred(query)
 
     let { Authors } = model.entities
-    expect(inferred).to.have.nested.property('sources.author', Authors)
+    expect(inferred.sources).to.have.nested.property('author.definition', Authors)
     expect(inferred.elements).to.deep.equal({
       ID: Authors.elements.ID,
     })
@@ -58,13 +61,13 @@ describe('scoped queries', () => {
     let query = CQL`SELECT from bookshop.Books:author.books`
     let inferred = _inferred(query)
     let { Books } = model.entities
-    expect(inferred).to.have.nested.property('sources.books', Books)
+    expect(inferred.sources).to.have.nested.property('books.definition', Books)
   })
   it('multiple assocs with filter', () => {
     let query = CQL`SELECT from bookshop.Books[201]:author[111].books`
     let inferred = _inferred(query)
     let { Books } = model.entities
-    expect(inferred).to.have.nested.property('sources.books', Books)
+    expect(inferred.sources).to.have.nested.property('books.definition', Books)
   })
 })
 describe('subqueries', () => {
@@ -78,7 +81,7 @@ describe('subqueries', () => {
     let inferred = _inferred(query)
 
     let { Books } = model.entities
-    expect(inferred).to.have.nested.property('sources.Bar.sources.Books', Books)
+    expect(inferred.sources).to.have.nested.property('Bar.definition.sources.Books.definition', Books)
     expect(inferred.elements).to.deep.equal({
       barID: Books.elements.ID,
     })
@@ -90,7 +93,7 @@ describe('subqueries', () => {
     let inferred = _inferred(query)
 
     let { Books } = model.entities
-    expect(inferred.sources).to.have.nested.property('Bar.sources.Books', Books)
+    expect(inferred.sources).to.have.nested.property('Bar.definition.sources.Books.definition', Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
       author: Books.elements.author,
@@ -148,7 +151,7 @@ describe('multiple sources', () => {
 
     // same base entity, addressable via both aliases
     expect(inferred.target).to.deep.equal(inferred)
-    expect(inferred.sources['firstBook']).to.deep.equal(inferred.sources['secondBook']).to.deep.equal(Books)
+    expect(inferred.sources['firstBook'].definition).to.deep.equal(inferred.sources['secondBook'].definition).to.deep.equal(Books)
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,

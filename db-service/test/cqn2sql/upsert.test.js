@@ -1,13 +1,18 @@
 'use strict'
-const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
+const { text } = require('stream/consumers')
+
+const cds = require('@sap/cds')
+const _cqn2sql = require('../../lib/cqn2sql')
+function cqn2sql(q, m = cds.model) {
+  return _cqn2sql(q, m)
+}
 
 beforeAll(async () => {
   cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
 })
 
 describe('upsert', () => {
-  test('test with keys only', () => {
+  test('test with keys only', async () => {
     const cqnUpsert = {
       UPSERT: {
         into: 'Foo2',
@@ -17,11 +22,11 @@ describe('upsert', () => {
     }
 
     const { sql, entries } = cqn2sql(cqnUpsert)
-    expect({ sql, entries }).toMatchSnapshot()
+    expect({ sql, entries:  [[await text(entries[0][0])]] }).toMatchSnapshot()
   })
 
-  test('test with entries', () => {
-    const cqnInsert = {
+  test('test with entries', async () => {
+    const cqnUpsert = {
       UPSERT: {
         into: 'Foo2',
         entries: [
@@ -31,7 +36,20 @@ describe('upsert', () => {
       },
     }
 
-    const { sql, entries } = cqn2sql(cqnInsert)
-    expect({ sql, entries }).toMatchSnapshot()
+    const { sql, entries } = cqn2sql(cqnUpsert)
+    expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
+  })
+
+  test('test with rows (quoted)', async () => {
+    const cqnUpsert = {
+      UPSERT: {
+        into: '"Foo2Quoted"',
+        columns: ['"ID"', '"name"', '"a"'],
+        rows: [[1, null, 2]],
+      },
+    }
+
+    const { sql, entries } = cqn2sql(cqnUpsert)
+    expect({ sql, entries: [[await text(entries[0][0])]] }).toMatchSnapshot()
   })
 })

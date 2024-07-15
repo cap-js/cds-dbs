@@ -1,6 +1,14 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const _simple_queries = cds.env.features.sql_simple_queries
+const _strict_booleans = _simple_queries < 2
+
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.LargeBinary': 1,
+  'cds.hana.BINARY': 1,
+}
 
 const { Readable } = require('stream')
 
@@ -25,15 +33,18 @@ class CQN2SQLRenderer {
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
+    this.model = srv?.model
   }
 
-  static _add_mixins (aspect, mixins) {
+  static _add_mixins(aspect, mixins) {
     const fqn = this.name + aspect
     const types = cds.builtin.types
     for (let each in mixins) {
       const def = types[each]
       if (!def) continue
-      Object.defineProperty(def, fqn, { value: mixins[each] })
+      const value = mixins[each]
+      if (value?.get) Object.defineProperty(def, fqn, { get: value.get })
+      else Object.defineProperty(def, fqn, { value })
     }
     return fqn
   }
@@ -52,7 +63,7 @@ class CQN2SQLRenderer {
       this.ReservedWords[each[0] + each.slice(1).toLowerCase()] = 1 // Order
       this.ReservedWords[each.toLowerCase()] = 1 // order
     }
-    this._init = () => {} // makes this a noop for subsequent calls
+    this._init = () => { } // makes this a noop for subsequent calls
   }
 
   /**
@@ -62,15 +73,15 @@ class CQN2SQLRenderer {
    * @returns {CQN2SQLRenderer|unknown}
    */
   render(q, vars) {
-    const cmd = q.cmd || Object.keys(q)[0] // SELECT, INSERT, ...
+    const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
     /**
      * @type {string} the rendered SQL string
      */
     this.sql = '' // to have it as first property for debugging
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
-    this[cmd]((this.cqn = q)) // actual sql rendering happens here
-    if (vars?.length && !this.values.length) this.values = vars
+    this[kind]((this.cqn = q)) // actual sql rendering happens here
+    if (vars?.length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
       this.sql,
@@ -88,6 +99,10 @@ class CQN2SQLRenderer {
     return q.target ? q : cds_infer(q)
   }
 
+  cqn4sql(q) {
+    return cqn4sql(q, this.model)
+  }
+
   // CREATE Statements ------------------------------------------------
 
   /**
@@ -102,8 +117,8 @@ class CQN2SQLRenderer {
     delete this.values
     this.sql =
       !query || target['@cds.persistence.table']
-        ? `CREATE TABLE ${name} ( ${this.CREATE_elements(target.elements)} )`
-        : `CREATE VIEW ${name} AS ${this.SELECT(cqn4sql(query))}`
+        ? `CREATE TABLE ${this.quote(name)} ( ${this.CREATE_elements(target.elements)} )`
+        : `CREATE VIEW ${this.quote(name)} AS ${this.SELECT(this.cqn4sql(query))}`
     this.values = []
     return
   }
@@ -152,12 +167,14 @@ class CQN2SQLRenderer {
   /** @type {Object<string,import('@sap/cds/apis/csn').Definition>} */
   static TypeMap = {
     // Utilizing cds.linked inheritance
+    UUID: () => `NVARCHAR(36)`,
     String: e => `NVARCHAR(${e.length || 5000})`,
     Binary: e => `VARBINARY(${e.length || 5000})`,
-    Int64: () => 'BIGINT',
-    Int32: () => 'INTEGER',
+    UInt8: () => 'TINYINT',
     Int16: () => 'SMALLINT',
-    UInt8: () => 'SMALLINT',
+    Int32: () => 'INT',
+    Int64: () => 'BIGINT',
+    Integer: () => 'INT',
     Integer64: () => 'BIGINT',
     LargeString: () => 'NCLOB',
     LargeBinary: () => 'BLOB',
@@ -165,12 +182,11 @@ class CQN2SQLRenderer {
     Composition: () => false,
     array: () => 'NCLOB',
     // HANA types
-    /* Disabled as these types are linked to normal cds types
-    'cds.hana.TINYINT': () => 'REAL',
+    'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
     'cds.hana.CHAR': e => `CHAR(${e.length || 1})`,
     'cds.hana.ST_POINT': () => 'ST_POINT',
-    'cds.hana.ST_GEOMETRY': () => 'ST_GEO',*/
+    'cds.hana.ST_GEOMETRY': () => 'ST_GEOMETRY',
   }
 
   // DROP Statements ------------------------------------------------
@@ -182,7 +198,7 @@ class CQN2SQLRenderer {
   DROP(q) {
     const { target } = q
     const isView = target.query || target.projection
-    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.name(target.name)}`)
+    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(target.name))}`)
   }
 
   // SELECT Statements ------------------------------------------------
@@ -192,7 +208,13 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized } = q.SELECT
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
+      q.SELECT
+
+    if (from?.join && !q.SELECT.columns) {
+      throw new Error('CQN query using joins must specify the selected columns.')
+    }
+
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
@@ -200,17 +222,19 @@ class CQN2SQLRenderer {
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
     if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
     if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
     if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
+    if (forUpdate) sql += ` ${this.forUpdate(forUpdate)}`
+    else if (forShareLock) sql += ` ${this.forShareLock(forShareLock)}`
     // Expand cannot work without an inferred query
     if (expand) {
-      // REVISIT: Why don't we handle that as an error in SELECT_expand?
-      if (!q.elements) cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
-      sql = this.SELECT_expand(q, sql)
+      if ('elements' in q) sql = this.SELECT_expand(q, sql)
+      else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
     return (this.sql = sql)
   }
@@ -230,27 +254,54 @@ class CQN2SQLRenderer {
    * @param {string} sql
    * @returns {string} SQL
    */
-  SELECT_expand({ SELECT, elements }, sql) {
+  SELECT_expand(q, sql) {
+    if (!('elements' in q)) return sql
+
+    const SELECT = q.SELECT
     if (!SELECT.columns) return sql
-    if (!elements) return sql // REVISIT: Above we say this is an error condition, but here we say it's ok?
-    let cols = SELECT.columns.map(x => {
-      const name = this.column_name(x)
-      let col = `'${name}',${this.output_converter4(x.element, this.quote(name))}`
-      if (x.SELECT?.count) {
-        // Return both the sub select and the count for @odata.count
-        const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-        return [col, `'${name}@odata.count',${this.expr(qc)}`]
+
+    const isRoot = SELECT.expand === 'root'
+    const isSimple = _simple_queries &&
+      isRoot && // Simple queries are only allowed to have a root
+      !ObjectKeys(q.elements).some(e =>
+        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
+        q.elements[e].isAssociation || // Indicates columns contains an expand
+        q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
+        q.elements[e].items // Array types require to be inlined with a json result
+      )
+
+    let cols = SELECT.columns.map(isSimple
+      ? x => {
+        const name = this.column_name(x)
+        const escaped = `${name.replace(/"/g, '""')}`
+        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
+        if (x.SELECT?.count) {
+          // Return both the sub select and the count for @odata.count
+          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
+          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
+        }
+        return col
       }
-      return col
-    }).flat()
+      : x => {
+        const name = this.column_name(x)
+        const escaped = `${name.replace(/"/g, '""')}`
+        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
+        if (x.SELECT?.count) {
+          // Return both the sub select and the count for @odata.count
+          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
+          return [col, `'$."${escaped}@odata.count"',${this.expr(qc)}`]
+        }
+        return col
+      }).flat()
+
+    if (isSimple) return `SELECT ${cols} FROM (${sql})`
 
     // Prevent SQLite from hitting function argument limit of 100
-    let obj = ''
-    for (let i = 0; i < cols.length; i += 50) {
-      const n =  `json_object(${cols.slice(i, i + 50)})`
-      obj = obj ? `json_patch(${obj},${n})` : n
+    let obj = "'{}'"
+    for (let i = 0; i < cols.length; i += 48) {
+      obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-    return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `json_group_array(${obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
   /**
@@ -260,13 +311,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-    ///////////////////////////////////////////////////////////////////////////////////////
-    // REVISIT: that should move out of here!
-    if (x?.element?.['@cds.extension']) {
-      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////
-    let sql = this.expr(x)
+  
+    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }): this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -278,7 +324,7 @@ class CQN2SQLRenderer {
    * @returns {string}
    */
   column_alias4(x) {
-    return typeof x.as === 'string' ? x.as : x.func
+    return typeof x.as === 'string' ? x.as : x.func || x.val
   }
 
   /**
@@ -289,10 +335,34 @@ class CQN2SQLRenderer {
   from(from) {
     const { ref, as } = from
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
-    if (ref) return _aliased(this.quote(this.name(ref[0])))
+    if (ref) {
+      const z = ref[0]
+      if (z.args) {
+        return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
+      }
+      return _aliased(this.quote(this.name(z)))
+    }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join)
       return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+  }
+
+  /**
+   * Renders a FROM clause for when the query does not have a target
+   * @returns {string} SQL
+   */
+  from_dummy() {
+    return ''
+  }
+
+  /**
+   * Renders a FROM clause into generic SQL
+   * @param {import('./infer/cqn').ref['ref'][0]['args']} args
+   * @returns {string} SQL
+   */
+  from_args(args) {
+    args
+    cds.error`Parameterized views are not supported by ${this.constructor.name}`
   }
 
   /**
@@ -332,9 +402,9 @@ class CQN2SQLRenderer {
     return orderBy.map(
       localized
         ? c =>
-            this.expr(c) +
-            (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
-            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          this.expr(c) +
+          (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
+          (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
     )
   }
@@ -347,7 +417,33 @@ class CQN2SQLRenderer {
    */
   limit({ rows, offset }) {
     if (!rows) throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
-    return !offset ? rows.val : `${rows.val} OFFSET ${offset.val}`
+    return !offset ? this.val(rows) : `${this.val(rows)} OFFSET ${this.val(offset)}`
+  }
+
+  /**
+   * Renders an forUpdate clause into generic SQL
+   * @param {import('./infer/cqn').SELECT["SELECT"]["forUpdate"]} update
+   * @returns {string} SQL
+   */
+  forUpdate(update) {
+    const { wait, of } = update
+    let sql = 'FOR UPDATE'
+    if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (typeof wait === 'number') sql += ` WAIT ${wait}`
+    return sql
+  }
+
+  /**
+   * Renders an forShareLock clause into generic SQL
+   * @param {import('./infer/cqn').SELECT["SELECT"]["forShareLock"]} update
+   * @returns {string} SQL
+   */
+  forShareLock(lock) {
+    const { wait, of } = lock
+    let sql = 'FOR SHARE LOCK'
+    if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (typeof wait === 'number') sql += ` WAIT ${wait}`
+    return sql
   }
 
   // INSERT Statements ------------------------------------------------
@@ -362,12 +458,12 @@ class CQN2SQLRenderer {
     return INSERT.entries
       ? this.INSERT_entries(q)
       : INSERT.rows
-      ? this.INSERT_rows(q)
-      : INSERT.values
-      ? this.INSERT_values(q)
-      : INSERT.as
-      ? this.INSERT_select(q)
-      : cds.error`Missing .entries, .rows, or .values in ${q}`
+        ? this.INSERT_rows(q)
+        : INSERT.values
+          ? this.INSERT_values(q)
+          : INSERT.as
+            ? this.INSERT_select(q)
+            : cds.error`Missing .entries, .rows, or .values in ${q}`
   }
 
   /**
@@ -384,42 +480,141 @@ class CQN2SQLRenderer {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
     const columns = elements
-      ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].isAssociation)
+      ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true).map(c => this.quote(c))
+    this.columns = columns
+
+    if (!elements) {
+      this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
+    }
 
     const extractions = this.managed(
       columns.map(c => ({ name: c })),
       elements,
       !!q.UPSERT,
     )
-    const extraction = extractions
-      .map(c => {
-        const element = elements?.[c.name]
-        if (element?.['@cds.extension']) {
-          return false
-        }
-        if (c.name === 'extensions__') {
-          const merges = extractions.filter(c => elements?.[c.name]?.['@cds.extension'])
-          if (merges.length) {
-            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(
-              c => this.string('$."' + c.name + '"') + ',' + c.sql,
-            )})`
-          }
-        }
-        return c
-      })
-      .filter(a => a)
-      .map(c => c.sql)
+    const extraction = extractions.map(c => c.sql)
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
-    this.entries = [[...this.values, JSON.stringify(INSERT.entries)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+    this.entries = []
+    if (INSERT.entries[0] instanceof Readable) {
+      INSERT.entries[0].type = 'json'
+      this.entries = [[...this.values, INSERT.entries[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+      }) SELECT ${extraction} FROM json_each(?)`)
+  }
+
+  async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}{`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (const key in row) {
+        let val = row[key]
+        if (val === undefined) continue
+        const keyJSON = `${sepsub}${JSON.stringify(key)}:`
+        if (!sepsub) sepsub = ','
+
+        if (val instanceof Readable) {
+          buffer += `${keyJSON}"`
+
+          // TODO: double check that it works
+          val.setEncoding(binaryEncoding)
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          if (elements[key]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
+          buffer += `${keyJSON}${JSON.stringify(val)}`
+        }
+      }
+      buffer += '}'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
+  }
+
+  async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
+    const elements = this.cqn.target?.elements || {}
+    const transformBase64 = binaryEncoding === 'base64'
+      ? a => a
+      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
+    const bufferLimit = 65536 // 1 << 16
+    let buffer = '['
+
+    let sep = ''
+    for (const row of entries) {
+      buffer += `${sep}[`
+      if (!sep) sep = ','
+
+      let sepsub = ''
+      for (let key = 0; key < row.length; key++) {
+        let val = row[key]
+        if (val instanceof Readable) {
+          buffer += `${sepsub}"`
+
+          // TODO: double check that it works
+          val.setEncoding(binaryEncoding)
+          for await (const chunk of val) {
+            buffer += chunk
+            if (buffer.length > bufferLimit) {
+              yield buffer
+              buffer = ''
+            }
+          }
+
+          buffer += '"'
+        } else {
+          if (elements[this.columns[key]]?.type in BINARY_TYPES) {
+            val = transformBase64(val)
+          }
+          buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
+        }
+
+        if (!sepsub) sepsub = ','
+      }
+      buffer += ']'
+      if (buffer.length > bufferLimit) {
+        yield buffer
+        buffer = ''
+      }
+    }
+
+    buffer += ']'
+    yield buffer
   }
 
   /**
@@ -433,21 +628,35 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = INSERT.columns
-    || cds.error`Cannot insert rows without columns or elements`
+      || cds.error`Cannot insert rows without columns or elements`
 
     const inputConverter = this.class._convertInput
-    const extraction = columns.map((c,i) => {
+    const extraction = columns.map((c, i) => {
       const extract = `value->>'$[${i}]'`
       const element = elements?.[c]
       const converter = element?.[inputConverter]
-      return converter?.(extract,element) || extract
+      return converter?.(extract, element) || extract
     })
 
-    this.columns = columns.map(c => this.quote(c))
-    this.entries = [[JSON.stringify(INSERT.rows)]]
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${
-      this.columns
-    }) SELECT ${extraction} FROM json_each(?)`)
+    this.columns = columns
+
+    if (!elements) {
+      this.entries = INSERT.rows
+      const param = this.param.bind(this, { ref: ['?'] })
+      return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
+    }
+
+    if (INSERT.rows[0] instanceof Readable) {
+      INSERT.rows[0].type = 'json'
+      this.entries = [[...this.values, INSERT.rows[0]]]
+    } else {
+      const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
+      stream.type = 'json'
+      this.entries = [[...this.values, stream]]
+    }
+
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+      }) SELECT ${extraction} FROM json_each(?)`)
   }
 
   /**
@@ -473,8 +682,8 @@ class CQN2SQLRenderer {
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${entity}${alias ? ' as ' + this.quote(alias) : ''} (${columns}) ${this.SELECT(
-      cqn4sql(INSERT.as),
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
+      this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
     return this.sql
@@ -497,7 +706,7 @@ class CQN2SQLRenderer {
   /** @type {import('./converters').Converters} */
   static OutputConverters = {} // subclasses to override
 
-  static localized = { String: true, UUID: false }
+  static localized = { String: { get() { return this['@cds.collate'] !== false } }, UUID: false }
 
   // UPSERT Statements ------------------------------------------------
 
@@ -507,16 +716,26 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   UPSERT(q) {
-    let { UPSERT } = q,
-      sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+    const { UPSERT } = q
+    const elements = q.target?.elements || {}
+    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
     let keys = q.target?.keys
-    if (!keys) return (this.sql = sql) // REVISIT: We should converge q.target and q._target
-    keys = Object.keys(keys).filter(k => !keys[k].isAssociation)
+    if (!keys) return this.sql = sql
+    keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
     let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns
-      .filter(c => !keys.includes(c))
-      .map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+    updateColumns = updateColumns.filter(c => {
+      if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
+      let e = elements[c]
+      if (!e) return true //> pass through to native SQL columns not in CDS model
+      if (e.virtual) return true //> skip virtual elements
+      if (e.value) return true //> skip calculated elements
+      // if (e.isAssociation) return true //> this breaks a a test in @sap/cds -> need to follow up how to correctly handle deep upserts
+      else return true
+    }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
+
+    // temporal data
+    keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
 
     keys = keys.map(k => this.quote(k))
     const conflict = updateColumns.length
@@ -535,27 +754,21 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
-    let sql = `UPDATE ${this.name(entity.ref?.[0] || entity)}`
-    if (entity.as) sql += ` AS ${entity.as}`
+    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity))}`
+    if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
-    if (data) _add (data, val => this.val({val}))
-    if (_with) _add (_with, x => this.expr(x))
-    function _add (data, sql4) {
+    if (data) _add(data, val => this.val({ val }))
+    if (_with) _add(_with, x => this.expr(x))
+    function _add(data, sql4) {
       for (let c in data) {
-        if (!elements || (c in elements && !elements[c].virtual)) {
+        const columnExistsInDatabase =
+          elements && c in elements && !elements[c].virtual && !elements[c].isAssociation && !elements[c].value
+        if (!elements || columnExistsInDatabase) {
           columns.push({ name: c, sql: sql4(data[c]) })
         }
       }
     }
-
-    columns = columns.map(c => {
-      if (q.elements?.[c.name]?.['@cds.extension']) return {
-        name: 'extensions__',
-        sql: `json_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
-      }
-      return c
-    })
 
     const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
 
@@ -577,73 +790,6 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  // STREAM Statement -------------------------------------------------
-
-  /**
-   * Renders a STREAM query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM(q) {
-    const { STREAM } = q
-    return STREAM.from
-      ? this.STREAM_from(q)
-      : STREAM.into
-      ? this.STREAM_into(q)
-      : cds.error`Missing .form or .into in ${q}`
-  }
-
-  /**
-   * Renders a STREAM.into query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_into(q) {
-    const { into, column, where, data } = q.STREAM
-
-    let sql
-    if (!_empty(column)) {
-      data.type = 'binary'
-      const update = UPDATE(into)
-        .with({ [column]: data })
-        .where(where)
-      Object.defineProperty(update, 'target', { value: q.target })
-      sql = this.UPDATE(update)
-    } else {
-      data.type = 'json'
-      // REVISIT: decide whether dataset streams should behave like INSERT or UPSERT
-      sql = this.UPSERT(UPSERT([{}]).into(into).forSQL())
-      this.values = [data]
-    }
-
-    return (this.sql = sql)
-  }
-
-  /**
-   * Renders a STREAM.from query into generic SQL
-   * @param {import('./infer/cqn').STREAM} q
-   * @returns {string} SQL
-   */
-  STREAM_from(q) {
-    const { column, from, where, columns } = q.STREAM
-
-    const select = cds.ql
-      .SELECT(column ? [column] : columns)
-      .where(where)
-      .limit(column ? 1 : undefined)
-
-    // SELECT.from() does not accept joins
-    select.SELECT.from = from
-
-    if (column) {
-      this.one = true
-    } else {
-      select.SELECT.expand = 'root'
-      this.one = !!from.SELECT?.one
-    }
-    return this.SELECT(select.forSQL())
-  }
-
   // Expression Clauses ---------------------------------------------
 
   /**
@@ -655,11 +801,11 @@ class CQN2SQLRenderer {
   expr(x) {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
-    if ('param' in x) return wrap(this.param(x))
+    if (x.param) return wrap(this.param(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
-    if ('xpr' in x) return wrap(this.xpr(x))
     if ('func' in x) return wrap(this.func(x))
+    if ('xpr' in x) return wrap(this.xpr(x))
     if ('list' in x) return wrap(this.list(x))
     if ('SELECT' in x) return wrap(`(${this.SELECT(x)})`)
     else throw cds.error`Unsupported expr: ${x}`
@@ -691,17 +837,31 @@ class CQN2SQLRenderer {
   operator(x, i, xpr) {
 
     // Translate = to IS NULL for rhs operand being NULL literal
-    if (x === '=')  return xpr[i+1]?.val === null ? 'is' : '='
+    if (x === '=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : '='
 
     // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '==') return xpr[i+1]?.val === null ? 'is' : _not_null(i-1) && _not_null(i+1) ? '=' : this.is_not_distinct_from_
+    if (x === '==') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '='
+        : this.is_not_distinct_from_
 
     // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
-    if (x === '!=') return xpr[i+1]?.val === null ? 'is not' : _not_null(i-1) && _not_null(i+1) ? '<>' : this.is_distinct_from_
+    if (x === '!=') return xpr[i + 1]?.val === null
+      ? _inline_null(xpr[i + 1]) || 'is not'
+      : _not_null(i - 1) && _not_null(i + 1)
+        ? '<>'
+        : this.is_distinct_from_
 
     else return x
+
+    function _inline_null(n) {
+      n.param = false
+    }
 
     /** Checks if the operand at xpr[i+-1] can be NULL. @returns true if not */
     function _not_null(i) {
@@ -736,35 +896,41 @@ class CQN2SQLRenderer {
    */
   ref({ ref }) {
     switch (ref[0]) {
-      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now' }]})
-      case '$user':
-      case '$user.id': return this.func({ func: 'session_context', args: [{ val: '$user.id' }]})
+      case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
+      case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
       default: return ref.map(r => this.quote(r)).join('.')
     }
   }
 
   /**
-   * Renders a value into the correct SQL syntax of a placeholder for a prepared statement
+   * Renders a value into the correct SQL syntax or a placeholder for a prepared statement
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
-  val({ val }) {
+  val({ val, param }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
-      case 'undefined': return 'NULL'
+      case 'undefined': val = null
+        break
       case 'boolean': return `${val}`
-      case 'number': return `${val}` // REVISIT for HANA
       case 'object':
-        if (val === null) return 'NULL'
-        if (val instanceof Date) return `'${val.toISOString()}'`
-        if (val instanceof Readable) ; // go on with default below
-        else if (Buffer.isBuffer(val)) val = val.toString('base64')
-        else if (is_regexp(val)) val = val.source
-        else val = JSON.stringify(val)
-      case 'string': // eslint-disable-line no-fallthrough
+        if (val !== null) {
+          if (val instanceof Date) val = val.toJSON() // returns null if invalid
+          else if (val instanceof Readable); // go on with default below
+          else if (Buffer.isBuffer(val)); // go on with default below
+          else if (is_regexp(val)) val = val.source
+          else val = JSON.stringify(val)
+        }
     }
-    if (!this.values) return this.string(val)
-    else this.values.push(val)
+    if (!this.values || param === false) {
+      switch (typeof val) {
+        case 'string': return this.string(val)
+        case 'object': return 'NULL'
+        default:
+          return `${val}`
+      }
+    }
+    this.values.push(val)
     return '?'
   }
 
@@ -774,9 +940,32 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').func} param0
    * @returns {string} SQL
    */
-  func({ func, args }) {
-    args = (args || []).map(e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) }))
-    return this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+  func({ func, args, xpr }) {
+    const wrap = e => (e === '*' ? e : { __proto__: e, toString: (x = e) => this.expr(x) })
+    args = args || []
+    if (Array.isArray(args)) {
+      args = args.map(wrap)
+    } else if (typeof args === 'object') {
+      const org = args
+      const wrapped = {
+        toString: () => {
+          const ret = []
+          for (const prop in org) {
+            ret.push(`${this.quote(prop)} => ${wrapped[prop]}`)
+          }
+          return ret.join(',')
+        }
+      }
+      for (const prop in args) {
+        wrapped[prop] = wrap(args[prop])
+      }
+      args = wrapped
+    } else {
+      cds.error`Invalid arguments provided for function '${func}' (${args})`
+    }
+    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    if (xpr) return `${fn} ${this.xpr({ xpr })}`
+    return fn
   }
 
   /**
@@ -828,8 +1017,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    // Column names like "Order" clash with "ORDER" keyword so toUpperCase is required
-    if (s in this.class.ReservedWords || /^\d|[$' ?@./\\]/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
   }
 
@@ -847,12 +1035,12 @@ class CQN2SQLRenderer {
     const requiredColumns = !elements
       ? []
       : Object.keys(elements)
-          .filter(
-            e =>
-              (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
-              !columns.find(c => c.name === e),
-          )
-          .map(name => ({ name, sql: 'NULL' }))
+        .filter(
+          e =>
+            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
+            !columns.find(c => c.name === e),
+        )
+        .map(name => ({ name, sql: 'NULL' }))
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       let element = elements?.[name] || {}
@@ -862,15 +1050,13 @@ class CQN2SQLRenderer {
       if (converter && sql[0] !== '$') sql = converter(sql, element)
 
       let val = _managed[element[annotation]?.['=']]
-      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val }] })})`
-
+      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
       else if (!isUpdate && element.default) {
         const d = element.default
         if (d.val !== undefined || d.ref?.[0] === '$now') {
           // REVISIT: d.ref is not used afterwards
-          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${
-            this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
-          } ELSE ${sql} END)`
+          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
+            } ELSE ${sql} END)`
         }
       }
 
@@ -908,6 +1094,6 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer().render(cqn4sql(q, m), m)
+module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
 module.exports.class = CQN2SQLRenderer
 module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word

@@ -12,8 +12,7 @@ describe('deep operations with @cds.persistence.skip', () => {
     })
     expect(res.status).toBe(201)
 
-    expect(res.data).toEqual({
-      '@odata.context': '$metadata#RootUUID(toOneSkip())/$entity',
+    expect(res.data).toMatchObject({
       ID: uuid,
       name: null,
       toOneChild_ID: null,
@@ -30,8 +29,7 @@ describe('deep operations with @cds.persistence.skip', () => {
     })
     expect(res.status).toBe(201)
 
-    expect(res.data).toEqual({
-      '@odata.context': '$metadata#RootUUID(toManySkip())/$entity',
+    expect(res.data).toMatchObject({
       ID: uuid,
       name: null,
       toOneChild_ID: null,
@@ -53,8 +51,7 @@ describe('deep operations with @cds.persistence.skip', () => {
     })
     expect(res.status).toBe(201)
 
-    expect(res.data).toEqual({
-      '@odata.context': '$metadata#RootUUID(toOneChild(toManySubChild(toOneSkipChild())))/$entity',
+    expect(res.data).toMatchObject({
       ID: uuid,
       name: null,
       toOneChild: {

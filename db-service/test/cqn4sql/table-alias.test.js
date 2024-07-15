@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('table alias access', () => {
   let model
@@ -18,9 +18,59 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
-    it('omits alias for anonymous query which selects from other query', () => {
+    it('creates unique alias for anonymous query which selects from other query', () => {
       let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books { ID } )`, model)
-      expect(query).to.deep.equal(CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) { ID }`)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID }) as __select__ { __select__.ID }`,
+      )
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases', () => {
+      let query = cqn4sql(CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID } )`, model)
+      expect(query).to.deep.equal(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { __select__.ID }) as __select__2 { __select__2.ID }`,
+      )
+    })
+    it('the unique alias for anonymous query does not collide with user provided aliases in case of joins', () => {
+      let query = cqn4sql(
+        CQL`SELECT from (SELECT from bookshop.Books as __select__ { ID, author } ) { author.name }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`
+      SELECT from (
+        SELECT from bookshop.Books as __select__ { __select__.ID, __select__.author_ID }
+      ) as __select__2 left join bookshop.Authors as author on author.ID = __select__2.author_ID
+      {
+        author.name as author_name
+      }`)
+    })
+
+    it('the unique alias for anonymous query does not collide with user provided aliases nested', () => {
+      // author association bubbles up to the top query where the join finally is done
+      // --> note that the most outer query uses user defined __select__ alias
+      let query = cqn4sql(
+        CQL`
+      SELECT from (
+        SELECT from (
+          SELECT from bookshop.Books { ID, author }
+        )
+      ) as __select__
+      {
+        __select__.author.name
+      }`,
+        model,
+      )
+      expect(query).to.deep.equal(
+        CQL`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as Books { Books.ID, Books.author_ID }
+            ) as __select__2 { __select__2.ID, __select__2.author_ID }
+        ) as __select__ left join bookshop.Authors as author on author.ID = __select__.author_ID
+        {
+          author.name as author_name
+        }`,
+      )
     })
 
     it('preserves table alias at field access', () => {
@@ -235,9 +285,9 @@ describe('table alias access', () => {
       {
         ![FROM].title as group,
       }
-      where ![FROM].title = 'foo' 
+      where ![FROM].title = 'foo'
       group by ![FROM].title
-      having ![FROM].title = 'foo' 
+      having ![FROM].title = 'foo'
       order by ![FROM].title
       `)
     })
@@ -424,6 +474,92 @@ describe('table alias access', () => {
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as stock { stock.ID } ORDER BY stock.stock`)
     })
 
+    it('for localized sorting, we must append the table alias for column refs', () => {
+      // as down the line we always use collation expressions for localized sorting
+      // we must prepend the table alias.
+      // The simple reference will be wrapped in the expression and hence, expression name resolution rules kick in
+      // see also https://github.com/cap-js/cds-dbs/issues/543
+      const query = SELECT.localized
+        .from('bookshop.Books')
+        .columns('title', 'title as foo', 'author.name as author')
+        .orderBy('title', 'foo')
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.title,
+        Books.title as foo,
+        author.name as author
+      }
+      ORDER BY Books.title, Books.title`)
+    })
+    it('prepend artificial table alias if we select from anonymous subquery', async () => {
+      const subquery = SELECT.localized.from('bookshop.SimpleBook').orderBy('title')
+      const query = SELECT.localized.columns('ID', 'title', 'author').from(subquery).orderBy('title').groupBy('title')
+
+      query.SELECT.count = true
+
+      const res = cqn4sql(query, model)
+
+      const expected = CQL`
+        SELECT from
+          (SELECT
+            SimpleBook.ID,
+            SimpleBook.title,
+            SimpleBook.author_ID
+            from bookshop.SimpleBook as SimpleBook
+            order by SimpleBook.title
+          ) __select__
+        {
+          __select__.ID,
+          __select__.title,
+          __select__.author_ID
+        }
+        group by __select__.title
+        order by __select__.title
+      `
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    })
+    it('same as above but descriptors like "asc", "desc" etc. must be kept', () => {
+      const query = CQL`SELECT from bookshop.Books {
+        title,
+        title as foo,
+        author.name as author
+      } order by title asc nulls first, foo desc nulls last`
+      query.SELECT.localized = true
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        Books.title,
+        Books.title as foo,
+        author.name as author
+      }
+      ORDER BY Books.title asc nulls first, Books.title desc nulls last`)
+    })
+    it('for localized sorting, replace string expression', () => {
+      const query = CQL(`SELECT from bookshop.Books {
+        'simple string' as foo: cds.String,
+        substring('simple string') as bar: cds.String,
+        'simple' || 'string' as baz: cds.String,
+        author.name as author
+      } order by foo, bar, baz`)
+      query.SELECT.localized = true
+      let res = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`
+      SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      {
+        'simple string' as foo: cds.String,
+        substring('simple string') as bar: cds.String,
+        'simple' || 'string' as baz: cds.String,
+        author.name as author
+      }
+      ORDER BY 'simple string', substring('simple string'), 'simple' || 'string'`)
+    })
+
     it('supports ORDER BY clause with expressions', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID, ID as stock, ID as x }
@@ -455,6 +591,22 @@ describe('table alias access', () => {
       let query = cqn4sql(input, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { func() as func } order by func`)
     })
+
+    it('do not try to resolve ref in columns if columns consists of star', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { * } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
+    })
+    // doesnt work, can't join with the query source itself
+    it.skip('same as above but author is explicit column', () => {
+      let input = CQL`SELECT from bookshop.SimpleBook { *, author } order by author.name`
+      let query = cqn4sql(input, model)
+      const expected = CQL`SELECT from bookshop.SimpleBook as SimpleBook left join bookshop.Authors as author on author.ID = SimpleBook.author_ID
+      { SimpleBook.ID, SimpleBook.title, SimpleBook.author_ID } order by author.name`
+      expect(query).to.deep.equal(expected)
+    })
   })
 
   describe('replace usage of implicit aliases in subqueries', () => {
@@ -481,6 +633,18 @@ describe('table alias access', () => {
               ) as sub
             } where Books.ID = 1`,
       )
+    })
+    it('in a scoped subquery, always assign unique subquery aliases', () => {
+      const query = CQL`SELECT ID from bookshop.Item where exists (select ID from bookshop.Item:item)`
+      const res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT Item.ID from bookshop.Item as Item where exists (
+        SELECT item2.ID from bookshop.Item as item2 where exists (
+          SELECT 1 from bookshop.Item as Item3 where Item3.item_ID = item2.ID
+        )
+      )
+      `
+      expect(res).to.deep.eql(expected)
     })
     it('in expand subquery', () => {
       let query = cqn4sql(
@@ -656,7 +820,7 @@ describe('table alias access', () => {
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
             (SELECT from bookshop.Books as Books2 { Books2.author_ID,
-              (SELECT from bookshop.Books as Books3 { 
+              (SELECT from bookshop.Books as Books3 {
                 (SELECT from bookshop.Authors as author {
                   (SELECT from bookshop.Books as books4 {
                     books4.ID
@@ -674,7 +838,7 @@ describe('table alias access', () => {
         model,
       )
       expect(query).to.deep.equal(
-        CQL`SELECT from (SELECT from bookshop.Books as Books { Books.ID, Books.stock }) as Books { Books.ID, Books.stock }`,
+        CQL`SELECT from (SELECT from bookshop.Books as Books2 { Books2.ID, Books2.stock }) as Books { Books.ID, Books.stock }`,
       )
     })
     it('explicit alias for FROM subquery', () => {
@@ -717,7 +881,7 @@ describe('table alias access', () => {
         }`,
       )
     })
-    it('no alias for function args or expressions on top of anonymous subquery', () => {
+    it('prepends unique alias for function args or expressions on top of anonymous subquery', () => {
       let query = cqn4sql(
         CQL`SELECT from ( SELECT from bookshop.Orders ) {
           sum(ID) as foo,
@@ -730,9 +894,9 @@ describe('table alias access', () => {
           SELECT from bookshop.Orders as Orders {
             Orders.ID
           }
-        ) {
-          sum(ID) as foo,
-          ID + 42 as anotherFoo
+        ) as __select__ {
+          sum(__select__.ID) as foo,
+          __select__.ID + 42 as anotherFoo
         }`,
       )
     })
@@ -755,7 +919,7 @@ describe('table alias access', () => {
           SELECT from bookshop.Books as Books {
             sum(Books.stock) as totalStock,
             Books.ID,
-            Books.stock, 
+            Books.stock,
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,
@@ -922,6 +1086,69 @@ describe('table alias access', () => {
       ).to.throw(/"title" not found in "bookshop.Genres"/)
     })
 
+    it('handles ref in list', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT ID from bookshop.Books where ID = 5`,
+            ],
+          },
+        ],
+      }).columns('ID')
+
+      const expected = SELECT.from('bookshop.Books as Books')
+        .columns('Books.ID')
+        .where([
+          {
+            list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+          },
+          'in',
+          CQL`SELECT Books2.ID from bookshop.Books as Books2 where Books2.ID = 5`,
+        ])
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
+    it('handles ref in list of from with scoped query', () => {
+      const query = SELECT.from({
+        ref: [
+          {
+            id: 'bookshop.Books',
+            where: [
+              { list: [{ ref: ['dedication', 'addressee', 'ID'] }] },
+              'in',
+              CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+            ],
+          },
+          'coAuthorUnmanaged',
+        ],
+      }).columns('ID')
+
+      const list = [
+        {
+          list: [{ ref: ['Books', 'dedication_addressee_ID'] }],
+        },
+        'in',
+        CQL`SELECT Books.ID from bookshop.Books as Books where Books.ID = 5`,
+      ]
+
+      const expected = SELECT.from('bookshop.Authors as coAuthorUnmanaged').columns('coAuthorUnmanaged.ID').where(`
+          exists (
+            SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
+          )
+        `)
+
+      expected.SELECT.where[1].SELECT.where.push('and', ...list)
+
+      const res = cqn4sql(query, model)
+      expect(res).to.deep.equal(expected)
+    })
+
     it('handles value subquery in WHERE', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books { ID }
@@ -1002,7 +1229,7 @@ describe('table alias access', () => {
       }
       expect(error.message).to.match(/author_ID/)
 
-      const nodeModel = cds.compile.for.nodejs(model)
+      const nodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
       const repeat = cqn4sql(resultCopy, nodeModel)
 
       // Ensure sure that the where clause does not change
