@@ -40,13 +40,27 @@ describe('Bookshop - Read', () => {
   })
 
   test('Books with groupby with path expression and expand result', async () => {
-    const res = await GET('/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))', admin)
+    const res = await GET(
+      '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
+      admin,
+    )
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
   })
 
   test('same as above, with foreign key optimization', async () => {
-    const res = await GET('/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name, author/ID),aggregate(price with sum as totalAmount))', admin)
+    const res = await GET(
+      '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name, author/ID),aggregate(price with sum as totalAmount))',
+      admin,
+    )
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
+    expect(
+      res.data.value.every(
+      item =>
+        'author' in item &&
+        'ID' in item.author && // foreign key is renamed to element name in target
+        !('author_ID' in item.author),
+      ),
+    ).to.be.true
   })
 
   test('Path expression', async () => {

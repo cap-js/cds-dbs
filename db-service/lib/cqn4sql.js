@@ -432,7 +432,7 @@ function cqn4sql(originalQuery, model) {
         return
       }
 
-      const tableAlias = getQuerySourceName(col)
+      const tableAlias = getTableAlias(col)
       // re-adjust usage of implicit alias in subquery
       if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAlias) {
         col.ref[0] = tableAlias
@@ -725,7 +725,7 @@ function cqn4sql(originalQuery, model) {
       res.push(...getColumnsForWildcard(exclude, replace, col.as))
     } else
       res.push(
-        ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getQuerySourceName(col) }, [], {
+        ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getTableAlias(col) }, [], {
           exclude,
           replace,
         }),
@@ -895,11 +895,12 @@ function cqn4sql(originalQuery, model) {
           )
         }
 
-        const columnCopy = Object.create(groupByRef)
-        if (expand.as) {
-          columnCopy.as = expand.as
-        }
-        const res = getFlatColumnsFor(columnCopy, { tableAlias: getQuerySourceName(columnCopy) })
+        const copy = Object.create(groupByRef)
+        // always alias for this special case, so that they nested element names match the expected result structure
+        // otherwise we'd get `author { <outer>.author_ID }`, but we need `author { <outer>.author_ID as ID }`
+        copy.as = expand.as || expand.ref.at(-1)
+        const tableAlias = getTableAlias(copy)
+        const res = getFlatColumnsFor(copy, { tableAlias })
         res.forEach(c => {
           elements[c.as || c.ref.at(-1)] = c.element
         })
@@ -961,7 +962,7 @@ function cqn4sql(originalQuery, model) {
               referredCol.nulls = col.nulls
               col = referredCol
               if (definition.kind === 'element') {
-                tableAlias = getQuerySourceName(col)
+                tableAlias = getTableAlias(col)
               } else {
                 // we must replace the reference with the underlying expression
                 const { val, func, args, xpr } = col
@@ -973,7 +974,7 @@ function cqn4sql(originalQuery, model) {
             }
           }
         } else {
-          tableAlias = getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
+          tableAlias = getTableAlias(col) // do not prepend TA if orderBy column addresses element of query
         }
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition
         if (leaf.virtual === true) continue // already in getFlatColumnForElement
@@ -992,12 +993,9 @@ function cqn4sql(originalQuery, model) {
         if (inOrderBy && flatColumns.length > 1)
           throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
         flatColumns.forEach(fc => {
-          if (col.nulls)
-            fc.nulls = col.nulls
-          if (col.sort)
-            fc.sort = col.sort
-          if (fc.as)
-            delete fc.as
+          if (col.nulls) fc.nulls = col.nulls
+          if (col.sort) fc.sort = col.sort
+          if (fc.as) delete fc.as
         })
         res.push(...flatColumns)
       } else {
@@ -1156,7 +1154,7 @@ function cqn4sql(originalQuery, model) {
     if (column.val || column.func || column.SELECT) return [column]
 
     const structsAreUnfoldedAlready = model.meta.unfolded?.includes('structs')
-    let { baseName, columnAlias, tableAlias } = names
+    let { baseName, columnAlias = column.as, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
@@ -1199,7 +1197,7 @@ function cqn4sql(originalQuery, model) {
         baseName = getFullName(replacedBy.$refLinks?.[replacedBy.$refLinks.length - 2].definition)
       if (replacedBy.isJoinRelevant)
         // we need to provide the correct table alias
-        tableAlias = getQuerySourceName(replacedBy)
+        tableAlias = getTableAlias(replacedBy)
 
       if (replacedBy.expand) return [{ as: baseName }]
 
@@ -1488,7 +1486,7 @@ function cqn4sql(originalQuery, model) {
             // hence we need to ignore the alias of the `$baseLink`
             const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
-            const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
+            const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
               let name = calculateElementName(token, getFullName)
               result.ref = [tableAlias, name]
@@ -1585,7 +1583,7 @@ function cqn4sql(originalQuery, model) {
       if (!def.$refLinks) return def
       const leaf = def.$refLinks[def.$refLinks.length - 1]
       const first = def.$refLinks[0]
-      const tableAlias = getQuerySourceName(
+      const tableAlias = getTableAlias(
         def,
         def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink,
       )
@@ -2194,7 +2192,7 @@ function cqn4sql(originalQuery, model) {
    *                           the combined elements of the query
    * @returns the source name which can be used to address the node
    */
-  function getQuerySourceName(node, $baseLink = null) {
+  function getTableAlias(node, $baseLink = null) {
     if (!node || !node.$refLinks || !node.ref) {
       throw new Error('Invalid node')
     }
