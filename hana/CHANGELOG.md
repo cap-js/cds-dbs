@@ -4,6 +4,26 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.0.1...hana-v1.1.0) (2024-07-08)
+
+
+### Added
+
+* Enable native HANA fuzzy search for `search` function queries ([#707](https://github.com/cap-js/cds-dbs/issues/707)) ([0b9108c](https://github.com/cap-js/cds-dbs/commit/0b9108c11a61b18704e36f93fbd654e0942bf40a))
+
+
+### Fixed
+
+* **mtx:** sidecar scenario due to usage of wrong credentials ([#732](https://github.com/cap-js/cds-dbs/issues/732)) ([0b5c91f](https://github.com/cap-js/cds-dbs/commit/0b5c91f9afb445849384cf9aa705c560cc788f9e))
+
+## [1.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.0.0...hana-v1.0.1) (2024-07-05)
+
+
+### Fixed
+
+* Allow numeric Booleans `0` and `1` ([#714](https://github.com/cap-js/cds-dbs/issues/714)) ([82c4dbe](https://github.com/cap-js/cds-dbs/commit/82c4dbe43c271e1b3efb509e44f952a91ea36b83))
+* Support expand with group by clause ([#721](https://github.com/cap-js/cds-dbs/issues/721)) ([90c9e6a](https://github.com/cap-js/cds-dbs/commit/90c9e6a4da9d4a3451ec0ed60dd0815c04600134))
+
 ## [1.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v0.5.0...hana-v1.0.0) (2024-06-19)
 
 
