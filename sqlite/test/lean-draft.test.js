@@ -692,8 +692,6 @@ describe('draft tests', () => {
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      // REVISIT: This was an obvious bug before, correct? -> for what time?
-      // to_Travel_TravelUUID: null, // Should be TravelUUID!
       to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
