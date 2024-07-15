@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}
       # test sqlite/postgres/db-service
-      - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
+      - run: npm test -w db-service -w sqlite -w postgres
         if: ${{ steps.release.outputs.releases_created }}
       # test hana
       # TODO: Factor this setup script out
@@ -69,7 +69,7 @@ jobs:
         env:
           TAG: ${{ steps.find-hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
-      - run: npm test -w hana -- --maxWorkers=1
+      - run: npm test -w hana
         if: ${{ steps.release.outputs.releases_created }}
 
       # Publish packages

@@ -20,7 +20,7 @@ jobs:
           node-version: 18
           registry-url: https://registry.npmjs.org/
       - run: npm i
-      - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
+      - run: npm test -w db-service -w sqlite -w postgres
       - name: get-version # this takes the version of the monorepo root
         id: package-version
         # v1.3.1
