@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.2...sqlite-v1.7.3) (2024-07-09)
+
+
+### Fixed
+
+* expand reach of `cds.features.ieee754compatible` to `int64` ([#722](https://github.com/cap-js/cds-dbs/issues/722)) ([7eef5e9](https://github.com/cap-js/cds-dbs/commit/7eef5e9c5ec286285b2552abd1e673175c59fdc1))
+
+## [1.7.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.1...sqlite-v1.7.2) (2024-06-19)
+
+
+### Fixed
+
+* **deps:** update dependency better-sqlite3 to v11 ([#669](https://github.com/cap-js/cds-dbs/issues/669)) ([7167ec5](https://github.com/cap-js/cds-dbs/commit/7167ec53d2e530bfa81def394acfa857e7d5b4fa))
+
 ## [1.7.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.0...sqlite-v1.7.1) (2024-05-16)
 
 

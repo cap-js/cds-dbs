@@ -529,10 +529,10 @@ GROUP BY k
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
-      Int64: expr => `cast(${expr} as varchar)`,
+      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `cast(${expr} as varchar)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
 
       // Convert point back to json format
       'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
@@ -566,7 +566,7 @@ GROUP BY k
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-    } catch (e) {
+    } catch {
       // Failed to reset database
     } finally {
       await this.dbc.end()

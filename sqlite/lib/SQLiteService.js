@@ -217,10 +217,10 @@ class SQLiteService extends SQLService {
       Timestamp: undefined,
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
-      Int64: expr => `CAST(${expr} as TEXT)`,
+      Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `CAST(${expr} as TEXT)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }
