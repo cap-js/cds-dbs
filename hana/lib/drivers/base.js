@@ -221,7 +221,7 @@ const handleLevel = function (levels, path, expands) {
       const property = path.slice(level.path.length + 2, -7)
       if (property && property in level.expands) {
         const is2Many = level.expands[property]
-        delete level.expands[property]
+        // delete level.expands[property]
         if (level.hasProperties) {
           buffer += ','
         } else {
@@ -236,6 +236,7 @@ const handleLevel = function (levels, path, expands) {
           index: 1,
           suffix: is2Many ? ']' : '',
           path: path.slice(0, -6),
+          result: level.expands[property],
           expands,
         })
       } else {
@@ -247,6 +248,7 @@ const handleLevel = function (levels, path, expands) {
         index: 0,
         suffix: '}',
         path: path,
+        result: levels.at(-1).result,
         expands,
       })
       break
@@ -261,6 +263,11 @@ const handleLevel = function (levels, path, expands) {
         }
       }
       if (level.suffix) buffer += level.suffix
+      if (level.expands) {
+        for (const expand in level.expands) {
+          if (level.expands[expand]?.push) level.expands[expand]?.push(null)
+        }
+      }
     }
   }
   return buffer

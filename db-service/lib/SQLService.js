@@ -115,13 +115,13 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
+  async onSELECT({ query, data, hasPostProcessing, iterator }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (query.target && !query.target._unresolved) {
+    if (query.SELECT.expand !== false && query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -129,9 +129,10 @@ class SQLService extends DatabaseService {
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
     delete query.SELECT.expand
+    const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await ps.all(values)
+    let rows = (hasPostProcessing === false || iterator) ? await ps.stream(values, isOne, iterator) : await ps.all(values)
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
@@ -157,7 +158,7 @@ class SQLService extends DatabaseService {
       return SQLService._arrayWithCount(rows, await this.count(query, rows))
     }
 
-    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return hasPostProcessing !== false && isOne ? rows[0] : rows
   }
 
   /**
@@ -287,7 +288,7 @@ class SQLService extends DatabaseService {
    * @returns {Promise<number>}
    */
   async count(query, ret) {
-    if (ret) {
+    if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
