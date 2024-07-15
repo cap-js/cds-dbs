@@ -31,6 +31,6 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm test -w db-service -w sqlite -w postgres
+      - run: npm test -w db-service -w sqlite -w postgres -- --unmute
         env:
           FORCE_COLOR: true
