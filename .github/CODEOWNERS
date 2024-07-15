@@ -1,30 +1,7 @@
-# Product owner own everything
+# cap-team
 
-** @danjoa @johannes-vogel @stewsk
+** @danjoa @johannes-vogel @stewsk @BobdenOs @patricebender @sjvans
 
-db-service/lib/cqn4sql.js @patricebender @danjoa @johannes-vogel @stewsk
-db-service/test/cqn4sql/ @patricebender @danjoa @johannes-vogel @stewsk
+# community
 
-db-service/lib/infer/**.js @patricebender @danjoa @johannes-vogel @stewsk
-db-service/test/cds-infer/ @patricebender @danjoa @johannes-vogel @stewsk
-
-db-service/lib/InsertResults.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/converters.d.ts @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/SQLService.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/converters.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/cql-functions.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/cqn2sql.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/deep-queries.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/lib/fill-in-keys.js @BobdenOs @danjoa @johannes-vogel @stewsk
-
-db-service/test/cqn2sql/** @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/test/deep/**.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/test/etc/**.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/test/tsc/**.js @BobdenOs @danjoa @johannes-vogel @stewsk
-db-service/test/index.js @BobdenOs @danjoa @johannes-vogel @stewsk
-
-sqlite/ @BobdenOs @patricebender @danjoa @johannes-vogel @stewsk
-hana/ @BobdenOs @danjoa @johannes-vogel @stewsk
 postgres/ @BobdenOs @patricebender @gregorwolf @sebastianesch @vobu @danjoa @johannes-vogel @stewsk
-
-.github/ @BobdenOs @patricebender @danjoa @johannes-vogel @stewsk

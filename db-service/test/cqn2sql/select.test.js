@@ -1,6 +1,10 @@
 'use strict'
-const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
+const cds = require('@sap/cds')
+const _cqn2sql = require('../../lib/cqn2sql')
+function cqn2sql(q, m = cds.model) {
+
+  return _cqn2sql(q, m)
+}
 const cqn = require('./cqn.js')
 
 // const getExpected = (sql, values) => {
@@ -59,7 +63,7 @@ describe('cqn2sql', () => {
       expect(() => {
         let q = cqn.selectNonExistent
         // Skip cqn4sql as infer requires the entity to exist
-        const render = q => new cqn2sql.class().render(q)
+        const render = q => new _cqn2sql.class().render(q)
         const { sql } = render(q)
         expect(sql).toMatchSnapshot()
         q = cds.ql.clone(q)
@@ -70,7 +74,7 @@ describe('cqn2sql', () => {
 
     test('with select from non existent entity with star wildcard (extended)', () => {
       expect(() => {
-        const customCqn2sql = class extends cqn2sql.class {
+        const customCqn2sql = class extends _cqn2sql.class {
           SELECT_columns({ SELECT }) {
             return SELECT.columns.map(x => `${this.quote(this.column_name(x))}`)
           }
@@ -82,6 +86,23 @@ describe('cqn2sql', () => {
       }).toThrowError(
         `Query was not inferred and includes '*' in the columns. For which there is no column name available.`,
       )
+    })
+
+    test('select with static values', () => {
+      let query = CQL(`SELECT from Foo {
+        5 as ID, 
+        'simple string' as a,
+        3.14 as pi,
+        3.1415 as pid : cds.Decimal(5,4),
+        'large string' as stringl : cds.LargeString,
+        true as boolt : Boolean,
+        '1970-01-01' as date : cds.Date,
+        '00:00:00' as time : cds.Time,
+        '1970-01-01 00:00:00' as datetime : cds.DateTime,
+        '1970-01-01 00:00:00.000' as timestamp : cds.Timestamp
+      }`)
+      const { sql, values } = cqn2sql(query)
+      expect({ sql, values }).toMatchSnapshot()
     })
   })
 
@@ -242,6 +263,11 @@ describe('cqn2sql', () => {
       const { sql } = cqn2sql(cqn.orderByWithAlias)
       expect(sql).toMatchSnapshot()
     })
+
+    test('ORDER BY with @cds.collate false', () => {
+      const { sql } = cqn2sql(cqn.orderByCollations)
+      expect(sql).toMatchSnapshot()
+    })
   })
 
   describe('ONE', () => {
@@ -253,8 +279,9 @@ describe('cqn2sql', () => {
     test('one with additional limit with offset', () => {
       // Original DB layer expectation is to mix limit and one
       // One has priority over limit.rows, but limit.offset is still applied
-      const { sql } = cqn2sql(cqn.oneWithLimit)
-      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT 1 OFFSET 5')
+      const { sql, values } = cqn2sql(cqn.oneWithLimit)
+      expect(sql).toEqual('SELECT Foo.a,Foo.b,Foo.c FROM Foo as Foo LIMIT ? OFFSET ?')
+      expect(values).toEqual([1, 5])
     })
   })
 
@@ -307,6 +334,50 @@ describe('cqn2sql', () => {
   })
 
   describe('functions new notation', () => {
+    test('function with xpr', () => {
+      const { sql, values } = cqn2sql({
+        SELECT: {
+          from: { ref: ['Foo'] },
+          columns: [
+            {
+              func: 'replace_regexpr',
+              args: [
+                {
+                  xpr: [{ val: 'A' }, 'flag', { val: 'i' }, 'in', { val: 'ABC-abc-AAA-aaa' }, 'with', { val: 'B' }],
+                },
+              ],
+              as: 'replaced',
+            },
+          ],
+        },
+      })
+      expect(sql).toMatchSnapshot()
+      expect(values).toMatchSnapshot()
+    })
+
+    test('function with multiple xpr', () => {
+      const { sql, values } = cqn2sql({
+        SELECT: {
+          from: { ref: ['Foo'] },
+          columns: [
+            {
+              func: 'replace_regexpr',
+              args: [
+                { ref: ['a'] },
+                { val: 5 },
+                {
+                  xpr: [{ val: 'A' }, 'flag', { val: 'i' }, 'in', { val: 'ABC-abc-AAA-aaa' }, 'with', { val: 'B' }],
+                },
+              ],
+              as: 'replaced',
+            },
+          ],
+        },
+      })
+      expect(sql).toMatchSnapshot()
+      expect(values).toMatchSnapshot()
+    })
+
     test('in orderby with 1 arg new notation', () => {
       const { sql } = cqn2sql({
         SELECT: {
@@ -411,8 +482,8 @@ describe('cqn2sql', () => {
           ],
         },
       }
-      const { sql } = cqn2sql(cqn)
-      expect({ sql }).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     // aliases should be quoted only for HANA

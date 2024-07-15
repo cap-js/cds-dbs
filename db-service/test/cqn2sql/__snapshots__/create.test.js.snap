@@ -2,6 +2,6 @@
 
 exports[`create with select statements Generate SQL from CREATE stmt with entity name  1`] = `
 {
-  "sql": "CREATE TABLE Foo ( ID INTEGER, a NVARCHAR(5000), b NVARCHAR(5000), c NVARCHAR(5000), x INTEGER )",
+  "sql": "CREATE TABLE Foo ( ID INT, a NVARCHAR(5000), b NVARCHAR(5000), c NVARCHAR(5000), x INT )",
 }
 `;

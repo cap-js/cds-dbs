@@ -1,7 +1,7 @@
 // cqn4sql must flatten and transform where exists shortcuts into subqueries
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('UPDATE', () => {
@@ -15,7 +15,7 @@ describe('UPDATE', () => {
   it('normalize update target format', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
-    const query = cqn4sql(u)
+    const query = cqn4sql(u, model)
     const expected = JSON.parse(
       '{"UPDATE":{"entity":{"ref":["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
     )
@@ -92,7 +92,7 @@ describe('UPDATE', () => {
       as: 'Books2',
       ref: ['bookshop.Books'],
     }
-    let res = cqn4sql(u)
+    let res = cqn4sql(u, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 
@@ -116,7 +116,7 @@ describe('UPDATE', () => {
       as: 'Authors2',
       ref: ['bookshop.Authors'],
     }
-    let res = cqn4sql(u)
+    let res = cqn4sql(u, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 
@@ -124,7 +124,7 @@ describe('UPDATE', () => {
   it('UPDATE with where exists expansion', () => {
     const { UPDATE } = cds.ql
     let u = UPDATE.entity('bookshop.Books').where('exists author')
-    const query = cqn4sql(u)
+    const query = cqn4sql(u, model)
     // console.log(JSON.stringify(query))
     // how to express this in CQN?
     // DELETE.from({ref: ['bookshop.Authors'], as: 'author'}).where('exists ( SELECT 1 from bookshop.Books as Books where author_ID = author.ID)')

@@ -1,6 +1,6 @@
 const cds = require('../../../test/cds')
 
-const { POST, PUT } = cds.test(__dirname, 'deep.cds')
+const { POST, PUT, GET } = cds.test(__dirname, 'deep.cds')
 
 describe('UUID Generation', () => {
   test('generate UUID on insert', async () => {
@@ -15,7 +15,6 @@ describe('UUID Generation', () => {
     expect(res.status).toBe(201)
 
     expect(res.data).toMatchObject({
-      '@odata.context': '$metadata#RootUUID(toOneChild(toManySubChild()))/$entity',
       ID: uuid,
       name: null,
       toOneChild: {
@@ -55,13 +54,15 @@ describe('UUID Generation', () => {
     })
     expect(resUpdate.status).toBe(200)
 
+    const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild($expand=toManySubChild)`)
+
     // foreign keys are set correctly (deep)
-    expect(resUpdate.data.toOneChild.ID).toEqual(resUpdate.data.toOneChild_ID)
-    expect(resUpdate.data.toOneChild.ID).toEqual(resUpdate.data.toOneChild.toManySubChild[0].backlink_ID)
-    expect(resUpdate.data.toOneChild.ID).toEqual(resUpdate.data.toOneChild.toManySubChild[1].backlink_ID)
+    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild_ID)
+    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild.toManySubChild[0].backlink_ID)
+    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild.toManySubChild[1].backlink_ID)
   })
 
-  test.only('generate UUID on update programmatically', async () => {
+  test('generate UUID on update programmatically', async () => {
     const uuid = cds.utils.uuid()
     await cds.db
       .insert({
@@ -124,9 +125,14 @@ describe('UUID Generation', () => {
       toOneChild: null,
     })
     expect(resUpdate.status).toBe(200)
-
     expect(resUpdate.data).toMatchObject({
       '@odata.context': '$metadata#RootUUID/$entity',
+      ID: uuid,
+      name: null,
+    })
+
+    const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild`)
+    expect(resRead.data).toMatchObject({
       ID: uuid,
       name: null,
       toOneChild: null,

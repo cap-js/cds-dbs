@@ -1,5 +1,6 @@
-const { Readable, PassThrough, Stream } = require('stream')
+const { Readable, Stream } = require('stream')
 const { StringDecoder } = require('string_decoder')
+const { text } = require('stream/consumers')
 
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
@@ -40,7 +41,9 @@ class HDBDriver extends driver {
 
   set(variables) {
     const clientInfo = this._native._connection.getClientInfo()
-    Object.keys(variables).forEach(k => clientInfo.setProperty(k, variables[k]))
+    for (const key in variables) {
+      clientInfo.setProperty(key, variables[key])
+    }
   }
 
   async validate() {
@@ -67,8 +70,47 @@ class HDBDriver extends driver {
     })
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
+
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const rs = await prom(stmt, 'execute')(values)
+        const cols = rs.metadata.map(b => b.columnName)
+        const stream = rs.createReadStream()
+
+        const result = []
+        for await (const row of stream) {
+          const obj = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // hdb returns large strings as streams sometimes
+            if (col === '_json_' && typeof row[col] === 'object') {
+              obj[col] = await text(row[col].createReadStream())
+              continue
+            }
+            obj[col] = i > 3
+              ? row[col] === null
+                ? null
+                : (
+                  row[col].createReadStream?.()
+                  || row[col]
+                )
+              : row[col]
+          }
+          result.push(obj)
+        }
+        return result
+      }
+    }
+
+    ret.proc = async (data, outParameters) => {
+      const rows = await ret.all(data)
+      return this._getResultForProcedure(rows, outParameters)
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       const rs = await prom(stmt, 'execute')(values || [])
@@ -91,16 +133,32 @@ class HDBDriver extends driver {
     return ret
   }
 
+  _getResultForProcedure(rows, outParameters) {
+    // on hdb, rows already contains results for scalar params
+    const isArray = Array.isArray(rows)        
+    const result = isArray ? {...rows[0]} : {...rows}
+
+    // merge table output params into scalar params
+    const args = isArray ? rows.slice(1) : []
+    if (args && args.length && outParameters) {
+      const params = outParameters.filter(md => !(md.PARAMETER_NAME in (isArray ? rows[0] : rows)))
+      for (let i = 0; i < params.length; i++) {
+        result[params[i].PARAMETER_NAME] = args[i]
+      }
+    }
+  
+    return result
+  }
+
   _extractStreams(values) {
     // Removes all streams from the values and replaces them with a placeholder
     if (!Array.isArray(values)) return { values: [], streams: [] }
     const streams = []
     values = values.map((v, i) => {
-      if (v instanceof Stream && !(v instanceof PassThrough)) {
+      if (v instanceof Stream) {
         streams[i] = v
-        const passThrough = new PassThrough()
-        v.pipe(passThrough)
-        return passThrough
+        const iterator = v[Symbol.asyncIterator]()
+        return Readable.from(iterator, { objectMode: false })
       }
       return v
     })
@@ -109,6 +167,10 @@ class HDBDriver extends driver {
       streams,
     }
   }
+}
+
+function* echoStream(ret) {
+  yield ret
 }
 
 async function* rsIterator(rs, one) {
@@ -145,7 +207,7 @@ async function* rsIterator(rs, one) {
           this.reading = 0
           this.writing = 0
         })
-          .catch(e => {
+          .catch(() => {
             // TODO: check whether the error is early close
             return true
           })

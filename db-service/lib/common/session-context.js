@@ -1,4 +1,4 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 class SessionContext {
   constructor(ctx) {
@@ -27,6 +27,20 @@ class TemporalSessionContext extends SessionContext {
       new Date().toISOString().replace(/(\dZ?)$/, d => parseInt(d[0]) + 1 + d[1] || ''))
   }
 }
+
+// Set all getters as enumerable
+const iterate = { enumerable: true }
+const getters = (obj) => {
+  const prot = obj.prototype
+  const patch = {}
+  for (const [key, value] of Object.entries(Object.getOwnPropertyDescriptors(prot))) {
+    if (!value.get) continue
+    patch[key] = iterate
+  }
+  Object.defineProperties(prot, patch)
+}
+getters(SessionContext)
+getters(TemporalSessionContext)
 
 // REVISIT: only set temporal context if required!
 module.exports = TemporalSessionContext

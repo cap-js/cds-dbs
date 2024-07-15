@@ -2,11 +2,10 @@
 // for convenience, we attach a non-enumerable property 'element' onto each column with a ref
 // this property holds the corresponding csn definition to which the column refers
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
 const cqn4sql = require('../../lib/cqn4sql')
-
 describe('assign element onto columns', () => {
   let model
   beforeAll(async () => {
@@ -21,7 +20,7 @@ describe('assign element onto columns', () => {
         dedication.addressee,
         dedication.sub
       }
-    `)
+    `, model)
     const expected = CQL`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.author_ID,
@@ -45,7 +44,7 @@ describe('assign element onto columns', () => {
       SELECT from bookshop.Books {
         author { name }
       }
-    `)
+    `, model)
     const { Authors } = model.entities
     expect(query.SELECT.columns[0].SELECT.columns[0]).to.have.property('element').that.equals(Authors.elements['name'])
   })
@@ -57,7 +56,7 @@ describe('assign element onto columns', () => {
         func(),
         (SELECT from bookshop.Books) as subquery: cds.String
       }
-    `)
+    `, model)
     expect(query.SELECT.columns[0]).to.have.property('element').that.is.an.instanceof(cds.type) // has cds.Integer type inferred
     expect(query.SELECT.columns[1]).to.have.property('element')
     expect(query.SELECT.columns[2]).to.have.property('element')
@@ -69,7 +68,7 @@ describe('assign element onto columns with flat model', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load('db/schema').then(cds.linked)
-    model = cds.compile.for.nodejs(model)
+    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
   })
 
   it('foreign key is adjacent to its association in flat model', () => {
@@ -131,8 +130,14 @@ describe('assign element onto columns with flat model', () => {
     expect(query).to.deep.eql(expected)
     expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.ID)
     // foreign key is part of flat model
-    expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf)
-    expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)
+    if(model.meta.unfolded) { //> REVISIT: Remove once unfolded csn is standard
+      expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf.__proto__)
+      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf.__proto__)
+    } else {
+      expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_leaf)
+      expect(query.SELECT.columns[2]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_struct_mid_anotherLeaf)
+    }
+
 
     expect(query.SELECT.columns[3]).to.have.property('element').that.eqls(AssocWithStructuredKey.elements.toStructuredKey_second)
   })

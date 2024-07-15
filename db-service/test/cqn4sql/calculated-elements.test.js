@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 
 describe('Unfolding calculated elements in select list', () => {
@@ -52,6 +52,14 @@ describe('Unfolding calculated elements in select list', () => {
         Books.ID,
         round(Books.length * Books.width, 2) as f
       }`
+    expect(query).to.deep.equal(expected)
+  })
+  it('in function with named param', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Authors { ID, ageNamedParams as f }`, model)
+    const expected = CQL`SELECT from booksCalc.Authors as Authors {
+      Authors.ID,
+      years_between(DOB => Authors.dateOfBirth, DOD => Authors.dateOfDeath) as f
+    }`
     expect(query).to.deep.equal(expected)
   })
 
@@ -361,7 +369,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author 
+          SELECT from booksCalc.Authors as author
           left join booksCalc.Addresses as address on address.ID = author.address_ID
           {
             author.firstName || ' ' || author.lastName as name,
@@ -384,7 +392,7 @@ describe('Unfolding calculated elements in select list', () => {
         author.firstName || ' ' || author.lastName as author_name,
         address.street || ', ' || address.city as author_addressText,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -405,7 +413,7 @@ describe('Unfolding calculated elements in select list', () => {
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author2 
+          SELECT from booksCalc.Authors as author2
           left join booksCalc.Addresses as address2 on address2.ID = author2.address_ID
           {
             author2.firstName || ' ' || author2.lastName as name,
@@ -509,6 +517,52 @@ describe('Unfolding calculated elements in select list', () => {
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
+  it('wildcard select from subquery', () => {
+    let query = cqn4sql(CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } )`, model)
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my on my.ID = Simple.my_ID
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my.name as myName
+        }
+    ) as __select__ {
+      __select__.ID,
+      __select__.name,
+      __select__.my_ID,
+      __select__.myName
+    }
+    `
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
+  it('wildcard select from subquery + join relevant path expression', () => {
+    let query = cqn4sql(
+      CQL`SELECT from ( SELECT FROM booksCalc.Simple { * } ) {
+        my.name as otherName
+      }`,
+      model,
+    )
+    const expected = CQL`
+    SELECT from (
+      SELECT from booksCalc.Simple as Simple
+      left join booksCalc.Simple as my2 on my2.ID = Simple.my_ID
+        {
+          Simple.ID,
+          Simple.name,
+          Simple.my_ID,
+          my2.name as myName
+        }
+    ) as __select__ left join booksCalc.Simple as my on my.ID = __select__.my_ID {
+      my.name as otherName
+    }
+    `
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
+
   it('replacement for calculated element is considered for wildcard expansion', () => {
     let query = cqn4sql(
       CQL`SELECT from booksCalc.Books { *, volume as ctitle } excluding { length, width, height, stock, price, youngAuthorName }`,
@@ -557,7 +611,7 @@ describe('Unfolding calculated elements in select list', () => {
       authorName,
       authorFullName,
       authorAge
-    } 
+    }
     `,
       model,
     )
@@ -680,7 +734,7 @@ describe('Unfolding calculated elements in select list', () => {
     // at the leaf of a where exists path, there must be an association
     // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books:youngAuthorName { ID }`, model)).to.throw(
-      'No association “youngAuthorName” in entity “booksCalc.Books”',
+      'Query source must be a an entity or an association',
     )
   })
 
@@ -689,7 +743,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price}
-    } 
+    }
     `,
       model,
     )
@@ -736,7 +790,7 @@ describe('Unfolding calculated elements in select list', () => {
       CQL`
     SELECT from booksCalc.Authors {
       books { * } excluding { length, width, height, stock, price, youngAuthorName}
-    } 
+    }
     `,
       model,
     )
@@ -829,7 +883,7 @@ describe('Unfolding calculated elements in other places', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Authors[name like 'A%'].books[storageVolume < 4] { ID }`, model)
     const expected = CQL`SELECT from booksCalc.Books as books {
       books.ID
-    } where exists (select 1 from booksCalc.Authors as Authors 
+    } where exists (select 1 from booksCalc.Authors as Authors
                       where Authors.ID = books.author_ID
                         and (Authors.firstName || ' ' || Authors.lastName) like 'A%')
                         and (books.stock * ((books.length * books.width) * books.height)) < 4
