@@ -154,8 +154,9 @@ exports[`cqn2sql quoted column aliases select with subselect in exists and colum
 
 exports[`cqn2sql quoted column aliases select with subselect with in and column aliases 1`] = `
 {
-  "sql": "SELECT Foo.a as A,'abc' as ABC,Foo.x + ? as Xpr1 FROM Foo as Foo WHERE ( Foo.x + ? ) < ? AND Foo.x IN (SELECT Foo2.a as B,Foo2.x - ? as Xpr2 FROM Foo as Foo2 WHERE Foo2.x < ?)",
+  "sql": "SELECT Foo.a as A,? as ABC,Foo.x + ? as Xpr1 FROM Foo as Foo WHERE ( Foo.x + ? ) < ? AND Foo.x IN (SELECT Foo2.a as B,Foo2.x - ? as Xpr2 FROM Foo as Foo2 WHERE Foo2.x < ?)",
   "values": [
+    "abc",
     1,
     1,
     9,
@@ -167,11 +168,28 @@ exports[`cqn2sql quoted column aliases select with subselect with in and column 
 
 exports[`cqn2sql quoted column aliases simple select with column aliases 1`] = `
 {
-  "sql": "SELECT T.a as A,true as True,false as False,NULL as Null,count(*) as CountFunc FROM Foo as T",
+  "sql": "SELECT T.a as A,true as True,false as False,? as Null,count(*) as CountFunc FROM Foo as T",
+  "values": [
+    null,
+  ],
 }
 `;
 
 exports[`cqn2sql selection of columns of one table select distinct 1`] = `"SELECT DISTINCT Foo.a,Foo.b,Foo.c FROM Foo as Foo"`;
+
+exports[`cqn2sql selection of columns of one table select with static values 1`] = `
+{
+  "sql": "SELECT 5 as ID,? as a,3.14 as pi,cast(3.1415 as DECIMAL) as pid,cast(? as NCLOB) as stringl,cast(true as BOOLEAN) as boolt,cast(? as DATE) as date,cast(? as TIME) as time,cast(? as DATETIME) as datetime,cast(? as TIMESTAMP) as timestamp FROM Foo as Foo",
+  "values": [
+    "simple string",
+    "large string",
+    "1970-01-01",
+    "00:00:00",
+    "1970-01-01 00:00:00",
+    "1970-01-01 00:00:00.000",
+  ],
+}
+`;
 
 exports[`cqn2sql selection of columns of one table with select from non existent entity with star wildcard 1`] = `"SELECT * FROM "¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?""`;
 
