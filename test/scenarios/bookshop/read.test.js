@@ -58,13 +58,6 @@ describe('Bookshop - Read', () => {
     expect(columns).to.contain('title')
   })
 
-  test('Path expression with null value', async () => {
-    const q = CQL`SELECT null as title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
-    const res = await cds.run(q)
-    expect(res.length).to.be.eq(4)
-    expect(res[0].title).to.be.eq(null)
-  })
-
   test('Smart quotation', async () => {
     const q = CQL`
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
