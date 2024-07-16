@@ -532,7 +532,10 @@ GROUP BY k
       Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `to_char(${expr},'FM9${'D'.padEnd(elem.scale + 1, '0')}')`
+        : `cast(${expr} as varchar)`
+        : undefined,
 
       // Convert point back to json format
       'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,

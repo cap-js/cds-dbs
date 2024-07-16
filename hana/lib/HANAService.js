@@ -546,7 +546,7 @@ class HANAService extends SQLService {
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
+              return `${converter(this.quote(columnName), x.element)} as "${columnName.replace(/"/g, '""')}"`
             }
             : x => {
               if (x === '*') return '*'
@@ -1127,7 +1127,9 @@ class HANAService extends SQLService {
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
-      Decimal: expr => `TO_NVARCHAR(${expr})`,
+      Decimal: (expr, elem) => elem?.scale
+        ? `TO_NVARCHAR(${expr}, '9.${''.padEnd(elem.scale, '0')}')`
+        : `TO_NVARCHAR(${expr})`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
