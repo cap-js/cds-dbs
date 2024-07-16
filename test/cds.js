@@ -134,6 +134,7 @@ cds.test = Object.setPrototypeOf(function () {
     global.cds.resolve.cache = {}
   })
 
+  ret.expect = cdsTest.expect
   return ret
 }, cdsTest.constructor.prototype)
 
