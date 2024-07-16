@@ -16,7 +16,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test --silent",
+    "test": "npm start && cds-test --silent $(find -L test -type f -regex .*\\.test\\.js)",
     "test:remote": "cds-test --silent",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",

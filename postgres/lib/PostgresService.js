@@ -570,14 +570,21 @@ GROUP BY k
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
     } catch {
+      // Failed to connect to database
+      if (!this.dbc) {
+        return this.database({ database })
+      }
       // Failed to reset database
     } finally {
-      await this.dbc.end()
-      delete this.dbc
+      // Only clean when successfully connected
+      if (this.dbc) {
+        await this.dbc.end()
+        delete this.dbc
 
-      // Update credentials to new Database owner
-      await this.disconnect()
-      this.options.credentials = Object.assign({}, system, creds)
+        // Update credentials to new Database owner
+        await this.disconnect()
+        this.options.credentials = Object.assign({}, system, creds)
+      }
     }
   }
 
@@ -604,6 +611,7 @@ GROUP BY k
         await this.tx(async tx => {
           await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
         })
+          .catch(() => { /* prevent tuple errors */ })
       }
 
       // Update credentials to new Schema owner

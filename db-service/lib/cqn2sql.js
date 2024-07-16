@@ -317,7 +317,7 @@ class CQN2SQLRenderer {
     if (!SELECT.one && !isRoot) {
       obj = `jsonb_group_array(${obj})`
     }
-    const alias = q.SELECT.from.args?.[0]?.as || q.SELECT.from.as
+    const alias = q.SELECT.from?.args?.[0]?.as || q.SELECT.from?.as || q.as
     return `SELECT ${isRoot ? `json(${obj})` : obj} as _json_ FROM (${sql})${alias ? ` as ${this.quote(alias)}` : ''}`
   }
 
@@ -340,8 +340,27 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').col} x
    * @returns {string} SQL
    */
-  column_expand(x, q, foreignKeys = {}) {
+  column_expand(x, q/*, foreignKeys = {}*/) {
     return this.column_expr(x, q)
+  }
+  /**
+   * Extract all the column references pointing to the parent entity
+   * @param {import('./infer/cqn').xpr} xpr The on condition
+   * @param {string} alias The alias of the parent entity
+   * @param {import('./infer/cqn').ref[]} foreignKeys Existing foreign keys column references
+   * @returns {import('./infer/cqn').ref[]} All column references of the parent entity
+   */
+  extractForeignKeys(xpr, alias, foreignKeys = []) {
+    // REVISIT: this is a quick method of extracting the foreign keys it could be nicer
+    // Find all foreign keys used in the expression so they can be exposed to the follow up expand queries
+    JSON.stringify(xpr, (key, val) => {
+      if (key === 'ref' && val.length === 2 && val[0] === alias && !foreignKeys.find(k => k.ref + '' === val + '')) {
+        foreignKeys.push({ ref: val })
+        return
+      }
+      return val
+    })
+    return foreignKeys
   }
 
   /**

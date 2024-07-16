@@ -159,14 +159,13 @@ class SQLiteService extends SQLService {
 
       if (x.element.parent !== q.target || !parentAlias) return this.column_expr(x, q)
       const fkeys = []
-      const invalid = x.element._foreignKeys.find(k => {
-        const element = k.parentElement
-        const name = element.name
+      const invalid = this.extractForeignKeys(x.SELECT.where || [], parentAlias).find(k => {
+        const name = this.column_name(k)
         if (foreignKeys[name]) return
         if (!q.elements[name]) {
           foreignKeys[name] = true
-          fkeys.push(this.expr({ ref: [parentAlias, k.parentElement.name] }))
-        } else if (q.elements[name].parent !== element.parent || q.elements[name].name !== element.name) {
+          fkeys.push(this.expr(k))
+        } else {
           return true // Invalid foreignkey inclusion detected
         }
       })
@@ -245,7 +244,10 @@ class SQLiteService extends SQLService {
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+        : `CAST(${expr} as TEXT)`
+        : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }
