@@ -75,7 +75,7 @@ describe('OData to Postgres dialect', () => {
 
     test(' -> DateTime', async () => {
       const response = await POST('/beershop/TypeChecks', {
-        type_DateTime: '2012-12-03T07:16:23.574Z',
+        type_DateTime: '2012-12-03T07:16:23Z',
       })
       expect(response.status).to.equal(201)
     })

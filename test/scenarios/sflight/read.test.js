@@ -1,6 +1,11 @@
 process.env.cds_requires_db_kind = 'better-sqlite'
 const cds = require('../../cds.js')
 
+// REVISIT: @capire/sflight tests don't expect IEEE754 compliance responses, but do send the IEE754 header according to the test
+// As it is not possible to configure the IEEE754 flag for @cap-js/hana it is required to inject this configurable:true
+// As the cqn2sql output converter injection doesn't allow for it to be overwritten at a later stage, but configurable will stay true
+Object.defineProperty(cds.builtin.types.Decimal.constructor.prototype, "CQN2HANA:convertOutput", { value: a => a, configurable: true })
+
 // IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
 beforeAll(() => {
   if (cds.env.fiori) cds.env.fiori.lean_draft = true
@@ -11,6 +16,10 @@ describe('SFlight - Read', () => {
   // Jest require.resolve does not want to find @capire/sflight
   const { expect, GET, axios } = cds.test('@capire/sflight')
   axios.defaults.auth = { username: 'alice', password: 'admin' }
+
+  beforeAll(async () => {
+    Object.defineProperty(cds.builtin.types.Decimal.constructor.prototype, "CQN2HANA:convertOutput", { value: a => a })
+  })
 
   const processorPaths = [
     // 'Travel?$count=true&$orderby=TravelID desc&$filter=(IsActiveEntity eq false or SiblingEntity/IsActiveEntity eq null)&$expand=DraftAdministrativeData,TravelStatus,to_Agency,to_Customer&$skip=0&$top=30',
