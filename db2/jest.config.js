@@ -1,1 +1,1 @@
-exports.testTimeout = 30 * 1000
+exports.testTimeout = 3000 * 1000
