@@ -4,18 +4,62 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writeable, Readable } = require('stream')
 const DEBUG = cds.debug('sql|db')
-/**
- *
- */
+
+const ISO_8601_FULL = /\'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?/i
+
+const getCredentialsForClient = (credentials, bIncludeDbName) => {
+  let connString = ''
+  if (bIncludeDbName) {
+    connString = `${connString}DATABASE=${credentials.database};`
+  }
+
+  connString = `${connString}HOSTNAME=${credentials.host};PORT=${credentials.port};`
+  if (credentials.sslrootcert) {
+    connString = `${connString}Security=SSL;SSLServerCertificate=${credentials.sslrootcert};`
+  }
+  connString = `${connString}PROTOCOL=TCPIP;UID=${credentials.user};PWD=${credentials.password}`
+
+  if (credentials.schema) {
+    connString = `${connString};currentschema=${credentials.schema};`
+  }
+  return connString
+}
+
 class DB2Service extends SQLService {
+  /**
+   * @type{ibmdb.Database}
+   */
+  dbc
   init () {
+    super.init(...arguments)
     if (!this.options.indendentDeploy) {
       cds.options = cds.options || {}
       cds.options.dialect = 'plain'
     }
     this.kind = 'plain'
     this._queryCache = {}
-    return super.init(...arguments)
+
+    // this.options.credentials = cds.env.requires[this.options.kind].credentials
+    if (this.options.credentials && this.options.credentials.username) {
+      this.options.credentials.user = this.options.credentials.username
+    }
+
+    if (this.options.credentials && this.options.credentials.hostname) {
+      this.options.credentials.host = this.options.credentials.hostname
+    }
+    if (this.options.credentials && this.options.credentials.dbname) {
+      this.options.credentials.database = this.options.credentials.dbname
+    }
+    if (this.options.credentials && this.options.credentials.sslrootcert) {
+      if (typeof this.options.credentials.sslRequired === 'undefined') {
+        this.options.credentials.sslRequired = true
+      }
+      this.options.credentials.ssl = {
+        rejectUnauthorized: false,
+        ca: this.options.credentials.sslrootcert,
+      }
+    }
+    this.cn = getCredentialsForClient(this.options.credentials, true)
   }
   get factory () {
     return {
@@ -28,20 +72,7 @@ class DB2Service extends SQLService {
         ...this.options.pool,
       },
       create: async () => {
-        const cr = this.options.credentials || {}
-        // TODO check may be SSL also to connect to db2?
-        const credentials = {
-          user: cds.env.requires.db.credentials.user,
-          password: cds.env.requires.db.credentials.password,
-          host: cds.env.requires.db.credentials.host,
-          port: cds.env.requires.db.credentials.port,
-          database: cds.env.requires.db.credentials.database,
-        }
-        const connStr = `DATABASE=${credentials.database};HOSTNAME=${credentials.host};UID=${credentials.user};PWD=${credentials.password};PORT=${credentials.port};PROTOCOL=TCPIP`
-        // const dbc = await ibmdb.open(connStr)
-        const dbc = await ibmdb.open(
-          `DATABASE=testdb;HOSTNAME=localhost;UID=db2inst1;PWD=HariboMachtKinderFroh;PORT=50000;PROTOCOL=TCPIP`,
-        )
+        const dbc = await ibmdb.open(this.cn)
         return dbc
       },
       destroy: dbc => dbc.close(),

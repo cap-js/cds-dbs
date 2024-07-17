@@ -4,12 +4,12 @@
   "description": "CDS database service for DB2",
   "main": "index.js",
   "scripts": {
-    "test": "npm start && mocha",
+    "test": "DEBUG=db npm start && jest",
     "test:watch": "npx mocha --watch",
     "start": "docker-compose -f db2-stack.yml up -d",
     "status": "docker compose -f db2-stack.yml ps",
     "stop": "docker compose -f db2-stack.yml stop",
-    "test:jest": "DEBUG=db npm start && jest"
+    "test:mocha": "npm start && mocha"
   },
   "files": [
     "cds-plugin.js",
@@ -25,7 +25,8 @@
   "license": "ISC",
   "dependencies": {
     "@quadrio/db-service": "^1.9.2",
-    "ibm_db": "^3.2.4"
+    "ibm_db": "^3.2.4",
+    "moment": "^2.30.1"
   },
   "peerDependencies": {
     "@sap/cds": ">=7.6",
@@ -55,6 +56,5 @@
       },
       "db": "sql"
     }
-  },
-  "devDependencies": {}
+  }
 }
