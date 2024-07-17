@@ -20,11 +20,8 @@
     "watch": "cds watch"
   },
   "cds": {
-    "requires": {
-      "db": "sql"
-    },
     "features": {
-      "odata_new_adapter": true
+      "ieee754compatible": true
     }
   }
 }

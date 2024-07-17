@@ -1,12 +1,10 @@
 # CDS database service for SQLite
 
-Welcome to the new SQLite database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture and [*better-sqlite* driver](https://www.npmjs.com/package/better-sqlite3) .
+Welcome to the SQLite database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on streamlined database architecture and [*better-sqlite* driver](https://www.npmjs.com/package/better-sqlite3).
 
 ## Setup
 
-In general, all you need to do is to install one of the database packages, as follows:
-
-Using SQLite for development:
+If you want to use SQLite for development, all you need to do is to install the database package, as follows
 
 ```sh
 npm add @cap-js/sqlite -D
@@ -33,4 +31,4 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Licensing
 
-Copyright 2023 SAP SE or an SAP affiliate company and cds-dbs contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js/cds-dbs).
+Copyright 2024 SAP SE or an SAP affiliate company and cds-dbs contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js/cds-dbs).
