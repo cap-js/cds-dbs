@@ -796,7 +796,7 @@ describe('test deep query generation', () => {
       ]
 
       expectedInserts.forEach(insert => {
-        expect(deepQueries).to.contain.deep(insert)
+        expect(deepQueries).to.deep.contain(insert)
       })
     })
 
