@@ -4,6 +4,11 @@ const cds = require('../../test/cds.js')
 
 describe('draft tests', () => {
 
+  // Had to be moved before for cds-test might break jest
+  beforeAll(() => {
+    cds.env.features.ieee754compatible = true
+  })
+
   const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
 
   process.env.cds_requires_db_kind = 'better-sqlite'
@@ -16,10 +21,6 @@ describe('draft tests', () => {
     user1: { password: 'user1', roles: ['processor'] },
     user2: { password: 'user2', roles: ['processor'] },
   }
-
-  beforeAll(() => {
-    cds.env.features.ieee754compatible = true
-  })
 
   beforeEach(async () => {
     await Promise.allSettled([
