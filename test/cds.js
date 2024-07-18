@@ -140,6 +140,13 @@ cds.test = Object.setPrototypeOf(function () {
 
 cds.test.expect = cdsTest.expect
 
+// REVISIT: remove once sflight or cds-test is adjusted to the correct behavior
+const expect = cdsTest.expect().__proto__.constructor.prototype
+const _includes = expect.includes
+expect.includes = function (x) {
+  return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
+}
+
 // Release cds._context for garbage collection
 global.afterEach(() => {
   cds._context.disable()
