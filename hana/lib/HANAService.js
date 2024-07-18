@@ -1005,6 +1005,7 @@ class HANAService extends SQLService {
         : Object.keys(elements)
           .filter(e => {
             if (elements[e]?.virtual) return false
+            if (elements[e].isAssociation) return false
             if (columns.find(c => c.name === e)) return false
             if (elements[e]?.[annotation]) return true
             if (!isUpdate && elements[e]?.default) return true
