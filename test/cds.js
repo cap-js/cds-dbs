@@ -138,6 +138,8 @@ cds.test = Object.setPrototypeOf(function () {
   return ret
 }, cdsTest.constructor.prototype)
 
+cds.test.expect = cdsTest.expect
+
 // Release cds._context for garbage collection
 global.afterEach(() => {
   cds._context.disable()
