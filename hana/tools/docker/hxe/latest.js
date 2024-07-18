@@ -13,11 +13,11 @@ const fetchLatest = () => {
     for await (const chunk of res) {
       response += chunk
     }
-    console.log(JSON.parse(response).results[0].name)
+    console.log(JSON.parse(response).results[0].name) // eslint-disable-line no-console
     process.exit(0)
   })
   req.on('error', error => {
-    console.error(error)
+    console.error(error) // eslint-disable-line no-console
     process.exit(1)
   })
 
