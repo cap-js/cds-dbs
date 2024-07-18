@@ -6,7 +6,7 @@ const { Writeable, Readable } = require('stream')
 const DEBUG = cds.debug('sql|db')
 
 const ISO_8601_FULL = /\'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?/i
-
+const execute = require('./execute')
 const getCredentialsForClient = (credentials, bIncludeDbName) => {
   let connString = ''
   if (bIncludeDbName) {
@@ -59,6 +59,7 @@ class DB2Service extends SQLService {
         ca: this.options.credentials.sslrootcert,
       }
     }
+    this.options.schema = 'FOERDERLOTSE'
     this.cn = getCredentialsForClient(this.options.credentials, true)
   }
   get factory () {
@@ -72,12 +73,54 @@ class DB2Service extends SQLService {
         ...this.options.pool,
       },
       create: async () => {
-        const dbc = await ibmdb.open(this.cn)
+        const options = {
+          codeSet: '1252',
+        }
+        const dbc = await ibmdb.open(this.cn, options)
         return dbc
       },
       destroy: dbc => dbc.close(),
       validate: dbc => dbc.connected,
     }
+  }
+  /**
+   * Convert the cds compile -to sql output to a DB2 compatible format
+   * @see https://www.ibm.com/docs/vi/db2-for-zos/12?topic=columns-data-types
+   *
+   * NVARCHAR -> VARCHAR
+   * DOUBLE -> -
+   * BINARY_BLOB -> BLOB
+   * BLOB -> -
+   * NCLOB -> CLOB
+   * TIMESTAMP_TEXT -> TIMESTAMP
+   * TIME_TEXT -> TIME
+   * DATE_TEXT -> DATE
+   *
+   * @param {String} SQL from cds compile -to sql
+   * @returns {String} db2 sql compatible SQL
+   */
+  cdssql2db2sql (cdssql) {
+    let db2sql = cdssql.replace(/NVARCHAR/g, 'VARCHAR')
+    db2sql = db2sql.replace(/BINARY_BLOB/g, 'BLOB')
+    db2sql = db2sql.replace(/NCLOB/g, 'CLOB(100M)')
+    db2sql = db2sql.replace(/TIMESTAMP_TEXT/g, 'TIMESTAMP')
+    db2sql = db2sql.replace(/TIME_TEXT/g, 'TIME')
+    db2sql = db2sql.replace(/DATE_TEXT/g, 'DATE')
+
+    db2sql = db2sql.replace(`strftime('%Y-%m-%dT%H:%M:%S.001Z', 'now')`, 'CURRENT_TIMESTAMP')
+    db2sql = db2sql.replace(`strftime('%Y-%m-%dT%H:%M:%S.000Z', 'now')`, 'CURRENT_TIMESTAMP')
+
+    let index = db2sql.search(ISO_8601_FULL)
+    while (index > -1) {
+      if (index > -1) {
+        db2sql = db2sql.replace(ISO_8601_FULL, function (date) {
+          return date.replace('T', ' ').replace('Z', '')
+        })
+      }
+      index = db2sql.search(ISO_8601_FULL)
+    }
+
+    return db2sql
   }
   // TODO: multi tenant related
   url4 (tenant) {
@@ -131,7 +174,14 @@ class DB2Service extends SQLService {
     }
   }
   exec (sql) {
-    return this.dbc.query(sql)
+    switch (sql) {
+      case 'BEGIN':
+      case 'COMMIT':
+      case 'ROLLBACK':
+        return this.dbc.querySync(sql)
+      default:
+        return this.dbc.query(sql)
+    }
   }
   // static CQN2SQL = class CQN2DB2 extends SQLService.CQN2SQL {
   //   static Functions = require('./cql-functions')
