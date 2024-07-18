@@ -10,7 +10,7 @@
     "hana"
   ],
   "devDependencies": {
-    "@capire/sflight": "github:sap-samples/cap-sflight",
+    "@capire/sflight": "github:sap-samples/cap-sflight#bebfc86571f108e328d736b698f3ab0ef94d2782",
     "@sap/hana-client": "^2.16.26",
     "axios": "^1",
     "chai": "^4.3.7",
