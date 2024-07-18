@@ -25,7 +25,8 @@
     "test": "jest --silent"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.9"
+    "@sap/cds": ">=7.9",
+    "generic-pool": "^3.9.0"
   },
   "license": "SEE LICENSE"
 }
