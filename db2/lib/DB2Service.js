@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writeable, Readable } = require('stream')
 const DEBUG = cds.debug('sql|db')
-
+const LOG = cds.log('db2|db')
 const ISO_8601_FULL = /\'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?/i
 const execute = require('./execute')
 const getCredentialsForClient = (credentials, bIncludeDbName) => {
@@ -31,7 +31,6 @@ class DB2Service extends SQLService {
    */
   dbc
   init () {
-    super.init(...arguments)
     if (!this.options.indendentDeploy) {
       cds.options = cds.options || {}
       cds.options.dialect = 'plain'
@@ -61,6 +60,22 @@ class DB2Service extends SQLService {
     }
     this.options.schema = 'FOERDERLOTSE'
     this.cn = getCredentialsForClient(this.options.credentials, true)
+    // this.on('READ', '*', req => {
+    //   LOG.info(req.event)
+    // })
+    // this.on('CREATE', '*', req => {
+    //   LOG.info(req.event)
+    // })
+    // this.on('UPDATE', '*', req => {
+    //   LOG.info(req.event)
+    // })
+    // this.on('DELETE', '*', req => {
+    //   LOG.info(req.event)
+    // })
+    this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], req => {
+      LOG.info(req.event)
+    })
+    return super.init(...arguments)
   }
   get factory () {
     return {
@@ -131,56 +146,68 @@ class DB2Service extends SQLService {
     return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
   }
   async set (variables) {
-    // TODO: this sets temporal environment variables?
+    // TODO: this sets temporal environment variables? 41) .setAttr(attributeName, value, callback)
   }
   release () {
     return super.release()
   }
-  prepare (sql) {
+  async prepare (sql) {
     // REVISIT: Make more efficient with Fetch or other functionalities from ibm_db
     // const stmt = this.dbc.prepare(sql)
+    const transformedSql = this.sql2db2sql(sql)
     return {
       run: async () => {
         try {
-          const result = await this.dbc.query(sql)
+          const result = await this.dbc.query(transformedSql)
           return result
         } catch (error) {
-          throw `${error}${sql}`
+          throw `${error}sql:${sql}transformedSql:${transformedSql}`
         }
       },
       get: async () => {
         try {
-          const result = await this.dbc.query(sql)
+          const result = await this.dbc.query(transformedSql)
           return result[0]
         } catch (error) {
-          throw `${error}${sql}`
+          throw `${error}sql:${sql}transformedSql:${transformedSql}`
         }
       },
       all: async () => {
         try {
-          return await this.dbc.query(sql)
+          return await this.dbc.query(transformedSql)
         } catch (error) {
-          throw `${error}${sql}`
+          throw `${error}sql:${sql}transformedSql:${transformedSql}`
         }
       },
       stream: async () => {
         // TODO
         try {
-          return this.dbc.queryStream(sql)
+          return this.dbc.queryStream(transformedSql)
         } catch (error) {
-          throw `${error}${sql}`
+          throw `${error}sql:${sql}transformedSql:${transformedSql}`
         }
       },
     }
   }
-  exec (sql) {
-    switch (sql) {
-      case 'BEGIN':
-      case 'COMMIT':
-      case 'ROLLBACK':
-        return this.dbc.querySync(sql)
-      default:
-        return this.dbc.query(sql)
+  /**
+   *
+   * @param {string} sql
+   * @returns
+   */
+  sql2db2sql (sql) {
+    // DROP VIEW IF EXISTS
+    const DROPVIEWIFEXISTS = sql.match(/^DROP VIEW IF EXISTS (\w+);$/)
+    if (DROPVIEWIFEXISTS) {
+      return `BEGIN DECLARE CONTINUE HANDLER FOR SQLSTATE '42704' BEGIN END; EXECUTE IMMEDIATE 'DROP VIEW ${DROPVIEWIFEXISTS[1]}'; END;`
+    }
+    return sql
+  }
+  async exec (sql) {
+    try {
+      const response = await this.dbc.query(sql)
+      return response
+    } catch (error) {
+      LOG.info(error)
     }
   }
   // static CQN2SQL = class CQN2DB2 extends SQLService.CQN2SQL {
