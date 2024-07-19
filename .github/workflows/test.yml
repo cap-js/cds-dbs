@@ -14,8 +14,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    name: Node.js ${{ matrix.node }}
+    timeout-minutes: 20
+    name: Tests
+    permissions:
+      packages: write
 
     strategy:
       fail-fast: true
@@ -31,6 +33,11 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm test -w db-service -w sqlite -w postgres
+      - id: hxe
+        uses: ./.github/actions/hxe
+      # testing
+      - run: npm test -ws
         env:
           FORCE_COLOR: true
+          TAG: ${{ steps.hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
