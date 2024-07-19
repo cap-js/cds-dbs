@@ -35,6 +35,8 @@ jobs:
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing
       - run: npm test -ws
         env:

@@ -32,7 +32,10 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
       # test hana
       - id: hxe
+        if: ${{ steps.release.outputs.releases_created }}
         uses: ./.github/actions/hxe
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm test -w hana
         if: ${{ steps.release.outputs.releases_created }}
           TAG: ${{ steps.hxe.outputs.TAG }}

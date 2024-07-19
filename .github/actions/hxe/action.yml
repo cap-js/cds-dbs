@@ -16,7 +16,7 @@ runs:
   steps:
     - name: Find HXE image
       id: find-hxe
-      shell: sh
+      shell: bash
       # TODO: replace hana/tools/docker/hxe/* with ${{ github.action_path }}
       run: |
         TAG="$(sha1sum hana/tools/docker/hxe/* | sha1sum --tag | grep '[^ ]*$' -o)";
@@ -37,7 +37,7 @@ runs:
       uses: docker/setup-buildx-action@v3
     - name: Build HXE image
       if: ${{ steps.find-hxe.outputs.BUILD_HXE == 'true' }}
-      shell: sh
+      shell: bash
       run: |
         echo "${{ inputs.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
         DOCKER_BUILDKIT=1 docker build -t $IMAGE_ID:$TAG ./hana/tools/docker/hxe;
@@ -46,7 +46,7 @@ runs:
         TAG: ${{ steps.find-hxe.outputs.TAG }}
         IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
     - name: Start HXE image
-      shell: sh
+      shell: bash
       run: |
         echo "${{ inputs.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
         { npm start -w hana; } &
