@@ -53,6 +53,10 @@ describe('negative', () => {
       let query = CQL`SELECT from (select from bookshop.Books { ID as FooID }) as Foo { ID }`
       expect(() => _inferred(query)).to.throw(/"ID" not found in the elements of "Foo"/)
     })
+    it("reference in group by can't be found in alias of subquery", () => {
+      let query = CQL`SELECT from (select from bookshop.Books { ID as FooID }) as Foo group by Foo.ID`
+      expect(() => _inferred(query)).to.throw(/"ID" not found in "Foo"/)
+    })
 
     it('intermediate step in path expression is not found', () => {
       let query = CQL`SELECT from bookshop.Books as Foo { Foo.notExisting.sub.boz }`
@@ -397,11 +401,15 @@ describe('negative', () => {
     })
     it('rejects non fk traversal in infix filter in where exists', () => {
       let query = CQL`SELECT from bookshop.Books where exists author.books[author.name = 'John Doe']`
-      expect(() => _inferred(query)).to.throw(/Only foreign keys of “author” can be accessed in infix filter, but found “name”/,) // revisit: better error location ""bookshop.Books:author"
+      expect(() => _inferred(query)).to.throw(
+        /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
+      ) // revisit: better error location ""bookshop.Books:author"
     })
     it('rejects unmanaged traversal in infix filter in where exists', () => {
       let query = CQL`SELECT from bookshop.Books where exists author.books[coAuthorUnmanaged.name = 'John Doe']`
-      expect(() => _inferred(query)).to.throw(/Unexpected unmanaged association “coAuthorUnmanaged” in filter expression of “books”/,) // revisit: better error location ""bookshop.Books:author"
+      expect(() => _inferred(query)).to.throw(
+        /Unexpected unmanaged association “coAuthorUnmanaged” in filter expression of “books”/,
+      ) // revisit: better error location ""bookshop.Books:author"
     })
 
     it('rejects non fk traversal in infix filter in column', () => {

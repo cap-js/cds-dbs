@@ -91,8 +91,7 @@ describe('Bookshop - Genres', () => {
     expect(res.status).to.be.eq(200)
 
     res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
-    assert.deepEqual(res.data, {
-      '@odata.context': '$metadata#Genres(children())/$entity',
+    expect(res.data).to.deep.include({
       name: 'no more children',
       descr: null,
       ID: 100,

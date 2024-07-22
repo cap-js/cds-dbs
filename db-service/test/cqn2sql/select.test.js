@@ -87,6 +87,23 @@ describe('cqn2sql', () => {
         `Query was not inferred and includes '*' in the columns. For which there is no column name available.`,
       )
     })
+
+    test('select with static values', () => {
+      let query = CQL(`SELECT from Foo {
+        5 as ID, 
+        'simple string' as a,
+        3.14 as pi,
+        3.1415 as pid : cds.Decimal(5,4),
+        'large string' as stringl : cds.LargeString,
+        true as boolt : Boolean,
+        '1970-01-01' as date : cds.Date,
+        '00:00:00' as time : cds.Time,
+        '1970-01-01 00:00:00' as datetime : cds.DateTime,
+        '1970-01-01 00:00:00.000' as timestamp : cds.Timestamp
+      }`)
+      const { sql, values } = cqn2sql(query)
+      expect({ sql, values }).toMatchSnapshot()
+    })
   })
 
   describe('WHERE', () => {
@@ -465,8 +482,8 @@ describe('cqn2sql', () => {
           ],
         },
       }
-      const { sql } = cqn2sql(cqn)
-      expect({ sql }).toMatchSnapshot()
+      const { sql, values } = cqn2sql(cqn)
+      expect({ sql, values }).toMatchSnapshot()
     })
 
     // aliases should be quoted only for HANA

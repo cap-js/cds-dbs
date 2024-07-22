@@ -65,21 +65,22 @@ class SQLService extends DatabaseService {
       return
     }
 
+    let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
-          rows.forEach(row => {
-            this._changeToStreams(col.SELECT.columns, row[name], false, compat)
-          })
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
       } else if (col.element?.type === 'cds.LargeBinary') {
+        changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
           })
       } else if (col.element?.type in BINARY_TYPES) {
+        changes = true
         if (one) rows[0][name] = this._buffer(rows[0][name])
         else
           rows.forEach(row => {
@@ -87,6 +88,7 @@ class SQLService extends DatabaseService {
           })
       }
     }
+    return changes
   }
 
   _stream(val) {
@@ -114,8 +116,10 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
+    // REVISIT: for custom joins, infer is called twice, which is bad
+    //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+      try { this.infer(query) } catch { /**/ }
     }
     if (query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
@@ -367,10 +371,8 @@ class SQLService extends DatabaseService {
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
       !this.model?.definitions[_target_name4(q)]
-    ) {
-      return _unquirked(q)
-    }
-    return cqn4sql(q, this.model)
+    ) return q
+    else return cqn4sql(q, this.model)
   }
 
   /**
@@ -458,18 +460,6 @@ const _target_name4 = q => {
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
-}
-
-const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
-  if (!q) return q
-  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
-  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
-  return q
 }
 
 const sqls = new (class extends SQLService {

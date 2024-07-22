@@ -6,14 +6,14 @@ entity Books : managed {
   title  : localized String(111);
   descr  : localized String(1111);
   author : Association to Authors;
-  genre  : Association to Genres;
+  genre  : Association to Genres default 10;
   stock  : Integer;
   price  : Decimal;
   currency : Currency;
   image : LargeBinary @Core.MediaType : 'image/png';
   footnotes: array of String;
 
-   authorsAddress: String = author.address;
+  authorsAddress: String = author.address;
 }
 
 entity Authors : managed {
@@ -27,6 +27,7 @@ entity Authors : managed {
 
   street: String;
   city: String;
+
   address: String = street || ', ' || city;
 }
 
