@@ -23,7 +23,8 @@ const StandardFunctions = {
   search: function (ref, arg) {
     if (!('val' in arg)) throw new Error(`Only single value arguments are allowed for $search`)
     // only apply first search term, rest is ignored
-    arg.val = arg.__proto__.val = arg.val.split(' ')[0].replace(/^["](.*)["]$/s, "$1")
+    const sub= /("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/.exec(arg.val)
+    arg.val = arg.__proto__.val = (sub[2] ? JSON.parse(sub[2]) : sub[3]) || ''    
     const refs = ref.list || [ref],
       { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
