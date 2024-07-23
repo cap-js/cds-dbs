@@ -24,9 +24,11 @@
   "scripts": {
     "test": "cds-test --skip toMatchSnapshot"
   },
-  "peerDependencies": {
-    "@sap/cds": ">=7.9",
+  "dependencies": {
     "generic-pool": "^3.9.0"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=7.9"
   },
   "license": "SEE LICENSE"
 }

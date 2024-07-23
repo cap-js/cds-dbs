@@ -11,12 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: google-github-actions/release-please-action@v4
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
-          command: manifest
-          monorepo-tags: true
       # The logic below handles the npm publication:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
