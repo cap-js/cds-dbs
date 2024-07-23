@@ -159,7 +159,7 @@ class HANAService extends SQLService {
     }
 
     if (rows.length && !isSimple) {
-      // rows = this.parseRows(rows)
+      rows = this.parseRows(rows)
     }
     if (cqn.SELECT.count) {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
@@ -219,7 +219,7 @@ class HANAService extends SQLService {
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
     const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
     DEBUG?.(ret)
-    return ret + ' WITH HINT( USE_HEX_PLAN, NO_HEX_SHARED_SUBPLAN )'
+    return ret + ' WITH HINT( USE_HEX_PLAN )'
   }
 
   // Structure flat rows into expands and include raw blobs as raw buffers
