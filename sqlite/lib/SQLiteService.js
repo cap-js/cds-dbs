@@ -204,9 +204,9 @@ class SQLiteService extends SQLService {
       ...super.OutputConverters,
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
-      Association: expr => `jsonb(${expr})`,
-      struct: expr => `jsonb(${expr})`,
-      array: expr => `jsonb(${expr})`,
+      Association: expr => `${expr}->'$'`,
+      struct: expr => `${expr}->'$'`,
+      array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
