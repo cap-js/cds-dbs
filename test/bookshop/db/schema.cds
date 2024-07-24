@@ -6,7 +6,7 @@ entity Books : managed {
   title  : localized String(111);
   descr  : localized String(1111);
   author : Association to Authors;
-  genre  : Association to Genres;
+  genre  : Association to Genres default 10;
   stock  : Integer;
   price  : Decimal;
   currency : Currency;

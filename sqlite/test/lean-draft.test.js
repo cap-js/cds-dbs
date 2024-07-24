@@ -1,7 +1,6 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
 const cds = require('../../test/cds.js')
-cds.env.features.ieee754compatible = true
 
 describe('draft tests', () => {
 
@@ -17,6 +16,10 @@ describe('draft tests', () => {
     user1: { password: 'user1', roles: ['processor'] },
     user2: { password: 'user2', roles: ['processor'] },
   }
+
+  beforeAll(() => {
+    cds.env.features.ieee754compatible = true
+  })
 
   beforeEach(async () => {
     await Promise.allSettled([

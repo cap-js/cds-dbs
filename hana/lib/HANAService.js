@@ -580,7 +580,7 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS(I FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
@@ -1005,6 +1005,7 @@ class HANAService extends SQLService {
         : Object.keys(elements)
           .filter(e => {
             if (elements[e]?.virtual) return false
+            if (elements[e]?.isAssociation) return false
             if (columns.find(c => c.name === e)) return false
             if (elements[e]?.[annotation]) return true
             if (!isUpdate && elements[e]?.default) return true
