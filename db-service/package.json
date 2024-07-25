@@ -24,6 +24,9 @@
   "scripts": {
     "test": "jest --silent"
   },
+  "dependencies": {
+    "generic-pool": "^3.9.0"
+  },
   "peerDependencies": {
     "@sap/cds": ">=7.9"
   },
