@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.0...hana-v1.1.1) (2024-07-25)
+
+
+### Fixed
+
+* assocs with default value ([#752](https://github.com/cap-js/cds-dbs/issues/752)) ([a8660cf](https://github.com/cap-js/cds-dbs/commit/a8660cf4add1630a664d982823e61c2b856a4918))
+* make name for columns for ordinality unique ([#746](https://github.com/cap-js/cds-dbs/issues/746)) ([d3f9b23](https://github.com/cap-js/cds-dbs/commit/d3f9b237694afad699ed9cfb0258baf6120b7a11))
+
 ## [1.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.0.1...hana-v1.1.0) (2024-07-08)
 
 
