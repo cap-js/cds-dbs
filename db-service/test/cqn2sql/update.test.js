@@ -5,10 +5,11 @@ function cqn2sql(q, m = cds.model) {
   return _cqn2sql(q, m)
 }
 
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
-})
 describe('.update', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/testModel').then(cds.linked)
+  })
+
   test('test with entity of type string', () => {
     const cqnUpdate = {
       UPDATE: {

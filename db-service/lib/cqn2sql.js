@@ -217,7 +217,7 @@ class CQN2SQLRenderer {
 
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
-    let columns = this.SELECT_columns(q)
+    const columns = this.SELECT_columns(q)
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
@@ -311,8 +311,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-  
-    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }): this.expr(x)
+
+    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql

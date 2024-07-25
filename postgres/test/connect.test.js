@@ -1,15 +1,16 @@
 const { Client } = require('pg')
 const PgService = require('../lib/PostgresService')
-const { expect } = require('chai')
 
 const cds = require('../../test/cds.js')
 
 process.env.DEBUG && jest.setTimeout(100000)
 
 // fake the manifestation of the db connection
-Client.prototype.connect = jest.fn(() => Promise.resolve({}))
+Client.prototype.connect = () => { }
 
 describe('connect to pg db', () => {
+  const { expect } = cds.test
+
   test('in docker', async () => {
     cds.env.requires.db = require('@cap-js/postgres/test/service.json')
     const pgService = new PgService()

@@ -1,8 +1,8 @@
 const cds = require('../../../test/cds')
 
-const { POST, PUT, GET } = cds.test(__dirname, 'deep.cds')
-
 describe('UUID Generation', () => {
+  const { POST, PUT, GET, expect } = cds.test(__dirname, 'deep.cds')
+
   test('generate UUID on insert', async () => {
     const uuid = cds.utils.uuid()
     const res = await POST('/bla/RootUUID', {
@@ -12,9 +12,9 @@ describe('UUID Generation', () => {
         toManySubChild: [{ text: 'a' }, { text: 'b' }],
       },
     })
-    expect(res.status).toBe(201)
+    expect(res.status).to.equal(201)
 
-    expect(res.data).toMatchObject({
+    expect(res.data).to.containSubset({
       ID: uuid,
       name: null,
       toOneChild: {
@@ -24,15 +24,15 @@ describe('UUID Generation', () => {
     })
 
     // uuid is properly generated
-    expect(res.data.toOneChild.ID).toBeDefined()
+    expect(res.data.toOneChild.ID).to.exist
     // and propagated
-    expect(res.data.toOneChild.ID).toEqual(res.data.toOneChild_ID)
+    expect(res.data.toOneChild.ID).to.equal(res.data.toOneChild_ID)
     // uuid is properly generated
-    expect(res.data.toOneChild.toManySubChild[0].ID).toBeDefined()
-    expect(res.data.toOneChild.toManySubChild[1].ID).toBeDefined()
+    expect(res.data.toOneChild.toManySubChild[0].ID).to.exist
+    expect(res.data.toOneChild.toManySubChild[1].ID).to.exist
     // and propagated
-    expect(res.data.toOneChild.ID).toEqual(res.data.toOneChild.toManySubChild[0].backlink_ID)
-    expect(res.data.toOneChild.ID).toEqual(res.data.toOneChild.toManySubChild[1].backlink_ID)
+    expect(res.data.toOneChild.ID).to.equal(res.data.toOneChild.toManySubChild[0].backlink_ID)
+    expect(res.data.toOneChild.ID).to.equal(res.data.toOneChild.toManySubChild[1].backlink_ID)
   })
   test('generate UUID on update', async () => {
     const uuid = cds.utils.uuid()
@@ -43,7 +43,7 @@ describe('UUID Generation', () => {
         toManySubChild: [{ text: 'a' }, { text: 'b' }],
       },
     })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
 
     // new children are created
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
@@ -52,14 +52,14 @@ describe('UUID Generation', () => {
         toManySubChild: [{ text: 'a' }, { text: 'b' }],
       },
     })
-    expect(resUpdate.status).toBe(200)
+    expect(resUpdate.status).to.equal(200)
 
     const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild($expand=toManySubChild)`)
 
     // foreign keys are set correctly (deep)
-    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild_ID)
-    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild.toManySubChild[0].backlink_ID)
-    expect(resRead.data.toOneChild.ID).toEqual(resRead.data.toOneChild.toManySubChild[1].backlink_ID)
+    expect(resRead.data.toOneChild.ID).to.equal(resRead.data.toOneChild_ID)
+    expect(resRead.data.toOneChild.ID).to.equal(resRead.data.toOneChild.toManySubChild[0].backlink_ID)
+    expect(resRead.data.toOneChild.ID).to.equal(resRead.data.toOneChild.toManySubChild[1].backlink_ID)
   })
 
   test('generate UUID on update programmatically', async () => {
@@ -98,16 +98,16 @@ describe('UUID Generation', () => {
 
     // in the query `select … { *, toOneChild { … } }` the expand actually replaces the
     // the association `toOneChild` from the wildcard, hence `updated.toOneChild_ID === undefined`
-    // expect(updated.toOneChild.ID).toEqual(updated.toOneChild_ID)
+    // expect(updated.toOneChild.ID).to.equal(updated.toOneChild_ID)
 
     // foreign keys are set correctly (deep)
-    expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[0].backlink_ID)
-    expect(updated.toOneChild.ID).toEqual(updated.toOneChild.toManySubChild[1].backlink_ID)
+    expect(updated.toOneChild.ID).to.equal(updated.toOneChild.toManySubChild[0].backlink_ID)
+    expect(updated.toOneChild.ID).to.equal(updated.toOneChild.toManySubChild[1].backlink_ID)
 
     // new IDs are generated (deep)
-    expect(inserted.toOneChild.ID).not.toEqual(updated.toOneChild.ID)
-    expect(inserted.toOneChild.toManySubChild[0].ID).not.toEqual(updated.toOneChild.toManySubChild[0].ID)
-    expect(inserted.toOneChild.toManySubChild[1].ID).not.toEqual(updated.toOneChild.toManySubChild[1].ID)
+    expect(inserted.toOneChild.ID).not.to.equal(updated.toOneChild.ID)
+    expect(inserted.toOneChild.toManySubChild[0].ID).not.to.equal(updated.toOneChild.toManySubChild[0].ID)
+    expect(inserted.toOneChild.toManySubChild[1].ID).not.to.equal(updated.toOneChild.toManySubChild[1].ID)
   })
 
   test('update root and delete child', async () => {
@@ -118,21 +118,21 @@ describe('UUID Generation', () => {
         text: 'abc',
       },
     })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
 
     // child should be deleted
     const resUpdate = await PUT(`/bla/RootUUID(${uuid})`, {
       toOneChild: null,
     })
-    expect(resUpdate.status).toBe(200)
-    expect(resUpdate.data).toMatchObject({
+    expect(resUpdate.status).to.equal(200)
+    expect(resUpdate.data).to.containSubset({
       '@odata.context': '$metadata#RootUUID/$entity',
       ID: uuid,
       name: null,
     })
 
     const resRead = await GET(`/bla/RootUUID(${uuid})?$expand=toOneChild`)
-    expect(resRead.data).toMatchObject({
+    expect(resRead.data).to.containSubset({
       ID: uuid,
       name: null,
       toOneChild: null,
@@ -147,6 +147,6 @@ describe('UUID Generation', () => {
         rText: 'abc',
       },
     })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
   })
 })
