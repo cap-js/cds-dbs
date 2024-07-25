@@ -27,7 +27,7 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
     } else {
       promises.push(
         this.write({
-          dependencies: { '@sap/cds': '^7', '@cap-js/postgres': '^1' },
+          dependencies: { '@sap/cds': '^8', '@cap-js/postgres': '^1' },
           scripts: { start: 'cds-deploy' },
         }).to('package.json'),
       )
