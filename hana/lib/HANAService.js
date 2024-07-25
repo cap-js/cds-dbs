@@ -656,7 +656,7 @@ class HANAService extends SQLService {
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
-      const _stream = function (entries) {
+      const _stream = entries => {
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream._raw = entries
         return stream
