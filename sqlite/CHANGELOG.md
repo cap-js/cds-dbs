@@ -4,13 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.7.4](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.3...sqlite-v1.7.4) (2024-07-25)
-
-
-### Fixed
-
-* enforce db file to be existent before server start ([#742](https://github.com/cap-js/cds-dbs/issues/742)) ([64a9018](https://github.com/cap-js/cds-dbs/commit/64a90186aaf44b3426df2e9adbf9a1b4cf2f92b7))
-
 ## [1.7.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.2...sqlite-v1.7.3) (2024-07-09)
 
 
