@@ -85,7 +85,7 @@ class CQN2SQLRenderer {
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
       this.sql,
-      sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values,
+      ...(sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []),
     )
     return this
   }
@@ -508,6 +508,7 @@ class CQN2SQLRenderer {
     } else {
       const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
+      stream._raw = INSERT.entries
       this.entries = [[...this.values, stream]]
     }
 
@@ -652,6 +653,7 @@ class CQN2SQLRenderer {
     } else {
       const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
+      stream._raw = INSERT.rows
       this.entries = [[...this.values, stream]]
     }
 
@@ -1079,6 +1081,8 @@ class CQN2SQLRenderer {
 Buffer.prototype.toJSON = function () {
   return this.toString('base64')
 }
+
+Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {
