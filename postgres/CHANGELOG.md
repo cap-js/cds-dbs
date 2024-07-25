@@ -4,7 +4,7 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.9.2](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.1...postgres-v1.9.2) (2024-07-25)
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.1...postgres-v1.10.0) (2024-07-25)
 
 
 ### Changed
