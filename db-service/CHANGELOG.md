@@ -9,14 +9,14 @@
 
 ### Fixed
 
-*** add placeholder for string values ([#733](https://github.com/cap-js/cds-dbs/issues/733)) ([8136a45](https://github.com/cap-js/cds-dbs/commit/8136a4526f596b67932908b8ab1336cb052100f3))
-*** for aggregated `expand` always set explicit alias ([#739](https://github.com/cap-js/cds-dbs/issues/739)) ([53a8075](https://github.com/cap-js/cds-dbs/commit/53a8075a609666a896296401a28b6183ff5aa487)), closes [#708](https://github.com/cap-js/cds-dbs/issues/708)
-*** quotations in vals ([#754](https://github.com/cap-js/cds-dbs/issues/754)) ([94d8e97](https://github.com/cap-js/cds-dbs/commit/94d8e977ed00776ff494287ce505d6b7e8017d2e))
+* add placeholder for string values ([#733](https://github.com/cap-js/cds-dbs/issues/733)) ([8136a45](https://github.com/cap-js/cds-dbs/commit/8136a4526f596b67932908b8ab1336cb052100f3))
+* for aggregated `expand` always set explicit alias ([#739](https://github.com/cap-js/cds-dbs/issues/739)) ([53a8075](https://github.com/cap-js/cds-dbs/commit/53a8075a609666a896296401a28b6183ff5aa487)), closes [#708](https://github.com/cap-js/cds-dbs/issues/708)
+* quotations in vals ([#754](https://github.com/cap-js/cds-dbs/issues/754)) ([94d8e97](https://github.com/cap-js/cds-dbs/commit/94d8e977ed00776ff494287ce505d6b7e8017d2e))
 
 
 ### Changed
 
-*** generic-pool as real dep ([#750](https://github.com/cap-js/cds-dbs/issues/750)) ([b50c907](https://github.com/cap-js/cds-dbs/commit/b50c907880455a41a73826a736bc17ca17e5b9ae))
+* generic-pool as real dep ([#750](https://github.com/cap-js/cds-dbs/issues/750)) ([b50c907](https://github.com/cap-js/cds-dbs/commit/b50c907880455a41a73826a736bc17ca17e5b9ae))
 
 
 ## [1.11.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.10.3...db-service-v1.11.0) (2024-07-08)
