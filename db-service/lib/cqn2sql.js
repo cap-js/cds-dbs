@@ -1,6 +1,8 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const _simple_queries = cds.env.features.sql_simple_queries
+const _strict_booleans = _simple_queries < 2
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -89,7 +91,7 @@ class CQN2SQLRenderer {
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
       this.sql,
-      sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values,
+      ...(sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []),
     )
     return this
   }
@@ -226,6 +228,7 @@ class CQN2SQLRenderer {
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
     if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
@@ -264,10 +267,10 @@ class CQN2SQLRenderer {
     if (!SELECT.columns) return sql
 
     const isRoot = SELECT.expand === 'root'
-    const isSimple = cds.env.features.sql_simple_queries &&
+    const isSimple = _simple_queries &&
       isRoot && // Simple queries are only allowed to have a root
       !ObjectKeys(q.elements).some(e =>
-        q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
+        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
         q.elements[e].isAssociation || // Indicates columns contains an expand
         q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
         q.elements[e].items // Array types require to be inlined with a json result
@@ -314,13 +317,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-    ///////////////////////////////////////////////////////////////////////////////////////
-    // REVISIT: that should move out of here!
-    if (x?.element?.['@cds.extension']) {
-      return `extensions__->${this.string('$."' + x.element.name + '"')} as ${x.as || x.element.name}`
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////
-    let sql = this.expr({ param: false, __proto__: x })
+  
+    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }): this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -353,6 +351,14 @@ class CQN2SQLRenderer {
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join)
       return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+  }
+
+  /**
+   * Renders a FROM clause for when the query does not have a target
+   * @returns {string} SQL
+   */
+  from_dummy() {
+    return ''
   }
 
   /**
@@ -484,7 +490,7 @@ class CQN2SQLRenderer {
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
-    this.columns = columns.filter(elements ? c => !elements[c]?.['@cds.extension'] : () => true)
+    this.columns = columns
 
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
@@ -497,24 +503,7 @@ class CQN2SQLRenderer {
       elements,
       !!q.UPSERT,
     )
-    const extraction = extractions
-      .map(c => {
-        const element = elements?.[c.name]
-        if (element?.['@cds.extension']) {
-          return false
-        }
-        if (c.name === 'extensions__') {
-          const merges = extractions.filter(c => elements?.[c.name]?.['@cds.extension'])
-          if (merges.length) {
-            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(
-              c => this.string('$."' + c.name + '"') + ',' + c.sql,
-            )})`
-          }
-        }
-        return c
-      })
-      .filter(a => a)
-      .map(c => c.sql)
+    const extraction = extractions.map(c => c.sql)
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
@@ -525,6 +514,7 @@ class CQN2SQLRenderer {
     } else {
       const stream = Readable.from(this.INSERT_entries_stream(INSERT.entries), { objectMode: false })
       stream.type = 'json'
+      stream._raw = INSERT.entries
       this.entries = [[...this.values, stream]]
     }
 
@@ -669,6 +659,7 @@ class CQN2SQLRenderer {
     } else {
       const stream = Readable.from(this.INSERT_rows_stream(INSERT.rows), { objectMode: false })
       stream.type = 'json'
+      stream._raw = INSERT.rows
       this.entries = [[...this.values, stream]]
     }
 
@@ -786,14 +777,6 @@ class CQN2SQLRenderer {
         }
       }
     }
-
-    columns = columns.map(c => {
-      if (q.elements?.[c.name]?.['@cds.extension']) return {
-        name: 'extensions__',
-        sql: `jsonb_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
-      }
-      return c
-    })
 
     const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
 
@@ -1104,6 +1087,8 @@ class CQN2SQLRenderer {
 Buffer.prototype.toJSON = function () {
   return this.toString('base64')
 }
+
+Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {

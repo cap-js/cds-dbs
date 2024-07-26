@@ -96,7 +96,7 @@ class HDBDriver extends driver {
                 ? null
                 : (
                   row[col].createReadStream?.()
-                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                  || row[col]
                 )
               : row[col]
           }
@@ -135,7 +135,7 @@ class HDBDriver extends driver {
 
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
-    const isArray = Array.isArray(rows)        
+    const isArray = Array.isArray(rows)
     const result = isArray ? {...rows[0]} : {...rows}
 
     // merge table output params into scalar params
@@ -146,7 +146,7 @@ class HDBDriver extends driver {
         result[params[i].PARAMETER_NAME] = args[i]
       }
     }
-  
+
     return result
   }
 
@@ -167,10 +167,6 @@ class HDBDriver extends driver {
       streams,
     }
   }
-}
-
-function* echoStream(ret) {
-  yield ret
 }
 
 async function* rsIterator(rs, one) {

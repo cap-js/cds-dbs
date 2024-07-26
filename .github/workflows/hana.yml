@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     name: HANA Node.js ${{ matrix.node }}
+    permissions:
+      packages: write
 
     strategy:
       fail-fast: true
