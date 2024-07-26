@@ -14,7 +14,7 @@
     "@sap/hana-client": "^2.16.26",
     "axios": "^1",
     "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
+    "chai-as-promised": "^8.0.0",
     "chai-subset": "^1.6.0",
     "express": "^4",
     "hdb": "^0.19.5",
