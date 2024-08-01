@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const JSON_CONCAT = true
 
 /**
  * @implements SQLService
@@ -545,8 +546,16 @@ class HANAService extends SQLService {
                 return false
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
-              const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
+              let converter = x.element?.[this.class._convertOutput] || src?.elements[columnName]?.[this.class._convertOutput]
+              if (JSON_CONCAT && converter) {
+                const _converter = converter
+                converter = (expr, elem) => `'"' || ${_converter(expr, elem)} || '"'`
+              } else {
+                converter = e => e
+              }
+              return JSON_CONCAT
+                ? `${this.string(JSON.stringify(columnName) + ':')} || coalesce((${converter(this.quote(columnName))}) || '', 'null')`
+                : `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
             : x => {
               if (x === '*') return '*'
@@ -580,7 +589,10 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          ?
+          JSON_CONCAT
+            ? `'{' || ${sql.join(` || ',' || `)} || '}'`
+            : `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
@@ -1126,15 +1138,19 @@ class HANAService extends SQLService {
       ...super.OutputConverters,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
-      Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
-      Time: e => `to_char(${e}, 'HH24:MI:SS')`,
-      DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Date: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD')`,
+      Time: e => `TO_NVARCHAR(${e}, 'HH24:MI:SS')`,
+      DateTime: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
+      Timestamp: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
       Decimal: expr => `TO_NVARCHAR(${expr})`,
+
+      String: JSON_CONCAT
+        ? e => `${['\\', '"', '\b', '\t', '\n', '\f', '\r'].reduce((l, c) => `REPLACE(${l},'${c}','${JSON.stringify(c).slice(1, -1)}')`, e)}`
+        : undefined,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
