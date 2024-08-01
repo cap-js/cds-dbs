@@ -724,17 +724,23 @@ GROUP BY FILE_NAME`
       const extraction = extractions.map(c => c.column)
       const converter = extractions.map(c => c.convert)
 
+      const _stream = entries => {
+        const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
+        stream._raw = entries
+        return stream
+      }
+
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
         this.entries = INSERT.entries.map(e => (e instanceof Readable
           ? [e]
-          : [Readable.from(this.INSERT_entries_stream([e], 'hex'), { objectMode: false })]))
+          : [_stream([e])]))
       } else {
         this.entries = [[
           INSERT.entries[0] instanceof Readable
             ? INSERT.entries[0]
-            : Readable.from(this.INSERT_entries_stream(INSERT.entries, 'hex'), { objectMode: false })
+            : _stream(INSERT.entries)
         ]]
       }
 
