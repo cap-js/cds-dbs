@@ -1,3 +1,4 @@
+const fs = require('fs')
 const assert = require('assert')
 const cds = require('../cds.js')
 
@@ -279,7 +280,7 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
-      
+
     test('exists path expression', async () => {
       const cqn = {
         SELECT: {
@@ -536,6 +537,39 @@ describe('SELECT', () => {
   describe('distinct', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
+    })
+  })
+
+  describe('explain', () => {
+    test('Ensure explain returns the same result', async () => {
+      const dir = 'compliance-explain-test'
+      const { Authors: target } = cds.entities('complex.associations')
+
+      const cqn = SELECT([
+        { ref: ['ID'] },
+        { ref: ['name'] },
+        {
+          ref: ['books'], expand: [
+            { ref: ['ID'] },
+            { ref: ['title'] }
+          ]
+        },
+      ])
+        .from(target)
+        .orderBy('ID')
+
+      const explain = cds.ql.clone(cqn)
+      explain.SELECT.explain = dir
+      const normal = cds.ql.clone(cqn)
+
+      try {
+        const normalResults = await normal
+        const explainResults = await explain
+        expect(explainResults).to.deep.equal(normalResults)
+      } finally {
+        // Clean explain files
+        await fs.promises.rm(dir, { force: true, recursive: true, maxRetries: 100 })
+      }
     })
   })
 })

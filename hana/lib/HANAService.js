@@ -297,7 +297,7 @@ class HANAService extends SQLService {
     const stmt = await this.ensureDBC().prepare('CALL PLANVIZ_ACTION(?, ?)')
     await stmt.run([110, null]) // Enable planviz
 
-    const getProp = (res, prop) => res[prop] || res[1][0][prop]
+    const getProp = (res, prop) => res[prop] || res[0][prop] || res[1][0][prop]
     const ID = getProp(await stmt.all([201, sql]), 'DATA')
     const prep = await this.ensureDBC().prepare(`EXECUTE PLANVIZ STATEMENT ID '${ID}'`, hasBlobs)
 

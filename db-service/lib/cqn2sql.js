@@ -219,7 +219,6 @@ class CQN2SQLRenderer {
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
     let columns = this.SELECT_columns(q)
     let sql = `SELECT`
-    if (explain) sql = `${this.explain()} ${sql}`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
     if (!_empty(from)) sql += ` FROM ${this.from(from)}`
@@ -237,6 +236,7 @@ class CQN2SQLRenderer {
       if ('elements' in q) sql = this.SELECT_expand(q, sql)
       else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
+    if (explain) sql = `${this.explain()} ${sql}`
     return (this.sql = sql)
   }
 
