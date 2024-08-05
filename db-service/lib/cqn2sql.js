@@ -36,9 +36,9 @@ class CQN2SQLRenderer {
     this.model = srv?.model
 
     // Overwrite smart quoting
-    if (cds.env.cdsc.sqlMapping === 'quoted') {
+    if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name) => name.id || name
-      this.class.prototype.quote = (s) => `"${s.replace(/"/g, '""')}"`
+      this.class.prototype.quote = (s) => `"${(s + '').replace(/"/g, '""')}"`
     }
   }
 
