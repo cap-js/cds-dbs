@@ -10,7 +10,7 @@ beforeAll(async () => {
 })
 describe('delete', () => {
   test('test with from entity', () => {
-    const cqnDelete = DELETE.from(cds.model.definitions.Foo)
+    const cqnDelete = DELETE.from(cds.model.definitions.Foo).where('1=1')
     const { sql } = cqn2sql(cqnDelete)
     expect(sql).toMatchSnapshot()
   })

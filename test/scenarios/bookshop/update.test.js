@@ -124,7 +124,7 @@ describe('Bookshop - Update', () => {
 
   test('programmatic update with unique constraint conflict', async () => {
     const { Genres } = cds.entities('sap.capire.bookshop')
-    const update = UPDATE(Genres).set('ID = 201')
+    const update = UPDATE(Genres).set('ID = 201').where('1=1')
     const err = await expect(update).rejected
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)

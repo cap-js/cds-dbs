@@ -23,7 +23,7 @@ const { expect } = cds.test(__dirname + '/resources')
   test('Update returns affected rows', async () => {
     const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
     
-    const affectedRows = await UPDATE.entity('complex.associations.Books').data({title: 'Book'})
+    const affectedRows = await UPDATE.entity('complex.associations.Books').data({title: 'Book'}).where('1=1')
     expect(affectedRows).to.be.eq(count)
   })
 

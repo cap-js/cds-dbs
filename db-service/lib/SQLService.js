@@ -21,6 +21,14 @@ const BINARY_TYPES = {
 
 class SQLService extends DatabaseService {
   init() {
+    this.on(['UPDATE', 'DELETE'], ({ query}, next) => {
+      const cqn = query.UPDATE ?? query.DELETE
+      if (!cqn.where && !cqn.from?.ref?.at(-1).where && !cqn.entity?.ref?.at(-1).where) {
+        const op = query.DELETE ? 'delete' : 'update'
+        return cds.error(`Trying to ${op} all entites. Call .where(...) explicitely, to ${op} all entities.`)
+      }
+      return next()
+    })
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {

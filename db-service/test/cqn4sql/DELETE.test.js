@@ -21,7 +21,7 @@ describe('DELETE', () => {
 
   it('DELETE with where exists expansion', () => {
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Books:author')
+    let d = DELETE.from('bookshop.Books:author').where('1=1')
     const query = cqn4sql(d, model)
     // how to express this in CQN?
     // DELETE.from({ref: ['bookshop.Authors'], as: 'author'}).where('exists ( SELECT 1 from bookshop.Books as Books where author_ID = author.ID)')
@@ -186,7 +186,7 @@ describe('DELETE', () => {
 
   it('DELETE with assoc filter and where exists expansion', () => {
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup')
+    let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup').where('1=1')
     const query = cqn4sql(d, model)
 
     const expected = {

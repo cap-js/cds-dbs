@@ -10,7 +10,7 @@ describe('UUID Generation', () => {
       const result = await SELECT.from('test.bar')
       expect(result).toEqual([{ ID: expect.any(String) }])
 
-      await DELETE('test.bar')
+      await DELETE('test.bar').where('1=1')
     })
   })
   test('INSERT with multiple entries', async () => {
@@ -22,7 +22,7 @@ describe('UUID Generation', () => {
       expect(result).toEqual([{ ID: expect.any(String) }, { ID: expect.any(String) }])
       expect(result[0].ID).not.toEqual(result[1].ID)
 
-      await DELETE('test.bar')
+      await DELETE('test.bar').where('1=1')
     })
   })
 
