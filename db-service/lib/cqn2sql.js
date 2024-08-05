@@ -130,13 +130,15 @@ class CQN2SQLRenderer {
    */
   CREATE_elements(elements) {
     let sql = ''
+    let keys = ''
     for (let e in elements) {
       const definition = elements[e]
       if (definition.isAssociation) continue
+      if (definition.key) keys = `${keys}, ${this.quote(definition.name)}`
       const s = this.CREATE_element(definition)
-      if (s) sql += `${s}, `
+      if (s) sql += `, ${s}`
     }
-    return sql.slice(0, -2)
+    return `${sql.slice(2)}${keys && `, PRIMARY KEY(${keys.slice(2)})`}`
   }
 
   /**
@@ -492,12 +494,25 @@ class CQN2SQLRenderer {
       return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
-    const extractions = this.managed(
-      columns.map(c => ({ name: c })),
-      elements,
-      !!q.UPSERT,
-    )
-    const extraction = extractions.map(c => c.sql)
+    const extractions = this.managed(columns.map(c => ({ name: c })), elements)
+    const extraction = extractions
+      .map(c => {
+        const element = elements?.[c.name]
+        if (element?.['@cds.extension']) {
+          return false
+        }
+        if (c.name === 'extensions__') {
+          const merges = extractions.filter(c => elements?.[c.name]?.['@cds.extension'])
+          if (merges.length) {
+            c.sql = `json_set(ifnull(${c.sql},'{}'),${merges.map(
+              c => this.string('$."' + c.name + '"') + ',' + c.sql,
+            )})`
+          }
+        }
+        return c
+      })
+      .filter(a => a)
+      .map(c => c.insert)
 
     // Include this.values for placeholders
     /** @type {unknown[][]} */
@@ -719,14 +734,36 @@ class CQN2SQLRenderer {
    */
   UPSERT(q) {
     const { UPSERT } = q
+    const entity = this.name(q.target?.name || UPSERT.into.ref[0])
+    const alias = UPSERT.into.as
     const elements = q.target?.elements || {}
-    let sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
+    const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
+
     let keys = q.target?.keys
-    if (!keys) return this.sql = sql
+    if (!keys) return insert
     keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
-    let updateColumns = q.UPSERT.entries ? Object.keys(q.UPSERT.entries[0]) : this.columns
-    updateColumns = updateColumns.filter(c => {
+    // temporal data
+    keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
+
+    const keyCompare = keys
+      .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
+      .join(' AND ')
+
+    const managed = this.managed(
+      this.columns.map(c => ({ name: c })),
+      elements
+    )
+
+    const extractkeys = managed
+      .filter(c => keys.includes(c.name))
+      .map(c => `${c.converter(c.sql)} as ${this.quote(c.name)}`)
+
+    const mixing = managed.map(c => c.upsert)
+
+    const sql = `SELECT ${mixing} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+
+    const updateColumns = this.columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
       let e = elements[c]
       if (!e) return true //> pass through to native SQL columns not in CDS model
@@ -736,14 +773,8 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    // temporal data
-    keys.push(...Object.values(q.target.elements).filter(e => e['@cds.valid.from']).map(e => e.name))
-
-    keys = keys.map(k => this.quote(k))
-    const conflict = updateColumns.length
-      ? `ON CONFLICT(${keys}) DO UPDATE SET ` + updateColumns
-      : `ON CONFLICT(${keys}) DO NOTHING`
-    return (this.sql = `${sql} WHERE true ${conflict}`)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+      }) ${sql} WHERE TRUE ON CONFLICT(${keys}) DO UPDATE SET ${updateColumns}`)
   }
 
   // UPDATE Statements ------------------------------------------------
@@ -772,7 +803,17 @@ class CQN2SQLRenderer {
       }
     }
 
-    const extraction = this.managed(columns, elements, true).map(c => `${this.quote(c.name)}=${c.sql}`)
+    columns = columns.map(c => {
+      if (q.elements?.[c.name]?.['@cds.extension']) return {
+        name: 'extensions__',
+        sql: `jsonb_set(extensions__,${this.string('$."' + c.name + '"')},${c.sql})`,
+      }
+      return c
+    })
+
+    const extraction = this.managed(columns, elements)
+      .filter((c, i) => columns[i] || c.onUpdate)
+      .map((c, i) => `${this.quote(c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
     if (where) sql += ` WHERE ${this.where(where)}`
@@ -1030,50 +1071,92 @@ class CQN2SQLRenderer {
    * @param {Boolean} isUpdate
    * @returns {string[]} Array of SQL expressions for processing input JSON data
    */
-  managed(columns, elements, isUpdate = false) {
-    const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
+  managed(columns, elements) {
+    const cdsOnInsert = '@cds.on.insert'
+    const cdsOnUpdate = '@cds.on.update'
+
     const { _convertInput } = this.class
     // Ensure that missing managed columns are added
     const requiredColumns = !elements
       ? []
-      : Object.keys(elements)
-        .filter(
-          e =>
-            (elements[e]?.[annotation] || (!isUpdate && elements[e]?.default && !elements[e].virtual && !elements[e].isAssociation)) &&
-            !columns.find(c => c.name === e),
-        )
+      : ObjectKeys(elements)
+        .filter(e => {
+          const element = elements[e]
+          // Physical column check
+          if (!element || element.virtual || element.isAssociation) return false
+          // Existance check
+          if (columns.find(c => c.name === e)) return false
+          // Actual mandatory check
+          if (element.default || element[cdsOnInsert] || element[cdsOnUpdate]) return true
+          return false
+        })
         .map(name => ({ name, sql: 'NULL' }))
+
+    const keys = ObjectKeys(elements).filter(e => elements[e].key)
+    const keyZero = keys[0] && this.quote(keys[0])
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       let element = elements?.[name] || {}
-      if (!sql) sql = `value->>'$."${name}"'`
+      const qname = this.quote(name)
 
-      let converter = element[_convertInput]
-      if (converter && sql[0] !== '$') sql = converter(sql, element)
-
-      let val = _managed[element[annotation]?.['=']]
-      if (val) sql = `coalesce(${sql}, ${this.func({ func: 'session_context', args: [{ val, param: false }] })})`
-      else if (!isUpdate && element.default) {
-        const d = element.default
-        if (d.val !== undefined || d.ref?.[0] === '$now') {
-          // REVISIT: d.ref is not used afterwards
-          sql = `(CASE WHEN json_type(value,'$."${name}"') IS NULL THEN ${this.defaultValue(d.val) // REVISIT: this.defaultValue is a strange function
-            } ELSE ${sql} END)`
-        }
+      const converter = a => element[_convertInput]?.(a, element) || a
+      let extract
+      if (!sql) {
+        ({ sql, extract } = this.managed_extract(name, element, converter))
       }
+      // if (sql[0] !== '$') sql = converter(sql, element)
 
-      return { name, sql }
+      let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
+        || this.managed_session_context(element.default?.ref?.[0])
+        || (element.default?.val !== undefined && { val: element.default.val, param: false })
+      let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
+
+      onInsert = onInsert && this.expr(onInsert)
+      onUpdate = onUpdate && this.expr(onUpdate)
+
+      const insert = onInsert ? this.managed_default(name, onInsert, sql) : sql
+      const update = onUpdate ? this.managed_default(name, onUpdate, sql) : sql
+      const upsert = keyZero && (
+        // If both insert and update have the same managed definition exclude the old value check
+        (onInsert && onUpdate && insert === update)
+          ? insert
+          : `(CASE WHEN OLD.${keyZero} IS NULL THEN ${
+          // If key of old is null execute insert
+          insert
+          } ELSE ${
+          // Else execute managed update or keep old if no new data if provided
+          onUpdate ? update : this.managed_default(name, `OLD.${qname}`, update)
+          } END) as ${qname}`
+      )
+
+      return {
+        name, // Element name
+        sql, // Reference SQL
+        extract, // Source SQL
+        converter, // Converter logic
+        // action specific full logic
+        insert, update, upsert,
+        // action specific isolated logic
+        onInsert, onUpdate
+      }
     })
   }
 
-  /**
-   * Returns the default value
-   * @param {string} defaultValue
-   * @returns {string}
-   */
-  // REVISIT: This is a strange method, also overridden inconsistently in postgres
-  defaultValue(defaultValue = this.context.timestamp.toISOString()) {
-    return typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
+  managed_extract(name, element, converter) {
+    const ret = converter(`value->>'$."${name.replace(/"/g, '""')}"'`)
+    return {
+      extract: ret,
+      sql: ret,
+    }
+  }
+
+  managed_session_context(src) {
+    const val = _managed[src]
+    return val && { func: 'session_context', args: [{ val, param: false }] }
+  }
+
+  managed_default(name, managed, src) {
+    return `(CASE WHEN json_type(value,'$."${name.replace(/"/g, '""')}"') IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
 
