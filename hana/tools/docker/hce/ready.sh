@@ -1,5 +1,5 @@
-docker exec hce_hana_1 /bin/bash -c "while ! ./check_hana_health ; do sleep 10 ; done;"
-docker exec -it hce_hana_1 /bin/bash -c "\
+docker exec hce-hana-1 /bin/bash -c "while ! ./check_hana_health ; do sleep 10 ; done;"
+docker exec -it hce-hana-1 /bin/bash -c "\
 cd /usr/sap/H00/HDB00;\
 . ./hdbenv.sh;\
 hdbuserstore -i SET SYSDBKEY localhost:30013@SYSTEMDB SYSTEM Manager1;\
