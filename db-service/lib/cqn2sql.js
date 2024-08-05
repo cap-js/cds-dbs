@@ -342,7 +342,9 @@ class CQN2SQLRenderer {
     const { ref, as } = from
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) {
-      const z = ref[0]
+      const { target } = SELECT.from(from)
+      // localized views don't have @cds.persistence.name so all resolve to non localized entities
+      const z = target?.['@cds.persistence.name'] || ref[0]
       if (z.args) {
         return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
       }
