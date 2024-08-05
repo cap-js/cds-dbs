@@ -63,6 +63,14 @@ describe('Bookshop - Read', () => {
     ).to.be.true
   })
 
+  test('same as above, with more depth', async () => {
+    const res = await GET(
+      '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((genre/parent/name),aggregate(price with sum as totalAmount))',
+      admin,
+    )
+    expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)

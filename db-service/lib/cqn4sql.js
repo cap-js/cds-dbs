@@ -884,6 +884,7 @@ function cqn4sql(originalQuery, model) {
 
         if (expand.expand) {
           const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          setElementOnColumns(nested, expand.element)
           elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
           return nested
         }
