@@ -24,7 +24,11 @@
   ],
   "scripts": {
     "test": "npm start && jest --silent",
-    "start": "docker-compose -f pg-stack.yml up -d"
+    "test:all": "npm run test:14 && npm run test:15 && npm run test:16",
+    "test:14": "VER=14 npm run test",
+    "test:15": "VER=15 npm run test",
+    "test:16": "VER=16 npm run test",
+    "start": "docker-compose -p postgres down && VER=\"${VER:-16}\" docker-compose -f pg-stack.yml up -d"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.9.0",
