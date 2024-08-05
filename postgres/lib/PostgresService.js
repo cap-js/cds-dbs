@@ -376,13 +376,13 @@ GROUP BY k
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
-        const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
-        let col = `${outputConverter} as ${this.doubleQuote(name)}`
+        const outputConverter = x.element?.[this.class._convertOutput] || (a => a)
+        let col = `${outputConverter(`${queryAlias}.${this.quote(name)}`, x.element)} as ${this.doubleQuote(name)}`
 
         if (x.SELECT?.count) {
+          // REVISIT: should be moved to protocol adapters
           // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          col += `,${this.expr(qc)} as ${this.doubleQuote(`${name}@odata.count`)}`
+          col += `,${this.count(x)} as ${this.doubleQuote(`${name}@odata.count`)}`
         }
         return col
       })
