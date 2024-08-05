@@ -1,6 +1,6 @@
 exists=$(docker images hana-master:current -q);
 if [ $exists ]; then
-    docker-compose -f hana.yml up -d;
+    docker compose -f hana.yml up -d;
     ./ready.sh;
 else
     ./update.sh;
