@@ -100,12 +100,16 @@ class Pool extends EventEmitter {
     this._all = new Set()
     this._creates = new Set()
     this._queue = new Queue()
-    this.start()
-  }
-
-  start() {
     this._scheduleEvictorRun()
     for (let i = 0; i < this.options.min - this.size; i++) this._createResource()
+  }
+
+  acquire() {
+    if (this._draining) return Promise.reject(new Error('Pool is draining and cannot accept work'))
+    const resourceRequest = new ResourceRequest(this.options.acquireTimeoutMillis)
+    this._queue.enqueue(resourceRequest)
+    this._dispense()
+    return resourceRequest.promise
   }
 
   _createResource() {
@@ -124,14 +128,6 @@ class Pool extends EventEmitter {
         this._creates.delete(_create)
         this._dispense()
       })
-  }
-
-  acquire() {
-    if (this._draining) return Promise.reject(new Error('pool is draining and cannot accept work'))
-    const resourceRequest = new ResourceRequest(this.options.acquireTimeoutMillis)
-    this._queue.enqueue(resourceRequest)
-    this._dispense()
-    return resourceRequest.promise
   }
 
   _dispense() {
