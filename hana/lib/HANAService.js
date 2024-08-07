@@ -53,8 +53,7 @@ class HANAService extends SQLService {
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
         ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
+        testOnBorrow: true
       },
       create: async function (tenant) {
         try {
