@@ -80,6 +80,7 @@ class Queue {
 }
 
 class Pool extends EventEmitter {
+
   constructor(factory, options = {}) {
     super()
     this.factory = factory
@@ -100,19 +101,53 @@ class Pool extends EventEmitter {
     this._all = new Set()
     this._creates = new Set()
     this._queue = new Queue()
-    this._scheduleEvictorRun()
-    for (let i = 0; i < this.options.min - this.size; i++) this._createResource()
+    this.#scheduleEviction()
+    for (let i = 0; i < this.options.min - this.#size; i++) this.#createResource()
   }
 
   acquire() {
     if (this._draining) return Promise.reject(new Error('Pool is draining and cannot accept work'))
-    const resourceRequest = new ResourceRequest(this.options.acquireTimeoutMillis)
-    this._queue.enqueue(resourceRequest)
-    this._dispense()
-    return resourceRequest.promise
+    const request = new ResourceRequest(this.options.acquireTimeoutMillis)
+    this._queue.enqueue(request)
+    this.#dispense()
+    return request.promise
   }
 
-  _createResource() {
+  release(resource) {
+    const loan = this._loans.get(resource)
+    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
+    this._loans.delete(resource)
+    const pooledResource = loan.pooledResource
+    pooledResource.updateState(ResourceState.IDLE)
+    this._available.add(pooledResource)
+    this.#dispense()
+    return Promise.resolve()
+  }
+
+  destroy(resource) {
+    const loan = this._loans.get(resource)
+    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
+    this._loans.delete(resource)
+    const pooledResource = loan.pooledResource
+    this.#destroy(pooledResource)
+    this.#dispense()
+    return Promise.resolve()
+  }
+
+  drain() {
+    this._draining = true
+    const allResourceRequestsSettled = this._queue.length > 0 ? this._queue.tail.promise : Promise.resolve()
+    return allResourceRequestsSettled
+      .then(() => Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise)))
+      .then(() => clearTimeout(this._scheduledEviction))
+  }
+
+  async clear() {
+    await Promise.all(Array.from(this._creates))
+    for (const resource of this._available) this.#destroy(resource)
+  }
+
+  #createResource() {
     const _create = this.factory.create()
     this._creates.add(_create)
     _create.then(resource => {
@@ -126,16 +161,16 @@ class Pool extends EventEmitter {
       })
       .finally(() => {
         this._creates.delete(_create)
-        this._dispense()
+        this.#dispense()
       })
   }
 
-  _dispense() {
+  #dispense() {
     const waiting = this._queue.length
     if (waiting < 1) return
     const shortfall = waiting - (this._available.size + this._creates.size)
-    for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) this._createResource()
-    const dispenseToNext = resource => {
+    for (let i = 0; i < Math.min(this.options.max - this.#size, shortfall); i++) this.#createResource()
+    const dispense = resource => {
       const request = this._queue.dequeue()
       if (!request) {
         resource.updateState(ResourceState.IDLE)
@@ -157,19 +192,19 @@ class Pool extends EventEmitter {
           .then(isValid => {
             if (!isValid) {
               resource.updateState(ResourceState.INVALID)
-              this._destroy(resource)
-              this._dispense()
+              this.#destroy(resource)
+              this.#dispense()
               return
             }
-            dispenseToNext(resource)
+            dispense(resource)
           })
       } else {
-        dispenseToNext(resource)
+        dispense(resource)
       }
     }
   }
 
-  _destroy(resource) {
+  #destroy(resource) {
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
     const _destroy = this.factory.destroy(resource.obj)
@@ -179,73 +214,35 @@ class Pool extends EventEmitter {
     ]) : _destroy
     wrapped.catch(reason => this.emit('factoryDestroyError', reason))
     if (this._draining) return
-    for (let i = 0; i < this.options.min - this.size; i++) this._createResource()
+    for (let i = 0; i < this.options.min - this.#size; i++) this.#createResource()
   }
 
-  _scheduleEvictorRun() {
-    if (this.options.evictionRunIntervalMillis > 0) {
+  #scheduleEviction() {
+    const { evictionRunIntervalMillis, numTestsPerEvictionRun, softIdleTimeoutMillis, min, idleTimeoutMillis } = this.options
+    if (evictionRunIntervalMillis > 0) {
       this._scheduledEviction = setTimeout(() => {
         try {
-          const evictionConfig = {
-            softIdleTimeoutMillis: this.options.softIdleTimeoutMillis,
-            idleTimeoutMillis: this.options.idleTimeoutMillis,
-            min: this.options.min
-          }
           const resourcesToEvict = Array.from(this._available)
-            .slice(0, this.options.numTestsPerEvictionRun)
+            .slice(0, numTestsPerEvictionRun)
             .filter(resource => {
               const idleTime = Date.now() - resource.lastIdleTime
-              const softEvict = evictionConfig.softIdleTimeoutMillis > 0 && evictionConfig.softIdleTimeoutMillis < idleTime && evictionConfig.min < this._available.size
-              return softEvict || evictionConfig.idleTimeoutMillis < idleTime
+              const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
+              return softEvict || idleTimeoutMillis < idleTime
             })
           resourcesToEvict.forEach(resource => {
             this._available.delete(resource)
-            this._destroy(resource)
+            this.#destroy(resource)
           })
         } catch (error) {
           this.emit('evictorRunError', error)
         } finally {
-          this._scheduleEvictorRun()
+          this.#scheduleEviction()
         }
-      }, this.options.evictionRunIntervalMillis).unref()
+      }, evictionRunIntervalMillis).unref()
     }
   }
 
-  release(resource) {
-    const loan = this._loans.get(resource)
-    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
-    this._loans.delete(resource)
-    const pooledResource = loan.pooledResource
-    pooledResource.updateState(ResourceState.IDLE)
-    this._available.add(pooledResource)
-    this._dispense()
-    return Promise.resolve()
-  }
-
-  destroy(resource) {
-    const loan = this._loans.get(resource)
-    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
-    this._loans.delete(resource)
-    const pooledResource = loan.pooledResource
-    this._destroy(pooledResource)
-    this._dispense()
-    return Promise.resolve()
-  }
-
-  drain() {
-    this._draining = true
-    const allResourceRequestsSettled = this._queue.length > 0 ? this._queue.tail.promise : Promise.resolve()
-    return allResourceRequestsSettled
-      .then(() => Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise)))
-      .then(() => clearTimeout(this._scheduledEviction))
-  }
-
-  async clear() {
-    await Promise.all(Array.from(this._creates))
-    for (const resource of this._available) this._destroy(resource)
-  }
-
-  get size() {
+  get #size() {
     return this._all.size + this._creates.size
   }
 }
