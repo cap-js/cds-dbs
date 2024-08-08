@@ -1100,7 +1100,7 @@ class HANAService extends SQLService {
 
       // HANA types
       'cds.hana.TINYINT': () => 'INT',
-      'cds.hana.REAL': () => 'DECIMAL',
+      'cds.hana.REAL': () => 'DOUBLE',
       'cds.hana.CHAR': e => `NVARCHAR(${(e.length || 1) * 4})`,
       'cds.hana.ST_POINT': () => 'NVARCHAR(2147483647)',
       'cds.hana.ST_GEOMETRY': () => 'NVARCHAR(2147483647)',
