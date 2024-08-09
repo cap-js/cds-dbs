@@ -132,9 +132,7 @@ class Pool extends EventEmitter {
 
   async clear() {
     await Promise.all(Array.from(this._creates))
-    for (const resource of this._available) {
-      await this.#destroy(resource)
-    }
+    await Promise.all(Array.from(this._available).map(resource => this.#destroy(resource)))
   }
 
   async #createResource() {
@@ -156,9 +154,12 @@ class Pool extends EventEmitter {
     const waiting = this._queue.length
     if (waiting < 1) return
     const shortfall = waiting - (this._available.size + this._creates.size)
+    const creationPromises = []
     for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) {
-      await this.#createResource()
+      creationPromises.push(this.#createResource())
     }
+    await Promise.all(creationPromises)
+    const dispensePromises = []
     const dispense = async resource => {
       const request = this._queue.dequeue()
       if (!request) {
@@ -172,23 +173,26 @@ class Pool extends EventEmitter {
       return true
     }
     for (let i = 0; i < Math.min(this._available.size, waiting); i++) {
-      if (this._available.size < 1) return false
       const resource = this._available.values().next().value
       this._available.delete(resource)
       if (this.options.testOnBorrow) {
-        resource.updateState(ResourceState.VALIDATION)
-        const isValid = await this.factory.validate(resource.obj)
-        if (!isValid) {
-          resource.updateState(ResourceState.INVALID)
-          await this.#destroy(resource)
-          setImmediate(() => this.#dispense())
-          return
-        }
-        await dispense(resource)
+        const validationPromise = (async () => {
+          resource.updateState(ResourceState.VALIDATION)
+          const isValid = await this.factory.validate(resource.obj)
+          if (!isValid) {
+            resource.updateState(ResourceState.INVALID)
+            await this.#destroy(resource)
+            setImmediate(() => this.#dispense())
+          } else {
+            await dispense(resource)
+          }
+        })()
+        dispensePromises.push(validationPromise)
       } else {
-        await dispense(resource)
+        dispensePromises.push(dispense(resource))
       }
     }
+    await Promise.all(dispensePromises)
   }
 
   async #destroy(resource) {
@@ -227,10 +231,10 @@ class Pool extends EventEmitter {
               const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
               return softEvict || idleTimeoutMillis < idleTime
             })
-          for (const resource of resourcesToEvict) {
+          await Promise.all(resourcesToEvict.map(resource => {
             this._available.delete(resource)
-            await this.#destroy(resource)
-          }
+            return this.#destroy(resource)
+          }))
         } catch (error) {
           this.emit('evictorRunError', error)
         } finally {
@@ -239,6 +243,7 @@ class Pool extends EventEmitter {
       }, evictionRunIntervalMillis).unref()
     }
   }
+
 
   get size() {
     return this._all.size + this._creates.size
