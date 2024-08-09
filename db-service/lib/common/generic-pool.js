@@ -102,7 +102,7 @@ class Pool extends EventEmitter {
     this._creates = new Set()
     this._queue = new Queue()
     this.#scheduleEviction()
-    for (let i = 0; i < this.options.min - this.#size; i++) this.#createResource()
+    for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
   }
 
   acquire() {
@@ -120,7 +120,7 @@ class Pool extends EventEmitter {
     const pooledResource = loan.pooledResource
     pooledResource.updateState(ResourceState.IDLE)
     this._available.add(pooledResource)
-    this.#dispense()
+    setImmediate(() => this.#dispense())
     return Promise.resolve()
   }
 
@@ -130,7 +130,7 @@ class Pool extends EventEmitter {
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     this.#destroy(pooledResource)
-    this.#dispense()
+    setImmediate(() => this.#dispense())
     return Promise.resolve()
   }
 
@@ -161,7 +161,7 @@ class Pool extends EventEmitter {
       })
       .finally(() => {
         this._creates.delete(_create)
-        this.#dispense()
+        setImmediate(() => this.#dispense())
       })
   }
 
@@ -169,7 +169,7 @@ class Pool extends EventEmitter {
     const waiting = this._queue.length
     if (waiting < 1) return
     const shortfall = waiting - (this._available.size + this._creates.size)
-    for (let i = 0; i < Math.min(this.options.max - this.#size, shortfall); i++) this.#createResource()
+    for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) this.#createResource()
     const dispense = resource => {
       const request = this._queue.dequeue()
       if (!request) {
@@ -193,7 +193,7 @@ class Pool extends EventEmitter {
             if (!isValid) {
               resource.updateState(ResourceState.INVALID)
               this.#destroy(resource)
-              this.#dispense()
+              setImmediate(() => this.#dispense())
               return
             }
             dispense(resource)
@@ -214,7 +214,7 @@ class Pool extends EventEmitter {
     ]) : _destroy
     wrapped.catch(reason => this.emit('factoryDestroyError', reason))
     if (this._draining) return
-    for (let i = 0; i < this.options.min - this.#size; i++) this.#createResource()
+    for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
   }
 
   #scheduleEviction() {
@@ -242,8 +242,20 @@ class Pool extends EventEmitter {
     }
   }
 
-  get #size() {
+  get size() {
     return this._all.size + this._creates.size
+  }
+
+  get available() {
+    return this._available.size
+  }
+
+  get borrowed() {
+    return this._loans.size
+  }
+
+  get pending() {
+    return this._queue.length
   }
 }
 
@@ -280,4 +292,4 @@ function _track_connections4(pool) {
   })
 }
 
-module.exports = ConnectionPool
+module.exports = { ConnectionPool, createPool }

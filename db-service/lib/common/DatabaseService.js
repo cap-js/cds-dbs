@@ -1,5 +1,5 @@
 const SessionContext = require('./session-context')
-const ConnectionPool = require('./generic-pool')
+const { ConnectionPool, createPool } = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds')
 
@@ -18,13 +18,12 @@ class DatabaseService extends cds.Service {
   pools = Object.setPrototypeOf({}, { _factory: this.factory })
 
   /**
-   * Return a pool factory + options property as expected by
-   * https://github.com/coopernurse/node-pool#createpool.
+   * Return a pool factory + options
    * @abstract
    * @type {import('./factory').Factory<DatabaseDriver>}
    */
   get factory() {
-    throw '2b overriden in subclass'
+    throw '2b overridden in subclass'
   }
 
   /**
