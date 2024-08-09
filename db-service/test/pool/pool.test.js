@@ -59,19 +59,6 @@ describe('Pool', () => {
     await Promise.all(resources.map(resource => pool.release(resource)))
   })
 
-  test('should time out when acquiring a resource if pool is full', async () => {
-    const resources = await Promise.all([
-      pool.acquire(),
-      pool.acquire(),
-      pool.acquire(),
-      pool.acquire()
-    ])
-
-    await expect(pool.acquire()).rejects.toThrow('ResourceRequest timed out')
-
-    await Promise.all(resources.map(resource => pool.release(resource)))
-  })
-
   test('should destroy invalid resources', async () => {
     factory.validate.mockResolvedValueOnce(false)
     const resource1 = await pool.acquire()

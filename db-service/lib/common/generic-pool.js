@@ -111,7 +111,7 @@ class Pool extends EventEmitter {
     const pooledResource = loan.pooledResource
     pooledResource.updateState(ResourceState.IDLE)
     this._available.add(pooledResource)
-    setImmediate(() => this.#dispense())
+    this.#dispense()
   }
 
   async destroy(resource) {
@@ -120,7 +120,7 @@ class Pool extends EventEmitter {
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)
-    setImmediate(() => this.#dispense())
+    this.#dispense()
   }
 
   async drain() {
@@ -147,52 +147,37 @@ class Pool extends EventEmitter {
       if (request) request.reject(reason)
     } finally {
       this._creates.delete(this.factory.create)
-      setImmediate(() => this.#dispense())
+      this.#dispense()
     }
   }
 
   async #dispense() {
-    const waiting = this._queue.length
-    if (waiting < 1) return
-    const shortfall = waiting - (this._available.size + this._creates.size)
-    const creationPromises = []
-    for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) {
-      creationPromises.push(this.#createResource())
-    }
-    await Promise.all(creationPromises)
-    const dispensePromises = []
-    const dispense = async resource => {
-      const request = this._queue.dequeue()
-      if (!request) {
-        resource.updateState(ResourceState.IDLE)
-        this._available.add(resource)
-        return false
-      }
-      this._loans.set(resource.obj, { pooledResource: resource })
-      resource.updateState(ResourceState.ALLOCATED)
-      request.resolve(resource.obj)
-      return true
-    }
-    for (let i = 0; i < Math.min(this._available.size, waiting); i++) {
+    if (this._queue.length === 0) return
+    if (this._available.size > 0) {
       const resource = this._available.values().next().value
       this._available.delete(resource)
-      if (this.options.testOnBorrow) {
-        const validationPromise = (async () => {
+
+      try {
+        if (this.options.testOnBorrow) {
           resource.updateState(ResourceState.VALIDATION)
           const isValid = await this.factory.validate(resource.obj)
           if (!isValid) {
-            resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
-            return setImmediate(() => this.#dispense())
+            this._queue.dequeue().reject(new Error('Validation failed'))
+            return
           }
-          return dispense(resource)
-        })()
-        dispensePromises.push(validationPromise)
-      } else {
-        dispensePromises.push(dispense(resource))
+        }
+        resource.updateState(ResourceState.ALLOCATED)
+        const request = this._queue.dequeue()
+        this._loans.set(resource.obj, { pooledResource: resource })
+        request.resolve(resource.obj)
+      } catch (err) {
+        this._queue.dequeue().reject(err)
       }
+    } else if (this.size < this.options.max) {
+      await this.#createResource()
+      this.#dispense()
     }
-    await Promise.all(dispensePromises)
   }
 
   async #destroy(resource) {
