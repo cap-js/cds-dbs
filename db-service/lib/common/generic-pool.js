@@ -100,7 +100,7 @@ class Pool extends EventEmitter {
     if (this._draining) throw new Error('Pool is draining and cannot accept work')
     const request = new ResourceRequest(this.options.acquireTimeoutMillis)
     this._queue.enqueue(request)
-    this.#dispense()
+    await this.#dispense()
     return request.promise
   }
 
@@ -143,7 +143,8 @@ class Pool extends EventEmitter {
       pooledResource.updateState(ResourceState.IDLE)
       this._available.add(pooledResource)
     } catch (reason) {
-      this.emit('factoryCreateError', reason)
+      const request = this._queue.dequeue()
+      if (request) request.reject(reason)
     } finally {
       this._creates.delete(this.factory.create)
       setImmediate(() => this.#dispense())
@@ -197,23 +198,11 @@ class Pool extends EventEmitter {
   async #destroy(resource) {
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
-    const _destroy = this.factory.destroy(resource.obj)
     try {
-      if (this.options.destroyTimeoutMillis) {
-        await Promise.race([
-          new Promise((_, reject) => setTimeout(() => reject(new Error('destroy timed out')), this.options.destroyTimeoutMillis).unref()),
-          _destroy
-        ])
-      } else {
-        await _destroy
-      }
-    } catch (reason) {
-      this.emit('factoryDestroyError', reason)
+      await this.factory.destroy(resource.obj)
     } finally {
-      if (!this._draining) {
-        for (let i = 0; i < this.options.min - this.size; i++) {
-          await this.#createResource()
-        }
+      if (!this._draining && this.size < this.options.min) {
+        await this.#createResource()
       }
     }
   }
@@ -234,8 +223,6 @@ class Pool extends EventEmitter {
             this._available.delete(resource)
             return this.#destroy(resource)
           }))
-        } catch (error) {
-          this.emit('evictorRunError', error)
         } finally {
           this.#scheduleEviction()
         }
