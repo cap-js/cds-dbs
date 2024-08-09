@@ -182,10 +182,9 @@ class Pool extends EventEmitter {
           if (!isValid) {
             resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
-            setImmediate(() => this.#dispense())
-          } else {
-            await dispense(resource)
+            return setImmediate(() => this.#dispense())
           }
+          return dispense(resource)
         })()
         dispensePromises.push(validationPromise)
       } else {
