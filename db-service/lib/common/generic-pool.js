@@ -96,72 +96,70 @@ class Pool extends EventEmitter {
     for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
   }
 
-  acquire() {
-    if (this._draining) return Promise.reject(new Error('Pool is draining and cannot accept work'))
+  async acquire() {
+    if (this._draining) throw new Error('Pool is draining and cannot accept work')
     const request = new ResourceRequest(this.options.acquireTimeoutMillis)
     this._queue.enqueue(request)
     this.#dispense()
     return request.promise
   }
 
-  release(resource) {
+  async release(resource) {
     const loan = this._loans.get(resource)
-    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
+    if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     pooledResource.updateState(ResourceState.IDLE)
     this._available.add(pooledResource)
     setImmediate(() => this.#dispense())
-    return Promise.resolve()
   }
 
-  destroy(resource) {
+  async destroy(resource) {
     const loan = this._loans.get(resource)
-    if (!loan) return Promise.reject(new Error('Resource not currently part of this pool'))
+    if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
-    this.#destroy(pooledResource)
+    await this.#destroy(pooledResource)
     setImmediate(() => this.#dispense())
-    return Promise.resolve()
   }
 
-  drain() {
+  async drain() {
     this._draining = true
-    const allResourceRequestsSettled = this._queue.length > 0 ? this._queue.tail.promise : Promise.resolve()
-    return allResourceRequestsSettled
-      .then(() => Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise)))
-      .then(() => clearTimeout(this._scheduledEviction))
+    if (this._queue.length > 0) await this._queue.tail.promise
+    await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
+    clearTimeout(this._scheduledEviction)
   }
 
   async clear() {
     await Promise.all(Array.from(this._creates))
-    for (const resource of this._available) this.#destroy(resource)
+    for (const resource of this._available) {
+      await this.#destroy(resource)
+    }
   }
 
-  #createResource() {
-    const _create = this.factory.create()
-    this._creates.add(_create)
-    _create.then(resource => {
-        const pooledResource = new PooledResource(resource)
-        this._all.add(pooledResource)
-        pooledResource.updateState(ResourceState.IDLE)
-        this._available.add(pooledResource)
-      })
-      .catch(reason => {
-        this.emit('factoryCreateError', reason)
-      })
-      .finally(() => {
-        this._creates.delete(_create)
-        setImmediate(() => this.#dispense())
-      })
+  async #createResource() {
+    try {
+      const resource = await this.factory.create()
+      const pooledResource = new PooledResource(resource)
+      this._all.add(pooledResource)
+      pooledResource.updateState(ResourceState.IDLE)
+      this._available.add(pooledResource)
+    } catch (reason) {
+      this.emit('factoryCreateError', reason)
+    } finally {
+      this._creates.delete(this.factory.create)
+      setImmediate(() => this.#dispense())
+    }
   }
 
-  #dispense() {
+  async #dispense() {
     const waiting = this._queue.length
     if (waiting < 1) return
     const shortfall = waiting - (this._available.size + this._creates.size)
-    for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) this.#createResource()
-    const dispense = resource => {
+    for (let i = 0; i < Math.min(this.options.max - this.size, shortfall); i++) {
+      await this.#createResource()
+    }
+    const dispense = async resource => {
       const request = this._queue.dequeue()
       if (!request) {
         resource.updateState(ResourceState.IDLE)
@@ -179,39 +177,48 @@ class Pool extends EventEmitter {
       this._available.delete(resource)
       if (this.options.testOnBorrow) {
         resource.updateState(ResourceState.VALIDATION)
-        this.factory.validate(resource.obj)
-          .then(isValid => {
-            if (!isValid) {
-              resource.updateState(ResourceState.INVALID)
-              this.#destroy(resource)
-              setImmediate(() => this.#dispense())
-              return
-            }
-            dispense(resource)
-          })
+        const isValid = await this.factory.validate(resource.obj)
+        if (!isValid) {
+          resource.updateState(ResourceState.INVALID)
+          await this.#destroy(resource)
+          setImmediate(() => this.#dispense())
+          return
+        }
+        await dispense(resource)
       } else {
-        dispense(resource)
+        await dispense(resource)
       }
     }
   }
 
-  #destroy(resource) {
+  async #destroy(resource) {
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
     const _destroy = this.factory.destroy(resource.obj)
-    const wrapped = this.options.destroyTimeoutMillis ? Promise.race([
-      new Promise((_, reject) => setTimeout(() => reject(new Error('destroy timed out')), this.options.destroyTimeoutMillis).unref()),
-      _destroy
-    ]) : _destroy
-    wrapped.catch(reason => this.emit('factoryDestroyError', reason))
-    if (this._draining) return
-    for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
+    try {
+      if (this.options.destroyTimeoutMillis) {
+        await Promise.race([
+          new Promise((_, reject) => setTimeout(() => reject(new Error('destroy timed out')), this.options.destroyTimeoutMillis).unref()),
+          _destroy
+        ])
+      } else {
+        await _destroy
+      }
+    } catch (reason) {
+      this.emit('factoryDestroyError', reason)
+    } finally {
+      if (!this._draining) {
+        for (let i = 0; i < this.options.min - this.size; i++) {
+          await this.#createResource()
+        }
+      }
+    }
   }
 
   #scheduleEviction() {
     const { evictionRunIntervalMillis, numTestsPerEvictionRun, softIdleTimeoutMillis, min, idleTimeoutMillis } = this.options
     if (evictionRunIntervalMillis > 0) {
-      this._scheduledEviction = setTimeout(() => {
+      this._scheduledEviction = setTimeout(async () => {
         try {
           const resourcesToEvict = Array.from(this._available)
             .slice(0, numTestsPerEvictionRun)
@@ -220,10 +227,10 @@ class Pool extends EventEmitter {
               const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
               return softEvict || idleTimeoutMillis < idleTime
             })
-          resourcesToEvict.forEach(resource => {
+          for (const resource of resourcesToEvict) {
             this._available.delete(resource)
-            this.#destroy(resource)
-          })
+            await this.#destroy(resource)
+          }
         } catch (error) {
           this.emit('evictorRunError', error)
         } finally {
@@ -251,6 +258,7 @@ class Pool extends EventEmitter {
 }
 
 const createPool = (factory, config) => new Pool(factory, config)
+
 
 class ConnectionPool {
   constructor(factory, tenant) {
