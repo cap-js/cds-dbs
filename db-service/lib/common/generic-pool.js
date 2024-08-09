@@ -230,7 +230,6 @@ class Pool extends EventEmitter {
     }
   }
 
-
   get size() {
     return this._all.size + this._creates.size
   }
