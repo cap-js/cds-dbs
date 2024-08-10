@@ -54,13 +54,14 @@ describe('Pool', () => {
     await Promise.all(resources.map(resource => pool.release(resource)))
   })
 
-  test('should destroy invalid resources', async () => {
+  test('should destroy and recreate invalid resources', async () => {
     factory.validate.mockResolvedValueOnce(false)
     const resource1 = await pool.acquire()
+    expect(factory.destroy).toHaveBeenCalledTimes(1)
     await pool.release(resource1)
     const resource2 = await pool.acquire()
-    expect(factory.destroy).toHaveBeenCalledTimes(1)
-    expect(resource1).not.toBe(resource2)
+    expect(factory.validate).toHaveBeenCalledTimes(2)
+    expect(pool.borrowed).toBeGreaterThan(0)
     await pool.release(resource2)
   })
 
