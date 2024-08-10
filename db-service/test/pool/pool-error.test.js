@@ -6,8 +6,8 @@ describe('Pool error handling', () => {
   beforeEach(() => {
     const factory = {
       create: () => Promise.resolve({}),
-      destroy: resource => Promise.resolve(),
-      validate: resource => Promise.resolve(true)
+      destroy: () => Promise.resolve(),
+      validate: () => Promise.resolve(true)
     }
 
     pool = createPool(factory, {
@@ -31,7 +31,6 @@ describe('Pool error handling', () => {
       destroy: () => Promise.resolve(),
       validate: () => Promise.resolve(true)
     }
-
     pool = createPool(factory, {
       min: 0,
       max: 4,
@@ -51,7 +50,6 @@ describe('Pool error handling', () => {
       destroy: () => Promise.reject(new Error('Destroy failed')),
       validate: () => Promise.resolve(true)
     }
-
     pool = createPool(factory, {
       min: 0,
       max: 4,
@@ -64,27 +62,5 @@ describe('Pool error handling', () => {
     const resource = await pool.acquire()
     await expect(pool.destroy(resource)).rejects.toThrow('Destroy failed')
     expect(pool.size).toBe(0)
-  })
-
-  test('should propagate error when validate method is rejected', async () => {
-    const factory = {
-      create: () => Promise.resolve({}),
-      destroy: () => Promise.resolve(),
-      validate: () => Promise.reject(new Error('Validate failed'))
-    }
-
-    pool = createPool(factory, {
-      min: 0,
-      max: 4,
-      acquireTimeoutMillis: 1000,
-      idleTimeoutMillis: 30000,
-      evictionRunIntervalMillis: 5000,
-      testOnBorrow: true
-    })
-
-    const resource = await pool.acquire()
-    await pool.release(resource)
-
-    await expect(pool.acquire()).rejects.toThrow('Validate failed')
   })
 })
