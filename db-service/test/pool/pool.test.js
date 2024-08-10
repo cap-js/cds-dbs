@@ -17,7 +17,7 @@ describe('Pool', () => {
       acquireTimeoutMillis: 1000,
       idleTimeoutMillis: 30000,
       evictionRunIntervalMillis: 5000,
-      testOnBorrow: false
+      testOnBorrow: true
     })
   })
 

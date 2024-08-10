@@ -152,17 +152,13 @@ class Pool extends EventEmitter {
   async #dispense() {
     const waiting = this._queue.length
     if (waiting < 1) return
-
-    const availablePlusInProgress = this._available.size + this._creates.size
-
-    if (availablePlusInProgress < waiting && this.size < this.options.max) {
-      const creationPromise = this.#createResource()
-      this._creates.add(creationPromise)
-      await creationPromise
-      this._creates.delete(creationPromise)
+    const capacity = this._available.size + this._creates.size
+    if (capacity < waiting && this.size < this.options.max) {
+      const _create = this.#createResource()
+      this._creates.add(_create)
+      await _create
+      this._creates.delete(_create)
     }
-
-    const dispensePromises = []
     const dispense = async resource => {
       const request = this._queue.dequeue()
       if (!request) {
@@ -176,6 +172,7 @@ class Pool extends EventEmitter {
       return true
     }
 
+    const _dispenses = []
     for (let i = 0; i < Math.min(this._available.size, waiting); i++) {
       const resource = this._available.values().next().value
       this._available.delete(resource)
@@ -186,22 +183,22 @@ class Pool extends EventEmitter {
           if (!isValid) {
             resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
-            return setImmediate(() => this.#dispense())
           }
           return dispense(resource)
         })()
-        dispensePromises.push(validationPromise)
+        _dispenses.push(validationPromise)
       } else {
-        dispensePromises.push(dispense(resource))
+        _dispenses.push(dispense(resource))
       }
     }
-
-    await Promise.all(dispensePromises)
+    await Promise.all(_dispenses)
   }
 
   async #destroy(resource) {
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
+    this._available.delete(resource)
+    this._loans.delete(resource.obj)
     try {
       await this.factory.destroy(resource.obj)
     } finally {
