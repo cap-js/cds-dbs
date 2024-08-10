@@ -34,14 +34,12 @@ class ResourceRequest {
   }
 
   reject(reason) {
-    this._state = 'rejected'
     clearTimeout(this._timeout)
     this._timeout = null
     this._reject(reason)
   }
 
   resolve(value) {
-    this._state = 'fulfilled'
     clearTimeout(this._timeout)
     this._timeout = null
     this._resolve(value)
@@ -152,32 +150,53 @@ class Pool extends EventEmitter {
   }
 
   async #dispense() {
-    if (this._queue.length === 0) return
-    if (this._available.size > 0) {
+    const waiting = this._queue.length
+    if (waiting < 1) return
+
+    const availablePlusInProgress = this._available.size + this._creates.size
+
+    if (availablePlusInProgress < waiting && this.size < this.options.max) {
+      const creationPromise = this.#createResource()
+      this._creates.add(creationPromise)
+      await creationPromise
+      this._creates.delete(creationPromise)
+    }
+
+    const dispensePromises = []
+    const dispense = async resource => {
+      const request = this._queue.dequeue()
+      if (!request) {
+        resource.updateState(ResourceState.IDLE)
+        this._available.add(resource)
+        return false
+      }
+      this._loans.set(resource.obj, { pooledResource: resource })
+      resource.updateState(ResourceState.ALLOCATED)
+      request.resolve(resource.obj)
+      return true
+    }
+
+    for (let i = 0; i < Math.min(this._available.size, waiting); i++) {
       const resource = this._available.values().next().value
       this._available.delete(resource)
-
-      try {
-        if (this.options.testOnBorrow) {
+      if (this.options.testOnBorrow) {
+        const validationPromise = (async () => {
           resource.updateState(ResourceState.VALIDATION)
           const isValid = await this.factory.validate(resource.obj)
           if (!isValid) {
+            resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
-            this._queue.dequeue().reject(new Error('Validation failed'))
-            return
+            return setImmediate(() => this.#dispense())
           }
-        }
-        resource.updateState(ResourceState.ALLOCATED)
-        const request = this._queue.dequeue()
-        this._loans.set(resource.obj, { pooledResource: resource })
-        request.resolve(resource.obj)
-      } catch (err) {
-        this._queue.dequeue().reject(err)
+          return dispense(resource)
+        })()
+        dispensePromises.push(validationPromise)
+      } else {
+        dispensePromises.push(dispense(resource))
       }
-    } else if (this.size < this.options.max) {
-      await this.#createResource()
-      this.#dispense()
     }
+
+    await Promise.all(dispensePromises)
   }
 
   async #destroy(resource) {
