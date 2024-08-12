@@ -248,7 +248,6 @@ class Pool extends EventEmitter {
 
 const createPool = (factory, config) => new Pool(factory, config)
 
-
 class ConnectionPool {
   constructor(factory, tenant) {
     let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
