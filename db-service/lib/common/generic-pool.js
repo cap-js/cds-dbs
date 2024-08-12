@@ -208,25 +208,21 @@ class Pool extends EventEmitter {
 
   #scheduleEviction() {
     const { evictionRunIntervalMillis, numTestsPerEvictionRun, softIdleTimeoutMillis, min, idleTimeoutMillis } = this.options
-    if (evictionRunIntervalMillis > 0) {
-      this._scheduledEviction = setTimeout(async () => {
-        try {
-          const resourcesToEvict = Array.from(this._available)
-            .slice(0, numTestsPerEvictionRun)
-            .filter(resource => {
-              const idleTime = Date.now() - resource.lastIdleTime
-              const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
-              return softEvict || idleTimeoutMillis < idleTime
-            })
-          await Promise.all(resourcesToEvict.map(resource => {
-            this._available.delete(resource)
-            return this.#destroy(resource)
-          }))
-        } finally {
-          this.#scheduleEviction()
-        }
-      }, evictionRunIntervalMillis).unref()
-    }
+    if (evictionRunIntervalMillis <= 0) return
+    this._scheduledEviction = setTimeout(async () => {
+      try {
+        const resourcesToEvict = Array.from(this._available)
+          .slice(0, numTestsPerEvictionRun)
+          .filter(resource => {
+            const idleTime = Date.now() - resource.lastIdleTime
+            const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
+            return softEvict || idleTimeoutMillis < idleTime
+          })
+        await Promise.all(resourcesToEvict.map(this.#destroy))
+      } finally {
+        this.#scheduleEviction()
+      }
+    }, evictionRunIntervalMillis).unref()
   }
 
   get size() {
