@@ -16,9 +16,7 @@ class PooledResource {
   }
 
   updateState(newState) {
-    if (newState === ResourceState.IDLE) {
-      this.lastIdleTime = Date.now()
-    }
+    if (newState === ResourceState.IDLE) this.lastIdleTime = Date.now()
     this.state = newState
   }
 }
