@@ -1,5 +1,5 @@
 const SessionContext = require('./session-context')
-const { ConnectionPool, createPool } = require('./generic-pool')
+const { ConnectionPool } = require('./generic-pool')
 const infer = require('../infer')
 const cds = require('@sap/cds')
 
