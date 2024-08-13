@@ -22,8 +22,8 @@ describe('Pool', () => {
   })
 
   afterEach(async () => {
-    await pool.clear()
     await pool.drain()
+    await pool.clear()
   })
 
   test('should acquire a resource from the pool', async () => {
