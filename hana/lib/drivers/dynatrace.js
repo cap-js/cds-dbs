@@ -1,5 +1,4 @@
-// COPIED AS IS FROM @sap/cds
-// dynatraceStreamingExtension currently not used
+// COPIED AS IS (excluding unused code) FROM @sap/cds
 
 const dynatrace = {}
 try {
@@ -89,45 +88,4 @@ const dynatraceClient = (client, credentials, tenant) => {
   return client
 }
 
-const _createHanaClientStreamingStatement = function (extension, createStmtFn) {
-  // args = [sql, options, callback] --> options is optional
-  return function (dbc, sql, cb) {
-    const dbInfo = {
-      name: `SAPHANA${dbc._tenant ? `-${dbc._tenant}` : ''}`,
-      vendor: dynatrace.sdk.DatabaseVendor.HANADB,
-      host: dbc._creds.host,
-      port: Number(dbc._creds.port)
-    }
-
-    const tracer = dynatrace.api.traceSQLDatabaseRequest(dbInfo, {
-      statement: sql
-    })
-
-    tracer.startWithContext(createStmtFn, extension, dbc, sql, (err, stmt) => {
-      if (err) {
-        tracer.error(err)
-        tracer.end(cb, err)
-      } else {
-        // same here. hana-client does not like decorating
-        const originalExecFn = stmt.stmt.exec
-        stmt.stmt.exec = function (...args) {
-          const stmtCb = args[args.length - 1]
-          originalExecFn.call(stmt.stmt, ...args.slice(0, args.length - 1), _dynatraceResultCallback(tracer, stmtCb))
-        }
-        cb(null, stmt)
-      }
-    })
-  }
-}
-
-const dynatraceStreamingExtension = extension => {
-  const originalCreateStmtFn = extension.createStatement
-  const decorator = {}
-  Object.setPrototypeOf(decorator, extension)
-  // ensure that dynatrace calls the original function of the extension
-  decorator.createStatement = _createHanaClientStreamingStatement(extension, originalCreateStmtFn)
-
-  return decorator
-}
-
-module.exports = { dynatraceClient, dynatraceStreamingExtension, isDynatraceEnabled }
+module.exports = { dynatraceClient, isDynatraceEnabled }
