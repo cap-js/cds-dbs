@@ -42,6 +42,13 @@ describe('Bookshop - Insert', () => {
     expect(resp | 0).to.be.eq(1)
   })
 
+  test('insert with assoc default', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    await cds.run(INSERT({ ID: 344, title: 'Faust. Eine Tragödie' }).into(Books))
+    const res = await SELECT.from(Books, {ID: 344})
+    expect(res.genre_ID).to.be.eq(10)
+  })
+
   test('big decimals', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
 

@@ -22,8 +22,17 @@ const StandardFunctions = {
    */
   search: function (ref, arg) {
     if (!('val' in arg)) throw new Error(`Only single value arguments are allowed for $search`)
-    const refs = ref.list || [ref],
-      { toString } = ref
+    // only apply first search term, rest is ignored
+    const sub = /("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/.exec(arg.val)
+    let val
+    try {
+      val = (sub[2] ? JSON.parse(sub[2]) : sub[3]) || ''
+    } catch {
+      val = sub[2] || sub[3] || ''
+    }
+    arg.val = arg.__proto__.val = val
+    const refs = ref.list || [ref]
+    const { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
   },
   /**
@@ -156,8 +165,8 @@ const StandardFunctions = {
    * Generates SQL statement that produces current point in time (date and time with time zone)
    * @returns {string}
    */
-   now: function() {
-    return this.session_context({val: '$now'})
+  now: function () {
+    return this.session_context({ val: '$now' })
   },
   /**
    * Generates SQL statement that produces the year of a given timestamp

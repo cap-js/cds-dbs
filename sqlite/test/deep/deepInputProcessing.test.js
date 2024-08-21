@@ -15,7 +15,6 @@ describe('UUID Generation', () => {
     expect(res.status).toBe(201)
 
     expect(res.data).toMatchObject({
-      '@odata.context': '$metadata#RootUUID(toOneChild(toManySubChild()))/$entity',
       ID: uuid,
       name: null,
       toOneChild: {

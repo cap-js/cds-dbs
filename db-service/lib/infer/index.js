@@ -24,7 +24,7 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
  */
 function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
-  const inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const inferred = originalQuery
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
@@ -1013,9 +1013,11 @@ function infer(originalQuery, model) {
           }
           return true
         }
-        if (assoc && assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) {
+        if (assoc) {
           // foreign key access without filters never join relevant
-          return false
+          if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
+          // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
+          return true
         }
         if (link.definition.target && link.definition.keys) {
           if (column.ref[i + 1] || assoc) fkAccess = false
@@ -1198,6 +1200,8 @@ function infer(originalQuery, model) {
         firstStepIsEntity = true
         if (arg.$refLinks.length === 1) return `${cur.definition.name}`
         return `${cur.definition.name}`
+      } else if (cur.definition.SELECT) {
+        return `${cur.definition.as}`
       }
       const dot = i === 1 && firstStepIsEntity ? ':' : '.' // divide with colon if first step is entity
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
