@@ -45,17 +45,17 @@ async function onDeep(req, next) {
   if (query.UPDATE && !beforeData.length) return 0
 
   const queries = getDeepQueries(query, beforeData, target)
-  const res = await Promise.all(queries.map(query => {
-    if (query.INSERT) return this.onINSERT({ query })
-    if (query.UPDATE) return this.onUPDATE({ query })
-    if (query.DELETE) return this.onSIMPLE({ query })
-  }))
+  // first delete, then update, then insert because of unique constraints
+  await Promise.all(queries.filter(q => q.DELETE).map(query => this.onSIMPLE({ query })))
+  await Promise.all(queries.filter(q => q.UPDATE).map(query => this.onUPDATE({ query })))
+  const inserts = await Promise.all(queries.filter(q => q.INSERT).map(query => this.onINSERT({ query })))
+
   return (
     beforeData.length ||
     new InsertResult(query, [
       {
         changes: Array.isArray(req.data) ? req.data.length : 1,
-        ...(res[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: res[0].results[0].lastInsertRowid } : {}),
+        ...(inserts[0]?.results[0]?.lastInsertRowid ? { lastInsertRowid: inserts[0].results[0].lastInsertRowid } : {}),
       },
     ])
   )
