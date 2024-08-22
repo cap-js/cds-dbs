@@ -10,9 +10,11 @@ describe('draft tests', () => {
   })
 
   const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
-
-  process.env.cds_requires_db_kind = 'better-sqlite'
-  process.env.cds_requires_auth_kind = 'mocked-auth'
+  // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
+  // (see https://cap.cloud.sap/docs/node.js/cds-test#cds-test-env-check)
+  cds.env.requires.db.kind = 'better-sqlite'
+  cds.env.requires.auth.kind = 'mocked-auth'
+  cds.env.features.ieee754compatible = true
 
   if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
   else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true

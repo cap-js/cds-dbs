@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.1...postgres-v1.10.0) (2024-07-25)
+
+
+### Changed
+
+* build script generates cds8 dependency in deployer app ([#758](https://github.com/cap-js/cds-dbs/issues/758)) ([5c21a67](https://github.com/cap-js/cds-dbs/commit/5c21a6758ccc927cde857e98145c3f4393deb739))
+
 ## [1.9.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.0...postgres-v1.9.1) (2024-07-09)
 
 
