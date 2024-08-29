@@ -127,7 +127,7 @@ describe('UPDATE', () => {
             pages: [
               {
                 ID: 5,
-                number: 1, // would fail without the update below
+                number: 1, // would fail without the update below first
               },
               {
                 ID: 3,
