@@ -45,10 +45,18 @@ async function onDeep(req, next) {
   if (query.UPDATE && !beforeData.length) return 0
 
   const queries = getDeepQueries(query, beforeData, target)
+
   // first delete, then update, then insert because of unique constraints
-  await Promise.all(queries.filter(q => q.DELETE).map(query => this.onSIMPLE({ query })))
-  await Promise.all(queries.filter(q => q.UPDATE).map(query => this.onUPDATE({ query })))
-  const inserts = await Promise.all(queries.filter(q => q.INSERT).map(query => this.onINSERT({ query })))
+  const splitted = { DELETE: [], UPDATE: [], INSERT: [] }
+  queries.forEach(query => { 
+    if (query.kind === 'DELETE') return splitted.DELETE.push(this.onSIMPLE({ query }))
+    if (query.kind === 'UPDATE') return splitted.UPDATE.push(this.onUPDATE({ query }))
+    if (query.kind === 'INSERT') return splitted.UPDATE.push(this.onINSERT({ query }))
+  })
+
+  await Promise.all(splitted.DELETE)
+  await Promise.all(splitted.UPDATE)
+  const inserts = await Promise.all(splitted.INSERT)
 
   return (
     beforeData.length ||
