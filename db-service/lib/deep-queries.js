@@ -259,8 +259,9 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
     } else if (op === 'delete') {
       // handle deletes differently to reduce the amount of sent queries
 
-
-      const keys = cds.utils.Object_keys(target.keys).filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
+      const keys = cds.utils
+        .Object_keys(target.keys)
+        .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
 
       const keyVals = keys.map(k => ({ val: diffEntry[k] }))
       const currDelete = deletes.get(target.name)
