@@ -222,7 +222,7 @@ const _hasManagedElements = target => {
  * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepQueries = (diff, target, root = false, deletes = new Map()) => {
+const _getDeepQueries = (diff, target, root, deletes) => {
   const queries = []
 
   for (const diffEntry of diff) {
