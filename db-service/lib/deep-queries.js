@@ -269,6 +269,7 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
           ? currDelete.DELETE.where[2].list.push(...keyVals)
           : currDelete.DELETE.where[2].list.push({ list: keyVals })
       else {
+        // if we have only one key, queries should be simpler
         const left = keys.length === 1 ? { ref: [keys[0]] } : { list: keys.map(k => ({ ref: [k] })) }
         const right = keys.length === 1 ? { list: keyVals } : { list: [{ list: keyVals }] }
         deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
