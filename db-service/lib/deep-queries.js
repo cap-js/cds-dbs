@@ -17,9 +17,6 @@ const compareJson = (...args) => {
   return _compareJson(...args)
 }
 
-const entity_keys = entity =>
-  cds.utils.Object_keys(entity.keys).filter(key => !entity.keys[key].virtual && !entity.keys[key].isAssociation)
-
 const handledDeep = Symbol('handledDeep')
 
 /**
@@ -261,7 +258,10 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
       queries.push(INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
       // handle deletes differently to reduce the amount of sent queries
-      const keys = entity_keys(target)
+
+
+      const keys = cds.utils.Object_keys(target.keys).filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
+
       const keyVals = keys.map(k => ({ val: diffEntry[k] }))
       const currDelete = deletes.get(target.name)
       if (currDelete)
@@ -273,8 +273,6 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
         const right = keys.length === 1 ? { list: keyVals } : { list: [{ list: keyVals }] }
         deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
       }
-
-      // queries.push(DELETE.from(target).where(diffEntry))
     } else if (op === 'update' || (op === undefined && (root || subQueries.length) && _hasManagedElements(target))) {
       // TODO do we need the where here?
       const keys = target.keys
