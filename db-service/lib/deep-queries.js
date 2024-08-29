@@ -18,7 +18,7 @@ const compareJson = (...args) => {
 }
 
 const entity_keys = entity =>
-  cds.utils.Object_keys(entity.keys).filter(key => key !== 'IsActiveEntity' && !entity.keys[key].isAssociation)
+  cds.utils.Object_keys(entity.keys).filter(key => !entity.keys[key].virtual && !entity.keys[key].isAssociation)
 
 const handledDeep = Symbol('handledDeep')
 
@@ -264,7 +264,10 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
       const keys = entity_keys(target)
       const keyVals = keys.map(k => ({ val: diffEntry[k] }))
       const currDelete = deletes.get(target.name)
-      if (currDelete) keys.length === 1 ? currDelete.DELETE.where[2].list.push(...keyVals) : currDelete.DELETE.where[2].list.push({ list: keyVals })
+      if (currDelete)
+        keys.length === 1
+          ? currDelete.DELETE.where[2].list.push(...keyVals)
+          : currDelete.DELETE.where[2].list.push({ list: keyVals })
       else {
         const left = keys.length === 1 ? { ref: [keys[0]] } : { list: keys.map(k => ({ ref: [k] })) }
         const right = keys.length === 1 ? { list: keyVals } : { list: [{ list: keyVals }] }
