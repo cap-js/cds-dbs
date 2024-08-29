@@ -52,7 +52,9 @@ async function onDeep(req, next) {
   // first delete, then update, then insert because of unique constraints
   const splitted = { DELETE: [], UPDATE: [], INSERT: [] }
   queries.forEach(query => {
-    if (query.DELETE) return splitted.DELETE.push(this.onSIMPLE({ query }))
+    if (query.DELETE) {
+      return splitted.DELETE.push(this.onSIMPLE({ query }))
+    }
     if (query.UPDATE) return splitted.UPDATE.push(this.onUPDATE({ query }))
     if (query.INSERT) return splitted.INSERT.push(this.onINSERT({ query }))
   })
@@ -264,12 +266,12 @@ const _getDeepQueries = (diff, target, root = false, deletes = new Map()) => {
       const keys = entity_keys(target)
       const keyVals = keys.map(k => ({ val: diffEntry[k] }))
       const currDelete = deletes.get(target.name)
-      if (currDelete) currDelete.DELETE.where[2].list.push({ list: keyVals })
-      else
-        deletes.set(
-          target.name,
-          DELETE.from(target).where([{ list: keys.map(k => ({ ref: [k] })) }, 'in', { list: [{ list: keyVals }] }]),
-        )
+      if (currDelete) keys.length === 1 ? currDelete.DELETE.where[2].list.push(...keyVals) : currDelete.DELETE.where[2].list.push({ list: keyVals })
+      else {
+        const left = keys.length === 1 ? { ref: [keys[0]] } : { list: keys.map(k => ({ ref: [k] })) }
+        const right = keys.length === 1 ? { list: keyVals } : { list: [{ list: keyVals }] }
+        deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
+      }
 
       // queries.push(DELETE.from(target).where(diffEntry))
     } else if (op === 'update' || (op === undefined && (root || subQueries.length) && _hasManagedElements(target))) {
