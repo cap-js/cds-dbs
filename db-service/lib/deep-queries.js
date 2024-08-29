@@ -216,7 +216,7 @@ const _hasManagedElements = target => {
 /**
  * @param {unknown[]} diff
  * @param {import('@sap/cds/apis/csn').Definition} target
- * @param {map} deletes
+ * @param {Map<String, Object>} deletes
  * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
