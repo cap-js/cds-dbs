@@ -52,9 +52,7 @@ async function onDeep(req, next) {
   // first delete, then update, then insert because of unique constraints
   const splitted = { DELETE: [], UPDATE: [], INSERT: [] }
   queries.forEach(query => {
-    if (query.DELETE) {
-      return splitted.DELETE.push(this.onSIMPLE({ query }))
-    }
+    if (query.DELETE) return splitted.DELETE.push(this.onSIMPLE({ query }))
     if (query.UPDATE) return splitted.UPDATE.push(this.onUPDATE({ query }))
     if (query.INSERT) return splitted.INSERT.push(this.onINSERT({ query }))
   })
