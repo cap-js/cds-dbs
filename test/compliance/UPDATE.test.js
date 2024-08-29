@@ -57,6 +57,7 @@ describe('UPDATE', () => {
       // number must be unique for each book
 
       await cds.tx(async tx => {
+        await tx.run(DELETE.from(BooksUnique).where({ ID: 1 }))
         await expect(
           tx.run(
             INSERT.into(BooksUnique).entries([
@@ -82,6 +83,7 @@ describe('UPDATE', () => {
           ),
         ).rejects.toBeTruthy()
       })
+
       await cds.tx(async tx => {
         await tx.run(DELETE.from(BooksUnique).where({ ID: 1 }))
         await tx.run(
@@ -102,8 +104,6 @@ describe('UPDATE', () => {
             },
           ]),
         )
-      })
-      await cds.tx(async tx => {
         await tx.run(
           UPDATE(BooksUnique).data({
             ID: 1,
