@@ -207,7 +207,7 @@ const getDeepQueries = (query, dbData, target) => {
   }
 
   const deletes = new Map()
-  const result = _getDeepQueries(diff, target, true, deletes)
+  const result = _getDeepQueries(diff, target, deletes)
   for (const d of deletes.values()) result.push(d)
   return result
 }
@@ -222,7 +222,7 @@ const _hasManagedElements = target => {
  * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepQueries = (diff, target, root, deletes) => {
+const _getDeepQueries = (diff, target, deletes, root = true) => {
   const queries = []
 
   for (const diffEntry of diff) {
@@ -239,7 +239,7 @@ const _getDeepQueries = (diff, target, root, deletes) => {
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
         arrayed.forEach(subEntry => {
-          subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target, false, deletes))
+          subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target, deletes, false))
         })
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
