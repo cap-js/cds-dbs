@@ -204,7 +204,7 @@ const getDeepQueries = (query, dbData, target) => {
   }
 
   const deletes = new Map()
-  const result = _getDeepQueries(diff, target, deletes)
+  const result = _getDeepQueries(diff, target, deletes) // deletes are collected in one combined DELETE
   for (const d of deletes.values()) result.push(d)
   return result
 }
