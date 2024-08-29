@@ -977,6 +977,13 @@ class HANAService extends SQLService {
         this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
+      // If the list only contains of vals it is replaced with a json function and a placeholder
+      if (this.values && first.val) {
+        const v = first
+        const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
+        this.values.push(JSON.stringify(list.list))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
       // Call super for normal SQL behavior
       return super.list(list)
     }
