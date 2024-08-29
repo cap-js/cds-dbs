@@ -1131,6 +1131,7 @@ class HANAService extends SQLService {
 
     static OutputConverters = {
       ...super.OutputConverters,
+      LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
