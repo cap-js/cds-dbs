@@ -784,7 +784,7 @@ describe('test deep query generation', () => {
           ],
         },
       ])
-      const deepQueries = getDeepQueries(query, [], model.definitions.Root)
+      const { inserts, updates, deletes } = getDeepQueries(query, [], model.definitions.Root)
 
       const expectedInserts = [
         INSERT.into(model.definitions.Root)
@@ -795,9 +795,17 @@ describe('test deep query generation', () => {
           .entries([{ ID: 10 }, { ID: 11 }, { ID: 12 }, { ID: 13 }]),
       ]
 
+      const insertsArray = Array.from(inserts)
+      const updatesArray = Array.from(updates)
+      const deletesArray = Array.from(deletes)
+
       expectedInserts.forEach(insert => {
-        expect(deepQueries).toContainEqual(insert)
+        expect(insertsArray).toContainEqual(insert)
       })
+
+      expect(updatesArray.length).toBe(0)
+      expect(deletesArray.length).toBe(0)
+
     })
 
     test('backlink keys are properly propagated', async () => {
