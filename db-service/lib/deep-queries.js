@@ -221,6 +221,10 @@ const _hasManagedElements = target => {
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
 const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
+
+  // flag to determine if queries were created
+
+  let dirty = false
   for (const diffEntry of diff) {
     if (diffEntry === undefined) continue
 
@@ -234,7 +238,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
         delete diffEntry[prop]
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
-        arrayed.forEach(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false))
+        dirty = arrayed.map(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false)).reduce((a,b) => a || b, dirty)
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
@@ -251,10 +255,12 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
     }
 
     if (op === 'create') {
+      dirty = true
       const insert = inserts.get(target.name)
       if (insert) insert.INSERT.entries.push(diffEntry)
       else inserts.set(target.name, INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
+      dirty = true
       const keys = cds.utils
         .Object_keys(target.keys)
         .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
@@ -268,6 +274,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
         deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
       }
     } else if (op === 'update' || (op === undefined && root && _hasManagedElements(target))) {
+      dirty = true
       // TODO do we need the where here?
       const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)
@@ -285,7 +292,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
   }
 
 
-  return { updates, inserts, deletes }
+  return root ? { updates, inserts, deletes } : dirty
 }
 
 module.exports = {
