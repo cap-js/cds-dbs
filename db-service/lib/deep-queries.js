@@ -221,7 +221,6 @@ const _hasManagedElements = target => {
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
 const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
-  const delayed = []
   for (const diffEntry of diff) {
     if (diffEntry === undefined) continue
 
@@ -235,7 +234,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
         delete diffEntry[prop]
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
-        arrayed.forEach(subEntry => delayed.push(() =>_getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false)))
+        arrayed.forEach(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false))
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
@@ -285,7 +284,6 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
     }
   }
 
-  for (const delay of delayed) delay()
 
   return { updates, inserts, deletes }
 }
