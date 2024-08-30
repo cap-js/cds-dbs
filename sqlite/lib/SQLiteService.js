@@ -27,7 +27,12 @@ class SQLiteService extends SQLService {
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
-        dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
+        // define iso function in js to allow for throwing errors
+        const iso = d => {
+          try { return d && new Date(d).toISOString() } 
+          catch (err) { throw new Error(`Value ${d} is not a valid date`) }
+        }
+        dbc.function('ISO', deterministic, iso)
 
         // define date and time functions in js to allow for throwing errors
         const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
