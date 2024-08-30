@@ -270,16 +270,18 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
       }
     } else if (op === 'update' || (op === undefined && root && _hasManagedElements(target))) {
       // TODO do we need the where here?
-      const keys = cds.utils
-        .Object_keys(target.keys)
-        .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
+      const keys = target.keys
       const cqn = UPDATE(target).with(diffEntry)
       for (const key in keys) {
-        cqn.where(key + '=', diffEntry[key])
+        if (keys[key].virtual) continue
+        if (!keys[key].isAssociation) {
+          cqn.where(key + '=', diffEntry[key])
+        }
         delete diffEntry[key]
       }
       cqn.with(diffEntry)
       updates.push(cqn)
+
     }
   }
 
