@@ -268,7 +268,7 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
       const currDelete = deletes.get(target.name)
       if (currDelete)
         keys.length === 1
-          ? currDelete.DELETE.where[2].list.push(...keyVals)
+          ? currDelete.DELETE.where[2].list.push(keyVals[0])
           : currDelete.DELETE.where[2].list.push({ list: keyVals })
       else {
         // if we have only one key, queries should be simpler
