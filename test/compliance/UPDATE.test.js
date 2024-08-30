@@ -2,6 +2,8 @@ const cds = require('../cds.js')
 const Books = 'complex.associations.Books'
 const BooksUnique = 'complex.uniques.Books'
 
+cds.test(__dirname + '/resources')
+
 describe('UPDATE', () => {
   describe('entity', () => {
     test.skip('missing', () => {
@@ -16,7 +18,6 @@ describe('UPDATE', () => {
   })
 
   describe('where', () => {
-    cds.test(__dirname + '/resources')
     test('flat with or on key', async () => {
       const insert = await cds.run(
         INSERT.into(Books).entries([
@@ -52,7 +53,6 @@ describe('UPDATE', () => {
   })
 
   describe('uniques in deep updates', () => {
-    cds.test(__dirname + '/resources')
     test('2nd level unique constraints ', async () => {
       // number must be unique for each book
 
