@@ -86,9 +86,7 @@ describe('UPDATE', () => {
 
       await cds.tx(async tx => {
         await tx.run(DELETE.from(BooksUnique).where({ ID: 1 }))
-        await tx.run(
-          INSERT.into(BooksUnique).entries([
-            {
+        const data = {
               ID: 1,
               title: 'foo',
               pages: [
@@ -101,41 +99,20 @@ describe('UPDATE', () => {
                   number: 2,
                 },
               ],
-            },
-          ]),
-        )
+            }
         await tx.run(
-          UPDATE(BooksUnique).data({
-            ID: 1,
-            title: 'foo',
-            pages: [
-              {
-                ID: 3,
-                number: 1,
-              },
-              {
-                ID: 4,
-                number: 2,
-              },
-            ],
-          }),
-        ) // first, old entries are deleted, so no violation
-        await tx.run(
-          UPDATE(BooksUnique).data({
-            ID: 1,
-            title: 'foo',
-            pages: [
-              {
-                ID: 5,
-                number: 1, // would fail without the update below first
-              },
-              {
-                ID: 3,
-                number: 999, // 1 -> 999
-              },
-            ],
-          }),
+          INSERT.into(BooksUnique).entries([ data ]),
         )
+        
+        // Create new entries with conflicting numbers
+        data.pages[0].ID = 3
+        data.pages[1].ID = 4
+        await tx.run(UPDATE(BooksUnique).data(data)) // first, old entries are deleted, so no violation
+        
+        data.pages[0].ID = 5
+        data.pages[0].number = 1  // would fail without the update below first
+        data.pages[1].number = 999
+        await tx.run(UPDATE(BooksUnique).data(data))
       })
     })
   })
