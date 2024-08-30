@@ -46,17 +46,20 @@ async function onDeep(req, next) {
 
   const queries = getDeepQueries(query, beforeData, target)
 
-  // first delete, then update, then insert because of unique constraints
-  const splitted = { DELETE: [], UPDATE: [], INSERT: [] }
-  queries.forEach(query => {
-    if (query.DELETE) return splitted.DELETE.push(this.onSIMPLE({ query }))
-    if (query.UPDATE) return splitted.UPDATE.push(this.onUPDATE({ query }))
-    if (query.INSERT) return splitted.INSERT.push(this.onINSERT({ query }))
-  })
+  //// first delete, then update, then insert because of unique constraints
+  //const splitted = { DELETE: [], UPDATE: [], INSERT: [] }
+  //queries.forEach(query => {
+  //  if (query.DELETE) return splitted.DELETE.push(this.onSIMPLE({ query }))
+  //  if (query.UPDATE) return splitted.UPDATE.push(this.onUPDATE({ query }))
+  //  if (query.INSERT) return splitted.INSERT.push(this.onINSERT({ query }))
+  //})
+  await Promise.all(queries.deletes.values().map(query => this.onSIMPLE({ query })))
+  await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
+  const inserts = await Promise.all(queries.inserts.values().map(query => this.onINSERT({ query })))
 
-  if (splitted.DELETE.length) await Promise.all(splitted.DELETE)
-  if (splitted.UPDATE.length) await Promise.all(splitted.UPDATE)
-  const inserts = await Promise.all(splitted.INSERT)
+  //if (splitted.DELETE.length) await Promise.all(splitted.DELETE)
+  //if (splitted.UPDATE.length) await Promise.all(splitted.UPDATE)
+  //const inserts = await Promise.all(splitted.INSERT)
 
   return (
     beforeData.length ||
@@ -203,10 +206,7 @@ const getDeepQueries = (query, dbData, target) => {
     diff = [diff]
   }
 
-  const deletes = new Map()
-  const result = _getDeepQueries(diff, target, deletes) // deletes are collected in one combined DELETE per entity
-  for (const d of deletes.values()) result.push(d)
-  return result
+  return _getDeepQueries(diff, target)
 }
 
 const _hasManagedElements = target => {
@@ -220,12 +220,11 @@ const _hasManagedElements = target => {
  * @param {boolean} [root=false]
  * @returns {import('@sap/cds/apis/cqn').Query[]}
  */
-const _getDeepQueries = (diff, target, deletes, root = true) => {
+const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
   const queries = []
 
   for (const diffEntry of diff) {
     if (diffEntry === undefined) continue
-    const subQueries = []
 
     for (const prop in diffEntry) {
       // handle deep operations
@@ -236,9 +235,7 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
         delete diffEntry[prop]
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
-        arrayed.forEach(subEntry => {
-          subQueries.push(..._getDeepQueries([subEntry], target.elements[prop]._target, deletes, false))
-        })
+        arrayed.forEach(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false))
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
@@ -254,12 +251,11 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
       delete diffEntry._old
     }
 
-    // first calculate subqueries and rm their properties, then build root query
     if (op === 'create') {
-      queries.push(INSERT.into(target).entries(diffEntry))
+      const insert = inserts.get(target.name)
+      if (insert) insert.INSERT.entries.push(diffEntry)
+      else inserts.set(target.name, INSERT.into(target).entries(diffEntry))
     } else if (op === 'delete') {
-      // handle deletes differently to reduce the amount of sent queries
-
       const keys = cds.utils
         .Object_keys(target.keys)
         .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
@@ -272,42 +268,22 @@ const _getDeepQueries = (diff, target, deletes, root = true) => {
         const right = { list: [{ list: keyVals }] }
         deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
       }
-    } else if (op === 'update' || (op === undefined && (root || subQueries.length) && _hasManagedElements(target))) {
+    } else if (op === 'update' || (op === undefined && root && _hasManagedElements(target))) {
       // TODO do we need the where here?
-      const keys = target.keys
+      const keys = cds.utils
+        .Object_keys(target.keys)
+        .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
       const cqn = UPDATE(target).with(diffEntry)
       for (const key in keys) {
-        if (keys[key].virtual) continue
-        if (!keys[key].isAssociation) {
-          cqn.where(key + '=', diffEntry[key])
-        }
+        cqn.where(key + '=', diffEntry[key])
         delete diffEntry[key]
       }
       cqn.with(diffEntry)
-      queries.push(cqn)
+      updates.push(cqn)
     }
-
-    for (const q of subQueries) queries.push(q)
   }
 
-  const insertQueries = new Map()
-
-  return queries
-    .map(q => {
-      // Merge all INSERT statements for each target
-      if (q.INSERT) {
-        const target = q.target
-        if (insertQueries.has(target)) {
-          insertQueries.get(target).INSERT.entries.push(...q.INSERT.entries)
-          return
-        } else {
-          insertQueries.set(target, q)
-        }
-      }
-      Object.defineProperty(q, handledDeep, { value: true })
-      return q
-    })
-    .filter(a => a)
+  return { updates, inserts, deletes }
 }
 
 module.exports = {
