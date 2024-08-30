@@ -49,7 +49,7 @@ async function onDeep(req, next) {
   // first delete, then update, then insert because of unique constraints
   await Promise.all(queries.deletes.map(query => this.onSIMPLE({ query })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
-  const inserts = await Promise.all(queries.inserts.map(query => this.onINSERT({ query })))
+  const inserts = await Promise.all(queries.inserts.map(query => this.onINSERT({ query }))) // TODO BUG BUG BUG: root insert is not last!
 
   return (
     beforeData.length ||
@@ -212,7 +212,6 @@ const _hasManagedElements = target => {
  */
 const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
   // flag to determine if queries were created
-
   let dirty = false
   for (const diffEntry of diff) {
     if (diffEntry === undefined) continue
@@ -248,6 +247,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
     if (op === 'create') {
       dirty = true
       const insert = inserts.get(target.name)
+      console.log('pushing insert', target.name)
       if (insert) {
         insert.INSERT.entries.push(diffEntry)
       } else inserts.set(target.name, INSERT.into(target).entries(diffEntry))
