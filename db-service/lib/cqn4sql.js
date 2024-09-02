@@ -1852,6 +1852,11 @@ function cqn4sql(originalQuery, model) {
           result[i] = asXpr(xpr)
           continue
         }
+        if(lhs.args) {
+          const args = calculateOnCondition(lhs.args)
+          result[i] = { ...lhs, args }
+          continue
+        }
         const rhs = result[i + 2]
         if (rhs?.ref || lhs.ref) {
           // if we have refs on each side of the comparison, we might need to perform tuple expansion
