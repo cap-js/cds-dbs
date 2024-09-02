@@ -30,7 +30,7 @@ class SQLiteService extends SQLService {
         // define iso function in js to allow for throwing errors
         const iso = d => {
           try { return d && new Date(d).toISOString() } 
-          catch (err) { throw new Error(`Value ${d} is not a valid date`) }
+          catch { throw new Error(`Value ${d} is not a valid date`) }
         }
         dbc.function('ISO', deterministic, iso)
 
