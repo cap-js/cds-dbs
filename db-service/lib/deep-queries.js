@@ -231,7 +231,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
         const arrayed = Array.isArray(propData) ? propData : [propData]
         childrenDirty = arrayed
           .map(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false))
-          .some(a => a)
+          .some(a => a) || childrenDirty
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
