@@ -530,7 +530,7 @@ function cqn4sql(originalQuery, model) {
       res = getTransformedTokenStream([value], baseLink)[0]
     } else if (xpr) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
-    } else if (val) {
+    } else if (val !== undefined) {
       res = { val }
     } else if (func) {
       res = { args: getTransformedFunctionArgs(value.args, baseLink), func: value.func }
@@ -884,6 +884,7 @@ function cqn4sql(originalQuery, model) {
 
         if (expand.expand) {
           const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          setElementOnColumns(nested, expand.element)
           elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
           return nested
         }
