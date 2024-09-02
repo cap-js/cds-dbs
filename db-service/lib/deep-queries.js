@@ -48,7 +48,10 @@ async function onDeep(req, next) {
 
   const queries = getDeepQueries(query, beforeData, target)
 
-  // first delete, then update, then insert because of unique constraints
+  // first delete, then update, then insert because of potential unique constraints:
+  // - deletes never trigger unique constraints, but can prevent them -> execute first
+  // - updates can trigger and prevent unique constraints -> execute second
+  // - inserts can only trigger unique constraints -> execute last
   await Promise.all(queries.deletes.map(query => this.onSIMPLE({ query })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
 
