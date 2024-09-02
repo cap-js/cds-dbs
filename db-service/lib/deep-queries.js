@@ -55,6 +55,7 @@ async function onDeep(req, next) {
   await Promise.all(queries.deletes.map(query => this.onSIMPLE({ query })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
 
+  // both insert query and entry are marked with `ROOT` to properly identify the right insert result later
   let rootInsertIdx = null
   let rootInsertEntriesIdx = null
   const inserts = await Promise.all(
