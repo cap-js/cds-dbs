@@ -2,6 +2,8 @@ const cds = require('@sap/cds')
 const { _target_name4 } = require('./SQLService')
 const InsertResult = require('../lib/InsertResults')
 
+const ROOT = Symbol('root') // also needed in tests
+
 // REVISIT: remove old path with cds^8
 let _compareJson
 const compareJson = (...args) => {
@@ -49,14 +51,27 @@ async function onDeep(req, next) {
   // first delete, then update, then insert because of unique constraints
   await Promise.all(queries.deletes.map(query => this.onSIMPLE({ query })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
-  const inserts = await Promise.all(queries.inserts.map(query => this.onINSERT({ query }))) // TODO BUG BUG BUG: root insert is not last!
+
+  let rootInsertIdx = null
+  let rootInsertEntriesIdx = null
+  const inserts = await Promise.all(
+    queries.inserts.map((query, idx) => {
+      if (query[ROOT]) {
+        rootInsertIdx = idx
+        rootInsertEntriesIdx = query.INSERT.entries.findIndex(entry => entry[ROOT])
+      }
+      return this.onINSERT({ query })
+    }),
+  )
 
   return (
     beforeData.length ||
     new InsertResult(query, [
       {
         changes: Array.isArray(req.data) ? req.data.length : 1,
-        ...(inserts.at(-1)?.results[0]?.lastInsertRowid ? { lastInsertRowid: inserts.at(-1).results[0].lastInsertRowid } : {}),
+        ...(inserts[rootInsertIdx]?.results[rootInsertEntriesIdx]?.lastInsertRowid
+          ? { lastInsertRowid: inserts[rootInsertIdx].results[rootInsertEntriesIdx].lastInsertRowid }
+          : {}), // last entry is root entry (depth-first)
       },
     ])
   )
@@ -247,10 +262,21 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
     if (op === 'create') {
       dirty = true
       const insert = inserts.get(target.name)
-      console.log('pushing insert', target.name)
       if (insert) {
+        if (root && !insert[ROOT]) {
+          // first ROOT entry will set it
+          insert[ROOT] = true
+          diffEntry[ROOT] = true
+        }
         insert.INSERT.entries.push(diffEntry)
-      } else inserts.set(target.name, INSERT.into(target).entries(diffEntry))
+      } else {
+        const q = INSERT.into(target).entries(diffEntry)
+        if (root) {
+          q[ROOT] = true
+          diffEntry[ROOT] = true
+        }
+        inserts.set(target.name, q)
+      }
     } else if (op === 'delete') {
       dirty = true
       const keys = cds.utils
@@ -287,7 +313,8 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
 
 module.exports = {
   onDeep,
-  getDeepQueries,
-  getExpandForDeep,
   hasDeep,
+  getDeepQueries, // only for testing
+  ROOT, // only for testing
+  getExpandForDeep, // only for testing
 }
