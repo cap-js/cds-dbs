@@ -499,9 +499,18 @@ class HANAService extends SQLService {
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
                       if (col.ref[0] !== parent.as) {
-                        // Inject foreign columns into parent select
+                        // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
-                        parent.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                        let curPar = parent
+                        while (curPar) {
+                          if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
+                            curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                            break
+                          } else {
+                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                            curPar = curPar.SELECT.parent
+                          }
+                        }
                         col.as = colName
                         col.ref = [parent.as, as]
                       } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
@@ -550,8 +559,6 @@ class HANAService extends SQLService {
             },
         )
         .filter(a => a)
-
-      if (sql.length === 0) sql = '*'
 
       if (SELECT.expand === 'root') {
         this._blobs = blobs
@@ -971,6 +978,13 @@ class HANAService extends SQLService {
         this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
+      // If the list only contains of vals it is replaced with a json function and a placeholder
+      if (this.values && first.val) {
+        const v = first
+        const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
+        this.values.push(JSON.stringify(list.list))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
       // Call super for normal SQL behavior
       return super.list(list)
     }
@@ -1118,6 +1132,7 @@ class HANAService extends SQLService {
 
     static OutputConverters = {
       ...super.OutputConverters,
+      LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
