@@ -2,7 +2,7 @@ const cds = require('../../../test/cds')
 cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
 cds.env.features.recursion_depth = 2
 
-const { getDeepQueries, getExpandForDeep, ROOT } = require('../../lib/deep-queries')
+const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
 
 describe('test deep query generation', () => {
 
@@ -787,17 +787,17 @@ describe('test deep query generation', () => {
       const { inserts, updates, deletes } = getDeepQueries(query, [], model.definitions.Root)
 
       const expectedInserts = [
-        Object.assign(INSERT.into(model.definitions.Root)
-          .entries([{ ID: 1, [ROOT]: true }, { ID: 2 }, { ID: 3 }]), { [ROOT]: true}),
+        INSERT.into(model.definitions.Root)
+          .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }]),
         INSERT.into(model.definitions.Child)
           .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }, { ID: 4 }, { ID: 6 }, { ID: 7 }, { ID: 5 }, { ID: 9 }, { ID: 8 }]),
         INSERT.into(model.definitions.SubChild)
           .entries([{ ID: 10 }, { ID: 11 }, { ID: 12 }, { ID: 13 }]),
       ]
 
-      const insertsArray = Array.from(inserts)
+      const insertsArray = Array.from(inserts.values())
       const updatesArray = Array.from(updates)
-      const deletesArray = Array.from(deletes)
+      const deletesArray = Array.from(deletes.values())
 
       expectedInserts.forEach(insert => {
         expect(insertsArray).toContainEqual(insert)
