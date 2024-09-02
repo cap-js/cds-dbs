@@ -13,14 +13,14 @@ const BINARY_TYPES = {
 const { Readable } = require('stream')
 
 const DEBUG = (() => {
-  let DEBUG = cds.debug('sql-json')
-  if (DEBUG) return DEBUG
-  else DEBUG = cds.debug('sql|sqlite')
-  if (DEBUG) {
-    return DEBUG
+  const LOG = cds.log('sql-json')
+  if (LOG._debug) return cds.debug('sql-json')
+  return cds.debug('sql|sqlite')
+  //if (DEBUG) {
+  //  return DEBUG
     // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
     // FIXME: looses closing ) on INSERT queries
-  }
+  //}
 })()
 
 class CQN2SQLRenderer {
