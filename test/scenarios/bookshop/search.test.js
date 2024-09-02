@@ -79,7 +79,7 @@ describe.skip('Bookshop - Search', () => {
       // ad-hoc search expression
       Books['@cds.search.authorsAddress'] = true
 
-      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"1 Main Street, Bradford"')
       // author name in res[0] must match "Emily Brontë"
       expect(res.length).to.be.eq(1)
       expect(res[0].author).to.be.eq('Emily Brontë')
@@ -91,10 +91,32 @@ describe.skip('Bookshop - Search', () => {
       Books['@cds.search.author'] = true
       Authors['@cds.search.address'] = true // address is a calculated element
 
-      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('1 Main Street, Bradford')
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"1 Main Street, Bradford"')
       // author name in res[0] must match "Emily Brontë"
       expect(res.length).to.be.eq(1)
       expect(res[0].author).to.be.eq('Emily Brontë')
+    })
+
+    test('Search escaped character in search literal', async () => {
+      const { Books } = cds.entities
+      const { Authors } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+      Authors['@cds.search.address'] = true // address is a calculated element
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"\\"\\\\"')
+      expect(res.length).to.be.eq(0)
+    })
+
+    test('Search improperly escaped character in search literal', async () => {
+      const { Books } = cds.entities
+      const { Authors } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+      Authors['@cds.search.address'] = true // address is a calculated element
+
+      let res = await SELECT.from(Books).columns('author.name as author', 'title').search('"\\q"')
+      expect(res.length).to.be.eq(0)
     })
 
     test('search on result of subselect', async () => {

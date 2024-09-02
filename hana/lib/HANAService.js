@@ -984,6 +984,13 @@ class HANAService extends SQLService {
         this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
+      // If the list only contains of vals it is replaced with a json function and a placeholder
+      if (this.values && first.val) {
+        const v = first
+        const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
+        this.values.push(JSON.stringify(list.list))
+        return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
+      }
       // Call super for normal SQL behavior
       return super.list(list)
     }
@@ -1131,6 +1138,7 @@ class HANAService extends SQLService {
 
     static OutputConverters = {
       ...super.OutputConverters,
+      LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
