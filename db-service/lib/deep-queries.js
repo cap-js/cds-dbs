@@ -73,7 +73,7 @@ async function onDeep(req, next) {
     new InsertResult(query, [
       {
         changes: Array.isArray(req.data) ? req.data.length : 1,
-        ...(inserts[rootInsertIdx]?.results[rootInsertEntriesIdx]?.lastInsertRowid
+        ...(inserts[rootInsertIdx]?.results[rootInsertEntriesIdx]?.lastInsertRowid // BUG TODO FIXME rootInsertEntriesIdx does not work here
           ? { lastInsertRowid: inserts[rootInsertIdx].results[rootInsertEntriesIdx].lastInsertRowid }
           : {}), // last entry is root entry (depth-first)
       },
