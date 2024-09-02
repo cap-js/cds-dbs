@@ -52,14 +52,14 @@ async function onDeep(req, next) {
   // - deletes never trigger unique constraints, but can prevent them -> execute first
   // - updates can trigger and prevent unique constraints -> execute second
   // - inserts can only trigger unique constraints -> execute last
-  await Promise.all(queries.deletes.values().map(query => this.onSIMPLE({ query })))
+  await Promise.all(Array.from(queries.deletes.values()).map(query => this.onSIMPLE({ query })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
 
   const rootQuery = queries.inserts.get(ROOT)
   queries.inserts.delete(ROOT)
   const [rootResult] = await Promise.all([
     rootQuery && this.onINSERT({ query: rootQuery }),
-    ...queries.inserts.values().map(query => this.onINSERT({ query })),
+    ...Array.from(queries.inserts.values()).map(query => this.onINSERT({ query })),
   ])
 
   return beforeData.length ?? rootResult
@@ -229,9 +229,12 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
         delete diffEntry[prop]
       } else if (target.compositions?.[prop]) {
         const arrayed = Array.isArray(propData) ? propData : [propData]
-        childrenDirty = arrayed
-          .map(subEntry => _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false))
-          .some(a => a) || childrenDirty
+        childrenDirty =
+          arrayed
+            .map(subEntry =>
+              _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false),
+            )
+            .some(a => a) || childrenDirty
         delete diffEntry[prop]
       } else if (diffEntry[prop] === undefined) {
         // restore current behavior, if property is undefined, not part of payload
