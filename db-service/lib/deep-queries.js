@@ -210,8 +210,10 @@ const _hasManagedElements = target => {
  * @param {unknown[]} diff
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @param {Map<String, Object>} deletes
- * @param {boolean} [root=false]
- * @returns {import('@sap/cds/apis/cqn').Query[]}
+ * @param {Map<String, Object>} inserts
+ * @param {Array} updates
+ * @param {boolean} [root=true]
+ * @returns {Object}
  */
 const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
   // flag to determine if queries were created
