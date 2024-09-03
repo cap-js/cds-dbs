@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.12.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.0...db-service-v1.12.1) (2024-09-03)
+
+
+### Fixed
+
+* deep `groupby` expand queries ([#768](https://github.com/cap-js/cds-dbs/issues/768)) ([5423cf3](https://github.com/cap-js/cds-dbs/commit/5423cf38574962c09b94febab95f2e3dc118d2c9))
+* **deep:** prevent false unique constraint errors and combine delete queries ([#781](https://github.com/cap-js/cds-dbs/issues/781)) ([01de95f](https://github.com/cap-js/cds-dbs/commit/01de95f5050a1d3325459ccb78a4e9a1e0dbcfde))
+* **logging:** from changes in @sap/cds ([#791](https://github.com/cap-js/cds-dbs/issues/791)) ([1e8bf06](https://github.com/cap-js/cds-dbs/commit/1e8bf06c9ae92ba55d13fe9e3297d6a54c4fc8fe))
+* prepend aliases to refs within function args in on conditions ([#795](https://github.com/cap-js/cds-dbs/issues/795)) ([9b34314](https://github.com/cap-js/cds-dbs/commit/9b34314d1ef8c6fd7e77451fe9bf0abdc12c27ea)), closes [#779](https://github.com/cap-js/cds-dbs/issues/779)
+* prevent $search queries from throwing ([#772](https://github.com/cap-js/cds-dbs/issues/772)) ([cdf4d37](https://github.com/cap-js/cds-dbs/commit/cdf4d37590c2949cdfd6c6533370bc96cd8fd0fc))
+
 ## [1.12.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.11.0...db-service-v1.12.0) (2024-07-25)
 
 
