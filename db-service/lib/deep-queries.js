@@ -213,7 +213,7 @@ const _hasManagedElements = target => {
  * @param {Map<String, Object>} inserts
  * @param {Object[]} updates
  * @param {boolean} [root=true]
- * @returns {Object}
+ * @returns {Object|Boolean}
  */
 const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
   // flag to determine if queries were created
