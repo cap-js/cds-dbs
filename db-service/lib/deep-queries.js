@@ -1,6 +1,5 @@
 const cds = require('@sap/cds')
 const { _target_name4 } = require('./SQLService')
-const InsertResult = require('../lib/InsertResults')
 
 const ROOT = Symbol('root')
 
