@@ -211,7 +211,7 @@ const _hasManagedElements = target => {
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @param {Map<String, Object>} deletes
  * @param {Map<String, Object>} inserts
- * @param {Array} updates
+ * @param {Object[]} updates
  * @param {boolean} [root=true]
  * @returns {Object}
  */
