@@ -884,6 +884,7 @@ function cqn4sql(originalQuery, model) {
 
         if (expand.expand) {
           const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          setElementOnColumns(nested, expand.element)
           elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
           return nested
         }
@@ -1850,6 +1851,11 @@ function cqn4sql(originalQuery, model) {
         if (lhs.xpr) {
           const xpr = calculateOnCondition(lhs.xpr)
           result[i] = asXpr(xpr)
+          continue
+        }
+        if(lhs.args) {
+          const args = calculateOnCondition(lhs.args)
+          result[i] = { ...lhs, args }
           continue
         }
         const rhs = result[i + 2]

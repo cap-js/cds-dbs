@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.1...hana-v1.2.0) (2024-09-03)
+
+
+### Added
+
+* wrap client if @dynatrace/oneagent-sdk is present ([#777](https://github.com/cap-js/cds-dbs/issues/777)) ([147b88e](https://github.com/cap-js/cds-dbs/commit/147b88ef7f2d790f4f6fbda7bb37942590e1e07a))
+
+
+### Fixed
+
+* Add `{list:[{val}]}` json function support ([#784](https://github.com/cap-js/cds-dbs/issues/784)) ([ce5f856](https://github.com/cap-js/cds-dbs/commit/ce5f856e720ea45e34445925dd22583a9b58cea9))
+* Allow applications to configure `acquireTimeoutMillis` ([#796](https://github.com/cap-js/cds-dbs/issues/796)) ([abac818](https://github.com/cap-js/cds-dbs/commit/abac818fed46d6ebd50b64b6244fe1352c4d6a84))
+* deep `groupby` expand queries ([#768](https://github.com/cap-js/cds-dbs/issues/768)) ([5423cf3](https://github.com/cap-js/cds-dbs/commit/5423cf38574962c09b94febab95f2e3dc118d2c9))
+* Enforce `LargeStrings` to be `Strings` for `sql_simple_queries=1` ([#774](https://github.com/cap-js/cds-dbs/issues/774)) ([c38a9e6](https://github.com/cap-js/cds-dbs/commit/c38a9e612428284a3c1b81c1ee5ab89398e03616))
+* wrong falsy checks for vals in list optimization ([#797](https://github.com/cap-js/cds-dbs/issues/797)) ([e818da8](https://github.com/cap-js/cds-dbs/commit/e818da85fae8d8b20e8594a3275f30bbb0f6bbfe))
+
+
+### Changed
+
+* requires @sap/cds &gt;= 8.2 ([#789](https://github.com/cap-js/cds-dbs/issues/789)) ([3bbde18](https://github.com/cap-js/cds-dbs/commit/3bbde186848ad97ff1191ce3fc50fc4c9f90dee3))
+
 ## [1.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.0...hana-v1.1.1) (2024-07-25)
 
 

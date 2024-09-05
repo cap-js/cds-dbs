@@ -43,7 +43,7 @@ class HANAService extends SQLService {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
-    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
       options: {
         min: 0,
@@ -505,9 +505,18 @@ class HANAService extends SQLService {
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
                       if (col.ref[0] !== parent.as) {
-                        // Inject foreign columns into parent select
+                        // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
-                        parent.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                        let curPar = parent
+                        while (curPar) {
+                          if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
+                            curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                            break
+                          } else {
+                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                            curPar = curPar.SELECT.parent
+                          }
+                        }
                         col.as = colName
                         col.ref = [parent.as, as]
                       } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
@@ -556,8 +565,6 @@ class HANAService extends SQLService {
             },
         )
         .filter(a => a)
-
-      if (sql.length === 0) sql = '*'
 
       if (SELECT.expand === 'root') {
         this._blobs = blobs
@@ -972,13 +979,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => !v.val)) {
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
         const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
         this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
-      if (this.values && first.val) {
+      if (this.values && first.val != null) {
         const v = first
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
@@ -1049,6 +1056,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`,
+      boolean: () => `NVARCHAR(5)`,
 
       // HANA types
       'cds.hana.TINYINT': () => 'INT',
