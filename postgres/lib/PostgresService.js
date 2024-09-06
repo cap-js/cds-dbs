@@ -518,7 +518,7 @@ GROUP BY k
       ...super.InputConverters,
       // UUID:      (e) => `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
       boolean: e => `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
-      // REVISIT: Postgres and HANA round Decimal numbers differently therefor precision and scale are removed
+      // REVISIT: Postgres and HANA round Decimal numbers differently therefore precision and scale are removed
       // Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       // Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Float: e => `CAST(${e} as decimal)`,
