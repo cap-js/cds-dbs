@@ -32,9 +32,15 @@ entity ![default] : _cuid {
   time      : Time default '01:02:03';
   dateTime  : DateTime default '1970-01-01T01:02:03Z';
   timestamp : Timestamp default '1970-01-01T01:02:03.123456789Z';
-  // Binary default values don't make sense. while technically possible
-  // binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
-  // largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
-  // Vector default values probably also don't make sense
-  // vector : Vector default '[1.0,0.5,0.0,...]';
+// Binary default values don't make sense. while technically possible
+// binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
+// largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
+// Vector default values probably also don't make sense
+// vector : Vector default '[1.0,0.5,0.0,...]';
+}
+
+entity keys {
+  key id      : Integer;
+  key default : String default 'defaulted';
+      data    : String;
 }
