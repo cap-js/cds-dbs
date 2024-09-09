@@ -1,8 +1,9 @@
 'use strict'
 const cds = require('../../test/cds.js')
-const { expect } = cds.test(__dirname + '/resources')
 
 describe('keywords', () => {
+  const { expect } = cds.test(__dirname + '/resources')
+
   test('insert, update, select', async () => {
     const { Order } = cds.entities
     const data = {
