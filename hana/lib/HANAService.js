@@ -748,14 +748,15 @@ class HANAService extends SQLService {
       // temporal data
       keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
 
-      const keyCompare = keys
-        .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
-        .join(' AND ')
-
       const managed = this.managed(
         this.columns.map(c => ({ name: c })),
         elements
       )
+
+      const keyCompare = managed
+        .filter(c => keys.includes(c.name))
+        .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
+        .join(' AND ')
 
       const mixing = managed.map(c => c.upsert)
       const extraction = managed.map(c => c.extract)
