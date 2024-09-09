@@ -729,7 +729,7 @@ class CQN2SQLRenderer {
       .join(' AND ')
 
     const columns = this.columns // this.columns is computed as part of this.INSERT
-    const managed = this._managed // this.managed(columns.map(c => ({ name: c })), elements)
+    const managed = this._managed.slice(0, columns.length)
 
     const extractkeys = managed
       .filter(c => keys.includes(c.name))
