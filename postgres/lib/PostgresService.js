@@ -413,8 +413,6 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific (only ->>[<number>])
-        .replace(/->>'\$(?:(?:\[(\d*)\]))'/g, (a, b) => `->>${b}`)
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
       )
@@ -425,23 +423,22 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific (only ->>[<number>])
-        .replace(/->>'\$(?:(?:\[(\d*)\]))'/g, (a, b) => `->>${b}`)
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
       )
     }
 
     managed_extract(name, element, converter) {
-      const ret = converter(`value->>'${name.replace(/'/g, "''")}'`)
-      return {
-        extract: ret,
-        sql: ret,
-      }
+      const { UPSERT, INSERT } = this.cqn
+      const extract = INSERT?.rows || UPSERT?.rows
+        ? `value->>${this.columns.indexOf(name)}`
+        : `value->>'${name.replace(/'/g, "''")}'`
+      const sql = converter?.(extract) || extract
+      return { extract, sql }
     }
 
     managed_default(name, managed, src) {
-      return `(CASE WHEN json_typeof(value->'${name.replace(/'/g, "''")}') IS NULL THEN ${managed} ELSE ${src} END)`
+      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {

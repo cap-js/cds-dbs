@@ -642,7 +642,7 @@ class CQN2SQLRenderer {
       this.entries = [[...this.values, stream]]
     }
 
-    const extraction = (this._managed = this.managed(columns.map((c, i) => ({ name: c, sql: `value->>'$[${i}]'` })), elements))
+    const extraction = (this._managed = this.managed(columns.map(c => ({ name: c })), elements))
       .slice(0, columns.length)
       .map(c => c.converter(c.extract))
 
@@ -657,7 +657,7 @@ class CQN2SQLRenderer {
    */
   INSERT_values(q) {
     let { columns, values } = q.INSERT
-    return this.INSERT_rows({ __proto__: q, INSERT: { __proto__: q.INSERT, columns, rows: [values] } })
+    return this.render({ __proto__: q, INSERT: { __proto__: q.INSERT, columns, rows: [values] } })
   }
 
   /**
@@ -1115,11 +1115,12 @@ class CQN2SQLRenderer {
   }
 
   managed_extract(name, element, converter) {
-    const ret = converter(`value->>'$."${name.replace(/"/g, '""')}"'`)
-    return {
-      extract: ret,
-      sql: ret,
-    }
+    const { UPSERT, INSERT } = this.cqn
+    const extract = INSERT?.rows || UPSERT?.rows
+      ? `value->>'$[${this.columns.indexOf(name)}]'`
+      : `value->>'$."${name.replace(/"/g, '""')}"'`
+    const sql = converter?.(extract) || extract
+    return { extract, sql }
   }
 
   managed_session_context(src) {
@@ -1128,7 +1129,7 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
-    return `(CASE WHEN json_type(value,'$."${name.replace(/"/g, '""')}"') IS NULL THEN ${managed} ELSE ${src} END)`
+    return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
 
