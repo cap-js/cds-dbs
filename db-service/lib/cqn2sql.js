@@ -18,8 +18,8 @@ const DEBUG = (() => {
   return cds.debug('sql|sqlite')
   //if (DEBUG) {
   //  return DEBUG
-    // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
-    // FIXME: looses closing ) on INSERT queries
+  // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
+  // FIXME: looses closing ) on INSERT queries
   //}
 })()
 
@@ -313,8 +313,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-  
-    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }): this.expr(x)
+
+    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -1116,7 +1116,7 @@ class CQN2SQLRenderer {
 
   managed_extract(name, element, converter) {
     const { UPSERT, INSERT } = this.cqn
-    const extract = INSERT?.rows || UPSERT?.rows
+    const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
       ? `value->>'$[${this.columns.indexOf(name)}]'`
       : `value->>'$."${name.replace(/"/g, '""')}"'`
     const sql = converter?.(extract) || extract

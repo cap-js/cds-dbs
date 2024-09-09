@@ -430,7 +430,7 @@ GROUP BY k
 
     managed_extract(name, element, converter) {
       const { UPSERT, INSERT } = this.cqn
-      const extract = INSERT?.rows || UPSERT?.rows
+      const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
         ? `value->>${this.columns.indexOf(name)}`
         : `value->>'${name.replace(/'/g, "''")}'`
       const sql = converter?.(extract) || extract
