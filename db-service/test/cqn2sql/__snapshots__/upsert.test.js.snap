@@ -29,6 +29,6 @@ exports[`upsert test with rows (quoted) 1`] = `
       "[[1,null,2]]",
     ],
   ],
-  "sql": "INSERT INTO """Foo2Quoted""" ("""ID""","""name""","""a""") SELECT value->>'$[0]' as """ID""",CASE WHEN OLD."""ID""" IS NULL THEN value->>'$[1]' ELSE (CASE WHEN json_type(value,'$."""name"""') IS NULL THEN OLD."""name""" ELSE value->>'$[1]' END) END as """name""",CASE WHEN OLD."""ID""" IS NULL THEN value->>'$[2]' ELSE (CASE WHEN json_type(value,'$."""a"""') IS NULL THEN OLD."""a""" ELSE value->>'$[2]' END) END as """a""" FROM (SELECT value, value->>'$[0]' as """ID""" from json_each(?)) as NEW LEFT JOIN """Foo2Quoted""" AS OLD ON NEW."""ID"""=OLD."""ID""" WHERE TRUE ON CONFLICT("""ID""") DO UPDATE SET """name""" = excluded."""name""","""a""" = excluded."""a"""",
+  "sql": "INSERT INTO """Foo2Quoted""" ("""ID""","""name""","""a""") SELECT value->>'$[0]' as """ID""",CASE WHEN OLD."""ID""" IS NULL THEN value->>'$[1]' ELSE (CASE WHEN json_type(value,'$[1]') IS NULL THEN OLD."""name""" ELSE value->>'$[1]' END) END as """name""",CASE WHEN OLD."""ID""" IS NULL THEN value->>'$[2]' ELSE (CASE WHEN json_type(value,'$[2]') IS NULL THEN OLD."""a""" ELSE value->>'$[2]' END) END as """a""" FROM (SELECT value, value->>'$[0]' as """ID""" from json_each(?)) as NEW LEFT JOIN """Foo2Quoted""" AS OLD ON NEW."""ID"""=OLD."""ID""" WHERE TRUE ON CONFLICT("""ID""") DO UPDATE SET """name""" = excluded."""name""","""a""" = excluded."""a"""",
 }
 `;
