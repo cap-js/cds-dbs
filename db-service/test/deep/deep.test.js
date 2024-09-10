@@ -831,7 +831,8 @@ describe('test deep query generation', () => {
 
       const insert = INSERT.into(entity).entries(entry)
 
-      await cds.db.run(insert)
+      const result = await cds.db.run(insert)
+      expect(result > 0).toBe(true)
 
       const root = { uniqueName: entry.uniqueName, realm: entry.realm }
 
