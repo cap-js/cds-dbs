@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 const _inferred = require('../../lib/infer')
 
@@ -164,7 +164,7 @@ describe('Flattening', () => {
             genre,
             genre_ID
           }`,
-        cds.linked(cds.compile.for.odata(model)),
+        cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))),
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -651,6 +651,27 @@ describe('Flattening', () => {
         co_ID
       `)
     })
+    it('same as above but navigation to foreign key in order by', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books  {
+          ID,
+          author,
+          coAuthor as co
+        }
+        order by
+          Books.author,
+          co.ID`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.author_ID,
+        Books.coAuthor_ID as co_ID
+      } order by
+        Books.author_ID,
+        co_ID
+      `)
+    })
 
     it('rejects managed association with multiple FKs in ORDER BY clause', () => {
       expect(() =>
@@ -834,5 +855,4 @@ describe('Flattening', () => {
       )
     })
   })
-
 })

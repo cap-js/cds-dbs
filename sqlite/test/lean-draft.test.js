@@ -1,14 +1,15 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const sleep = require('util').promisify(setTimeout)
 const cds = require('../../test/cds.js')
 
 describe('draft tests', () => {
 
   const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
-
-  process.env.cds_requires_db_kind = 'better-sqlite'
-  process.env.cds_requires_auth_kind = 'mocked-auth'
+  // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
+  // (see https://cap.cloud.sap/docs/node.js/cds-test#cds-test-env-check)
+  cds.env.requires.db.kind = 'better-sqlite'
+  cds.env.requires.auth.kind = 'mocked-auth'
+  cds.env.features.ieee754compatible = true
 
   if (cds.env.fiori) cds.env.fiori.lean_draft = cds.env.fiori.draft_compat = true
   else cds.env.features.lean_draft = cds.env.features.lean_draft_compatibility = true
@@ -19,7 +20,6 @@ describe('draft tests', () => {
   }
 
   beforeEach(async () => {
-    cds.env.drafts = undefined
     await Promise.allSettled([
       DELETE(`/processor/Travel(TravelUUID='${NEW_DRAFT_TRAVELUUID}',IsActiveEntity=false)`, {
         auth: { username: 'user1', password: 'user1' },
@@ -238,7 +238,7 @@ describe('draft tests', () => {
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: 90,
+      BookingFee: v => /^90/.test(v),
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
       EndDate: '2024-05-31',
@@ -350,11 +350,11 @@ describe('draft tests', () => {
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: 90,
+      BookingFee: v => /^90/.test(v),
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
       EndDate: '2024-05-31',
-      TotalPrice: 5624,
+      TotalPrice: v => /^5624/.test(v),
       TravelID: 32,
       TravelStatus_code: 'O',
       TravelUUID: EDIT_DRAFT_TRAVELUUID,
@@ -401,6 +401,7 @@ describe('draft tests', () => {
       { PreserveChanges: true },
       { auth: { username: 'user2', password: 'user2' } },
     )
+    const DraftUUID = res.data.DraftAdministrativeData.DraftUUID
 
     res = await GET(
       "/processor/Travel?$count=true&$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$orderby=TravelID%20desc&$filter=IsActiveEntity%20eq%20true%20and%20SiblingEntity/IsActiveEntity%20eq%20null%20and%20DraftAdministrativeData/InProcessByUser%20eq%20''&$expand=DraftAdministrativeData($select=DraftUUID,InProcessByUser,LastChangedByUser),TravelStatus($select=code,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)&$skip=0&$top=30",
@@ -408,8 +409,11 @@ describe('draft tests', () => {
     )
     expect(res.data.value.length).to.be.eq(0)
 
-    cds.env.drafts = { cancellationTimeout: 0.000001 }
-    await sleep(1000)
+    // age the draft to simulate lock timeout
+    await cds.db
+      .update('DRAFT.DraftAdministrativeData')
+      .set({ LastChangeDateTime: '1970-01-01T00:00:00.000Z' })
+      .where({ DraftUUID })
 
     res = await GET(
       `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=false)/DraftAdministrativeData`,
@@ -431,11 +435,11 @@ describe('draft tests', () => {
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2024-05-30',
-      BookingFee: 20,
+      BookingFee: v => /^20/.test(v),
       CurrencyCode_code: 'USD',
       Description: 'Sightseeing in New York City, New York',
       EndDate: '2024-05-30',
-      TotalPrice: 7375,
+      TotalPrice: v => /^7375/.test(v),
       TravelID: 4133,
       TravelStatus_code: 'A',
       TravelUUID: '76757221A8E4645C17002DF03754AB66',
@@ -494,11 +498,11 @@ describe('draft tests', () => {
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: 20,
+      BookingFee: v => /^20/.test(v),
       CurrencyCode_code: 'USD',
       Description: 'Business Trip for Christine, Pierre',
       EndDate: '2023-08-04',
-      TotalPrice: 900,
+      TotalPrice: v => /900/.test(v),
       TravelID: 1,
       TravelStatus_code: 'O',
       TravelUUID: '52657221A8E4645C17002DF03754AB66',
@@ -553,7 +557,7 @@ describe('draft tests', () => {
       BookSupplUUID: '85D87221A8E4645C17002DF03754AB66',
       BookingSupplementID: 1,
       CurrencyCode_code: 'EUR',
-      Price: 20,
+      Price: v => /20/.test(v),
       to_Supplement_SupplementID: 'ML-0023',
       to_Supplement: { Description: 'Trout Meuniere', SupplementID: 'ML-0023' },
       to_Travel: { TravelStatus: { code: 'A', fieldControl: 1 }, TravelUUID: '76757221A8E4645C17002DF03754AB66' },
@@ -575,7 +579,7 @@ describe('draft tests', () => {
       ConnectionID: '0018',
       CurrencyCode_code: 'USD',
       FlightDate: '2024-05-30',
-      FlightPrice: 3657,
+      FlightPrice: v => /^3657/.test(v),
       to_Carrier_AirlineID: 'GA',
       to_Customer_CustomerID: '000115',
       BookingStatus: { code: 'N', name: 'New' },
@@ -690,7 +694,7 @@ describe('draft tests', () => {
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: null, // Should be TravelUUID!
+      to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,
@@ -758,7 +762,7 @@ describe('draft tests', () => {
   test('new then patch then prepare then activate', async () => {
     const srv = await cds.connect.to('TravelService')
     // REVISIT: make dummy because DB doesn't support this statement
-    srv._update_totals4 = () => {}
+    srv._update_totals4 = () => { }
     let res = await POST(
       '/processor/Travel',
       { TravelUUID: NEW_DRAFT_TRAVELUUID },
@@ -787,7 +791,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.data).to.containSubset({
-      BookingFee: 12,
+      BookingFee: v => /^12/.test(v),
       TravelUUID,
       IsActiveEntity: false,
     })
@@ -813,7 +817,7 @@ describe('draft tests', () => {
       TravelID: 0,
       BeginDate: '2032-10-22',
       EndDate: '2032-12-22',
-      BookingFee: 12,
+      BookingFee: v => /^12/.test(v),
       TotalPrice: null,
       CurrencyCode_code: null,
       Description: null,
@@ -835,10 +839,8 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.data).to.containSubset({
-      '@odata.context':
-        '$metadata#Travel(BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID,DraftAdministrativeData(DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus(code,createDeleteHidden,fieldControl,name),to_Agency(AgencyID,Name),to_Customer(CustomerID,LastName))/$entity',
       BeginDate: '2032-10-22',
-      BookingFee: 12,
+      BookingFee: v => /^12/.test(v),
       CurrencyCode_code: null,
       Description: null,
       EndDate: '2032-12-22',

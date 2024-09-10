@@ -1,14 +1,20 @@
 'use strict'
 const { text } = require('stream/consumers')
 
-const cds = require('@sap/cds/lib')
-const cqn2sql = require('../../lib/cqn2sql')
-
-beforeAll(async () => {
-  cds.model = await cds.load(__dirname + '/testModel').then(cds.compile.for.nodejs)
-})
+const cds = require('@sap/cds')
+const _cqn2sql = require('../../lib/cqn2sql')
 
 describe('insert', () => {
+  let model
+  function cqn2sql(q) {
+    return _cqn2sql(q, model)
+  }
+
+  beforeAll(async () => {
+    model = await cds.load(__dirname + '/testModel').then(cds.linked)
+    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+  })
+
   describe('insert only', () => {
     // Values are missing
     test('test with insert values into columns', async () => {
@@ -109,7 +115,7 @@ describe('insert', () => {
         },
       }
 
-      const { sql } = cqn2sql(cqnInsert)
+      const { sql } = cqn2sql(cqnInsert, cds.model)
       expect(sql).toEqual('INSERT INTO Foo (ID) SELECT Foo2.ID FROM Foo2 as Foo2')
     })
   })

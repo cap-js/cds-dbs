@@ -1,7 +1,7 @@
 const SessionContext = require('./session-context')
 const ConnectionPool = require('./generic-pool')
 const infer = require('../infer')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 
 /** @typedef {unknown} DatabaseDriver */
 
@@ -128,22 +128,14 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
-  /**
-   * @param {string} tenant
-   */
-  async disconnect(tenant) {
-    const _disconnect = async tenant => {
-      const pool = this.pools[tenant]
-      if (!pool) {
-        return
-      }
+  async disconnect (tenant) {
+    const tenants = tenant ? [tenant] : Object.keys(this.pools)
+    await Promise.all (tenants.map (async t => {
+      const pool = this.pools[t]; if (!pool) return
+      delete this.pools[t]
       await pool.drain()
       await pool.clear()
-      delete this.pools[tenant]
-    }
-    if (tenant == null)
-      return Promise.all(Object.keys(this.pools).map(_disconnect))
-    return _disconnect(tenant)
+    }))
   }
 
   /**

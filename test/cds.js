@@ -1,23 +1,21 @@
-const cds = require('@sap/cds/lib')
-module.exports = cds
+// REVISIT: enable UInt8 type
+const typeCheck = require('@sap/cds-compiler/lib/checks/checkForTypes.js')
+typeCheck.type = function () { }
 
-// Adding cds.hana types to cds.builtin.types
-// REVISIT: Where should we put this?
-const hana = cds.linked({
-  definitions: {
-    'cds.hana.SMALLDECIMAL': { type: 'cds.Decimal' },
-    'cds.hana.SMALLINT': { type: 'cds.Int16' },
-    'cds.hana.TINYINT': { type: 'cds.UInt8' },
-    'cds.hana.REAL': { type: 'cds.Double' },
-    'cds.hana.CHAR': { type: 'cds.String' },
-    'cds.hana.CLOB': { type: 'cds.String' },
-    'cds.hana.NCHAR': { type: 'cds.String' },
-    'cds.hana.BINARY': { type: 'cds.String' },
-    'cds.hana.ST_POINT': { type: 'cds.String' },
-    'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
-  },
-})
-Object.assign(cds.builtin.types, hana.definitions)
+// REVISIT: enable cds.hana types
+const typeMapping = require('@sap/cds-compiler/lib/render/utils/common.js')
+typeMapping.cdsToSqlTypes.postgres = {
+  ...typeMapping.cdsToSqlTypes.postgres,
+  // Fill in failing cds.hana types for postgres
+  'cds.hana.CLOB': 'BYTEA',
+  'cds.hana.BINARY': 'BYTEA',
+  'cds.hana.TINYINT': 'SMALLINT',
+  'cds.hana.ST_POINT': 'POINT',
+  'cds.hana.ST_GEOMETRY': 'POLYGON',
+}
+
+const cds = require('@sap/cds')
+module.exports = cds
 
 const cdsTest = cds.test
 
@@ -39,12 +37,12 @@ cds.test = Object.setPrototypeOf(function () {
   global.beforeAll(() => {
     try {
       const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
-      const serviceDefinitionPath = testSource + 'test/service.json'
+      const serviceDefinitionPath = testSource + 'test/service'
       cds.env.requires.db = require(serviceDefinitionPath)
       require(testSource + 'cds-plugin')
-    } catch (e) {
+    } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = require('@cap-js/sqlite/test/service.json')
+      cds.env.requires.db = require('@cap-js/sqlite/test/service')
     }
   })
 
@@ -70,9 +68,9 @@ cds.test = Object.setPrototypeOf(function () {
         const hash = createHash('sha1')
         const isolateName = (require.main.filename || 'test_tenant') + isolateCounter++
         hash.update(isolateName)
-        isolate = {
+        ret.data.isolation = isolate = {
           // Create one database for each overall test execution
-          database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || 'test_db',
+          database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || require('os').userInfo().username || 'test_db',
           // Create one tenant for each test suite
           tenant: 'T' + hash.digest('hex'),
         }
@@ -105,6 +103,10 @@ cds.test = Object.setPrototypeOf(function () {
   global.afterAll(async () => {
     // Clean database connection pool
     await cds.db?.disconnect?.()
+
+    if (isolate) {
+      await cds.db?.tenant?.(isolate, true)
+    }
 
     // Clean cache
     delete cds.services._pending.db

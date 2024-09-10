@@ -12,10 +12,27 @@ module.exports = [
     blob: null,
   },
   {
+    string: undefined,
+    char: undefined,
+    short: undefined,
+    medium: undefined,
+    large: undefined,
+    blob: undefined,
+    '=string': null,
+    '=char': null,
+    '=short': null,
+    '=medium': null,
+    '=large': null,
+    '=blob': null,
+  },
+  {
     string: 'Simple String',
   },
   {
     char: 'A',
+  },
+  {
+    char: '대', // Ensure multi byte utf-8 characters also fit into a single character column
   },
   {
     large: () => [...new Array(1000)].map(alphabetize).join(''),

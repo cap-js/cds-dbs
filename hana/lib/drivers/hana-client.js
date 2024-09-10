@@ -1,8 +1,11 @@
 const { Readable, Stream } = require('stream')
 
+const cds = require('@sap/cds')
 const hdb = require('@sap/hana-client')
-const { StringDecoder } = require('string_decoder')
 const { driver, prom, handleLevel } = require('./base')
+const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
+const LOG = cds.log('@sap/hana-client')
+if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.\nLearn more: https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/31a8c93a574b4f8fb6a8366d2c758f21.html")
 
 const streamUnsafe = false
 
@@ -41,17 +44,98 @@ class HANAClientDriver extends driver {
 
     super(creds)
     this._native = hdb.createConnection(creds)
+    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
   }
 
   set(variables) {
-    for(const key in variables) {
+    for (const key in variables) {
       this._native.setClientInfo(key, variables[key])
     }
   }
 
-  async prepare(sql) {
+  async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
+    // hana-client ResultSet API does not allow for deferred streaming of blobs
+    // With the current design of the hana-client ResultSet it is only
+    // possible to read all LOBs into memory to do deferred streaming
+    // Main reason is that the ResultSet only allowes using getData() on the current row 
+    // with the current next() implemenation it is only possible to go foward in the ResultSet
+    // It would be required to allow using getDate() on previous rows
+    if (hasBlobs) {
+      ret.all = async (values) => {
+        const stmt = await ret._prep
+        // Create result set
+        const reset = async function () {
+          if (this) await prom(this, 'close')()
+          const rs = await prom(stmt, 'executeQuery')(values)
+          rs.reset = reset
+          return rs
+        }
+        const rs = await reset()
+        const rsStreamsProm = {}
+        const rsStreams = new Promise((resolve, reject) => {
+          rsStreamsProm.resolve = resolve
+          rsStreamsProm.reject = reject
+        })
+        rsStreams.catch(() => { })
+
+        rs._rowPosition = -1
+        const _next = prom(rs, 'next')
+        const next = () => {
+          rs._rowPosition++
+          return _next()
+        }
+        const getValue = prom(rs, 'getValue')
+        const result = []
+        // Fetch the next row
+        while (await next()) {
+          const cols = stmt.getColumnInfo()
+          // column 0-3 are metadata columns
+          const values = await Promise.all([getValue(0), getValue(1), getValue(2), getValue(3)])
+
+          const row = {}
+          for (let i = 0; i < cols.length; i++) {
+            const col = cols[i]
+            // column >3 are all blob columns
+            row[col.columnName] = i > 3 ?
+              rs.isNull(i)
+                ? null
+                : col.nativeType === 13 // return binary type as simple buffer
+                  ? await getValue(i)
+                  : Readable.from(streamBlob(rsStreams, rs._rowPosition, i), { objectMode: false })
+              : values[i]
+          }
+
+          result.push(row)
+        }
+
+        rs.reset().then(rsStreamsProm.resolve, rsStreamsProm.reject)
+
+        return result
+      }
+    }
+
+    ret.run = async params => {
+      const { values, streams } = this._extractStreams(params)
+      const stmt = await ret._prep
+      let changes = await prom(stmt, 'exec')(values)
+      await this._sendStreams(stmt, streams)
+      // REVISIT: hana-client does not return any changes when doing an update with streams
+      // This causes the best assumption to be that the changes are one
+      // To get the correct information it is required to send a count with the update where clause
+      if (streams.length && changes === 0) {
+        changes = 1
+      }
+      return { changes }
+    }
+
+    ret.proc = async (data, outParameters) => {
+      const stmt = await ret._prep
+      const rows = await prom(stmt, 'execQuery')(data)
+      return this._getResultForProcedure(rows, outParameters, stmt)
+    }
+
     ret.stream = async (values, one) => {
       const stmt = await ret._prep
       values = Array.isArray(values) ? values : []
@@ -66,7 +150,7 @@ class HANAClientDriver extends driver {
       // Which creates an inherent limitation to the maximum size of a result set (~0xfffffffb)
       if (streamUnsafe && sql.startsWith('DO')) {
         const rows = await prom(stmt, 'exec')(values, { rowsAsArray: true })
-        return Readable.from(rowsIterator(rows, stmt.getColumnInfo()))
+        return Readable.from(rowsIterator(rows, stmt.getColumnInfo()), { objectMode: false })
       }
       const rs = await prom(stmt, 'executeQuery')(values)
       const cols = rs.getColumnInfo()
@@ -75,15 +159,43 @@ class HANAClientDriver extends driver {
         if (rs.getRowCount() === 0) return null
         await prom(rs, 'next')()
         if (rs.isNull(0)) return null
-        return Readable.from(streamBlob(rs, 0, 'binary'))
+        return Readable.from(streamBlob(rs, undefined, 0), { objectMode: false })
       }
-      return Readable.from(rsIterator(rs, one))
+      return Readable.from(rsIterator(rs, one), { objectMode: false })
     }
     return ret
   }
 
   async validate() {
     return this._native.state() === 'connected'
+  }
+
+  _getResultForProcedure(rows, outParameters, stmt) {
+    const result = {}
+    // build result from scalar params
+    const paramInfo = stmt.getParameterInfo()
+    for (let i = 0; i < paramInfo.length; i++) {
+      if (paramInfo[i].direction > 1) {
+        result[paramInfo[i].name] = stmt.getParameterValue(i)
+      }
+    }
+
+    const resultSet = Array.isArray(rows) ? rows[0] : rows
+
+    // merge table output params into scalar params
+    const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
+    if (params && params.length) {
+      for (let i = 0; i < params.length; i++) {
+        const parameterName = params[i].PARAMETER_NAME
+        result[parameterName] = []
+        while (resultSet.next()) {
+          result[parameterName].push(resultSet.getValues())
+        }
+        resultSet.nextResult()
+      }
+    }
+
+    return result
   }
 
   _extractStreams(values) {
@@ -111,7 +223,8 @@ class HANAClientDriver extends driver {
       if (!curStream) continue
       for await (const chunk of curStream) {
         curStream.pause()
-        await sendParameterData(i, Buffer.from(chunk))
+        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+        if (buffer.length) await sendParameterData(i, buffer)
         curStream.resume()
       }
       await sendParameterData(i, null)
@@ -187,7 +300,9 @@ async function* rsIterator(rs, one) {
       yield buffer
       buffer = ''
 
-      for await (const chunk of streamBlob(rs, columnIndex, 'base64', binaryBuffer)) {
+      const stream = Readable.from(streamBlob(rs, undefined, columnIndex, binaryBuffer), { objectMode: false })
+      stream.setEncoding('base64')
+      for await (const chunk of stream) {
         yield chunk
       }
       buffer += '"'
@@ -210,32 +325,64 @@ async function* rsIterator(rs, one) {
   yield buffer
 }
 
-async function* streamBlob(rs, columnIndex, encoding, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
-  const getData = prom(rs, 'getData')
-
-  let decoder = new StringDecoder(encoding)
-
-  let blobPosition = 0
-
-  while (true) {
-    // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-    let start = 0
-    const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
-    if (blobPosition === 0 && binaryBuffer.slice(0, 7).toString() === 'base64,') {
-      decoder = {
-        write: encoding === 'base64' ? c => c : chunk => Buffer.from(chunk.toString(), 'base64'),
-        end: () => Buffer.allocUnsafe(0),
-      }
-      start = 7
-    }
-    blobPosition += read
-    if (read < binaryBuffer.byteLength) {
-      yield decoder.write(binaryBuffer.slice(start, read))
-      break
-    }
-    yield decoder.write(binaryBuffer.slice(start).toString('base64'))
+async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
+  const promChain = {
+    resolve: () => { },
+    reject: () => { }
   }
-  yield decoder.end()
+  try {
+    // Check if the resultset is a promise
+    if (rs.then) {
+      // Copy the current Promise
+      const prom = new Promise((resolve, reject) => rs.then(resolve, reject))
+      // Enqueue all following then calls till after the current call
+      const next = new Promise((resolve, reject) => {
+        promChain.resolve = resolve
+        promChain.reject = reject
+      })
+      rs.then = (resolve, reject) => next.then(resolve, reject)
+      rs = await prom
+    }
+
+    // Check if the provided resultset is on the correct row
+    if (rowIndex >= 0) {
+      rs._rowPosition ??= -1
+      if (rowIndex - rs._rowPosition < 0) {
+        rs = await rs.reset()
+        rs._rowPosition ??= -1
+      }
+
+      const _next = prom(rs, 'next')
+      const next = () => {
+        rs._rowPosition++
+        return _next()
+      }
+
+      // Move result set to the correct row
+      while (rowIndex - rs._rowPosition > 0) {
+        await next()
+      }
+    }
+
+    const getData = prom(rs, 'getData')
+
+    let blobPosition = 0
+
+    while (true) {
+      // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
+      const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
+      blobPosition += read
+      if (read < binaryBuffer.byteLength) {
+        yield binaryBuffer.subarray(0, read)
+        break
+      }
+      yield binaryBuffer
+    }
+  } catch (e) {
+    promChain.reject(e)
+  } finally {
+    promChain.resolve(rs)
+  }
 }
 
 async function* rowsIterator(rows, cols) {

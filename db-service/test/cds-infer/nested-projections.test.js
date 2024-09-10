@@ -1,8 +1,11 @@
 'use strict'
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('nested projections', () => {
   describe('expand', () => {
@@ -159,7 +162,7 @@ describe('nested projections', () => {
           {
             title,
             descr,
-            author. { name }
+            author.{ name }
           } as bookInfos
         }`
         let { Books } = model.entities

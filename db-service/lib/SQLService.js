@@ -1,9 +1,14 @@
-const cds = require('@sap/cds/lib'),
+const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
 const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+
+const BINARY_TYPES = {
+  'cds.Binary': 1,
+  'cds.hana.BINARY': 1
+}
 
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
@@ -18,6 +23,26 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on([/*'INSERT', 'UPSERT',*/ 'UPDATE'], require('./deep-queries').onDeep)
+    if (cds.env.features.db_strict) {
+      this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
+        const elements = query.target?.elements; if (!elements) return
+        const kind = query.kind || Object.keys(query)[0]
+        const operation = query[kind]
+        if (!operation.columns && !operation.entries && !operation.data) return
+        const columns =
+          operation.columns ||
+          Object.keys(
+            operation.data || operation.entries?.reduce((acc, obj) => {
+              return Object.assign(acc, obj)
+            }, {}),
+          )
+        const invalidColumns = columns.filter(c => !(c in elements))
+
+        if (invalidColumns.length > 0) {
+          cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
+        }
+      })
+    }
     this.on(['SELECT'], this.onSELECT)
     this.on(['INSERT'], this.onINSERT)
     this.on(['UPSERT'], this.onUPSERT)
@@ -40,26 +65,35 @@ class SQLService extends DatabaseService {
       return
     }
 
+    let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
         if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
         else
-          rows.forEach(row => {
-            this._changeToStreams(col.SELECT.columns, row[name], false, compat)
-          })
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
       } else if (col.element?.type === 'cds.LargeBinary') {
+        changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
           })
+      } else if (col.element?.type in BINARY_TYPES) {
+        changes = true
+        if (one) rows[0][name] = this._buffer(rows[0][name])
+        else
+          rows.forEach(row => {
+            row[name] = this._buffer(row[name])
+          })
       }
     }
+    return changes
   }
 
   _stream(val) {
     if (val === null) return null
+    if (val instanceof Readable) return val
     // Buffer.from only applies encoding when the input is a string
     let raw = typeof val === 'string' ? Buffer.from(val.toString(), 'base64') : val
     return new Readable({
@@ -72,22 +106,47 @@ class SQLService extends DatabaseService {
     })
   }
 
+  _buffer(val) {
+    if (val === null) return null
+    return Buffer.from(val, 'base64')
+  }
+
   /**
    * Handler for SELECT
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
-    query.SELECT.expand = 'root'
+    // REVISIT: for custom joins, infer is called twice, which is bad
+    //          --> make cds.infer properly work with custom joins and remove this
+    if (!query.target) {
+      try { this.infer(query) } catch { /**/ }
+    }
+    if (query.target && !query.target._unresolved) {
+      // Will return multiple rows with objects inside
+      query.SELECT.expand = 'root'
+    }
+
     const { sql, values, cqn } = this.cqn2sql(query, data)
+    const expand = query.SELECT.expand
+    delete query.SELECT.expand
+
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
     if (rows.length)
-      if (cqn.SELECT.expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
         this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-        return rows.length ? { value: Object.values(rows[0])[0] } : undefined
+        if (!rows.length) return
+
+        const result = rows[0]
+        // stream is always on position 0. Further properties like etag are inserted later.
+        let [key, val] = Object.entries(result)[0]
+        result.value = val
+        delete result[key]
+
+        return result
       }
     } else {
       this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
@@ -220,7 +279,7 @@ class SQLService extends DatabaseService {
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
-      if (Array.isArray(data) && typeof data[0] === 'object') return await Promise.all(data.map(exec))
+      if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
       else return exec(data)
     } else return next()
   }
@@ -230,7 +289,7 @@ class SQLService extends DatabaseService {
    * @param {string} sql
    */
   hasResults(sql) {
-    return /^(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
+    return /^\s*(SELECT|WITH|CALL|PRAGMA table_info)/i.test(sql)
   }
 
   /**
@@ -246,17 +305,23 @@ class SQLService extends DatabaseService {
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
-    // REVISIT: made uppercase count because of HANA reserved word quoting
-    const cq = SELECT.one([{ func: 'count', as: 'COUNT' }]).from(
+
+    // Keep original query columns when potentially used insde conditions
+    const { having, groupBy } = query.SELECT
+    const columns = (having?.length || groupBy?.length)
+      ? query.SELECT.columns.filter(c => !c.expand)
+      : [{ val: 1 }]
+    const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
+        columns,
         localized: false,
         expand: false,
         limit: undefined,
         orderBy: undefined,
       }),
     )
-    const { count, COUNT } = await this.onSELECT({ query: cq })
-    return count ?? COUNT
+    const { count } = await this.onSELECT({ query: cq })
+    return count
   }
 
   /**
@@ -313,9 +378,13 @@ class SQLService extends DatabaseService {
    * @returns {import('./infer/cqn').Query}
    */
   cqn4sql(q) {
-    if (!q.SELECT?.from?.join && !q.SELECT?.from?.SELECT && !this.model?.definitions[_target_name4(q)])
-      return _unquirked(q)
-    return cqn4sql(q, this.model)
+    if (
+      !cds.env.features.db_strict &&
+      !q.SELECT?.from?.join &&
+      !q.SELECT?.from?.SELECT &&
+      !this.model?.definitions[_target_name4(q)]
+    ) return q
+    else return cqn4sql(q, this.model)
   }
 
   /**
@@ -390,6 +459,8 @@ SQLService.prototype.PreparedStatement = PreparedStatement
 
 const _target_name4 = q => {
   const target =
+    q._target_ref ||
+    q.from_into_ntt ||
     q.SELECT?.from ||
     q.INSERT?.into ||
     q.UPSERT?.into ||
@@ -401,18 +472,6 @@ const _target_name4 = q => {
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
-}
-
-const _unquirked = q => {
-  if (!q) return q
-  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
-  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
-  return q
 }
 
 const sqls = new (class extends SQLService {

@@ -28,7 +28,13 @@ entity Books : managed {
     dedication: String; // same name as struct
   };
   coAuthor_ID_unmanaged: Integer;
-  coAuthorUnmanaged: Association to Authors on coAuthorUnmanaged.ID = coAuthor_ID_unmanaged;
+  coAuthorUnmanaged: Association to Authors on $self.coAuthorUnmanaged.ID = $self.coAuthor_ID_unmanaged;
+}
+entity SimpleBook {
+  key ID : Integer;
+  title  : localized String(111);
+  author : Association to Authors;
+  activeAuthors : Association to Authors on activeAuthors.ID = author.ID and $now = $now and $user.id = $user.tenant;
 }
 
 entity BooksWithWeirdOnConditions {
@@ -300,6 +306,9 @@ entity SoccerPlayers {
   key jerseyNumber: Integer;
   name: String;
   team: Association to SoccerTeams;
+  emails: many {
+    address: String;
+  }
 }
 
 entity TestPublisher {
@@ -398,3 +407,25 @@ entity PartialStructuredKey {
     author : Association to Authors;
     accessGroup : Composition of AccessGroups;
   }
+
+entity Unmanaged {
+  key struct: {
+    leaf: Int16;
+    toBook: Association to Books;
+  };
+  field: Integer;
+  // needs to be expanded in join-conditions
+  toSelf: Association to Unmanaged on struct = toSelf.struct;
+}
+
+entity Item {
+  key ID: Integer;
+  item: Association to Item;
+}
+
+entity Posts {
+  key ID: Integer;
+  name: String;
+  iSimilar: Association to many Posts on UPPER(name) = UPPER(iSimilar.name);
+  iSimilarNested: Association to many Posts on UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(name)), name); 
+}
