@@ -17,7 +17,7 @@ entity Authors {
 
 service CatalogService {
     @odata.draft.enabled
-    @readonly entity Books as projection on bookshop.Books;
+   entity Books as projection on bookshop.Books;
 
-    @readonly entity Authors as projection on bookshop.Authors;
+   entity Authors as projection on bookshop.Authors;
 }
