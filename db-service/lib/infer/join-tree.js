@@ -177,13 +177,22 @@ class JoinTree {
     }
 
     // if no root node was found, the column is selected from a subquery
-    if(!node) return
+    if (!node) return
     while (i < col.ref.length) {
       const step = col.ref[i]
       const { where, args } = step
       const id = joinId(step, args, where)
       const next = node.children.get(id)
       const $refLink = col.$refLinks[i]
+      // sanity check: error out if we can't produce a join
+      if ($refLink.definition.keys && $refLink.definition.keys.length === 0) {
+        const path = col.ref.reduce((acc, curr, j) => {
+          if (j > 0) acc += '.'
+          return acc + `${curr.id ? curr.id + '[…]' : curr}`
+        }, '')
+        throw new Error(`Path step “${$refLink.alias}” of “${path}” has no valid foreign keys`)
+      }
+
       if (next) {
         // step already seen before
         node = next
@@ -208,7 +217,6 @@ class JoinTree {
           }
           child.$refLink.alias = this.addNextAvailableTableAlias($refLink.alias, outerQueries)
         }
-        //> REVISIT: remove fallback once UCSN is standard
         const elements =
           node.$refLink?.definition.isAssociation &&
           (node.$refLink.definition.elements || node.$refLink.definition.foreignKeys)
