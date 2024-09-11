@@ -61,7 +61,7 @@ async function onDeep(req, next) {
     ...Array.from(queries.inserts.values()).map(query => this.onINSERT({ query })),
   ])
 
-  return beforeData.length ?? rootResult
+  return rootResult ?? beforeData.length
 }
 
 const hasDeep = (q, target) => {
