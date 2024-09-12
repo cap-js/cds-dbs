@@ -132,15 +132,12 @@ function cqn4sql(originalQuery, model) {
         const queryTarget = Object.values(inferred.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
-        keys
-        .filter(k => !k.virtual) // e.g. draft column `isActiveEntity` is virtual and key
-        .forEach(k => {
-          // cqn4sql will add the table alias to the column later, no need to add it here
-          subquery.SELECT.columns.push({ ref: [k.name] })
-
-          // add the alias of the main query to the list of primary key references
-          primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
-        })
+        for (const k of keys) {
+          if (!k.virtual) {
+            subquery.SELECT.columns.push({ ref: [k.name] })
+            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
+          }
+        }
 
         const transformedSubquery = cqn4sql(subquery, model)
 
@@ -1069,13 +1066,12 @@ function cqn4sql(originalQuery, model) {
    */
   function getColumnsForWildcard(exclude = [], replace = [], baseName = null) {
     const wildcardColumns = []
-    Object.keys(inferred.$combinedElements)
-      .filter(k => !exclude.includes(k))
-      .forEach(k => {
+    for (const k of Object.keys(inferred.$combinedElements)) {
+      if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
         // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') return
+        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1091,7 +1087,8 @@ function cqn4sql(originalQuery, model) {
           )
           wildcardColumns.push(...flatColumns)
         }
-      })
+      }
+    }
     return wildcardColumns
 
     /**
@@ -1421,12 +1418,12 @@ function cqn4sql(originalQuery, model) {
         const keys = def.keys // use key aspect on entity
         const keyValComparisons = []
         const flatKeys = []
-        Object.values(keys)
-          // up__ID already part of inner where exists, no need to add it explicitly here
-          .filter(k => k !== backlinkFor($baseLink.definition)?.[0])
-          .forEach(v => {
+        for (const v of Object.values(keys)) {
+          if (v !== backlinkFor($baseLink.definition)?.[0]) {
+            // up__ID already part of inner where exists, no need to add it explicitly here
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
-          })
+          }
+        }
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
@@ -1586,10 +1583,7 @@ function cqn4sql(originalQuery, model) {
       if (!def.$refLinks) return def
       const leaf = def.$refLinks[def.$refLinks.length - 1]
       const first = def.$refLinks[0]
-      const tableAlias = getTableAlias(
-        def,
-        def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink,
-      )
+      const tableAlias = getTableAlias(def, def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink)
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
@@ -1855,7 +1849,7 @@ function cqn4sql(originalQuery, model) {
           result[i] = asXpr(xpr)
           continue
         }
-        if(lhs.args) {
+        if (lhs.args) {
           const args = calculateOnCondition(lhs.args)
           result[i] = { ...lhs, args }
           continue
