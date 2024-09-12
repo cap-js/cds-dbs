@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
+const { prettyPrintRef } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -133,14 +134,14 @@ function cqn4sql(originalQuery, model) {
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
         keys
-        .filter(k => !k.virtual) // e.g. draft column `isActiveEntity` is virtual and key
-        .forEach(k => {
-          // cqn4sql will add the table alias to the column later, no need to add it here
-          subquery.SELECT.columns.push({ ref: [k.name] })
+          .filter(k => !k.virtual) // e.g. draft column `isActiveEntity` is virtual and key
+          .forEach(k => {
+            // cqn4sql will add the table alias to the column later, no need to add it here
+            subquery.SELECT.columns.push({ ref: [k.name] })
 
-          // add the alias of the main query to the list of primary key references
-          primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
-        })
+            // add the alias of the main query to the list of primary key references
+            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
+          })
 
         const transformedSubquery = cqn4sql(subquery, model)
 
@@ -765,6 +766,9 @@ function cqn4sql(originalQuery, model) {
   function expandColumn(column) {
     let outerAlias
     let subqueryFromRef
+    const ref = column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref
+    const assoc = column.$refLinks.at(-1)
+    ensureValidForeignKeys(assoc.definition, column.ref, 'expand')
     if (column.isJoinRelevant) {
       // all n-1 steps of the expand column are already transformed into joins
       // find the last join relevant association. That is the n-1 assoc in the ref path.
@@ -784,24 +788,17 @@ function cqn4sql(originalQuery, model) {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
         ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
-        ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
+        ...ref,
       ]
     }
 
     // this is the alias of the column which holds the correlated subquery
-    const columnAlias =
-      column.as ||
-      (column.$refLinks[0].definition.kind === 'entity'
-        ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
-        : column.ref.map(idOnly).join('_'))
+    const columnAlias = column.as || ref.map(idOnly).join('_')
 
     // if there is a group by on the main query, all
     // columns of the expand must be in the groupBy
     if (transformedQuery.SELECT.groupBy) {
-      const baseRef =
-        column.$refLinks[0].definition.SELECT || column.$refLinks[0].definition.kind === 'entity'
-          ? column.ref.slice(1)
-          : column.ref
+      const baseRef = column.$refLinks[0].definition.SELECT || ref
 
       return _subqueryForGroupBy(column, baseRef, columnAlias)
     }
@@ -1385,6 +1382,8 @@ function cqn4sql(originalQuery, model) {
               }”`,
             )
           }
+          const { definition: fkSource } = next
+          ensureValidForeignKeys(fkSource, ref)
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
         }
 
@@ -1586,10 +1585,7 @@ function cqn4sql(originalQuery, model) {
       if (!def.$refLinks) return def
       const leaf = def.$refLinks[def.$refLinks.length - 1]
       const first = def.$refLinks[0]
-      const tableAlias = getTableAlias(
-        def,
-        def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink,
-      )
+      const tableAlias = getTableAlias(def, def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink)
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
@@ -1673,23 +1669,23 @@ function cqn4sql(originalQuery, model) {
       const refReverse = [...from.ref].reverse()
       const $refLinksReverse = [...transformedFrom.$refLinks].reverse()
       for (let i = 0; i < refReverse.length; i += 1) {
-        const stepLink = $refLinksReverse[i]
+        const current = $refLinksReverse[i]
 
-        let nextStepLink = $refLinksReverse[i + 1]
+        let next = $refLinksReverse[i + 1]
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
-        if (stepLink.definition.target && nextStepLink) {
+        if (current.definition.target && next) {
           const { where, args } = nextStep
-          if (isStructured(nextStepLink.definition)) {
+          if (isStructured(next.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
               2 +
               $refLinksReverse
                 .slice(i + 2)
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
-            nextStepLink = $refLinksReverse[nextStepIndex]
+            next = $refLinksReverse[nextStepIndex]
           }
-          let as = getLastStringSegment(nextStepLink.alias)
+          let as = getLastStringSegment(next.alias)
           /**
            * for an `expand` subquery, we do not need to add
            * the table alias of the `expand` host to the join tree
@@ -1699,8 +1695,10 @@ function cqn4sql(originalQuery, model) {
           if (!(inferred.SELECT?.expand === true)) {
             as = getNextAvailableTableAlias(as)
           }
-          nextStepLink.alias = as
-          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where, false, args))
+          next.alias = as
+          const { definition: fkSource } = current
+          ensureValidForeignKeys(fkSource, from.ref)
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, where, false, args))
         }
       }
 
@@ -1742,6 +1740,14 @@ function cqn4sql(originalQuery, model) {
       transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
+    }
+  }
+
+  function ensureValidForeignKeys(fkSource, ref, kind = null) {
+    if (fkSource.keys && fkSource.keys.length === 0) {
+      const path = prettyPrintRef(ref, model)
+      if (kind === 'expand') throw new Error(`Can't expand “${fkSource.name}” as it has no foreign keys`)
+      throw new Error(`Path step “${fkSource.name}” of “${path}” has no foreign keys`)
     }
   }
 
@@ -1855,7 +1861,7 @@ function cqn4sql(originalQuery, model) {
           result[i] = asXpr(xpr)
           continue
         }
-        if(lhs.args) {
+        if (lhs.args) {
           const args = calculateOnCondition(lhs.args)
           result[i] = { ...lhs, args }
           continue
@@ -2272,13 +2278,6 @@ function cqn4sql(originalQuery, model) {
   }
 }
 
-module.exports = Object.assign(cqn4sql, {
-  // for own tests only:
-  eqOps,
-  notEqOps,
-  notSupportedOps,
-})
-
 function calculateElementName(token) {
   const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
   let name
@@ -2366,3 +2365,10 @@ const refWithConditions = step => {
   return appendix ? step.id + appendix : step
 }
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
+
+module.exports = Object.assign(cqn4sql, {
+  // for own tests only:
+  eqOps,
+  notEqOps,
+  notSupportedOps,
+})

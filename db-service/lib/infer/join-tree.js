@@ -1,5 +1,7 @@
 'use strict'
 
+const { prettyPrintRef } = require('../utils')
+
 // REVISIT: define following unknown types
 
 /**
@@ -186,10 +188,7 @@ class JoinTree {
       const $refLink = col.$refLinks[i]
       // sanity check: error out if we can't produce a join
       if ($refLink.definition.keys && $refLink.definition.keys.length === 0) {
-        const path = col.ref.reduce((acc, curr, j) => {
-          if (j > 0) acc += '.'
-          return acc + `${curr.id ? curr.id + '[…]' : curr}`
-        }, '')
+        const path = prettyPrintRef(col.ref)
         throw new Error(`Path step “${$refLink.alias}” of “${path}” has no valid foreign keys`)
       }
 
