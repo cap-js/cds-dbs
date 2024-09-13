@@ -17,7 +17,7 @@ describe('keyless entities', () => {
     const { Books } = model.entities
     const q = SELECT.from(Books).where(`author[ID = 42].book[ID = 42].author.name LIKE 'King'`)
     expect(() => cqn4sql(q, model)).to.throw(
-      'Path step “author” of “author[…].book[…].author.name” has no valid foreign keys',
+      'Path step “author” of “author[…].book[…].author.name” has no foreign keys',
     )
     // ok if explicit foreign key is used
     const qOk = SELECT.columns('ID').from(Books).where(`authorWithExplicitForeignKey[ID = 42].name LIKE 'King'`)

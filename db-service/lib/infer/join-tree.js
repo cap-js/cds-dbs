@@ -189,7 +189,7 @@ class JoinTree {
       // sanity check: error out if we can't produce a join
       if ($refLink.definition.keys && $refLink.definition.keys.length === 0) {
         const path = prettyPrintRef(col.ref)
-        throw new Error(`Path step “${$refLink.alias}” of “${path}” has no valid foreign keys`)
+        throw new Error(`Path step “${$refLink.alias}” of “${path}” has no foreign keys`)
       }
 
       if (next) {
