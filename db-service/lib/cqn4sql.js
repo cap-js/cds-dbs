@@ -1827,7 +1827,6 @@ function cqn4sql(originalQuery, model) {
     const { on, keys } = assocRefLink.definition
     const target = getDefinition(assocRefLink.definition.target)
     let res
-    // technically we could have multiple backlinks
     if (keys) {
       const fkPkPairs = getParentKeyForeignKeyPairs(assocRefLink.definition, targetSideRefLink, true)
       const transformedOn = []
@@ -1960,6 +1959,12 @@ function cqn4sql(originalQuery, model) {
               }
             })
           } else if (backlink.keys) {
+            // sanity check: error out if we can't produce a join
+            if (backlink.keys.length === 0) {
+              throw new Error(
+                `Path step “${assocRefLink.alias}” is a self comparison with “${getFullName(backlink)}” that has no foreign keys`,
+              )
+            }
             // managed backlink -> calculate fk-pk pairs
             const fkPkPairs = getParentKeyForeignKeyPairs(backlink, targetSideRefLink)
             fkPkPairs.forEach((pair, j) => {

@@ -12,4 +12,6 @@ entity Authors {
   ID : Integer;
   name   : String;
   book: Association to Books;
+  // backlink has no foreign keys...
+  bookWithBackLink: Association to Books on bookWithBackLink.author = $self;
 }
