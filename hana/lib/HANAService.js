@@ -43,7 +43,7 @@ class HANAService extends SQLService {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
-    const acquireTimeoutMillis = 1000//this.options.pool?.acquireTimeoutMillis || cds.env.profiles.includes('production') ? 1000 : 10000
+    const acquireTimeoutMillis = 1000//this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
       options: {
         min: 0,
@@ -973,13 +973,13 @@ class HANAService extends SQLService {
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => !v.val)) {
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
         const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
         this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
-      if (this.values && first.val) {
+      if (this.values && first.val != null) {
         const v = first
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
@@ -1105,6 +1105,7 @@ class HANAService extends SQLService {
       // JavaScript types
       string: () => `NVARCHAR(2147483647)`,
       number: () => `DOUBLE`,
+      boolean: () => `NVARCHAR(5)`,
 
       // HANA types
       'cds.hana.TINYINT': () => 'INT',
