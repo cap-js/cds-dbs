@@ -218,7 +218,7 @@ class Pool extends EventEmitter {
             const softEvict = softIdleTimeoutMillis > 0 && softIdleTimeoutMillis < idleTime && min < this._available.size
             return softEvict || idleTimeoutMillis < idleTime
           })
-        await Promise.all(resourcesToEvict.map(this.#destroy))
+        await Promise.all(resourcesToEvict.map(resource => this.#destroy(resource)))
       } finally {
         this.#scheduleEviction()
       }
