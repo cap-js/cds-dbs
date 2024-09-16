@@ -85,7 +85,10 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: dbc => dbc.disconnect(),
+        if (dbc && dbc.readyState === 'connected') {
+          await dbc.disconnect()
+        }
+      },
       validate: (dbc) => dbc.validate(),
     }
   }
