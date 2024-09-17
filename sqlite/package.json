@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test --skip toMatchSnapshot $(find -L test -type f -regex .*\\\\.test\\\\.js)"
+    "test": "cds-test --skip toMatchSnapshot $(../test/find)"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.9.0",
