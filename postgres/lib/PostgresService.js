@@ -533,7 +533,7 @@ GROUP BY k
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
       Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `to_char(${expr},'FM9${'D'.padEnd(elem.scale + 1, '0')}')`
+        ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
         : `cast(${expr} as varchar)`
         : undefined,
 
