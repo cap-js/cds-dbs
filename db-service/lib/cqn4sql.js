@@ -132,7 +132,9 @@ function cqn4sql(originalQuery, model) {
         const queryTarget = Object.values(inferred.sources)[0].definition
         const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
-        keys.forEach(k => {
+        keys
+        .filter(k => !k.virtual) // e.g. draft column `isActiveEntity` is virtual and key
+        .forEach(k => {
           // cqn4sql will add the table alias to the column later, no need to add it here
           subquery.SELECT.columns.push({ ref: [k.name] })
 
@@ -1851,6 +1853,11 @@ function cqn4sql(originalQuery, model) {
         if (lhs.xpr) {
           const xpr = calculateOnCondition(lhs.xpr)
           result[i] = asXpr(xpr)
+          continue
+        }
+        if(lhs.args) {
+          const args = calculateOnCondition(lhs.args)
+          result[i] = { ...lhs, args }
           continue
         }
         const rhs = result[i + 2]

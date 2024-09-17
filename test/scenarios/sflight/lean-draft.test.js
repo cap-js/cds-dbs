@@ -1,6 +1,6 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const cds = require('../../test/cds.js')
+const cds = require('../../cds.js')
 
 describe('draft tests', () => {
 

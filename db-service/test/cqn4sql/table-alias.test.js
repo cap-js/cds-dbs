@@ -263,6 +263,49 @@ describe('table alias access', () => {
       let result = cqn4sql(query, model)
       expect(result).to.deep.equal(expected)
     })
+
+    it('refs in function args in on condition are aliased', () => {
+      let query = CQL`
+        SELECT
+          ID,
+          iSimilar { name }
+        from bookshop.Posts`
+
+      const expected = CQL`
+        SELECT
+          Posts.ID,
+          (
+            SELECT from bookshop.Posts as iSimilar {
+              iSimilar.name
+            }
+            where UPPER(Posts.name) = UPPER(iSimilar.name)
+          ) as iSimilar
+        from bookshop.Posts as Posts`
+
+      let result = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(result))).to.deep.equal(expected)
+    })
+    it('refs in nested function args in on condition are aliased', () => {
+      let query = CQL`
+        SELECT
+          ID,
+          iSimilarNested { name }
+        from bookshop.Posts`
+
+      const expected = CQL`
+        SELECT
+          Posts.ID,
+          (
+            SELECT from bookshop.Posts as iSimilarNested {
+              iSimilarNested.name
+            }
+            where UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(Posts.name)), Posts.name)
+          ) as iSimilarNested
+        from bookshop.Posts as Posts`
+
+      let result = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(result))).to.deep.equal(expected)
+    })
   })
 
   describe('replace $self references', () => {
