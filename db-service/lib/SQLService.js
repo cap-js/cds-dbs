@@ -19,10 +19,20 @@ const BINARY_TYPES = {
  * @returns {Promise<unknown>}
  */
 
+const deepSQL = true
+
 class SQLService extends DatabaseService {
   init() {
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+    this.on([/*'INSERT', 'UPSERT',*/ 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.on([/*'INSERT', 'UPSERT',*/ 'UPDATE'], require('./deep-queries').onDeep)
+
+    this._deepSQL = false
+
+    if (!deepSQL) {
+      this.on(['INSERT', 'UPSERT'], require('@cap-js/db-service/lib/fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+      this.on(['INSERT', 'UPSERT'], require('@cap-js/db-service/lib/deep-queries').onDeep)
+    }
+
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
         const elements = query.target?.elements; if (!elements) return
@@ -165,13 +175,14 @@ class SQLService extends DatabaseService {
    * @type {Handler}
    */
   async onINSERT({ query, data }) {
-    if (query.INSERT.entries) {
+    if (deepSQL && query.INSERT.entries) {
       const exec = require('./deep2flat').call(this, query)
       try {
         const result = await exec.call(this, Readable, query.INSERT.entries)
         return result[0]
       } catch (e) {
-        throw e.query = exec + ''
+        e.query = exec + ''
+        throw e
       }
     }
     return this._insert(this.cqn2sql(query, data))

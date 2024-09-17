@@ -519,7 +519,7 @@ class CQN2SQLRenderer {
   }
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
-    const elements = this.cqn.target?.elements || {}
+    const elements = this.cqn?.target?.elements || {}
     const transformBase64 = binaryEncoding === 'base64'
       ? a => a
       : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a

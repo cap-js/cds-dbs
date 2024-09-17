@@ -278,7 +278,7 @@ class SQLiteService extends SQLService {
 // }
 
 function _not_unique(err, code) {
-  if (err.message.match(/unique constraint/i))
+  if (err.message?.match(/unique constraint/i))
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
