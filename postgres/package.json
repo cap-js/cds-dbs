@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test --skip toMatchSnapshot $(../test/find)",
+    "test": "npm start && cds-test $(../test/find)",
     "start": "docker compose -f pg-stack.yml up -d"
   },
   "dependencies": {
