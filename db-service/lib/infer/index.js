@@ -170,7 +170,8 @@ function infer(originalQuery, model) {
     if (list) list.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
-    ref.forEach((step, i) => {
+    let i = 0
+    for (const step of ref) {
       const id = step.id || step
       if (i === 0) {
         // infix filter never have table alias
@@ -231,7 +232,8 @@ function infer(originalQuery, model) {
           step.where.forEach(walkTokenStream)
         } else throw new Error('A filter can only be provided when navigating along associations')
       }
-    })
+      i += 1
+    }
     const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
     if (definition.value) {
       // nested calculated element
@@ -1046,15 +1048,17 @@ function infer(originalQuery, model) {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         const { elements } = getDefinitionFromSources(sources, aliases[0])
         // only one query source and no overwritten columns
-        Object.keys(elements)
-          .filter(k => !exclude(k))
-          .forEach(k => {
+        for (const k of Object.keys(elements)) {
+          if (!exclude(k)) {
             const element = elements[k]
-            if (element.type !== 'cds.LargeBinary') queryElements[k] = element
+            if (element.type !== 'cds.LargeBinary') {
+              queryElements[k] = element
+            }
             if (element.value) {
               linkCalculatedElement(element)
             }
-          })
+          }
+        }
         return
       }
 
