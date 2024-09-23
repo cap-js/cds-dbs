@@ -1,6 +1,6 @@
 // TODO: min > 0?
 // TODO: fifo: true?
-// TODO: Queue from cds-mtxs?
+// TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access?
 
 const { EventEmitter } = require('events')
 
