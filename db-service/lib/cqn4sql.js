@@ -130,12 +130,12 @@ function cqn4sql(originalQuery, model) {
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
         const queryTarget = Object.values(inferred.sources)[0].definition
-        const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
         const primaryKey = { list: [] }
-        for (const k of keys) {
-          if (!k.virtual) {
-            subquery.SELECT.columns.push({ ref: [k.name] })
-            primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
+        for (const k of Object.keys(queryTarget.elements)) {
+          const e = queryTarget.elements[k]
+          if (e.key === true && !e.virtual) {
+            subquery.SELECT.columns.push({ ref: [e.name] })
+            primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
           }
         }
 
@@ -809,10 +809,12 @@ function cqn4sql(originalQuery, model) {
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
-    const subqueryBase = Object.fromEntries(
-      // preserve all props on subquery (`limit`, `order by`, …) but `expand` and `ref`
-      Object.entries(column).filter(([key]) => !(key in { ref: true, expand: true })),
-    )
+    const subqueryBase = {}
+    for (const [key, value] of Object.entries(column)) {
+      if (!(key in { ref: true, expand: true })) {
+      subqueryBase[key] = value;
+      }
+    }
     const subquery = {
       SELECT: {
         ...subqueryBase,
