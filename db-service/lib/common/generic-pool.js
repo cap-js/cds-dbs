@@ -1,3 +1,8 @@
+// TODO: min > 0?
+// TODO: fifo: true?
+// Weirdness: https://github.tools.sap/TACP/tacp-objectstore/blob/163639de2b9881d7b628971068973e7027b5e2b4/package.json#L58-L61
+// TODO: Queue from cds-mtxs?
+
 const { EventEmitter } = require('events')
 
 const ResourceState = Object.freeze({
