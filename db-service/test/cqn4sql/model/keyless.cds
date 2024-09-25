@@ -1,9 +1,10 @@
-// path expressions along `Authors:author` are not possible
+// path expressions along `Books:author` are not possible
 entity Books {
   key ID : Integer;
   title  : String;
   stock  : Integer;
   author : Association to Authors;
+  authorName: String = author.name;
   authorWithExplicitForeignKey: Association to Authors { ID };
   my: Association to Books;
 }

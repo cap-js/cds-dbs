@@ -76,6 +76,11 @@ describe('keyless entities', () => {
       from Books as Books`,
       )
     })
+
+    it('calculated element navigates along keyless assoc', () => {
+      const q = SELECT.from('Books').columns('authorName')
+      expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “author.name” has no foreign keys`)
+    })
   })
   describe('managed assocs as backlinks', () => {
     it('backlink has no foreign keys for join', () => {
