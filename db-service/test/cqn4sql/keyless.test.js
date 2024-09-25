@@ -15,7 +15,7 @@ describe('keyless entities', () => {
   describe('managed assocs', () => {
     it('no foreign keys for join', () => {
       const { Books } = model.entities
-      const q = SELECT.from(Books).where(`author[ID = 42].book[ID = 42].author.name LIKE 'King'`)
+      const q = SELECT.columns('ID').from(Books).where(`author[ID = 42].book[ID = 42].author.name LIKE 'King'`)
       expect(() => cqn4sql(q, model)).to.throw(
         'Path step “author” of “author[…].book[…].author.name” has no foreign keys',
       )
@@ -50,7 +50,7 @@ describe('keyless entities', () => {
       )
     })
     it('where exists predicate cant be transformed to subquery', () => {
-      const q = SELECT.from('Books').where('exists author')
+      const q = SELECT.columns('ID').from('Books').where('exists author')
       expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “author” has no foreign keys`)
       // ok if explicit foreign key is used
       const qOk = SELECT.from('Books').columns('ID').where('exists authorWithExplicitForeignKey')
@@ -91,7 +91,7 @@ describe('keyless entities', () => {
       )
     })
     it('backlink has no foreign keys for scoped query', () => {
-      const q = SELECT.from('Authors:bookWithBackLink')
+      const q = SELECT.columns('ID').from('Authors:bookWithBackLink')
       expect(() => cqn4sql(q, model)).to.throw(
         `Path step “bookWithBackLink” is a self comparison with “author” that has no foreign keys`,
       )
