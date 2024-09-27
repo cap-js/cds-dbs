@@ -334,17 +334,17 @@ class HANAService extends SQLService {
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
-      const walkAlias = q => {
-        if (q.args) return q.as || walkAlias(q.args[0])
-        if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-        return q.as
-      }
-      q.as = walkAlias(q)
-      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
-      const src = q
-
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
+        const walkAlias = q => {
+          if (q.args) return q.as || walkAlias(q.args[0])
+          if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
+          return q.as
+        }
+        q.as = walkAlias(q)
+        q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+        const src = q
+
         const { element, elements } = q
 
         q = cds.ql.clone(q)
@@ -454,7 +454,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.from({ ref: [alias] })
+        const fromSQL = this.from({ ref: [q.src.alias] })
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
@@ -480,7 +480,7 @@ class HANAService extends SQLService {
             ? x => {
               if (x === '*') return '*'
               // means x is a sub select expand
-              if (x.elements) {
+              if (x.elements && x.element?.isAssociation) {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
@@ -547,10 +547,9 @@ class HANAService extends SQLService {
                 structures.push(x)
                 return false
               }
-              let xpr = this.expr(x)
               const columnName = this.column_name(x)
               if (columnName === '_path_') {
-                path = xpr
+                path = this.expr(x)
                 return false
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
@@ -560,7 +559,7 @@ class HANAService extends SQLService {
             : x => {
               if (x === '*') return '*'
               // means x is a sub select expand
-              if (x.elements) return false
+              if (x.elements && x.element?.isAssociation) return false
               return this.column_expr(x)
             },
         )
@@ -767,9 +766,7 @@ class HANAService extends SQLService {
     }
 
     DROP(q) {
-      const { target } = q
-      const isView = target.query || target.projection
-      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
+      return (this.sql = super.DROP(q).replace('IF EXISTS', ''))
     }
 
     from_args(args) {
@@ -959,7 +956,11 @@ class HANAService extends SQLService {
           const up = cur.toUpperCase()
           // When a logic operator is found the expression is not a comparison
           // When it is a local check it cannot be compared outside of the xpr
-          if (up in logicOperators) return !local
+          if (up in logicOperators) {
+            // ensure AND is not part of BETWEEN
+            if (up === 'AND' && xpr[i - 2]?.toUpperCase() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            return !local
+          }
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
@@ -1377,16 +1378,19 @@ const compareOperators = {
   '<>': 1,
   '>=': 1,
   '<=': 1,
-  '!<': 1,
-  '!>': 1,
   'IS': 1,
   'IN': 1,
+  'NOT IN': 1,
   'LIKE': 1,
+  'NOT LIKE': 1,
   'IS NOT': 1,
   'EXISTS': 1,
+  'NOT EXISTS': 1,
   'BETWEEN': 1,
+  'NOT BETWEEN': 1,
   'CONTAINS': 1,
   'MEMBER OF': 1,
+  'NOT MEMBER OF': 1,
   'LIKE_REGEXPR': 1,
 }
 const lobTypes = {

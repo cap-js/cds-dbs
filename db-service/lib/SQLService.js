@@ -367,6 +367,7 @@ class SQLService extends DatabaseService {
    */
   cqn4sql(q) {
     if (
+      (!q.target || q.target._unresolved) &&
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
@@ -465,6 +466,10 @@ const _target_name4 = q => {
 const sqls = new (class extends SQLService {
   get factory() {
     return null
+  }
+
+  get model() {
+    return cds.model
   }
 })()
 cds.extend(cds.ql.Query).with(
