@@ -976,6 +976,8 @@ class HANAService extends SQLService {
       return false
     }
 
+    /*
+    // REVISIT: This does not work with binaries
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
@@ -993,7 +995,7 @@ class HANAService extends SQLService {
       }
       // Call super for normal SQL behavior
       return super.list(list)
-    }
+    }*/
 
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
