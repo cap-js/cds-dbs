@@ -22,7 +22,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test --skip toMatchSnapshot"
+    "test": "node --test \"**/!(node_mdules)/*.test.js\""
   },
   "dependencies": {
     "generic-pool": "^3.9.0"

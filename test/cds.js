@@ -30,6 +30,14 @@ let isolateCounter = 0
 //   return orgIn.apply(this, arguments)
 // }
 
+// mute tests for native reporter node --test
+console.trace = () => { }
+console.debug = () => { }
+console.log = () => { }
+console.info = () => { }
+console.warn = () => { }
+console.error = () => { }
+
 // REVISIT: move this logic into cds when stabilized
 // Overwrite cds.test with autoIsolation logic
 cds.test = Object.setPrototypeOf(function () {
