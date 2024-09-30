@@ -110,7 +110,7 @@ describe('UPDATE', () => {
                 left join bookshop.Books as books on books.author_ID = Authors.ID
                 where books.title LIKE '%Heights%'
               )
-    `
+    `,
     ]
     expected.UPDATE.entity = {
       as: 'Authors2',
@@ -167,5 +167,37 @@ describe('UPDATE', () => {
         }
       }`)
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
+  })
+})
+describe('UPDATE with path expression', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/model/update').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
+  })
+
+  it('with path expressions with draft enabled entity', () => {
+    const { UPDATE } = cds.ql
+    let u = UPDATE.entity({ ref: ['bookshop.CatalogService.Books'] }).where(`author.name LIKE '%Bron%'`)
+
+    let expected = UPDATE.entity({ ref: ['bookshop.CatalogService.Books'] })
+
+    // dont use virtual key `isActiveEntity` in `UPDATE … where (<key>) in <subquery>`
+    expected.UPDATE.where = [
+      { list: [{ ref: ['Books2', 'ID'] }] },
+      'in',
+      CQL`
+            (SELECT Books.ID from bookshop.CatalogService.Books as Books
+              left join bookshop.CatalogService.Authors as author on author.ID = Books.author_ID
+              where author.name LIKE '%Bron%'
+            )
+      `,
+    ]
+    expected.UPDATE.entity = {
+      as: 'Books2',
+      ref: ['bookshop.CatalogService.Books'],
+    }
+    let res = cqn4sql(u, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 })

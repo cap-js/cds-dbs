@@ -6,6 +6,7 @@ const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
 
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
@@ -33,6 +34,7 @@ class HDBDriver extends driver {
 
     super(creds)
     this._native = hdb.createClient(creds)
+    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
 
