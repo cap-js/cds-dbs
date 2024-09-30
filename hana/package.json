@@ -16,7 +16,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && node --test \"**/!(node_mdules)/*.test.js\"",
+    "test": "npm start && cds-test $(../test/find)",
     "test:remote": "cds-test",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
