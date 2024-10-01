@@ -1303,9 +1303,21 @@ class HANAService extends SQLService {
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
-      const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
-      res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
+      let i = 0
+      let err
+      for (; i < 100; i++) {
+        try {
+          const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
+          const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
+          res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
+          break
+        } catch (e) {
+          err = e
+        }
+      }
+      if (i === 100) {
+        throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
+      }
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
