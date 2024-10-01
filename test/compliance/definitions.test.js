@@ -1,4 +1,4 @@
-require('@sap/cds')
+require('../cds')
 
 describe('definitions', () => {
   describe('types', () => {
