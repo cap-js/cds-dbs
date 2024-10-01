@@ -610,19 +610,20 @@ GROUP BY k
 
     try {
       if (!clean) {
-        await this.tx(async tx => {
-          // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
-          await tx
-            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
-            .catch(e => {
-              if (e.code === '42710') return
-              throw e
-            })
-        })
-        await this.tx(async tx => {
-          await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
-        })
-          .catch(() => { /* prevent tuple errors */ })
+        await cds
+          .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+          .catch(e => {
+            if (e.code === '42710') return
+            throw e
+          })
+        // Retry granting priviledges as this is being done by multiple instances
+        // Postgres just rejects when other connections are granting the same user
+        const grant = (i = 0) => cds.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+          .catch((err) => {
+            if (i > 100) throw err
+            return grant(i + 1)
+          })
+        await grant()
       }
 
       // Update credentials to new Schema owner
@@ -632,7 +633,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
       })
     } finally {
       await this.disconnect()
