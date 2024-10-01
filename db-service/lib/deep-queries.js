@@ -3,20 +3,7 @@ const { _target_name4 } = require('./SQLService')
 
 const ROOT = Symbol('root')
 
-// REVISIT: remove old path with cds^8
-let _compareJson
-const compareJson = (...args) => {
-  if (!_compareJson) {
-    try {
-      // new path
-      _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
-    } catch {
-      // old path
-      _compareJson = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson').compareJson
-    }
-  }
-  return _compareJson(...args)
-}
+const { compareJson } = require('@sap/cds/libx/_runtime/common/utils/compareJson')
 
 const handledDeep = Symbol('handledDeep')
 
@@ -61,7 +48,7 @@ async function onDeep(req, next) {
     ...Array.from(queries.inserts.values()).map(query => this.onINSERT({ query })),
   ])
 
-  return beforeData.length ?? rootResult
+  return rootResult ?? beforeData.length
 }
 
 const hasDeep = (q, target) => {

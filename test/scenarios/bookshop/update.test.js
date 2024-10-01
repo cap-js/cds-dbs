@@ -183,4 +183,18 @@ describe('Bookshop - Update', () => {
     const res = await UPSERT.into('DraftService.DraftEnabledBooks').entries({ ID: 42, title: 'Foo' })
     expect(res).to.equal(1)
   })
+
+  test('with path expressions on draft enabled service entity', async () => {
+    // make sure `isActiveEntity` is not used in `UPDATE … where (<key>) in <subquery>`
+    // as it is a virtual <key>
+    const { MoreDraftEnabledBooks } = cds.entities('DraftService')
+    const updateRichardsBooks = UPDATE.entity(MoreDraftEnabledBooks)
+    .where(`author.name = 'Richard Carpenter'`)
+    .set('ID = 42')
+    const selectRichardsBooks = CQL`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
+    
+    await cds.run(updateRichardsBooks)
+    const afterUpdate = await cds.db.run(selectRichardsBooks)
+    expect(afterUpdate[0]).to.have.property('ID').that.equals(42)
+  })
 })
