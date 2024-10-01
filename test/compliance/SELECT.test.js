@@ -1,4 +1,5 @@
 const assert = require('assert')
+const os = require('os')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
@@ -1272,7 +1273,7 @@ describe('SELECT', () => {
     for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
-          const batchCount = cds.db.factory.options.max || 1
+          const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
           const batches = new Array(batchCount).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
 
