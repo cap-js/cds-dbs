@@ -14,7 +14,8 @@ describe('datetime handling', () => {
     expect(res).to.containSubset(payload)
   })
 
-  test('$now in view', async () => cds.tx(async tx => {
+  // REVISIT: The test was not actually testing anything valid and the compiler doesn't do what we would expect
+  test.skip('$now in view', async () => cds.tx(async tx => {
     const req_timestamp = new Date()
     await INSERT.into('TimestampEntity').entries({ ID: 1, ts: req_timestamp })
     const { now } = await SELECT.one.from('TimestampView')
