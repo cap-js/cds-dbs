@@ -121,14 +121,14 @@ class SQLService extends DatabaseService {
     if (!query.target) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (query.target && !query.target._unresolved) {
+    if (query.SELECT.expand !== false && query.target && !query.target._unresolved) {
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
 
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
-    delete query.SELECT.expand
+    if (expand === 'root') delete query.SELECT.expand
 
     let ps = await this.prepare(sql)
     let rows = await ps.all(values)
@@ -294,21 +294,9 @@ class SQLService extends DatabaseService {
       if (max === undefined || (n < max && (n || !offset))) return n + offset
     }
 
-    // Keep original query columns when potentially used insde conditions
-    const { having, groupBy } = query.SELECT
-    const columns = (having?.length || groupBy?.length)
-      ? query.SELECT.columns.filter(c => !c.expand)
-      : [{ val: 1 }]
-    const cq = SELECT.one([{ func: 'count' }]).from(
-      cds.ql.clone(query, {
-        columns,
-        localized: false,
-        expand: false,
-        limit: undefined,
-        orderBy: undefined,
-      }),
-    )
-    const { count } = await this.onSELECT({ query: cq })
+    const cq = this.class.CQN2SQL.count(query)
+    cq.SELECT.expand = false // Force count queries to be simple
+    const [{ count }] = await this.onSELECT({ query: cq })
     return count
   }
 
