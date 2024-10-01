@@ -6,6 +6,8 @@ describe('deep operations - expected behavior', () => {
 
   beforeEach(t.data.reset)
 
+  describe.todo('inserts/updates/deletes without deep for all projections')
+  describe.todo('inserts/updates/deletes with deep but excluding changed compositions')
   describe('INSERT', () => {
     test('exposed db entity allows deep insert', async () => {
       const res = await POST('/standard/Travel', { to_Booking: [{ BookingDate: '2050-01-01' }, { BookingDate: '2000-01-01' } ]})

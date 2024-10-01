@@ -49,3 +49,16 @@ service TravelService3 {
     descr: String;
   }
 }
+
+// hide compositions
+@path: '/plain-travel'
+service TravelService4 {
+  entity Travel as select from my.Travel {
+    ID,
+    TravelID,
+    Description
+  }
+
+// TODO: flattened composition unfolds to deep
+-> spec meeting
+}
