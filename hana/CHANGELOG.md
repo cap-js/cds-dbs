@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.2.0...hana-v1.3.0) (2024-10-01)
+
+
+### Added
+
+* Add quoted mode support ([#681](https://github.com/cap-js/cds-dbs/issues/681)) ([43c7a6c](https://github.com/cap-js/cds-dbs/commit/43c7a6c1bed836a1210eb9c2ff5c7ffc0e498d76))
+
 ## [1.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.1...hana-v1.2.0) (2024-09-03)
 
 
