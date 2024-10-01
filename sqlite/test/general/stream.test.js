@@ -59,7 +59,8 @@ describe('streaming', () => {
         expect(stream).toBeNull()
       }))
 
-      test('READ ID and stream property with .from, .column and .where', async () => cds.tx(async () => {
+      // re-enable after /cap/cdsnode/issues/2130 has been fixed
+      test.skip('READ ID and stream property with .from, .column and .where', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const [{ ID, data: stream }] = await SELECT.from(Images).columns(['ID', 'data']).where({ ID: 1 })
         await checkSize(stream)
