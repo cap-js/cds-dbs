@@ -295,9 +295,9 @@ GROUP BY k
     catch (err) {
       if (err.code === '3F000') {
         if (this.options?.credentials?.schema) {
-          throw new Error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
+          cds.error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
         } else {
-          throw new Error`No schema was configure / detected before plainSQL call: ${req.query}`
+          cds.error`No schema was configure / detected before plainSQL call: ${req.query}`
         }
       }
       throw err
