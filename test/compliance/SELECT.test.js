@@ -701,7 +701,7 @@ describe('SELECT', () => {
     })
   }
 
-  describe.skip('forUpdate', () => {
+  describe('forUpdate', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forUpdate({
         of: ['bool'],
@@ -713,7 +713,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe.skip('forShareLock', () => {
+  describe('forShareLock', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
