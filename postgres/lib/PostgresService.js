@@ -253,7 +253,7 @@ GROUP BY k
     return this.dbc.query(sql)
   }
 
-  onPlainSQL(req, next) {
+  async onPlainSQL(req, next) {
     const query = req.query
     if (this.options.independentDeploy) {
       // REVISIT: Should not be needed when deployment supports all types or sends CQNs
@@ -289,8 +289,19 @@ GROUP BY k
       // eslint-disable-next-line no-unused-vars
       req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
     }
-
-    return super.onPlainSQL(req, next)
+    try {
+      return await super.onPlainSQL(req, next)
+    }
+    catch (err) {
+      if (err.code === '3F000') {
+        if (this.options?.credentials?.schema) {
+          throw new Error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
+        } else {
+          throw new Error`No schema was configure / detected before plainSQL call: ${req.query}`
+        }
+      }
+      throw err
+    }
   }
 
   async onSELECT({ query, data }) {
