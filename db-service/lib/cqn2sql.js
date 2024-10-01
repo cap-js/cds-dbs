@@ -38,7 +38,7 @@ class CQN2SQLRenderer {
     // Overwrite smart quoting
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name) => name.id || name
-      this.class.prototype.quote = (s) => `"${(s + '').replace(/"/g, '""')}"`
+      this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
   }
 
