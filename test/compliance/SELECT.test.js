@@ -1274,14 +1274,14 @@ describe('SELECT', () => {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const batches = new Array(batchCount).fill('')
+          const batches = new Array(batchCount || 1).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
 
           const { [targetName]: target } = cds.entities
-          await Promise.all(batches.map(() => cds.tx(async () => {
+          await Promise.all(batches.map(() => cds.tx(async (tx) => {
             for (const t of iterator) {
               // limit(0) still validates that the query is valid, but improves test execution time
-              await SELECT([t]).from(target).limit(0)
+              await tx.run(SELECT([t]).from(target).limit(0))
             }
           })))
         })
