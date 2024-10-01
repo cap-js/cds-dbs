@@ -1273,8 +1273,8 @@ describe('SELECT', () => {
     for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
-          const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const batches = new Array(batchCount || 1).fill('')
+          // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
+          const batches = new Array(1).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
 
           const { [targetName]: target } = cds.entities
