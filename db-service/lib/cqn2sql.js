@@ -34,6 +34,12 @@ class CQN2SQLRenderer {
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
     this.model = srv?.model
+
+    // Overwrite smart quoting
+    if (cds.env.sql.names === 'quoted') {
+      this.class.prototype.name = (name) => name.id || name
+      this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
+    }
   }
 
   static _add_mixins(aspect, mixins) {
@@ -223,7 +229,7 @@ class CQN2SQLRenderer {
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
-    if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
     else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
@@ -334,11 +340,16 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').source} from
    * @returns {string} SQL
    */
-  from(from) {
+  from(from, q) {
     const { ref, as } = from
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) {
-      const z = ref[0]
+      let z = ref[0]
+      if (cds.env.sql.names === 'quoted') {
+        // use SELECT.from to infer query, cds.infer also expects a query
+        const { target } = q || SELECT.from(from)
+        z = target?.['@cds.persistence.name'] || ref[0]
+      }
       if (z.args) {
         return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
       }
