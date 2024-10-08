@@ -125,28 +125,10 @@ describe('Bookshop - Read', () => {
   })
 
   test('reuse already executed select as subselect in from', async () => {
-    let inner = {
-      SELECT: {
-        from: {
-          join: 'inner',
-          args: [
-            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
-            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
-          ],
-          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
-        },
-        columns: [{ ref: ['a', 'ID'], as: 'author_ID' }, { ref: ['b', 'title'] }],
-      },
-    }
+    let inner = SELECT.from('sap.capire.bookshop.Books')
     inner.as = 'booksAndAuthors'
 
-    let firstUsage = {
-      SELECT: {
-        from: inner,
-        columns: [{ func: 'count', args: ['*'], as: 'count' }],
-        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }],
-      },
-    }
+    let firstUsage = SELECT.from(inner)
     let secondUsage = {
       SELECT: {
         from: {
@@ -156,9 +138,7 @@ describe('Bookshop - Read', () => {
             { ref: ['sap.capire.bookshop.Authors'], as: 'otherAuthor' },
           ],
           on: [{ ref: ['otherAuthor', 'ID'] }, '=', { ref: ['booksAndAuthors', 'author_ID'] }],
-        },
-        columns: [{ func: 'count', args: ['*'], as: 'count' }],
-        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }]
+        }
       },
     }
 
