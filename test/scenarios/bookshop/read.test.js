@@ -157,12 +157,13 @@ describe('Bookshop - Read', () => {
           ],
           on: [{ ref: ['otherAuthor', 'ID'] }, '=', { ref: ['booksAndAuthors', 'author_ID'] }],
         },
-        columns: [{ ref: ['booksAndAuthors', 'title'], as: 'book' }],
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }]
       },
     }
 
-    await cds.run(firstUsage)
     expect(async () => {
+      await cds.run(firstUsage)
       await cds.run(secondUsage)
     }).to.not.throw()
   })
