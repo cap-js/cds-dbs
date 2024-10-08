@@ -124,10 +124,14 @@ describe('Bookshop - Read', () => {
     expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
   })
 
-  test('reuse already executed select as subselect in from', async () => {
+  test('reuse already executed select as subselect in from with custom join', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
 
-    let inner = SELECT.from(Books).columns('author_ID')
+    let inner = SELECT.one.from('sap.capire.bookshop.Books as b')
+      .join('sap.capire.bookshop.Authors as a')
+      .on('a.ID = b.author_ID')
+      .columns('a.name', 'b.author_ID')
+
     inner.as = 'booksAndAuthors'
 
     let firstUsage = SELECT.from(inner).where('author_ID = 201')
