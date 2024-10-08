@@ -125,26 +125,40 @@ describe('Bookshop - Read', () => {
   })
 
   test('reuse already executed select as subselect in from with custom join', async () => {
-    let inner = SELECT.one.from('sap.capire.bookshop.Books as b')
-      .join('sap.capire.bookshop.Authors as a')
-      .on('a.ID = b.author_ID')
-      .columns('a.name', 'b.author_ID')
-
+    let inner = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [{ ref: ['a', 'ID'], as: 'author_ID' }, { ref: ['b', 'title'] }],
+      },
+    }
     inner.as = 'booksAndAuthors'
 
-    let firstUsage = SELECT.from(inner).where('author_ID = 201')
-
+    let firstUsage = {
+      SELECT: {
+        from: inner,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }],
+      },
+    }
     let secondUsage = {
       SELECT: {
         from: {
           join: 'inner',
           args: [
-            inner, // alias must not be overwritten, it is used in the custom join condition
+            inner, // alias must not be overwritten
             { ref: ['sap.capire.bookshop.Authors'], as: 'otherAuthor' },
           ],
           on: [{ ref: ['otherAuthor', 'ID'] }, '=', { ref: ['booksAndAuthors', 'author_ID'] }],
         },
-        columns: [{ ref: ['otherAuthor', 'name'] }],
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }]
       },
     }
 
