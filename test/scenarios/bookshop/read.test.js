@@ -125,8 +125,6 @@ describe('Bookshop - Read', () => {
   })
 
   test('reuse already executed select as subselect in from with custom join', async () => {
-    const { Books } = cds.entities('sap.capire.bookshop')
-
     let inner = SELECT.one.from('sap.capire.bookshop.Books as b')
       .join('sap.capire.bookshop.Authors as a')
       .on('a.ID = b.author_ID')
