@@ -3,7 +3,6 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
-
 /**
  * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
  *       Especially w.r.t. to table aliases and bracing.
@@ -132,6 +131,16 @@ describe('EXISTS predicate in where', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE exists books and name = 'Horst'`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
           WHERE exists ( select 1 from bookshop.Books as books where books.author_ID = Authors.ID )
+           AND Authors.name = 'Horst'
+        `)
+    })
+    it('exists predicate is followed by association-like calculated element', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors { ID } WHERE exists booksWithALotInStock and name = 'Horst'`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
+          WHERE exists ( select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) )
            AND Authors.name = 'Horst'
         `)
     })
@@ -547,6 +556,31 @@ describe('EXISTS predicate in where', () => {
         }
       `)
     })
+    it.only('exists in case with two branches both are association-like calculated element', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors
+       { ID,
+         case when exists booksWithALotInStock[price > 10 or price < 20]  then 1
+              when exists booksWithALotInStock[price > 100 or price < 120] then 2
+         end as descr
+       }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
+        { Authors.ID,
+          case 
+          when exists
+          (
+            select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) and ( booksWithALotInStock.price > 10 or booksWithALotInStock.price < 20 )
+          ) then 1
+          when exists
+          (
+            select 1 from bookshop.Books as booksWithALotInStock2 where ( booksWithALotInStock2.author_ID = Authors.ID ) and ( booksWithALotInStock2.stock > 100 ) and ( booksWithALotInStock2.price > 100 or booksWithALotInStock2.price < 120 )
+          ) then 2
+          end as descr
+        }
+      `)
+    })
   })
 
   describe('association has structured keys', () => {
@@ -840,6 +874,13 @@ describe('Scoped queries', () => {
         SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
       )`)
   })
+  it('handles FROM path with backlink association for association-like calculated element', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:booksWithALotInStock {booksWithALotInStock.ID}`, model)
+    expect(query).to.deep
+      .equal(CQL`SELECT from bookshop.Books as booksWithALotInStock {booksWithALotInStock.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
+      )`)
+  })
 
   it('handles FROM path with unmanaged composition and prepends source side alias', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books:texts { locale }`, model)
@@ -907,7 +948,6 @@ describe('Scoped queries', () => {
       ) AND author.ID = 150`)
   })
 
-
   // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
   // only shortcut notation is not allowed
   // TODO: message can include the fix: `write ”<key> = 42” explicitly`
@@ -959,6 +999,14 @@ describe('Scoped queries', () => {
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
         SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
           SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        )
+      )`)
+  })
+  it('handles paths with two associations, first is association-like calculated element', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:booksWithALotInStock.genre {genre.ID}`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Books as booksWithALotInStock where booksWithALotInStock.genre_ID = genre.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
         )
       )`)
   })

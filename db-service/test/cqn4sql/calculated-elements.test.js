@@ -703,17 +703,15 @@ describe('Unfolding calculated elements in select list', () => {
 
   it('exists cannot leverage calculated elements', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)).to.throw(
-      `Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”`,
+      `Expecting path “youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”`,
     )
   })
   it('exists cannot leverage calculated elements w/ path expressions', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() =>
       cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model),
-    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”')
+    ).to.throw('Expecting path “author.books.youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”')
   })
 
   it('exists cannot leverage calculated elements in CASE', () => {
@@ -727,12 +725,11 @@ describe('Unfolding calculated elements in select list', () => {
      }`,
         model,
       ),
-    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”')
+    ).to.throw('Expecting path “youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”')
   })
 
   it('scoped query cannot leverage calculated elements', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books:youngAuthorName { ID }`, model)).to.throw(
       'Query source must be a an entity or an association',
     )
