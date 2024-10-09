@@ -556,7 +556,7 @@ describe('EXISTS predicate in where', () => {
         }
       `)
     })
-    it.only('exists in case with two branches both are association-like calculated element', () => {
+    it('exists in case with two branches both are association-like calculated element', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Authors
        { ID,

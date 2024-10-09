@@ -701,10 +701,16 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('exists cannot leverage calculated elements', () => {
+  it('exists cannot leverage calculated elements which ends in string', () => {
     // at the leaf of a where exists path, there must be an association
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)).to.throw(
       `Expecting path “youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”`,
+    )
+  })
+  it('exists cannot leverage calculated elements which is an expression', () => {
+    // at the leaf of a where exists path, there must be an association
+    expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists authorFullName`, model)).to.throw(
+      `Expecting path “authorFullName” following “EXISTS” predicate to end with association/composition, found “expression”`,
     )
   })
   it('exists cannot leverage calculated elements w/ path expressions', () => {
