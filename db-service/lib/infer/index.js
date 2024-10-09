@@ -1054,7 +1054,8 @@ function infer(originalQuery, model) {
             if (element.type !== 'cds.LargeBinary') {
               queryElements[k] = element
             }
-            if (element.value) {
+            // assoc like calc elements are re-written by compiler to proper on-condition
+            if (element.value && !element.on) {
               linkCalculatedElement(element)
             }
           }
