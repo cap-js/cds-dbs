@@ -22,7 +22,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "jest --silent"
+    "test": "cds-test"
   },
   "dependencies": {
     "generic-pool": "^3.9.0"

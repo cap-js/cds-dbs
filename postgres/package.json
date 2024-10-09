@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && jest --silent",
+    "test": "npm start && cds-test $(../test/find)",
     "start": "docker compose -f pg-stack.yml up -d"
   },
   "dependencies": {
