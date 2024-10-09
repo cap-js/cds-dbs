@@ -336,11 +336,11 @@ class HANAService extends SQLService {
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
-        if (q.SELECT?.from) return q.as || walkAlias(q.SELECT?.from)
+        if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
         return q.as
       }
       q.as = walkAlias(q)
-      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+      q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
 
       // When one of these is defined wrap the query in a sub query
