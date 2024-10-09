@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
+const { isCalculatedOnRead } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -746,7 +747,7 @@ function infer(originalQuery, model) {
           joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
         }
       }
-      if (leafArt.value && !leafArt.value.stored) {
+      if (isCalculatedOnRead(leafArt)) {
         linkCalculatedElement(column, $baseLink, baseColumn)
       }
 
@@ -1054,8 +1055,7 @@ function infer(originalQuery, model) {
             if (element.type !== 'cds.LargeBinary') {
               queryElements[k] = element
             }
-            // assoc like calc elements are re-written by compiler to proper on-condition
-            if (element.value && !element.on) {
+            if (isCalculatedOnRead(element)) {
               linkCalculatedElement(element)
             }
           }
@@ -1072,7 +1072,7 @@ function infer(originalQuery, model) {
         if (exclude(name) || name in queryElements) return true
         const element = tableAliases[0].tableAlias.elements[name]
         if (element.type !== 'cds.LargeBinary') queryElements[name] = element
-        if (element.value) {
+        if (isCalculatedOnRead(element)) {
           linkCalculatedElement(element)
         }
       })

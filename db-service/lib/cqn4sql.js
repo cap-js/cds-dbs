@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -315,20 +315,6 @@ function cqn4sql(originalQuery, model) {
       }
       return lhs.args.length > 1 ? lhs : lhs.args[0]
     }
-  }
-
-  /**
-   * Determines if a definition is calculated on read.
-   * - Stored calculated elements are not unfolded
-   * - Association like calculated elements have been re-written by the compiler
-   *   they essentially behave like unmanaged associations as their calculations
-   *   have been incorporated into an on-condition which is handled elsewhere
-   *
-   * @param {Object} def - The definition to check.
-   * @returns {boolean} - Returns true if the definition is calculated on read, otherwise false.
-   */
-  function isCalculatedOnRead(def) {
-    return def?.value && !def.value.stored && !def.on
   }
 
   /**
