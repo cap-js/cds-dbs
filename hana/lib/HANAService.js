@@ -340,7 +340,7 @@ class HANAService extends SQLService {
         return q.as
       }
       q.as = walkAlias(q)
-      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+      q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
       const src = q
 
       // When one of these is defined wrap the query in a sub query
@@ -454,7 +454,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.from({ ref: [alias] })
+        const fromSQL = this.from({ ref: [q.src.alias] })
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
