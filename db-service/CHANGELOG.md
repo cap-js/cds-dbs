@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.1...db-service-v1.13.0) (2024-10-01)
+
+
+### Added
+
+* Add quoted mode support ([#681](https://github.com/cap-js/cds-dbs/issues/681)) ([43c7a6c](https://github.com/cap-js/cds-dbs/commit/43c7a6c1bed836a1210eb9c2ff5c7ffc0e498d76))
+
+
+### Fixed
+
+* **deep-queries:** properly return insert result ([#803](https://github.com/cap-js/cds-dbs/issues/803)) ([8d800e2](https://github.com/cap-js/cds-dbs/commit/8d800e2858f02663b8ed3845909e5891af390517))
+* dont use virtual key for `UPDATE … where (&lt;key&gt;) in <subquery>` ([#800](https://github.com/cap-js/cds-dbs/issues/800)) ([d25af70](https://github.com/cap-js/cds-dbs/commit/d25af70b23688cd22c7b87f20a7848c9653ae9a9))
+* reject all path expressions w/o foreign keys ([#806](https://github.com/cap-js/cds-dbs/issues/806)) ([cd271a8](https://github.com/cap-js/cds-dbs/commit/cd271a8aa973afe0926ac1fa956cc64260140b98))
+
 ## [1.12.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.0...db-service-v1.12.1) (2024-09-03)
 
 
