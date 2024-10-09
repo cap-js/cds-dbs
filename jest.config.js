@@ -1,2 +1,0 @@
-// Fix debugging
-exports.transform = {}
