@@ -25,7 +25,7 @@ const StandardFunctions = {
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
     // REVISIT: remove once the protocol adapter only creates vals
-    if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
+    if (Array.isArray(arg.xpr)) arg.val = arg.__proto__.val = arg.xpr.filter(a => a.val).map(a => a.val).join(' ')
     // REVISIT: make this more configurable
     return (`(CASE WHEN SCORE(${arg} IN ${ref} FUZZY MINIMAL TOKEN SCORE 0.7 SIMILARITY CALCULATION MODE 'search') > 0 THEN TRUE ELSE FALSE END)`)
   },
