@@ -74,7 +74,7 @@ const hasDeep = (q, target) => {
 
 // unofficial config!
 const DEEP_DELETE_MAX_RECURSION_DEPTH =
-  (cds.env.features.recursion_depth && Number(cds.env.features.recursion_depth)) || 4 // we use 4 here as our test data has a max depth of 3
+  (cds.env.features.recursion_depth && Number(cds.env.features.recursion_depth)) || 10 // we use 4 here as our test data has a max depth of 3
 
 // IMPORTANT: Skip only if @cds.persistence.skip is `true` → e.g. this skips skipping targets marked with @cds.persistence.skip: 'if-unused'
 const _hasPersistenceSkip = target => target?.['@cds.persistence.skip'] === true
