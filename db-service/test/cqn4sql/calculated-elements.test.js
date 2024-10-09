@@ -968,6 +968,26 @@ describe('Unfolding calculated elements in other places', () => {
     }`
     expect(query).to.deep.equal(expected)
   })
+  it('variable replacements are left untouched in calc element navigation', () => {
+    const q = CQL`SELECT from booksCalc.VariableReplacements { ID, authorAlive.firstName }`
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements
+    left join booksCalc.Authors as authorAlive on ( authorAlive.ID = VariableReplacements.author_ID )
+    and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now )
+    {
+        VariableReplacements.ID,
+        authorAlive.firstName as authorAlive_firstName
+    }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+  it('variable replacements are left untouched in calc elements via wildcard', () => {
+    const q = CQL`SELECT from booksCalc.VariableReplacements { * }`
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements
+    {
+        VariableReplacements.ID,
+        VariableReplacements.author_ID
+    }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
 })
 
 describe('Unfolding calculated elements ... misc', () => {
@@ -1002,7 +1022,6 @@ describe('Unfolding calculated elements and localized', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  // enable once cds-compiler v4.1 is released
   it('calculated element refers to localized element', () => {
     const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
     q.SELECT.localized = true
