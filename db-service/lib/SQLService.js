@@ -367,7 +367,6 @@ class SQLService extends DatabaseService {
    */
   cqn4sql(q) {
     if (
-      (!q.target || q.target._unresolved) &&
       !cds.env.features.db_strict &&
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&

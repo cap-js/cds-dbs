@@ -539,7 +539,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = res.toSorted((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -548,7 +548,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string asc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = res.toSorted((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -557,7 +557,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string desc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = res.toSorted((a, b) => String.prototype.localeCompare.call(b.string, a.string))
+      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(b.string, a.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -567,7 +567,7 @@ describe('SELECT', () => {
       cqn.SELECT.localized = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = res.toSorted((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
   })

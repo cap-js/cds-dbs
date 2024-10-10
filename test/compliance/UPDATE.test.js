@@ -112,7 +112,7 @@ describe('UPDATE', () => {
       }
 
       await DELETE.from(BooksUnique).where(`ID=${1}`)
-      await expect(INSERT(data).into(BooksUnique)).rejects.to.be.truthy
+      await expect(INSERT(data).into(BooksUnique)).rejected
 
       // Update the numbers to be non conflicting
       data.pages[0].number = 1
