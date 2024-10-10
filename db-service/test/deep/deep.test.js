@@ -803,8 +803,8 @@ describe('test deep query generation', () => {
         expect(insertsArray).to.deep.contain(insert)
       })
 
-      expect(updatesArray.length).toBe(0)
-      expect(deletesArray.length).toBe(0)
+      expect(updatesArray.length).to.eq(0)
+      expect(deletesArray.length).to.eq(0)
 
     })
 
@@ -832,7 +832,7 @@ describe('test deep query generation', () => {
       const insert = INSERT.into(entity).entries(entry)
 
       const result = await cds.db.run(insert)
-      expect(result > 0).toBe(true)
+      expect(result > 0).to.eq(true)
 
       const root = { uniqueName: entry.uniqueName, realm: entry.realm }
 
