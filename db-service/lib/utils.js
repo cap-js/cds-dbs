@@ -32,11 +32,15 @@ function prettyPrintRef(ref, model = null) {
  * @returns {boolean} - Returns true if the definition is calculated on read, otherwise false.
  */
 function isCalculatedOnRead(def) {
-  return def?.value && !def.value.stored && !def.on
+  return isCalculatedElement(def) && !def.value.stored && !def.on
+}
+function isCalculatedElement(def) {
+  return def?.value
 }
 
 // export the function to be used in other modules
 module.exports = {
   prettyPrintRef,
-  isCalculatedOnRead
+  isCalculatedOnRead,
+  isCalculatedElement
 }
