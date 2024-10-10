@@ -253,7 +253,7 @@ GROUP BY k
     return this.dbc.query(sql)
   }
 
-  async onPlainSQL(req, next) {
+  onPlainSQL(req, next) {
     const query = req.query
     if (this.options.independentDeploy) {
       // REVISIT: Should not be needed when deployment supports all types or sends CQNs
@@ -289,19 +289,8 @@ GROUP BY k
       // eslint-disable-next-line no-unused-vars
       req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
     }
-    try {
-      return await super.onPlainSQL(req, next)
-    }
-    catch (err) {
-      if (err.code === '3F000') {
-        if (this.options?.credentials?.schema) {
-          cds.error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
-        } else {
-          cds.error`No schema was configure / detected before plainSQL call: ${req.query}`
-        }
-      }
-      throw err
-    }
+
+    return super.onPlainSQL(req, next)
   }
 
   async onSELECT({ query, data }) {
@@ -543,10 +532,7 @@ GROUP BY k
       Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
-        ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
-        : `cast(${expr} as varchar)`
-        : undefined,
+      Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
 
       // Convert point back to json format
       'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
@@ -581,21 +567,14 @@ GROUP BY k
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
     } catch {
-      // Failed to connect to database
-      if (!this.dbc) {
-        return this.database({ database })
-      }
       // Failed to reset database
     } finally {
-      // Only clean when successfully connected
-      if (this.dbc) {
-        await this.dbc.end()
-        delete this.dbc
+      await this.dbc.end()
+      delete this.dbc
 
-        // Update credentials to new Database owner
-        await this.disconnect()
-        this.options.credentials = Object.assign({}, system, creds)
-      }
+      // Update credentials to new Database owner
+      await this.disconnect()
+      this.options.credentials = Object.assign({}, system, creds)
     }
   }
 
@@ -610,20 +589,18 @@ GROUP BY k
 
     try {
       if (!clean) {
-        await cds
-          .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
-          .catch(e => {
-            if (e.code === '42710') return
-            throw e
-          })
-        // Retry granting priviledges as this is being done by multiple instances
-        // Postgres just rejects when other connections are granting the same user
-        const grant = (i = 0) => cds.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
-          .catch((err) => {
-            if (i > 100) throw err
-            return grant(i + 1)
-          })
-        await grant()
+        await this.tx(async tx => {
+          // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
+          await tx
+            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+            .catch(e => {
+              if (e.code === '42710') return
+              throw e
+            })
+        })
+        await this.tx(async tx => {
+          await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+        })
       }
 
       // Update credentials to new Schema owner
@@ -633,7 +610,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
       })
     } finally {
       await this.disconnect()

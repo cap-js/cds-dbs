@@ -42,10 +42,7 @@ const StandardFunctions = {
   maxdatetime: () => "'9999-12-31T23:59:59.999Z'",
   mindatetime: () => "'0001-01-01T00:00:00.000Z'",
   now: () => `session_context('$now')`,
-  current_date: () => 'current_utcdate',
-  current_time: () => 'current_utctime',
-  current_timestamp: () => 'current_utctimestamp',
-  fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
+  fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`
 }
 
 module.exports = StandardFunctions

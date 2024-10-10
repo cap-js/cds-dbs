@@ -1,5 +1,5 @@
 const cds = require('../../../test/cds')
-const {expect} = cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
+cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
 cds.env.features.recursion_depth = 2
 
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
@@ -13,7 +13,7 @@ describe('test deep query generation', () => {
     // SKIPPED because that test is testing obsolete internal implementation of deep delete
     test.skip('Deep DELETE with to-one all data provided', () => {
       const query = getExpandForDeep(DELETE.from(model.definitions.Root).where({ ID: 1 }), model.definitions.Root)
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           where: [
@@ -279,7 +279,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -301,7 +301,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -327,7 +327,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -476,7 +476,7 @@ describe('test deep query generation', () => {
         model.definitions.Root,
       )
       // TODO toManySubChild: null -> max recursion
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -538,7 +538,7 @@ describe('test deep query generation', () => {
       )
 
       // expectation also needs to be adapted
-      expect(query).to.containSubset({
+      expect(query).toMatchObject({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -674,7 +674,7 @@ describe('test deep query generation', () => {
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
         model.definitions.Recursive,
       )
-      expect(query).to.eql({
+      expect(query).toEqual({
         SELECT: {
           from: { ref: ['Recursive'] },
           where: [
@@ -800,7 +800,7 @@ describe('test deep query generation', () => {
       const deletesArray = Array.from(deletes.values())
 
       expectedInserts.forEach(insert => {
-        expect(insertsArray).to.deep.contain(insert)
+        expect(insertsArray).toContainEqual(insert)
       })
 
       expect(updatesArray.length).toBe(0)
@@ -851,25 +851,25 @@ describe('test deep query generation', () => {
       const l1s = dbState.l1s
       const l2s = l1s[0].l2s
 
-      expect(dbState).to.containSubset(root)
+      expect(dbState).toMatchObject(root)
 
-      expect(l1s).to.containSubset([
+      expect(l1s).toMatchObject([
         {
-          // ID: expect.any(String),
+          ID: expect.any(String),
           header_realm: entry.realm,
           header_uniqueName: entry.uniqueName,
         },
       ])
 
-      expect(l2s).to.containSubset([
+      expect(l2s).toMatchObject([
         {
-          // ID: expect.any(String),
+          ID: expect.any(String),
           l1_ID: l1s[0].ID,
           l1_header_realm: entry.realm,
           l1_header_uniqueName: entry.uniqueName,
         },
         {
-          // ID: expect.any(String),
+          ID: expect.any(String),
           l1_ID: l1s[0].ID,
           l1_header_realm: entry.realm,
           l1_header_uniqueName: entry.uniqueName,

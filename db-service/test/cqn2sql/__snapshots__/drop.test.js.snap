@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`drop test drop table with string entity 1`] = `
+{
+  "sql": "DROP TABLE IF EXISTS Foo",
+}
+`;
+
+exports[`drop test drop table with string table 1`] = `
+{
+  "sql": "DROP TABLE IF EXISTS Foo",
+}
+`;

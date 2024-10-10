@@ -24,26 +24,6 @@ const StandardFunctions = {
   minute: x => `date_part('minute', ${castVal(x)})`,
   second: x => `floor(date_part('second', ${castVal(x)}))`,
   fractionalseconds: x => `CAST(date_part('second', ${castVal(x)}) - floor(date_part('second', ${castVal(x)})) AS DECIMAL)`,
-  totalseconds: x => `(
-    (
-      (
-        CAST(substring(${x},2,strpos(${x},'DT') - 2) AS INTEGER)
-      ) + (
-        EXTRACT (EPOCH FROM 
-          CAST(
-            replace(
-            replace(
-            replace(
-              substring(${x},strpos(${x},'DT') + 2),
-              'H',':'
-            ),'M',':'
-            ),'S','Z'
-            )
-          as TIME)
-        ) - 0.5
-      )
-    ) * 86400
-  )`,
   now: function() {
     return this.session_context({val: '$now'})
   }
