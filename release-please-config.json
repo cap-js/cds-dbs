@@ -1,5 +1,4 @@
 {
-  "last-release-sha": "5a2c1f0e218cee44135301cf24fd2607db46187d",
   "packages": {
     "db-service": {},
     "sqlite": {},
