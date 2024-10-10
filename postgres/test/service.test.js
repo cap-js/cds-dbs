@@ -11,7 +11,7 @@ const guidRegEx = /\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f
 
 // run test suite with different sets of data
 describe('OData to Postgres dialect', () => {
-  const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project)
+  const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project).verbose()
 
   data.autoIsolation(true)
   data.autoReset(true)

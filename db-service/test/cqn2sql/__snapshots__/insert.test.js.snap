@@ -1,0 +1,56 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`insert insert only test filter in insert rows into columns with not existing column 1`] = `
+{
+  "entries": [
+    [
+      "[[1,"'asd'",2],[9,"mmm'",77]]",
+    ],
+  ],
+  "sql": "INSERT INTO Foo2 (ID,not_existing,something) SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]' FROM json_each(?)",
+}
+`;
+
+exports[`insert insert only test with insert entries 1`] = `
+{
+  "entries": [
+    [
+      "[{"ID":1,"name":null,"a":2},{"ID":null,"name":"'asd'","a":6}]",
+    ],
+  ],
+  "sql": "INSERT INTO Foo2 (ID,name,a) SELECT value->>'$."ID"',value->>'$."name"',value->>'$."a"' FROM json_each(?)",
+}
+`;
+
+exports[`insert insert only test with insert rows into columns 1`] = `
+{
+  "entries": [
+    [
+      "[[1,"'asd'",2],[9,"mmm'",77]]",
+    ],
+  ],
+  "sql": "INSERT INTO Foo (ID,b,a) SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]' FROM json_each(?)",
+}
+`;
+
+exports[`insert insert only test with insert values into columns 1`] = `
+{
+  "entries": [
+    [
+      "[[1,"'asd'",2]]",
+    ],
+  ],
+  "sql": "INSERT INTO Foo (ID,b,x) SELECT value->>'$[0]',value->>'$[1]',value->>'$[2]' FROM json_each(?)",
+}
+`;
+
+exports[`insert insert only test with insert with alias 1`] = `
+{
+  "entries": [
+    [
+      "[{"ID":1,"name":null,"a":2},{"ID":null,"name":"'asd'","a":6}]",
+    ],
+  ],
+  "sql": "INSERT INTO Foo2 as Fooooo2 (ID,name,a) SELECT value->>'$."ID"',value->>'$."name"',value->>'$."a"' FROM json_each(?)",
+}
+`;
