@@ -1,5 +1,3 @@
-const cds = require("@sap/cds")
-
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
@@ -61,7 +59,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  countdistinct: x => `count(distinct ${x || cds.error`countdistinct requires a ref to be counted`})`,
+  countdistinct: x => `count(distinct ${x || '*'})`,
   /**
    * Generates SQL statement that produces the index of the first occurrence of the second string in the first string
    * @param {string} x

@@ -27,63 +27,11 @@ describe('CREATE', () => {
 
   const literals = Object.keys(model.definitions).filter(n => model.definitions[n].kind === 'entity')
 
-  describe('custom entites', () => {
-    const entityName = 'custom.entity'
-
-    afterEach(async () => {
-      const db = await cds.connect()
-
-      const { globals } = cds.entities('basic.literals')
-
-      await db.run({ DROP: { entity: globals } }).catch(() => { })
-      await db.run({ DROP: { entity: entityName } }).catch(() => { })
-      await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
-      await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
-    })
-
-    test('definiton provided', async () => {
-      const db = await cds.connect()
-
-      const { globals } = cds.entities('basic.literals')
-
-      const entity = new cds.entity({
-        kind: 'entity',
-        name: entityName,
-        elements: globals.elements
-      })
-      await db.run({ CREATE: { entity } })
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
-      // await SELECT.from(entity)
-    })
-
-    test('definiton provided', async () => {
-      const db = await cds.connect()
-
-      const { globals } = cds.entities('basic.literals')
-
-      const query = SELECT.from(globals)
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
-      /*
-      const entity = new cds.entity({
-        kind: 'entity',
-        name: entityName,
-        query,
-        elements: query.elements
-      })
-      */
-
-      await db.run({ CREATE: { entity: globals } })
-      await db.run({ CREATE: { entity: entityName, as: query } })
-      // await SELECT.from(entity)
-    })
-  })
-
   literals.forEach(table => {
     const path = table.split('.')
     const type = path[path.length - 1]
     const entity = model.definitions[table]
     const desc = !only.length || only.includes(type) ? describe : describe.skip
-    if (entity.query) return // Skip complex view as cqn4sql does not allow union views
 
     desc(`${entity.projection ? 'View' : 'Type'}: ${type}`, () => {
       let db
@@ -186,7 +134,7 @@ describe('CREATE', () => {
                   if (typeof b === 'function') return `${b}`
                   return b
                 },
-                Object.keys(obj).length === 1 ? undefined : '\t      ', // TODO: adjust for new reporter rendering
+                Object.keys(obj).length === 1 ? undefined : '\t      ',
               )
                 // Super hacky way to make the jest report look nice
                 .replace(/\n}/g, '\n\t    }'),

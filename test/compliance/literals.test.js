@@ -1,5 +1,3 @@
-require('../cds')
-
 describe('literals', () => {
   describe('globals', () => {
     describe('boolean', () => {

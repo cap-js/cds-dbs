@@ -334,17 +334,17 @@ class HANAService extends SQLService {
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
+      const walkAlias = q => {
+        if (q.args) return q.as || walkAlias(q.args[0])
+        if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
+        return q.as
+      }
+      q.as = walkAlias(q)
+      const alias = q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+      const src = q
+
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
-          if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
-        }
-        q.as = walkAlias(q)
-        q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
-        const src = q
-
         const { element, elements } = q
 
         q = cds.ql.clone(q)
@@ -454,7 +454,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.from({ ref: [q.src.alias] })
+        const fromSQL = this.from({ ref: [alias] })
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
@@ -480,7 +480,7 @@ class HANAService extends SQLService {
             ? x => {
               if (x === '*') return '*'
               // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) {
+              if (x.elements) {
                 expands[this.column_name(x)] = x.SELECT.one ? null : []
 
                 const parent = src
@@ -547,19 +547,20 @@ class HANAService extends SQLService {
                 structures.push(x)
                 return false
               }
+              let xpr = this.expr(x)
               const columnName = this.column_name(x)
               if (columnName === '_path_') {
-                path = this.expr(x)
+                path = xpr
                 return false
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(this.quote(columnName), x.element)} as "${columnName.replace(/"/g, '""')}"`
+              return `${converter(this.quote(columnName))} as "${columnName.replace(/"/g, '""')}"`
             }
             : x => {
               if (x === '*') return '*'
               // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) return false
+              if (x.elements) return false
               return this.column_expr(x)
             },
         )
@@ -766,7 +767,9 @@ class HANAService extends SQLService {
     }
 
     DROP(q) {
-      return (this.sql = super.DROP(q).replace('IF EXISTS', ''))
+      const { target } = q
+      const isView = target.query || target.projection
+      return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} ${this.quote(this.name(target.name))}`)
     }
 
     from_args(args) {
@@ -956,11 +959,7 @@ class HANAService extends SQLService {
           const up = cur.toUpperCase()
           // When a logic operator is found the expression is not a comparison
           // When it is a local check it cannot be compared outside of the xpr
-          if (up in logicOperators) {
-            // ensure AND is not part of BETWEEN
-            if (up === 'AND' && xpr[i - 2]?.toUpperCase() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
-            return !local
-          }
+          if (up in logicOperators) return !local
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
@@ -1151,9 +1150,7 @@ class HANAService extends SQLService {
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
-      Decimal: (expr, elem) => elem?.scale
-        ? `TO_NVARCHAR(${expr}, '9.${''.padEnd(elem.scale, '0')}')`
-        : `TO_NVARCHAR(${expr})`,
+      Decimal: expr => `TO_NVARCHAR(${expr})`,
 
       // HANA types
       'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
@@ -1303,21 +1300,9 @@ class HANAService extends SQLService {
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
-      let i = 0
-      let err
-      for (; i < 100; i++) {
-        try {
-          const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-          const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
-          res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
-          break
-        } catch (e) {
-          err = e
-        }
-      }
-      if (i === 100) {
-        throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
-      }
+      const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
+      res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       await this.dbc.disconnect()
       delete this.dbc
@@ -1390,19 +1375,16 @@ const compareOperators = {
   '<>': 1,
   '>=': 1,
   '<=': 1,
+  '!<': 1,
+  '!>': 1,
   'IS': 1,
   'IN': 1,
-  'NOT IN': 1,
   'LIKE': 1,
-  'NOT LIKE': 1,
   'IS NOT': 1,
   'EXISTS': 1,
-  'NOT EXISTS': 1,
   'BETWEEN': 1,
-  'NOT BETWEEN': 1,
   'CONTAINS': 1,
   'MEMBER OF': 1,
-  'NOT MEMBER OF': 1,
   'LIKE_REGEXPR': 1,
 }
 const lobTypes = {
