@@ -466,6 +466,10 @@ const sqls = new (class extends SQLService {
   get factory() {
     return null
   }
+
+  get model() {
+    return cds.model
+  }
 })()
 cds.extend(cds.ql.Query).with(
   class {
