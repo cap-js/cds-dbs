@@ -413,11 +413,32 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+      )
+    }
+
+    UPSERT(q, isUpsert = false) {
+      super.UPSERT(q, isUpsert)
+
+      // REVISIT: this should probably be made a bit easier to adopt
+      return (this.sql = this.sql
+        // Adjusts json function to be postgres specific
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+      )
+    }
+
+    managed_extract(name, element, converter) {
+      const { UPSERT, INSERT } = this.cqn
+      const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
+        ? `value->>${this.columns.indexOf(name)}`
+        : `value->>'${name.replace(/'/g, "''")}'`
+      const sql = converter?.(extract) || extract
+      return { extract, sql }
+    }
+
+    managed_default(name, managed, src) {
+      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {
@@ -494,8 +515,11 @@ GROUP BY k
       ...super.InputConverters,
       // UUID:      (e) => `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
       boolean: e => `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
-      Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      // REVISIT: Postgres and HANA round Decimal numbers differently therefore precision and scale are removed
+      // Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      // Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Float: e => `CAST(${e} as decimal)`,
+      Decimal: e => `CAST(${e} as decimal)`,
       Integer: e => `CAST(${e} as integer)`,
       Int64: e => `CAST(${e} as bigint)`,
       Date: e => `CAST(${e} as DATE)`,
