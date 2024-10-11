@@ -27,11 +27,13 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
       # hana express setup
       - id: hxe
+        if: ${{ steps.release.outputs.releases_created }}
         uses: ./.github/actions/hxe
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing hana/sqlite/postgres/db-service
       - run: npm test -ws
+        if: ${{ steps.release.outputs.releases_created }}
         env:
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
