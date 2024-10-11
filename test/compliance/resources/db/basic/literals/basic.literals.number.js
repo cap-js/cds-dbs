@@ -57,11 +57,11 @@ module.exports = [
   },
   {
     decimal: '3.14153',
-    '=decimal': /^3\.1415/
+    '=decimal': '3.1415'
   },
   {
     decimal: 3.14,
-    '=decimal': /^3\.14/
+    '=decimal': '3.1400'
   },
   {
     double: 3.14159265358979

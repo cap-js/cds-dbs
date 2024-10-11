@@ -21,7 +21,22 @@ function prettyPrintRef(ref, model = null) {
   }, '')
 }
 
+/**
+ * Determines if a definition is calculated on read.
+ * - Stored calculated elements are not unfolded
+ * - Association like calculated elements have been re-written by the compiler
+ *   they essentially behave like unmanaged associations as their calculations
+ *   have been incorporated into an on-condition which is handled elsewhere
+ *
+ * @param {Object} def - The definition to check.
+ * @returns {boolean} - Returns true if the definition is calculated on read, otherwise false.
+ */
+function isCalculatedOnRead(def) {
+  return def?.value && !def.value.stored && !def.on
+}
+
 // export the function to be used in other modules
 module.exports = {
   prettyPrintRef,
+  isCalculatedOnRead
 }
