@@ -8,6 +8,7 @@ jobs:
     permissions:
         contents: write
         pull-requests: write
+        packages: write
     runs-on: ubuntu-latest
     environment: npm
     steps:
