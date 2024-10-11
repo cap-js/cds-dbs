@@ -124,6 +124,50 @@ describe('Bookshop - Read', () => {
     expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
   })
 
+  test('reuse already executed select as subselect in from with custom join', async () => {
+    let inner = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [{ ref: ['a', 'ID'], as: 'author_ID' }, { ref: ['b', 'title'] }],
+      },
+    }
+    inner.as = 'booksAndAuthors'
+
+    let firstUsage = {
+      SELECT: {
+        from: inner,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }],
+      },
+    }
+    let secondUsage = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            inner, // alias must not be overwritten
+            { ref: ['sap.capire.bookshop.Authors'], as: 'otherAuthor' },
+          ],
+          on: [{ ref: ['otherAuthor', 'ID'] }, '=', { ref: ['booksAndAuthors', 'author_ID'] }],
+        },
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }]
+      },
+    }
+
+    expect(async () => {
+      await cds.run(firstUsage)
+      await cds.run(secondUsage)
+    }).to.not.throw()
+  })
+
   test('forUpdate query from path expression', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const query = SELECT([{ ref: ['ID'] }])
