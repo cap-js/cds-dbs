@@ -25,18 +25,15 @@ jobs:
       # Run tests
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}
-      # test sqlite/postgres/db-service
-      - run: npm test -w db-service -w sqlite -w postgres
-        if: ${{ steps.release.outputs.releases_created }}
-      # test hana
+      # hana express setup
       - id: hxe
-        if: ${{ steps.release.outputs.releases_created }}
         uses: ./.github/actions/hxe
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm test -w hana
-        if: ${{ steps.release.outputs.releases_created }}
+      # testing hana/sqlite/postgres/db-service
+      - run: npm test -ws
         env:
+          FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
 
