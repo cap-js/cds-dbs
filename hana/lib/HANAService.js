@@ -338,7 +338,7 @@ class HANAService extends SQLService {
       if (expand || (parent && (limit || one || orderBy))) {
         const walkAlias = q => {
           if (q.args) return q.as || walkAlias(q.args[0])
-          if (q.SELECT?.from) return q.SELECT.from.as || walkAlias(q.SELECT?.from)
+          if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
           return q.as
         }
         q.as = walkAlias(q)
