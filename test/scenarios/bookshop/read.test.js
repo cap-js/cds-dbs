@@ -346,4 +346,10 @@ describe('Bookshop - Read', () => {
     return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
   })
 
+  it('allows filtering with between operator', async () => {
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+
+    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
+  })
+
 })
