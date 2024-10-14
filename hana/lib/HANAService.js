@@ -373,14 +373,10 @@ class HANAService extends SQLService {
             }
             if (c.ref?.length === 2) {
               const ref = c.ref + ''
-              // already used as path expression
               const match = columns.find(col => col.ref + '' === ref)
               if (!match) {
-                const alias = `$$${c.ref.join('.')}$$`
-                if (!columns.find(col => col.as === alias)) {
-                  c.as = alias
-                  columns.push(c)
-                }
+                c.as = `$$${c.ref.join('.')}$$`
+                columns.push(c)
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
