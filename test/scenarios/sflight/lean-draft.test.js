@@ -1,8 +1,13 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const cds = require('../../test/cds.js')
+const cds = require('../../cds.js')
 
 describe('draft tests', () => {
+
+  // Had to be moved before for cds-test might break jest
+  beforeAll(() => {
+    cds.env.features.ieee754compatible = true
+  })
 
   const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
   // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
@@ -238,7 +243,7 @@ describe('draft tests', () => {
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: v => /^90/.test(v),
+      BookingFee: '90.000',
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
       EndDate: '2024-05-31',
@@ -350,11 +355,11 @@ describe('draft tests', () => {
     expect(res.data.value.length).to.be.eq(1)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: v => /^90/.test(v),
+      BookingFee: '90.000',
       CurrencyCode_code: 'USD',
       Description: 'Vacation to USA',
       EndDate: '2024-05-31',
-      TotalPrice: v => /^5624/.test(v),
+      TotalPrice: '5624.000',
       TravelID: 32,
       TravelStatus_code: 'O',
       TravelUUID: EDIT_DRAFT_TRAVELUUID,
@@ -435,11 +440,11 @@ describe('draft tests', () => {
     expect(res.status).to.be.eq(200)
     expect(res.data.value[0]).to.containSubset({
       BeginDate: '2024-05-30',
-      BookingFee: v => /^20/.test(v),
+      BookingFee: '20.000',
       CurrencyCode_code: 'USD',
       Description: 'Sightseeing in New York City, New York',
       EndDate: '2024-05-30',
-      TotalPrice: v => /^7375/.test(v),
+      TotalPrice: '7375.000',
       TravelID: 4133,
       TravelStatus_code: 'A',
       TravelUUID: '76757221A8E4645C17002DF03754AB66',
@@ -498,11 +503,11 @@ describe('draft tests', () => {
     expect(res.status).to.be.eq(200)
     expect(res.data).to.containSubset({
       BeginDate: '2023-08-04',
-      BookingFee: v => /^20/.test(v),
+      BookingFee: '20.000',
       CurrencyCode_code: 'USD',
       Description: 'Business Trip for Christine, Pierre',
       EndDate: '2023-08-04',
-      TotalPrice: v => /900/.test(v),
+      TotalPrice: '900.000',
       TravelID: 1,
       TravelStatus_code: 'O',
       TravelUUID: '52657221A8E4645C17002DF03754AB66',
@@ -557,7 +562,7 @@ describe('draft tests', () => {
       BookSupplUUID: '85D87221A8E4645C17002DF03754AB66',
       BookingSupplementID: 1,
       CurrencyCode_code: 'EUR',
-      Price: v => /20/.test(v),
+      Price: '20.000',
       to_Supplement_SupplementID: 'ML-0023',
       to_Supplement: { Description: 'Trout Meuniere', SupplementID: 'ML-0023' },
       to_Travel: { TravelStatus: { code: 'A', fieldControl: 1 }, TravelUUID: '76757221A8E4645C17002DF03754AB66' },
@@ -579,7 +584,7 @@ describe('draft tests', () => {
       ConnectionID: '0018',
       CurrencyCode_code: 'USD',
       FlightDate: '2024-05-30',
-      FlightPrice: v => /^3657/.test(v),
+      FlightPrice: '3657.000',
       to_Carrier_AirlineID: 'GA',
       to_Customer_CustomerID: '000115',
       BookingStatus: { code: 'N', name: 'New' },
@@ -791,7 +796,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.data).to.containSubset({
-      BookingFee: v => /^12/.test(v),
+      BookingFee: '12.000',
       TravelUUID,
       IsActiveEntity: false,
     })
@@ -817,7 +822,7 @@ describe('draft tests', () => {
       TravelID: 0,
       BeginDate: '2032-10-22',
       EndDate: '2032-12-22',
-      BookingFee: v => /^12/.test(v),
+      BookingFee: '12.000',
       TotalPrice: null,
       CurrencyCode_code: null,
       Description: null,
@@ -840,7 +845,7 @@ describe('draft tests', () => {
     )
     expect(res.data).to.containSubset({
       BeginDate: '2032-10-22',
-      BookingFee: v => /^12/.test(v),
+      BookingFee: '12.000',
       CurrencyCode_code: null,
       Description: null,
       EndDate: '2032-12-22',
