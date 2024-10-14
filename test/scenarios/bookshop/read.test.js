@@ -71,7 +71,7 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
   })
 
-  test('pseudo expand using groupby', async () => {
+  test('pseudo expand using groupby and orderby on same column', async () => {
     const res = await GET(
       '/admin/Books?$apply=groupby((author/name))&$orderby=author/name',
       admin,
