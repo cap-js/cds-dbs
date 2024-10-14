@@ -67,6 +67,12 @@
         }
       },
       "db": "sql"
+    },
+    "schema": {
+      "buildTaskType": {
+        "name": "postgres",
+        "description": "Postgres database build plugin"
+      }
     }
   },
   "license": "SEE LICENSE"
