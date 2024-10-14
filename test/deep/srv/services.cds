@@ -12,8 +12,10 @@ service TravelService {
 service TravelService1 {
   entity Travel as projection on my.Travel {
     *,
-    to_Booking: Composition of many Booking on to_Booking.to_Travel = $self and to_Booking.BookingDate >= $now,
+    // to_Booking     : Composition of many Booking on to_Booking.to_Travel = $self;
+    to_New_Booking: Composition of many Booking on to_New_Booking.to_Travel = $self and to_New_Booking.BookingDate >= $now,
     to_Past_Booking: Composition of many Booking on to_Past_Booking.to_Travel = $self and to_Past_Booking.BookingDate < $now
+    to_Booking[BookingDate >= $now] as new_Booking
   };
   entity Booking as projection on my.Booking;
   entity BookingSupplement as projection on my.BookingSupplement;
@@ -24,7 +26,7 @@ service TravelService1 {
 service TravelService2 {
   entity Travel as projection on my.Travel {
     *,
-    to_Booking: Composition of many Booking on to_Booking.to_Travel = $self,
+    to_New_Booking: Composition of many Booking on to_New_Booking.to_Travel = $self,
     to_Past_Booking: Composition of many PastBooking on to_Past_Booking.to_Travel = $self
   };
   @cds.redirection.target
@@ -57,8 +59,9 @@ service TravelService4 {
     ID,
     TravelID,
     Description
+  } excluding {
+    to_Booking
   }
 
 // TODO: flattened composition unfolds to deep
--> spec meeting
 }
