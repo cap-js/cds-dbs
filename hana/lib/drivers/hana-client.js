@@ -370,13 +370,13 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
 
     while (true) {
       const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)
-      const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, buffer.byteLength)
+      const read = await getData(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
       blobPosition += read
       if (read < buffer.byteLength) {
         yield buffer.subarray(0, read)
         break
       }
-      yield binaryBuffer
+      yield buffer
     }
   } catch (e) {
     promChain.reject(e)
