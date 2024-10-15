@@ -1,5 +1,4 @@
 const cds = require('../cds')
-const assert = require('assert')
 
 describe('INSERT', () => {
   const { data, expect } = cds.test(__dirname + '/resources')
@@ -42,7 +41,7 @@ describe('INSERT', () => {
       const { 'basic.literals.defaults': entity } = cds.db.entities
       await cds.run(INSERT.into(entity).entries({ID: 1}))
       const result = await cds.run(SELECT.from(entity, 1))
-      assert.deepEqual(result, { ID: 1, boolean: false, integer: 0, nulls: null, string: ''})
+      expect(result).to.deep.eq({ ID: 1, boolean: false, integer: 0, nulls: null, string: ''})
     })
   })
 })
