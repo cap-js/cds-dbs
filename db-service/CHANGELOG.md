@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.13.0...db-service-v1.14.0) (2024-10-15)
+
+
+### Added
+
+* assoc-like calc elements after exists predicate ([#831](https://github.com/cap-js/cds-dbs/issues/831)) ([05f7d75](https://github.com/cap-js/cds-dbs/commit/05f7d75837495d58cc4f72ad628077bdebb0acf6))
+
+
+### Fixed
+
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+* Treat assoc-like calculated elements as unmanaged assocs ([#830](https://github.com/cap-js/cds-dbs/issues/830)) ([cbe0df7](https://github.com/cap-js/cds-dbs/commit/cbe0df7a66fec0d421947767adc8621ed8bf236c))
+
 ## [1.13.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.1...db-service-v1.13.0) (2024-10-01)
 
 
