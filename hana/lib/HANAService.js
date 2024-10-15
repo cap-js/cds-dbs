@@ -510,7 +510,7 @@ class HANAService extends SQLService {
                         let curPar = parent
                         while (curPar) {
                           if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
@@ -981,14 +981,31 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {         
+        const listMapped = [] 
+        for (let l of list.list) {
+          const obj ={}
+          for (let i = 0; i< l.list.length; i++) {
+            const c = l.list[i]
+            if (Buffer.isBuffer(c.val)) {
+              return super.list(list)
+            }            
+            obj[`V${i}`] = c.val
+          }
+          listMapped.push(obj)
+        }        
+        this.values.push(JSON.stringify(listMapped))
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)       
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
       if (this.values && first.val != null) {
-        const v = first
+        for (let c of list.list) {
+          if (Buffer.isBuffer(c.val)) {
+            return super.list(list)
+          } 
+        }
+        const v = first        
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
