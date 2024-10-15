@@ -8,7 +8,7 @@ const columns = {
   integer64: { d: '11', o: '21' },
   double: { d: 1.1, o: 2.2 },
   float: { d: '1.1', o: '2.2' },
-  decimal: { d: '1.1235', o: '2.1235' },
+  decimal: { d: '1.1111', o: '2.1111' },
   string: dstring(255),
   char: dstring(1),
   short: dstring(10),

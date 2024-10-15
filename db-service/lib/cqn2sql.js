@@ -1088,7 +1088,7 @@ class CQN2SQLRenderer {
       if (!sql) {
         ({ sql, extract } = this.managed_extract(name, element, converter))
       } else {
-        extract = sql
+        extract = sql = converter(sql)
       }
       // if (sql[0] !== '$') sql = converter(sql, element)
 

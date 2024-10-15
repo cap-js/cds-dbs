@@ -4,7 +4,7 @@ const { buffer } = require('stream/consumers')
 const cds = require('../cds.js')
 const fspath = require('path')
 // Add the test names you want to run as only
-const only = ['default']
+const only = []
 
 const toTitle = obj =>
   JSON.stringify(

@@ -1075,13 +1075,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
-      Vector: e => `TO_REAL_VECTOR(${e})`,
+      Binary: e => e === '?' ? e : `HEXTOBIN(${e})`,
+      Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
+      // Types that require input converters for placeholders as well
+      Vector: e => `TO_REAL_VECTOR(${e})`,
       // HANA types
-      'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
+      'cds.hana.ST_POINT': e => `TO_POINT(${e})`,
       'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`,
     }
 
@@ -1103,7 +1104,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         : `TO_NVARCHAR(${expr})`,
 
       // HANA types
-      'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
+      'cds.hana.ST_POINT': e => `TO_NVARCHAR(${e})`,
       'cds.hana.ST_GEOMETRY': e => `TO_NVARCHAR(${e})`,
     }
   }
