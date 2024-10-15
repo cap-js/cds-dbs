@@ -1,8 +1,8 @@
 // TODO: Add HANA TYPE EXPECTATIONS
-module.exports = [
+module.exports = [/*
   {
     point: null,
-  },/*
+  },
   {
     point: 'POINT(1 1)',
   },
