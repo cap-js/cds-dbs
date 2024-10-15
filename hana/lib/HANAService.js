@@ -507,11 +507,10 @@ class HANAService extends SQLService {
                       if (col.ref[0] !== parent.as) {
                         // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
-                        if (col.as === as) return
                         let curPar = parent
                         while (curPar) {
                           if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
