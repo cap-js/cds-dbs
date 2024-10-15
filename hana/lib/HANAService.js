@@ -1051,7 +1051,7 @@ class HANAService extends SQLService {
         let extract = sql ?? `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}'`
         if (!isUpdate) {
           const d = element.default
-          if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
+          if (d && ('val' in d || d.ref?.[0] === '$now')) {
             const defaultValue = d.val ?? (cds.context?.timestamp || new Date()).toISOString()
             managed = typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
           }
