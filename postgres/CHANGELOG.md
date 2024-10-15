@@ -4,6 +4,17 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.0...postgres-v1.10.1) (2024-10-15)
+
+
+### Fixed
+
+* add cds schema for postgres build plugin ([#843](https://github.com/cap-js/cds-dbs/issues/843)) ([6306d5c](https://github.com/cap-js/cds-dbs/commit/6306d5ce50c071b38a3d9f61b0820ea713a782d8))
+* Improved behavioral consistency between the database services ([#673](https://github.com/cap-js/cds-dbs/issues/673)) ([5e62096](https://github.com/cap-js/cds-dbs/commit/5e6209657ce56240deb925bbdb6b7a392b7f35f4))
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+* null as default value ([#845](https://github.com/cap-js/cds-dbs/issues/845)) ([0041ec0](https://github.com/cap-js/cds-dbs/commit/0041ec0a26c29b30f91470d93611b29acd837216))
+* Revert breaking changes ([#834](https://github.com/cap-js/cds-dbs/issues/834)) ([eb22321](https://github.com/cap-js/cds-dbs/commit/eb22321e62eaafca7f0beb3c649e1b3bb9681fc8))
+
 ## [1.10.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.1...postgres-v1.10.0) (2024-07-25)
 
 
