@@ -19,7 +19,7 @@ entity ![default] : _cuid {
   integer64 : Int64 default 11;
   double    : cds.Double default 1.1;
   float     : cds.Decimal default 1.1;
-  decimal   : cds.Decimal(5, 4) default 1.12345;
+  decimal   : cds.Decimal(5, 4) default 1.11111;
   string    : String default 'default';
   char      : String(1) default 'd';
   short     : String(10) default 'default';
