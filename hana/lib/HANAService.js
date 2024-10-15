@@ -510,7 +510,7 @@ class HANAService extends SQLService {
                         let curPar = parent
                         while (curPar) {
                           if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
@@ -1051,8 +1051,8 @@ class HANAService extends SQLService {
         let extract = sql ?? `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}'`
         if (!isUpdate) {
           const d = element.default
-          if (d && (d.val !== undefined || d.ref?.[0] === '$now')) {
-            const defaultValue = d.val ?? (cds.context?.timestamp || new Date()).toISOString()
+          if (d && ('val' in d || d.ref?.[0] === '$now')) {
+            const defaultValue = 'val' in d ? d.val : (cds.context?.timestamp || new Date()).toISOString()
             managed = typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
           }
         }

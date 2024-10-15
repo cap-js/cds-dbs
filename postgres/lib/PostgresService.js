@@ -470,7 +470,7 @@ GROUP BY k
     }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
-      return this.string(`${defaultValue}`)
+      return typeof defaultValue === 'string' ? this.string(`${defaultValue}`) : defaultValue
     }
 
     static Functions = { ...super.Functions, ...require('./cql-functions') }
