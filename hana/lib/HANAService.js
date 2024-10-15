@@ -976,26 +976,41 @@ class HANAService extends SQLService {
       return false
     }
 
-    /*
-    // REVISIT: This does not work with binaries
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
-        this.values.push(JSON.stringify(list.list.map(l => l.list.reduce((l, c, i) => { l[`V${i}`] = c.val; return l }, {}))))
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {         
+        const listMapped = [] 
+        for (let l of list.list) {
+          const obj ={}
+          for (let i = 0; i< l.list.length; i++) {
+            const c = l.list[i]
+            if (Buffer.isBuffer(c.val)) {
+              return super.list(list)
+            }            
+            obj[`V${i}`] = c.val
+          }
+          listMapped.push(obj)
+        }        
+        this.values.push(JSON.stringify(listMapped))
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)       
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
       if (this.values && first.val != null) {
-        const v = first
+        for (let c of list.list) {
+          if (Buffer.isBuffer(c.val)) {
+            return super.list(list)
+          } 
+        }
+        const v = first        
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // Call super for normal SQL behavior
       return super.list(list)
-    }*/
+    }
 
     quote(s) {
       // REVISIT: casing in quotes when reading from entities it uppercase
