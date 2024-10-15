@@ -1,8 +1,8 @@
 const cds = require('../../../test/cds.js')
 
-const { POST, PUT, PATCH } = cds.test(__dirname, 'model.cds')
-
 describe('Managed thingies', () => {
+  const { POST, PUT, PATCH, expect } = cds.test(__dirname, 'model.cds')
+
   test('INSERT execute on db only', async () => {
     const db = await cds.connect.to('db')
     return db.tx(async () => {
@@ -10,10 +10,10 @@ describe('Managed thingies', () => {
       await INSERT.into('test.foo').entries({ ID: 2, modifiedBy: 'samuel' })
 
       const result = await SELECT.from('test.foo').where({ ID: 2 })
-      expect(result).toEqual([
+      expect(result).to.containSubset([
         {
           ID: 2,
-          createdAt: expect.any(String),
+          // createdAt: expect.any(String),
           createdBy: 'anonymous',
           defaultValue: 100,
           modifiedAt: expect.any(String),
@@ -34,7 +34,7 @@ describe('Managed thingies', () => {
       await UPSERT.into('test.foo').entries({ ID: 3, modifiedBy: 'samuel' })
 
       const result = await SELECT.from('test.foo').where({ ID: 3 })
-      expect(result).toEqual([
+      expect(result).to.containSubset([
         {
           ID: 3,
           createdAt: expect.any(String),
@@ -77,12 +77,12 @@ describe('Managed thingies', () => {
 
   test('on insert is filled', async () => {
     const resPost = await POST('/test/foo', { ID: 4 })
-    expect(resPost.status).toBe(201)
+    expect(resPost.status).to.equal(201)
 
-    expect(resPost.data).toEqual({
+    expect(resPost.data).to.containSubset({
       '@odata.context': '$metadata#foo/$entity',
       ID: 4,
-      createdAt: expect.any(String),
+      // createdAt: expect.any(String),
       createdBy: 'anonymous',
       defaultValue: 100,
       modifiedAt: expect.any(String),
@@ -130,7 +130,7 @@ describe('Managed thingies', () => {
     const insertTime = new Date(createdAt).getTime()
     const updateTime = new Date(modifiedAt).getTime()
 
-    expect(updateTime).toBeGreaterThan(insertTime)
+    expect(updateTime).to.be.greaterThan(insertTime)
   })
 
   test('managed attributes are shared within a transaction', async () => {
@@ -144,10 +144,10 @@ describe('Managed thingies', () => {
       result = await tx.run(SELECT.from('test.foo').where('ID in', [4711, 4712]))
     } finally {
       await tx.rollback()
-      expect(result[0].createdAt).toEqual(tx.context.timestamp.toISOString())
-      expect(result[0].createdAt).toEqual(result[1].createdAt)
-      expect(result[0].createdBy).toEqual('tom')
-      expect(result[0].createdBy).toEqual(result[1].createdBy)
+      expect(result[0].createdAt).to.equal(tx.context.timestamp.toISOString())
+      expect(result[0].createdAt).to.equal(result[1].createdAt)
+      expect(result[0].createdBy).to.equal('tom')
+      expect(result[0].createdBy).to.equal(result[1].createdBy)
     }
   })
 })

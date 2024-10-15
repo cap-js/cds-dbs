@@ -51,13 +51,13 @@ describe('keywords', () => {
     const { ASC } = cds.entities
     await UPSERT.into(ASC)
       .columns(['ID', 'select'])
-      .rows([[42,4711]])
+      .rows([[42, 4711]])
     let select = await SELECT.one.from(ASC, ['ID', 'select']).where('ID = 42')
     expect(select).to.eql({ ID: 42, select: 4711 })
 
-    await UPSERT.into(ASC).entries({ID: 42, alias: 9})
+    await UPSERT.into(ASC).entries({ ID: 42, alias: 9 })
       .columns(['ID', 'select'])
-      .rows([[42,4711]])
+      .rows([[42, 4711]])
     select = await SELECT.one.from(ASC).where('ID = 42')
     expect(select).to.eql({ ID: 42, select: 4711, alias: 9 })
   })

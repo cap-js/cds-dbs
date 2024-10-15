@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -315,10 +315,6 @@ function cqn4sql(originalQuery, model) {
       }
       return lhs.args.length > 1 ? lhs : lhs.args[0]
     }
-  }
-
-  function isCalculatedOnRead(def) {
-    return def?.value && !def.value.stored
   }
 
   /**
