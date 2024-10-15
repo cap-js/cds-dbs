@@ -64,11 +64,11 @@ entity binaries {
 }
 
 entity defaults {
-    key ID: Integer;
-    string      : String default '';
-    boolean : Boolean default false;
-    integer : Integer default 0;
-    nulls: String default null;
+    key ID      : Integer;
+        string  : String default '';
+        boolean : Boolean default false;
+        integer : Integer default 0;
+        nulls   : String default null;
 }
 
 
