@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -805,7 +805,7 @@ function cqn4sql(originalQuery, model) {
     const subqueryBase = {}
     for (const [key, value] of Object.entries(column)) {
       if (!(key in { ref: true, expand: true })) {
-      subqueryBase[key] = value;
+        subqueryBase[key] = value
       }
     }
     const subquery = {
@@ -1361,20 +1361,17 @@ function cqn4sql(originalQuery, model) {
 
           const as = getNextAvailableTableAlias(getLastStringSegment(next.alias))
           next.alias = as
-          if (next.definition.value) {
-            throw new Error(
-              `Calculated elements cannot be used in “exists” predicates in: “exists ${tokenStream[i + 1].ref
-                .map(idOnly)
-                .join('.')}”`,
-            )
-          }
           if (!next.definition.target) {
+            let type = next.definition.type
+            if (isCalculatedElement(next.definition)) {
+              // try to infer the type at the leaf for better error message
+              const { $refLinks } = next.definition.value
+              type = $refLinks?.at(-1).definition.type || 'expression'
+            }
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
-                next.definition.type
-              }”`,
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${type}”`,
             )
           }
           const { definition: fkSource } = next
