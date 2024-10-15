@@ -18,8 +18,8 @@ const DEBUG = (() => {
   return cds.debug('sql|sqlite')
   //if (DEBUG) {
   //  return DEBUG
-    // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
-    // FIXME: looses closing ) on INSERT queries
+  // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
+  // FIXME: looses closing ) on INSERT queries
   //}
 })()
 
@@ -34,6 +34,12 @@ class CQN2SQLRenderer {
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
     this.model = srv?.model
+
+    // Overwrite smart quoting
+    if (cds.env.sql.names === 'quoted') {
+      this.class.prototype.name = (name) => name.id || name
+      this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
+    }
   }
 
   static _add_mixins(aspect, mixins) {
@@ -82,6 +88,7 @@ class CQN2SQLRenderer {
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
     if (vars?.length && !this.values?.length) this.values = vars
+    if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
     DEBUG?.(
       this.sql,
@@ -110,8 +117,13 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').CREATE} q
    */
   CREATE(q) {
-    const { target } = q,
-      { query } = target
+    let { target } = q
+    let query = target?.query || q.CREATE.as
+    if (!target || target._unresolved) {
+      const entity = q.CREATE.entity
+      target = typeof entity === 'string' ? { name: entity } : q.CREATE.entity
+    }
+
     const name = this.name(target.name)
     // Don't allow place holders inside views
     delete this.values
@@ -197,8 +209,9 @@ class CQN2SQLRenderer {
    */
   DROP(q) {
     const { target } = q
-    const isView = target.query || target.projection
-    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(target.name))}`)
+    const isView = target?.query || target?.projection || q.DROP.view
+    const name = target?.name || q.DROP.table?.ref?.[0] || q.DROP.view?.ref?.[0]
+    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name))}`)
   }
 
   // SELECT Statements ------------------------------------------------
@@ -217,11 +230,11 @@ class CQN2SQLRenderer {
 
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
-    let columns = this.SELECT_columns(q)
+    const columns = this.SELECT_columns(q)
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
-    if (!_empty(from)) sql += ` FROM ${this.from(from)}`
+    if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
     else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
@@ -311,8 +324,8 @@ class CQN2SQLRenderer {
    */
   column_expr(x, q) {
     if (x === '*') return '*'
-  
-    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }): this.expr(x)
+
+    let sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
@@ -332,11 +345,16 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').source} from
    * @returns {string} SQL
    */
-  from(from) {
+  from(from, q) {
     const { ref, as } = from
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) {
-      const z = ref[0]
+      let z = ref[0]
+      if (cds.env.sql.names === 'quoted') {
+        // use SELECT.from to infer query, cds.infer also expects a query
+        const { target } = q || SELECT.from(from)
+        z = target?.['@cds.persistence.name'] || ref[0]
+      }
       if (z.args) {
         return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
       }

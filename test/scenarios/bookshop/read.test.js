@@ -71,6 +71,14 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
   })
 
+  test('pseudo expand using groupby and orderby on same column', async () => {
+    const res = await GET(
+      '/admin/Books?$apply=groupby((author/name))&$orderby=author/name',
+      admin,
+    )
+    expect(res.data.value.every(row => row.author.name)).to.be.true
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
@@ -122,6 +130,50 @@ describe('Bookshop - Read', () => {
       .where('b.ID in', s)
       .orderBy('b.ID')
     expect(res).to.deep.eq({ "name": "Emily Brontë", "title": "Wuthering Heights" })
+  })
+
+  test('reuse already executed select as subselect in from with custom join', async () => {
+    let inner = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
+          ],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
+        },
+        columns: [{ ref: ['a', 'ID'], as: 'author_ID' }, { ref: ['b', 'title'] }],
+      },
+    }
+    inner.as = 'booksAndAuthors'
+
+    let firstUsage = {
+      SELECT: {
+        from: inner,
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }],
+      },
+    }
+    let secondUsage = {
+      SELECT: {
+        from: {
+          join: 'inner',
+          args: [
+            inner, // alias must not be overwritten
+            { ref: ['sap.capire.bookshop.Authors'], as: 'otherAuthor' },
+          ],
+          on: [{ ref: ['otherAuthor', 'ID'] }, '=', { ref: ['booksAndAuthors', 'author_ID'] }],
+        },
+        columns: [{ func: 'count', args: ['*'], as: 'count' }],
+        where: [{ ref: ['booksAndAuthors', 'author_ID'] }, '=', { val: 201 }]
+      },
+    }
+
+    expect(async () => {
+      await cds.run(firstUsage)
+      await cds.run(secondUsage)
+    }).to.not.throw()
   })
 
   test('forUpdate query from path expression', async () => {
@@ -300,6 +352,12 @@ describe('Bookshop - Read', () => {
     }
 
     return expect(cds.db.run(query)).to.be.rejectedWith(/joins must specify the selected columns/)
+  })
+
+  it('allows filtering with between operator', async () => {
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+
+    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
   })
 
 })
