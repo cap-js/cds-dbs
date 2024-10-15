@@ -71,6 +71,14 @@ describe('Bookshop - Read', () => {
     expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
   })
 
+  test('pseudo expand using groupby and orderby on same column', async () => {
+    const res = await GET(
+      '/admin/Books?$apply=groupby((author/name))&$orderby=author/name',
+      admin,
+    )
+    expect(res.data.value.every(row => row.author.name)).to.be.true
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
