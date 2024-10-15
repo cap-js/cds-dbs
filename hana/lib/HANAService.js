@@ -1052,7 +1052,7 @@ class HANAService extends SQLService {
         if (!isUpdate) {
           const d = element.default
           if (d && ('val' in d || d.ref?.[0] === '$now')) {
-            const defaultValue = d.val ?? (cds.context?.timestamp || new Date()).toISOString()
+            const defaultValue = 'val' in d ? d.val : (cds.context?.timestamp || new Date()).toISOString()
             managed = typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
           }
         }
