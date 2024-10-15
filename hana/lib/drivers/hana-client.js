@@ -325,7 +325,7 @@ async function* rsIterator(rs, one) {
   yield buffer
 }
 
-async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
+async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
   const promChain = {
     resolve: () => { },
     reject: () => { }
@@ -369,11 +369,11 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer
     let blobPosition = 0
 
     while (true) {
-      // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-      const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
+      const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)
+      const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, buffer.byteLength)
       blobPosition += read
-      if (read < binaryBuffer.byteLength) {
-        yield binaryBuffer.subarray(0, read)
+      if (read < buffer.byteLength) {
+        yield buffer.subarray(0, read)
         break
       }
       yield binaryBuffer
