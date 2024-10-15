@@ -10,11 +10,9 @@
 ### Fixed
 
 * combination of groupby and orderby ([#825](https://github.com/cap-js/cds-dbs/issues/825)) ([10e0534](https://github.com/cap-js/cds-dbs/commit/10e05343287faa937c8c4d559aabcf02abbd351e))
-* Improved behavioral consistency between the database services ([#673](https://github.com/cap-js/cds-dbs/issues/673)) ([5e62096](https://github.com/cap-js/cds-dbs/commit/5e6209657ce56240deb925bbdb6b7a392b7f35f4))
 * Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
 * list optimization for `Buffer` values ([#817](https://github.com/cap-js/cds-dbs/issues/817)) ([3e60de2](https://github.com/cap-js/cds-dbs/commit/3e60de229df535ac95279667ceaa519bb1a58c5d))
 * null as default value ([#845](https://github.com/cap-js/cds-dbs/issues/845)) ([0041ec0](https://github.com/cap-js/cds-dbs/commit/0041ec0a26c29b30f91470d93611b29acd837216))
-* Revert breaking changes ([#834](https://github.com/cap-js/cds-dbs/issues/834)) ([eb22321](https://github.com/cap-js/cds-dbs/commit/eb22321e62eaafca7f0beb3c649e1b3bb9681fc8))
 
 ## [1.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.2.0...hana-v1.3.0) (2024-10-01)
 

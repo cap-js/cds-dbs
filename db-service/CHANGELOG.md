@@ -14,9 +14,7 @@
 
 ### Fixed
 
-* Improved behavioral consistency between the database services ([#673](https://github.com/cap-js/cds-dbs/issues/673)) ([5e62096](https://github.com/cap-js/cds-dbs/commit/5e6209657ce56240deb925bbdb6b7a392b7f35f4))
 * Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
-* Revert breaking changes ([#834](https://github.com/cap-js/cds-dbs/issues/834)) ([eb22321](https://github.com/cap-js/cds-dbs/commit/eb22321e62eaafca7f0beb3c649e1b3bb9681fc8))
 * Treat assoc-like calculated elements as unmanaged assocs ([#830](https://github.com/cap-js/cds-dbs/issues/830)) ([cbe0df7](https://github.com/cap-js/cds-dbs/commit/cbe0df7a66fec0d421947767adc8621ed8bf236c))
 
 ## [1.13.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.1...db-service-v1.13.0) (2024-10-01)

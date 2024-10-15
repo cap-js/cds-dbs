@@ -10,9 +10,7 @@
 ### Fixed
 
 * enforce db file to be existent before server start ([#742](https://github.com/cap-js/cds-dbs/issues/742)) ([64a9018](https://github.com/cap-js/cds-dbs/commit/64a90186aaf44b3426df2e9adbf9a1b4cf2f92b7))
-* Improved behavioral consistency between the database services ([#673](https://github.com/cap-js/cds-dbs/issues/673)) ([5e62096](https://github.com/cap-js/cds-dbs/commit/5e6209657ce56240deb925bbdb6b7a392b7f35f4))
 * Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
-* Revert breaking changes ([#834](https://github.com/cap-js/cds-dbs/issues/834)) ([eb22321](https://github.com/cap-js/cds-dbs/commit/eb22321e62eaafca7f0beb3c649e1b3bb9681fc8))
 
 ## [1.7.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.2...sqlite-v1.7.3) (2024-07-09)
 
