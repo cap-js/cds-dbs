@@ -424,11 +424,32 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+      )
+    }
+
+    UPSERT(q, isUpsert = false) {
+      super.UPSERT(q, isUpsert)
+
+      // REVISIT: this should probably be made a bit easier to adopt
+      return (this.sql = this.sql
+        // Adjusts json function to be postgres specific
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+      )
+    }
+
+    managed_extract(name, element, converter) {
+      const { UPSERT, INSERT } = this.cqn
+      const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
+        ? `value->>${this.columns.indexOf(name)}`
+        : `value->>'${name.replace(/'/g, "''")}'`
+      const sql = converter?.(extract) || extract
+      return { extract, sql }
+    }
+
+    managed_default(name, managed, src) {
+      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {
@@ -503,27 +524,31 @@ GROUP BY k
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-      // UUID:      (e) => `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
-      boolean: e => `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
-      Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Integer: e => `CAST(${e} as integer)`,
-      Int64: e => `CAST(${e} as bigint)`,
-      Date: e => `CAST(${e} as DATE)`,
-      Time: e => `CAST(${e} as TIME)`,
-      DateTime: e => `CAST(${e} as TIMESTAMP)`,
-      Timestamp: e => `CAST(${e} as TIMESTAMP)`,
+      // UUID: (e) => e[0] === '$' ? e : `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
+      boolean: e => e[0] === '$' ? e : `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
+      // REVISIT: Postgres and HANA round Decimal numbers differently therefore precision and scale are removed
+      // Float: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      // Decimal: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Float: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Decimal: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Integer: e => e[0] === '$' ? e : `CAST(${e} as integer)`,
+      Int64: e => e[0] === '$' ? e : `CAST(${e} as bigint)`,
+      Date: e => e[0] === '$' ? e : `CAST(${e} as DATE)`,
+      Time: e => e[0] === '$' ? e : `CAST(${e} as TIME)`,
+      DateTime: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
+      Timestamp: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
       // REVISIT: Remove that with upcomming fixes in cds.linked
-      Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Binary: e => `DECODE(${e},'base64')`,
-      LargeBinary: e => `DECODE(${e},'base64')`,
+      Double: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Binary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      LargeBinary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
 
       // HANA Types
-      'cds.hana.CLOB': e => `DECODE(${e},'base64')`,
-      'cds.hana.BINARY': e => `DECODE(${e},'base64')`,
-      'cds.hana.ST_POINT': e => `POINT(((${e})::json->>'x')::float, ((${e})::json->>'y')::float)`,
-      'cds.hana.ST_GEOMETRY': e => `POLYGON(${e})`,
+      'cds.hana.CLOB': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      'cds.hana.BINARY': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      // REVISIT: have someone take a look at how this syntax exactly works in postgres with postgis
+      'cds.hana.ST_POINT': e => `(${e})::point`,
+      'cds.hana.ST_GEOMETRY': e => `(${e})::polygon`,
     }
 
     static OutputConverters = {
@@ -548,8 +573,9 @@ GROUP BY k
         : `cast(${expr} as varchar)`
         : undefined,
 
-      // Convert point back to json format
-      'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
+      // Convert ST types back to WKT format
+      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
+      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
     }
   }
 
