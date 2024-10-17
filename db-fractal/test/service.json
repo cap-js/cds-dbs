@@ -1,0 +1,5 @@
+{
+  "impl": "@cap-js/db-fractal",
+  "source": "postgres",
+  "cache": "sqlite"
+}
