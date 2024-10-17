@@ -43,7 +43,7 @@ class HANAService extends SQLService {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
-    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const acquireTimeoutMillis = 1000//this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
       options: {
         min: 0,
@@ -53,8 +53,7 @@ class HANAService extends SQLService {
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
         ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
+        testOnBorrow: true
       },
       create: async function (tenant) {
         try {
@@ -67,15 +66,10 @@ class HANAService extends SQLService {
           return dbc
         } catch (err) {
           if (isMultitenant) {
-            // REVISIT: throw the error and break retry loop
-            // Stop trying when the tenant does not exist or is rate limited
-            if (err.status == 404 || err.status == 429)
-              return new Promise(function (_, reject) {
-                setTimeout(() => reject(err), acquireTimeoutMillis)
-              })
+            if (err.status == 404 || err.status == 429) throw err
+            await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+            return this.create(tenant)
           } else if (err.code !== 10) throw err
-          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-          return this.create(tenant)
         }
       },
       error: (err /*, tenant*/) => {
@@ -91,7 +85,11 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: dbc => dbc.disconnect(),
+      destroy: async (dbc) => {
+        if (dbc && dbc.readyState === 'connected') {
+          await dbc.disconnect()
+        }
+      },
       validate: (dbc) => dbc.validate(),
     }
   }
