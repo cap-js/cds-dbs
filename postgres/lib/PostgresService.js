@@ -4,6 +4,12 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+const keywords = cds.compiler.to.sql.postgres.keywords
+// keywords come as array
+const postgresKeywords = keywords.reduce((prev, curr) => {
+  prev[curr] = 1
+  return prev
+}, {})
 
 class PostgresService extends SQLService {
   init() {
@@ -475,7 +481,7 @@ GROUP BY k
 
     static Functions = { ...super.Functions, ...require('./cql-functions') }
 
-    static ReservedWords = { ...super.ReservedWords, ...require('./ReservedWords.json') }
+    static ReservedWords = { ...super.ReservedWords, ...postgresKeywords }
 
     static TypeMap = {
       ...super.TypeMap,
