@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 
+cds.env.features.HANA_DEEP_INSERT = true
 /**
  * @implements SQLService
  */
@@ -648,35 +649,75 @@ class HANAService extends SQLService {
         return super.INSERT_entries(q)
       }
 
-      const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
-        : ObjectKeys(INSERT.entries[0])
+      const columns = ObjectKeys(elements)
+        .filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+
       this.columns = columns
 
-      const extractions = this.managed(columns.map(c => ({ name: c })), elements)
+      let extractions, extraction = [], converter = []
 
-      // REVISIT: @cds.extension required
-      const extraction = extractions.map(c => c.extract)
-      const converter = extractions.map(c => c.insert)
+      const exists = `${this.quote('$$EXISTS$$')} NVARCHAR(2147483647) FORMAT JSON PATH '$'`
+      if (INSERT.into.ref.length > 1) {
+        extraction = ''
+        let closing = ''
 
-      const _stream = entries => {
-        const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
-        stream._raw = entries
-        return stream
-      }
+        for (let i = 1; i < INSERT.into.ref.length; i++) {
+          const comp = INSERT.into.ref[i]
+          const cols = []
 
-      // HANA Express does not process large JSON documents
-      // The limit is somewhere between 64KB and 128KB
-      if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable
-          ? [e]
-          : [_stream([e])]))
+          for (const fk of comp._foreignKeys) {
+            if (!fk.fillChild) continue
+            if (fk.deep) { debugger }
+            if (i === INSERT.into.ref.length - 1) {
+              columns.splice(columns.findIndex(c => c === fk.childElement.name), 1)
+              cols.push({
+                name: fk.parentElement.name,
+                as: fk.childElement.name,
+              })
+            }
+          }
+
+          extractions = this.managed(cols, comp.parent.elements).slice(0, cols.length)
+          converter = [...converter, ...extractions]
+
+          extraction = `${extraction}${extractions.map(c => c.extract)}${extractions.length ? ',' : ''} NESTED PATH '$.${comp.name}' COLUMNS(`
+          closing = `${closing})`
+        }
+        extractions = this.managed(columns.map(c => ({ name: c })), elements)
+        converter = [...converter, ...extractions]
+
+        converter = converter.map((c, i) => {
+          columns[i] = c.as || c.name
+          return c.insert
+        })
+
+        extraction = `${extraction}${exists}${extraction.length ? ',' : ''}${extractions.map(c => c.extract)}${closing}`
       } else {
-        this.entries = [[
-          INSERT.entries[0] instanceof Readable
-            ? INSERT.entries[0]
-            : _stream(INSERT.entries)
-        ]]
+        extractions = this.managed(columns.map(c => ({ name: c })), elements)
+
+        // REVISIT: @cds.extension required
+        extraction = [exists, ...extractions.map(c => c.extract)]
+        converter = extractions.map(c => c.insert)
+
+        const _stream = entries => {
+          const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
+          stream._raw = entries
+          return stream
+        }
+
+        // HANA Express does not process large JSON documents
+        // The limit is somewhere between 64KB and 128KB
+        if (HANAVERSION <= 2) {
+          this.entries = INSERT.entries.map(e => (e instanceof Readable
+            ? [e]
+            : [_stream([e])]))
+        } else {
+          this.entries = [[
+            INSERT.entries[0] instanceof Readable
+              ? INSERT.entries[0]
+              : _stream(INSERT.entries)
+          ]]
+        }
       }
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
@@ -690,10 +731,29 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
+      const withSrc = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)`
+      this.sqls ??= []
+      this.sqls.push(`INSERT INTO ${this.quote(entity)} (${columns.map(c =>
         this.quote(c),
-      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
+      )}) ${withSrc}
+      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW WHERE ${this.quote('$$EXISTS$$')} IS NOT NULL`)
+
+      if (cds.env.features.HANA_DEEP_INSERT && q.target.compositions && INSERT.into.ref.length < 5) for (const comp of q.target.compositions) {
+        const deeper = cds.ql.clone(q)
+        deeper.target = comp._target
+        deeper.INSERT.into = { ref: [...q.INSERT.into.ref, comp] }
+        deeper.INSERT.entries = []
+        this.INSERT_entries(deeper)
+      }
+
+      return (this.sql = this.sqls.length === 1
+        ? this.sqls[0]
+        : `DO (IN JSON BLOB => ?) BEGIN\n${this.sqls.map(
+          sql => sql
+            .replace(withSrc, '')
+            .replace('SRC.JSON', ':JSON')
+        ).join(';\n')} ;END;`
+      )
     }
 
     INSERT_rows(q) {
@@ -981,21 +1041,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {         
-        const listMapped = [] 
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+        const listMapped = []
         for (let l of list.list) {
-          const obj ={}
-          for (let i = 0; i< l.list.length; i++) {
+          const obj = {}
+          for (let i = 0; i < l.list.length; i++) {
             const c = l.list[i]
             if (Buffer.isBuffer(c.val)) {
               return super.list(list)
-            }            
+            }
             obj[`V${i}`] = c.val
           }
           listMapped.push(obj)
-        }        
+        }
         this.values.push(JSON.stringify(listMapped))
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)       
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
@@ -1003,9 +1063,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         for (let c of list.list) {
           if (Buffer.isBuffer(c.val)) {
             return super.list(list)
-          } 
+          }
         }
-        const v = first        
+        const v = first
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
@@ -1035,11 +1095,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       )
     }
 
-    managed_extract(name, element, converter) {
+    managed_extract(name, element, converter, rename) {
       // TODO: test property names with single and double quotes
       return {
-        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
-        sql: converter(`NEW.${this.quote(name)}`),
+        extract: `${this.quote(rename || name)} ${this.insertType4(element)} PATH '$.${name}', ${this.quote('$.' + (rename || name))} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
+        sql: converter(`NEW.${this.quote(rename || name)}`),
       }
     }
 
