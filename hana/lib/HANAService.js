@@ -16,6 +16,8 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 
+const deepSQL = false
+
 /**
  * @implements SQLService
  */
@@ -25,6 +27,13 @@ class HANAService extends SQLService {
     // REVISIT: refactor together with cds-deploy.js
     if (this.options.hdi) {
       super.deploy = this.hdiDeploy
+    }
+
+    this._deepSQL = deepSQL
+
+    if (!deepSQL) {
+      this.on(['INSERT', 'UPSERT'], require('@cap-js/db-service/lib/fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
+      this.on(['INSERT', 'UPSERT'], require('@cap-js/db-service/lib/deep-queries').onDeep)
     }
 
     this.on(['BEGIN'], this.onBEGIN)
@@ -168,16 +177,29 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
+    if (deepSQL && query.INSERT.entries) {
+      const sql = require('./deep2flat').call(this, query)
+      const entries = Readable.isReadable(query.INSERT.entries[0])
+        ? [query.INSERT.entries]
+        : [[Readable.from(this.class.CQN2SQL.prototype.INSERT_entries_stream(query.INSERT.entries), { objectMode: false })]]
+      return this._insert({ sql, entries, cqn: query })
+    }
+    return this._insert(this.cqn2sql(query, data))
+  }
+
+  async _insert({ sql, entries, cqn }) {
     try {
-      const { sql, entries, cqn } = this.cqn2sql(query, data)
       if (!sql) return // Do nothing when there is nothing to be done
       const ps = await this.prepare(sql)
       // HANA driver supports batch execution
-      const results = await (entries
-        ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-        : this.ensureDBC() && ps.run())
+      const results = await (
+        sql.startsWith('DO')
+          ? this.ensureDBC() && (await ps.proc(entries[0], [{ PARAMETER_NAME: 'result' }])).result[0]
+          : entries
+            ? HANAVERSION <= 2
+              ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+              : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+            : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
@@ -654,7 +676,10 @@ class HANAService extends SQLService {
       this.columns = columns
 
       const extractions = this.managed(
-        columns.map(c => ({ name: c })),
+        (elements
+          ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+          : columns
+        ).map(c => ({ name: c })),
         elements,
         !!q.UPSERT,
       )
@@ -681,6 +706,8 @@ class HANAService extends SQLService {
             : _stream(INSERT.entries)
         ]]
       }
+
+      this.extract = `SELECT _JSON_ as _JSON_,${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(_JSON_ NVARCHAR(2147483647) FORMAT JSON PATH '$',${extraction}) ERROR ON ERROR)`
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
       // Additionally for drivers that did allow for streaming of NVARCHAR they quickly reached size limits
@@ -1084,7 +1111,7 @@ class HANAService extends SQLService {
         const notManged = managed === undefined
         return {
           name,
-          column: `${extract}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
+          column: notManged ? `${extract}` : `${extract},${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
           // For @cds.on.insert ensure that there was no entry yet before setting managed in UPSERT
           switch: notManged
             ? oldOrNew
@@ -1123,6 +1150,7 @@ class HANAService extends SQLService {
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Composition: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
