@@ -249,6 +249,16 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
     })
+
+    test('decimal conversion', async () => {
+      const { number } = cds.entities('basic.projection')
+      await cds.run(INSERT.into(number).entries([{decimal: null},{decimal: 0}, {decimal: 1.0}]))
+      const cqn = SELECT.from(number).orderBy('decimal asc')
+      const result = await cds.run(cqn)
+      expect(result[0].decimal).to.be.eq(null)
+      expect(result[1].decimal).to.be.eq('0.0000')
+      expect(result[2].decimal).to.be.eq('1.0000')
+    })
   })
 
   describe('excluding', () => {
