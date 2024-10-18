@@ -1080,15 +1080,15 @@ class CQN2SQLRenderer {
     const keys = ObjectKeys(elements).filter(e => elements[e].key)
     const keyZero = keys[0] && this.quote(keys[0])
 
-    return [...columns, ...requiredColumns].map(({ name, sql, extract, as }) => {
+    return [...columns, ...requiredColumns].map(({ name, sql }) => {
       const element = elements?.[name] || {}
 
       const converter = a => element[_convertInput]?.(a, element) || a
+      let extract
       if (!sql) {
-        ({ sql, extract } = this.managed_extract(name, element, converter, as))
+        ({ sql, extract } = this.managed_extract(name, element, converter))
       } else {
-        sql = converter(sql)
-        extract ??= sql
+        extract = sql = converter(sql)
       }
       // if (sql[0] !== '$') sql = converter(sql, element)
 
@@ -1100,10 +1100,10 @@ class CQN2SQLRenderer {
       if (onInsert) onInsert = this.expr(onInsert)
       if (onUpdate) onUpdate = this.expr(onUpdate)
 
-      const qname = this.quote(as || name)
+      const qname = this.quote(name)
 
-      const insert = onInsert ? this.managed_default(as || name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(as || name, converter(onUpdate), sql) : sql
+      const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
+      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
@@ -1121,7 +1121,6 @@ class CQN2SQLRenderer {
 
       return {
         name, // Element name
-        as, // Output element name
         sql, // Reference SQL
         extract, // Source SQL
         converter, // Converter logic

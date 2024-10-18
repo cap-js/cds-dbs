@@ -22,7 +22,7 @@ const BINARY_TYPES = {
 class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(cds.env.features.HANA_DEEP_INSERT ? ['UPSERT', 'UPDATE'] : ['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
         const elements = query.target?.elements; if (!elements) return
