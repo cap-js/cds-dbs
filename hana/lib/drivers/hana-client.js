@@ -130,9 +130,11 @@ class HANAClientDriver extends driver {
       return { changes }
     }
 
-    ret.proc = async (data, outParameters) => {
+    ret.proc = async (params, outParameters) => {
+      const { values, streams } = this._extractStreams(params)
       const stmt = await ret._prep
-      const rows = await prom(stmt, 'execQuery')(data)
+      const rows = await prom(stmt, 'execQuery')(values)
+      await this._sendStreams(stmt, streams)
       return this._getResultForProcedure(rows, outParameters, stmt)
     }
 
