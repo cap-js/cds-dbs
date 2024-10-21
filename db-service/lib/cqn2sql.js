@@ -1077,7 +1077,7 @@ class CQN2SQLRenderer {
         })
         .map(name => ({ name, sql: 'NULL' }))
 
-    const keys = ObjectKeys(elements).filter(e => elements[e].key && !element.isAssociation)
+    const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(keys[0])
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
