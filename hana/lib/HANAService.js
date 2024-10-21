@@ -1169,7 +1169,7 @@ class HANAService extends SQLService {
       Int64: expr => `TO_NVARCHAR(${expr})`,
       // Reading decimal as string to not loose precision
       Decimal: (expr, elem) => elem?.scale
-        ? `TO_NVARCHAR(${expr}, '9.${''.padEnd(elem.scale, '0')}')`
+        ? `TO_NVARCHAR(${expr}, '0.${''.padEnd(elem.scale, '0')}')`
         : `TO_NVARCHAR(${expr})`,
 
       // HANA types

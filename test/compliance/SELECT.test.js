@@ -1,5 +1,4 @@
 const assert = require('assert')
-const os = require('os')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
@@ -827,7 +826,7 @@ describe('SELECT', () => {
       })
       .filter(a => a)
 
-    const noUUIDRefs = ref => cds.builtin.types[ref.element?.type] !== cds.builtin.types.UUID
+    // const noUUIDRefs = ref => cds.builtin.types[ref.element?.type] !== cds.builtin.types.UUID
     const noBooleanRefs = ref => !(cds.builtin.types[ref.element?.type] instanceof cds.builtin.types.boolean.constructor)
     const noBinaryRefs = ref => !(cds.builtin.types[ref.element?.type] === cds.builtin.types.Binary || cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeBinary)
     const noBlobRefs = ref => noBinaryRefs(ref) && cds.builtin.types[ref.element?.type] !== cds.builtin.types.LargeString
