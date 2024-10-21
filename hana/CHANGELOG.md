@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.1...hana-v1.3.2) (2024-10-21)
+
+
+### Fixed
+
+* Adjust Decimal formatter to always render a whole number ([#853](https://github.com/cap-js/cds-dbs/issues/853)) ([027d717](https://github.com/cap-js/cds-dbs/commit/027d717811cacccb529fd41b0d1d10f9dd6b7ebe))
+* allocate a new Buffer for each chunk of a Blob stream when using hana-client ([#846](https://github.com/cap-js/cds-dbs/issues/846)) ([ec75b50](https://github.com/cap-js/cds-dbs/commit/ec75b509ef39307f08b6e2fc8bb596423efe9d3a))
+
 ## [1.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.0...hana-v1.3.1) (2024-10-15)
 
 
