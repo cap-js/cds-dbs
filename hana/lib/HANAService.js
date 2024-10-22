@@ -333,6 +333,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      
 
       const walkAlias = q => {
         if (q.args) return q.as || walkAlias(q.args[0])
@@ -421,6 +422,11 @@ class HANAService extends SQLService {
         }
 
         if (parent && (limit || one)) {
+          if (limit && limit.rows == null) {
+            // same error as in limit(), but for limits in expand
+            throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
+          }
+
           // Apply row number limits
           q.where(
             one
