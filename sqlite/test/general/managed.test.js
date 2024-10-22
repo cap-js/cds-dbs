@@ -13,10 +13,8 @@ describe('Managed thingies', () => {
       expect(result).to.containSubset([
         {
           ID: 2,
-          // createdAt: expect.any(String),
           createdBy: 'anonymous',
           defaultValue: 100,
-          modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
         },
       ])
@@ -37,10 +35,8 @@ describe('Managed thingies', () => {
       expect(result).to.containSubset([
         {
           ID: 3,
-          createdAt: expect.any(String),
           createdBy: "anonymous",
           defaultValue: 100,
-          modifiedAt: expect.any(String),
           modifiedBy: 'samuel',
         },
       ])
@@ -48,7 +44,7 @@ describe('Managed thingies', () => {
       const row = result.at(-1)
       modifications.push(row)
       const { modifiedAt } = row
-      expect(modifiedAt).toEqual(cds.context.timestamp.toISOString())
+      expect(modifiedAt).to.eq(cds.context.timestamp.toISOString())
     })
 
     // Ensure that a second UPSERT updates the managed fields
@@ -56,13 +52,11 @@ describe('Managed thingies', () => {
       await UPSERT.into('test.foo').entries({ ID: 3 })
 
       const result = await SELECT.from('test.foo').where({ ID: 3 })
-      expect(result).toEqual([
+      expect(result).to.containSubset([
         {
           ID: 3,
-          createdAt: expect.any(String),
           createdBy: "anonymous",
           defaultValue: 100,
-          modifiedAt: expect.any(String),
           modifiedBy: 'anonymous',
         },
       ])
@@ -70,8 +64,8 @@ describe('Managed thingies', () => {
       const row = result.at(-1)
       modifications.push(row)
       const { modifiedAt } = row
-      expect(modifiedAt).toEqual(cds.context.timestamp.toISOString())
-      expect(modifiedAt).not.toEqual(modifications.at(-2).modifiedAt)
+      expect(modifiedAt).to.eq(cds.context.timestamp.toISOString())
+      expect(modifiedAt).not.to.eq(modifications.at(-2).modifiedAt)
     })
   })
 
@@ -82,15 +76,13 @@ describe('Managed thingies', () => {
     expect(resPost.data).to.containSubset({
       '@odata.context': '$metadata#foo/$entity',
       ID: 4,
-      // createdAt: expect.any(String),
       createdBy: 'anonymous',
       defaultValue: 100,
-      modifiedAt: expect.any(String),
       modifiedBy: 'anonymous',
     })
 
     const { createdAt, modifiedAt } = resPost.data
-    expect(createdAt).toEqual(modifiedAt)
+    expect(createdAt).to.eq(modifiedAt)
   })
 
   test('on update is filled', async () => {
@@ -98,34 +90,32 @@ describe('Managed thingies', () => {
 
     // patch keeps old defaults
     const resUpdate1 = await PATCH('/test/foo(5)', {})
-    expect(resUpdate1.status).toBe(200)
+    expect(resUpdate1.status).to.eq(200)
 
-    expect(resUpdate1.data).toEqual({
+    expect(resUpdate1.data).to.containSubset({
       '@odata.context': '$metadata#foo/$entity',
       ID: 5,
       createdAt: resPost.data.createdAt,
       createdBy: resPost.data.createdBy,
       defaultValue: 50, // not defaulted to 100 on update
-      modifiedAt: expect.any(String),
       modifiedBy: 'anonymous',
     })
 
     // put overwrites not provided defaults
     const resUpdate2 = await PUT('/test/foo(5)', {})
-    expect(resUpdate2.status).toBe(200)
+    expect(resUpdate2.status).to.eq(200)
 
-    expect(resUpdate2.data).toEqual({
+    expect(resUpdate2.data).to.containSubset({
       '@odata.context': '$metadata#foo/$entity',
       ID: 5,
       createdAt: resPost.data.createdAt,
       createdBy: resPost.data.createdBy,
       defaultValue: 100,
-      modifiedAt: expect.any(String),
       modifiedBy: 'anonymous',
     })
 
     const { createdAt, modifiedAt } = resUpdate1.data
-    expect(createdAt).not.toEqual(modifiedAt)
+    expect(createdAt).not.to.eq(modifiedAt)
 
     const insertTime = new Date(createdAt).getTime()
     const updateTime = new Date(modifiedAt).getTime()

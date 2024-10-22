@@ -246,7 +246,7 @@ describe('CREATE', () => {
     const path = table.split('.')
     const type = path[path.length - 1]
     const entity = model.definitions[table]
-    const desc = !only.length || only.includes(type) ? describe : () => {}
+    const desc = !only.length || only.includes(type) ? describe : () => { }
     if (entity.query) return // Skip complex view as cqn4sql does not allow union views
 
     desc(`${entity.projection ? 'View' : 'Type'}: ${type}`, () => {
@@ -331,23 +331,28 @@ describe('CREATE', () => {
         if (entity.projection) return
         const file = entity.$location.file
         const data = require(fspath.resolve(cds.root, file.substring(0, file.length - 4), table + '.js'))
+        const noData = data.length === 0
 
         describe('INSERT', () => {
           // Prevent INSERT tests from running when CREATE fails
           beforeAll(() => deploy)
 
-          data.forEach(obj => {
-            test(toTitle(obj), dataTest.bind(null, entity, table, 'INSERT', obj))
-          })
+          if (noData) test.skip('no data', () => { })
+          else
+            data.forEach(obj => {
+              test(toTitle(obj), dataTest.bind(null, entity, table, 'INSERT', obj))
+            })
         })
 
         describe('UPSERT', () => {
           // Prevent INSERT tests from running when CREATE fails
           beforeAll(() => deploy)
 
-          data.forEach(obj => {
-            test(toTitle(obj), dataTest.bind(null, entity, table, 'UPSERT', obj))
-          })
+          if (noData) test.skip('no data', () => { })
+          else
+            data.forEach(obj => {
+              test(toTitle(obj), dataTest.bind(null, entity, table, 'UPSERT', obj))
+            })
         })
       } catch (e) {
         test.skip('Test Data missing', () => {
