@@ -653,14 +653,11 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this.managed(
-        columns.map(c => ({ name: c })),
-        elements,
-        !!q.UPSERT,
-      )
+      const extractions = this.managed(columns.map(c => ({ name: c })), elements)
 
-      const extraction = extractions.map(c => c.column)
-      const converter = extractions.map(c => c.convert)
+      // REVISIT: @cds.extension required
+      const extraction = extractions.map(c => c.extract)
+      const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
@@ -696,7 +693,7 @@ class HANAService extends SQLService {
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
       )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR)`)
+      SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
     INSERT_rows(q) {
@@ -715,7 +712,11 @@ class HANAService extends SQLService {
         return super.INSERT_rows(q)
       }
 
-      const columns = INSERT.columns || (elements && ObjectKeys(elements))
+      const columns = INSERT.columns || []
+      for (const col of ObjectKeys(elements)) {
+        if (!columns.includes(col)) columns.push(col)
+      }
+
       const entries = new Array(INSERT.rows.length)
       const rows = INSERT.rows
       for (let x = 0; x < rows.length; x++) {
@@ -723,6 +724,8 @@ class HANAService extends SQLService {
         const entry = {}
         for (let y = 0; y < columns.length; y++) {
           entry[columns[y]] = row[y]
+            // Include explicit null values for managed fields
+            ?? (elements[columns[y]]['@cds.on.insert'] && null)
         }
         entries[x] = entry
       }
@@ -732,37 +735,35 @@ class HANAService extends SQLService {
 
     UPSERT(q) {
       const { UPSERT } = q
-      const sql = this.INSERT({ __proto__: q, INSERT: UPSERT })
-
-      // If no definition is available fallback to INSERT statement
-      const elements = q.elements || q.target?.elements
-      if (!elements) {
-        return (this.sql = sql)
-      }
-
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
-      const dataSelect = sql.substring(sql.indexOf('WITH'))
-
-      // Calculate @cds.on.insert
-      const collations = this.managed(
-        this.columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })),
-        elements,
-        false,
-      )
+      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0])
+      const elements = q.target?.elements || {}
+      const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
       let keys = q.target?.keys
-      const keyCompare =
-        keys &&
-        Object.keys(keys)
-          .filter(k => !keys[k].isAssociation && !keys[k].virtual)
-          .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
-          .join(' AND ')
+      if (!keys) return insert
+      keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
-      return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c =>
-        this.quote(c),
-      )}) SELECT ${collations.map(keyCompare ? c => c.switch : c => c.sql)} FROM (${dataSelect}) AS NEW ${keyCompare ? ` LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}` : ''
-        }`)
+      // temporal data
+      keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
+
+      const managed = this.managed(
+        this.columns.map(c => ({ name: c })),
+        elements
+      )
+
+      const keyCompare = managed
+        .filter(c => keys.includes(c.name))
+        .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
+        .join(' AND ')
+
+      const mixing = managed.map(c => c.upsert)
+      const extraction = managed.map(c => c.extract)
+
+      const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+
+      return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
 
     DROP(q) {
@@ -1034,71 +1035,16 @@ class HANAService extends SQLService {
       )
     }
 
-    managed(columns, elements, isUpdate = false) {
-      const annotation = isUpdate ? '@cds.on.update' : '@cds.on.insert'
-      const inputConverterKey = this.class._convertInput
-      // Ensure that missing managed columns are added
-      const requiredColumns = !elements
-        ? []
-        : Object.keys(elements)
-          .filter(e => {
-            if (elements[e]?.virtual) return false
-            if (elements[e]?.isAssociation) return false
-            if (columns.find(c => c.name === e)) return false
-            if (elements[e]?.[annotation]) return true
-            if (!isUpdate && elements[e]?.default) return true
-            return false
-          })
-          .map(name => ({ name, sql: 'NULL' }))
+    managed_extract(name, element, converter) {
+      // TODO: test property names with single and double quotes
+      return {
+        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
+        sql: converter(`NEW.${this.quote(name)}`),
+      }
+    }
 
-      const keyZero = this.quote(
-        ObjectKeys(elements).find(e => {
-          const el = elements[e]
-          return el.key && !el.isAssociation
-        }) || '',
-      )
-
-      return [...columns, ...requiredColumns].map(({ name, sql }) => {
-        const element = elements?.[name] || {}
-        // Don't apply input converters for place holders
-        const converter = (sql !== '?' && element[inputConverterKey]) || (e => e)
-        const val = _managed[element[annotation]?.['=']]
-        let managed
-        if (val) managed = this.func({ func: 'session_context', args: [{ val, param: false }] })
-        let extract = sql ?? `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}'`
-        if (!isUpdate) {
-          const d = element.default
-          if (d && ('val' in d || d.ref?.[0] === '$now')) {
-            const defaultValue = 'val' in d ? d.val : (cds.context?.timestamp || new Date()).toISOString()
-            managed = typeof defaultValue === 'string' ? this.string(defaultValue) : defaultValue
-          }
-        }
-
-        // Switch between OLD and NEW based upon the existence of the column in the NEW dataset
-        // Coalesce is not good enough as it would not allow for setting a value to NULL using UPSERT
-        const oldOrNew =
-          element['@cds.on.update']?.['='] !== undefined
-            ? extract
-            : `CASE WHEN ${this.quote('$.' + name)} IS NULL THEN OLD.${this.quote(name)} ELSE ${extract} END`
-
-        const notManged = managed === undefined
-        return {
-          name,
-          column: `${extract}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
-          // For @cds.on.insert ensure that there was no entry yet before setting managed in UPSERT
-          switch: notManged
-            ? oldOrNew
-            : `CASE WHEN OLD.${keyZero} IS NULL THEN COALESCE(${extract},${managed}) ELSE ${oldOrNew} END`,
-          convert:
-            (notManged
-              ? `${converter(this.quote(name), element)} AS ${this.quote(name)}`
-              : `CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${converter(
-                this.quote(name),
-                element,
-              )} END AS ${this.quote(name)}`) + (isUpdate ? `,${this.quote('$.' + name)}` : ''),
-          sql: converter(notManged ? extract : `COALESCE(${extract}, ${managed})`, element),
-        }
-      })
+    managed_default(name, managed, src) {
+      return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
@@ -1142,16 +1088,18 @@ class HANAService extends SQLService {
     // HANA JSON_TABLE function does not support BOOLEAN types
     static InputConverters = {
       ...super.InputConverters,
+
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => `HEXTOBIN(${e})`,
-      Boolean: e => `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
-      Vector: e => `TO_REAL_VECTOR(${e})`,
+      Binary: e => e === '?' ? e : `HEXTOBIN(${e})`,
+      Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
+      // Types that require input converters for placeholders as well
+      Vector: e => `TO_REAL_VECTOR(${e})`,
       // HANA types
-      'cds.hana.ST_POINT': e => `CASE WHEN ${e} IS NOT NULL THEN NEW ST_POINT(TO_DOUBLE(JSON_VALUE(${e}, '$.x')), TO_DOUBLE(JSON_VALUE(${e}, '$.y'))) END`,
+      'cds.hana.ST_POINT': e => `TO_POINT(${e})`,
       'cds.hana.ST_GEOMETRY': e => `TO_GEOMETRY(${e})`,
     }
 
@@ -1173,7 +1121,7 @@ class HANAService extends SQLService {
         : `TO_NVARCHAR(${expr})`,
 
       // HANA types
-      'cds.hana.ST_POINT': e => `(SELECT NEW ST_POINT(TO_NVARCHAR(${e})).ST_X() as "x", NEW ST_POINT(TO_NVARCHAR(${e})).ST_Y() as "y" FROM DUMMY WHERE (${e}) IS NOT NULL FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`,
+      'cds.hana.ST_POINT': e => `TO_NVARCHAR(${e})`,
       'cds.hana.ST_GEOMETRY': e => `TO_NVARCHAR(${e})`,
     }
   }
@@ -1381,11 +1329,6 @@ function _not_unique(err, code) {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
-const _managed = {
-  '$user.id': '$user.id',
-  $user: '$user.id',
-  $now: '$now',
-}
 
 const caseOperators = {
   'CASE': 1,
