@@ -79,7 +79,7 @@ entity LBooks {
   key ID : Integer;
 
   title : localized String;
-  ctitle = substring(title, 3, 3);  // requires compiler 4.1
+  ctitle = substring(title, 3, 3);
 
   length : Decimal;
   width : Decimal;
@@ -91,4 +91,11 @@ entity Simple {
   name: String;
   my: Association to Simple;
   myName: String = my.name;
+}
+
+entity VariableReplacements {
+  key ID: Integer;
+  author: Association to Authors;
+  // with variable replacements
+  authorAlive = author[dateOfBirth <= $now and dateOfDeath >= $now];
 }

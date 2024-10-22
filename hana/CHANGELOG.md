@@ -4,6 +4,60 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.1...hana-v1.3.2) (2024-10-21)
+
+
+### Fixed
+
+* Adjust Decimal formatter to always render a whole number ([#853](https://github.com/cap-js/cds-dbs/issues/853)) ([027d717](https://github.com/cap-js/cds-dbs/commit/027d717811cacccb529fd41b0d1d10f9dd6b7ebe))
+* allocate a new Buffer for each chunk of a Blob stream when using hana-client ([#846](https://github.com/cap-js/cds-dbs/issues/846)) ([ec75b50](https://github.com/cap-js/cds-dbs/commit/ec75b509ef39307f08b6e2fc8bb596423efe9d3a))
+
+## [1.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.0...hana-v1.3.1) (2024-10-15)
+
+
+### Fixed
+
+* combination of groupby and orderby ([#825](https://github.com/cap-js/cds-dbs/issues/825)) ([10e0534](https://github.com/cap-js/cds-dbs/commit/10e05343287faa937c8c4d559aabcf02abbd351e))
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+* list optimization for `Buffer` values ([#817](https://github.com/cap-js/cds-dbs/issues/817)) ([3e60de2](https://github.com/cap-js/cds-dbs/commit/3e60de229df535ac95279667ceaa519bb1a58c5d))
+* null as default value ([#845](https://github.com/cap-js/cds-dbs/issues/845)) ([0041ec0](https://github.com/cap-js/cds-dbs/commit/0041ec0a26c29b30f91470d93611b29acd837216))
+
+## [1.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.2.0...hana-v1.3.0) (2024-10-01)
+
+
+### Added
+
+* Add quoted mode support ([#681](https://github.com/cap-js/cds-dbs/issues/681)) ([43c7a6c](https://github.com/cap-js/cds-dbs/commit/43c7a6c1bed836a1210eb9c2ff5c7ffc0e498d76))
+
+## [1.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.1...hana-v1.2.0) (2024-09-03)
+
+
+### Added
+
+* wrap client if @dynatrace/oneagent-sdk is present ([#777](https://github.com/cap-js/cds-dbs/issues/777)) ([147b88e](https://github.com/cap-js/cds-dbs/commit/147b88ef7f2d790f4f6fbda7bb37942590e1e07a))
+
+
+### Fixed
+
+* Add `{list:[{val}]}` json function support ([#784](https://github.com/cap-js/cds-dbs/issues/784)) ([ce5f856](https://github.com/cap-js/cds-dbs/commit/ce5f856e720ea45e34445925dd22583a9b58cea9))
+* Allow applications to configure `acquireTimeoutMillis` ([#796](https://github.com/cap-js/cds-dbs/issues/796)) ([abac818](https://github.com/cap-js/cds-dbs/commit/abac818fed46d6ebd50b64b6244fe1352c4d6a84))
+* deep `groupby` expand queries ([#768](https://github.com/cap-js/cds-dbs/issues/768)) ([5423cf3](https://github.com/cap-js/cds-dbs/commit/5423cf38574962c09b94febab95f2e3dc118d2c9))
+* Enforce `LargeStrings` to be `Strings` for `sql_simple_queries=1` ([#774](https://github.com/cap-js/cds-dbs/issues/774)) ([c38a9e6](https://github.com/cap-js/cds-dbs/commit/c38a9e612428284a3c1b81c1ee5ab89398e03616))
+* wrong falsy checks for vals in list optimization ([#797](https://github.com/cap-js/cds-dbs/issues/797)) ([e818da8](https://github.com/cap-js/cds-dbs/commit/e818da85fae8d8b20e8594a3275f30bbb0f6bbfe))
+
+
+### Changed
+
+* requires @sap/cds &gt;= 8.2 ([#789](https://github.com/cap-js/cds-dbs/issues/789)) ([3bbde18](https://github.com/cap-js/cds-dbs/commit/3bbde186848ad97ff1191ce3fc50fc4c9f90dee3))
+
+## [1.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.1.0...hana-v1.1.1) (2024-07-25)
+
+
+### Fixed
+
+* assocs with default value ([#752](https://github.com/cap-js/cds-dbs/issues/752)) ([a8660cf](https://github.com/cap-js/cds-dbs/commit/a8660cf4add1630a664d982823e61c2b856a4918))
+* make name for columns for ordinality unique ([#746](https://github.com/cap-js/cds-dbs/issues/746)) ([d3f9b23](https://github.com/cap-js/cds-dbs/commit/d3f9b237694afad699ed9cfb0258baf6120b7a11))
+
 ## [1.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.0.1...hana-v1.1.0) (2024-07-08)
 
 

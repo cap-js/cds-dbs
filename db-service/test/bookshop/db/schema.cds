@@ -196,6 +196,7 @@ entity Receipt {
 
 entity Authors : managed, Person {
   books  : Association to many Books on books.author = $self;
+  booksWithALotInStock = books[stock > 100];
 }
 entity AuthorsUnmanagedBooks : managed, Person {
   books  : Association to many Books on books.coAuthor_ID_unmanaged = ID;
@@ -421,4 +422,11 @@ entity Unmanaged {
 entity Item {
   key ID: Integer;
   item: Association to Item;
+}
+
+entity Posts {
+  key ID: Integer;
+  name: String;
+  iSimilar: Association to many Posts on UPPER(name) = UPPER(iSimilar.name);
+  iSimilarNested: Association to many Posts on UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(name)), name); 
 }
