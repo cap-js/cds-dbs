@@ -981,21 +981,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {         
-        const listMapped = [] 
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+        const listMapped = []
         for (let l of list.list) {
-          const obj ={}
-          for (let i = 0; i< l.list.length; i++) {
+          const obj = {}
+          for (let i = 0; i < l.list.length; i++) {
             const c = l.list[i]
             if (Buffer.isBuffer(c.val)) {
               return super.list(list)
-            }            
+            }
             obj[`V${i}`] = c.val
           }
           listMapped.push(obj)
-        }        
+        }
         this.values.push(JSON.stringify(listMapped))
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)       
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
@@ -1003,9 +1003,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         for (let c of list.list) {
           if (Buffer.isBuffer(c.val)) {
             return super.list(list)
-          } 
+          }
         }
-        const v = first        
+        const v = first
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
@@ -1295,8 +1295,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
-      } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
+    const sqlString = this.class.CQN2SQL.prototype.string
+    name = typeof name === 'string' ? sqlString(name) : `'${name}'`
+    schema = typeof schema === 'string' ? sqlString(schema) : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema} AND PROCEDURE_NAME = ${name} AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
     return await super.onPlainSQL({ query, data: [] })
   }
 
