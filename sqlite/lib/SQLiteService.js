@@ -29,6 +29,7 @@ class SQLiteService extends SQLService {
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
 
+        // REVISIT: Move these out to global scope?
         // define date and time functions in js to allow for throwing errors
         const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
         const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
@@ -37,6 +38,8 @@ class SQLiteService extends SQLService {
           if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
           return date
         }
+
+        // REVISIT: Do we really need all these user-defined db functions?
         dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
         dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
         dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
@@ -77,7 +80,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._stream(stmt, ..._), // REVISIT: stays or goes away?
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -98,7 +101,7 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iterator(rs, one) { // REVISIT: ?
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -139,6 +142,7 @@ class SQLiteService extends SQLService {
     return (await ps.run(vals)).changes
   }
 
+  // REVISIT: if this is a temporary hack, we should remove it
   onPlainSQL({ query, data }, next) {
     if (typeof query === 'string') {
       // REVISIT: this is a hack the target of $now might not be a timestamp or date time
@@ -208,6 +212,7 @@ class SQLiteService extends SQLService {
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
+      // REVISIT: as discussed in the beginning, could we just keep the truthy/false raw data
       boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
@@ -225,7 +230,7 @@ class SQLiteService extends SQLService {
         : `CAST(${expr} as TEXT)`
         : undefined,
       // Binary is not allowed in json objects
-      Binary: expr => `${expr} || ''`,
+      Binary: expr => `${expr} || ''`, // REVISIT: is this still needed?
     }
 
     // Used for SQL function expressions
