@@ -959,7 +959,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           // When it is a local check it cannot be compared outside of the xpr
           if (up in logicOperators) {
             // ensure AND is not part of BETWEEN
-            if (up === 'AND' && xpr[i - 2]?.toUpperCase() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
             return !local
           }
           // When a compare operator is found the expression is a comparison
