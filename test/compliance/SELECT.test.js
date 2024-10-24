@@ -324,6 +324,11 @@ describe('SELECT', () => {
       await expect(cds.run(cqn))
         .to.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
     })
+    test('exists with function in path expression', async () => {
+      const { Authors } = cds.entities('complex.associations')
+      const cqn = CQL`SELECT * FROM ${Authors} WHERE exists books[contains(title, ${'Wuthering'})]`
+      assert.strictEqual((await cds.run(cqn)).length, 1, 'Ensure that contains works in associations')
+    })
 
     test('exists path expression (unmanaged)', async () => {
       const { Books } = cds.entities('complex.associations.unmanaged')
