@@ -661,6 +661,7 @@ class HANAService extends SQLService {
 
       const _stream = entries => {
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
+        stream.type = 'json'
         stream._raw = entries
         return stream
       }
