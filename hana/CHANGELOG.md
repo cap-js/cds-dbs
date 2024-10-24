@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.2...hana-v1.4.0) (2024-10-24)
+
+
+### Added
+
+* Improve procedure metadata lookup logic ([#862](https://github.com/cap-js/cds-dbs/issues/862)) ([da629d9](https://github.com/cap-js/cds-dbs/commit/da629d98192cf1b196cceb172cb01f4a39acd887))
+
+
+### Fixed
+
+* nested functions in comparisons ([#861](https://github.com/cap-js/cds-dbs/issues/861)) ([f3fd254](https://github.com/cap-js/cds-dbs/commit/f3fd25452b96c50a1ad12a2137945b3d25c0789f))
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+* Throw error if rows in limit is missing for expand, same as in limit() ([#858](https://github.com/cap-js/cds-dbs/issues/858)) ([641c3b9](https://github.com/cap-js/cds-dbs/commit/641c3b97d0571b8b8b7f44e038ffc34ac17c49e5))
+
 ## [1.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.1...hana-v1.3.2) (2024-10-21)
 
 
