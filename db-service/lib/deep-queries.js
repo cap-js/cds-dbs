@@ -42,18 +42,17 @@ async function onDeep(req, next) {
   const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
 
-  const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
-  if (query.UPDATE && !beforeData.length) return 0
-
-  const queries = getDeepQueries(query, beforeData, target)
+  const queries = getDeepQueries.call(this, query, target)
 
   // first delete, then update, then insert because of potential unique constraints:
   // - deletes never trigger unique constraints, but can prevent them -> execute first
   // - updates can trigger and prevent unique constraints -> execute second
   // - inserts can only trigger unique constraints -> execute last
-  await Promise.all(Array.from(queries.deletes.values()).map(query => this.onSIMPLE({ query })))
-  await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
+  await Promise.all(Array.from(queries.deletes.values()).map(query => this.onDELETE({ query })))
+  await Promise.all(Array.from(queries.updates.values()).map(query => this.onUPDATE({ query })))
+  await Promise.all(Array.from(queries.upserts.values()).map(query => this.onUPSERT({ query })))
 
+  // TODO: return root UPDATE or UPSERT results when not doing an INSERT
   const rootQuery = queries.inserts.get(ROOT)
   queries.inserts.delete(ROOT)
   const [rootResult] = await Promise.all([
@@ -61,7 +60,7 @@ async function onDeep(req, next) {
     ...Array.from(queries.inserts.values()).map(query => this.onINSERT({ query })),
   ])
 
-  return rootResult ?? beforeData.length
+  return rootResult ?? 1
 }
 
 const hasDeep = (q, target) => {
@@ -72,108 +71,8 @@ const hasDeep = (q, target) => {
     }
 }
 
-// unofficial config!
-const DEEP_DELETE_MAX_RECURSION_DEPTH =
-  (cds.env.features.recursion_depth && Number(cds.env.features.recursion_depth)) || 4 // we use 4 here as our test data has a max depth of 3
-
 // IMPORTANT: Skip only if @cds.persistence.skip is `true` → e.g. this skips skipping targets marked with @cds.persistence.skip: 'if-unused'
 const _hasPersistenceSkip = target => target?.['@cds.persistence.skip'] === true
-
-const getColumnsFromDataOrKeys = (data, target) => {
-  if (Array.isArray(data)) {
-    // loop and get all columns from current level
-    const columns = new Set()
-    data.forEach(row =>
-      Object.keys(row || target.keys)
-        .filter(propName => !target.elements[propName]?.isAssociation)
-        .forEach(entry => {
-          columns.add(entry)
-        }),
-    )
-    return Array.from(columns).map(c => ({ ref: [c] }))
-  } else {
-    // get all columns from current level
-    return Object.keys(data || target.keys)
-      .filter(propName => target.elements[propName] && !target.elements[propName].isAssociation)
-      .map(c => ({ ref: [c] }))
-  }
-}
-
-const _calculateExpandColumns = (target, data, expandColumns = [], elementMap = new Map()) => {
-  const compositions = target.compositions || {}
-
-  if (expandColumns.length === 0) {
-    // REVISIT: ensure that all keys are included in the expand columns
-    expandColumns.push(...getColumnsFromDataOrKeys(data, target))
-  }
-
-  for (const compName in compositions) {
-    let compositionData
-    if (data === null || (Array.isArray(data) && !data.length)) {
-      compositionData = null
-    } else {
-      compositionData = data[compName]
-    }
-
-    // ignore not provided compositions as nothing happens with them (expect deep delete)
-    if (compositionData === undefined) {
-      // fill columns in case
-      continue
-    }
-
-    const composition = compositions[compName]
-
-    const fqn = composition.parent.name + ':' + composition.name
-    const seen = elementMap.get(fqn)
-    if (seen && seen >= DEEP_DELETE_MAX_RECURSION_DEPTH) {
-      // recursion -> abort
-      return expandColumns
-    }
-
-    let expandColumn = expandColumns.find(expandColumn => expandColumn.ref[0] === composition.name)
-    if (!expandColumn) {
-      expandColumn = {
-        ref: [composition.name],
-        expand: getColumnsFromDataOrKeys(compositionData, composition._target),
-      }
-
-      expandColumns.push(expandColumn)
-    }
-
-    // expand deep
-    // Make a copy and do not share the same map among brother compositions
-    // as we're only interested in deep recursions, not wide recursions.
-    const newElementMap = new Map(elementMap)
-    newElementMap.set(fqn, (seen && seen + 1) || 1)
-
-    if (composition.is2many) {
-      // expandColumn.expand = getColumnsFromDataOrKeys(compositionData, composition._target)
-      if (compositionData === null || compositionData.length === 0) {
-        // deep delete, get all subitems until recursion depth
-        _calculateExpandColumns(composition._target, null, expandColumn.expand, newElementMap)
-        continue
-      }
-
-      for (const row of compositionData) {
-        _calculateExpandColumns(composition._target, row, expandColumn.expand, newElementMap)
-      }
-    } else {
-      // to one
-      _calculateExpandColumns(composition._target, compositionData, expandColumn.expand, newElementMap)
-    }
-  }
-  return expandColumns
-}
-
-/**
- * @param {import('@sap/cds/apis/cqn').Query} query
- * @param {import('@sap/cds/apis/csn').Definition} target
- */
-const getExpandForDeep = (query, target) => {
-  const { entity, data = null, where } = query.UPDATE
-  const columns = _calculateExpandColumns(target, data)
-  return SELECT(columns).from(entity).where(where)
-}
 
 /**
  * @param {import('@sap/cds/apis/cqn').Query} query
@@ -181,123 +80,161 @@ const getExpandForDeep = (query, target) => {
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns
  */
-const getDeepQueries = (query, dbData, target) => {
+const getDeepQueries = function (query, target) {
   let queryData
   if (query.INSERT) {
-    queryData = query.INSERT.entries
-  }
-  if (query.DELETE) {
-    queryData = []
-  }
-  if (query.UPDATE) {
-    queryData = [query.UPDATE.data]
-  }
+    const inserts = new Map()
 
-  let diff = compareJson(queryData, dbData, target)
-  if (!Array.isArray(diff)) {
-    diff = [diff]
-  }
+    const step = (entry, target) => {
+      for (const comp in target.compositions) {
+        if (!entry[comp]) continue
 
-  return _getDeepQueries(diff, target)
-}
+        const composition = target.compositions[comp]
+        const compTarget = composition._target
 
-const _hasManagedElements = target => {
-  return Object.keys(target.elements).filter(elementName => target.elements[elementName]['@cds.on.update']).length > 0
-}
+        if (_hasPersistenceSkip(compTarget)) continue
 
-/**
- * @param {unknown[]} diff
- * @param {import('@sap/cds/apis/csn').Definition} target
- * @param {Map<String, Object>} deletes
- * @param {Map<String, Object>} inserts
- * @param {Object[]} updates
- * @param {boolean} [root=true]
- * @returns {Object|Boolean}
- */
-const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(), updates = [], root = true) => {
-  // flag to determine if queries were created
-  let dirty = false
-  for (const diffEntry of diff) {
-    if (diffEntry === undefined) continue
+        if (!inserts.has(compTarget)) inserts.set(compTarget, INSERT([]).into(compTarget))
+        const cqn = inserts.get(compTarget)
 
-    let childrenDirty = false
-    for (const prop in diffEntry) {
-      // handle deep operations
-
-      const propData = diffEntry[prop]
-
-      if (target.elements[prop] && _hasPersistenceSkip(target.elements[prop]._target)) {
-        delete diffEntry[prop]
-      } else if (target.compositions?.[prop]) {
-        const arrayed = Array.isArray(propData) ? propData : [propData]
-        childrenDirty =
-          arrayed
-            .map(subEntry =>
-              _getDeepQueries([subEntry], target.elements[prop]._target, deletes, inserts, updates, false),
-            )
-            .some(a => a) || childrenDirty
-        delete diffEntry[prop]
-      } else if (diffEntry[prop] === undefined) {
-        // restore current behavior, if property is undefined, not part of payload
-        delete diffEntry[prop]
-      }
-    }
-
-    // handle current entity level
-    const op = diffEntry._op
-    delete diffEntry._op
-
-    if (diffEntry._old != null) {
-      delete diffEntry._old
-    }
-
-    if (op === 'create') {
-      dirty = true
-      const id = root ? ROOT : target.name
-      const insert = inserts.get(id)
-      if (insert) {
-        insert.INSERT.entries.push(diffEntry)
-      } else {
-        const q = INSERT.into(target).entries(diffEntry)
-        inserts.set(id, q)
-      }
-    } else if (op === 'delete') {
-      dirty = true
-      const keys = cds.utils
-        .Object_keys(target.keys)
-        .filter(key => !target.keys[key].virtual && !target.keys[key].isAssociation)
-
-      const keyVals = keys.map(k => ({ val: diffEntry[k] }))
-      const currDelete = deletes.get(target.name)
-      if (currDelete) currDelete.DELETE.where[2].list.push({ list: keyVals })
-      else {
-        const left = { list: keys.map(k => ({ ref: [k] })) }
-        const right = { list: [{ list: keyVals }] }
-        deletes.set(target.name, DELETE.from(target).where([left, 'in', right]))
-      }
-    } else if (op === 'update' || (op === undefined && (root || childrenDirty) && _hasManagedElements(target))) {
-      dirty = true
-      // TODO do we need the where here?
-      const keys = target.keys
-      const cqn = UPDATE(target).with(diffEntry)
-      for (const key in keys) {
-        if (keys[key].virtual) continue
-        if (!keys[key].isAssociation) {
-          cqn.where(key + '=', diffEntry[key])
+        const childEntries = entry[comp]
+        if (composition.is2many) {
+          cqn.INSERT.entries = [...cqn.INSERT.entries, ...entry[comp]]
+          for (const childEntry of childEntries) {
+            step(childEntry, compTarget)
+          }
+        } else {
+          cqn.INSERT.entries = [...cqn.INSERT.entries, entry[comp]]
+          step(childEntries, compTarget)
         }
-        delete diffEntry[key]
       }
-      cqn.with(diffEntry)
-      updates.push(cqn)
+    }
+    inserts.set(ROOT, query)
+
+    for (const entry of query.INSERT.entries) {
+      step(entry, target)
+    }
+
+    return {
+      deletes: new Map(),
+      updates: new Map(),
+      upserts: new Map(),
+      inserts: inserts,
     }
   }
 
-  return root ? { updates, inserts, deletes } : dirty
+  if (query.UPDATE || query.UPSERT) {
+    const deletes = new Map()
+    const upserts = new Map()
+    const updates = new Map()
+
+    const keyCompare = (entry, target, eq = true) => {
+      let xpr = []
+      if (Array.isArray(entry)) {
+        const keyList = { list: [] }
+        const valList = { list: [] }
+        for (const key in target.keys) {
+          const element = target.keys[key]
+          if (element.virtual || element.isAssociation) continue
+          keyList.list.push({ ref: [key] })
+          for (let i = 0; i < entry.length; i++) {
+            const curEntry = entry[i]
+            valList.list[i] ??= { list: [] }
+            valList.list[i].list.push({ val: curEntry[key] })
+          }
+        }
+        xpr = eq
+          ? [keyList, 'in', valList]
+          : [keyList, 'not', 'in', valList]
+      } else {
+        for (const key in target.keys) {
+          const element = target.keys[key]
+          if (element.virtual || element.isAssociation) continue
+          const comp = [{ ref: [key] }, eq ? '=' : '!=', { val: entry[key] }]
+          xpr = xpr.length ? [...xpr, 'and', ...comp] : comp
+        }
+      }
+      return xpr
+    }
+
+    const step = (entry, target, path) => {
+      for (const comp in target.compositions) {
+        if (!entry[comp]) continue
+
+        const composition = target.compositions[comp]
+        const compTarget = composition._target
+
+        if (_hasPersistenceSkip(compTarget)) continue
+
+        if (!upserts.has(compTarget)) upserts.set(compTarget, UPSERT([]).into(compTarget))
+
+        const cqn = upserts.get(compTarget)
+        const childEntries = entry[comp]
+
+        if (!deletes.has(compTarget)) deletes.set(compTarget, [])
+        deletes.get(compTarget).push({
+          SELECT: {
+            from: {
+              ref: [...path, {
+                id: comp,
+                where: keyCompare(childEntries, compTarget, false),
+              }]
+            }
+          }
+        })
+
+        if (composition.is2many) {
+          cqn.UPSERT.entries = [...cqn.UPSERT.entries, ...entry[comp]]
+          for (const childEntry of childEntries) {
+            step(childEntry, compTarget, [...path, { id: comp, where: keyCompare(entry, compTarget) }])
+          }
+        } else {
+          cqn.UPSERT.entries = [...cqn.UPSERT.entries, entry[comp]]
+          step(childEntries, compTarget, [...path, { id: comp, where: keyCompare(entry, compTarget) }])
+        }
+      }
+    }
+
+    if (query.UPDATE) {
+      updates.set(ROOT, query)
+      const data = query.UPDATE.data
+      // TODO: merge root where into path expression where
+      step(data, target, [...query.UPDATE.entity.ref])
+    }
+    else if (query.UPSERT) {
+      upserts.set(ROOT, query)
+      for(const data of query.UPSERT.entries) {
+        step(data, target, [...query.UPDATE.entity.ref])
+      }
+    }
+
+    for (const [target, dels] of deletes) {
+      const keyList = keyCompare([], target)
+
+      const del = DELETE.from(target)
+      del.where(dels
+        .map(d => {
+          d.SELECT.columns = keyList[0].list
+          return ['OR', { xpr: [keyList[0], 'in', d] }]
+        })
+        .flat()
+        .slice(1)
+      )
+      deletes.set(target, del)
+    }
+
+    return {
+      deletes,
+      upserts,
+      updates,
+      inserts: new Map(),
+    }
+  }
+
 }
 
 module.exports = {
   onDeep,
   hasDeep,
   getDeepQueries, // only for testing
-  getExpandForDeep, // only for testing
 }
