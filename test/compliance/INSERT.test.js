@@ -44,4 +44,13 @@ describe('INSERT', () => {
       expect(result).to.deep.eq({ ID: 1, boolean: false, integer: 0, nulls: null, string: ''})
     })
   })
+
+  describe('literals', () => {
+    test('cesu8 encoding for strings', async () => {
+      const { 'basic.literals.string': entity } = cds.db.entities
+      await cds.run(INSERT.into(entity).entries({string:  '🧨', blob:  '🧨'}))
+      const result = await cds.run(SELECT.from(entity, ['blob', 'string']))
+      expect(result).to.include({string:  '🧨', blob:  '🧨'})
+    })
+  })
 })
