@@ -1,9 +1,10 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { computeColumnsToBeSearched } = require('./search')
 
 const infer = require('./infer')
+const { computeColumnsToBeSearched } = require('./search')
+const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -44,8 +45,26 @@ const { pseudos } = require('./infer/pseudos')
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
-  const inferred = infer(originalQuery, model)
-  if (originalQuery.SELECT?.from.args && !originalQuery.joinTree) return inferred
+  let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const hasCustomJoins =
+    originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
+
+  if (!hasCustomJoins && inferred.SELECT?.search) {
+    // we need an instance of query because the elements of the query are needed for the calculation of the search columns
+    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
+    if (searchTerm) {
+      // Search target can be a navigation, in that case use _target to get the correct entity
+      const { where, having } = transformSearch(searchTerm)
+      if (where) inferred.SELECT.where = where
+      else if (having) inferred.SELECT.having = having
+    }
+  }
+  inferred = infer(inferred, model)
+  // if the query has custom joins we don't want to transform it
+  // TODO: move all the way to the top of this function once cds.infer supports joins as well
+  //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
+  if (hasCustomJoins) return originalQuery
 
   let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
@@ -111,16 +130,15 @@ function cqn4sql(originalQuery, model) {
 
         // calculate the primary keys of the target entity, there is always exactly
         // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(originalQuery.sources)[0].definition
-        const keys = Object.values(queryTarget.elements).filter(e => e.key === true)
+        const queryTarget = Object.values(inferred.sources)[0].definition
         const primaryKey = { list: [] }
-        keys.forEach(k => {
-          // cqn4sql will add the table alias to the column later, no need to add it here
-          subquery.SELECT.columns.push({ ref: [k.name] })
-
-          // add the alias of the main query to the list of primary key references
-          primaryKey.list.push({ ref: [transformedFrom.as, k.name] })
-        })
+        for (const k of Object.keys(queryTarget.elements)) {
+          const e = queryTarget.elements[k]
+          if (e.key === true && !e.virtual) {
+            subquery.SELECT.columns.push({ ref: [e.name] })
+            primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
+          }
+        }
 
         const transformedSubquery = cqn4sql(subquery, model)
 
@@ -155,7 +173,7 @@ function cqn4sql(originalQuery, model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard(originalQuery.SELECT?.excluding)
+      transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -178,13 +196,6 @@ function cqn4sql(originalQuery, model) {
         transformedQuery.SELECT.orderBy = transformedOrderBy
       }
     }
-
-    if (inferred.SELECT.search) {
-      // Search target can be a navigation, in that case use _target to get the correct entity
-      const { where, having } = transformSearch(inferred.SELECT.search, transformedFrom) || {}
-      if (where) transformedQuery.SELECT.where = where
-      else if (having) transformedQuery.SELECT.having = having
-    }
     return transformedQuery
   }
 
@@ -206,46 +217,29 @@ function cqn4sql(originalQuery, model) {
    * Transforms a search expression into a WHERE or HAVING clause for a SELECT operation, depending on the context of the query.
    * The function decides whether to use a WHERE or HAVING clause based on the presence of aggregated columns in the search criteria.
    *
-   * @param {object} search - The search expression to be applied to the searchable columns within the query source.
+   * @param {object} searchTerm - The search expression to be applied to the searchable columns within the query source.
    * @param {object} from - The FROM clause of the CQN statement.
    *
-   * @returns {(Object|Array|null)} - The function returns an object representing the WHERE or HAVING clause of the query:
-   *     - If the target of the query contains searchable elements, an array representing the WHERE or HAVING clause is returned.
-   *       This includes appending to an existing clause with an AND condition or creating a new clause solely with the 'contains' clause.
-   *     - If the SELECT query does not initially contain a WHERE or HAVING clause, the returned object solely consists of the 'contains' clause.
-   *     - If the target entity of the query does not contain searchable elements, the function returns null.
+   * @returns {Object} - The function returns an object representing the WHERE or HAVING clause of the query.
    *
    * Note: The WHERE clause is used for filtering individual rows before any aggregation occurs.
    * The HAVING clause is utilized for conditions on aggregated data, applied after grouping operations.
    */
-  function transformSearch(search, from) {
-    const entity = getDefinition(from.$refLinks[0].definition.target) || from.$refLinks[0].definition
-    // pass transformedQuery because we may need to search in the columns directly
-    // in case of aggregation
-    const searchIn = computeColumnsToBeSearched(transformedQuery, entity, from.as)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const contains = {
-        func: 'search',
-        args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
-      }
+  function transformSearch(searchTerm) {
+    let prop = 'where'
 
-      // if the query is grouped and the queries columns contain an aggregate function,
-      // we must put the search term into the `having` clause, as the search expression
-      // is defined on the aggregated result, not on the individual rows
-      let prop = 'where'
+    // if the query is grouped and the queries columns contain an aggregate function,
+    // we must put the search term into the `having` clause, as the search expression
+    // is defined on the aggregated result, not on the individual rows
+    const usesAggregation =
+      inferred.SELECT.groupBy &&
+      (searchTerm.args[0].func || searchTerm.args[0].xpr || searchTerm.args[0].list?.some(c => c.func || c.xpr))
 
-      if (inferred.SELECT.groupBy && searchIn.some(c => c.func || c.xpr)) prop = 'having'
-      if (transformedQuery.SELECT[prop]) {
-        return { [prop]: [asXpr(transformedQuery.SELECT.where), 'and', contains] }
-      } else {
-        return { [prop]: [contains] }
-      }
+    if (usesAggregation) prop = 'having'
+    if (inferred.SELECT[prop]) {
+      return { [prop]: [asXpr(inferred.SELECT.where), 'and', searchTerm] }
     } else {
-      return null
+      return { [prop]: [searchTerm] }
     }
   }
 
@@ -321,10 +315,6 @@ function cqn4sql(originalQuery, model) {
       }
       return lhs.args.length > 1 ? lhs : lhs.args[0]
     }
-  }
-
-  function isCalculatedOnRead(def) {
-    return def?.value && !def.value.stored
   }
 
   /**
@@ -438,7 +428,7 @@ function cqn4sql(originalQuery, model) {
         return
       }
 
-      const tableAlias = getQuerySourceName(col)
+      const tableAlias = getTableAlias(col)
       // re-adjust usage of implicit alias in subquery
       if (col.$refLinks[0].definition.kind === 'entity' && col.ref[0] !== tableAlias) {
         col.ref[0] = tableAlias
@@ -484,7 +474,7 @@ function cqn4sql(originalQuery, model) {
       if (replaceWith === -1) transformedColumns.push(transformedColumn)
       else transformedColumns.splice(replaceWith, 1, transformedColumn)
 
-      setElementOnColumns(transformedColumn, originalQuery.elements[col.as])
+      setElementOnColumns(transformedColumn, inferred.elements[col.as])
     }
 
     function getTransformedColumn(col) {
@@ -536,7 +526,7 @@ function cqn4sql(originalQuery, model) {
       res = getTransformedTokenStream([value], baseLink)[0]
     } else if (xpr) {
       res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
-    } else if (val) {
+    } else if (val !== undefined) {
       res = { val }
     } else if (func) {
       res = { args: getTransformedFunctionArgs(value.args, baseLink), func: value.func }
@@ -731,7 +721,7 @@ function cqn4sql(originalQuery, model) {
       res.push(...getColumnsForWildcard(exclude, replace, col.as))
     } else
       res.push(
-        ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getQuerySourceName(col) }, [], {
+        ...getFlatColumnsFor(col, { columnAlias: col.as, tableAlias: getTableAlias(col) }, [], {
           exclude,
           replace,
         }),
@@ -769,6 +759,9 @@ function cqn4sql(originalQuery, model) {
   function expandColumn(column) {
     let outerAlias
     let subqueryFromRef
+    const ref = column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref
+    const assoc = column.$refLinks.at(-1)
+    ensureValidForeignKeys(assoc.definition, column.ref, 'expand')
     if (column.isJoinRelevant) {
       // all n-1 steps of the expand column are already transformed into joins
       // find the last join relevant association. That is the n-1 assoc in the ref path.
@@ -787,40 +780,49 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...transformedQuery.SELECT.from.ref,
-        ...(column.$refLinks[0].definition.kind === 'entity' ? column.ref.slice(1) : column.ref),
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
+        ...ref,
       ]
     }
 
     // this is the alias of the column which holds the correlated subquery
-    const columnAlias =
-      column.as ||
-      (column.$refLinks[0].definition.kind === 'entity'
-        ? column.ref.slice(1).map(idOnly).join('_') // omit explicit table alias from name of column
-        : column.ref.map(idOnly).join('_'))
+    const columnAlias = column.as || ref.map(idOnly).join('_')
+
+    // if there is a group by on the main query, all
+    // columns of the expand must be in the groupBy
+    if (transformedQuery.SELECT.groupBy) {
+      const baseRef = column.$refLinks[0].definition.SELECT || ref
+
+      return _subqueryForGroupBy(column, baseRef, columnAlias)
+    }
 
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, originalQuery.outerQueries)
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
-    const subqueryBase = Object.fromEntries(
-      // preserve all props on subquery (`limit`, `order by`, …) but `expand` and `ref`
-      Object.entries(column).filter(([key]) => !(key in { ref: true, expand: true })),
-    )
+    const subqueryBase = {}
+    for (const [key, value] of Object.entries(column)) {
+      if (!(key in { ref: true, expand: true })) {
+        subqueryBase[key] = value
+      }
+    }
     const subquery = {
       SELECT: {
         ...subqueryBase,
         from,
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
-        one: column.$refLinks[column.$refLinks.length - 1].definition.is2one,
+        one: column.$refLinks.at(-1).definition.is2one,
       },
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', { value: subquery.elements, writable: true })
+    Object.defineProperty(correlated, 'elements', {
+      value: expanded.elements,
+      writable: true,
+    })
     return correlated
 
     function _correlate(subq, outer) {
@@ -851,6 +853,74 @@ function cqn4sql(originalQuery, model) {
       }
       return subq
     }
+
+    /**
+     * Generates a special subquery for the `expand` of the `column`.
+     * All columns in the `expand` must be part of the GROUP BY clause of the main query.
+     * If this is the case, the subqueries columns match the corresponding references of the group by.
+     * Nested expands are also supported.
+     *
+     * @param {Object} column - To expand.
+     * @param {Array} baseRef - The base reference for the expanded column.
+     * @param {string} subqueryAlias - The alias of the `expand` subquery column.
+     * @returns {Object} - The subquery object.
+     * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
+     */
+    function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
+      const groupByLookup = new Map(
+        transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(refWithConditions).join('.'), c]),
+      )
+
+      // to be attached to dummy query
+      const elements = {}
+      const expandedColumns = column.expand.flatMap(expand => {
+        const fullRef = [...baseRef, ...expand.ref]
+
+        if (expand.expand) {
+          const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
+          setElementOnColumns(nested, expand.element)
+          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          return nested
+        }
+
+        const groupByRef = groupByLookup.get(fullRef.map(refWithConditions).join('.'))
+        if (!groupByRef) {
+          throw new Error(
+            `The expanded column "${fullRef.map(refWithConditions).join('.')}" must be part of the group by clause`,
+          )
+        }
+
+        const copy = Object.create(groupByRef)
+        // always alias for this special case, so that they nested element names match the expected result structure
+        // otherwise we'd get `author { <outer>.author_ID }`, but we need `author { <outer>.author_ID as ID }`
+        copy.as = expand.as || expand.ref.at(-1)
+        const tableAlias = getTableAlias(copy)
+        const res = getFlatColumnsFor(copy, { tableAlias })
+        res.forEach(c => {
+          elements[c.as || c.ref.at(-1)] = c.element
+        })
+        return res
+      })
+
+      const SELECT = {
+        from: null,
+        columns: expandedColumns,
+      }
+      return Object.defineProperties(
+        {},
+        {
+          SELECT: {
+            value: Object.defineProperties(SELECT, {
+              expand: { value: true, writable: true }, // non-enumerable
+              one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
+            }),
+            enumerable: true,
+          },
+          as: { value: subqueryAlias, enumerable: true, writable: true },
+          elements: { value: elements }, // non-enumerable
+        },
+      )
+    }
   }
 
   function getTransformedOrderByGroupBy(columns, inOrderBy = false) {
@@ -860,15 +930,6 @@ function cqn4sql(originalQuery, model) {
       if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
-      } else if (col.isJoinRelevant) {
-        const tableAlias = getQuerySourceName(col)
-        const name = calculateElementName(col)
-        const transformedColumn = {
-          ref: [tableAlias, name],
-        }
-        if (col.sort) transformedColumn.sort = col.sort
-        if (col.nulls) transformedColumn.nulls = col.nulls
-        res.push(transformedColumn)
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
@@ -896,7 +957,7 @@ function cqn4sql(originalQuery, model) {
               referredCol.nulls = col.nulls
               col = referredCol
               if (definition.kind === 'element') {
-                tableAlias = getQuerySourceName(col)
+                tableAlias = getTableAlias(col)
               } else {
                 // we must replace the reference with the underlying expression
                 const { val, func, args, xpr } = col
@@ -908,7 +969,7 @@ function cqn4sql(originalQuery, model) {
             }
           }
         } else {
-          tableAlias = getQuerySourceName(col) // do not prepend TA if orderBy column addresses element of query
+          tableAlias = getTableAlias(col) // do not prepend TA if orderBy column addresses element of query
         }
         const leaf = col.$refLinks[col.$refLinks.length - 1].definition
         if (leaf.virtual === true) continue // already in getFlatColumnForElement
@@ -926,8 +987,11 @@ function cqn4sql(originalQuery, model) {
          */
         if (inOrderBy && flatColumns.length > 1)
           throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
-        if (col.nulls) flatColumns[0].nulls = col.nulls
-        if (col.sort) flatColumns[0].sort = col.sort
+        flatColumns.forEach(fc => {
+          if (col.nulls) fc.nulls = col.nulls
+          if (col.sort) fc.sort = col.sort
+          if (fc.as) delete fc.as
+        })
         res.push(...flatColumns)
       } else {
         let transformedColumn
@@ -973,7 +1037,7 @@ function cqn4sql(originalQuery, model) {
       const last = q.SELECT.from.ref.at(-1)
       const uniqueSubqueryAlias = inferred.joinTree.addNextAvailableTableAlias(
         getLastStringSegment(last.id || last),
-        originalQuery.outerQueries,
+        inferred.outerQueries,
       )
       Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
     }
@@ -997,13 +1061,12 @@ function cqn4sql(originalQuery, model) {
    */
   function getColumnsForWildcard(exclude = [], replace = [], baseName = null) {
     const wildcardColumns = []
-    Object.keys(inferred.$combinedElements)
-      .filter(k => !exclude.includes(k))
-      .forEach(k => {
+    for (const k of Object.keys(inferred.$combinedElements)) {
+      if (!exclude.includes(k)) {
         const { index, tableAlias } = inferred.$combinedElements[k][0]
         const element = tableAlias.elements[k]
         // ignore FK for odata csn / ignore blobs from wildcard expansion
-        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') return
+        if (isManagedAssocInFlatMode(element) || element.type === 'cds.LargeBinary') continue
         // for wildcard on subquery in from, just reference the elements
         if (tableAlias.SELECT && !element.elements && !element.target) {
           wildcardColumns.push(index ? { ref: [index, k] } : { ref: [k] })
@@ -1019,7 +1082,8 @@ function cqn4sql(originalQuery, model) {
           )
           wildcardColumns.push(...flatColumns)
         }
-      })
+      }
+    }
     return wildcardColumns
 
     /**
@@ -1085,7 +1149,7 @@ function cqn4sql(originalQuery, model) {
     if (column.val || column.func || column.SELECT) return [column]
 
     const structsAreUnfoldedAlready = model.meta.unfolded?.includes('structs')
-    let { baseName, columnAlias, tableAlias } = names
+    let { baseName, columnAlias = column.as, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let leafAssoc
@@ -1128,7 +1192,7 @@ function cqn4sql(originalQuery, model) {
         baseName = getFullName(replacedBy.$refLinks?.[replacedBy.$refLinks.length - 2].definition)
       if (replacedBy.isJoinRelevant)
         // we need to provide the correct table alias
-        tableAlias = getQuerySourceName(replacedBy)
+        tableAlias = getTableAlias(replacedBy)
 
       if (replacedBy.expand) return [{ as: baseName }]
 
@@ -1297,22 +1361,21 @@ function cqn4sql(originalQuery, model) {
 
           const as = getNextAvailableTableAlias(getLastStringSegment(next.alias))
           next.alias = as
-          if (next.definition.value) {
-            throw new Error(
-              `Calculated elements cannot be used in “exists” predicates in: “exists ${tokenStream[i + 1].ref
-                .map(idOnly)
-                .join('.')}”`,
-            )
-          }
           if (!next.definition.target) {
+            let type = next.definition.type
+            if (isCalculatedElement(next.definition)) {
+              // try to infer the type at the leaf for better error message
+              const { $refLinks } = next.definition.value
+              type = $refLinks?.at(-1).definition.type || 'expression'
+            }
             throw new Error(
               `Expecting path “${tokenStream[i + 1].ref
                 .map(idOnly)
-                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${
-                next.definition.type
-              }”`,
+                .join('.')}” following “EXISTS” predicate to end with association/composition, found “${type}”`,
             )
           }
+          const { definition: fkSource } = next
+          ensureValidForeignKeys(fkSource, ref)
           whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
         }
 
@@ -1349,12 +1412,12 @@ function cqn4sql(originalQuery, model) {
         const keys = def.keys // use key aspect on entity
         const keyValComparisons = []
         const flatKeys = []
-        Object.values(keys)
-          // up__ID already part of inner where exists, no need to add it explicitly here
-          .filter(k => k !== backlinkFor($baseLink.definition)?.[0])
-          .forEach(v => {
+        for (const v of Object.values(keys)) {
+          if (v !== backlinkFor($baseLink.definition)?.[0]) {
+            // up__ID already part of inner where exists, no need to add it explicitly here
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
-          })
+          }
+        }
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
@@ -1417,7 +1480,7 @@ function cqn4sql(originalQuery, model) {
             // hence we need to ignore the alias of the `$baseLink`
             const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
-            const tableAlias = getQuerySourceName(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
+            const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
               let name = calculateElementName(token, getFullName)
               result.ref = [tableAlias, name]
@@ -1514,10 +1577,7 @@ function cqn4sql(originalQuery, model) {
       if (!def.$refLinks) return def
       const leaf = def.$refLinks[def.$refLinks.length - 1]
       const first = def.$refLinks[0]
-      const tableAlias = getQuerySourceName(
-        def,
-        def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink,
-      )
+      const tableAlias = getTableAlias(def, def.ref.length > 1 && first.definition.isAssociation ? first : $baseLink)
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
@@ -1573,7 +1633,7 @@ function cqn4sql(originalQuery, model) {
           transformedFrom.args.push(f)
         }
       })
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else if (from.SELECT) {
       transformedFrom = transformSubquery(from)
       if (from.as) {
@@ -1581,9 +1641,9 @@ function cqn4sql(originalQuery, model) {
         transformedFrom.as = from.as
       } else {
         // select from anonymous query, use artificial alias
-        transformedFrom.as = Object.keys(originalQuery.sources)[0]
+        transformedFrom.as = Object.keys(inferred.sources)[0]
       }
-      return { transformedFrom }
+      return { transformedFrom, transformedWhere: existingWhere }
     } else {
       return _transformFrom()
     }
@@ -1601,34 +1661,36 @@ function cqn4sql(originalQuery, model) {
       const refReverse = [...from.ref].reverse()
       const $refLinksReverse = [...transformedFrom.$refLinks].reverse()
       for (let i = 0; i < refReverse.length; i += 1) {
-        const stepLink = $refLinksReverse[i]
+        const current = $refLinksReverse[i]
 
-        let nextStepLink = $refLinksReverse[i + 1]
+        let next = $refLinksReverse[i + 1]
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
-        if (stepLink.definition.target && nextStepLink) {
+        if (current.definition.target && next) {
           const { where, args } = nextStep
-          if (isStructured(nextStepLink.definition)) {
+          if (isStructured(next.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
               2 +
               $refLinksReverse
                 .slice(i + 2)
                 .findIndex(rl => rl.definition.isAssociation || rl.definition.kind === 'entity')
-            nextStepLink = $refLinksReverse[nextStepIndex]
+            next = $refLinksReverse[nextStepIndex]
           }
-          let as = getLastStringSegment(nextStepLink.alias)
+          let as = getLastStringSegment(next.alias)
           /**
            * for an `expand` subquery, we do not need to add
            * the table alias of the `expand` host to the join tree
            * --> This is an artificial query, which will later be correlated
            * with the main query alias. see @function expandColumn()
            */
-          if (!(originalQuery.SELECT?.expand === true)) {
+          if (!(inferred.SELECT?.expand === true)) {
             as = getNextAvailableTableAlias(as)
           }
-          nextStepLink.alias = as
-          whereExistsSubSelects.push(getWhereExistsSubquery(stepLink, nextStepLink, where, false, args))
+          next.alias = as
+          const { definition: fkSource } = current
+          ensureValidForeignKeys(fkSource, from.ref)
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, where, false, args))
         }
       }
 
@@ -1670,6 +1732,14 @@ function cqn4sql(originalQuery, model) {
       transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
+    }
+  }
+
+  function ensureValidForeignKeys(fkSource, ref, kind = null) {
+    if (fkSource.keys && fkSource.keys.length === 0) {
+      const path = prettyPrintRef(ref, model)
+      if (kind === 'expand') throw new Error(`Can't expand “${fkSource.name}” as it has no foreign keys`)
+      throw new Error(`Path step “${fkSource.name}” of “${path}” has no foreign keys`)
     }
   }
 
@@ -1749,7 +1819,6 @@ function cqn4sql(originalQuery, model) {
     const { on, keys } = assocRefLink.definition
     const target = getDefinition(assocRefLink.definition.target)
     let res
-    // technically we could have multiple backlinks
     if (keys) {
       const fkPkPairs = getParentKeyForeignKeyPairs(assocRefLink.definition, targetSideRefLink, true)
       const transformedOn = []
@@ -1783,6 +1852,11 @@ function cqn4sql(originalQuery, model) {
           result[i] = asXpr(xpr)
           continue
         }
+        if (lhs.args) {
+          const args = calculateOnCondition(lhs.args)
+          result[i] = { ...lhs, args }
+          continue
+        }
         const rhs = result[i + 2]
         if (rhs?.ref || lhs.ref) {
           // if we have refs on each side of the comparison, we might need to perform tuple expansion
@@ -1798,6 +1872,10 @@ function cqn4sql(originalQuery, model) {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
+              if (res in pseudos.elements) {
+                thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
+                return pseudos.elements[res]
+              }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
@@ -1826,8 +1904,9 @@ function cqn4sql(originalQuery, model) {
               lhs.ref[0] in { $self: true, $projection: true } ? getParentEntity(assocRefLink.definition) : target,
             )
           else {
-            const lhsLeafArt = lhs.ref && lhs.$refLinks[lhs.$refLinks.length - 1].definition
-            const rhsLeafArt = rhs.ref && rhs.$refLinks[rhs.$refLinks.length - 1].definition
+            const lhsLeafArt = lhs.ref && lhs.$refLinks.at(-1).definition
+            const rhsLeafArt = rhs.ref && rhs.$refLinks.at(-1).definition
+            // compare structures in on-condition
             if ((lhsLeafArt?.target && rhsLeafArt?.target) || (lhsLeafArt?.elements && rhsLeafArt?.elements)) {
               if (rhs.$refLinks[0].definition !== assocRefLink.definition) {
                 rhs.ref.unshift(targetSideRefLink.alias)
@@ -1872,6 +1951,12 @@ function cqn4sql(originalQuery, model) {
               }
             })
           } else if (backlink.keys) {
+            // sanity check: error out if we can't produce a join
+            if (backlink.keys.length === 0) {
+              throw new Error(
+                `Path step “${assocRefLink.alias}” is a self comparison with “${getFullName(backlink)}” that has no foreign keys`,
+              )
+            }
             // managed backlink -> calculate fk-pk pairs
             const fkPkPairs = getParentKeyForeignKeyPairs(backlink, targetSideRefLink)
             fkPkPairs.forEach((pair, j) => {
@@ -1884,7 +1969,7 @@ function cqn4sql(originalQuery, model) {
           }
           result.splice(i, 3, ...(wrapInXpr ? [asXpr(backlinkOnCondition)] : backlinkOnCondition))
           i += wrapInXpr ? 1 : backlinkOnCondition.length // skip inserted tokens
-        } else if (lhs.ref) {
+        } else if (lhs.ref && lhs.$refLinks[0]?.target !== pseudos) {
           if (lhs.ref[0] === '$self') {
             // $self in ref of length > 1
             // if $self is followed by association, the alias of the association must be used
@@ -1892,11 +1977,7 @@ function cqn4sql(originalQuery, model) {
             // otherwise $self is replaced by the alias of the entity
             else result[i].ref.splice(0, 1, targetSideRefLink.alias)
           } else if (lhs.ref.length > 1) {
-            if (
-              !(lhs.ref[0] in pseudos.elements) &&
-              lhs.ref[0] !== assocRefLink.alias &&
-              lhs.ref[0] !== targetSideRefLink.alias
-            ) {
+            if (lhs.ref[0] !== assocRefLink.alias && lhs.ref[0] !== targetSideRefLink.alias) {
               // we need to find correct table alias for the structured access
               const { definition } = lhs.$refLinks[0]
               if (definition === assocRefLink.definition) {
@@ -2084,6 +2165,35 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
+   * For a given search expression return a function "search" which holds the search expression
+   * as well as the searchable columns as arguments.
+   *
+   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} query - The FROM clause of the CQN statement.
+   *
+   * @returns {(Object|null)} returns either:
+   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
+   */
+  function getSearchTerm(search, query) {
+    const entity = query.SELECT.from.SELECT ? query.SELECT.from : query.target
+    const searchIn = computeColumnsToBeSearched(inferred, entity)
+    if (searchIn.length > 0) {
+      const xpr = search
+      const searchFunc = {
+        func: 'search',
+        args: [
+          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
+        ],
+      }
+      return searchFunc
+    } else {
+      return null
+    }
+  }
+
+  /**
    * Calculates the name of the source which can be used to address the given node.
    *
    * @param {object} node a csn object with a `ref` and `$refLinks`
@@ -2093,7 +2203,7 @@ function cqn4sql(originalQuery, model) {
    *                           the combined elements of the query
    * @returns the source name which can be used to address the node
    */
-  function getQuerySourceName(node, $baseLink = null) {
+  function getTableAlias(node, $baseLink = null) {
     if (!node || !node.$refLinks || !node.ref) {
       throw new Error('Invalid node')
     }
@@ -2128,11 +2238,11 @@ function cqn4sql(originalQuery, model) {
          * - but differs from the explicit alias, assigned by cqn4sql (i.e. <subquery>.from.uniqueSubqueryAlias)
          */
         if (
-          originalQuery.SELECT?.from.uniqueSubqueryAlias &&
-          !originalQuery.SELECT?.from.as &&
+          inferred.SELECT?.from.uniqueSubqueryAlias &&
+          !inferred.SELECT?.from.as &&
           firstStep === getLastStringSegment(transformedQuery.SELECT.from.ref[0])
         ) {
-          return originalQuery.SELECT?.from.uniqueSubqueryAlias
+          return inferred.SELECT?.from.uniqueSubqueryAlias
         }
         return node.ref[0]
       }
@@ -2164,13 +2274,6 @@ function cqn4sql(originalQuery, model) {
     return result
   }
 }
-
-module.exports = Object.assign(cqn4sql, {
-  // for own tests only:
-  eqOps,
-  notEqOps,
-  notSupportedOps,
-})
 
 function calculateElementName(token) {
   const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
@@ -2250,4 +2353,19 @@ function setElementOnColumns(col, element) {
 
 const getName = col => col.as || col.ref?.at(-1)
 const idOnly = ref => ref.id || ref
+const refWithConditions = step => {
+  let appendix
+  const { args, where } = step
+  if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
+  else if (where) appendix = JSON.stringify(where)
+  else if (args) appendix = JSON.stringify(args)
+  return appendix ? step.id + appendix : step
+}
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
+
+module.exports = Object.assign(cqn4sql, {
+  // for own tests only:
+  eqOps,
+  notEqOps,
+  notSupportedOps,
+})

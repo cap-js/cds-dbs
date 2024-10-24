@@ -6,6 +6,7 @@ const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
 
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
@@ -33,6 +34,7 @@ class HDBDriver extends driver {
 
     super(creds)
     this._native = hdb.createClient(creds)
+    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
 
@@ -96,7 +98,7 @@ class HDBDriver extends driver {
                 ? null
                 : (
                   row[col].createReadStream?.()
-                  || Readable.from(echoStream(row[col]), { objectMode: false })
+                  || row[col]
                 )
               : row[col]
           }
@@ -135,7 +137,7 @@ class HDBDriver extends driver {
 
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
-    const isArray = Array.isArray(rows)        
+    const isArray = Array.isArray(rows)
     const result = isArray ? {...rows[0]} : {...rows}
 
     // merge table output params into scalar params
@@ -146,7 +148,7 @@ class HDBDriver extends driver {
         result[params[i].PARAMETER_NAME] = args[i]
       }
     }
-  
+
     return result
   }
 
@@ -167,10 +169,6 @@ class HDBDriver extends driver {
       streams,
     }
   }
-}
-
-function* echoStream(ret) {
-  yield ret
 }
 
 async function* rsIterator(rs, one) {

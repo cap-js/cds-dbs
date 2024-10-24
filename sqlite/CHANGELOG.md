@@ -4,6 +4,28 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.4](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.3...sqlite-v1.7.4) (2024-10-15)
+
+
+### Fixed
+
+* enforce db file to be existent before server start ([#742](https://github.com/cap-js/cds-dbs/issues/742)) ([64a9018](https://github.com/cap-js/cds-dbs/commit/64a90186aaf44b3426df2e9adbf9a1b4cf2f92b7))
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+
+## [1.7.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.2...sqlite-v1.7.3) (2024-07-09)
+
+
+### Fixed
+
+* expand reach of `cds.features.ieee754compatible` to `int64` ([#722](https://github.com/cap-js/cds-dbs/issues/722)) ([7eef5e9](https://github.com/cap-js/cds-dbs/commit/7eef5e9c5ec286285b2552abd1e673175c59fdc1))
+
+## [1.7.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.1...sqlite-v1.7.2) (2024-06-19)
+
+
+### Fixed
+
+* **deps:** update dependency better-sqlite3 to v11 ([#669](https://github.com/cap-js/cds-dbs/issues/669)) ([7167ec5](https://github.com/cap-js/cds-dbs/commit/7167ec53d2e530bfa81def394acfa857e7d5b4fa))
+
 ## [1.7.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.0...sqlite-v1.7.1) (2024-05-16)
 
 

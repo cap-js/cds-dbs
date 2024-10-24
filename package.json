@@ -10,21 +10,10 @@
     "hana"
   ],
   "devDependencies": {
-    "@capire/sflight": "github:sap-samples/cap-sflight",
-    "@sap/hana-client": "^2.16.26",
-    "@typescript-eslint/eslint-plugin": "^7.6.0",
-    "@typescript-eslint/parser": "^7.6.0",
-    "axios": "^1",
-    "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
-    "chai-subset": "^1.6.0",
-    "eslint": "^8",
-    "express": "^4",
-    "hdb": "^0.19.5",
-    "jest": "^29"
+    "@capire/sflight": "github:sap-samples/cap-sflight"
   },
   "scripts": {
-    "test": "CDS_JEST_MEM_FIX=1 npm t -w db-service -w sqlite",
+    "test": "npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
   },
   "license": "SEE LICENSE"

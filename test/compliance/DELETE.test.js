@@ -7,7 +7,10 @@ const RootPWithKeys = 'complex.RootPWithKeys'
 const ChildPWithWhere = 'complex.ChildPWithWhere'
 
 describe('DELETE', () => {
-  const { expect } = cds.test(complex)
+  const { data, expect } = cds.test(__dirname + '/resources')
+  data.autoIsolation(true)
+  data.autoReset()
+
   describe('from', () => {
     describe('deep', () => {
       beforeEach(async () => {
@@ -70,6 +73,12 @@ describe('DELETE', () => {
         const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
         expect(grandchild[0].ID).to.be.eq(9)
       })
+    })
+
+    test('ref', async () => {
+      const { globals } = cds.entities('basic.projection')
+      const changes = await cds.run(CQL`DELETE FROM ${globals}`)
+      expect(changes | 0).to.eq(3, 'Ensure that all rows are affected')
     })
 
     test.skip('missing', () => {

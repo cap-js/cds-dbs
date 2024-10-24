@@ -1,10 +1,10 @@
 # CDS database service for Postgres
 
-Welcome to the new Postgres database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on new, streamlined database architecture and [*pg* driver](https://www.npmjs.com/package/pg) .
+Welcome to the PostgreSQL database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on streamlined database architecture and [*pg* driver](https://www.npmjs.com/package/pg) .
 
 ## Setup
 
-In general, all you need to do is to install one of the database packages, as follows:
+In general, all you need to do is to install the database package, as follows:
 
 ```sh
 npm add @cap-js/postgres
@@ -38,7 +38,7 @@ Copyright 2023 SAP SE or an SAP affiliate company and cds-dbs contributors. Plea
 `@cap-js/postgres` works as a drop-in replacement for `cds-pg`.  
 However, some preliminary checks and cleanups help:
 
-- for using the BTP Postgres Hyperscaler as database, 
+- for using the BTP Postgres Hyperscaler as database,
   - know that the credentials are picked up automatically by from the enviornment (`VCAP_SERVICES.postgres`)
   - the service binding label is `postgresql-db`
   - `cds-dbm` is replaced by a hand-crafted "db-deployer" app &rarr; see below
@@ -47,7 +47,7 @@ However, some preliminary checks and cleanups help:
 
 ### schema migration
 
-`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from HANA and SQLite.  
+`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from SAP HANA and SQLite.  
 Enabling schema migration in an existing `cds-pg`-based project consists of generating and deploying a "csn-snapshot" of your database structure.
 
 #### local development
@@ -134,11 +134,11 @@ now, re-use the CDS definitions: `SELECT.from(Beers).columns('brewery_ID').group
 
 So please adjust your `CQL` statements accordingly.
 
-### timezones (potential _**BREAKING CHANGE**_)
+### timezones (potential **BREAKING CHANGE**)
 
 any date- + time-type will get stored in [`UTC`](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) **without any timezone identifier in the actual data field**.  
 CAP's inbound- and outbound adapters take care of converting incoming and outgoing data from/to the desired time zones.  
-So when a `dateime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format  
+So when a `datetime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format  
   `2009-01-01T15:00:00+01:00` (15:00:00 on January 1 2009 in Vienna (CEST))  
 will get stored as  
   `2009-01-01T13:00:00` (13:00:00 on January 1 2009 in UTC).

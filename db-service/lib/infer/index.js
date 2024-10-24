@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
+const { isCalculatedOnRead } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -24,7 +25,7 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
  */
 function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
-  const inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  const inferred = originalQuery
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
@@ -170,7 +171,8 @@ function infer(originalQuery, model) {
     if (list) list.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
     if (!ref) return
     init$refLinks(arg)
-    ref.forEach((step, i) => {
+    let i = 0
+    for (const step of ref) {
       const id = step.id || step
       if (i === 0) {
         // infix filter never have table alias
@@ -231,7 +233,8 @@ function infer(originalQuery, model) {
           step.where.forEach(walkTokenStream)
         } else throw new Error('A filter can only be provided when navigating along associations')
       }
-    })
+      i += 1
+    }
     const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
     if (definition.value) {
       // nested calculated element
@@ -744,7 +747,7 @@ function infer(originalQuery, model) {
           joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
         }
       }
-      if (leafArt.value && !leafArt.value.stored) {
+      if (isCalculatedOnRead(leafArt)) {
         linkCalculatedElement(column, $baseLink, baseColumn)
       }
 
@@ -1013,9 +1016,11 @@ function infer(originalQuery, model) {
           }
           return true
         }
-        if (assoc && assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) {
+        if (assoc) {
           // foreign key access without filters never join relevant
-          return false
+          if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
+          // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
+          return true
         }
         if (link.definition.target && link.definition.keys) {
           if (column.ref[i + 1] || assoc) fkAccess = false
@@ -1044,15 +1049,17 @@ function infer(originalQuery, model) {
       if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
         const { elements } = getDefinitionFromSources(sources, aliases[0])
         // only one query source and no overwritten columns
-        Object.keys(elements)
-          .filter(k => !exclude(k))
-          .forEach(k => {
+        for (const k of Object.keys(elements)) {
+          if (!exclude(k)) {
             const element = elements[k]
-            if (element.type !== 'cds.LargeBinary') queryElements[k] = element
-            if (element.value) {
+            if (element.type !== 'cds.LargeBinary') {
+              queryElements[k] = element
+            }
+            if (isCalculatedOnRead(element)) {
               linkCalculatedElement(element)
             }
-          })
+          }
+        }
         return
       }
 
@@ -1065,7 +1072,7 @@ function infer(originalQuery, model) {
         if (exclude(name) || name in queryElements) return true
         const element = tableAliases[0].tableAlias.elements[name]
         if (element.type !== 'cds.LargeBinary') queryElements[name] = element
-        if (element.value) {
+        if (isCalculatedOnRead(element)) {
           linkCalculatedElement(element)
         }
       })
@@ -1198,6 +1205,8 @@ function infer(originalQuery, model) {
         firstStepIsEntity = true
         if (arg.$refLinks.length === 1) return `${cur.definition.name}`
         return `${cur.definition.name}`
+      } else if (cur.definition.SELECT) {
+        return `${cur.definition.as}`
       }
       const dot = i === 1 && firstStepIsEntity ? ':' : '.' // divide with colon if first step is entity
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name

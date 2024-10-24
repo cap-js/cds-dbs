@@ -2,8 +2,6 @@
 const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
-const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
-
 
 /**
  * @TODO Review the mean tests and verify, that the resulting cqn 4 sql is valid.
@@ -133,6 +131,16 @@ describe('EXISTS predicate in where', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID } WHERE exists books and name = 'Horst'`, model)
       expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
           WHERE exists ( select 1 from bookshop.Books as books where books.author_ID = Authors.ID )
+           AND Authors.name = 'Horst'
+        `)
+    })
+    it('exists predicate is followed by association-like calculated element', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors { ID } WHERE exists booksWithALotInStock and name = 'Horst'`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
+          WHERE exists ( select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) )
            AND Authors.name = 'Horst'
         `)
     })
@@ -548,6 +556,31 @@ describe('EXISTS predicate in where', () => {
         }
       `)
     })
+    it('exists in case with two branches both are association-like calculated element', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Authors
+       { ID,
+         case when exists booksWithALotInStock[price > 10 or price < 20]  then 1
+              when exists booksWithALotInStock[price > 100 or price < 120] then 2
+         end as descr
+       }`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Authors as Authors
+        { Authors.ID,
+          case 
+          when exists
+          (
+            select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) and ( booksWithALotInStock.price > 10 or booksWithALotInStock.price < 20 )
+          ) then 1
+          when exists
+          (
+            select 1 from bookshop.Books as booksWithALotInStock2 where ( booksWithALotInStock2.author_ID = Authors.ID ) and ( booksWithALotInStock2.stock > 100 ) and ( booksWithALotInStock2.price > 100 or booksWithALotInStock2.price < 120 )
+          ) then 2
+          end as descr
+        }
+      `)
+    })
   })
 
   describe('association has structured keys', () => {
@@ -841,6 +874,13 @@ describe('Scoped queries', () => {
         SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
       )`)
   })
+  it('handles FROM path with backlink association for association-like calculated element', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:booksWithALotInStock {booksWithALotInStock.ID}`, model)
+    expect(query).to.deep
+      .equal(CQL`SELECT from bookshop.Books as booksWithALotInStock {booksWithALotInStock.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
+      )`)
+  })
 
   it('handles FROM path with unmanaged composition and prepends source side alias', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books:texts { locale }`, model)
@@ -908,7 +948,6 @@ describe('Scoped queries', () => {
       ) AND author.ID = 150`)
   })
 
-
   // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
   // only shortcut notation is not allowed
   // TODO: message can include the fix: `write ”<key> = 42” explicitly`
@@ -960,6 +999,14 @@ describe('Scoped queries', () => {
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
         SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
           SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        )
+      )`)
+  })
+  it('handles paths with two associations, first is association-like calculated element', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:booksWithALotInStock.genre {genre.ID}`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Books as booksWithALotInStock where booksWithALotInStock.genre_ID = genre.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
         )
       )`)
   })
@@ -1300,54 +1347,6 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   })
 })
 
-
-describe('cap issue', () => {
-  let model
-  beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/cap_issue').then(cds.linked)
-    model = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
-  })
-  it('MUST ... two EXISTS both on same path in where with real life example', () => {
-    // make sure that in a localized scenario, all aliases
-    // are properly replaced in the on-conditions.
-
-    // the issue here was that we had a where condition like
-    // `where exists foo[id=1] or exists foo[id=2]`
-    // with `foo` being an association `foo : Association to one Foo on foo.ID = foo_ID;`.
-    // While building up the where exists subqueries, we calculate unique table aliases for `foo`,
-    // which results in a table alias `foo2` for the second condition of the initial where clause.
-    // Now, if we incorporate the on-condition into the where clause of the second where exists subquery,
-    // we must replace the table alias `foo` from the on-condition with `foo2`.
-
-    // the described scenario didn't work because in a localized scenario, the localized `foo`
-    // association (pointing to `localized.Foo`) was compared to the non-localized version
-    // of the association (pointing to `Foo`) and hence, the alias was not properly replaced
-    let q = SELECT.localized `from Foo:boos { ID }
-      where exists foo.specialOwners[owner2_userID = $user.id]
-      or exists foo.activeOwners[owner_userID = $user.id]
-    `
-    let q2 = cqn4sql(q, model)
-    expect(cds.clone(q2)).to.deep.equal(CQL(`
-      SELECT from localized.Boo as boos { boos.ID } WHERE EXISTS (
-        SELECT 1 from localized.Foo as Foo3 WHERE Foo3.ID = boos.foo_ID
-      ) AND (
-        EXISTS (
-          SELECT 1 from localized.Foo as foo WHERE foo.ID = boos.foo_ID AND EXISTS (
-            SELECT 1 from ${transitive_?'localized.':''}SpecialOwner2 as specialOwners
-            WHERE specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id
-          )
-        )
-        OR
-        EXISTS (
-          SELECT 1 from localized.Foo as foo2 WHERE foo2.ID = boos.foo_ID AND EXISTS (
-            SELECT 1 from ${transitive_?'localized.':''}ActiveOwner as activeOwners
-            WHERE activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id
-          )
-        )
-      )
-    `))
-  })
-})
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {

@@ -192,12 +192,12 @@ class SQLiteService extends SQLService {
       ...super.InputConverters,
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
+      Date: e => e === '?' ? e : `strftime('%Y-%m-%d',${e})`,
+      Time: e => e === '?' ? e : `strftime('%H:%M:%S',${e})`,
       // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
-      DateTime: e => `ISO(${e})`,
-      Timestamp: e => `ISO(${e})`,
+      DateTime: e => e === '?' ? e : `ISO(${e})`,
+      Timestamp: e => e === '?' ? e : `ISO(${e})`,
     }
 
     static OutputConverters = {
@@ -217,10 +217,13 @@ class SQLiteService extends SQLService {
       Timestamp: undefined,
       // int64 is stored as native int64 for best comparison
       // Reading int64 as string to not loose precision
-      Int64: expr => `CAST(${expr} as TEXT)`,
+      Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `CAST(${expr} as TEXT)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+        : `CAST(${expr} as TEXT)`
+        : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }

@@ -1,0 +1,55 @@
+name: 'Start HANA'
+description: 'Starts an local HANA Express instance for isolated testing'
+inputs:
+  GITHUB_TOKEN:
+    description: 'Derivative token for using the GitHub REST API'
+    required: true
+outputs:
+  TAG:
+    description: "The Image Tag"
+    value: ${{ steps.find-hxe.outputs.TAG }}
+  IMAGE_ID:
+    description: "The "
+    value: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+runs:
+  using: "composite"
+  steps:
+    - name: Find HXE image
+      id: find-hxe
+      shell: bash
+      # TODO: replace hana/tools/docker/hxe/* with ${{ github.action_path }}
+      run: |
+        TAG="$(sha1sum hana/tools/docker/hxe/* | sha1sum --tag | grep '[^ ]*$' -o)";
+        IMAGE_ID=ghcr.io/${{ github.repository_owner }}/hanaexpress;
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]');
+        echo "TAG=${TAG}" >> $GITHUB_OUTPUT;
+        echo "IMAGE_ID=${IMAGE_ID}" >> $GITHUB_OUTPUT;
+        GHCR_TOKEN=$(echo ${{ inputs.GITHUB_TOKEN }} | base64);
+        if
+          curl -H "Authorization: Bearer ${GHCR_TOKEN}" https://ghcr.io/v2/${{ github.repository_owner }}/hanaexpress/manifests/$TAG | grep "MANIFEST_UNKNOWN";
+        then
+          echo "BUILD_HXE=true" >> $GITHUB_OUTPUT
+        else
+          echo "BUILD_HXE=false" >> $GITHUB_OUTPUT
+        fi;
+    - name: Set up Docker Buildx
+      if: ${{ steps.find-hxe.outputs.BUILD_HXE == 'true' }}
+      uses: docker/setup-buildx-action@v3
+    - name: Build HXE image
+      if: ${{ steps.find-hxe.outputs.BUILD_HXE == 'true' }}
+      shell: bash
+      run: |
+        echo "${{ inputs.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
+        DOCKER_BUILDKIT=1 docker build -t $IMAGE_ID:$TAG ./hana/tools/docker/hxe;
+        docker push $IMAGE_ID:$TAG;
+      env:
+        TAG: ${{ steps.find-hxe.outputs.TAG }}
+        IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
+    - name: Start HXE image
+      shell: bash
+      run: |
+        echo "${{ inputs.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
+        { npm start -w hana; } &
+      env:
+        TAG: ${{ steps.find-hxe.outputs.TAG }}
+        IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
