@@ -22,7 +22,7 @@ class HDBDriver extends driver {
    */
   constructor(creds) {
     creds = {
-      useCesu8: false,
+      useCesu8: true,
       fetchSize: 1 << 16, // V8 default memory page size
       ...creds,
     }
