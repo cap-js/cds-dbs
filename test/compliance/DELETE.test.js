@@ -80,10 +80,6 @@ describe('DELETE', () => {
       const changes = await cds.run(CQL`DELETE FROM ${globals}`)
       expect(changes | 0).to.eq(3, 'Ensure that all rows are affected')
     })
-
-    test.skip('missing', () => {
-      throw new Error('not supported')
-    })
   })
 
   describe('where', () => {
