@@ -77,7 +77,7 @@ describe('DELETE', () => {
 
     test('ref', async () => {
       const { globals } = cds.entities('basic.projection')
-      const changes = await cds.run(CQL`DELETE FROM ${globals}`)
+      const changes = await cds.run(DELETE.from(globals))
       expect(changes | 0).to.eq(3, 'Ensure that all rows are affected')
     })
   })
