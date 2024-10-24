@@ -1306,7 +1306,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // name delimited with "" allows any character
     const match = sql
       .match(
-        /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
+        /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|((?<schema_undelimited>\w+)\.)?(?<undelimited>\w+))\s*\(/i
       )
     return (
       match && {
