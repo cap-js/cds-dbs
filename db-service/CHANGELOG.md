@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.0...db-service-v1.14.1) (2024-10-24)
+
+
+### Fixed
+
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+
 ## [1.14.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.13.0...db-service-v1.14.0) (2024-10-15)
 
 
