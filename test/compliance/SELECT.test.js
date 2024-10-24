@@ -306,6 +306,12 @@ describe('SELECT', () => {
       assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
     })
 
+    test('combine expr with nested functions and other compare', async () => {
+      const { string } = cds.entities('basic.literals')
+      const res = await cds.run(CQL`SELECT string FROM ${string} WHERE string != ${'foo'} and contains(tolower(string),tolower(${'bar'}))`)
+      assert.strictEqual(res.length, 0, 'Ensure that no row is coming back')
+    })
+
     test('combine expr and other compare', async () => {
       const { globals } = cds.entities('basic.literals')
       const res = await cds.run(CQL`SELECT bool FROM ${globals} WHERE (bool != ${true}) and bool = ${false}`)
