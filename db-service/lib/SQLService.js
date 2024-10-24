@@ -214,7 +214,7 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      let { compositions } = req.target
+      let { compositions } = (req.target ??= req.query.target)
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
