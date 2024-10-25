@@ -333,6 +333,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -421,6 +422,11 @@ class HANAService extends SQLService {
         }
 
         if (parent && (limit || one)) {
+          if (limit && limit.rows == null) {
+            // same error as in limit(), but for limits in expand
+            throw new Error('Rows parameter is missing in SELECT.limit(rows, offset)')
+          }
+
           // Apply row number limits
           q.where(
             one
@@ -538,7 +544,7 @@ class HANAService extends SQLService {
                 this.values = values
                 return false
               }
-              if (x.element?.type?.indexOf('Binary') > -1) {
+              if (x.element?.type in this.BINARY_TYPES) {
                 blobs[this.column_name(x)] = null
                 return false
               }
@@ -961,7 +967,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           // When it is a local check it cannot be compared outside of the xpr
           if (up in logicOperators) {
             // ensure AND is not part of BETWEEN
-            if (up === 'AND' && xpr[i - 2]?.toUpperCase() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
             return !local
           }
           // When a compare operator is found the expression is a comparison
@@ -983,21 +989,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {         
-        const listMapped = [] 
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+        const listMapped = []
         for (let l of list.list) {
-          const obj ={}
-          for (let i = 0; i< l.list.length; i++) {
+          const obj = {}
+          for (let i = 0; i < l.list.length; i++) {
             const c = l.list[i]
             if (Buffer.isBuffer(c.val)) {
               return super.list(list)
-            }            
+            }
             obj[`V${i}`] = c.val
           }
           listMapped.push(obj)
-        }        
+        }
         this.values.push(JSON.stringify(listMapped))
-        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)       
+        const extraction = first.list.map((v, i) => `"${i}" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.V${i}'`)
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
@@ -1005,9 +1011,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         for (let c of list.list) {
           if (Buffer.isBuffer(c.val)) {
             return super.list(list)
-          } 
+          }
         }
-        const v = first        
+        const v = first
         const extraction = `"val" ${this.constructor.InsertTypeMap[typeof v.val]()} PATH '$.val'`
         this.values.push(JSON.stringify(list.list))
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
@@ -1297,8 +1303,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   }
 
   async _getProcedureMetadata(name, schema) {
-    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema?.toUpperCase?.() === 'SYS' ? `'SYS'` : 'CURRENT_SCHEMA'
-      } AND PROCEDURE_NAME = '${name}' AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
+    const sqlString = this.class.CQN2SQL.prototype.string
+    name = typeof name === 'string' ? sqlString(name) : `'${name}'`
+    schema = typeof schema === 'string' ? sqlString(schema) : 'CURRENT_SCHEMA'
+    const query = `SELECT PARAMETER_NAME FROM SYS.PROCEDURE_PARAMETERS WHERE SCHEMA_NAME = ${schema} AND PROCEDURE_NAME = ${name} AND PARAMETER_TYPE IN ('OUT', 'INOUT') ORDER BY POSITION`
     return await super.onPlainSQL({ query, data: [] })
   }
 
@@ -1306,7 +1314,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // name delimited with "" allows any character
     const match = sql
       .match(
-        /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|(?<schema_undelimited>\w+\.)?(?<undelimited>\w+))\s*\(/i
+        /^\s*call \s*(("(?<schema_delimited>\w+)"\.)?("(?<delimited>.+)")|((?<schema_undelimited>\w+)\.)?(?<undelimited>\w+))\s*\(/i
       )
     return (
       match && {
