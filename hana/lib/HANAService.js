@@ -538,7 +538,7 @@ class HANAService extends SQLService {
                 this.values = values
                 return false
               }
-              if (x.element?.type?.indexOf('Binary') > -1) {
+              if (x.element?.type in this.BINARY_TYPES) {
                 blobs[this.column_name(x)] = null
                 return false
               }

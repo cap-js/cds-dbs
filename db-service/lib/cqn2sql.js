@@ -4,12 +4,6 @@ const cqn4sql = require('./cqn4sql')
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
-const BINARY_TYPES = {
-  'cds.Binary': 1,
-  'cds.LargeBinary': 1,
-  'cds.hana.BINARY': 1,
-}
-
 const { Readable } = require('stream')
 
 const DEBUG = (() => {
@@ -40,6 +34,12 @@ class CQN2SQLRenderer {
       this.class.prototype.name = (name) => name.id || name
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
+  }
+
+  BINARY_TYPES = {
+    'cds.Binary': 1,
+    'cds.LargeBinary': 1,
+    'cds.hana.BINARY': 1,
   }
 
   static _add_mixins(aspect, mixins) {
@@ -569,7 +569,7 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[key]?.type in BINARY_TYPES) {
+          if (elements[key]?.type in this.BINARY_TYPES) {
             val = transformBase64(val)
           }
           buffer += `${keyJSON}${JSON.stringify(val)}`
@@ -617,7 +617,7 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[this.columns[key]]?.type in BINARY_TYPES) {
+          if (elements[this.columns[key]]?.type in this.BINARY_TYPES) {
             val = transformBase64(val)
           }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
