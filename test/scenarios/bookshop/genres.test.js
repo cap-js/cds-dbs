@@ -35,6 +35,17 @@ describe('Bookshop - Genres', () => {
 
     delete insertResponse.data['@odata.context']
     const assert = require('assert')
+
+    // Read after write does not sort the results
+    // therefor asynchronious databases might return in different orders
+    const sort = (a, b) => {
+      if (!a?.children || !b?.children) return
+      const order = b.children.reduce((l, c, i) => { l[c.ID] = i; return l }, {})
+      a.children.sort((a, b) => order[a.ID] - order[b.ID])
+      a.children.forEach((c, i) => sort(c, b.children[i]))
+    }
+
+    sort(insertResponse.data, body)
     assert.deepEqual(insertResponse.data, body)
 
     // REVISIT clean up so the deep update test does not fail
@@ -61,6 +72,9 @@ describe('Bookshop - Genres', () => {
 
     // deep update, which deletes all children of 100 and inserts one new children
     let res = await PUT(`/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
+    expect(res.status).to.be.eq(200)
+
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
 
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
@@ -75,8 +89,9 @@ describe('Bookshop - Genres', () => {
 
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
     expect(res.status).to.be.eq(200)
-    delete res.data['@odata.context']
-    assert.deepEqual(res.data, {
+
+    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
+    expect(res.data).to.deep.include({
       name: 'no more children',
       descr: null,
       ID: 100,

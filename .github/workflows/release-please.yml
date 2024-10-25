@@ -1,0 +1,66 @@
+on:
+  push:
+    branches:
+      - main
+name: release-please
+jobs:
+  release-please:
+    permissions:
+        contents: write
+        pull-requests: write
+        packages: write
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{secrets.CDS_DBS_TOKEN}}
+      # The logic below handles the npm publication:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      # Run tests
+      - run: npm ci
+        if: ${{ steps.release.outputs.releases_created }}
+      # hana express setup
+      - id: hxe
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: ./.github/actions/hxe
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # testing hana/sqlite/postgres/db-service
+      - run: npm test -ws
+        if: ${{ steps.release.outputs.releases_created }}
+        env:
+          FORCE_COLOR: true
+          TAG: ${{ steps.hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+
+      # Publish packages
+      - name: Publish db-service
+        if: ${{ steps.release.outputs.db-service--release_created }}
+        run: npm publish --workspace db-service --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish sqlite
+        if: ${{ steps.release.outputs.sqlite--release_created }}
+        run: npm publish --workspace sqlite --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish postgres
+        if: ${{ steps.release.outputs.postgres--release_created }}
+        run: npm publish --workspace postgres --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+
+      - name: Publish SAP HANA
+        if: ${{ steps.release.outputs.hana--release_created }}
+        run: npm publish --workspace hana --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}

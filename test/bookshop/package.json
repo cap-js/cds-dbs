@@ -10,9 +10,9 @@
     "index.js"
   ],
   "dependencies": {
+    "@cap-js/sqlite": "latest",
     "@sap/cds": ">=5.9",
-    "express": "^4.17.1",
-    "passport": ">=0.4.1"
+    "express": "^4.17.1"
   },
   "scripts": {
     "genres": "cds serve test/genres.cds",
@@ -20,8 +20,8 @@
     "watch": "cds watch"
   },
   "cds": {
-    "requires": {
-      "db": "sql"
+    "features": {
+      "ieee754compatible": true
     }
   }
 }

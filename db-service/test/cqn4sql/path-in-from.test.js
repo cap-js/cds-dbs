@@ -1,6 +1,6 @@
 'use strict'
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('infix filter on entities', () => {
   let model
@@ -36,13 +36,6 @@ describe('infix filter on entities', () => {
   it('handles infix filter with struct access at entity', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[dedication.text = 'foo'] {Books.ID}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.dedication_text = 'foo'`)
-  })
-
-  // TODO probably not the right place -> this happens in cds.infer
-  it('rejects infix filter at entity containing assoc path', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
-      /Only foreign keys of "author" can be accessed in infix filter/,
-    )
   })
 
   // TODO belongs to flattening

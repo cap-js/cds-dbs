@@ -1,7 +1,10 @@
 'use strict'
 
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const _cqn4sql = require('../../lib/cqn4sql')
+function cqn4sql(q, model = cds.model) {
+  return _cqn4sql(q, model)
+}
+const cds = require('@sap/cds')
 const { expect } = cds.test
 describe('inline', () => {
   let model
@@ -45,6 +48,79 @@ describe('inline', () => {
     }`
     const longResult = cqn4sql(longVersion, model)
     expect(cqn4sql(inlineQuery, model)).to.eql(longResult).to.eql(expected)
+  })
+  it('inline expansion with path expression', () => {
+    let inlineQuery = CQL`select from Employee {
+      department.{
+        name
+      }
+    }`
+    let expected = CQL`select from Employee as Employee
+    left join Department as department on department.id = Employee.department_id
+    {
+      department.name as department_name
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
+  it('structural inline expansion with path expression and infix filter', () => {
+    let inlineQuery = CQL`select from Department {
+      head[job = 'boss'].office.{
+        floor
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+        and head.job = 'boss'
+    {
+      head.office_floor as head_office_floor,
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
+  it('structural inline expansion with path expression and infix filter at leaf', () => {
+    let inlineQuery = CQL`select from Department {
+      head[job = 'boss'].{
+        name
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+        and head.job = 'boss'
+    {
+      head.name as head_name,
+    }`
+    expect(cqn4sql(inlineQuery, model)).to.eql(expected)
+  })
+
+  it('structural inline expansion back and forth', () => {
+    let inlineQuery = CQL`select from Department {
+      head.department.{
+        costCenter
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+    left join Department as department2 on department2.id = head.department_id
+    {
+      department2.costCenter as head_department_costCenter,
+    }`
+    const res = cqn4sql(inlineQuery, model)
+    expect(res).to.eql(expected)
+  })
+
+  it('structural inline expansion back and forth', () => {
+    let inlineQuery = CQL`select from Department {
+      head.department.{
+        costCenter
+      }
+    }`
+    let expected = CQL`select from Department as Department
+    left join Employee as head on head.id = Department.head_id
+    left join Department as department2 on department2.id = head.department_id
+    {
+      department2.costCenter as head_department_costCenter,
+    }`
+    const res = cqn4sql(inlineQuery, model)
+    expect(res).to.eql(expected)
   })
 
   it('mixed with expand', () => {

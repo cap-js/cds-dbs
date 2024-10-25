@@ -1,9 +1,26 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
-const compile = require('@sap/cds-compiler')
+
+// TODO: UCSN -> order is different compared to odata model
+function customSort(a, b) {
+  // Get the last values from the "ref" arrays or set them as empty strings
+  const lastValueA = a.ref && a.ref.length ? a.ref[a.ref.length - 1] : ''
+  const lastValueB = b.ref && b.ref.length ? b.ref[b.ref.length - 1] : ''
+
+  // Compare the last values alphabetically
+  if (lastValueA < lastValueB) {
+    return -1
+  }
+  if (lastValueA > lastValueB) {
+    return 1
+  }
+  // If the last values are equal, maintain their original order
+  return 0
+}
+
 describe('wildcard expansion and exclude clause', () => {
   let model
   beforeAll(async () => {
@@ -28,7 +45,6 @@ describe('wildcard expansion and exclude clause', () => {
         Books.stock,
         Books.price,
         Books.currency_code,
-        Books.image,
         Books.dedication_addressee_ID,
         Books.dedication_text,
         Books.dedication_sub_foo,
@@ -116,6 +132,110 @@ describe('wildcard expansion and exclude clause', () => {
       }`,
     )
   })
+  it('MUST respect smart wildcard rules -> ref replaces wildcard element', () => {
+    const input = CQL`SELECT from bookshop.Bar { *, nested.bar.a as structure }`
+    let query = cqn4sql(input, model)
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Bar as Bar {
+        Bar.ID,
+        Bar.stock,
+        Bar.nested_bar_a as structure,
+        Bar.nested_foo_x,
+        Bar.nested_bar_a,
+        Bar.nested_bar_b,
+        Bar.note,
+        Bar.createdAt,
+        Bar.struct1_foo,
+        Bar.nested1_foo_x
+      }`,
+    )
+  })
+  it('MUST respect smart wildcard rules -> subquery replacement after star', () => {
+    const input = CQL`SELECT from bookshop.Bar { *, (SELECT from bookshop.Bar {ID}) as structure }`
+    let query = cqn4sql(input, model)
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Bar as Bar {
+          Bar.ID,
+          Bar.stock,
+          (SELECT from bookshop.Bar as Bar2 {Bar2.ID}) as structure,
+          Bar.nested_foo_x,
+          Bar.nested_bar_a,
+          Bar.nested_bar_b,
+          Bar.note,
+          Bar.createdAt,
+          Bar.struct1_foo,
+          Bar.nested1_foo_x
+        }`,
+    )
+  })
+  it('expand after wildcard overwrites assoc from wildcard expansion', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, model)
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          (
+            SELECT from bookshop.Authors as author {
+              author.name
+            } where Books.author_ID = author.ID
+          ) as author,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
+  it('expand after wildcard combines assoc from wildcard expansion (flat mode)', () => {
+    const flatModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, author {name} }`, flatModel)
+    const expected = CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          Books.author_ID,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+          (
+            SELECT from bookshop.Authors as author {
+              author.name
+            } where Books.author_ID = author.ID
+          ) as author
+        }
+      `
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
 
   it('path expression after wildcard replaces assoc from wildcard expansion', () => {
     // "author.name as author" will replace the "author" association from Books -> no fk here
@@ -137,7 +257,58 @@ describe('wildcard expansion and exclude clause', () => {
           Books.stock,
           Books.price,
           Books.currency_code,
-          Books.image,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
+  it('xpr after wildcard replaces assoc from wildcard expansion', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, ('Stephen' || 'King') as author }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          ('Stephen' || 'King') as author,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
+          Books.dedication_addressee_ID,
+          Books.dedication_text,
+          Books.dedication_sub_foo,
+          Books.dedication_dedication,
+          Books.coAuthor_ID_unmanaged,
+        }
+      `)
+  })
+  it('val after wildcard replaces assoc from wildcard expansion', () => {
+    let query = cqn4sql(CQL`SELECT from bookshop.Books { *, 'King' as author }`, model)
+    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books
+        {
+          Books.createdAt,
+          Books.createdBy,
+          Books.modifiedAt,
+          Books.modifiedBy,
+          Books.ID,
+          Books.anotherText,
+          Books.title,
+          Books.descr,
+          'King' as author,
+          Books.coAuthor_ID,
+          Books.genre_ID,
+          Books.stock,
+          Books.price,
+          Books.currency_code,
           Books.dedication_addressee_ID,
           Books.dedication_text,
           Books.dedication_sub_foo,
@@ -165,6 +336,20 @@ describe('wildcard expansion and exclude clause', () => {
         Bar.struct1_foo,
         Bar.nested1_foo_x,
         'last' as ID
+      }`,
+    )
+  })
+
+  it('inline wildcard does not ignore large binaries', () => {
+    let inlineWildcard = CQL`select from bookshop.Books.twin as Books {
+      ID,
+      struct.{ * }
+    }`
+
+    expect(cqn4sql(inlineWildcard, model)).to.deep.equal(
+      CQL`select from bookshop.Books.twin as Books {
+        Books.ID,
+        Books.struct_deepImage
       }`,
     )
   })
@@ -216,7 +401,6 @@ describe('wildcard expansion and exclude clause', () => {
       Books.stock,
       Books.price,
       Books.currency_code,
-      Books.image,
       Books.dedication_addressee_ID,
       Books.dedication_text,
       Books.dedication_sub_foo,
@@ -316,7 +500,6 @@ describe('wildcard expansion and exclude clause', () => {
             Books.stock,
             Books.price,
             Books.currency_code,
-            Books.image,
             Books.dedication_addressee_ID,
             Books.dedication_text,
             Books.dedication_sub_foo,
@@ -329,8 +512,8 @@ describe('wildcard expansion and exclude clause', () => {
     )
   })
   it('must not yield duplicate columns for already expanded foreign keys with OData CSN input', () => {
-    const odatamodel = cds.linked(compile.for.odata(model))
-    let query = cqn4sql(CQL`SELECT from bookshop.Books where author.name = 'Sanderson'`, odatamodel)
+    const flatModel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
+    let query = cqn4sql(CQL`SELECT from bookshop.Books where author.name = 'Sanderson'`, flatModel)
     const expected = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       {
@@ -348,7 +531,6 @@ describe('wildcard expansion and exclude clause', () => {
       Books.stock,
       Books.price,
       Books.currency_code,
-      Books.image,
       Books.dedication_addressee_ID,
       Books.dedication_text,
       Books.dedication_sub_foo,
@@ -356,14 +538,19 @@ describe('wildcard expansion and exclude clause', () => {
       Books.coAuthor_ID_unmanaged,
       } where author.name = 'Sanderson'
     `
-    expect(query).to.deep.equal(expected)
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it('must be possible to select already expanded foreign keys with OData CSN input', () => {
-    const odatamodel = cds.linked(compile.for.odata(model))
+    const flatModel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
     let query = cqn4sql(
       CQL`SELECT from bookshop.Books { genre_ID, author_ID } where author.name = 'Sanderson'`,
-      odatamodel,
+      flatModel,
     )
     const expected = CQL`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -372,11 +559,16 @@ describe('wildcard expansion and exclude clause', () => {
       Books.author_ID
       } where author.name = 'Sanderson'
     `
-    expect(query).to.deep.equal(expected)
+    //> REVISIT: with UCSN, the order of columns is different...
+    if (flatModel.meta.unfolded)
+      expect(JSON.parse(JSON.stringify(query.SELECT.columns.sort(customSort)))).to.deep.equal(
+        expected.SELECT.columns.sort(customSort),
+      )
+    else expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 
   it.skip('must error out for clash of already expanded foreign keys with OData CSN input and manually expanded foreign key', () => {
-    const odatamodel = cds.linked(compile.for.odata(model))
+    const odatamodel = cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
     expect(() =>
       cqn4sql(CQL`SELECT from bookshop.Books { author, author_ID } where author.name = 'Sanderson'`, odatamodel),
     ).to.throw(/Can't flatten "author" as resulting element name conflicts with existing column "author_ID"/)
@@ -393,6 +585,8 @@ describe('wildcard expansion and exclude clause', () => {
 
   it('ignores virtual field from wildcard expansion', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Foo { * }`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.stru_u, Foo.stru_nested_nu }`)
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.toFoo_ID, Foo.stru_u, Foo.stru_nested_nu }`,
+    )
   })
 })

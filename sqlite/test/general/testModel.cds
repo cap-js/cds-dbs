@@ -81,6 +81,7 @@ entity FProjDeep  as projection on DBDeepEntity {
   otherName2 as otherName2Rename,
   children   as childrenRename
 }
+
 service RenameService @(path:'/rename') {
   entity SProjDeep as projection on FProjDeep;
 }

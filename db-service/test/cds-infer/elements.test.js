@@ -1,9 +1,12 @@
 'use strict'
 // test the calculation of the elements of the query
 
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test.in(__dirname + '/../bookshop')
-const _inferred = require('../../lib/infer')
+const inferred = require('../../lib/infer')
+function _inferred(q, m = cds.model) {
+  return inferred(q, m)
+}
 
 describe('infer elements', () => {
   let model
@@ -78,14 +81,26 @@ describe('infer elements', () => {
     })
   })
 
-  describe('virtual', () => {
-    it("infers a query's virtual elements", () => {
+  describe('virtual and persistence skip', () => {
+    it('infers a queries virtual elements', () => {
       let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
         ID: Foo.elements.ID,
         virtualField: Foo.elements.virtualField,
+      })
+    })
+    it('infers paths with ”@cds.persistence.skip” as query element', () => {
+      const q = CQL`SELECT from bookshop.NotSkipped {
+        ID,
+        skipped.notSkipped.text as skippedPath
+      }`
+      let { NotSkipped } = model.entities
+      let inferred = _inferred(q)
+      expect(inferred.elements).to.deep.equal({
+        ID: NotSkipped.elements.ID,
+        skippedPath: NotSkipped.elements.skipped._target.elements.notSkipped._target.elements.text,
       })
     })
   })
@@ -187,18 +202,22 @@ describe('infer elements', () => {
       let query = CQL`SELECT from bookshop.Books, bookshop.Receipt`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
-      expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
-      expect(inferred.elements).to.deep.equal({ ...Books.elements, ...Receipt.elements }) // combined elements
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      expect(inferred.sources).to.have.nested.property('Receipt.definition', Receipt)
+      // eslint-disable-next-line no-unused-vars
+      const { image, ...BooksElementsWithoutBlob } = Books.elements
+      expect(inferred.elements).to.deep.equal({ ...BooksElementsWithoutBlob, ...Receipt.elements }) // combined elements
     })
 
     it('supports queries based on multiple sources with a *', () => {
       let query = CQL`SELECT from bookshop.Books, bookshop.Receipt { * }`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
-      expect(inferred).to.have.nested.property('sources.Receipt', Receipt)
-      expect(inferred.elements).to.deep.equal({ ...Books.elements, ...Receipt.elements }) // combined elements
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      expect(inferred.sources).to.have.nested.property('Receipt.definition', Receipt)
+      // eslint-disable-next-line no-unused-vars
+      const { image, ...BooksElementsWithoutBlob } = Books.elements
+      expect(inferred.elements).to.deep.equal({ ...BooksElementsWithoutBlob, ...Receipt.elements }) // combined elements
     })
   })
   describe('scoped queries', () => {
@@ -239,7 +258,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         Two: {},
         subquery: {},
@@ -257,7 +276,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         Two: {},
         subquery: {},
@@ -279,7 +298,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         net: {},
       }
@@ -291,7 +310,7 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         noType: {},
       }
@@ -313,11 +332,11 @@ describe('infer elements', () => {
       '1970-01-01' as date : cds.Date,
       '00:00:00' as time : cds.Time,
       '1970-01-01 00:00:00' as datetime : cds.DateTime,
-      '1970-01-01 00:00:00.0000000' as timestamp : cds.Timestamp,
+      '1970-01-01 00:00:00.000' as timestamp : cds.Timestamp,
     }`)
       let inferred = _inferred(query)
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       expect(inferred.elements).to.deep.equal({
         price: {
           type: 'cds.Integer',
@@ -366,7 +385,7 @@ describe('infer elements', () => {
       let query = CQL`SELECT from bookshop.Books { cast(cast(ID as Integer) as String) as IDS, cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType }`
       let inferred = _inferred(query)
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         IDS: {
           type: 'cds.String',
@@ -408,15 +427,21 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
 
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
-      expect(inferred.elements).to.deep.equal(Books.elements)
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      // blobs are not part of the query elements
+      // eslint-disable-next-line no-unused-vars
+      const { image, ...BooksElementsWithoutBlob } = Books.elements
+      expect(inferred.elements).to.deep.equal(BooksElementsWithoutBlob)
     })
 
     it('query without projections', () => {
       let query = CQL`SELECT from bookshop.Books`
       let inferred = _inferred(query)
       let { Books } = model.entities
-      expect(inferred.elements).to.deep.equal(Books.elements)
+      // blobs are not part of the query elements
+      // eslint-disable-next-line no-unused-vars
+      const { image, ...BooksElementsWithoutBlob } = Books.elements
+      expect(inferred.elements).to.deep.equal(BooksElementsWithoutBlob)
     })
 
     it('respects "excluding" when inferring elements from a *', () => {
@@ -444,8 +469,9 @@ describe('infer elements', () => {
       let query = CQL`SELECT from bookshop.Books { 5 * 5 as price, *, 1 + 1 as ID, author.name as author }` // TODO: take care of order
       let inferred = _inferred(query)
       let { Books } = model.entities
-      expect(inferred).to.have.nested.property('sources.Books', Books)
-      let expectedElements = JSON.parse(JSON.stringify(Books.elements)) // if not copied, the next lines would spoil Books.elements
+      expect(inferred.sources).to.have.nested.property('Books.definition', Books)
+      // eslint-disable-next-line no-unused-vars
+      let { image, ...expectedElements } = Books.elements
       Object.assign(expectedElements, {
         ID: {},
         price: {},
@@ -505,7 +531,7 @@ describe('infer elements', () => {
       expect(inferred.elements).to.deep.equal(expectedElements)
     })
 
-    it('$variables in where do not matter for cds.infer', () => {
+    it('$variables in where do not matter for infer', () => {
       let query = CQL`SELECT from bookshop.Bar where createdAt < $now`
       // let query2 = CQL`SELECT from bookshop.Orders where buyer = $user`
       // let query3 = CQL`SELECT from bookshop.Orders where buyer = $user.id`

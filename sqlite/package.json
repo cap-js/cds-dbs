@@ -1,8 +1,15 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "0.2.0",
+  "version": "1.7.4",
   "description": "CDS database service for SQLite",
-  "homepage": "https://cap.cloud.sap/",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/sqlite#cds-database-service-for-sqlite",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
   "keywords": [
     "CAP",
     "CDS",
@@ -15,18 +22,15 @@
     "lib",
     "CHANGELOG.md"
   ],
-  "engines": {
-    "node": ">=14",
-    "npm": ">=8"
-  },
   "scripts": {
-    "test": "jest --silent"
+    "test": "cds-test $(../test/find)"
   },
   "dependencies": {
-    "better-sqlite3": "^8"
+    "@cap-js/db-service": "^1.9.0",
+    "better-sqlite3": "^11.0.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=6.8.0"
+    "@sap/cds": ">=7.6"
   },
   "cds": {
     "requires": {

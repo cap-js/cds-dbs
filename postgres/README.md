@@ -1,8 +1,126 @@
-# PostgreSQL Adapter for SAP CAP
+# CDS database service for Postgres
 
-## install + config
+Welcome to the PostgreSQL database service for [SAP Cloud Application Programming Model](https://cap.cloud.sap) Node.js, based on streamlined database architecture and [*pg* driver](https://www.npmjs.com/package/pg) .
 
-## migration guide
+## Setup
+
+In general, all you need to do is to install the database package, as follows:
+
+```sh
+npm add @cap-js/postgres
+```
+
+Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-postgres).
+
+## Support
+
+This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues).
+
+## Contribution
+
+Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+
+## Versioning
+
+This library follows [Semantic Versioning](https://semver.org/).
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md).
+
+## Code of Conduct
+
+We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone. By participating in this project, you agree to abide by its [Code of Conduct](CODE_OF_CONDUCT.md) at all times.
+
+## Licensing
+
+Copyright 2023 SAP SE or an SAP affiliate company and cds-dbs contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js/cds-dbs).
+
+## migration guide from `cds-pg` to `@cap-js/postgres`
+
+`@cap-js/postgres` works as a drop-in replacement for `cds-pg`.  
+However, some preliminary checks and cleanups help:
+
+- for using the BTP Postgres Hyperscaler as database,
+  - know that the credentials are picked up automatically by from the enviornment (`VCAP_SERVICES.postgres`)
+  - the service binding label is `postgresql-db`
+  - `cds-dbm` is replaced by a hand-crafted "db-deployer" app &rarr; see below
+- your local `package.json`: you can safely remove the entry `cds.requires.postgres` previously mandatory for `cds-pg`
+- recommendation: set the env var `DEBUG=sql` during local development to see DB-level output from PostgreSQL
+
+### schema migration
+
+`@cap-js/postgres` brings the same schema evolution capabilities to PostgreSQL known from SAP HANA and SQLite.  
+Enabling schema migration in an existing `cds-pg`-based project consists of generating and deploying a "csn-snapshot" of your database structure.
+
+#### local development
+
+First, set a basis for the evolution
+`$> cds deploy --model-only`  
+&rarr; this will create the table `cds_model` laying the foundation for the schema migration
+
+Subsequent deployments can then re-use the standard deploy mechanism via `$> cds deploy`
+
+#### On BTP, Cloud Foundry environment
+
+The above "csn-snapshots" can be implemented via the `mtar`-based approach. At the same time, the same `mtar` can be used for subsequent PostgreSQL deployments (with schema evolution).
+
+Two major steps in addition to enabling the schema evolution are included in this `mtar`.
+
+1. create local folder `deployer` (any name works)
+2. in `deployer`, create a `package.json` containing
+
+  ```json
+  ...
+  "//npm run migrate": "only one-time!",
+  "migrate": "cds deploy --model-only",
+  "//npm run deploy": "subsequent deployments",
+  "deploy": "cds deploy"
+  ...
+  ```
+
+3. add a section to your `/mta.yaml` denoting the `deployer` directory as a standalone application that runs one-time
+
+```yaml
+- name: pg-db-deployer
+    type: custom
+    path: deployer
+    parameters:
+      buildpacks: nodejs_buildpack
+      no-route: true
+      no-start: true
+      disk-quota: 2GB
+      memory: 512MB
+      tasks:
+      - name: migrate
+        command: npm run migrate
+      # # for subsequent deployments
+      # - name: deploy
+      #  command: npm run deploy
+        disk-quota: 2GB
+        memory: 512MB
+    build-parameters:
+      before-all:
+        custom: 
+        - npm i
+        # generate the "csn-snapshot" - only necessary for one-time migration,
+        # can be commented out on subsequent deployments
+        - cds compile '*' -2 json > deployer/schema.csn
+      ignore: ["node_modules/"]
+    requires:
+      - name: pg-database
+
+resources:
+  - name: pg-database
+    parameters:
+      path: ./pg-options.json
+      service: postgresql-db
+      service-plan: trial # change to yours!
+      skip-service-updates:
+        parameters: true
+      service-tags:
+        - plain
+    type: org.cloudfoundry.managed-service
+```
+
+## migration points to consider
 
 ### mixed-case identifiers
 
@@ -16,10 +134,11 @@ now, re-use the CDS definitions: `SELECT.from(Beers).columns('brewery_ID').group
 
 So please adjust your `CQL` statements accordingly.
 
-### timezones (potential _**BREAKING CHANGE**_)  
+### timezones (potential **BREAKING CHANGE**)
+
 any date- + time-type will get stored in [`UTC`](https://en.wikipedia.org/wiki/Coordinated_Universal_Time) **without any timezone identifier in the actual data field**.  
 CAP's inbound- and outbound adapters take care of converting incoming and outgoing data from/to the desired time zones.  
-So when a `dateime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format  
+So when a `datetime` comes in being in [an ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compatible format  
   `2009-01-01T15:00:00+01:00` (15:00:00 on January 1 2009 in Vienna (CEST))  
 will get stored as  
   `2009-01-01T13:00:00` (13:00:00 on January 1 2009 in UTC).

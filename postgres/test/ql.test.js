@@ -41,11 +41,11 @@ describe('QL to PostgreSQL', () => {
       expect(beer).not.to.have.property('abv')
     })
 
-    test('-> with one - no result returns null not empty array', async () => {
+    test('-> with one - no result returns undefined not empty array', async () => {
       const { Beers } = cds.entities('csw')
       const beer = await cds.run(SELECT.one(Beers).where({ name: 'does not exist' }))
       expect(beer).to.not.be.an.instanceof(Array)
-      expect(beer).to.be.null
+      expect(beer).to.be.undefined
     })
 
     test('-> with distinct', async () => {
@@ -63,13 +63,13 @@ describe('QL to PostgreSQL', () => {
           .where({ abv: { '>': 1.0 } })
           .orderBy({ abv: 'desc' }),
       )
-      expect(beers[0].abv).to.equal(5.9)
+      expect(beers[0].abv).to.equal(cds.env.features.ieee754compatible ? "5.9" : 5.9)
       const reverseBeers = await cds.run(
         SELECT.from(Beers)
           .where({ abv: { '>': 1.0 } })
           .orderBy({ abv: 'asc' }),
       )
-      expect(reverseBeers[0].abv).to.equal(4.9)
+      expect(reverseBeers[0].abv).to.equal(cds.env.features.ieee754compatible ? "4.9" : 4.9)
     })
 
     test('-> with groupBy', async () => {

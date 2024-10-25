@@ -2,7 +2,7 @@ const iterator = Symbol.iterator
 
 // eslint-disable-next-line no-unused-vars
 const USAGE_SAMPLE = async () => {
-  // from https://pages.github.tools.sap/cap/docs/node.js/services?q=Emily#srvrun--query--results
+  // from https://cap.cloud.sap/docs/node.js/services?q=Emily#srv-run
   const { Authors, Books } = {}
   const [Emily, Charlotte] = await INSERT.into(Authors, [{ name: 'Emily Brontëe' }, { name: 'Charlotte Brontëe' }])
   await INSERT.into(Books, [
@@ -12,12 +12,17 @@ const USAGE_SAMPLE = async () => {
 }
 
 module.exports = class InsertResult {
+  /**
+   * @param {import('@sap/cds/apis/cqn').INSERT} query
+   * @param {unknown[]} results
+   */
   constructor(query, results) {
-    this.query = query
+    // Storing query as non-enumerable property to avoid polluting trace output
+    Object.defineProperty(this, 'query', { value: query })
     this.results = results
   }
 
-  /*
+  /**
    * Lazy access to auto-generated keys.
    */
   get [iterator]() {
@@ -70,8 +75,9 @@ module.exports = class InsertResult {
     })
   }
 
-  /*
+  /**
    * the number of inserted (root) entries or the number of affectedRows in case of INSERT into SELECT
+   * @return {number}
    */
   get affectedRows() {
     const { INSERT: _ } = this.query
@@ -79,16 +85,28 @@ module.exports = class InsertResult {
     else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
   }
 
-  /*
+  /**
    * for checks such as res > 2
+   * @return {number}
    */
   valueOf() {
     return this.affectedRows
   }
 
+  /**
+   * The last id of the auto incremented key column
+   * @param {unknown[]} result
+   * @returns {number}
+   */
   insertedRowId4(result) {
     return result.lastID
   }
+
+  /**
+   * Number of affected rows
+   * @param {unknown[]} result
+   * @returns {number}
+   */
   affectedRows4(result) {
     return result.changes
   }

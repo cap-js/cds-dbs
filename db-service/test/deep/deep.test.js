@@ -1,19 +1,19 @@
 const cds = require('../../../test/cds')
+const {expect} = cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
 cds.env.features.recursion_depth = 2
 
 const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
 
-let model
-beforeAll(async () => {
-  model = await cds.load(__dirname + '/deep.cds')
-  model = cds.linked(model)
-})
-
 describe('test deep query generation', () => {
+
+  cds.test()
+  let model; beforeAll(() => model = cds.model)
+
   describe('deep expand', () => {
-    test('Deep DELETE with to-one all data provided', () => {
+    // SKIPPED because that test is testing obsolete internal implementation of deep delete
+    test.skip('Deep DELETE with to-one all data provided', () => {
       const query = getExpandForDeep(DELETE.from(model.definitions.Root).where({ ID: 1 }), model.definitions.Root)
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Root'] },
           where: [
@@ -279,7 +279,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -301,7 +301,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -327,7 +327,7 @@ describe('test deep query generation', () => {
         }),
         model.definitions.Root,
       )
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -476,7 +476,7 @@ describe('test deep query generation', () => {
         model.definitions.Root,
       )
       // TODO toManySubChild: null -> max recursion
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -538,7 +538,7 @@ describe('test deep query generation', () => {
       )
 
       // expectation also needs to be adapted
-      expect(query).toMatchObject({
+      expect(query).to.containSubset({
         SELECT: {
           from: { ref: ['Root'] },
           columns: [
@@ -669,12 +669,12 @@ describe('test deep query generation', () => {
       })
     })
 
-    test('works with recursive and stops after getting to the same level 2 times', () => {
+    test.skip('works with recursive and stops after getting to the same level 2 times', () => {
       const query = getExpandForDeep(
         DELETE.from(model.definitions.Recursive).where({ ID: 5 }),
         model.definitions.Recursive,
       )
-      expect(query).toEqual({
+      expect(query).to.eql({
         SELECT: {
           from: { ref: ['Recursive'] },
           where: [
@@ -784,30 +784,97 @@ describe('test deep query generation', () => {
           ],
         },
       ])
-      const deepQueries = getDeepQueries(query, [], model.definitions.Root)
+      const { inserts, updates, deletes } = getDeepQueries(query, [], model.definitions.Root)
 
       const expectedInserts = [
-        INSERT.into(model.definitions.Root).entries({ ID: 1 }),
-        INSERT.into(model.definitions.Root).entries({ ID: 2 }),
-        INSERT.into(model.definitions.Root).entries({ ID: 3 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 1 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 2 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 3 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 4 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 5 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 6 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 7 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 8 }),
-        INSERT.into(model.definitions.Child).entries({ ID: 9 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 10 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 11 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 12 }),
-        INSERT.into(model.definitions.SubChild).entries({ ID: 13 }),
+        INSERT.into(model.definitions.Root)
+          .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }]),
+        INSERT.into(model.definitions.Child)
+          .entries([{ ID: 1 }, { ID: 2 }, { ID: 3 }, { ID: 4 }, { ID: 6 }, { ID: 7 }, { ID: 5 }, { ID: 9 }, { ID: 8 }]),
+        INSERT.into(model.definitions.SubChild)
+          .entries([{ ID: 10 }, { ID: 11 }, { ID: 12 }, { ID: 13 }]),
       ]
 
+      const insertsArray = Array.from(inserts.values())
+      const updatesArray = Array.from(updates)
+      const deletesArray = Array.from(deletes.values())
+
       expectedInserts.forEach(insert => {
-        expect(deepQueries).toContainEqual(insert)
+        expect(insertsArray).to.deep.contain(insert)
       })
+
+      expect(updatesArray.length).to.eq(0)
+      expect(deletesArray.length).to.eq(0)
+
+    })
+
+    test('backlink keys are properly propagated', async () => {
+      const entity = model.definitions['keyAssocs.Header']
+
+      const entry = {
+        uniqueName: 'PR1',
+        realm: 'dummy',
+        l1s: [
+          {
+            number: 1,
+            l2s: [
+              {
+                percentage: 50.0,
+              },
+              {
+                percentage: 50.0,
+              },
+            ],
+          },
+        ],
+      }
+
+      const insert = INSERT.into(entity).entries(entry)
+
+      const result = await cds.db.run(insert)
+      expect(result > 0).to.eq(true)
+
+      const root = { uniqueName: entry.uniqueName, realm: entry.realm }
+
+      // ensure keys are generated and propagated
+      const dbState = await cds.db.run(
+        SELECT.one
+          .from(entity, h => {
+            h`.*`,
+              h.l1s(l1 => {
+                l1`.*`, l1.l2s('*')
+              })
+          })
+          .where(root),
+      )
+
+      const l1s = dbState.l1s
+      const l2s = l1s[0].l2s
+
+      expect(dbState).to.containSubset(root)
+
+      expect(l1s).to.containSubset([
+        {
+          // ID: expect.any(String),
+          header_realm: entry.realm,
+          header_uniqueName: entry.uniqueName,
+        },
+      ])
+
+      expect(l2s).to.containSubset([
+        {
+          // ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
+        },
+        {
+          // ID: expect.any(String),
+          l1_ID: l1s[0].ID,
+          l1_header_realm: entry.realm,
+          l1_header_uniqueName: entry.uniqueName,
+        },
+      ])
     })
   })
 })

@@ -10,6 +10,9 @@
           "url": ":memory:"
         }
       }
+    },
+    "features": {
+      "ieee754compatible": true
     }
   }
 }

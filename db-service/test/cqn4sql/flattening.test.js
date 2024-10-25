@@ -1,7 +1,7 @@
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { expect } = cds.test
 const _inferred = require('../../lib/infer')
 
@@ -144,6 +144,27 @@ describe('Flattening', () => {
             genre
           }`,
         model,
+      )
+      expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
+            Books.ID,
+            Books.author_ID,
+            Books.coAuthor_ID,
+            Books.genre_ID
+          }`)
+    })
+
+    it('unfolds managed associations in SELECT clause with foreign keys', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books {
+            ID,
+            author,
+            author_ID,
+            coAuthor,
+            coAuthor_ID,
+            genre,
+            genre_ID
+          }`,
+        cds.linked(cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))),
       )
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
@@ -436,6 +457,7 @@ describe('Flattening', () => {
       let query = cqn4sql(
         CQL`SELECT from bookshop.Books {
           (SELECT address from bookshop.Authors where ID > Books.ID) as authorColumn,
+
           (SELECT from bookshop.Genres as G {
             (SELECT address from bookshop.Authors as genreAuthor where ID > Books.ID and G.ID = 42) as AuthorInG,
           }) as genreColumn
@@ -460,7 +482,7 @@ describe('Flattening', () => {
       )
       expect(JSON.parse(JSON.stringify(query))).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
             Books.ID,
-            (SELECT from bookshop.Books as Books { Books.author_ID }) as foo
+            (SELECT from bookshop.Books as Books2 { Books2.author_ID }) as foo
           }`)
     })
 
@@ -629,6 +651,27 @@ describe('Flattening', () => {
         co_ID
       `)
     })
+    it('same as above but navigation to foreign key in order by', () => {
+      let query = cqn4sql(
+        CQL`SELECT from bookshop.Books  {
+          ID,
+          author,
+          coAuthor as co
+        }
+        order by
+          Books.author,
+          co.ID`,
+        model,
+      )
+      expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {
+        Books.ID,
+        Books.author_ID,
+        Books.coAuthor_ID as co_ID
+      } order by
+        Books.author_ID,
+        co_ID
+      `)
+    })
 
     it('rejects managed association with multiple FKs in ORDER BY clause', () => {
       expect(() =>
@@ -720,13 +763,13 @@ describe('Flattening', () => {
       expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID } GROUP BY Books.ID`)
     })
 
-    // (SMW) new TODO what should happen here?
-    // - produce empty GROUP BY clause (cannot be tested easily here)?
-    // - error?
-    // same for ORDER BY
-    it.skip('ignores unmanaged associations in GROUP BY clause, even if it is the only GROUP BY column', () => {
+    it('ignores unmanaged associations in GROUP BY and deletes the clause if it is the only GROUP BY column', () => {
       let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY coAuthorUnmanaged`, model)
-      expect(query).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID } GROUP BY x`)
+      expect(JSON.parse(JSON.stringify(query))).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
+    })
+    it('ignores unmanaged associations in ORDER BY and deletes the clause if it is the only ORDER BY column', () => {
+      let query = cqn4sql(CQL`SELECT from bookshop.Books { ID } ORDER BY coAuthorUnmanaged`, model)
+      expect(JSON.parse(JSON.stringify(query))).to.deep.eql(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
     it('rejects unmanaged associations in expressions in GROUP BY clause (1)', () => {
@@ -810,20 +853,6 @@ describe('Flattening', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING sin(coAuthorUnmanaged) < 0`, model)).to.throw(
         /An association can't be used as a value in an expression/,
       )
-    })
-  })
-
-  describe('todo', () => {
-    // ----------------------------------------------------------------------------------
-    // TODO SMW move to suitable place
-
-    // (PB) moved from cds.infer and skipped for now as this doesnt hurt atm..
-    // -> it does hurt because it dumps
-    it.skip('MUST not have infix filters in struct paths', () => {
-      cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
-      expect(() => {
-        cqn4sql(CQL`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)
-      }).to.throw('A filter can only be provided when navigating along associations')
     })
   })
 })

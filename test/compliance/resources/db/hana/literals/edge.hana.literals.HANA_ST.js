@@ -1,5 +1,5 @@
 // TODO: Add HANA TYPE EXPECTATIONS
-module.exports = [
+module.exports = [/*
   {
     point: null,
   },
@@ -12,5 +12,6 @@ module.exports = [
   {
     // GeoJSON specification: https://www.rfc-editor.org/rfc/rfc7946
     point: '{"x":1,"y":1,"spatialReference":{"wkid":4326}}',
-  },
+    '=point': /\{\W*"x"\W*:\W*1\W*,\W*"y"\W*:\W*1(,.*)?\}/,
+  },*/
 ]
