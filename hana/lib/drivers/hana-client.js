@@ -101,7 +101,7 @@ class HANAClientDriver extends driver {
             row[col.columnName] = i > 3 ?
               rs.isNull(i)
                 ? null
-                : col.nativeType === 13 // return binary type as simple buffer
+                : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
                   ? await getValue(i)
                   : Readable.from(streamBlob(rsStreams, rs._rowPosition, i), { objectMode: false })
               : values[i]

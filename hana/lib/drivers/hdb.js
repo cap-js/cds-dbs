@@ -1,4 +1,4 @@
-const { Readable, Stream } = require('stream')
+const { Readable, Stream, promises: { pipeline } } = require('stream')
 const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
@@ -160,7 +160,8 @@ class HDBDriver extends driver {
         if (this._creds.useCesu8 !== false && v.type === 'json') {
           const encode = iconv.encodeStream('cesu8')
           v.setEncoding('utf-8')
-          v.pipe(encode)
+          // hdb will react to the stream error no need to handle it twice
+          pipeline(v, encode).catch(() => { })
           return encode
         }
 
