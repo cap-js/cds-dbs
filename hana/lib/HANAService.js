@@ -1051,6 +1051,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
     }
 
+    managed_changed(cols/*, comps*/) {
+      return `CASE WHEN ${[
+        ...cols.map(({ name }) => `${this.quote('$.' + name)} IS NOT NULL AND OLD.${this.quote(name)} ${this.is_distinct_from_} NEW.${this.quote(name)}`),
+        // ...comps.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL`)
+      ].join(' OR ')} THEN TRUE ELSE FALSE END`
+    }
+
     managed_default(name, managed, src) {
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
