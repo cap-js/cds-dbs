@@ -750,7 +750,7 @@ class CQN2SQLRenderer {
     const managed = this._managed.slice(0, columns.length)
 
     const extractkeys = managed
-      .filter(c => keys.includes(c.name))
+      // .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
     const entity = this.name(q.target?.name || UPSERT.into.ref[0])
@@ -1059,6 +1059,7 @@ class CQN2SQLRenderer {
   managed(columns, elements) {
     const cdsOnInsert = '@cds.on.insert'
     const cdsOnUpdate = '@cds.on.update'
+    const cdsImmutable = '@Core.Immutable'
 
     const { _convertInput } = this.class
     // Ensure that missing managed columns are added
@@ -1079,6 +1080,10 @@ class CQN2SQLRenderer {
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(keys[0])
+    const hasChanges = this.managed_changed(
+      [...columns, ...requiredColumns]
+        .filter(({ name }) => !elements?.[name]?.key && !elements?.[name]?.[cdsOnUpdate] && !elements?.[name]?.[cdsImmutable])
+    )
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       const element = elements?.[name] || {}
@@ -1101,21 +1106,24 @@ class CQN2SQLRenderer {
       if (onUpdate) onUpdate = this.expr(onUpdate)
 
       const qname = this.quote(name)
+      const immutable = element[cdsImmutable]
 
       const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
+      const update = immutable ? undefined : onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
-          // If both insert and update have the same managed definition exclude the old value check
-          || (onInsert && onUpdate && insert === update)
           ? `${insert} as ${qname}`
           : `CASE WHEN OLD.${keyZero} IS NULL THEN ${
           // If key of old is null execute insert
           insert
           } ELSE ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : this.managed_default(name, `OLD.${qname}`, update)
+          !update
+            ? `OLD.${qname}`
+            : onUpdate
+              ? `CASE WHEN ${hasChanges} THEN ${update} ELSE OLD.${qname} END`
+              : this.managed_default(name, `OLD.${qname}`, update)
           } END as ${qname}`
       )
 
@@ -1148,6 +1156,13 @@ class CQN2SQLRenderer {
 
   managed_default(name, managed, src) {
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+  }
+
+  managed_changed(cols/*, comps*/) {
+    return `CASE WHEN ${[
+      ...cols.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL AND OLD.${this.quote(name)} ${this.is_distinct_from_} NEW.${this.quote(name)}`),
+      // ...comps.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL`)
+    ].join(' OR ')} THEN TRUE ELSE FALSE END`
   }
 }
 

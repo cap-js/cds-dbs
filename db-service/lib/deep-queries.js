@@ -167,11 +167,11 @@ const getDeepQueries = function (query, target) {
         if (composition.is2many) {
           cqn.UPSERT.entries = [...cqn.UPSERT.entries, ...entry[comp]]
           for (const childEntry of childEntries) {
-            step(childEntry, compTarget, [...path, { id: comp, where: keyCompare(entry, compTarget) }])
+            step(childEntry, compTarget, [...path, { id: comp, where: keyCompare(childEntry, compTarget) }])
           }
         } else {
           cqn.UPSERT.entries = [...cqn.UPSERT.entries, entry[comp]]
-          step(childEntries, compTarget, [...path, { id: comp, where: keyCompare(entry, compTarget) }])
+          step(childEntries, compTarget, [...path, { id: comp, where: keyCompare(entry[comp], compTarget) }])
         }
       }
     }
@@ -184,7 +184,7 @@ const getDeepQueries = function (query, target) {
     }
     else if (query.UPSERT) {
       upserts.set(ROOT, query)
-      for(const data of query.UPSERT.entries) {
+      for (const data of query.UPSERT.entries) {
         step(data, target, [...query.UPDATE.entity.ref])
       }
     }
