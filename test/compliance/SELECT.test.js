@@ -1,5 +1,4 @@
 const assert = require('assert')
-const os = require('os')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
@@ -305,6 +304,12 @@ describe('SELECT', () => {
       assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
       const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
       assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+    })
+
+    test('combine expr with nested functions and other compare', async () => {
+      const { string } = cds.entities('basic.literals')
+      const res = await cds.run(CQL`SELECT string FROM ${string} WHERE string != ${'foo'} and contains(tolower(string),tolower(${'bar'}))`)
+      assert.strictEqual(res.length, 0, 'Ensure that no row is coming back')
     })
 
     test('combine expr and other compare', async () => {
@@ -827,7 +832,7 @@ describe('SELECT', () => {
       })
       .filter(a => a)
 
-    const noUUIDRefs = ref => cds.builtin.types[ref.element?.type] !== cds.builtin.types.UUID
+    // const noUUIDRefs = ref => cds.builtin.types[ref.element?.type] !== cds.builtin.types.UUID
     const noBooleanRefs = ref => !(cds.builtin.types[ref.element?.type] instanceof cds.builtin.types.boolean.constructor)
     const noBinaryRefs = ref => !(cds.builtin.types[ref.element?.type] === cds.builtin.types.Binary || cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeBinary)
     const noBlobRefs = ref => noBinaryRefs(ref) && cds.builtin.types[ref.element?.type] !== cds.builtin.types.LargeString
