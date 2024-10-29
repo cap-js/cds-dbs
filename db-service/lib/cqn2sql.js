@@ -546,7 +546,8 @@ class CQN2SQLRenderer {
       let sepsub = ''
       for (const key in row) {
         let val = row[key]
-        if (val === undefined) continue
+        const type = elements[key]?.type
+        if (val === undefined || type === 'cds.Composition') continue
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
@@ -565,7 +566,7 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[key]?.type in this.BINARY_TYPES) {
+          if (type in this.BINARY_TYPES) {
             val = transformBase64(val)
           }
           buffer += `${keyJSON}${JSON.stringify(val)}`
