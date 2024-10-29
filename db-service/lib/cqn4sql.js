@@ -2093,11 +2093,6 @@ function cqn4sql(originalQuery, model) {
       const unmanagedOn = onCondFor(inWhere ? next : current, inWhere ? current : next, inWhere)
       on.push(...(customWhere && hasLogicalOr(unmanagedOn) ? [asXpr(unmanagedOn)] : unmanagedOn))
     }
-    // infix filter conditions are wrapped in `xpr` when added to the on-condition
-    if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next)
-      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
-    }
 
     const subquerySource = assocTarget(nextDefinition) || nextDefinition
     const id = localized(subquerySource)
@@ -2114,6 +2109,26 @@ function cqn4sql(originalQuery, model) {
         },
       ],
       where: on,
+    }
+    if (customWhere?.some(token => token.pathExpressionInsideFilter)) {
+      SELECT.where = customWhere
+      const transformedExists = transformSubquery({ SELECT })
+      // infix filter conditions are wrapped in `xpr` when added to the on-condition
+      if (transformedExists.SELECT.where) {
+        on.push(
+          ...[
+            'and',
+            ...(hasLogicalOr(transformedExists.SELECT.where)
+              ? [asXpr(transformedExists.SELECT.where)]
+              : transformedExists.SELECT.where),
+          ],
+        )
+      }
+      transformedExists.SELECT.where = on
+      return transformedExists.SELECT
+    } else if (customWhere) {
+      const filter = getTransformedTokenStream(customWhere, next)
+      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
     return SELECT
   }

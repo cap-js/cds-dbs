@@ -220,7 +220,7 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it('MUST fail if following managed assoc in filter in where exists', () => {
+    it.skip('MUST fail if following managed assoc in filter in where exists', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
@@ -228,7 +228,23 @@ describe('EXISTS predicate in where', () => {
         ),
       ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
-    it('MUST fail if following managed assoc in filter', () => {
+    it('now the above works I', () => {
+      expect(
+        cqn4sql(
+          CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
+          model,
+        ),
+      ).to.eql(
+        CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as books
+            left join bookshop.Person as addressee
+            on addressee.ID = books.dedication_addressee_ID
+          where books.author_ID = Authors.ID AND addressee.name = 'Hasso'
+        )`,
+      )
+    })
+    it('MUST fail if following managed assoc in filter (path expressions inside filter only enabled for exists subqueries)', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
@@ -738,8 +754,9 @@ describe('EXISTS predicate in infix filter', () => {
        where exists leads[ participant.scholar_userID = $user.id ]
     `
     // maybe in the future this could be something like this
+    // the future is here...
     // eslint-disable-next-line no-unused-vars
-    const futureExpectation = CQL`
+    const expectation = CQL`
       SELECT from Collaborations as Collaborations {
         Collaborations.id
       } where exists (
@@ -752,7 +769,9 @@ describe('EXISTS predicate in infix filter', () => {
     `
     expect(() => {
       cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    }).to.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
+    })
+    .to.not.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
+    .and.to.eql(expectation)
   })
 })
 
@@ -1425,6 +1444,27 @@ describe('Sanity checks for `exists` predicate', () => {
       cqn4sql(CQL`SELECT from bookshop.Books { ID, author[exists books.title].name as author }`, model),
     ).to.throw(
       'Expecting path “books.title” following “EXISTS” predicate to end with association/composition, found “cds.String”',
+    )
+  })
+})
+
+describe('path expression within exists predicate', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
+  })
+
+  it('path expression in infix filter', () => {
+    let query = CQL`SELECT from bookshop.Authors { ID } where exists books[genre.name = 'Thriller']`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+        left join bookshop.Genres as genre on genre.ID = books.genre_ID
+        where books.author_ID = Authors.ID and genre.name = 'Thriller'
+      )`,
     )
   })
 })

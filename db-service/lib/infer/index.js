@@ -637,7 +637,7 @@ function infer(originalQuery, model) {
               skipJoinsForFilter = true
             } else if (token.ref || token.xpr) {
               inferQueryElement(token, false, column.$refLinks[i], {
-                inExists: skipJoinsForFilter,
+                inExists: skipJoinsForFilter || inExists,
                 inExpr: !!token.xpr,
                 inInfixFilter: true,
               })
@@ -718,9 +718,13 @@ function infer(originalQuery, model) {
             }
             // no non-fk traversal in infix filter in non-exists path
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
-              throw new Error(
-                `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
-              )
+              if (inExists) {
+                Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
+              } else {
+                throw new Error(
+                  `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
+                )
+              }
           }
         }
       })
