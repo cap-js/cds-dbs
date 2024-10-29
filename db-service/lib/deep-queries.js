@@ -138,7 +138,7 @@ const getDeepQueries = function (query, target) {
       return xpr
     }
 
-    const step = (entry, target, path) => {
+    const step = (entry, target) => {
       for (const comp in target.compositions) {
         if (!entry[comp]) continue
 
@@ -148,30 +148,43 @@ const getDeepQueries = function (query, target) {
         if (_hasPersistenceSkip(compTarget)) continue
 
         if (!upserts.has(compTarget)) upserts.set(compTarget, UPSERT([]).into(compTarget))
+        if (!deletes.has(compTarget)) {
+          const fkeynames = composition._foreignKeys.map(k => k.childElement.name)
+          const keynames = Object.keys(target.keys).filter(k => !target.keys[k].isAssociation && !target.keys[k].virtual)
+          const fkeyrefs = { list: fkeynames.map(k => ({ ref: [k] })) }
+          const keyrefs = { list: keynames.map(k => ({ ref: [k] })) }
+          const fkeys = { list: [] }
+          const nkeys = { list: [] }
 
-        const cqn = upserts.get(compTarget)
+          const del = DELETE.from(compTarget)
+            .where([
+              fkeyrefs, 'in', fkeys,
+              'and',
+              keyrefs, 'not', 'in', nkeys,
+            ])
+
+          const pkeynames = composition._foreignKeys.map(k => k.parentElement.name)
+          del.addFKey = Function('entry', `this.list.push({list:[${pkeynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(fkeys)
+          del.addKey = Function('entry', `this.list.push({list:[${keynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(nkeys)
+
+          deletes.set(compTarget, del)
+        }
+
+        const ups = upserts.get(compTarget)
+        const del = deletes.get(compTarget)
         const childEntries = entry[comp]
 
-        if (!deletes.has(compTarget)) deletes.set(compTarget, [])
-        deletes.get(compTarget).push({
-          SELECT: {
-            from: {
-              ref: [...path, {
-                id: comp,
-                where: keyCompare(childEntries, compTarget, false),
-              }]
-            }
-          }
-        })
-
+        del.addFKey(entry)
         if (composition.is2many) {
-          cqn.UPSERT.entries = [...cqn.UPSERT.entries, ...entry[comp]]
+          ups.UPSERT.entries = [...ups.UPSERT.entries, ...entry[comp]]
           for (const childEntry of childEntries) {
-            step(childEntry, compTarget, [...path, { id: comp, where: keyCompare(childEntry, compTarget) }])
+            del.addKey(childEntry)
+            step(childEntry, compTarget)
           }
         } else {
-          cqn.UPSERT.entries = [...cqn.UPSERT.entries, entry[comp]]
-          step(childEntries, compTarget, [...path, { id: comp, where: keyCompare(entry[comp], compTarget) }])
+          ups.UPSERT.entries = [...ups.UPSERT.entries, entry[comp]]
+          del.addKey(childEntry)
+          step(childEntries, compTarget)
         }
       }
     }
@@ -180,28 +193,13 @@ const getDeepQueries = function (query, target) {
       updates.set(ROOT, query)
       const data = query.UPDATE.data
       // TODO: merge root where into path expression where
-      step(data, target, [...query.UPDATE.entity.ref])
+      step(data, target)
     }
     else if (query.UPSERT) {
       upserts.set(ROOT, query)
       for (const data of query.UPSERT.entries) {
         step(data, target, [...query.UPDATE.entity.ref])
       }
-    }
-
-    for (const [target, dels] of deletes) {
-      const keyList = keyCompare([], target)
-
-      const del = DELETE.from(target)
-      del.where(dels
-        .map(d => {
-          d.SELECT.columns = keyList[0].list
-          return ['OR', { xpr: [keyList[0], 'in', d] }]
-        })
-        .flat()
-        .slice(1)
-      )
-      deletes.set(target, del)
     }
 
     return {
