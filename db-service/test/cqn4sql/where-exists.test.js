@@ -220,15 +220,15 @@ describe('EXISTS predicate in where', () => {
         )`)
     })
 
-    it.skip('MUST fail if following managed assoc in filter in where exists', () => {
+    it('MUST not fail if following managed assoc in filter in where exists', () => {
       expect(() =>
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
           model,
         ),
-      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
+      ).to.not.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
-    it('now the above works I', () => {
+    it('MUST correctly construct subquery if following managed assoc in filter in where exists', () => {
       expect(
         cqn4sql(
           CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,

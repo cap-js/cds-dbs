@@ -403,19 +403,19 @@ describe('negative', () => {
       let query = CQL`SELECT from bookshop.Books where exists author.books[author.name = 'John Doe']`
       expect(() => _inferred(query)).to.not.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
-      ) // revisit: better error location ""bookshop.Books:author"
+      )
     })
     it('rejects non fk traversal in infix filter in where', () => {
       let query = CQL`SELECT from bookshop.Books where author.books[author.name = 'John Doe'].title = 'foo'`
       expect(() => _inferred(query)).to.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
-      ) // revisit: better error location ""bookshop.Books:author"
+      )
     })
-    it.skip('rejects unmanaged traversal in infix filter in where exists', () => {
+    it('does not reject unmanaged traversal in infix filter in where exists', () => {
       let query = CQL`SELECT from bookshop.Books where exists author.books[coAuthorUnmanaged.name = 'John Doe']`
-      expect(() => _inferred(query)).to.throw(
+      expect(() => _inferred(query)).to.not.throw(
         /Unexpected unmanaged association “coAuthorUnmanaged” in filter expression of “books”/,
-      ) // revisit: better error location ""bookshop.Books:author"
+      )
     })
 
     it('rejects non fk traversal in infix filter in column', () => {

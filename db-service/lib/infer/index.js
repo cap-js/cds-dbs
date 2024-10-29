@@ -709,7 +709,6 @@ function infer(originalQuery, model) {
          */
         function rejectNonFkAccess(assoc) {
           if (inInfixFilter && assoc.target) {
-            const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             if (assoc.on) {
               if (!inExists) {
                 throw new Error(
@@ -718,6 +717,7 @@ function infer(originalQuery, model) {
               }
               Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
             }
+            const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc)) {
               if (!inExists) {
                 throw new Error(
