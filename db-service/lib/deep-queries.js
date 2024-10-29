@@ -109,35 +109,6 @@ const getDeepQueries = function (query, target) {
     const upserts = new Map()
     const updates = new Map()
 
-    const keyCompare = (entry, target, eq = true) => {
-      let xpr = []
-      if (Array.isArray(entry)) {
-        const keyList = { list: [] }
-        const valList = { list: [] }
-        for (const key in target.keys) {
-          const element = target.keys[key]
-          if (element.virtual || element.isAssociation) continue
-          keyList.list.push({ ref: [key] })
-          for (let i = 0; i < entry.length; i++) {
-            const curEntry = entry[i]
-            valList.list[i] ??= { list: [] }
-            valList.list[i].list.push({ val: curEntry[key] })
-          }
-        }
-        xpr = eq
-          ? [keyList, 'in', valList]
-          : [keyList, 'not', 'in', valList]
-      } else {
-        for (const key in target.keys) {
-          const element = target.keys[key]
-          if (element.virtual || element.isAssociation) continue
-          const comp = [{ ref: [key] }, eq ? '=' : '!=', { val: entry[key] }]
-          xpr = xpr.length ? [...xpr, 'and', ...comp] : comp
-        }
-      }
-      return xpr
-    }
-
     const step = (entry, target) => {
       for (const comp in target.compositions) {
         if (!entry[comp]) continue
@@ -176,14 +147,14 @@ const getDeepQueries = function (query, target) {
 
         del.addFKey(entry)
         if (composition.is2many) {
-          ups.UPSERT.entries = [...ups.UPSERT.entries, ...entry[comp]]
           for (const childEntry of childEntries) {
+            ups.UPSERT.entries.push(childEntry)
             del.addKey(childEntry)
             step(childEntry, compTarget)
           }
         } else {
-          ups.UPSERT.entries = [...ups.UPSERT.entries, entry[comp]]
-          del.addKey(childEntry)
+          del.addKey(childEntries)
+          ups.UPSERT.entries.push(childEntries)
           step(childEntries, compTarget)
         }
       }
@@ -192,7 +163,6 @@ const getDeepQueries = function (query, target) {
     if (query.UPDATE) {
       updates.set(ROOT, query)
       const data = query.UPDATE.data
-      // TODO: merge root where into path expression where
       step(data, target)
     }
     else if (query.UPSERT) {
