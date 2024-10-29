@@ -121,7 +121,7 @@ const getDeepQueries = function (query, target) {
         if (!upserts.has(compTarget)) upserts.set(compTarget, UPSERT([]).into(compTarget))
         if (!deletes.has(compTarget)) {
           const fkeynames = composition._foreignKeys.map(k => k.childElement.name)
-          const keynames = Object.keys(target.keys).filter(k => !target.keys[k].isAssociation && !target.keys[k].virtual)
+          const keynames = Object.keys(compTarget.keys).filter(k => !compTarget.keys[k].isAssociation && !compTarget.keys[k].virtual)
           const fkeyrefs = { list: fkeynames.map(k => ({ ref: [k] })) }
           const keyrefs = { list: keynames.map(k => ({ ref: [k] })) }
           const fkeys = { list: [] }
