@@ -709,22 +709,23 @@ function infer(originalQuery, model) {
          */
         function rejectNonFkAccess(assoc) {
           if (inInfixFilter && assoc.target) {
-            // only fk access in infix filter
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
-            // no unmanaged assoc in infix filter path
-            if (!inExists && assoc.on) {
-              const err = `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`
-              throw new Error(err)
+            if (assoc.on) {
+              if (!inExists) {
+                throw new Error(
+                  `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`,
+                )
+              }
+              Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
             }
-            // no non-fk traversal in infix filter in non-exists path
-            if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
-              if (inExists) {
-                Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
-              } else {
+            if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc)) {
+              if (!inExists) {
                 throw new Error(
                   `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
                 )
               }
+              Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
+            }
           }
         }
       })

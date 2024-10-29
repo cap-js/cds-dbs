@@ -1455,7 +1455,7 @@ describe('path expression within exists predicate', () => {
     model = cds.compile.for.nodejs(model)
   })
 
-  it('path expression in infix filter', () => {
+  it('via managed association', () => {
     let query = CQL`SELECT from bookshop.Authors { ID } where exists books[genre.name = 'Thriller']`
 
     const transformed = cqn4sql(query, model)
@@ -1464,6 +1464,19 @@ describe('path expression within exists predicate', () => {
         SELECT 1 from bookshop.Books as books
         left join bookshop.Genres as genre on genre.ID = books.genre_ID
         where books.author_ID = Authors.ID and genre.name = 'Thriller'
+      )`,
+    )
+  })
+  it('via unmanaged association', () => {
+    // match all authors which have co-authored at least one book with King
+    let query = CQL`SELECT from bookshop.Authors { ID } where exists books[coAuthorUnmanaged.name = 'King']`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+        left join bookshop.Authors as coAuthorUnmanaged on coAuthorUnmanaged.ID = books.coAuthor_ID_unmanaged
+        where books.author_ID = Authors.ID and coAuthorUnmanaged.name = 'King'
       )`,
     )
   })
