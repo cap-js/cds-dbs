@@ -1533,4 +1533,18 @@ describe('path expression within exists predicate', () => {
       )`,
     )
   })
+
+  it.skip('scoped query with path expression in infix filter', () => {
+    let query = CQL`SELECT from bookshop.Authors:books[genre.name = 'Thriller'] { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books left join bookshop.Genres as genre on genre.ID = books.genre_ID
+      { books.ID }
+
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        ) and genre.name = 'Thriller'`,
+    )
+  })
 })
