@@ -333,7 +333,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
+
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -1020,6 +1020,22 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
       // Call super for normal SQL behavior
       return super.list(list)
+    }
+
+    json(arg) {
+      const { props, elements, json } = arg
+      const { _convertInput } = this.class
+      let val = typeof json === 'string' ? json : (arg.json = JSON.stringify(json))
+      if (val[val.length - 1] === ',') val = arg.json = val.slice(0, -1) + ']'
+      if (val[val.length - 1] === '[') val = arg.json = val + ']'
+      this.values.push(val)
+      const extractions = props.map(p => {
+        const element = elements?.[p]
+        return this.managed_extract(p, element, a => element[_convertInput]?.(a, element) || a)
+      })
+      const converter = extractions.map(e => e.sql)
+      const extraction = extractions.map(e => e.extract)
+      return `(SELECT ${converter} FROM JSON_TABLE(?, '$' COLUMNS(${extraction}) ERROR ON ERROR) as NEW)`
     }
 
     quote(s) {

@@ -2,6 +2,8 @@ const { _target_name4 } = require('./SQLService')
 
 const ROOT = Symbol('root')
 
+const uselist = false
+
 /**
  * @callback nextCallback
  * @param {Error|undefined} error
@@ -119,13 +121,28 @@ const getDeepQueries = function (query, target) {
         if (_hasPersistenceSkip(compTarget)) continue
 
         if (!upserts.has(compTarget)) upserts.set(compTarget, UPSERT([]).into(compTarget))
+        const ups = upserts.get(compTarget)
+
         if (!deletes.has(compTarget)) {
           const fkeynames = composition._foreignKeys.map(k => k.childElement.name)
           const keynames = Object.keys(compTarget.keys).filter(k => !compTarget.keys[k].isAssociation && !compTarget.keys[k].virtual)
           const fkeyrefs = { list: fkeynames.map(k => ({ ref: [k] })) }
           const keyrefs = { list: keynames.map(k => ({ ref: [k] })) }
-          const fkeys = { list: [] }
-          const nkeys = { list: [] }
+          const pkeynames = composition._foreignKeys.map(k => k.parentElement.name)
+          const fkeys = uselist
+            ? { list: [] }
+            : {
+              props: pkeynames,
+              elements: target.elements,
+              json: '[',
+            }
+          const nkeys = uselist
+            ? { list: [] }
+            : {
+              props: keynames,
+              elements: compTarget.elements,
+              json: '[',
+            }
 
           const del = DELETE.from(compTarget)
             .where([
@@ -134,14 +151,16 @@ const getDeepQueries = function (query, target) {
               keyrefs, 'not', 'in', nkeys,
             ])
 
-          const pkeynames = composition._foreignKeys.map(k => k.parentElement.name)
-          del.addFKey = Function('entry', `this.list.push({list:[${pkeynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(fkeys)
-          del.addKey = Function('entry', `this.list.push({list:[${keynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(nkeys)
+          del.addFKey = uselist
+            ? Function('entry', `this.list.push({list:[${pkeynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(fkeys)
+            : Function('entry', `this.json += '{${pkeynames.map(k => `${JSON.stringify(k)}:' + entry[${JSON.stringify(k)}] + '`).join('')}},'`).bind(fkeys)
+          del.addKey = uselist
+            ? Function('entry', `this.list.push({list:[${keynames.map(k => `{val:entry[${JSON.stringify(k)}]}`).join(',')}]})`).bind(nkeys)
+            : Function('entry', `this.json += '{${keynames.map(k => `${JSON.stringify(k)}:' + entry[${JSON.stringify(k)}] + '`).join('')}},'`).bind(nkeys)
 
           deletes.set(compTarget, del)
         }
 
-        const ups = upserts.get(compTarget)
         const del = deletes.get(compTarget)
         const childEntries = entry[comp]
 

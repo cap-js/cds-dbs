@@ -831,6 +831,7 @@ class CQN2SQLRenderer {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
     if (x.param) return wrap(this.param(x))
+    if ('json' in x) return wrap(this.json(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
     if ('func' in x) return wrap(this.func(x))
@@ -1004,6 +1005,20 @@ class CQN2SQLRenderer {
    */
   list({ list }) {
     return `(${list.map(e => this.expr(e))})`
+  }
+
+  json(arg) {
+    const { props, elements, json } = arg
+    const { _convertInput } = this.class
+    let val = typeof json === 'string' ? json : (arg.json = JSON.stringify(json))
+    if (val[val.length - 1] === ',') val = arg.json = val.slice(0, -1) + ']'
+    if (val[val.length - 1] === '[') val = arg.json = val + ']'
+    this.values.push(val)
+    const extraction = props.map(p => {
+      const element = elements?.[p]
+      return this.managed_extract(p, element, a => element[_convertInput]?.(a, element) || a).extract
+    })
+    return `(SELECT ${extraction} FROM json_each(?))`
   }
 
   /**
