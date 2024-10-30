@@ -646,7 +646,7 @@ function infer(originalQuery, model) {
                 applyToFunctionArgs(token.args, inferQueryElement, [
                   false,
                   column.$refLinks[i],
-                  { inExists: skipJoinsForFilter, inExpr: true, inInfixFilter: true },
+                  { inExists: skipJoinsForFilter || inExists, inExpr: true, inInfixFilter: true },
                 ])
               }
             }
@@ -715,7 +715,7 @@ function infer(originalQuery, model) {
                   `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`,
                 )
               }
-              Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
+              Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
             }
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
             if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc)) {
@@ -724,7 +724,7 @@ function infer(originalQuery, model) {
                   `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
                 )
               }
-              Object.defineProperty(column, 'pathExpressionInsideFilter', { value: true })
+              Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
             }
           }
         }

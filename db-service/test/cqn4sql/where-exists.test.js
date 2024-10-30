@@ -770,8 +770,8 @@ describe('EXISTS predicate in infix filter', () => {
     expect(() => {
       cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
     })
-    .to.not.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
-    .and.to.eql(expectation)
+      .to.not.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
+      .and.to.eql(expectation)
   })
 })
 
@@ -1467,6 +1467,41 @@ describe('path expression within exists predicate', () => {
       )`,
     )
   })
+  it('via managed association multiple assocs', () => {
+    let query = CQL`SELECT from bookshop.Authors { ID } where exists books.author.books[genre.parent.name = 'Thriller']`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+        where books.author_ID = Authors.ID and EXISTS (
+
+          SELECT 1 from bookshop.Authors as author
+          where author.ID = books.author_ID and EXISTS (
+
+            SELECT 1 from bookshop.Books as books2
+            left join bookshop.Genres as genre on genre.ID = books2.genre_ID
+            left join bookshop.Genres as parent on parent.ID = genre.parent_ID
+            where books2.author_ID = author.ID and parent.name = 'Thriller'
+
+          )
+
+        )
+      )`,
+    )
+  })
+  it('via managed association, hidden in a function', () => {
+    let query = CQL`SELECT from bookshop.Authors { ID } where exists books[toLower(genre.name) = 'thriller']`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+        left join bookshop.Genres as genre on genre.ID = books.genre_ID
+        where books.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
+      )`,
+    )
+  })
   it('via unmanaged association', () => {
     // match all authors which have co-authored at least one book with King
     let query = CQL`SELECT from bookshop.Authors { ID } where exists books[coAuthorUnmanaged.name = 'King']`
@@ -1477,6 +1512,24 @@ describe('path expression within exists predicate', () => {
         SELECT 1 from bookshop.Books as books
         left join bookshop.Authors as coAuthorUnmanaged on coAuthorUnmanaged.ID = books.coAuthor_ID_unmanaged
         where books.author_ID = Authors.ID and coAuthorUnmanaged.name = 'King'
+      )`,
+    )
+  })
+
+  it('nested exists within filter', () => {
+    let query = CQL`SELECT from bookshop.Authors { ID } where exists books[toLower(genre.name) = 'thriller' and exists genre[parent.name = 'Fiction']]`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+        left join bookshop.Genres as genre on genre.ID = books.genre_ID
+        where books.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
+        and EXISTS (
+          SELECT 1 from bookshop.Genres as genre2
+          left join bookshop.Genres as parent on parent.ID = genre2.parent_ID
+          where genre2.ID = books.genre_ID and parent.name = 'Fiction'
+        )
       )`,
     )
   })

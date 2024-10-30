@@ -2110,7 +2110,7 @@ function cqn4sql(originalQuery, model) {
       ],
       where: on,
     }
-    if (customWhere?.some(token => token.pathExpressionInsideFilter)) {
+    if (next.pathExpressionInsideFilter) {
       SELECT.where = customWhere
       const transformedExists = transformSubquery({ SELECT })
       // infix filter conditions are wrapped in `xpr` when added to the on-condition
