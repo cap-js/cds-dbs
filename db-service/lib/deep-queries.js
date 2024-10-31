@@ -3,6 +3,7 @@ const { _target_name4 } = require('./SQLService')
 const ROOT = Symbol('root')
 
 const uselist = false
+const usestaticgenres = false
 
 /**
  * @callback nextCallback
@@ -25,7 +26,7 @@ async function onDeep(req, next) {
   const { target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
 
-  const queries = getDeepQueries.call(this, query, target)
+  const queries = await getDeepQueries.call(this, query, target)
 
   // first delete, then update, then insert because of potential unique constraints:
   // - deletes never trigger unique constraints, but can prevent them -> execute first
@@ -63,8 +64,7 @@ const _hasPersistenceSkip = target => target?.['@cds.persistence.skip'] === true
  * @param {import('@sap/cds/apis/csn').Definition} target
  * @returns
  */
-const getDeepQueries = function (query, target) {
-  let queryData
+const getDeepQueries = async function (query, target) {
   if (query.INSERT) {
     const inserts = new Map()
 
@@ -110,6 +110,21 @@ const getDeepQueries = function (query, target) {
     const deletes = new Map()
     const upserts = new Map()
     const updates = new Map()
+
+
+    if (usestaticgenres && query.target.name === 'TestService.Genres') {
+      query.target.__deep_sql ??= cds.utils.fs.readFileSync(__dirname + '/deep-genres.sql', 'utf-8')
+
+      const ps = await this.prepare(query.target.__deep_sql)
+      const res = await ps.run([JSON.stringify(query.UPDATE.data || query.UPSERT.entity)])
+
+      return {
+        deletes,
+        upserts,
+        updates,
+        inserts: new Map(),
+      }
+    }
 
     const step = (entry, target) => {
       for (const comp in target.compositions) {

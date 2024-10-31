@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - '5432:5432'
-    command: ['postgres', '-c', 'log_statement=all']
+    command: ['postgres', '-c', 'log_statement=none']
   ### use at will at dev time - save mem on ci time
   # adminer:
   #   image: adminer
