@@ -149,7 +149,7 @@ function cqn4sql(originalQuery, model) {
         if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
         else transformedQuery.DELETE.from = transformedFrom
       } else {
-        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
+        transformedQuery[kind].from = translateAssocsToJoins()
       }
     }
   }
@@ -1484,6 +1484,9 @@ function cqn4sql(originalQuery, model) {
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
               let name = calculateElementName(token, getFullName)
               result.ref = [tableAlias, name]
+            } else if(token.pathExpressionInsideFilter) {
+              inferred.joinTree.mergeColumn({ref: [$baseLink.alias, ...token.ref], $refLinks: [$baseLink, ...token.$refLinks]}, originalQuery.outerQueries)
+              console.log(inferred.joinTree)
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
             } else {

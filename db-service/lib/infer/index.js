@@ -112,7 +112,7 @@ function infer(originalQuery, model) {
       if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
-      attachRefLinksToArg(from) // REVISIT: remove
+      attachRefLinksToArg(from, null, true) // REVISIT: remove
       const alias =
         from.uniqueSubqueryAlias ||
         from.as ||
@@ -181,6 +181,7 @@ function infer(originalQuery, model) {
           const { definition } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
+          let pathExpressionInsideFilter = false
           if (e.target) {
             // only fk access in infix filter
             const nextStep = ref[1]?.id || ref[1]
@@ -190,12 +191,17 @@ function infer(originalQuery, model) {
               throw new Error(err)
             }
             // no non-fk traversal in infix filter
-            if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
-              throw new Error(
-                `Only foreign keys of “${e.name}” can be accessed in infix filter, but found “${nextStep}”`,
-              )
+            if (nextStep && !isForeignKeyOf(nextStep, e))
+              if (expandOrExists) {
+                Object.defineProperty(arg, 'pathExpressionInsideFilter', { value: true })
+              } else {
+                throw new Error(
+                  `Only foreign keys of “${e.name}” can be accessed in infix filter, but found “${nextStep}”`,
+                )
+              }
           }
-          arg.$refLinks.push({ definition: e, target: definition })
+          const $refLink = { definition: e, target: definition }
+          arg.$refLinks.push($refLink)
           // filter paths are flattened
           // REVISIT: too much augmentation -> better remove flatName..
           Object.defineProperty(arg, 'flatName', { value: ref.join('_'), writable: true })
@@ -226,7 +232,7 @@ function infer(originalQuery, model) {
               // don't miss an exists within an expression
               token.xpr.forEach(walkTokenStream)
             } else {
-              attachRefLinksToArg(token, arg.$refLinks[i], existsPredicate)
+              attachRefLinksToArg(token, arg.$refLinks[i], existsPredicate || expandOrExists)
               existsPredicate = false
             }
           }
