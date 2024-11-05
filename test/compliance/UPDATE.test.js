@@ -63,7 +63,7 @@ describe('UPDATE', () => {
         expect(0).to.be(1)
       } catch (error) {
         // nonExisting is filtered, so the sql is incomplete
-        expect(error.message).to.contain('incomplete input')
+        expect(error.query).to.be('UPDATE basic_literals_string AS string SET ')
       }
     })
   })
