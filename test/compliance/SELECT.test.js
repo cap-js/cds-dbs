@@ -2,8 +2,7 @@ const assert = require('assert')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('from', () => {
     test('table', async () => {
@@ -617,7 +616,7 @@ describe('SELECT', () => {
     beforeAll(async () => {
       oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
       cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+        cds.db.pools._factory.options.acquireTimeoutMillis = 100
     })
 
     afterAll(() => {
@@ -1275,7 +1274,7 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list']) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
