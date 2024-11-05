@@ -547,7 +547,7 @@ class CQN2SQLRenderer {
       for (const key in row) {
         let val = row[key]
         const type = elements[key]?.type
-        if (val === undefined || type === 'cds.Composition') continue
+        if (val === undefined) continue
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
 
@@ -1137,9 +1137,7 @@ class CQN2SQLRenderer {
           // Else execute managed update or keep old if no new data if provided
           !update
             ? `OLD.${qname}`
-            : onUpdate
-              ? `CASE WHEN ${hasChanges} THEN ${update} ELSE OLD.${qname} END`
-              : this.managed_default(name, `OLD.${qname}`, update)
+            : this.managed_default(name, `OLD.${qname}`, update)
           } END as ${qname}`
       )
 
