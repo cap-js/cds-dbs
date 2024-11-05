@@ -7,11 +7,9 @@
     "db-service",
     "sqlite",
     "postgres",
-    "hana"
+    "hana",
+    "test/sflight"
   ],
-  "devDependencies": {
-    "@capire/sflight": "github:sap-samples/cap-sflight"
-  },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
