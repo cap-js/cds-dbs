@@ -7,8 +7,7 @@
     "db-service",
     "sqlite",
     "postgres",
-    "hana",
-    "test/sflight"
+    "hana"
   ],
   "scripts": {
     "test": "npm t -w db-service -w sqlite",

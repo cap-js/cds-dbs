@@ -1,6 +1,8 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const cds = require('../../cds.js')
+const cds = require('../../cds.js'), { path } = cds.utils
+
+const sflight = path.resolve(__dirname,'../../../test/sflight')
 
 describe('draft tests', () => {
 
@@ -9,7 +11,7 @@ describe('draft tests', () => {
     cds.env.features.ieee754compatible = true
   })
 
-  const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
+  const { GET, POST, PATCH, DELETE, expect } = cds.test(sflight)
   // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
   // (see https://cap.cloud.sap/docs/node.js/cds-test#cds-test-env-check)
   cds.env.requires.db.kind = 'better-sqlite'
