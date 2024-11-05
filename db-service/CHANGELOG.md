@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.0...db-service-v1.14.1) (2024-10-28)
+
+
+### Fixed
+
+* deep delete for views ([#496](https://github.com/cap-js/cds-dbs/issues/496)) ([82154ef](https://github.com/cap-js/cds-dbs/commit/82154ef8b837f17e81e2516056e03ff215f1dff8))
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+* SELECT cds.hana.BINARY ([#870](https://github.com/cap-js/cds-dbs/issues/870)) ([33c3ebe](https://github.com/cap-js/cds-dbs/commit/33c3ebe84be4c0181b1c230d5f2d332332201ce0))
+
 ## [1.14.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.13.0...db-service-v1.14.0) (2024-10-15)
 
 
