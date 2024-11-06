@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test $(../test/find)"
+    "test": "cds-test"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.14.1",

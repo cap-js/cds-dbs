@@ -1,5 +1,6 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
+
 const de = { locale: 'de' }
 
 describe('Bookshop - localization', () => {

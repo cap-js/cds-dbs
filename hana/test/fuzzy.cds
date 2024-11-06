@@ -1,1 +1,1 @@
-using {sap.capire.bookshop.Books as Books} from '../../test/bookshop/db/schema.cds';
+using {sap.capire.bookshop.Books as Books} from '../../../cap/samples/bookshop/db/schema.cds';

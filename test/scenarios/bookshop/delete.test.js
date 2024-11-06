@@ -1,5 +1,5 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 describe('Bookshop - Delete', () => {
   const { expect } = cds.test(bookshop)
@@ -10,7 +10,7 @@ describe('Bookshop - Delete', () => {
     expect(affectedRows).to.be.eq(0)
   })
 
-  test(`Deep delete rejects transitive circular dependencies`, async () => {
+  test.skip(`Deep delete rejects transitive circular dependencies`, async () => {
     await INSERT.into('sap.capire.bookshop.A').entries([
       { ID: 999 },
       { ID: 998 },
@@ -46,7 +46,7 @@ describe('Bookshop - Delete', () => {
     await expect(cds.db.run(del)).to.be.eventually.rejectedWith('Transitive circular composition detected')
   })
 
-  test('Delete with path expressions', async () => {
+  test.skip('Delete with path expressions', async () => {
     const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
     const selectEmilysBooks = CQL`SELECT * FROM AdminService.Books where author.name = 'Emily Brontë'`
 

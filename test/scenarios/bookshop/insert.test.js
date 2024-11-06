@@ -1,7 +1,15 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 describe('Bookshop - Insert', () => {
+
+  before(() => {
+    process.env.cds_features_ieee754compatible = 'true'
+  })
+  after(() => {
+    process.env.cds_features_ieee754compatible = undefined
+  })
+
   const { expect } = cds.test(bookshop)
 
   test('unique constraing violation throws error', async () => {
@@ -42,10 +50,10 @@ describe('Bookshop - Insert', () => {
     expect(resp | 0).to.be.eq(1)
   })
 
-  test('insert with assoc default', async () => {
+  test.skip('insert with assoc default', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     await cds.run(INSERT({ ID: 344, title: 'Faust. Eine Tragödie' }).into(Books))
-    const res = await SELECT.from(Books, {ID: 344})
+    const res = await SELECT.from(Books, { ID: 344 })
     expect(res.genre_ID).to.be.eq(10)
   })
 

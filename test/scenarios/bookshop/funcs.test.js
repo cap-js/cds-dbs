@@ -1,9 +1,10 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
+
 cds.test.in(bookshop)
 
 describe('Bookshop - Functions', () => {
-  const { expect, GET } = cds.test()
+  const { expect, GET } = cds.test(bookshop)
 
   describe('String Functions', () => {
     test('concat', async () => {

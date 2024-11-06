@@ -1,0 +1,6 @@
+[submodule "cap/samples"]
+	path = cap/samples
+	url = https://github.com/SAP-samples/cloud-cap-samples
+[submodule "cap/sflight"]
+	path = cap/sflight
+	url = https://github.com/SAP-samples/cap-sflight

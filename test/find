@@ -1,2 +1,0 @@
-# /bin/bash
-find -L test -type f -regex .*$npm_config_file$npm_config_test\\.test\\.js

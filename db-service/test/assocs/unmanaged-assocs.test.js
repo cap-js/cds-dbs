@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-const cds = require('@sap/cds')
+const cds = require('../../../test/cds')
 require('../../index') // to extend cds.ql query objects with .forSQL() and alike
 
 describe('where exists assoc', () => {

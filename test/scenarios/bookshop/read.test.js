@@ -1,5 +1,5 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 const admin = {
   auth: {
@@ -55,10 +55,10 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
     expect(
       res.data.value.every(
-      item =>
-        'author' in item &&
-        'ID' in item.author && // foreign key is renamed to element name in target
-        !('author_ID' in item.author),
+        item =>
+          'author' in item &&
+          'ID' in item.author && // foreign key is renamed to element name in target
+          !('author_ID' in item.author),
       ),
     ).to.be.true
   })
@@ -343,10 +343,15 @@ describe('Bookshop - Read', () => {
         from: {
           join: 'inner',
           args: [
-            { ref: ['AdminService.RenameKeys'], as: 'rk' },
-            { ref: ['DraftService.DraftEnabledBooks'], as: 'deb' },
+            {
+              SELECT: {
+                columns: [{ ref: ['author_ID'] }],
+                from: { ref: ['sap.capire.bookshop.Books'], as: 'b' },
+              }
+            },
+            { ref: ['sap.capire.bookshop.Authors'], as: 'a' },
           ],
-          on: [{ ref: ['deb', 'ID'] }, '=', { ref: ['rk', 'foo'] }],
+          on: [{ ref: ['a', 'ID'] }, '=', { ref: ['b', 'author_ID'] }],
         },
       },
     }
@@ -355,9 +360,9 @@ describe('Bookshop - Read', () => {
   })
 
   it('allows filtering with between operator', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where({ stock: { between: 0, and: 100 } })
 
-    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
+    return expect((await query).every(row => row.stock >= 0 && row.stock <= 100)).to.be.true
   })
 
   it('allows various mechanisms for expressing "not in"', async () => {
@@ -367,6 +372,6 @@ describe('Bookshop - Read', () => {
       SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251])
     ])
 
-    for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
+    for (const row of results) expect(row).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
   })
 })

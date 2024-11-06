@@ -1,5 +1,5 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 describe('Bookshop - Order By', () => {
   const { expect } = cds.test(bookshop)

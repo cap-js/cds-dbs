@@ -1,6 +1,6 @@
 const { Readable } = require('stream')
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 // Stress test should not be run in the pipeline
 describe.skip('Bookshop - Insert', () => {
