@@ -1275,7 +1275,7 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list', ...(minimal ? [] : ['SELECT'])]) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)

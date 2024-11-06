@@ -1,5 +1,5 @@
 const cds = require('../../cds.js')
-const bookshop = require('path').resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../../cap/samples/bookshop')
 
 const admin = {
   auth: {
@@ -13,14 +13,14 @@ describe('Bookshop - Genres', () => {
   test('Delete Genres', async () => {
     const body = require('./genres.json')
 
-    const beforeData = await GET('/test/Genres', admin)
+    const beforeData = await GET('/odata/v4/test/Genres', admin)
 
-    await POST('/test/Genres', body, admin)
+    await POST('/odata/v4/test/Genres', body, admin)
 
-    const res = await DELETE(`/test/Genres(${body.ID})`, admin)
+    const res = await DELETE(`/odata/v4/test/Genres(${body.ID})`, admin)
     expect(res.status).to.be.eq(204)
 
-    const afterData = await GET('/test/Genres', admin)
+    const afterData = await GET('/odata/v4/test/Genres', admin)
 
     delete res.data['@odata.context']
     const assert = require('assert')
@@ -30,7 +30,7 @@ describe('Bookshop - Genres', () => {
   test('Insert Genres', async () => {
     const body = require('./genres.json')
 
-    const insertResponse = await POST('/test/Genres', body, admin)
+    const insertResponse = await POST('/odata/v4/test/Genres', body, admin)
     expect(insertResponse.status).to.be.eq(201)
 
     delete insertResponse.data['@odata.context']
@@ -49,14 +49,14 @@ describe('Bookshop - Genres', () => {
     assert.deepEqual(insertResponse.data, body)
 
     // REVISIT clean up so the deep update test does not fail
-    await DELETE(`/test/Genres(${body.ID})`, admin)
+    await DELETE(`/odata/v4/test/Genres(${body.ID})`, admin)
   })
 
   test('Update Genres', async () => {
     // This was UPSERT before
-    const get = await GET('/test/Genres(10)', admin)
+    const get = await GET('/odata/v4/test/Genres(10)', admin)
 
-    const res = await PUT(`/test/Genres(10)`, { name: get.data.name + ' changed' }, admin)
+    const res = await PUT(`/odata/v4/test/Genres(10)`, { name: get.data.name + ' changed' }, admin)
     expect(res.status).to.be.eq(200)
 
     const assert = require('assert')
@@ -68,13 +68,13 @@ describe('Bookshop - Genres', () => {
     let body = require('./genres.json')
 
     // add all the data from genres.json deep
-    await POST('/test/Genres', body, admin)
+    await POST('/odata/v4/test/Genres', body, admin)
 
     // deep update, which deletes all children of 100 and inserts one new children
-    let res = await PUT(`/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
+    let res = await PUT(`/odata/v4/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
     expect(res.status).to.be.eq(200)
 
-    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
+    res = await GET(`/odata/v4/test/Genres(${body.ID})?$expand=children`, admin)
 
     expect(res.status).to.be.eq(200)
     delete res.data['@odata.context']
@@ -87,10 +87,10 @@ describe('Bookshop - Genres', () => {
       children: [{ name: null, descr: null, ID: 999, parent_ID: 100 }], // all other children have been removed
     })
 
-    res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
+    res = await PUT(`/odata/v4/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
     expect(res.status).to.be.eq(200)
 
-    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
+    res = await GET(`/odata/v4/test/Genres(${body.ID})?$expand=children`, admin)
     expect(res.data).to.deep.include({
       name: 'no more children',
       descr: null,
