@@ -7,6 +7,8 @@ const _strict_booleans = _simple_queries < 2
 const { Readable } = require('stream')
 
 const DEBUG = cds.debug('sql|sqlite')
+const LOG_SQL = cds.log('sql')
+const LOG_SQLITE =  cds.log('sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -82,8 +84,8 @@ class CQN2SQLRenderer {
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
-    const DEBUG_ENABLED = cds.log('sql')._debug || cds.log('sqlite')._debug
-    if (DEBUG_ENABLED) {
+    
+    if (LOG_SQL._debug || LOG_SQLITE._debug) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
         values = [values]
