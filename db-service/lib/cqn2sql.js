@@ -6,10 +6,7 @@ const _strict_booleans = _simple_queries < 2
 
 const { Readable } = require('stream')
 
-const DEBUG_SQL_JSON = cds.log('sql-json')._debug
-const DEBUG_SQL = cds.log('sql')._debug || cds.log('sqlite')._debug
-const DEBUG = DEBUG_SQL_JSON ? cds.debug('sql-json') : cds.debug('sql|sqlite')
-DEBUG._debug = DEBUG_SQL_JSON || DEBUG_SQL
+const DEBUG = cds.debug('sql|sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -85,7 +82,8 @@ class CQN2SQLRenderer {
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
-    if (DEBUG._debug) {
+    const DEBUG_ENABLED = cds.log('sql')._debug || cds.log('sqlite')._debug
+    if (DEBUG_ENABLED) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
         values = [values]
