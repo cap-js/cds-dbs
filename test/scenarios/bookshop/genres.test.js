@@ -45,11 +45,11 @@ describe('Bookshop - Genres', () => {
       a.children.forEach((c, i) => sort(c, b.children[i]))
     }
 
-    sort(insertResponse.data, body)
-    assert.deepEqual(insertResponse.data, body)
-
     // REVISIT clean up so the deep update test does not fail
     await DELETE(`/odata/v4/test/Genres(${body.ID})`, admin)
+
+    sort(insertResponse.data, body)
+    assert.deepEqual(insertResponse.data, body)
   })
 
   test('Update Genres', async () => {

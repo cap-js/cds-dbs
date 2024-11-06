@@ -20,10 +20,14 @@
               "name": "Kitty Cat",
               "descr": null,
               "ID": 103,
-              "parent_ID": 102,
-              "children": [{ "name": "Aristocat", "descr": null, "ID": 104, "parent_ID": 103 }]
+              "parent_ID": 102
             },
-            { "name": "Kitty Bat", "descr": null, "ID": 105, "parent_ID": 102, "children": [] }
+            {
+              "name": "Kitty Bat",
+              "descr": null,
+              "ID": 105,
+              "parent_ID": 102
+            }
           ]
         },
         {
@@ -31,10 +35,23 @@
           "descr": null,
           "ID": 106,
           "parent_ID": 101,
-          "children": [{ "name": "Catalina", "descr": null, "ID": 107, "parent_ID": 106, "children": [] }]
+          "children": [
+            {
+              "name": "Catalina",
+              "descr": null,
+              "ID": 107,
+              "parent_ID": 106
+            }
+          ]
         }
       ]
     },
-    { "name": "Catweazle", "descr": null, "ID": 108, "parent_ID": 100, "children": [] }
+    {
+      "name": "Catweazle",
+      "descr": null,
+      "ID": 108,
+      "parent_ID": 100,
+      "children": []
+    }
   ]
 }
