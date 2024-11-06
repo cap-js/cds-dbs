@@ -1,0 +1,5 @@
+CustomerID;FirstName;LastName;Title;Street;PostalCode;City;CountryCode_code;PhoneNumber;EMailAddress
+000008;August;Buchholm;Mr.;Lerchenstr. 23;64342;Seeheim-Jugenheim;DE;+49-184-089871;august.buchholm@flight.example.de
+000115;Laura;Benz;Mrs.;Am Deich 35;79312;Emmendingen;DE;+49-871-814327;laura.benz@flight.example.de
+000506;Stephen;Moyano;Mr.;Muehltalstr. 19;69190;Walldorf;DE;+49-433-618960;stephen.moyano@flight.example.de
+000608;Benjamin;Prinz;Mr.;route de Pégomas 94;75839;Paris;FR;+33-722-645204;benjamin.prinz@flight.example.fr
