@@ -10,10 +10,7 @@
     "hana"
   ],
   "devDependencies": {
-    "axios": "^1",
-    "chai": "^4",
-    "chai-as-promised": "^7",
-    "chai-subset": "^1.6.0"
+    "axios": "^1"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
