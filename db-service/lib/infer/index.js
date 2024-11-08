@@ -544,7 +544,10 @@ function infer(originalQuery, model) {
               const element = elements[id]
               rejectNonFkAccess(element)
               const resolvableIn = getDefinition(definition.target) || target
-              column.$refLinks.push({ definition: elements[id], target: resolvableIn })
+              const $refLink = { definition: elements[id], target: resolvableIn }
+              if($baseLink.pathExpressionInsideFilter)
+                Object.defineProperty(column, 'join', { value: 'inner' })
+              column.$refLinks.push($refLink)
             } else {
               stepNotFoundInPredecessor(id, definition.name)
             }
@@ -715,6 +718,7 @@ function infer(originalQuery, model) {
                   `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`,
                 )
               }
+              // TODO: get rid of side-effect
               Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
             }
             const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
@@ -724,6 +728,7 @@ function infer(originalQuery, model) {
                   `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
                 )
               }
+              // TODO: get rid of side-effect
               Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
             }
           }
@@ -1010,6 +1015,7 @@ function infer(originalQuery, model) {
     function isColumnJoinRelevant(column) {
       let fkAccess = false
       let assoc = null
+      if (column.join) return true
       for (let i = 0; i < column.ref.length; i++) {
         const ref = column.ref[i]
         const link = column.$refLinks[i]
