@@ -289,7 +289,7 @@ class CQN2SQLRenderer {
       ? x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `${this.quote(name)} AS "${escaped}"`
+        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
         if (x.SELECT?.count) {
           // Return both the sub select and the count for @odata.count
           const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
