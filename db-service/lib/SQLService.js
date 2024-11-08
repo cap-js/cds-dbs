@@ -294,8 +294,39 @@ class SQLService extends DatabaseService {
       DEBUG?.(query, data)
       const ps = await this.prepare(query)
       const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
-      if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
-      else return exec(data)
+      let ret
+      if (Array.isArray(data) && Array.isArray(data[0])) ret = await Promise.all(data.map(exec))
+      else ret = await exec(data)
+
+      // Leverage modeling structure to create table indexes
+      if (this.model && /^\s*CREATE TABLE/i.test(query)) {
+        // Extracts the name from the incoming SQL statment
+        const name = query.match(/^CREATE TABLE ("[^"]+"|[^\s(]+)/im)[1]
+        // Replaces all '_' with '.' from left to right
+        const split = name.split('_')
+        const options = split.map((_, i) => split.slice(0, i + 1).join('.') + '.' + split.slice(i + 1).join('_'))
+        // Finds the first match inside the model
+        const target = options.find(n => this.model.definitions[n])
+
+        // if target definition is found create foreign key indexes
+        if (target) {
+          // Create indexes for foreign key columns
+          const cqn2sql = new this.constructor.CQN2SQL(this)
+          const indexes = {}
+          const entity = this.model.definitions[target]
+          for (const e in entity.elements) {
+            const element = entity.elements[e]
+            const assoc = element._foreignKey4
+            if (!assoc || element.virtual) continue
+            (indexes[assoc] ??= []).push(cqn2sql.quote(element.name))
+          }
+          for (const assocName in indexes) {
+            await this.exec(`CREATE INDEX ${cqn2sql.quote(name + '_' + assocName)} on ${cqn2sql.quote(name)} (${indexes[assocName]})`)
+          }
+        }
+      }
+
+      return ret
     } else return next()
   }
 
