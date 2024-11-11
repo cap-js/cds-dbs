@@ -55,10 +55,10 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
     expect(
       res.data.value.every(
-      item =>
-        'author' in item &&
-        'ID' in item.author && // foreign key is renamed to element name in target
-        !('author_ID' in item.author),
+        item =>
+          'author' in item &&
+          'ID' in item.author && // foreign key is renamed to element name in target
+          !('author_ID' in item.author),
       ),
     ).to.be.true
   })
@@ -355,18 +355,18 @@ describe('Bookshop - Read', () => {
   })
 
   it('allows filtering with between operator', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where({ stock: { between: 0, and: 100 } })
 
-    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
+    return expect((await query).every(row => row.stock >= 0 && row.stock <= 100)).to.be.true
   })
 
   it('allows various mechanisms for expressing "not in"', async () => {
     const results = await cds.db.run([
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251])
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251]).orderBy('ID')
     ])
 
-    for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
+    for (const result of results) expect(result).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
   })
 })
