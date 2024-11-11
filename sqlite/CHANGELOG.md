@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.6](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.5...sqlite-v1.7.6) (2024-10-30)
+
+
+### Fixed
+
+* increase min version cap-js/db-service ([#876](https://github.com/cap-js/cds-dbs/issues/876)) ([e20eef8](https://github.com/cap-js/cds-dbs/commit/e20eef83f3ef0e1595932e31885096ca566cb153))
+
+## [1.7.5](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.4...sqlite-v1.7.5) (2024-10-28)
+
+
+### Fixed
+
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+
 ## [1.7.4](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.3...sqlite-v1.7.4) (2024-10-15)
 
 

@@ -4,6 +4,30 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.0...hana-v1.4.1) (2024-10-30)
+
+
+### Fixed
+
+* increase min version cap-js/db-service ([#876](https://github.com/cap-js/cds-dbs/issues/876)) ([e20eef8](https://github.com/cap-js/cds-dbs/commit/e20eef83f3ef0e1595932e31885096ca566cb153))
+
+## [1.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.2...hana-v1.4.0) (2024-10-28)
+
+
+### Added
+
+* Improve procedure metadata lookup logic ([#862](https://github.com/cap-js/cds-dbs/issues/862)) ([da629d9](https://github.com/cap-js/cds-dbs/commit/da629d98192cf1b196cceb172cb01f4a39acd887))
+
+
+### Fixed
+
+* enable `cesu8` by default for `hdb` driver and encode entries streams  ([#868](https://github.com/cap-js/cds-dbs/issues/868)) ([d85d7e6](https://github.com/cap-js/cds-dbs/commit/d85d7e6e1b2b7d7afe097e78a335ddb4fb13e485))
+* Include `binary` type with `varbinary` type in `hana-client` ([#871](https://github.com/cap-js/cds-dbs/issues/871)) ([f4d7caf](https://github.com/cap-js/cds-dbs/commit/f4d7caf153122e663a6b75b22e66e79a25440664))
+* nested functions in comparisons ([#861](https://github.com/cap-js/cds-dbs/issues/861)) ([f3fd254](https://github.com/cap-js/cds-dbs/commit/f3fd25452b96c50a1ad12a2137945b3d25c0789f))
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+* SELECT cds.hana.BINARY ([#870](https://github.com/cap-js/cds-dbs/issues/870)) ([33c3ebe](https://github.com/cap-js/cds-dbs/commit/33c3ebe84be4c0181b1c230d5f2d332332201ce0))
+* Throw error if rows in limit is missing for expand, same as in limit() ([#858](https://github.com/cap-js/cds-dbs/issues/858)) ([641c3b9](https://github.com/cap-js/cds-dbs/commit/641c3b97d0571b8b8b7f44e038ffc34ac17c49e5))
+
 ## [1.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.3.1...hana-v1.3.2) (2024-10-21)
 
 
