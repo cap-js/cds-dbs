@@ -114,7 +114,6 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * Handler for SELECT
    * @type {Handler}
    */
   async onSELECT({ query, data }) {
@@ -163,35 +162,36 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * Handler for INSERT
    * @type {Handler}
    */
   async onINSERT({ query, data }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs -> let's do so pls and remove this line
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     return new this.class.InsertResults(cqn, results)
   }
 
   /**
-   * Handler for UPSERT
    * @type {Handler}
    */
   async onUPSERT({ query, data }) {
     const { sql, entries } = this.cqn2sql(query, data)
-    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
+    if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen? -> let's do so pls and remove this line
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
     // REVISIT: results isn't an array, when no entries -> how could that work? when do we have no entries?
-    return results.reduce((total, affectedRows) => (total += affectedRows.changes), 0)
+    // REVISIT: Why don't we use InsertResults here as well? -> would be more consistent; and we could eliminate this method
+    return results.reduce((total, affectedRows) => total += affectedRows.changes, 0)
   }
 
   /**
-   * Handler for UPDATE
    * @type {Handler}
    */
   async onUPDATE(req) {
+    ////////////////////////
+    // REVISIT: who is sending such updates? -> let's eliminate this code please
+    //
     // noop if not a touch for @cds.on.update
     if (
       !req.query.UPDATE.data &&
@@ -199,6 +199,8 @@ class SQLService extends DatabaseService {
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
+    //
+    /////////////////
     return this.onSIMPLE(req)
   }
 
@@ -209,7 +211,8 @@ class SQLService extends DatabaseService {
   async onSIMPLE({ query, data }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
-    return (await ps.run(values)).changes
+    let res = await ps.run(values)
+    return res.changes
   }
 
   get onDELETE() {
@@ -309,16 +312,16 @@ class SQLService extends DatabaseService {
 
   /**
    * Derives and executes a query to fill in `$count` for given query
-   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {import('@sap/cds/apis/ql').SELECT} query - SELECT CQN
    * @param {unknown[]} ret - Results of the original query
    * @returns {Promise<number>}
    */
-  async count(query, ret) {
+  async count (query, ret) {
     if (ret) {
-      const { one, limit: _ } = query.SELECT,
-        n = ret.length
-      const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      const n = ret.length
+      const { one, limit } = query.SELECT
+      const [ max, offset=0 ] = one ? [1] : !limit ? [] : [ limit.rows?.val, limit.offset?.val ]
+      if (!max || n < max && (n || !offset)) return n + offset
     }
 
     // Keep original query columns when potentially used insde conditions
@@ -351,7 +354,7 @@ class SQLService extends DatabaseService {
    */
   static CQN2SQL = require('./cqn2sql').class
 
-  // REVISIT: There must be a better way!
+  // REVISIT: There must be a better way! -> so let's find it
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
@@ -364,16 +367,13 @@ class SQLService extends DatabaseService {
     })
   }
 
-  /** @param {unknown[]} args */
   constructor(...args) {
     super(...args)
-    /** @type {unknown} */
     this.class = new.target // for IntelliSense
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').Query} query
-   * @param {unknown} values
+   * @param {Query} query
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
@@ -389,8 +389,8 @@ class SQLService extends DatabaseService {
   }
 
   /**
-   * @param {import('@sap/cds/apis/cqn').Query} q
-   * @returns {import('./infer/cqn').Query}
+   * @param {Query} q
+   * @returns {Query}
    */
   cqn4sql(q) {
     if (
