@@ -1,4 +1,4 @@
-const { Readable, Stream } = require('stream')
+const { Readable, Stream, promises: { pipeline } } = require('stream')
 const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
@@ -22,7 +22,6 @@ class HDBDriver extends driver {
    */
   constructor(creds) {
     creds = {
-      useCesu8: false,
       fetchSize: 1 << 16, // V8 default memory page size
       ...creds,
     }
@@ -138,7 +137,7 @@ class HDBDriver extends driver {
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
     const isArray = Array.isArray(rows)
-    const result = isArray ? {...rows[0]} : {...rows}
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
     const args = isArray ? rows.slice(1) : []
@@ -158,6 +157,14 @@ class HDBDriver extends driver {
     const streams = []
     values = values.map((v, i) => {
       if (v instanceof Stream) {
+        if (this._creds.useCesu8 !== false && v.type === 'json') {
+          const encode = iconv.encodeStream('cesu8')
+          v.setEncoding('utf-8')
+          // hdb will react to the stream error no need to handle it twice
+          pipeline(v, encode).catch(() => { })
+          return encode
+        }
+
         streams[i] = v
         const iterator = v[Symbol.asyncIterator]()
         return Readable.from(iterator, { objectMode: false })

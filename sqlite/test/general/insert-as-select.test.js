@@ -1,9 +1,9 @@
 const cds = require('../../../test/cds.js')
-cds.test(__dirname, 'testModel.cds')
-
 const assert = require('assert')
 
 describe('insert as select', () => {
+  cds.test(__dirname, 'testModel.cds')
+
   test('make sure that the placeholder values of the prepared statement are passed to the database', async () => {
     // fill other table first
     await cds.run(INSERT({ ID: 42, name: 'Foo2' }).into('Foo2'))
