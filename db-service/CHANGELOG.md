@@ -4,6 +4,53 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.0...db-service-v1.14.1) (2024-10-28)
+
+
+### Fixed
+
+* deep delete for views ([#496](https://github.com/cap-js/cds-dbs/issues/496)) ([82154ef](https://github.com/cap-js/cds-dbs/commit/82154ef8b837f17e81e2516056e03ff215f1dff8))
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+* SELECT cds.hana.BINARY ([#870](https://github.com/cap-js/cds-dbs/issues/870)) ([33c3ebe](https://github.com/cap-js/cds-dbs/commit/33c3ebe84be4c0181b1c230d5f2d332332201ce0))
+
+## [1.14.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.13.0...db-service-v1.14.0) (2024-10-15)
+
+
+### Added
+
+* assoc-like calc elements after exists predicate ([#831](https://github.com/cap-js/cds-dbs/issues/831)) ([05f7d75](https://github.com/cap-js/cds-dbs/commit/05f7d75837495d58cc4f72ad628077bdebb0acf6))
+
+
+### Fixed
+
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+* Treat assoc-like calculated elements as unmanaged assocs ([#830](https://github.com/cap-js/cds-dbs/issues/830)) ([cbe0df7](https://github.com/cap-js/cds-dbs/commit/cbe0df7a66fec0d421947767adc8621ed8bf236c))
+
+## [1.13.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.1...db-service-v1.13.0) (2024-10-01)
+
+
+### Added
+
+* Add quoted mode support ([#681](https://github.com/cap-js/cds-dbs/issues/681)) ([43c7a6c](https://github.com/cap-js/cds-dbs/commit/43c7a6c1bed836a1210eb9c2ff5c7ffc0e498d76))
+
+
+### Fixed
+
+* **deep-queries:** properly return insert result ([#803](https://github.com/cap-js/cds-dbs/issues/803)) ([8d800e2](https://github.com/cap-js/cds-dbs/commit/8d800e2858f02663b8ed3845909e5891af390517))
+* dont use virtual key for `UPDATE … where (&lt;key&gt;) in <subquery>` ([#800](https://github.com/cap-js/cds-dbs/issues/800)) ([d25af70](https://github.com/cap-js/cds-dbs/commit/d25af70b23688cd22c7b87f20a7848c9653ae9a9))
+* reject all path expressions w/o foreign keys ([#806](https://github.com/cap-js/cds-dbs/issues/806)) ([cd271a8](https://github.com/cap-js/cds-dbs/commit/cd271a8aa973afe0926ac1fa956cc64260140b98))
+
+## [1.12.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.12.0...db-service-v1.12.1) (2024-09-03)
+
+
+### Fixed
+
+* deep `groupby` expand queries ([#768](https://github.com/cap-js/cds-dbs/issues/768)) ([5423cf3](https://github.com/cap-js/cds-dbs/commit/5423cf38574962c09b94febab95f2e3dc118d2c9))
+* **deep:** prevent false unique constraint errors and combine delete queries ([#781](https://github.com/cap-js/cds-dbs/issues/781)) ([01de95f](https://github.com/cap-js/cds-dbs/commit/01de95f5050a1d3325459ccb78a4e9a1e0dbcfde))
+* **logging:** from changes in @sap/cds ([#791](https://github.com/cap-js/cds-dbs/issues/791)) ([1e8bf06](https://github.com/cap-js/cds-dbs/commit/1e8bf06c9ae92ba55d13fe9e3297d6a54c4fc8fe))
+* prepend aliases to refs within function args in on conditions ([#795](https://github.com/cap-js/cds-dbs/issues/795)) ([9b34314](https://github.com/cap-js/cds-dbs/commit/9b34314d1ef8c6fd7e77451fe9bf0abdc12c27ea)), closes [#779](https://github.com/cap-js/cds-dbs/issues/779)
+* prevent $search queries from throwing ([#772](https://github.com/cap-js/cds-dbs/issues/772)) ([cdf4d37](https://github.com/cap-js/cds-dbs/commit/cdf4d37590c2949cdfd6c6533370bc96cd8fd0fc))
+
 ## [1.12.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.11.0...db-service-v1.12.0) (2024-07-25)
 
 

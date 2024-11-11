@@ -296,7 +296,7 @@ ${links.join('\n')}
 `
   }
 
-  onPlainSQL(req, next) {
+  async onPlainSQL(req, next) {
     const query = req.query
     if (this.options.independentDeploy) {
       // REVISIT: Should not be needed when deployment supports all types or sends CQNs
@@ -332,8 +332,19 @@ ${links.join('\n')}
       // eslint-disable-next-line no-unused-vars
       req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
     }
-
-    return super.onPlainSQL(req, next)
+    try {
+      return await super.onPlainSQL(req, next)
+    }
+    catch (err) {
+      if (err.code === '3F000') {
+        if (this.options?.credentials?.schema) {
+          cds.error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
+        } else {
+          cds.error`No schema was configure / detected before plainSQL call: ${req.query}`
+        }
+      }
+      throw err
+    }
   }
 
   async onSELECT({ query, data }) {
@@ -460,11 +471,32 @@ ${links.join('\n')}
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+      )
+    }
+
+    UPSERT(q, isUpsert = false) {
+      super.UPSERT(q, isUpsert)
+
+      // REVISIT: this should probably be made a bit easier to adopt
+      return (this.sql = this.sql
+        // Adjusts json function to be postgres specific
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+      )
+    }
+
+    managed_extract(name, element, converter) {
+      const { UPSERT, INSERT } = this.cqn
+      const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
+        ? `value->>${this.columns.indexOf(name)}`
+        : `value->>'${name.replace(/'/g, "''")}'`
+      const sql = converter?.(extract) || extract
+      return { extract, sql }
+    }
+
+    managed_default(name, managed, src) {
+      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {
@@ -506,7 +538,7 @@ ${links.join('\n')}
     }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
-      return this.string(`${defaultValue}`)
+      return typeof defaultValue === 'string' ? this.string(`${defaultValue}`) : defaultValue
     }
 
     static Functions = { ...super.Functions, ...require('./cql-functions') }
@@ -539,27 +571,31 @@ ${links.join('\n')}
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-      // UUID:      (e) => `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
-      boolean: e => `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
-      Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Integer: e => `CAST(${e} as integer)`,
-      Int64: e => `CAST(${e} as bigint)`,
-      Date: e => `CAST(${e} as DATE)`,
-      Time: e => `CAST(${e} as TIME)`,
-      DateTime: e => `CAST(${e} as TIMESTAMP)`,
-      Timestamp: e => `CAST(${e} as TIMESTAMP)`,
+      // UUID: (e) => e[0] === '$' ? e : `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
+      boolean: e => e[0] === '$' ? e : `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
+      // REVISIT: Postgres and HANA round Decimal numbers differently therefore precision and scale are removed
+      // Float: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      // Decimal: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Float: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Decimal: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Integer: e => e[0] === '$' ? e : `CAST(${e} as integer)`,
+      Int64: e => e[0] === '$' ? e : `CAST(${e} as bigint)`,
+      Date: e => e[0] === '$' ? e : `CAST(${e} as DATE)`,
+      Time: e => e[0] === '$' ? e : `CAST(${e} as TIME)`,
+      DateTime: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
+      Timestamp: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
       // REVISIT: Remove that with upcomming fixes in cds.linked
-      Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Binary: e => `DECODE(${e},'base64')`,
-      LargeBinary: e => `DECODE(${e},'base64')`,
+      Double: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Binary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      LargeBinary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
 
       // HANA Types
-      'cds.hana.CLOB': e => `DECODE(${e},'base64')`,
-      'cds.hana.BINARY': e => `DECODE(${e},'base64')`,
-      'cds.hana.ST_POINT': e => `POINT(((${e})::json->>'x')::float, ((${e})::json->>'y')::float)`,
-      'cds.hana.ST_GEOMETRY': e => `POLYGON(${e})`,
+      'cds.hana.CLOB': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      'cds.hana.BINARY': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      // REVISIT: have someone take a look at how this syntax exactly works in postgres with postgis
+      'cds.hana.ST_POINT': e => `(${e})::point`,
+      'cds.hana.ST_GEOMETRY': e => `(${e})::polygon`,
     }
 
     static OutputConverters = {
@@ -579,10 +615,14 @@ ${links.join('\n')}
       Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
+        : `cast(${expr} as varchar)`
+        : undefined,
 
-      // Convert point back to json format
-      'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
+      // Convert ST types back to WKT format
+      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
+      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
     }
   }
 
@@ -614,14 +654,21 @@ ${links.join('\n')}
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
     } catch {
+      // Failed to connect to database
+      if (!this.dbc) {
+        return this.database({ database })
+      }
       // Failed to reset database
     } finally {
-      await this.dbc.end()
-      delete this.dbc
+      // Only clean when successfully connected
+      if (this.dbc) {
+        await this.dbc.end()
+        delete this.dbc
 
-      // Update credentials to new Database owner
-      await this.disconnect()
-      this.options.credentials = Object.assign({}, system, creds)
+        // Update credentials to new Database owner
+        await this.disconnect()
+        this.options.credentials = Object.assign({}, system, creds)
+      }
     }
   }
 
@@ -636,18 +683,20 @@ ${links.join('\n')}
 
     try {
       if (!clean) {
-        await this.tx(async tx => {
-          // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
-          await tx
-            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
-            .catch(e => {
-              if (e.code === '42710') return
-              throw e
-            })
-        })
-        await this.tx(async tx => {
-          await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
-        })
+        await cds
+          .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+          .catch(e => {
+            if (e.code === '42710') return
+            throw e
+          })
+        // Retry granting priviledges as this is being done by multiple instances
+        // Postgres just rejects when other connections are granting the same user
+        const grant = (i = 0) => cds.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+          .catch((err) => {
+            if (i > 100) throw err
+            return grant(i + 1)
+          })
+        await grant()
       }
 
       // Update credentials to new Schema owner
@@ -657,7 +706,7 @@ ${links.join('\n')}
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
       })
     } finally {
       await this.disconnect()
