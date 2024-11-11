@@ -266,10 +266,10 @@ function cqn4sql(originalQuery, model) {
         const id = localized(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
-      from = { join: 'left', args, on: [] }
+      from = { join: r.join || 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
-        from = { join: 'left', args: [from], on: [] }
+        from = { join: c.join || 'left', args: [from], on: [] }
       })
     })
     return from.args.length > 1 ? from : from.args[0]
@@ -309,7 +309,7 @@ function cqn4sql(originalQuery, model) {
       }
       if (node.children) {
         node.children.forEach(c => {
-          lhs = { join: 'left', args: [lhs], on: [] }
+          lhs = { join: c.join || 'left', args: [lhs], on: [] }
           lhs = joinForBranch(lhs, c)
         })
       }
