@@ -1,5 +1,4 @@
 const cds = require('../../test/cds.js')
-const complex = cds.utils.path.resolve(__dirname, '../compliance/resources')
 const Root = 'complex.Root'
 const Child = 'complex.Child'
 const GrandChild = 'complex.GrandChild'
