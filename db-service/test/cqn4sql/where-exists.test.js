@@ -1534,6 +1534,22 @@ describe('path expression within exists predicate', () => {
     )
   })
 
+  it.skip('scoped query has nested exists in infix filter', () => {
+    let query = CQL`SELECT from bookshop.Authors[exists books[genre.name LIKE '%Fiction']]:books { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        ) and EXISTS (
+          SELECT 1 from bookshop.Books as books2
+          inner join bookshop.Genres as genre on genre.ID = books2.genre_ID
+          where books2.author_ID = books.author_ID and genre.name LIKE '%Fiction'
+        )`,
+    )
+  })
   it.skip('scoped query with path expression in infix filter', () => {
     let query = CQL`SELECT from bookshop.Authors:books[genre.name = 'Thriller'] { ID }`
 
