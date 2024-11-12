@@ -369,4 +369,10 @@ describe('Bookshop - Read', () => {
 
     for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
   })
+
+  test('Map', async () => {
+    const result = await SELECT.from('sap.capire.bookshop.Maps')
+
+    expect(result).to.deep.eq([{ ID: 0, map: { key: 'value' } }])
+  })
 })

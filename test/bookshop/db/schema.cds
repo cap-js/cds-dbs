@@ -68,3 +68,8 @@ entity C : managed {
       toB : Composition of many B
               on toB.ID = $self.B;
 }
+
+entity Maps {
+  key ID  : Integer;
+      map : Map;
+}
