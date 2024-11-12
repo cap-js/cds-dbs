@@ -197,4 +197,11 @@ describe('Bookshop - Update', () => {
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('ID').that.equals(42)
   })
+
+  test('Map', async () => {
+    await UPDATE.entity('sap.capire.bookshop.Maps').where("ID=", 0).set({ map: { key: 'updatedValue' } })
+    const result = await SELECT.from('sap.capire.bookshop.Maps')
+
+    expect(result).to.deep.eq([{ ID: 0, map: { key: 'updatedValue' } }])
+  })
 })
