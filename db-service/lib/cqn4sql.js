@@ -1266,7 +1266,7 @@ function cqn4sql(originalQuery, model) {
         }
       })
       return flatColumns
-    } else if (element.elements) {
+    } else if (element.elements && element.type !== 'cds.Map') {
       const flatRefs = []
       Object.values(element.elements).forEach(e => {
         const alias = columnAlias ? `${columnAlias}_${e.name}` : null
