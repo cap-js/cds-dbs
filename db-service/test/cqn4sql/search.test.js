@@ -275,6 +275,20 @@ describe('search w/ path expressions', () => {
   } where search((authorWithAddress.note, address.city), 'x')`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
+
+  it('dont dump for non existing search paths, but ignore the path', () => {
+    let query = CQL`SELECT from search.BookShelf { ID, genre }`
+    query.SELECT.search = [{ val: 'Harry Plotter' }]
+
+    let res = cqn4sql(query, model)
+    const expected = CQL`
+    SELECT from search.BookShelf as BookShelf
+    {
+      BookShelf.ID,
+      BookShelf.genre
+  } where search((BookShelf.genre), 'Harry Plotter')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
 })
 
 describe('calculated elements', () => {
