@@ -114,7 +114,7 @@ const _getSearchableColumns = entity => {
     deepSearchCandidates.forEach(c => {
       const element = c.ref.reduce((resolveIn, curr, i) => {
         const next = resolveIn.elements?.[curr] || resolveIn._target.elements[curr]
-        if (next.isAssociation && !c.ref[i + 1]) {
+        if (next?.isAssociation && !c.ref[i + 1]) {
           const searchInTarget = _getSearchableColumns(next._target)
           searchInTarget.forEach(elementRefInTarget => {
             searchableColumns.push({ ref: c.ref.concat(...elementRefInTarget.ref) })
