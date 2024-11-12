@@ -158,6 +158,25 @@ describe('EXISTS predicate in where', () => {
           ) + 2
         ) = 'foo'`)
     })
+    it('nested exists wrapped in infix filter', () => {
+      let query = CQL`SELECT from bookshop.Authors { ID } where exists books[ exists genre[ parent = 1 ] ]`
+      // some OData requests lead to a nested `xpr: [ exists <assoc> ]` which
+      // cannot be expressed with the template string CQL`` builder
+      query.SELECT.where[1].ref[0].where = [{ xpr: [...query.SELECT.where[1].ref[0].where] }]
+      const res = cqn4sql(query, model)
+      const expected = CQL`
+      SELECT from bookshop.Authors as Authors { Authors.ID } where exists (
+        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
+          and exists (
+            SELECT 1 from bookshop.Genres as genre where genre.ID = books.genre_ID and genre.parent_ID = 1
+          )
+      )`
+      // cannot be expressed with the template string CQL`` builder
+      expected.SELECT.where[1].SELECT.where.splice(4, Infinity, {
+        xpr: [...expected.SELECT.where[1].SELECT.where.slice(4)],
+      })
+      expect(res).to.deep.eql(expected)
+    })
   })
 
   describe('infix filter', () => {
