@@ -154,7 +154,7 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].count_star, 3, 'Ensure that the function is applied and aliased')
       assert.strictEqual(res[0].count_one, 3, 'Ensure that the function is applied and aliased')
-      assert.strictEqual(res[0].count_string, 3, 'Ensure that the function is applied and aliased')
+      assert.strictEqual(res[0].count_string, 2, 'Ensure that the function is applied and aliased')
       assert.strictEqual(res[0].count_char, 0, 'Ensure that the function is applied and aliased')
     })
 
@@ -373,14 +373,14 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string in (SELECT string from ${string})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('ref in SELECT alias', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string in (SELECT string as string_renamed from ${string})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('param ?', async () => {
@@ -531,6 +531,9 @@ describe('SELECT', () => {
   })
 
   describe('orderby', () => {
+
+    const _localeSort = (a, b) => a === b ? 0 : a === null ? -1 : b === null ? 1 : String.prototype.localeCompare.call(a, b)
+
     test('ignore empty array', async () => {
       const { string } = cds.entities('basic.literals')
       const cqn = CQL`SELECT string FROM ${string}`
@@ -544,7 +547,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -553,7 +556,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string asc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -562,7 +565,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string desc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(b.string, a.string))
+      const sorted = [...res].sort((a, b) => _localeSort(b.string, a.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
@@ -572,7 +575,7 @@ describe('SELECT', () => {
       cqn.SELECT.localized = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
   })
@@ -583,7 +586,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string LIMIT ${1}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].string, 'no', 'Ensure that the first row is coming back')
+      assert.strictEqual(res[0].string, null, 'Ensure that the first row is coming back')
     })
 
     test('offset', async () => {
@@ -591,7 +594,7 @@ describe('SELECT', () => {
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string LIMIT ${1} OFFSET ${1}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].string, 'null', 'Ensure that the first row is coming back')
+      assert.strictEqual(res[0].string, 'no', 'Ensure that the first row is coming back')
     })
   })
 
@@ -782,7 +785,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.strictEqual(!Array.isArray(res) && typeof res, 'object', 'Ensure that the result is an object')
-      assert.strictEqual(res.string, 'no', 'Ensure that the first row is coming back')
+      assert.strictEqual(res.string, null, 'Ensure that the first row is coming back and null values come first')
     })
 
     test('conflicting with limit clause', async () => {
@@ -791,7 +794,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.strictEqual(!Array.isArray(res) && typeof res, 'object', 'Ensure that the result is an object')
-      assert.strictEqual(res.string, 'null', 'Ensure that the second row is coming back')
+      assert.strictEqual(res.string, 'no', 'Ensure that the second row is coming back')
     })
   })
 
