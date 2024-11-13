@@ -532,7 +532,7 @@ describe('SELECT', () => {
 
   describe('orderby', () => {
 
-    const _localeSort = (a, b) => a === null ? -1 : b === null ? 1 : String.prototype.localeCompare.call(a, b)
+    const _localeSort = (a, b) => a === null && b === null ? 0 : a === null ? -1 : b === null ? 1 : String.prototype.localeCompare.call(a, b)
 
     test('ignore empty array', async () => {
       const { string } = cds.entities('basic.literals')
