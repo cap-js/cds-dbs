@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const cds = require('@sap/cds')
+cds.test.in(__dirname)
 require('../../index') // to extend cds.ql query objects with .forSQL() and alike
 
 describe('where exists assoc', () => {
