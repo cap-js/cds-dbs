@@ -247,22 +247,6 @@ describe('EXISTS predicate in where', () => {
         ),
       ).to.not.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
-    it('MUST correctly construct subquery if following managed assoc in filter in where exists', () => {
-      expect(
-        cqn4sql(
-          CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
-          model,
-        ),
-      ).to.eql(
-        CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books
-            left join bookshop.Person as addressee
-            on addressee.ID = books.dedication_addressee_ID
-          where books.author_ID = Authors.ID AND addressee.name = 'Hasso'
-        )`,
-      )
-    })
     it('MUST fail if following managed assoc in filter (path expressions inside filter only enabled for exists subqueries)', () => {
       expect(() =>
         cqn4sql(
@@ -1467,11 +1451,10 @@ describe('Sanity checks for `exists` predicate', () => {
   })
 })
 
-describe('path expression within exists predicate', () => {
+describe('path expression within infix filter following exists predicate', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
-    model = cds.compile.for.nodejs(model)
   })
 
   it('via managed association', () => {
@@ -1535,7 +1518,7 @@ describe('path expression within exists predicate', () => {
     )
   })
 
-  it('nested exists within filter', () => {
+  it('nested exists', () => {
     let query = CQL`SELECT from bookshop.Authors { ID } where exists books[toLower(genre.name) = 'thriller' and exists genre[parent.name = 'Fiction']]`
 
     const transformed = cqn4sql(query, model)
@@ -1553,7 +1536,7 @@ describe('path expression within exists predicate', () => {
     )
   })
 
-  it('scoped query has nested exists in infix filter', () => {
+  it('scoped query with nested exists', () => {
     let query = CQL`SELECT from bookshop.Authors[exists books[genre.name LIKE '%Fiction']]:books { ID }`
 
     const transformed = cqn4sql(query, model)
@@ -1570,7 +1553,7 @@ describe('path expression within exists predicate', () => {
         )`,
     )
   })
-  it('at the leaf of a scoped query, we must reject the path expression', () => {
+  it('rejects the path expression at the leaf of scoped queries', () => {
     // original idea was to just add the `genre.name` as where clause to the query
     // however, with left outer joins we might get too many results
     //
@@ -1617,6 +1600,23 @@ describe('path expression within exists predicate', () => {
           then 2
         end as descr
       }`,
+    )
+  })
+
+  it('assoc is defined within a structure', () => {
+    expect(
+      cqn4sql(
+        CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS books[toLower(toUpper(dedication.addressee.name)) = 'Hasso']`,
+        model,
+      ),
+    ).to.eql(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+          inner join bookshop.Person as addressee
+          on addressee.ID = books.dedication_addressee_ID
+        where books.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
+      )`,
     )
   })
 })

@@ -192,7 +192,6 @@ function infer(originalQuery, model) {
               }
             }
           }
-          if ($baseLink.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
           arg.$refLinks.push({ definition: e, target: definition })
           // filter paths are flattened
           // REVISIT: too much augmentation -> better remove flatName..
@@ -233,6 +232,7 @@ function infer(originalQuery, model) {
       }
       i += 1
     }
+    if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
     const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
     if (definition.value) {
       // nested calculated element
@@ -552,7 +552,6 @@ function infer(originalQuery, model) {
               }
               const resolvableIn = getDefinition(definition.target) || target
               const $refLink = { definition: elements[id], target: resolvableIn }
-              if ($baseLink.pathExpressionInsideFilter) Object.defineProperty(column, 'join', { value: 'inner' })
               column.$refLinks.push($refLink)
             } else {
               stepNotFoundInPredecessor(id, definition.name)
@@ -719,6 +718,9 @@ function infer(originalQuery, model) {
           }
         }
       })
+
+      // we need inner joins for the path expressions inside filter expressions after exists predicate
+      if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(column, 'join', { value: 'inner' })
 
       // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
       if (column.expand) {
