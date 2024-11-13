@@ -789,7 +789,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.strictEqual(!Array.isArray(res) && typeof res, 'object', 'Ensure that the result is an object')
-      assert.strictEqual(res.string, null, 'Ensure that the first row is coming back') // NULL value must come first (as per OData)
+      assert.strictEqual(res.string, null, 'Ensure that the first row is coming back and null values come first')
     })
 
     test('conflicting with limit clause', async () => {
