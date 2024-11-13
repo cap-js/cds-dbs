@@ -321,15 +321,15 @@ describe('SELECT', () => {
     test('exists path expression', async () => {
       const { Books } = cds.entities('complex.associations')
       const cqn = CQL`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
-      await expect(cds.run(cqn))
-        .to.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
+      const res = await cds.run(cqn)
+      expect(res[0]).to.have.property('title', 'Wuthering Heights')
     })
 
     test('exists path expression (unmanaged)', async () => {
       const { Books } = cds.entities('complex.associations.unmanaged')
       const cqn = CQL`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
-      await expect(cds.run(cqn))
-        .to.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
+      const res = await cds.run(cqn)
+      expect(res[0]).to.have.property('title', 'Wuthering Heights')
     })
 
     test('like wildcard', async () => {
