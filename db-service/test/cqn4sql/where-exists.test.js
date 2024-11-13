@@ -1570,18 +1570,53 @@ describe('path expression within exists predicate', () => {
         )`,
     )
   })
-  it.skip('scoped query with path expression in infix filter', () => {
-    // TODO: This must not work
-    let query = CQL`SELECT from bookshop.Authors:books[genre.name = 'Thriller'] { ID }`
+  it('at the leaf of a scoped query, we must reject the path expression', () => {
+    // original idea was to just add the `genre.name` as where clause to the query
+    // however, with left outer joins we might get too many results
+    //
+    // --> here we would then get all books which fulfill `genre.name = null`
+    //     but also all books which have no genre at all
+    //
+    // if this comes up again, we might render inner joins for this node...
+    let query = CQL`SELECT from bookshop.Authors:books[genre.name = null] { ID }`
 
-    const transformed = cqn4sql(query, model)
-    expect(transformed).to.deep.equal(
-      CQL`SELECT from bookshop.Books as books left join bookshop.Genres as genre on genre.ID = books.genre_ID
-      { books.ID }
+    expect(() => cqn4sql(query, model)).to.throw(
+      `Only foreign keys of “genre” can be accessed in infix filter, but found “name”`
+    )
+  })
 
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
-        ) and genre.name = 'Thriller'`,
+  it('in case statements', () => {
+    // TODO: Aliases for genre could be improved
+    let query = cqn4sql(
+      CQL`SELECT from bookshop.Authors
+     { ID,
+       case when exists books[toLower(genre.name) = 'Thriller' and price>10]  then 1
+            when exists books[toLower(genre.name) = 'Thriller' and price>100 and exists genre] then 2
+       end as descr
+     }`,
+      model,
+    )
+    expect(query).to.deep.equal(
+      CQL`SELECT from bookshop.Authors as Authors
+      { Authors.ID,
+        case 
+          when exists (
+            select 1 from bookshop.Books as books
+            inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+            where books.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and books.price > 10
+          )
+          then 1
+          when exists (
+            select 1 from bookshop.Books as books2
+            inner join bookshop.Genres as genre on genre.ID = books2.genre_ID
+            where books2.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and books2.price > 100
+                  and exists (
+                    select 1 from bookshop.Genres as genre2 where genre2.ID = books2.genre_ID
+                  )
+          )
+          then 2
+        end as descr
+      }`,
     )
   })
 })

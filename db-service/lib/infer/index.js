@@ -1000,7 +1000,6 @@ function infer(originalQuery, model) {
     function isColumnJoinRelevant(column) {
       let fkAccess = false
       let assoc = null
-      if (column.join) return true
       for (let i = 0; i < column.ref.length; i++) {
         const ref = column.ref[i]
         const link = column.$refLinks[i]
