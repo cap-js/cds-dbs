@@ -184,16 +184,13 @@ function infer(originalQuery, model) {
           if (e.target) {
             // only fk access in infix filter
             const nextStep = ref[1]?.id || ref[1]
-            // no unmanaged assoc in infix filter path
-            if (!expandOrExists && e.on) {
-              const err = `Unexpected unmanaged association “${e.name}” in filter expression of “${$baseLink.definition.name}”`
-              throw new Error(err)
+            if (isNonForeignKeyNavigation(e, nextStep)) {
+              if (expandOrExists) {
+                Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
+              } else {
+                rejectNonFkNavigation(e, e.on ? $baseLink.definition.name : nextStep)
+              }
             }
-            // no non-fk traversal in infix filter
-            if (!expandOrExists && nextStep && !isForeignKeyOf(nextStep, e))
-              throw new Error(
-                `Only foreign keys of “${e.name}” can be accessed in infix filter, but found “${nextStep}”`,
-              )
           }
           arg.$refLinks.push({ definition: e, target: definition })
           // filter paths are flattened
@@ -226,7 +223,7 @@ function infer(originalQuery, model) {
               // don't miss an exists within an expression
               token.xpr.forEach(walkTokenStream)
             } else {
-              attachRefLinksToArg(token, arg.$refLinks[i], existsPredicate)
+              attachRefLinksToArg(token, arg.$refLinks[i], existsPredicate || expandOrExists)
               existsPredicate = false
             }
           }
@@ -235,6 +232,7 @@ function infer(originalQuery, model) {
       }
       i += 1
     }
+    if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
     const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
     if (definition.value) {
       // nested calculated element
@@ -542,9 +540,19 @@ function infer(originalQuery, model) {
             const elements = getDefinition(definition.target)?.elements || definition.elements
             if (elements && id in elements) {
               const element = elements[id]
-              rejectNonFkAccess(element)
+              if (inInfixFilter) {
+                const nextStep = column.ref[1]?.id || column.ref[1]
+                if (isNonForeignKeyNavigation(element, nextStep)) {
+                  if (inExists) {
+                    Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
+                  } else {
+                    rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
+                  }
+                }
+              }
               const resolvableIn = getDefinition(definition.target) || target
-              column.$refLinks.push({ definition: elements[id], target: resolvableIn })
+              const $refLink = { definition: elements[id], target: resolvableIn }
+              column.$refLinks.push($refLink)
             } else {
               stepNotFoundInPredecessor(id, definition.name)
             }
@@ -593,7 +601,16 @@ function infer(originalQuery, model) {
 
           const target = getDefinition(definition.target) || column.$refLinks[i - 1].target
           if (element) {
-            if ($baseLink) rejectNonFkAccess(element)
+            if ($baseLink && inInfixFilter) {
+              const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
+              if (isNonForeignKeyNavigation(element, nextStep)) {
+                if (inExists) {
+                  Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
+                } else {
+                  rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
+                }
+              }
+            }
             const $refLink = { definition: elements[id], target }
             column.$refLinks.push($refLink)
           } else if (firstStepIsSelf) {
@@ -637,7 +654,7 @@ function infer(originalQuery, model) {
               skipJoinsForFilter = true
             } else if (token.ref || token.xpr) {
               inferQueryElement(token, false, column.$refLinks[i], {
-                inExists: skipJoinsForFilter,
+                inExists: skipJoinsForFilter || inExists,
                 inExpr: !!token.xpr,
                 inInfixFilter: true,
               })
@@ -646,7 +663,7 @@ function infer(originalQuery, model) {
                 applyToFunctionArgs(token.args, inferQueryElement, [
                   false,
                   column.$refLinks[i],
-                  { inExists: skipJoinsForFilter, inExpr: true, inInfixFilter: true },
+                  { inExists: skipJoinsForFilter || inExists, inExpr: true, inInfixFilter: true },
                 ])
               }
             }
@@ -700,30 +717,10 @@ function infer(originalQuery, model) {
             }
           }
         }
-
-        /**
-         * Check if the next step in the ref is foreign key of `assoc`
-         * if not, an error is thrown.
-         *
-         * @param {CSN.Element} assoc if this is an association, the next step must be a foreign key of the element.
-         */
-        function rejectNonFkAccess(assoc) {
-          if (inInfixFilter && assoc.target) {
-            // only fk access in infix filter
-            const nextStep = column.ref[i + 1]?.id || column.ref[i + 1]
-            // no unmanaged assoc in infix filter path
-            if (!inExists && assoc.on) {
-              const err = `Unexpected unmanaged association “${assoc.name}” in filter expression of “${$baseLink.definition.name}”`
-              throw new Error(err)
-            }
-            // no non-fk traversal in infix filter in non-exists path
-            if (nextStep && !assoc.on && !isForeignKeyOf(nextStep, assoc))
-              throw new Error(
-                `Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${nextStep}”`,
-              )
-          }
-        }
       })
+
+      // we need inner joins for the path expressions inside filter expressions after exists predicate
+      if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(column, 'join', { value: 'inner' })
 
       // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
       if (column.expand) {
@@ -1212,6 +1209,26 @@ function infer(originalQuery, model) {
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
   }
+}
+
+/**
+ * Determines if a given association is a non-foreign key navigation.
+ *
+ * @param {Object} assoc - The association.
+ * @param {Object} nextStep - The next step in the navigation path.
+ * @returns {boolean} - Returns true if the next step is a non-foreign key navigation, otherwise false.
+ */
+function isNonForeignKeyNavigation(assoc, nextStep) {
+  if (!nextStep || !assoc.target) return false
+
+  return assoc.on || !isForeignKeyOf(nextStep, assoc)
+}
+
+function rejectNonFkNavigation(assoc, additionalInfo) {
+  if (assoc.on) {
+    throw new Error(`Unexpected unmanaged association “${assoc.name}” in filter expression of “${additionalInfo}”`)
+  }
+  throw new Error(`Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${additionalInfo}”`)
 }
 
 /**

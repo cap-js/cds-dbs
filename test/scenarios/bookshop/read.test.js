@@ -369,4 +369,34 @@ describe('Bookshop - Read', () => {
 
     for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
   })
+
+  it('select all authors which have written books that have genre.name = null', async () => {
+    await insertTemporaryData()
+
+    // the path expression inside the filter after the exists predicate must not
+    // be transformed to a left outer join but to an inner join
+    // if not, we would also get all authors which have books which have no genre at all (like Lord of the Rings in our example)
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const query = SELECT`from ${Authors} where exists books[ genre.name = null ]`
+    const equivalentQuery = SELECT`from ${Authors} where exists books[ exists genre [ name = null ] ]`
+    const results = await cds.db.run(query)
+    const equivalentReults = await cds.db.run(equivalentQuery)
+    expect(results).to.have.length(1)
+    expect(results.length).to.equal(equivalentReults.length) // only J.K. Rowling has written a book with genre.name = null
+
+
+    async function insertTemporaryData() {
+      await cds.run(INSERT.into('sap.capire.bookshop.Books').entries([
+        { ID: 272, title: 'Harry Potter', descr: 'The genre of this book has no name', author_ID: 171, genre_ID: 25 },
+        { ID: 273, title: 'Lord of the Rings', descr: 'This book has no genre', author_ID: 172, genre_ID: null }
+      ]))
+      await cds.run(INSERT.into('sap.capire.bookshop.Authors').entries([
+        { ID: 171, name: 'J.K. Rowling', dateOfBirth: '1965-07-31', placeOfBirth: 'Yate, Gloucestershire', city: 'Edinburgh', street: '3 Main Street' },
+        { ID: 172, name: 'J.R.R. Tolkien', dateOfBirth: '1892-01-03', placeOfBirth: 'Bloemfontein, South Africa', dateOfDeath: '1973-09-02', placeOfDeath: 'Bournemouth, England', city: 'Oxford', street: '20 Northmoor Road' }
+      ]))
+      await cds.run(INSERT.into('sap.capire.bookshop.Genres').entries([
+        { ID: 25, parent_ID: 20, name: null }
+      ]))
+    }
+  })
 })
