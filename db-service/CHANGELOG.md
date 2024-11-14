@@ -14,7 +14,7 @@
 
 ### Fixed
 
-* **`search`:** ignore invalid path expressions inside `[@cds](https://github.com/cds).search` ([#849](https://github.com/cap-js/cds-dbs/issues/849)) ([250edd5](https://github.com/cap-js/cds-dbs/commit/250edd5ec9f7ba1d8e40e1330e4b4f9ad9e599b0))
+* **`search`:** ignore invalid path expressions inside `@cds.search` ([#849](https://github.com/cap-js/cds-dbs/issues/849)) ([250edd5](https://github.com/cap-js/cds-dbs/commit/250edd5ec9f7ba1d8e40e1330e4b4f9ad9e599b0))
 * nested exists wrapped in xpr ([7e50359](https://github.com/cap-js/cds-dbs/commit/7e5035932ac3bf39f052aa67e1565567e9d6b1ad))
 
 ## [1.14.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.0...db-service-v1.14.1) (2024-10-28)
