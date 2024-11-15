@@ -24,10 +24,43 @@ const StandardFunctions = {
   contains: (...args) => args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
+    const csnElements = ref.element ? [ref] : [...ref.list]
+
+    const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
+    const customized = csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])
+
+    if (customized) {
+      const x = csnElements.map(e => {
+        // REVISIT: How to do quoting?
+        let col = `${e.ref.join('.')} FUZZY`
+        
+        if (e.element?.['@Search.ranking']) {
+          if(e.element['@Search.ranking']['='] === 'HIGH') {
+            col += ' WEIGHT 0.8'
+          } else if(e.element['@Search.ranking']['='] === 'LOW') {
+            col += ' WEIGHT 0.3'
+          } else {
+            col += ' WEIGHT 0.5'
+          } 
+        } else {
+          col += ' WEIGHT 0.5'
+        } 
+        
+        col+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex}`
+        col+= " SIMILARITY CALCULATION MODE 'search'"
+        return col
+      })
+  
+      ref = `(${x.join(',')})`
+    }
+
+
+
     // REVISIT: remove once the protocol adapter only creates vals
     if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
-    // REVISIT: make this more configurable
-    return (`(CASE WHEN SCORE(${arg} IN ${ref} FUZZY MINIMAL TOKEN SCORE 0.7 SIMILARITY CALCULATION MODE 'search') > 0 THEN TRUE ELSE FALSE END)`)
+
+    const globalOption = `FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+    return (`(CASE WHEN SCORE(${arg} IN ${ref} ${!customized ? globalOption: ''}) > 0 THEN TRUE ELSE FALSE END)`)
   },
 
   // Date and Time Functions
