@@ -468,6 +468,23 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, `Ensure that only matches comeback`)
     })
+
+    test('accept unnecessary xprs', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
   })
 
   describe('groupby', () => {
