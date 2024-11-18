@@ -25,33 +25,30 @@ const StandardFunctions = {
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
     const csnElements = ref.element ? [ref] : [...ref.list]
+    let fuzzyString
 
+    // default config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
-    const customized = csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])
 
-    if (customized) {
-      const x = csnElements.map(e => {
+    // if column specific value is provided, the configuration has to be defined on column level
+    if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
+      const cols = csnElements.map(e => {
         // REVISIT: How to do quoting?
         let col = `${e.ref.join('.')} FUZZY`
         
-        if (e.element?.['@Search.ranking']) {
-          if(e.element['@Search.ranking']['='] === 'HIGH') {
-            col += ' WEIGHT 0.8'
-          } else if(e.element['@Search.ranking']['='] === 'LOW') {
-            col += ' WEIGHT 0.3'
-          } else {
-            col += ' WEIGHT 0.5'
-          } 
-        } else {
-          col += ' WEIGHT 0.5'
-        } 
+        const rank = e.element?.['@Search.ranking']?.['=']
+        if(rank === 'HIGH') col += ' WEIGHT 0.8'
+        else if(rank === 'LOW') col += ' WEIGHT 0.3'
+        else col += ' WEIGHT 0.5' // MEDIUM
         
         col+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex}`
         col+= " SIMILARITY CALCULATION MODE 'search'"
         return col
-      })
+      }).join(',')
   
-      ref = `(${x.join(',')})`
+      fuzzyString = `(${cols})`
+    } else {
+      fuzzyString = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
 
@@ -59,8 +56,7 @@ const StandardFunctions = {
     // REVISIT: remove once the protocol adapter only creates vals
     if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
 
-    const globalOption = `FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
-    return (`(CASE WHEN SCORE(${arg} IN ${ref} ${!customized ? globalOption: ''}) > 0 THEN TRUE ELSE FALSE END)`)
+    return (`(CASE WHEN SCORE(${arg} IN ${fuzzyString}) > 0 THEN TRUE ELSE FALSE END)`)
   },
 
   // Date and Time Functions
