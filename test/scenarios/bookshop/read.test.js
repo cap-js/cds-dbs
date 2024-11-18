@@ -399,4 +399,14 @@ describe('Bookshop - Read', () => {
       ]))
     }
   })
+
+  it('cross joins w/o on condition', async () => {
+    const query = SELECT.from('sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors')
+      .columns('Books.title', 'Authors.name as author')
+      .where('Books.author_ID = Authors.ID')
+    const queryWithPaths = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
+    const res = await cds.db.run(query)
+    const resWithPaths = await cds.db.run(queryWithPaths)
+    expect(res).to.deep.eq(resWithPaths)
+  })
 })
