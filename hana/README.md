@@ -12,6 +12,24 @@ npm add @cap-js/hana
 
 Learn more about setup and usage in the [respective database guide](https://cap.cloud.sap/docs/guides/databases-hana).
 
+## Tests
+
+To run the tests locally in a Docker container, execute the following command:
+
+```sh
+npm run test:docker
+```
+
+*NOTE: The docker image may not be available for ARM-based systems.*
+
+To run the tests on a a remote SAP HANA system, you need to adapt either your environment variables or the `hana` configuration in the [`server.js`](https://github.com/cap-js/cds-dbs/blob/c61a04aa4394511100f97cfebd362a2298221d96/hana/test/service.js) file.
+
+Then execute the following command:
+
+```sh
+npm run test:remote
+```
+
 ## Support
 
 This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/cap-js/cds-dbs/issues).
