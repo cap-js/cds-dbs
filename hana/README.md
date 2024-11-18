@@ -27,7 +27,7 @@ To run the tests on a a remote SAP HANA system, you need to adapt either your en
 Then execute the following command:
 
 ```sh
-npm run test:remote
+npm run test
 ```
 
 ## Support
