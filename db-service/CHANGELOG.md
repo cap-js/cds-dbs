@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.15.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.15.0...db-service-v1.15.1) (2024-11-18)
+
+
+### Fixed
+
+* cross joins without on-condition ([#899](https://github.com/cap-js/cds-dbs/issues/899)) ([c61a04a](https://github.com/cap-js/cds-dbs/commit/c61a04aa4394511100f97cfebd362a2298221d96))
+* pseudo paths in expands ([#896](https://github.com/cap-js/cds-dbs/issues/896)) ([014c50c](https://github.com/cap-js/cds-dbs/commit/014c50cec9c2de1ee3dfdf1861940ae0e2520c16))
+
 ## [1.15.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.1...db-service-v1.15.0) (2024-11-14)
 
 
