@@ -363,10 +363,7 @@ class CQN2SQLRenderer {
       return _aliased(this.quote(this.name(z)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
-    if (from.join) {
-      const joinCondition = from.on ? ` ON ${this.where(from.on)}` : '';
-      return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${joinCondition}`;
-    }
+    if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
   }
 
   /**
