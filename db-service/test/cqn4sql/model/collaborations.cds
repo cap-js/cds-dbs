@@ -10,10 +10,6 @@ entity Collaborations : cuid {
   leads           : Association to many CollaborationLeads on leads.collaboration = $self and leads.isLead = true;
   collaborationLogs: Association to many CollaborationLogs on collaborationLogs.collaboration = $self;
   activeOwners: Association to ActiveOwners on activeOwners.collaboration = $self;
-  participant: Association to CollaborationParticipants;
-  leads2              = participant[validFrom <= $now
-  and                               validTo   >= $now
-  and                               isLead    =  true];
 }
 entity ActiveOwners : cuid {
   collaboration: Association to Collaborations;
@@ -38,9 +34,6 @@ entity SubCollaborationAssignments : cuid {
 }
 entity CollaborationParticipants : cuid {
   scholar_userID: Int16;
-  isLead           : Boolean default false;
-  validFrom        : DateTime;
-  validTo          : DateTime;
 }
 entity CollaborationApplications : cuid {
     subCollaborations: Composition of many SubCollaborationApplications on subCollaborations.application = $self;
