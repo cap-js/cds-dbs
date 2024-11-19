@@ -2194,6 +2194,27 @@ function cqn4sql(originalQuery, model) {
     const entity = query.SELECT.from.SELECT ? query.SELECT.from : query.target
     const searchIn = computeColumnsToBeSearched(inferred, entity)
     if (searchIn.length > 0) {
+      if (cds.env.hana.fuzzy === false) {
+        // REVISIT: remove once the protocol adapter only creates vals
+        if (Array.isArray(search.xpr)) search = [{ val: search.xpr.filter(a => a.val).map(a => a.val).join(' ') }]
+        const searchTerms = search[0].val
+            .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
+            .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').toLowerCase()}%`)
+  
+        const columns = searchIn
+        const xpr = []
+        for (const s of searchTerms) {
+          const nestedXpr = []
+          for (const c of columns) {
+            if (nestedXpr.length) nestedXpr.push('or')
+            nestedXpr.push({ func: 'lower', args: [c]}, 'like', {val: s})
+          }
+          if (xpr.length) xpr.push('and')
+          xpr.push({xpr: nestedXpr})
+        }
+
+        return { xpr }
+      }
       const xpr = search
       const searchFunc = {
         func: 'search',
