@@ -24,31 +24,37 @@ const StandardFunctions = {
   contains: (...args) => args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
-    const csnElements = ref.element ? [ref] : [...ref.list]
-    let fuzzyString
-
-    // default config
+    // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
-
+    
+    const csnElements = ref.element ? [ref] : ref.list
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
-      const cols = csnElements.map(e => {
-        // REVISIT: How to do quoting?
-        let col = `${e.ref.join('.')} FUZZY`
+      csnElements.forEach((e,i) => {
+        let fuzzy = `FUZZY`
         
+        // weighted search
         const rank = e.element?.['@Search.ranking']?.['=']
-        if(rank === 'HIGH') col += ' WEIGHT 0.8'
-        else if(rank === 'LOW') col += ' WEIGHT 0.3'
-        else col += ' WEIGHT 0.5' // MEDIUM
+        if(rank === 'HIGH') fuzzy += ' WEIGHT 0.8'
+        else if(rank === 'LOW') fuzzy += ' WEIGHT 0.3'
+        else fuzzy += ' WEIGHT 0.5' // MEDIUM
         
-        col+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex}`
-        col+= " SIMILARITY CALCULATION MODE 'search'"
-        return col
-      }).join(',')
-  
-      fuzzyString = `(${cols})`
+        // fuzziness
+        fuzzy+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex}`
+        fuzzy+= " SIMILARITY CALCULATION MODE 'search'"
+
+        // rewrite ref to xpr to mix in search config
+        // ensure in place modification to reuse .toString method that ensures quoting
+        if (ref.list) { // list of columns
+          e.xpr = [{ ref: e.ref }, fuzzy]
+          delete e.ref
+        } else {
+          e.__proto__.xpr = [{ ref: e.ref }, fuzzy]
+          delete e.__proto__.ref
+        }
+      })
     } else {
-      fuzzyString = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+      ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
 
@@ -56,7 +62,7 @@ const StandardFunctions = {
     // REVISIT: remove once the protocol adapter only creates vals
     if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
 
-    return (`(CASE WHEN SCORE(${arg} IN ${fuzzyString}) > 0 THEN TRUE ELSE FALSE END)`)
+    return (`(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`)
   },
 
   // Date and Time Functions
