@@ -1247,7 +1247,7 @@ function rejectNonFkNavigation(assoc, additionalInfo) {
  */
 function isForeignKeyOf(e, assoc) {
   if (!assoc.isAssociation) return false
-  return e in (assoc.elements || assoc.foreignKeys)
+  return e in (assoc.elements || assoc.foreignKeys || {})
 }
 const idOnly = ref => ref.id || ref
 
