@@ -394,7 +394,7 @@ function infer(originalQuery, model) {
 
     // walk over all paths in other query properties
     if (where) walkTokenStream(where, true)
-    if (groupBy) groupBy.forEach(token => inferQueryElement(token, false))
+    if (groupBy) walkTokenStream(groupBy)
     if (having) walkTokenStream(having)
     if (_.with)
       // consider UPDATE.with
