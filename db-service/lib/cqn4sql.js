@@ -2196,7 +2196,8 @@ function cqn4sql(originalQuery, model) {
     if (searchIn.length > 0) {
       if (cds.env.hana.fuzzy === false) {
         // REVISIT: remove once the protocol adapter only creates vals
-        if (Array.isArray(search.xpr)) search = [{ val: search.xpr.filter(a => a.val).map(a => a.val).join(' ') }]
+        search = search.xpr ? search.xpr : search
+        if (Array.isArray(search)) search = [{ val: search.filter(a => a.val).map(a => a.val).join(' ') }]
         const searchTerms = search[0].val
             .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
             .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').toLowerCase()}%`)
