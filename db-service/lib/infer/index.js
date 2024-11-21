@@ -318,7 +318,7 @@ function infer(originalQuery, model) {
           if (as === undefined) cds.error`Expecting expression to have an alias name`
           if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
           if (col.xpr || col.SELECT) {
-            queryElements[as] = getElementForXprOrSubquery(col)
+            queryElements[as] = getElementForXprOrSubquery(col, queryElements)
           }
           if (col.func) {
             if (col.args) {
@@ -341,7 +341,7 @@ function infer(originalQuery, model) {
             !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
           // we must handle $self references after the query elements have been calculated
           if (firstStepIsSelf) dollarSelfRefs.push(col)
-          else handleRef(col, )
+          else handleRef(col)
         } else if (col.expand) {
           inferQueryElement(col, queryElements, null)
         } else {
@@ -398,7 +398,7 @@ function infer(originalQuery, model) {
     if (having) walkTokenStream(having)
     if (_.with)
       // consider UPDATE.with
-      Object.values(_.with).forEach(val => inferQueryElement(val, false))
+      Object.values(_.with).forEach(val => inferQueryElement(val, queryElements, null, { inExpr: true }))
 
     return queryElements
 
@@ -516,7 +516,8 @@ function infer(originalQuery, model) {
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferQueryElement, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferQueryElement(arg, null, $baseLink, context))
-    if (arg.xpr) arg.xpr.forEach(token => inferQueryElement(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
+    if (arg.xpr)
+      arg.xpr.forEach(token => inferQueryElement(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
 
     if (!arg.ref) {
       if (arg.expand && queryElements) queryElements[arg.as] = resolveExpand(arg)
@@ -692,7 +693,7 @@ function infer(originalQuery, model) {
         // if column is casted, we overwrite it's origin with the new type
         if (arg.cast) {
           const base = getElementForCast(arg)
-          if (insertIntoQueryElements) queryElements[arg.as || flatName] = getCopyWithAnnos(arg, base)
+          if (insertIntoQueryElements()) queryElements[arg.as || flatName] = getCopyWithAnnos(arg, base)
         } else if (arg.expand) {
           const elements = resolveExpand(arg)
           let elementName
@@ -703,7 +704,7 @@ function infer(originalQuery, model) {
           if (queryElements) queryElements[elementName] = elements
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
-          queryElements = { ...queryElements, ...elements }
+          Object.assign(queryElements, elements)
         } else {
           // shortcut for `ref: ['$user']` -> `ref: ['$user', 'id']`
           const leafArt =
@@ -761,7 +762,6 @@ function infer(originalQuery, model) {
       linkCalculatedElement(arg, $baseLink, baseColumn)
     }
 
-
     function insertIntoQueryElements() {
       return queryElements && !inExpr && !inInfixFilter && !inQueryModifier
     }
@@ -791,7 +791,7 @@ function infer(originalQuery, model) {
       }
       let elements = {}
       inline.forEach(inlineCol => {
-        inferQueryElement(inlineCol, false, $leafLink, { inExpr: true, baseColumn: col })
+        inferQueryElement(inlineCol, null, $leafLink, { inExpr: true, baseColumn: col })
         if (inlineCol === '*') {
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
@@ -1113,7 +1113,7 @@ function infer(originalQuery, model) {
    * @param {object} col
    * @returns object
    */
-  function getElementForXprOrSubquery(col) {
+  function getElementForXprOrSubquery(col, queryElements) {
     const { xpr } = col
     let skipJoins = false
     xpr?.forEach(token => {
@@ -1121,7 +1121,7 @@ function infer(originalQuery, model) {
         // no joins for infix filters along `exists <path>`
         skipJoins = true
       } else {
-        inferQueryElement(token, false, null, { inExists: skipJoins, inExpr: true })
+        inferQueryElement(token, queryElements, null, { inExists: skipJoins, inExpr: true })
         skipJoins = false
       }
     })
