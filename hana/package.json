@@ -35,6 +35,9 @@
       "optional": true
     }
   },
+  "devDependencies": {
+    "@sap/hana-client": ">=2"
+  },
   "cds": {
     "requires": {
       "kinds": {

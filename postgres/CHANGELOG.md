@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.4](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.3...postgres-v1.10.4) (2024-11-14)
+
+
+### Fixed
+
+* enable nulls first ([#893](https://github.com/cap-js/cds-dbs/issues/893)) ([6684436](https://github.com/cap-js/cds-dbs/commit/66844363588864813d304a9dcfd66e856c7542dd))
+
 ## [1.10.3](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.2...postgres-v1.10.3) (2024-10-30)
 
 

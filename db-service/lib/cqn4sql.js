@@ -266,10 +266,10 @@ function cqn4sql(originalQuery, model) {
         const id = localized(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
-      from = { join: 'left', args, on: [] }
+      from = { join: r.join || 'left', args, on: [] }
       r.children.forEach(c => {
         from = joinForBranch(from, c)
-        from = { join: 'left', args: [from], on: [] }
+        from = { join: c.join || 'left', args: [from], on: [] }
       })
     })
     return from.args.length > 1 ? from : from.args[0]
@@ -309,7 +309,7 @@ function cqn4sql(originalQuery, model) {
       }
       if (node.children) {
         node.children.forEach(c => {
-          lhs = { join: 'left', args: [lhs], on: [] }
+          lhs = { join: c.join || 'left', args: [lhs], on: [] }
           lhs = joinForBranch(lhs, c)
         })
       }
@@ -1868,13 +1868,18 @@ function cqn4sql(originalQuery, model) {
               value: [],
               writable: true,
             })
+            let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
               if (res in pseudos.elements) {
+                pseudoPath = true
                 thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
                 return pseudos.elements[res]
+              } else if (pseudoPath) {
+                thing.$refLinks.push({ definition: {}, target: pseudos })
+                return prev?.elements[res]
               }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
@@ -2093,11 +2098,6 @@ function cqn4sql(originalQuery, model) {
       const unmanagedOn = onCondFor(inWhere ? next : current, inWhere ? current : next, inWhere)
       on.push(...(customWhere && hasLogicalOr(unmanagedOn) ? [asXpr(unmanagedOn)] : unmanagedOn))
     }
-    // infix filter conditions are wrapped in `xpr` when added to the on-condition
-    if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next)
-      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
-    }
 
     const subquerySource = assocTarget(nextDefinition) || nextDefinition
     const id = localized(subquerySource)
@@ -2114,6 +2114,26 @@ function cqn4sql(originalQuery, model) {
         },
       ],
       where: on,
+    }
+    if (next.pathExpressionInsideFilter) {
+      SELECT.where = customWhere
+      const transformedExists = transformSubquery({ SELECT })
+      // infix filter conditions are wrapped in `xpr` when added to the on-condition
+      if (transformedExists.SELECT.where) {
+        on.push(
+          ...[
+            'and',
+            ...(hasLogicalOr(transformedExists.SELECT.where)
+              ? [asXpr(transformedExists.SELECT.where)]
+              : transformedExists.SELECT.where),
+          ],
+        )
+      }
+      transformedExists.SELECT.where = on
+      return transformedExists.SELECT
+    } else if (customWhere) {
+      const filter = getTransformedTokenStream(customWhere, next)
+      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
     return SELECT
   }
