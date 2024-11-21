@@ -72,5 +72,4 @@ describe('Fuzzy search', () => {
     const res = await cqn
     expect(res.length).to.be(1) // Jane Eyre
   })
-  // TODO ODATA SEARCH OLD NEW
 })
