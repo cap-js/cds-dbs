@@ -43,21 +43,15 @@
       "kinds": {
         "sql": {
           "[production]": {
-            "kind": "hana"
+            "kind": "hana",
+            "sslUseDefaultTrustStore": false
           }
         },
         "hana": {
           "impl": "@cap-js/hana"
         }
       },
-      "db": {
-        "kind": "sql",
-        "[production]": {
-          "credentials": {
-            "sslUseDefaultTrustStore": false
-          }
-        }
-      }
+      "db": "sql"
     }
   },
   "license": "SEE LICENSE"
