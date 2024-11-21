@@ -8,10 +8,10 @@ describe('HANA custom functions', () => {
       one: true,
       from: {ref: ['DUMMY']}, 
       columns: [
-        {func: 'CURRENT_UTCTIMESTAMP', as: 'no_args'},
-        {func: 'CURRENT_UTCTIMESTAMP', args: [{val: 0}], as: 'prec0'},
-        {func: 'CURRENT_UTCTIMESTAMP', args: [{val: 3}], as: 'prec3'},
-        {func: 'CURRENT_UTCTIMESTAMP', args: [{val: 7}], as: 'prec7'}] 
+        {func: 'current_utctimestamp', as: 'no_args'},
+        {func: 'current_utctimestamp', args: [{val: 0}], as: 'prec0'},
+        {func: 'current_utctimestamp', args: [{val: 3}], as: 'prec3'},
+        {func: 'current_utctimestamp', args: [{val: 7}], as: 'prec7'}] 
     }}
 
     const res = await cds.run(cqn)
