@@ -50,7 +50,14 @@
           "impl": "@cap-js/hana"
         }
       },
-      "db": "sql"
+      "db": {
+        "kind": "sql",
+        "[production]": {
+          "credentials": {
+            "sslUseDefaultTrustStore": false
+          }
+        }
+      }
     }
   },
   "license": "SEE LICENSE"
