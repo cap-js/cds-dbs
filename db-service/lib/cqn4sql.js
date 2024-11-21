@@ -1868,13 +1868,18 @@ function cqn4sql(originalQuery, model) {
               value: [],
               writable: true,
             })
+            let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
               if (res in pseudos.elements) {
+                pseudoPath = true
                 thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
                 return pseudos.elements[res]
+              } else if (pseudoPath) {
+                thing.$refLinks.push({ definition: {}, target: pseudos })
+                return prev?.elements[res]
               }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
