@@ -45,7 +45,7 @@ const StandardFunctions = {
   current_date: () => 'current_utcdate',
   current_time: () => 'current_utctime',
   current_timestamp: () => 'current_utctimestamp',
-  current_utctimestamp: () => 'current_utctimestamp',
+  current_utctimestamp: x => x ? `current_utctimestamp(${x})` : 'current_utctimestamp',
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 
