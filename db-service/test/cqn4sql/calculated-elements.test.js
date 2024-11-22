@@ -975,7 +975,7 @@ describe('Unfolding calculated elements in other places', () => {
     const q = CQL`SELECT from booksCalc.VariableReplacements { ID, authorAlive.firstName }`
     const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements
     left join booksCalc.Authors as authorAlive on ( authorAlive.ID = VariableReplacements.author_ID )
-    and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now )
+    and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
     {
         VariableReplacements.ID,
         authorAlive.firstName as authorAlive_firstName
@@ -990,6 +990,22 @@ describe('Unfolding calculated elements in other places', () => {
         VariableReplacements.author_ID
     }`
     expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
+  it('with expand', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.VariableReplacements { ID, authorAlive { ID }  }`, model)
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements {
+      VariableReplacements.ID,
+      (
+        SELECT from booksCalc.Authors as authorAlive
+        {
+          authorAlive.ID,
+        }
+        where (authorAlive.ID = VariableReplacements.author_ID)
+        and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
+      ) as authorAlive
+    }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
   })
 })
 

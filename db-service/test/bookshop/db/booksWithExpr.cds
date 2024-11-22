@@ -97,5 +97,5 @@ entity VariableReplacements {
   key ID: Integer;
   author: Association to Authors;
   // with variable replacements
-  authorAlive = author[dateOfBirth <= $now and dateOfDeath >= $now];
+  authorAlive = author[dateOfBirth <= $now and dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob'];
 }

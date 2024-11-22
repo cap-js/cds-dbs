@@ -172,12 +172,17 @@ function infer(originalQuery, model) {
     if (!ref) return
     init$refLinks(arg)
     let i = 0
+    let pseudoPath = false
     for (const step of ref) {
       const id = step.id || step
       if (i === 0) {
-        // infix filter never have table alias
-        // we need to search for first step in ´model.definitions[infixAlias]`
-        if ($baseLink) {
+        if (id in pseudos.elements) {
+          // pseudo path
+          arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
+          pseudoPath = true // only first path step must be well defined
+        } else if ($baseLink) {
+          // infix filter never have table alias
+          // we need to search for first step in ´model.definitions[infixAlias]`
           const { definition } = $baseLink
           const elements = getDefinition(definition.target)?.elements || definition.elements
           const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
@@ -201,11 +206,15 @@ function infer(originalQuery, model) {
           const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
           arg.$refLinks[0] = { definition, target: definition }
         }
+      } else if (arg.ref[0] === '$user' && pseudoPath) {
+        // `$user.some.unknown.element` -> no error
+        arg.$refLinks.push({ definition: {}, target: pseudos })
       } else {
         const recent = arg.$refLinks[i - 1]
         const { elements } = getDefinition(recent.definition.target) || recent.definition
         const e = elements[id]
-        if (!e) throw new Error(`"${id}" not found in the elements of "${arg.$refLinks[i - 1].definition.name}"`)
+        const notFoundIn = pseudoPath ? arg.ref[i - 1] : getFullPathForLinkedArg(arg)
+        if (!e) throw new Error(`"${id}" not found in the elements of "${notFoundIn}"`)
         arg.$refLinks.push({ definition: e, target: getDefinition(e.target) || e })
       }
       arg.$refLinks[i].alias = !ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
@@ -1238,7 +1247,7 @@ function rejectNonFkNavigation(assoc, additionalInfo) {
  */
 function isForeignKeyOf(e, assoc) {
   if (!assoc.isAssociation) return false
-  return e in (assoc.elements || assoc.foreignKeys)
+  return e in (assoc.elements || assoc.foreignKeys || {})
 }
 const idOnly = ref => ref.id || ref
 
