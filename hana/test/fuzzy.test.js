@@ -40,14 +40,14 @@ describe('search', () => {
 
     test('annotations', async () => {
       const { BooksAnnotated } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(BooksAnnotated).search('"heights"').columns('1')
+      const cqn = SELECT.from(BooksAnnotated).search('"first-person"').columns('1')
       const {sql} = cqn.toSQL()
       expect(sql).to.include('title FUZZY WEIGHT 0.8 MINIMAL TOKEN SCORE 0.9')
       expect(sql).to.include('code FUZZY WEIGHT 0.5 MINIMAL TOKEN SCORE 0.7')
-      expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL TOKEN SCORE 0.6')
+      expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL TOKEN SCORE 0.9')
       
-      const res = await SELECT.one.from(BooksAnnotated).search('"heights"')
-      expect(res.length).to.be(1) // wuthering heights
+      const res = await cqn
+      expect(res.length).to.be(1) // jane eyre
     })
   })
 
