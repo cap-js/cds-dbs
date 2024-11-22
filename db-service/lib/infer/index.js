@@ -115,7 +115,7 @@ function infer(originalQuery, model) {
       if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
-      attachRefLinksToArg(from) // REVISIT: remove
+      inferArg(from, null, null, { inFrom: true })
       const alias =
         from.uniqueSubqueryAlias ||
         from.as ||
@@ -140,116 +140,6 @@ function infer(originalQuery, model) {
       infer(from, model)
     }
     return querySources
-  }
-
-  // REVISIT: this helper is doing by far too much, with too many side effects
-
-  /**
-   * This function recursively traverses through all 'ref' steps of the 'arg' object and enriches it by attaching
-   * additional information. For each 'ref' step, it adds the corresponding definition and the target in which the
-   * next 'ref' step should be looked up.
-   *
-   *
-   * @param {object} arg - The argument object that will be augmented with additional properties.
-   *                        It must contain a 'ref' property, which is an array representing the steps to be processed.
-   *                        Optionally, it can also contain an 'xpr' property, which is also processed recursively.
-   *
-   * @param {object} $baseLink - Optional parameter. It represents the environment in which the first 'ref' step should be
-   *                             resolved. It's needed for infix filter / expand columns. It must contain a 'definition'
-   *                             property, which is an object representing the base environment.
-   *
-   * @param {boolean} expandOrExists - Optional parameter, defaults to false. It indicates whether the 'arg' is part of a
-   *                                   'column.expand' or preceded by an 'exists'. When true, unmanaged association paths
-   *                                   are allowed -> $baseLink is an `expand` or `assoc` preceded by `exists`.
-   *
-   * @throws Will throw an error if a 'ref' step cannot be found in the current environment or if a 'ref' step
-   *         represents an unmanaged association in the case of infix filters and 'expandOrExists' is false.
-   *
-   * @returns {void} This function does not return a value; it mutates the 'arg' object directly.
-   */
-  function attachRefLinksToArg(arg, $baseLink = null, expandOrExists = false) {
-    const { ref, xpr, args, list } = arg
-    if (xpr) xpr.forEach(t => attachRefLinksToArg(t, $baseLink, expandOrExists))
-    if (args) applyToFunctionArgs(args, attachRefLinksToArg, [$baseLink, expandOrExists])
-    if (list) list.forEach(arg => attachRefLinksToArg(arg, $baseLink, expandOrExists))
-    if (!ref) return
-    init$refLinks(arg)
-    let i = 0
-    let pseudoPath = false
-    for (const step of ref) {
-      const id = step.id || step
-      if (i === 0) {
-        if (id in pseudos.elements) {
-          // pseudo path
-          arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
-          pseudoPath = true // only first path step must be well defined
-        } else if ($baseLink) {
-          // infix filter never have table alias
-          // we need to search for first step in ´model.definitions[infixAlias]`
-          const { definition } = $baseLink
-          const elements = getDefinition(definition.target)?.elements || definition.elements
-          const e = elements?.[id] || cds.error`"${id}" not found in the elements of "${definition.name}"`
-          if (e.target) {
-            // only fk access in infix filter
-            const nextStep = ref[1]?.id || ref[1]
-            if (isNonForeignKeyNavigation(e, nextStep)) {
-              if (expandOrExists) {
-                Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
-              } else {
-                rejectNonFkNavigation(e, e.on ? $baseLink.definition.name : nextStep)
-              }
-            }
-          }
-          arg.$refLinks.push({ definition: e, target: definition })
-          // filter paths are flattened
-          // REVISIT: too much augmentation -> better remove flatName..
-          Object.defineProperty(arg, 'flatName', { value: ref.join('_'), writable: true })
-        } else {
-          // must be in model.definitions
-          const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
-          arg.$refLinks[0] = { definition, target: definition }
-        }
-      } else if (arg.ref[0] === '$user' && pseudoPath) {
-        // `$user.some.unknown.element` -> no error
-        arg.$refLinks.push({ definition: {}, target: pseudos })
-      } else {
-        const recent = arg.$refLinks[i - 1]
-        const { elements } = getDefinition(recent.definition.target) || recent.definition
-        const e = elements[id]
-        const notFoundIn = pseudoPath ? arg.ref[i - 1] : getFullPathForLinkedArg(arg)
-        if (!e) throw new Error(`"${id}" not found in the elements of "${notFoundIn}"`)
-        arg.$refLinks.push({ definition: e, target: getDefinition(e.target) || e })
-      }
-      arg.$refLinks[i].alias = !ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-
-      // link refs in where
-      if (step.where) {
-        // REVISIT: why do we need to walk through these so early?
-        if (arg.$refLinks[i].definition.kind === 'entity' || getDefinition(arg.$refLinks[i].definition.target)) {
-          let existsPredicate = false
-          const walkTokenStream = token => {
-            if (token === 'exists') {
-              // no joins for infix filters along `exists <path>`
-              existsPredicate = true
-            } else if (token.xpr) {
-              // don't miss an exists within an expression
-              token.xpr.forEach(walkTokenStream)
-            } else {
-              attachRefLinksToArg(token, arg.$refLinks[i], existsPredicate || expandOrExists)
-              existsPredicate = false
-            }
-          }
-          step.where.forEach(walkTokenStream)
-        } else throw new Error('A filter can only be provided when navigating along associations')
-      }
-      i += 1
-    }
-    if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
-    const { definition, target } = arg.$refLinks[arg.$refLinks.length - 1]
-    if (definition.value) {
-      // nested calculated element
-      attachRefLinksToArg(definition.value, { definition: definition.parent, target }, true)
-    }
   }
 
   /**
@@ -323,7 +213,7 @@ function infer(originalQuery, model) {
           if (col.func) {
             if (col.args) {
               // {func}.args are optional
-              applyToFunctionArgs(col.args, inferQueryElement, [false])
+              applyToFunctionArgs(col.args, inferArg, [false])
             }
             queryElements[as] = getElementForCast(col)
           }
@@ -343,7 +233,7 @@ function infer(originalQuery, model) {
           if (firstStepIsSelf) dollarSelfRefs.push(col)
           else handleRef(col)
         } else if (col.expand) {
-          inferQueryElement(col, queryElements, null)
+          inferArg(col, queryElements, null)
         } else {
           cds.error`Not supported: ${JSON.stringify(col)}`
         }
@@ -379,7 +269,7 @@ function infer(originalQuery, model) {
           $baseLink = null
         }
 
-        inferQueryElement(token, queryElements, $baseLink, { inQueryModifier: true })
+        inferArg(token, queryElements, $baseLink, { inQueryModifier: true })
         if (token.isJoinRelevant && rejectJoinRelevantPath) {
           // reverse the array, find the last association and calculate the index of the association in non-reversed order
           const assocIndex =
@@ -398,7 +288,7 @@ function infer(originalQuery, model) {
     if (having) walkTokenStream(having)
     if (_.with)
       // consider UPDATE.with
-      Object.values(_.with).forEach(val => inferQueryElement(val, queryElements, null, { inExpr: true }))
+      Object.values(_.with).forEach(val => inferArg(val, queryElements, null, { inExpr: true }))
 
     return queryElements
 
@@ -420,7 +310,7 @@ function infer(originalQuery, model) {
           // don't miss an exists within an expression
           t.xpr.forEach(processToken)
         } else {
-          inferQueryElement(t, queryElements, null, { inExists: skipJoins, inExpr, inQueryModifier: true })
+          inferArg(t, queryElements, null, { inExists: skipJoins, inExpr, inQueryModifier: true })
           skipJoins = false
         }
       }
@@ -463,7 +353,7 @@ function infer(originalQuery, model) {
     }
 
     function handleRef(col) {
-      inferQueryElement(col, queryElements)
+      inferArg(col, queryElements)
       const { definition } = col.$refLinks[col.$refLinks.length - 1]
       if (col.cast)
         // final type overwritten -> element not visible anymore
@@ -511,13 +401,12 @@ function infer(originalQuery, model) {
    * @returns {void}
    */
 
-  function inferQueryElement(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier } = context
+  function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
+    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom } = context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
-    if (arg.args) applyToFunctionArgs(arg.args, inferQueryElement, [null, $baseLink, context])
-    if (arg.list) arg.list.forEach(arg => inferQueryElement(arg, null, $baseLink, context))
-    if (arg.xpr)
-      arg.xpr.forEach(token => inferQueryElement(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
+    if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
+    if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
+    if (arg.xpr) arg.xpr.forEach(token => inferArg(token, queryElements, $baseLink, { ...context, inExpr: true })) // e.g. function in expression
 
     if (!arg.ref) {
       if (arg.expand && queryElements) queryElements[arg.as] = resolveExpand(arg)
@@ -532,10 +421,12 @@ function infer(originalQuery, model) {
     // if any path step points to an artifact with `@cds.persistence.skip`
     // we must ignore the element from the queries elements
     let isPersisted = true
-    const firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
-    const firstStepIsSelf =
-      !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
-    const expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
+    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
+    if (!inFrom) {
+      firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
+      firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
+      expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
+    }
     const nameSegments = []
     // if a (segment) of a (structured) foreign key is renamed, we must not include
     // the aliased ref segments into the name of the final foreign key which is e.g. used in
@@ -572,6 +463,9 @@ function infer(originalQuery, model) {
             stepNotFoundInPredecessor(id, definition.name)
           }
           nameSegments.push(id)
+        } else if (inFrom) {
+          const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
+          arg.$refLinks.push({ definition, target: definition })
         } else if (firstStepIsTableAlias) {
           arg.$refLinks.push({
             definition: getDefinitionFromSources(sources, id),
@@ -659,26 +553,28 @@ function infer(originalQuery, model) {
 
       if (step.where) {
         const danglingFilter = !(arg.ref[i + 1] || arg.expand || arg.inline || inExists)
-        if (!arg.$refLinks[i].definition.target || danglingFilter)
+        const definition = arg.$refLinks[i].definition
+        if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
-        if (!arg.expand) Object.defineProperty(arg, 'isJoinRelevant', { value: true })
+        if (!inFrom && !arg.expand) Object.defineProperty(arg, 'isJoinRelevant', { value: true })
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
-          } else if (token.ref || token.xpr) {
-            inferQueryElement(token, false, arg.$refLinks[i], {
+          } else if (token.ref || token.xpr || token.list) {
+            inferArg(token, false, arg.$refLinks[i], {
               inExists: skipJoinsForFilter || inExists,
               inExpr: !!token.xpr,
               inInfixFilter: true,
+              inFrom,
             })
           } else if (token.func) {
             if (token.args) {
-              applyToFunctionArgs(token.args, inferQueryElement, [
+              applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inExpr: true, inInfixFilter: true },
+                { inExists: skipJoinsForFilter || inExists, inExpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
@@ -748,7 +644,7 @@ function infer(originalQuery, model) {
     const leafArt = arg.$refLinks[arg.$refLinks.length - 1].definition
     const virtual = (leafArt.virtual || !isPersisted) && !inExpr
     // check if we need to merge the column `ref` into the join tree of the query
-    if (!inExists && !virtual && !inCalcElement) {
+    if (!inFrom && !inExists && !virtual && !inCalcElement) {
       // for a ref inside an `inline` we need to consider the column `ref` which has the `inline` prop
       const colWithBase = baseColumn
         ? { ref: [...baseColumn.ref, ...arg.ref], $refLinks: [...baseColumn.$refLinks, ...arg.$refLinks] }
@@ -759,7 +655,7 @@ function infer(originalQuery, model) {
       }
     }
     if (isCalculatedOnRead(leafArt)) {
-      linkCalculatedElement(arg, $baseLink, baseColumn)
+      linkCalculatedElement(arg, $baseLink, baseColumn, context)
     }
 
     function insertIntoQueryElements() {
@@ -791,7 +687,7 @@ function infer(originalQuery, model) {
       }
       let elements = {}
       inline.forEach(inlineCol => {
-        inferQueryElement(inlineCol, null, $leafLink, { inExpr: true, baseColumn: col })
+        inferArg(inlineCol, null, $leafLink, { inExpr: true, baseColumn: col })
         if (inlineCol === '*') {
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
@@ -867,7 +763,7 @@ function infer(originalQuery, model) {
           if (e === '*') {
             elements = { ...elements, ...$leafLink.definition.elements }
           } else {
-            inferQueryElement(e, false, $leafLink, { inExpr: true })
+            inferArg(e, false, $leafLink, { inExpr: true })
             if (e.expand) elements[e.as || e.flatName] = resolveExpand(e)
             if (e.inline) elements = { ...elements, ...resolveInline(e) }
             else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
@@ -906,14 +802,14 @@ function infer(originalQuery, model) {
       throw new Error(err.join(','))
     }
   }
-  function linkCalculatedElement(column, baseLink, baseColumn) {
+  function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
     const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
     if (alreadySeenCalcElements.has(calcElement)) return
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr } = calcElement.value
     if (ref || xpr) {
       baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
-      attachRefLinksToArg(calcElement.value, baseLink, true)
+      inferArg(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
           ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
@@ -927,12 +823,7 @@ function infer(originalQuery, model) {
 
     if (calcElement.value.args) {
       const processArgument = (arg, calcElement, column) => {
-        inferQueryElement(
-          arg,
-          false,
-          { definition: calcElement.parent, target: calcElement.parent },
-          { inCalcElement: true },
-        )
+        inferArg(arg, null, { definition: calcElement.parent, target: calcElement.parent }, { inCalcElement: true })
         const basePath =
           column.$refLinks?.length > 1
             ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
@@ -1121,7 +1012,7 @@ function infer(originalQuery, model) {
         // no joins for infix filters along `exists <path>`
         skipJoins = true
       } else {
-        inferQueryElement(token, queryElements, null, { inExists: skipJoins, inExpr: true })
+        inferArg(token, queryElements, null, { inExists: skipJoins, inExpr: true })
         skipJoins = false
       }
     })
