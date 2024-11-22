@@ -253,18 +253,18 @@ const StandardFunctions = {
         ) - 0.5
       )
     ) * 86400
-  )`,
+  )`
+}
+
+const HANAFunctions = {
+  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
 
   /**
    * Generates SQL statement that calls the session_context function with the given parameter
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context('${x.val}')`,
-}
-
-const HANAFunctions = {
-  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
+    session_context: x => `session_context('${x.val}')`,
 
   // Time functions
   current_date: p => (p ? `current_date(${p})` : 'current_date'),
