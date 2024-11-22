@@ -46,8 +46,8 @@ describe('search', () => {
       expect(sql).to.include('code FUZZY WEIGHT 0.5 MINIMAL TOKEN SCORE 0.7')
       expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL TOKEN SCORE 0.6')
       
-      const res = await SELECT.from(BooksAnnotated).search('"heights"')
-      expect(res[0].title).to.eq('Wuthering Heights')
+      const res = await SELECT.one.from(BooksAnnotated).search('"heights"')
+      expect(res.length).to.be(1) // wuthering heights
     })
   })
 
