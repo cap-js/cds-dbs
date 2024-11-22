@@ -16,7 +16,8 @@ describe('HANA native functions', () => {
       expect(res.NO.match(/\.(\d\d\d)0000/)).not.to.be.null // default 3
     })
 
-    test('0 skips ms precision', async () => {
+    // HXE does not allow args
+    test.skip('0 skips ms precision', async () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
@@ -30,7 +31,8 @@ describe('HANA native functions', () => {
       expect(res.P0.match(/\.0000000/)).not.to.be.null
     })
 
-    test('arbitrary values', async () => {
+    // HXE does not allow args
+    test.skip('arbitrary values', async () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
