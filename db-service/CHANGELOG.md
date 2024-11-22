@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.15.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.15.0...db-service-v1.15.1) (2024-11-18)
+
+
+### Fixed
+
+* cross joins without on-condition ([#899](https://github.com/cap-js/cds-dbs/issues/899)) ([c61a04a](https://github.com/cap-js/cds-dbs/commit/c61a04aa4394511100f97cfebd362a2298221d96))
+* pseudo paths in expands ([#896](https://github.com/cap-js/cds-dbs/issues/896)) ([014c50c](https://github.com/cap-js/cds-dbs/commit/014c50cec9c2de1ee3dfdf1861940ae0e2520c16))
+
+## [1.15.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.1...db-service-v1.15.0) (2024-11-14)
+
+
+### Added
+
+* enable path expressions in infix filter after `exists` predicate ([#875](https://github.com/cap-js/cds-dbs/issues/875)) ([7e50359](https://github.com/cap-js/cds-dbs/commit/7e5035932ac3bf39f052aa67e1565567e9d6b1ad))
+
+
+### Fixed
+
+* **`search`:** ignore invalid path expressions inside `@cds.search` ([#849](https://github.com/cap-js/cds-dbs/issues/849)) ([250edd5](https://github.com/cap-js/cds-dbs/commit/250edd5ec9f7ba1d8e40e1330e4b4f9ad9e599b0))
+* nested exists wrapped in xpr ([7e50359](https://github.com/cap-js/cds-dbs/commit/7e5035932ac3bf39f052aa67e1565567e9d6b1ad))
+
 ## [1.14.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.14.0...db-service-v1.14.1) (2024-10-28)
 
 

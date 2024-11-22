@@ -181,6 +181,7 @@ class JoinTree {
     // if no root node was found, the column is selected from a subquery
     if (!node) return
     while (i < col.ref.length) {
+      if(col.join === 'inner') node.join = 'inner'
       const step = col.ref[i]
       const { where, args } = step
       const id = joinId(step, args, where)

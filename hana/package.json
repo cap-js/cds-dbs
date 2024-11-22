@@ -16,7 +16,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test $(../test/find)",
+    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && cds-test $(../test/find)",
     "test:remote": "cds-test",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
@@ -34,6 +34,9 @@
     "@sap/hana-client": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@sap/hana-client": ">=2"
   },
   "cds": {
     "requires": {
