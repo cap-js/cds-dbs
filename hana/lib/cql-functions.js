@@ -55,7 +55,7 @@ const StandardFunctions = {
     const csnElements = ref.element ? [ref] : ref.list
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
-      csnElements.forEach((e,i) => {
+      csnElements.forEach(e => {
         let fuzzy = `FUZZY`
         
         // weighted search
