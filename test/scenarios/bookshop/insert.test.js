@@ -63,4 +63,14 @@ describe('Bookshop - Insert', () => {
     }
   })
 
+  test('uuid defaults are respected', async () => {
+    const { UUIDWithDefault } = cds.entities('sap.capire.bookshop')
+
+    const entry = { ID: 2348 }
+    await INSERT(entry).into(UUIDWithDefault)
+
+    const written = await SELECT.one.from(UUIDWithDefault).where({ ID: 2348 })
+    expect(written).to.deep.eq({ ID: 2348, ID2: '12345678-1234-1234-4321-123456789012'})
+  })
+
 })
