@@ -1,6 +1,7 @@
 const cds = require('../../test/cds')
 
-describe('HANA native functions', () => {
+// HXE does not allow args
+describe.skip('HANA native functions', () => {
   const { expect } = cds.test(__dirname, 'fuzzy.cds')
 
   describe('current_timestamp', () => {
@@ -16,8 +17,7 @@ describe('HANA native functions', () => {
       expect(res.NO.match(/\.(\d\d\d)0000/)).not.to.be.null // default 3
     })
 
-    // HXE does not allow args
-    test.skip('0 skips ms precision', async () => {
+    test('0 skips ms precision', async () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
@@ -31,8 +31,7 @@ describe('HANA native functions', () => {
       expect(res.P0.match(/\.0000000/)).not.to.be.null
     })
 
-    // HXE does not allow args
-    test.skip('arbitrary values', async () => {
+    test('arbitrary values', async () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 

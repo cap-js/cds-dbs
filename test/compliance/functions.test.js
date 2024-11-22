@@ -342,8 +342,26 @@ describe('functions', () => {
     })
   })
   describe('CURRENT_UTCTIMESTAMP', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('no arguments', async () => {
+      const cqn = { SELECT: {
+        one: true,
+        from: {ref: ['basic.literals.string']}, 
+        columns: [{func: 'current_utctimestamp', as: 'NO'}]
+      }}
+  
+      const res = await cds.run(cqn)
+
+      const SQLiteService = require('../../sqlite')
+      const PgService = require('../../postgres')
+
+      if (cds.db instanceof SQLiteService) {
+        expect(res.NO.match(/\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d/)).to.exist
+      } else if (cds.db instanceof PgService) {
+        expect(res.NO.match(/\.(\d\d\d\d\d\d)\+00:00/)).not.to.be.null // precision 6
+      } else { //HANA
+        expect(res.NO.match(/\.(\d\d\d)0000/)).not.to.be.null // default precision 3
+      }
+  
     })
   })
   describe('DAYNAME', () => {
