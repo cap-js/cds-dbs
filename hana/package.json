@@ -43,8 +43,7 @@
       "kinds": {
         "sql": {
           "[production]": {
-            "kind": "hana",
-            "sslUseDefaultTrustStore": false
+            "kind": "hana"
           }
         },
         "hana": {
