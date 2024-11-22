@@ -273,6 +273,11 @@ const HANAFunctions = {
   // Time functions
   /**
    * Generates SQL statement that calculates the difference in 100nanoseconds between two timestamps
+   * @returns {string}
+   */
+  current_utctimestamp: StandardFunctions.current_timestamp,
+  /**
+   * Generates SQL statement that calculates the difference in 100nanoseconds between two timestamps
    * @param {string} x left timestamp
    * @param {string} y right timestamp
    * @returns {string}
