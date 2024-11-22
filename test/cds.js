@@ -72,7 +72,7 @@ cds.test = Object.setPrototypeOf(function () {
         hash.update(isolateName)
         ret.data.isolation = isolate = {
           // Create one database for each overall test execution
-          database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || require('os').userInfo().username.repeat(6) || 'test_db',
+          database: process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || require('os').userInfo().username || 'test_db',
           // Create one tenant for each test suite
           tenant: 'T' + hash.digest('hex'),
         }
