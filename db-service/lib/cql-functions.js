@@ -33,7 +33,7 @@ const StandardFunctions = {
       val = sub[2] || sub[3] || ''
     }
     arg.val = arg.__proto__.val = val
-    const refs = ref.list || [ref]
+    const refs = ref.list
     const { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
   },
