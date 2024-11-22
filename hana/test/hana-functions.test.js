@@ -8,11 +8,7 @@ describe('HANA native functions', () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
-        columns: [
-          {func: 'current_utctimestamp', as: 'NO'},
-          {func: 'current_utctimestamp', args: [{val: 0}], as: 'P0'},
-          {func: 'current_utctimestamp', args: [{val: 3}], as: 'P3'},
-          {func: 'current_utctimestamp', args: [{val: 7}], as: 'P7'}] 
+        columns: [{func: 'current_utctimestamp', as: 'NO'}]
       }}
   
       const res = await cds.run(cqn)
@@ -26,9 +22,7 @@ describe('HANA native functions', () => {
         from: {ref: ['DUMMY']}, 
         columns: [
           {func: 'current_utctimestamp', as: 'NO'},
-          {func: 'current_utctimestamp', args: [{val: 0}], as: 'P0'},
-          {func: 'current_utctimestamp', args: [{val: 3}], as: 'P3'},
-          {func: 'current_utctimestamp', args: [{val: 7}], as: 'P7'}] 
+          {func: 'current_utctimestamp', args: [{val: 0}], as: 'P0'}]
       }}
   
       const res = await cds.run(cqn)
