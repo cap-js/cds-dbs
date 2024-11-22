@@ -33,7 +33,7 @@ const StandardFunctions = {
           .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
           .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').toLowerCase()}%`)
 
-      const columns = ref.element ? [ref] : ref.list
+      const columns = ref.list
       const xpr = []
       for (const s of searchTerms) {
         const nestedXpr = []
@@ -52,7 +52,7 @@ const StandardFunctions = {
     // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
     
-    const csnElements = ref.element ? [ref] : ref.list
+    const csnElements = ref.list
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
@@ -70,13 +70,8 @@ const StandardFunctions = {
 
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
-        if (ref.list) { // list of columns
-          e.xpr = [{ ref: e.ref }, fuzzy]
-          delete e.ref
-        } else {
-          e.__proto__.xpr = [{ ref: e.ref }, fuzzy]
-          delete e.__proto__.ref
-        }
+        e.xpr = [{ ref: e.ref }, fuzzy]
+        delete e.ref
       })
     } else {
       ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
