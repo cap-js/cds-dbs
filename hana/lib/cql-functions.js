@@ -82,8 +82,6 @@ const StandardFunctions = {
       ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
-
-
     // REVISIT: remove once the protocol adapter only creates vals
     if (Array.isArray(arg.xpr)) arg = { val: arg.xpr.filter(a => a.val).map(a => a.val).join(' ') }
 
