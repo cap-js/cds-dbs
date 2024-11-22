@@ -8,7 +8,7 @@ describe('HANA native functions', () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
-        columns: [{func: 'current_utctimestamp', as: 'NO'}]
+        columns: [{func: 'CURRENT_UTCTIMESTAMP', as: 'NO'}]
       }}
   
       const res = await cds.run(cqn)

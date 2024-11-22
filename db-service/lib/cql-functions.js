@@ -159,10 +159,6 @@ const StandardFunctions = {
 
   // Date and Time Functions
 
-  current_date: p => (p ? `current_date(${p})` : 'current_date'),
-  current_time: p => (p ? `current_time(${p})` : 'current_time'),
-  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
-
   /**
    * Generates SQL statement that produces current point in time (date and time with time zone)
    * @returns {string}
@@ -271,6 +267,9 @@ const HANAFunctions = {
   // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
 
   // Time functions
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
   /**
    * Generates SQL statement that calculates the difference in 100nanoseconds between two timestamps
    * @param {string} x left timestamp
