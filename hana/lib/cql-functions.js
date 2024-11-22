@@ -60,13 +60,22 @@ const StandardFunctions = {
         
         // weighted search
         const rank = e.element?.['@Search.ranking']?.['=']
-        if(rank === 'HIGH') fuzzy += ' WEIGHT 0.8'
-        else if(rank === 'LOW') fuzzy += ' WEIGHT 0.3'
-        else fuzzy += ' WEIGHT 0.5' // MEDIUM
+        switch(rank) {
+          case 'HIGH':
+            fuzzy += ' WEIGHT 0.8'
+            break
+          case 'LOW':
+            fuzzy += ' WEIGHT 0.3'
+            break
+          case 'MEDIUM':
+          case undefined:
+            fuzzy += ' WEIGHT 0.5'
+            break
+          default: throw new Error(`Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`)
+        }
         
         // fuzziness
-        fuzzy+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex}`
-        fuzzy+= " SIMILARITY CALCULATION MODE 'search'"
+        fuzzy+= ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
 
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
