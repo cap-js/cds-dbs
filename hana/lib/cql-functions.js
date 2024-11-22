@@ -24,6 +24,31 @@ const StandardFunctions = {
   contains: (...args) => args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
   concat: (...args) => `(${args.map(a => (a.xpr ? `(${a})` : a)).join(' || ')})`,
   search: function (ref, arg) {
+    if (cds.env.hana.fuzzy === false) {
+      // REVISIT: remove once the protocol adapter only creates vals
+      arg = arg.xpr ? arg.xpr : arg
+      if (Array.isArray(arg)) arg = [{ val: arg.filter(a => a.val).map(a => a.val).join(' ') }]
+      else arg = [arg]
+      const searchTerms = arg[0].val
+          .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
+          .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').toLowerCase()}%`)
+
+      const columns = ref.element ? [ref] : ref.list
+      const xpr = []
+      for (const s of searchTerms) {
+        const nestedXpr = []
+        for (const c of columns) {
+          if (nestedXpr.length) nestedXpr.push('or')
+          nestedXpr.push({ func: 'lower', args: [c]}, 'like', {val: s})
+        }
+        if (xpr.length) xpr.push('and')
+        xpr.push({xpr: nestedXpr})
+      }
+
+      const { toString } = ref
+      return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
+    }
+
     // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
     
