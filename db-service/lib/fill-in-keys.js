@@ -35,7 +35,7 @@ const generateUUIDandPropagateKeys = (entity, data, event) => {
   if (event === 'CREATE') {
     const keys = entity.keys
     for (const k in keys)
-      if (keys[k].isUUID && !data[k] && !assoc4(keys[k])) //> skip key assocs, and foreign keys thereof
+      if (keys[k].isUUID && !data[k] && !assoc4(keys[k]) && !keys[k].default) //> skip key assocs, and foreign keys thereof
         data[k] = cds.utils.uuid()
   }
   for (const each in entity.elements) {
