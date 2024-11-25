@@ -62,5 +62,4 @@ describe('Bookshop - Insert', () => {
       expect(written.price).to.be.eq(entry.price)
     }
   })
-
 })
