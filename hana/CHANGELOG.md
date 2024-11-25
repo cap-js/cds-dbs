@@ -15,7 +15,7 @@
 
 ### Fixed
 
-* SAP HANA functions should also be callable in upper case on SAP HANA ([#910](https://github.com/cap-js/cds-dbs/issues/910)) ([50ebd10](https://github.com/cap-js/cds-dbs/commit/50ebd106b9ee5bf7e1026658b89401e904ffe051))
+* `current_date`, `current_time`, `current_timestamp` and `current_utctimestamp` are SAP HANA functions and are callable in upper case ([#910](https://github.com/cap-js/cds-dbs/issues/910)) ([50ebd10](https://github.com/cap-js/cds-dbs/commit/50ebd106b9ee5bf7e1026658b89401e904ffe051))
 
 ## [1.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.0...hana-v1.4.1) (2024-10-30)
 
