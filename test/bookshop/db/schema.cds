@@ -69,8 +69,3 @@ entity C : managed {
               on toB.ID = $self.B;
 };
 entity BooksAnnotated as projection on Books;
-
-entity UUIDWithDefault {
-  key ID: Integer;
-  key ID2: UUID default '12345678-1234-1234-4321-123456789012'
-}
