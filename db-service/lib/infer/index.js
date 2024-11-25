@@ -808,7 +808,7 @@ function infer(originalQuery, model) {
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr } = calcElement.value
     if (ref || xpr) {
-      baseLink = baseLink || { definition: calcElement.parent, target: calcElement.parent }
+      baseLink = { definition: calcElement.parent, target: calcElement.parent }
       inferArg(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
@@ -884,8 +884,8 @@ function infer(originalQuery, model) {
       function mergePathIfNecessary(p, step) {
         const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
         if (calcElementIsJoinRelevant) {
-          if (!calcElement.value.isColumnJoinRelevant)
-            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
+          if (!calcElement.value.isJoinRelevant)
+            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true,  })
           joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,
