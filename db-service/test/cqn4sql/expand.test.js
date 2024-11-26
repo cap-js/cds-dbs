@@ -1050,6 +1050,30 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+
+  it.only('aggregation with mulitple path steps', () => {
+    const q = CQL`SELECT from bookshop.Intermediate {
+      ID,
+      toAssocWithStructuredKey { toStructuredKey { second } }
+    } group by toAssocWithStructuredKey.toStructuredKey.second`
+
+    const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
+    left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
+      on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+    {
+      Intermediate.ID,
+      (SELECT from DUMMY {
+        (SELECT from DUMMY {
+          toAssocWithStructuredKey.toStructuredKey_second as second 
+        }) as toStructuredKey
+      }) as toAssocWithStructuredKey
+    } group by toAssocWithStructuredKey.toStructuredKey_second`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
   it('aggregation with structure', () => {
     const q = CQL`SELECT from bookshop.Authors as Authors {
       ID,
@@ -1231,7 +1255,9 @@ describe('Expands with aggregations are special', () => {
       author[name='King'] { name }
     } group by author.name`
 
-    expect(() => cqn4sql(q, model)).to.throw(`The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`)
+    expect(() => cqn4sql(q, model)).to.throw(
+      `The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`,
+    )
   })
   it('expand path with filter must be an exact match in group by (2)', () => {
     const q = CQL`SELECT from bookshop.Books {
