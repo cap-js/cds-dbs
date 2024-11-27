@@ -338,9 +338,10 @@ class HANAService extends SQLService {
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          cds.error`Missing alias for subquery`
         }
         q.as = walkAlias(q)
         q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
@@ -510,13 +511,22 @@ class HANAService extends SQLService {
                     // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
-                      if (col.ref[0] !== parent.as) {
+                      if (col.ref[0] !== x.as) {
                         // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
                         let curPar = parent
+                        const isSource = from => {
+                          if (from.as === col.ref[0]) return true
+                          return from.args?.some(a => {
+                            if (a.args) return isSource(a)
+                            return a.as === col.ref[0]
+                          })
+                        }
+
                         while (curPar) {
-                          if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                          if (isSource(curPar.SELECT.from)) {
+                            if (!curPar.SELECT.columns.find(c => c.as === as))
+                              curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
