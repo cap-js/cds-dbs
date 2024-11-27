@@ -433,7 +433,7 @@ describe('SELECT', () => {
     // search tests don't check results as the search behavior is undefined
     test('search one column', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string} WHERE search((string),${'yes'})`
+      const cqn = SELECT.from(string).where([{func: 'search', args: [{list: [{ref: ['string']}]}, {val: 'yes'}]}])
       await cds.run(cqn)
     })
 
@@ -1011,7 +1011,7 @@ describe('SELECT', () => {
     unified.scalar = [
       // TODO: investigate search issue for nvarchar columns
       ...unified.ref.filter(ref => cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeString).map(ref => {
-        return unified.string.map(val => ({ func: 'search', args: [ref, val] }))
+        return unified.string.map(val => ({ func: 'search', args: [{list:[ref]}, val] }))
       }).flat(),
       // ...unified.string.map(val => ({ func: 'search', args: [{ list: unified.ref.filter(stringRefs) }, val] })),
       ...unified.ref.filter(stringRefs).filter(noBooleanRefs).map(X => {
