@@ -1051,7 +1051,7 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
-  it.only('aggregation with mulitple path steps', () => {
+  it('aggregation with mulitple path steps', () => {
     const q = CQL`SELECT from bookshop.Intermediate {
       ID,
       toAssocWithStructuredKey { toStructuredKey { second } }
