@@ -22,7 +22,7 @@ class SQLiteService extends SQLService {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
-        const dbc = new sqlite(database)
+        const dbc = new sqlite(database, this.options.sqlite)
 
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
