@@ -1050,6 +1050,23 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+
+  it('simple aggregation with wildcard expand', () => {
+    const q = CQL`SELECT from bookshop.TestPublisher {
+      ID,
+      publisher { * }
+    } group by ID, publisher.structuredKey_ID, publisher.title`
+
+    const qx = CQL`SELECT from bookshop.TestPublisher as TestPublisher
+    left join bookshop.Publisher as publisher on publisher.structuredKey_ID = TestPublisher.publisher_structuredKey_ID {
+      TestPublisher.ID,
+      (SELECT from DUMMY { TestPublisher.publisher_structuredKey_ID as structuredKey_ID, publisher.title as title }) as publisher
+    } group by TestPublisher.ID, TestPublisher.publisher_structuredKey_ID, publisher.title`
+    qx.SELECT.columns[1].SELECT.from = null
+    // the key is not flat in the model so we use a flat csn for this test
+    const res = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
   it('aggregation with structure', () => {
     const q = CQL`SELECT from bookshop.Authors as Authors {
       ID,

@@ -873,6 +873,16 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
+      const wildcardIndex = column.expand.findIndex(e => e === '*')
+      if (wildcardIndex !== -1) {
+        // replace wildcard with explicit refs
+        const dummy = { SELECT: { from: { ref: [column.element.target] } } }
+        const {
+          SELECT: { columns },
+        } = cqn4sql(dummy, model)
+        columns.forEach(c => c.ref.splice(0, 1))
+        column.expand.splice(wildcardIndex, 1, ...columns)
+      }
       const expandedColumns = column.expand.flatMap(expand => {
         const fullRef = [...baseRef, ...expand.ref]
 
@@ -2202,10 +2212,7 @@ function cqn4sql(originalQuery, model) {
       const xpr = search
       const searchFunc = {
         func: 'search',
-        args: [
-          { list: searchIn },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
+        args: [{ list: searchIn }, xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }],
       }
       return searchFunc
     } else {
