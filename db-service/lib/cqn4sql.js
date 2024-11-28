@@ -884,6 +884,7 @@ function cqn4sql(originalQuery, model) {
         column.expand.splice(wildcardIndex, 1, ...columns)
       }
       const expandedColumns = column.expand.flatMap(expand => {
+        if(!expand.ref) return expand
         const fullRef = [...baseRef, ...expand.ref]
 
         if (expand.expand) {
