@@ -45,6 +45,7 @@ cds.test = Object.setPrototypeOf(function () {
     } catch {
       // Default to sqlite for packages without their own service
       cds.env.requires.db = require('@cap-js/sqlite/test/service')
+      require('@cap-js/sqlite/cds-plugin')
     }
   })
 
