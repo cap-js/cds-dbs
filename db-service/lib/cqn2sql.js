@@ -6,16 +6,9 @@ const _strict_booleans = _simple_queries < 2
 
 const { Readable } = require('stream')
 
-const DEBUG = (() => {
-  const LOG = cds.log('sql-json')
-  if (LOG._debug) return cds.debug('sql-json')
-  return cds.debug('sql|sqlite')
-  //if (DEBUG) {
-  //  return DEBUG
-  // (sql, ...more) => DEBUG (sql.replace(/(?:SELECT[\n\r\s]+(json_group_array\()?[\n\r\s]*json_insert\((\n|\r|.)*?\)[\n\r\s]*\)?[\n\r\s]+as[\n\r\s]+_json_[\n\r\s]+FROM[\n\r\s]*\(|\)[\n\r\s]*(\)[\n\r\s]+AS )|\)$)/gim,(a,b,c,d) => d || ''), ...more)
-  // FIXME: looses closing ) on INSERT queries
-  //}
-})()
+const DEBUG = cds.debug('sql|sqlite')
+const LOG_SQL = cds.log('sql')
+const LOG_SQLITE =  cds.log('sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -90,10 +83,17 @@ class CQN2SQLRenderer {
     if (vars?.length && !this.values?.length) this.values = vars
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
-    DEBUG?.(
-      this.sql,
-      ...(sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []),
-    )
+
+    
+    if (LOG_SQL._debug || LOG_SQLITE._debug) {
+      let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
+      if (values && !Array.isArray(values)) {
+        values = [values]
+      }
+      DEBUG(this.sql, ...values)
+    }
+
+    
     return this
   }
 
@@ -363,8 +363,7 @@ class CQN2SQLRenderer {
       return _aliased(this.quote(this.name(z)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
-    if (from.join)
-      return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])} ON ${this.where(from.on)}`
+    if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
   }
 
   /**

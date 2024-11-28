@@ -69,5 +69,4 @@ describe('Bookshop - Insert', () => {
 
     expect(result).to.deep.eq([{ ID: 0, map: { key: 'value' } }, { ID: 1, map: { key: 'insertedValue' } }])
   })
-
 })

@@ -1868,13 +1868,18 @@ function cqn4sql(originalQuery, model) {
               value: [],
               writable: true,
             })
+            let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self')
                 // next is resolvable in entity
                 return prev
               if (res in pseudos.elements) {
+                pseudoPath = true
                 thing.$refLinks.push({ definition: pseudos.elements[res], target: pseudos })
                 return pseudos.elements[res]
+              } else if (pseudoPath) {
+                thing.$refLinks.push({ definition: {}, target: pseudos })
+                return prev?.elements[res]
               }
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
@@ -2198,7 +2203,7 @@ function cqn4sql(originalQuery, model) {
       const searchFunc = {
         func: 'search',
         args: [
-          searchIn.length > 1 ? { list: searchIn } : { ...searchIn[0] },
+          { list: searchIn },
           xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
         ],
       }

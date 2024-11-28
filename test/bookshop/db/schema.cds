@@ -73,3 +73,5 @@ entity Maps {
   key ID  : Integer;
       map : Map;
 }
+
+entity BooksAnnotated as projection on Books;
