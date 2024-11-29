@@ -1066,7 +1066,7 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
-  it('expand vanishes if wildcard', () => {
+  it('wildcard expand vanishes for aggregations', () => {
     const q = CQL`SELECT from bookshop.TestPublisher {
       ID
     } group by ID, publisher.structuredKey_ID, publisher.title`
