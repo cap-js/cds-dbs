@@ -905,6 +905,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
 
       const sql = []
+      let indexEndWithCompare = -1
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
@@ -917,9 +918,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             endWithCompare = false
           }
           sql.push(this.operator(x, i, xpr))
+          // Add "= TRUE" after NOT statements
+          if (
+            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') &&
+            (!xpr[i+1].xpr || !this.is_comparator({ xpr: xpr[i+1].xpr }))
+          ) {
+            indexEndWithCompare = i + 1
+          }
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
         // default
         else sql.push(this.expr(x))
+
+        if (indexEndWithCompare === i) {
+          sql.push(` = ${this.val({ val: true })}`)
+          indexEndWithCompare = -1
+        }
       }
 
       if (endWithCompare) {
@@ -965,9 +978,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           const up = cur.toUpperCase()
           // When a logic operator is found the expression is not a comparison
           // When it is a local check it cannot be compared outside of the xpr
-          if (up in logicOperators) {
+          if (up in logicOperators || up === 'NOT') {
             // ensure AND is not part of BETWEEN
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            if (up === 'NOT') return true
             return !local
           }
           // When a compare operator is found the expression is a comparison
@@ -1349,7 +1363,7 @@ const caseOperators = {
 const logicOperators = {
   'THEN': 1,
   'AND': 1,
-  'OR': 1,
+  // 'OR': 1
 }
 const compareOperators = {
   '=': 1,

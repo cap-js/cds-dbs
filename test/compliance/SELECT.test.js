@@ -468,6 +468,139 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, `Ensure that only matches comeback`)
     })
+
+    test('not in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('boolean w/o operator in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [                    
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('not and and in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
+                    'and',
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('hierarchical not in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [ 'not',
+            { xpr: [ 'not', {
+                  xpr: [
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple not in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    'not',
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('hierarchical not and and in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [ 'not',
+            { xpr: [ 'not', {
+                  xpr: [
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
+                    'and',
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('hierarchical and multiple not in where', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [ 'not',
+            { xpr: [ 'not', {
+                  xpr: [
+                    'not',
+                    'not',
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
+                    'and',
+                    'not',
+                    'not',
+                    'not',
+                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
   })
 
   describe('groupby', () => {
