@@ -43,7 +43,7 @@ class HANAService extends SQLService {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
-    const acquireTimeoutMillis = 1000//this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
       options: {
         min: 0,
@@ -53,7 +53,8 @@ class HANAService extends SQLService {
         evictionRunIntervalMillis: 100000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
         ...(this.options.pool || {}),
-        testOnBorrow: true
+        testOnBorrow: true,
+        fifo: false
       },
       create: async function (tenant) {
         try {
@@ -85,12 +86,8 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: async (dbc) => {
-        if (dbc && dbc.readyState === 'connected') {
-          await dbc.disconnect()
-        }
-      },
-      validate: (dbc) => dbc.validate(),
+      destroy: dbc => dbc.disconnect(),
+      validate: dbc => dbc.validate(),
     }
   }
 
@@ -331,7 +328,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
+
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
