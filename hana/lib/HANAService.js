@@ -811,6 +811,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return this.where(xpr)
     }
 
+    // The following special cases doesn't require setting "= true" after "NOT expr"
+    _notXprSpecialCases(xpr, i) {
+      return xpr.includes('CASE') ||
+        xpr[i+1] === 'null' ||
+        xpr[i+1].element?.type === 'cds.Boolean'
+    }
+
     xpr(_xpr, caseSuffix = '') {
       const { xpr, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
@@ -919,11 +926,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           }
           sql.push(this.operator(x, i, xpr))
           // Add "= TRUE" after NOT statements except of
-          // - special cases (CASE, booleans)
+          // - special cases (CASE, booleans, ...)
           // - already set in sub-xpr
           if (
-            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') && !xpr.includes('CASE') &&
-            xpr[i+1].element?.type !== 'cds.Boolean' &&
+            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') &&
+            !this._notXprSpecialCases(xpr, i) &&
             (!xpr[i+1].xpr || !this.is_comparator({ xpr: xpr[i+1].xpr }))
           ) {
             indexNotXpr = i + 1
@@ -986,8 +993,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
             return !local
           }
-          // When NOT operator is found except of special cases (CASE, booleans)
-          if (up === 'NOT' && !xpr.includes('CASE') && xpr[i+1].element?.type !== 'cds.Boolean') {
+          // When NOT operator is found except of special cases (CASE, booleans, ...)
+          if (up === 'NOT' && !this._notXprSpecialCases(xpr, i)) {
             return true
           }
           // When a compare operator is found the expression is a comparison
