@@ -918,9 +918,12 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             endWithCompare = false
           }
           sql.push(this.operator(x, i, xpr))
-          // Add "= TRUE" after NOT statements
+          // Add "= TRUE" after NOT statements except of
+          // - special cases (CASE, booleans)
+          // - already set in sub-xpr
           if (
             up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') && !xpr.includes('CASE') &&
+            xpr[i+1].element?.type !== 'cds.Boolean' &&
             (!xpr[i+1].xpr || !this.is_comparator({ xpr: xpr[i+1].xpr }))
           ) {
             indexNotXpr = i + 1
@@ -983,8 +986,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
             return !local
           }
-          // When NOT operator is found not in CASE expression
-          if (up === 'NOT' && !xpr.includes('CASE')) return true
+          // When NOT operator is found except of special cases (CASE, booleans)
+          if (up === 'NOT' && !xpr.includes('CASE') && xpr[i+1].element?.type !== 'cds.Boolean') {
+            return true
+          }
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
