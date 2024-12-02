@@ -37,7 +37,10 @@
       "kinds": {
         "sql": {
           "[development]": {
-            "kind": "sqlite"
+            "kind": "sqlite",
+            "credentials": {
+              "url": ":memory:"
+            }
           }
         },
         "sqlite": {
