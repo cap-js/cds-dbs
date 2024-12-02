@@ -905,7 +905,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
 
       const sql = []
-      let indexEndWithCompare = -1
+      let indexNotXpr = -1
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
@@ -920,18 +920,18 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           sql.push(this.operator(x, i, xpr))
           // Add "= TRUE" after NOT statements
           if (
-            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') &&
+            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') && !xpr.includes('CASE') &&
             (!xpr[i+1].xpr || !this.is_comparator({ xpr: xpr[i+1].xpr }))
           ) {
-            indexEndWithCompare = i + 1
+            indexNotXpr = i + 1
           }
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
         // default
         else sql.push(this.expr(x))
 
-        if (indexEndWithCompare === i) {
+        if (indexNotXpr === i) {
           sql.push(` = ${this.val({ val: true })}`)
-          indexEndWithCompare = -1
+          indexNotXpr = -1
         }
       }
 
@@ -978,12 +978,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           const up = cur.toUpperCase()
           // When a logic operator is found the expression is not a comparison
           // When it is a local check it cannot be compared outside of the xpr
-          if (up in logicOperators || up === 'NOT') {
+          if (up in logicOperators) {
             // ensure AND is not part of BETWEEN
-            if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
-            if (up === 'NOT') return true
+            if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true            
             return !local
           }
+          // When NOT operator is found not in CASE expression
+          if (up === 'NOT' && !xpr.includes('CASE')) return true
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
           // When a case operator is found it is the start of the expression
