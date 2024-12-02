@@ -815,6 +815,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     _notXprSpecialCases(xpr, i) {
       return xpr.includes('CASE') ||
         xpr[i+1] === 'null' ||
+        xpr[i+1] === 'in' ||
         xpr[i+1].element?.type === 'cds.Boolean'
     }
 
