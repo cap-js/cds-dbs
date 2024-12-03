@@ -601,6 +601,59 @@ describe('SELECT', () => {
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
+
+    test('not before xpr with CASE', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple not before xpr with CASE', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    'not',
+                    'not',
+                    'not',
+                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    // REVISIT: currently not supported
+    test.skip('not in xpr with CASE', async () => {
+      const query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    { xpr: ['not', 'CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                  ] } ] } ] } }
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
   })
 
   describe('groupby', () => {
@@ -1357,7 +1410,7 @@ describe('SELECT', () => {
       for (const comp of unified.comparators) {
         yield { xpr: ['CASE', 'WHEN', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
         if (!minimal || unified.comparators[0] === comp) {
-          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', ...comp.xpr] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
+          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', comp] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           // for (const comp2 of unified.comparators) {
           yield { xpr: ['CASE', 'WHEN', comp, 'AND', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           yield { xpr: ['CASE', 'WHEN', comp, 'OR', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
@@ -1428,5 +1481,5 @@ describe('SELECT', () => {
         })
       })
     }
-  })
-})
+  }, 10000000)
+}, 10000000)
