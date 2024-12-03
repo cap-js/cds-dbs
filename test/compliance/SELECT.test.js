@@ -631,7 +631,7 @@ describe('SELECT', () => {
                     'not',
                     'not',
                     'not',
-                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
                   ] } ] } ] } }
 
       const res = await cds.run(query)
