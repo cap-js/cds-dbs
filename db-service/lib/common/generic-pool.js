@@ -3,6 +3,7 @@
 // TODO: fifo: true?
 // TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access?
 
+const cds = require('@sap/cds')
 const { EventEmitter } = require('events')
 
 const ResourceState = Object.freeze({
@@ -23,29 +24,6 @@ class PooledResource {
   updateState(newState) {
     if (newState === ResourceState.IDLE) this.lastIdleTime = Date.now()
     this.state = newState
-  }
-}
-
-class ResourceRequest {
-  constructor(ttl) {
-    this._state = 'pending'
-    this._timeout = setTimeout(() => this.reject(new Error('ResourceRequest timed out')), ttl)
-    this.promise = new Promise((resolve, reject) => {
-      this._resolve = resolve
-      this._reject = reject
-    })
-  }
-
-  reject(reason) {
-    clearTimeout(this._timeout)
-    this._timeout = null
-    this._reject(reason)
-  }
-
-  resolve(value) {
-    clearTimeout(this._timeout)
-    this._timeout = null
-    this._resolve(value)
   }
 }
 
@@ -99,9 +77,25 @@ class Pool extends EventEmitter {
 
   async acquire() {
     if (this._draining) throw new Error('Pool is draining and cannot accept work')
-    const request = new ResourceRequest(this.options.acquireTimeoutMillis)
+    const request = { state: 'pending' }
+    cds.emit('pool:acquire', { data: { pool: { acquire: { request }}}})
+    request.promise = new Promise((resolve, reject) => {
+      request.resolve = value => {
+        clearTimeout(request.timeout)
+        request.state = 'resolved'
+        resolve(value)
+      }
+      request.reject = reason => {
+        clearTimeout(request.timeout)
+        request.state = 'rejected'
+        reject(reason)
+      }
+      request.timeout = setTimeout(() => {
+        request.reject(new Error('ResourceRequest timed out'))
+      }, this.options.acquireTimeoutMillis)
+    })
     this._queue.enqueue(request)
-    await this.#dispense()
+    this.#dispense()
     return request.promise
   }
 
@@ -252,32 +246,32 @@ const createPool = (factory, config) => new Pool(factory, config)
 class ConnectionPool {
   constructor(factory, tenant) {
     let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
-    return _track_connections4(createPool(bound_factory, factory.options))
+    return createPool(bound_factory, factory.options)
   }
 }
 
 // REVISIT: Is that really necessary ?!
-function _track_connections4(pool) {
-  const { acquire, release } = pool
-  return Object.assign(pool, {
-    async acquire() {
-      const connections = (this._trackedConnections ??= new Set())
-      try {
-        let dbc = await acquire.call(this)
-        connections.add((dbc._beginStack = new Error('begin called from:')))
-        return dbc
-      } catch (err) {
-        // TODO: add acquire timeout error check
-        err.stack += `\nActive connections:${connections.size}\n${[...connections].map(e => e.stack).join('\n')}`
-        throw err
-      }
-    },
+// function _track_connections4(pool) {
+//   const { acquire, release } = pool
+//   return Object.assign(pool, {
+//     async acquire() {
+//       const connections = (this._trackedConnections ??= new Set())
+//       try {
+//         let dbc = await acquire.call(this)
+//         connections.add((dbc._beginStack = new Error('begin called from:')))
+//         return dbc
+//       } catch (err) {
+//         // TODO: add acquire timeout error check
+//         err.stack += `\nActive connections:${connections.size}\n${[...connections].map(e => e.stack).join('\n')}`
+//         throw err
+//       }
+//     },
 
-    release(dbc) {
-      this._trackedConnections?.delete(dbc._beginStack)
-      return release.call(this, dbc)
-    },
-  })
-}
+//     release(dbc) {
+//       this._trackedConnections?.delete(dbc._beginStack)
+//       return release.call(this, dbc)
+//     },
+//   })
+// }
 
 module.exports = { ConnectionPool, createPool }

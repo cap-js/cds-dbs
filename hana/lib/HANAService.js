@@ -49,8 +49,8 @@ class HANAService extends SQLService {
         min: 0,
         max: 10,
         acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
+        idleTimeoutMillis: 3000,
+        evictionRunIntervalMillis: 5000,
         numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
         ...(this.options.pool || {}),
         testOnBorrow: true,
@@ -61,6 +61,9 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+
+          const { database_id, schema } = credentials ?? {}
+          cds.emit('hana:create', { data: { hana: { op: 'create', tenant, schema, database_id }}})
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -73,7 +76,8 @@ class HANAService extends SQLService {
           } else if (err.code !== 10) throw err
         }
       },
-      error: (err /*, tenant*/) => {
+      error: (err, tenant) => {
+        cds.emit('hana:error', { data: { hana: { op: 'error', tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -86,8 +90,16 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: dbc => dbc.disconnect(),
-      validate: dbc => dbc.validate(),
+      destroy: async dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        cds.emit('hana:destroy', { data: { hana: { op: 'destroy', tenant, schema, database_id }}})
+        return dbc.disconnect()
+      },
+      validate: dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        cds.emit('hana:validate', { data: { hana: { op: 'validate', tenant, schema, database_id }}})
+        return dbc.validate()
+      }
     }
   }
 
