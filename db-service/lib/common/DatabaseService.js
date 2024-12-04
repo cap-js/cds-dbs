@@ -133,7 +133,7 @@ class DatabaseService extends cds.Service {
       const pool = this.pools[t]; if (!pool) return
       delete this.pools[t]
       await pool.drain()
-      await pool.clear()
+      // await pool.clear()
     }))
   }
 

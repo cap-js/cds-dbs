@@ -78,7 +78,7 @@ class Pool extends EventEmitter {
   async acquire() {
     if (this._draining) throw new Error('Pool is draining and cannot accept work')
     const request = { state: 'pending' }
-    cds.emit('pool:acquire', { data: { pool: { acquire: { request }}}})
+    cds.emit('pool:acquire', { op: 'acquire', data: { pool: { request }}})
     request.promise = new Promise((resolve, reject) => {
       request.resolve = value => {
         clearTimeout(request.timeout)
@@ -100,6 +100,8 @@ class Pool extends EventEmitter {
   }
 
   async release(resource) {
+    const { database_id, tenant, schema } = resource._creds
+    cds.emit('pool:release', { op: 'release', data: { pool: { database_id, tenant, schema }}})
     const loan = this._loans.get(resource)
     if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
@@ -107,30 +109,34 @@ class Pool extends EventEmitter {
     pooledResource.updateState(ResourceState.IDLE)
     this._available.add(pooledResource)
     this.#dispense()
+    cds.emit('pool:release:after', { op: 'release:after', data: { pool: { database_id, tenant, schema }}})
   }
 
   async destroy(resource) {
+    const { database_id, tenant, schema } = resource._creds
+    cds.emit('pool:destroy', { op: 'destroy', data: { pool: { database_id, tenant, schema }}})
     const loan = this._loans.get(resource)
     if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
     await this.#destroy(pooledResource)
     this.#dispense()
+    cds.emit('pool:destroy:after', { op: 'destroy:after', data: { pool: { database_id, tenant, schema }}})
   }
 
   async drain() {
+    cds.emit('pool:drain', { op: 'drain' })
     this._draining = true
     if (this._queue.length > 0) await this._queue.tail.promise
     await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
-  }
-
-  async clear() {
     await Promise.all(Array.from(this._creates))
     await Promise.all(Array.from(this._available).map(resource => this.#destroy(resource)))
+    cds.emit('pool:drain:after', { op: 'drain:after' })
   }
 
   async #createResource() {
+    cds.emit('pool:createResource', { op: 'createResource' })
     try {
       const resource = await this.factory.create()
       const pooledResource = new PooledResource(resource)
@@ -143,10 +149,12 @@ class Pool extends EventEmitter {
     } finally {
       this._creates.delete(this.factory.create)
       this.#dispense()
+      cds.emit('pool:createResource:after', { op: 'createResource:after' })
     }
   }
 
   async #dispense() {
+    cds.emit('pool:dispense', { op: 'dispense' })
     const waiting = this._queue.length
     if (waiting < 1) return
     const capacity = this._available.size + this._creates.size
@@ -189,9 +197,11 @@ class Pool extends EventEmitter {
       }
     }
     await Promise.all(_dispenses)
+    cds.emit('pool:dispense:after', { op: 'dispense:after' })
   }
 
   async #destroy(resource) {
+    cds.emit('pool:destroy-internal', { op: 'destroy-internal' })
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
     this._available.delete(resource)
@@ -203,9 +213,11 @@ class Pool extends EventEmitter {
         await this.#createResource()
       }
     }
+    cds.emit('pool:destroy-internal:after', { op: 'destroy-internal:after', data: {pool: {resource}}})
   }
 
   #scheduleEviction() {
+    cds.emit('pool:scheduleEviction', { op: 'scheduleEviction' })
     const { evictionRunIntervalMillis, numTestsPerEvictionRun, softIdleTimeoutMillis, min, idleTimeoutMillis } = this.options
     if (evictionRunIntervalMillis <= 0) return
     this._scheduledEviction = setTimeout(async () => {
@@ -220,6 +232,7 @@ class Pool extends EventEmitter {
         await Promise.all(resourcesToEvict.map(resource => this.#destroy(resource)))
       } finally {
         this.#scheduleEviction()
+        cds.emit('pool:scheduleEviction:after', { op: 'scheduleEviction:after' })
       }
     }, evictionRunIntervalMillis).unref()
   }
