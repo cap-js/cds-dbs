@@ -362,9 +362,9 @@ describe('Bookshop - Read', () => {
 
   it('allows various mechanisms for expressing "not in"', async () => {
     const results = await cds.db.run([
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251])
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251]).orderBy('ID'),
     ])
 
     for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
