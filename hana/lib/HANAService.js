@@ -577,7 +577,6 @@ class HANAService extends SQLService {
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
@@ -1350,6 +1349,7 @@ const logicOperators = {
   'THEN': 1,
   'AND': 1,
   'OR': 1,
+  'NOT': 1,
 }
 const compareOperators = {
   '=': 1,
