@@ -51,7 +51,7 @@ function cqn4sql(originalQuery, model) {
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
-    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, SELECT.class.prototype)
     const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
     if (searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
@@ -1404,7 +1404,8 @@ function cqn4sql(originalQuery, model) {
           if (list.every(e => e.val))
             // no need for transformation
             transformedTokenStream.push({ list })
-          else transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
+          else
+            transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1726,7 +1727,8 @@ function cqn4sql(originalQuery, model) {
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
       let args = from.ref.at(-1).args
-      const subquerySource = transformedFrom.$refLinks[0].target
+      const subquerySource =
+        getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
       if (subquerySource.params && !args) args = {}
       const id = localized(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
