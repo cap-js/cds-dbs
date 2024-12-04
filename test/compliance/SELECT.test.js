@@ -638,8 +638,29 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    // REVISIT: currently not supported
-    test.skip('not in xpr with CASE', async () => {
+    test('not in xpr with CASE', async () => {
+      let query = {
+        SELECT: {
+          from: {
+            ref: [ 'basic.projection.string' ]
+          },
+          where: [
+            { xpr: [ {
+                  xpr: [
+                    { xpr: ['not', 'CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                  ] } ] } ] } }      
+                  
+        query = SELECT.from('basic.projection.string') .where( [
+        { xpr: [ {
+              xpr: [
+                { xpr: ['and', { val: false }] }
+              ] } ] } ])          
+
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple not in xpr with CASE', async () => {
       const query = {
         SELECT: {
           from: {
@@ -648,7 +669,7 @@ describe('SELECT', () => {
           where: [
             { xpr: [ {
                   xpr: [
-                    { xpr: ['not', 'CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
+                    { xpr: ['not', 'not', 'not', 'CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
                   ] } ] } ] } }
 
       const res = await cds.run(query)

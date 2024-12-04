@@ -811,13 +811,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return this.where(xpr)
     }
 
-    // The following special cases doesn't require setting "= true" after "NOT expr"
-    _notXprSpecialCases(xpr, i) {
-      return xpr.includes('CASE') ||
-        (typeof xpr[i+1] === 'string' && (xpr[i+1].toUpperCase() === 'NULL' || xpr[i+1].toUpperCase() === 'IN' || xpr[i+1].toUpperCase() === 'NOT')) ||
-        xpr[i+1].element?.type === 'cds.Boolean'
-    }
-
     xpr(_xpr, caseSuffix = '') {
       const { xpr, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
@@ -912,7 +905,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
 
       const sql = []
-      let indexNotXpr = -1
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
@@ -925,24 +917,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             endWithCompare = false
           }
           sql.push(this.operator(x, i, xpr))
-          // Add "= TRUE" after NOT statements except of
-          // - special cases (CASE, booleans, ...)
-          // - already set in sub-xpr
-          if (
-            up === 'NOT' && !xpr.includes('AND') && !xpr.includes('OR') &&
-            !this._notXprSpecialCases(xpr, i) &&
-            (!xpr[i+1].xpr || !this.is_comparator({ xpr: xpr[i+1].xpr }))
-          ) {
-            indexNotXpr = i + 1
-          }
         } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
         // default
         else sql.push(this.expr(x))
-
-        if (indexNotXpr === i) {
-          sql.push(` = ${this.val({ val: true })}`)
-          indexNotXpr = -1
-        }
       }
 
       if (endWithCompare) {
@@ -956,10 +933,15 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     operator(x, i, xpr) {
+      const _up = x => typeof x !== 'string' || x.toUpperCase()
       const up = x.toUpperCase()
       // Add "= TRUE" before THEN in case statements
       if (
         up in logicOperators &&
+        i !== 0 &&
+        !(_up(xpr[i - 1]) in caseOperators) &&
+        !(_up(xpr[i - 1]) in logicOperators) &&
+        !(_up(xpr[i + 1]) in compareOperators) &&
         !this.is_comparator({ xpr }, i - 1)
       ) {
         return ` = ${this.val({ val: true })} ${x}`
@@ -992,10 +974,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             // ensure AND is not part of BETWEEN
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
             return !local
-          }
-          // When NOT operator is found except of special cases (CASE, booleans, ...)
-          if (up === 'NOT' && !this._notXprSpecialCases(xpr, i)) {
-            return true
           }
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
@@ -1371,12 +1349,13 @@ const caseOperators = {
   'CASE': 1,
   'WHEN': 1,
   'THEN': 1,
-  'ELSE': 1,
+  'ELSE': 1
 }
 const logicOperators = {
   'THEN': 1,
   'AND': 1,
   'OR': 1,
+  'NOT': 1,
 }
 const compareOperators = {
   '=': 1,
