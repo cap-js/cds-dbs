@@ -1349,7 +1349,6 @@ const logicOperators = {
   'THEN': 1,
   'AND': 1,
   'OR': 1,
-  'NOT': 1,
 }
 const compareOperators = {
   '=': 1,
