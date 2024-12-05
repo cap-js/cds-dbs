@@ -439,7 +439,10 @@ function cqn4sql(originalQuery, model) {
 
       let baseName
       if (col.ref.length >= 2) {
-        baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
+        baseName = col.ref
+          .map(idOnly)
+          .slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1)
+          .join('_')
       }
 
       let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
@@ -983,7 +986,10 @@ function cqn4sql(originalQuery, model) {
         let baseName
         if (col.ref.length >= 2) {
           // leaf might be intermediate structure
-          baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
+          baseName = col.ref
+            .map(idOnly)
+            .slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1)
+            .join('_')
         }
         const flatColumns = getFlatColumnsFor(col, { baseName, tableAlias })
         /**
@@ -1167,10 +1173,9 @@ function cqn4sql(originalQuery, model) {
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
-      const leaf = column.$refLinks[column.$refLinks.length - 1]
+      const leaf = column.$refLinks.at(-1)
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      let elements
-      elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
+      let elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
       if (elements && leaf.definition.name in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
@@ -1210,68 +1215,76 @@ function cqn4sql(originalQuery, model) {
 
     if (element.keys) {
       const flatColumns = []
-      element.keys.forEach(fk => {
-        const fkElement = getElementForRef(fk.ref, getDefinition(element.target))
-        let fkBaseName
-        if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
-          fkBaseName = `${baseName}_${fk.as || fk.ref[fk.ref.length - 1]}`
-        // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
-        else fkBaseName = fk.ref[fk.ref.length - 1]
-        const fkPath = [...csnPath, fk.ref[fk.ref.length - 1]]
-        if (fkElement.elements) {
-          // structured key
-          Object.values(fkElement.elements).forEach(e => {
-            let alias
-            if (columnAlias) {
-              const fkName = fk.as
-                ? `${fk.as}_${e.name}` // foreign key might also be re-named: `assoc { id as foo }`
-                : `${fk.ref.join('_')}_${e.name}`
-              alias = `${columnAlias}_${fkName}`
+      for (const k of element.keys) {
+        // if only one part of a foreign key is requested, only flatten the partial key
+        const keyElement = getElementForRef(k.ref, getDefinition(element.target))
+        const flattenThisForeignKey =
+          !$refLinks || // the association is passed as element, not as ref --> flatten full foreign key
+          element === $refLinks.at(-1).definition || // the association is the leaf of the ref --> flatten full foreign key
+          keyElement === $refLinks.at(-1).definition // the foreign key is the leaf of the ref --> only flatten this specific foreign key
+        if (flattenThisForeignKey) {
+          const fkElement = getElementForRef(k.ref, getDefinition(element.target))
+          let fkBaseName
+          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
+            fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
+          else fkBaseName = k.ref.at(-1)
+          const fkPath = [...csnPath, k.ref.at(-1)]
+          if (fkElement.elements) {
+            // structured key
+            for (const e of Object.values(fkElement.elements)) {
+              let alias
+              if (columnAlias) {
+                const fkName = k.as
+                  ? `${k.as}_${e.name}` // foreign key might also be re-named: `assoc { id as foo }`
+                  : `${k.ref.join('_')}_${e.name}`
+                alias = `${columnAlias}_${fkName}`
+              }
+              flatColumns.push(
+                ...getFlatColumnsFor(
+                  e,
+                  { baseName: fkBaseName, columnAlias: alias, tableAlias },
+                  [...fkPath],
+                  excludeAndReplace,
+                  isWildcard,
+                ),
+              )
             }
+          } else if (fkElement.isAssociation) {
+            // assoc as key
             flatColumns.push(
               ...getFlatColumnsFor(
-                e,
-                { baseName: fkBaseName, columnAlias: alias, tableAlias },
-                [...fkPath],
+                fkElement,
+                { baseName, columnAlias, tableAlias },
+                csnPath,
                 excludeAndReplace,
                 isWildcard,
               ),
             )
-          })
-        } else if (fkElement.isAssociation) {
-          // assoc as key
-          flatColumns.push(
-            ...getFlatColumnsFor(
-              fkElement,
-              { baseName, columnAlias, tableAlias },
-              csnPath,
-              excludeAndReplace,
-              isWildcard,
-            ),
-          )
-        } else {
-          // leaf reached
-          let flatColumn
-          if (columnAlias) {
-            // if the column has an explicit alias AND the orignal ref
-            // directly resolves to the foreign key, we must not append the fk name to the column alias
-            // e.g. `assoc.fk as FOO` => columns.alias = FOO
-            //      `assoc as FOO`    => columns.alias = FOO_fk
-            let columnAliasWithFlatFk
-            if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
-              columnAliasWithFlatFk = `${columnAlias}_${fk.as || fk.ref.join('_')}`
-            flatColumn = { ref: [fkBaseName], as: columnAliasWithFlatFk || columnAlias }
-          } else flatColumn = { ref: [fkBaseName] }
-          if (tableAlias) flatColumn.ref.unshift(tableAlias)
+          } else {
+            // leaf reached
+            let flatColumn
+            if (columnAlias) {
+              // if the column has an explicit alias AND the original ref
+              // directly resolves to the foreign key, we must not append the fk name to the column alias
+              // e.g. `assoc.fk as FOO` => columns.alias = FOO
+              //      `assoc as FOO`    => columns.alias = FOO_fk
+              let columnAliasWithFlatFk
+              if (!(column.as && fkElement === column.$refLinks?.at(-1).definition))
+                columnAliasWithFlatFk = `${columnAlias}_${k.as || k.ref.join('_')}`
+              flatColumn = { ref: [fkBaseName], as: columnAliasWithFlatFk || columnAlias }
+            } else flatColumn = { ref: [fkBaseName] }
+            if (tableAlias) flatColumn.ref.unshift(tableAlias)
 
-          // in a flat model, we must assign the foreign key rather than the key in the target
-          const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
+            // in a flat model, we must assign the foreign key rather than the key in the target
+            const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
-          setElementOnColumns(flatColumn, flatForeignKey || fkElement)
-          Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
-          flatColumns.push(flatColumn)
+            setElementOnColumns(flatColumn, flatForeignKey || fkElement)
+            Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
+            flatColumns.push(flatColumn)
+          }
         }
-      })
+      }
       return flatColumns
     } else if (element.elements) {
       const flatRefs = []
@@ -1304,7 +1317,7 @@ function cqn4sql(originalQuery, model) {
 
     function getReplacement(from) {
       return from?.find(replacement => {
-        const nameOfExcludedColumn = replacement.as || replacement.ref?.[replacement.ref.length - 1] || replacement
+        const nameOfExcludedColumn = replacement.as || replacement.ref?.at(-1) || replacement
         return nameOfExcludedColumn === element.name
       })
     }
@@ -1588,7 +1601,10 @@ function cqn4sql(originalQuery, model) {
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
-          baseName: def.ref.slice(0, def.ref.length - 1).join('_'),
+          baseName: def.ref
+            .map(idOnly)
+            .slice(0, def.ref.length - 1)
+            .join('_'),
           tableAlias,
         })
       return getFlatColumnsFor(leaf.definition, { tableAlias })
