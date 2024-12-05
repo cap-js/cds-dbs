@@ -438,7 +438,7 @@ function cqn4sql(originalQuery, model) {
 
       let baseName
       if (col.ref.length >= 2) {
-        baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
+        baseName = col.ref.map(idOnly).slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
       }
 
       let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
@@ -976,7 +976,7 @@ function cqn4sql(originalQuery, model) {
         let baseName
         if (col.ref.length >= 2) {
           // leaf might be intermediate structure
-          baseName = col.ref.slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
+          baseName = col.ref.map(idOnly).slice(col.ref[0] === tableAlias ? 1 : 0, col.ref.length - 1).join('_')
         }
         const flatColumns = getFlatColumnsFor(col, { baseName, tableAlias })
         /**
@@ -1160,10 +1160,9 @@ function cqn4sql(originalQuery, model) {
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
-      const leaf = column.$refLinks[column.$refLinks.length - 1]
+      const leaf = column.$refLinks.at(-1)
       leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      let elements
-      elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
+      let elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
       if (elements && leaf.definition.name in elements) {
         element = leafAssoc.definition
         baseName = getFullName(leafAssoc.definition)
@@ -1210,7 +1209,7 @@ function cqn4sql(originalQuery, model) {
           fkBaseName = `${baseName}_${fk.as || fk.ref[fk.ref.length - 1]}`
         // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
         else fkBaseName = fk.ref[fk.ref.length - 1]
-        const fkPath = [...csnPath, fk.ref[fk.ref.length - 1]]
+        const fkPath = [...csnPath, fk.ref.at(-1)]
         if (fkElement.elements) {
           // structured key
           Object.values(fkElement.elements).forEach(e => {
@@ -1581,7 +1580,7 @@ function cqn4sql(originalQuery, model) {
       if (leaf.definition.parent.kind !== 'entity')
         // we need the base name
         return getFlatColumnsFor(leaf.definition, {
-          baseName: def.ref.slice(0, def.ref.length - 1).join('_'),
+          baseName: def.ref.map(idOnly).slice(0, def.ref.length - 1).join('_'),
           tableAlias,
         })
       return getFlatColumnsFor(leaf.definition, { tableAlias })
