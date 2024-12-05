@@ -63,7 +63,7 @@ class HANAService extends SQLService {
             : service.options
 
           const { database_id, schema } = credentials ?? {}
-          cds.emit('hana:create', { data: { hana: { op: 'create', tenant, schema, database_id }}})
+          cds.emit('hana:create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -77,7 +77,7 @@ class HANAService extends SQLService {
         }
       },
       error: (err, tenant) => {
-        cds.emit('hana:error', { data: { hana: { op: 'error', tenant, error: err }}})
+        cds.emit('hana:error', { op: 'error', data: { hana: { tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -92,12 +92,12 @@ class HANAService extends SQLService {
       },
       destroy: async dbc => {
         const { schema, database_id, tenant } = dbc._creds
-        cds.emit('hana:destroy', { data: { hana: { op: 'destroy', tenant, schema, database_id }}})
+        cds.emit('hana:destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
         return dbc.disconnect()
       },
       validate: dbc => {
         const { schema, database_id, tenant } = dbc._creds
-        cds.emit('hana:validate', { data: { hana: { op: 'validate', tenant, schema, database_id }}})
+        cds.emit('hana:validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
         return dbc.validate()
       }
     }
@@ -1280,6 +1280,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
+      this.options.credentials.tenant = tenant
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 

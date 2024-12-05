@@ -78,7 +78,7 @@ class Pool extends EventEmitter {
   async acquire() {
     if (this._draining) throw new Error('Pool is draining and cannot accept work')
     const request = { state: 'pending' }
-    cds.emit('pool:acquire', { op: 'acquire', data: { pool: { request }}})
+    cds.emit('pool:acquire', { op: 'acquire', tenant: this.tenant, data: { pool: { request }}})
     request.promise = new Promise((resolve, reject) => {
       request.resolve = value => {
         clearTimeout(request.timeout)
@@ -125,18 +125,18 @@ class Pool extends EventEmitter {
   }
 
   async drain() {
-    cds.emit('pool:drain', { op: 'drain' })
+    cds.emit('pool:drain', { op: 'drain', tenant: this.tenant })
     this._draining = true
     if (this._queue.length > 0) await this._queue.tail.promise
     await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
     await Promise.all(Array.from(this._creates))
     await Promise.all(Array.from(this._available).map(resource => this.#destroy(resource)))
-    cds.emit('pool:drain:after', { op: 'drain:after' })
+    cds.emit('pool:drain:after', { op: 'drain:after', tenant:this.tenant })
   }
 
   async #createResource() {
-    cds.emit('pool:createResource', { op: 'createResource' })
+    cds.emit('pool:createResource', { op: 'createResource', tenant: this.tenant })
     try {
       const resource = await this.factory.create()
       const pooledResource = new PooledResource(resource)
@@ -149,12 +149,12 @@ class Pool extends EventEmitter {
     } finally {
       this._creates.delete(this.factory.create)
       this.#dispense()
-      cds.emit('pool:createResource:after', { op: 'createResource:after' })
+      cds.emit('pool:createResource:after', { op: 'createResource:after', tenant: this.tenant })
     }
   }
 
   async #dispense() {
-    cds.emit('pool:dispense', { op: 'dispense' })
+    cds.emit('pool:dispense', { op: 'dispense', tenant: this.tenant })
     const waiting = this._queue.length
     if (waiting < 1) return
     const capacity = this._available.size + this._creates.size
@@ -197,11 +197,11 @@ class Pool extends EventEmitter {
       }
     }
     await Promise.all(_dispenses)
-    cds.emit('pool:dispense:after', { op: 'dispense:after' })
+    cds.emit('pool:dispense:after', { op: 'dispense:after', tenant: this.tenant })
   }
 
   async #destroy(resource) {
-    cds.emit('pool:destroy-internal', { op: 'destroy-internal' })
+    cds.emit('pool:destroy-internal', { op: 'destroy-internal', tenant: this.tenant })
     resource.updateState(ResourceState.INVALID)
     this._all.delete(resource)
     this._available.delete(resource)
@@ -213,11 +213,11 @@ class Pool extends EventEmitter {
         await this.#createResource()
       }
     }
-    cds.emit('pool:destroy-internal:after', { op: 'destroy-internal:after', data: {pool: {resource}}})
+    cds.emit('pool:destroy-internal:after', { op: 'destroy-internal:after', tenant: this.tenant, data: {pool: {resource}}})
   }
 
   #scheduleEviction() {
-    cds.emit('pool:scheduleEviction', { op: 'scheduleEviction' })
+    cds.emit('pool:scheduleEviction', { op: 'scheduleEviction', tenant: this.tenant })
     const { evictionRunIntervalMillis, numTestsPerEvictionRun, softIdleTimeoutMillis, min, idleTimeoutMillis } = this.options
     if (evictionRunIntervalMillis <= 0) return
     this._scheduledEviction = setTimeout(async () => {
@@ -232,7 +232,7 @@ class Pool extends EventEmitter {
         await Promise.all(resourcesToEvict.map(resource => this.#destroy(resource)))
       } finally {
         this.#scheduleEviction()
-        cds.emit('pool:scheduleEviction:after', { op: 'scheduleEviction:after' })
+        // cds.emit('pool:scheduleEviction:after', { op: 'scheduleEviction:after', tenant: this.tenant })
       }
     }, evictionRunIntervalMillis).unref()
   }
@@ -249,6 +249,10 @@ class Pool extends EventEmitter {
     return this._loans.size
   }
 
+  get tenant() {
+    return this.options.tenant
+  }
+
   get pending() {
     return this._queue.length
   }
@@ -259,7 +263,7 @@ const createPool = (factory, config) => new Pool(factory, config)
 class ConnectionPool {
   constructor(factory, tenant) {
     let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
-    return createPool(bound_factory, factory.options)
+    return createPool(bound_factory, { ...factory.options, tenant })
   }
 }
 
