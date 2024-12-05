@@ -171,15 +171,15 @@ describe('SELECT', () => {
       await expect(cds.run(cqn)).rejected
     })
 
-    test.skip('select xpr', async () => {
+    test('select xpr', async () => {
       // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string}`
+      const cqn = CQL`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      assert.equal(res[0].xpr, true)
+      assert.equal(res[0].xpr, null)
       assert.equal(res[1].xpr, false)
-      assert.equal(res[2].xpr, false)
+      assert.equal(res[2].xpr, true)
     })
 
     test('select calculation', async () => {
@@ -433,7 +433,7 @@ describe('SELECT', () => {
     // search tests don't check results as the search behavior is undefined
     test('search one column', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = SELECT.from(string).where([{func: 'search', args: [{list: [{ref: ['string']}]}, {val: 'yes'}]}])
+      const cqn = SELECT.from(string).where([{ func: 'search', args: [{ list: [{ ref: ['string'] }] }, { val: 'yes' }] }])
       await cds.run(cqn)
     })
 
@@ -469,209 +469,79 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, `Ensure that only matches comeback`)
     })
 
-    test('not in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('deep nested not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('boolean w/o operator in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [                    
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('deep nested boolean function w/o operator', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`startswith(string,${'n'})`] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
-    test('not and and in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
-                    'and',
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('deep nested not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('hierarchical not in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [ 'not',
-            { xpr: [ 'not', {
-                  xpr: [
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('multiple levels of not negations of expressions', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('multiple not in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    'not',
-                    'not',
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('multiple not in a single deep nested expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('hierarchical not and and in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [ 'not',
-            { xpr: [ 'not', {
-                  xpr: [
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
-                    'and',
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('multiple levels of not negations of expression with not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('hierarchical and multiple not in where', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [ 'not',
-            { xpr: [ 'not', {
-                  xpr: [
-                    'not',
-                    'not',
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] },
-                    'and',
-                    'not',
-                    'not',
-                    'not',
-                    { func: 'startswith', args: [ { ref: [ 'string' ] }, { val: 'n' } ] }
-                  ] } ] } ] } }
-
+    test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('not before xpr with CASE', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    'not',
-                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1 }, '=', { val: 2 }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
-                  ] } ] } ] } }
-
+    test('deep nested not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', CXL`string = 'no' ? true : false`] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('multiple not before xpr with CASE', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    'not',
-                    'not',
-                    'not',
-                    { xpr: ['CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
-                  ] } ] } ] } }
-
+    test('deep nested multiple not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('not in xpr with CASE', async () => {
-      let query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    { xpr: ['not', 'CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
-                  ] } ] } ] } }      
-                  
-        query = SELECT.from('basic.projection.string') .where( [
-        { xpr: [ {
-              xpr: [
-                { xpr: ['and', { val: false }] }
-              ] } ] } ])          
-
+    test('deep nested not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('multiple not in xpr with CASE', async () => {
-      const query = {
-        SELECT: {
-          from: {
-            ref: [ 'basic.projection.string' ]
-          },
-          where: [
-            { xpr: [ {
-                  xpr: [
-                    { xpr: ['not', 'not', 'not', 'CASE', 'WHEN', { xpr: [{ val: 1, param: false }, '=', { val: 2, param: false }] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'] }
-                  ] } ] } ] } }
-
+    test('deep nested multiple not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }}`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
@@ -1201,7 +1071,7 @@ describe('SELECT', () => {
     unified.scalar = [
       // TODO: investigate search issue for nvarchar columns
       ...unified.ref.filter(ref => cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeString).map(ref => {
-        return unified.string.map(val => ({ func: 'search', args: [{list:[ref]}, val] }))
+        return unified.string.map(val => ({ func: 'search', args: [{ list: [ref] }, val] }))
       }).flat(),
       // ...unified.string.map(val => ({ func: 'search', args: [{ list: unified.ref.filter(stringRefs) }, val] })),
       ...unified.ref.filter(stringRefs).filter(noBooleanRefs).map(X => {
@@ -1502,5 +1372,5 @@ describe('SELECT', () => {
         })
       })
     }
-  }, 10000000)
-}, 10000000)
+  })
+})
