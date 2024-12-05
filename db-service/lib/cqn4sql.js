@@ -408,6 +408,7 @@ function cqn4sql(originalQuery, model) {
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
+        if (!expandedSubqueryColumn) return []
         setElementOnColumns(expandedSubqueryColumn, col.element)
         res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
@@ -863,7 +864,7 @@ function cqn4sql(originalQuery, model) {
      * @param {Object} column - To expand.
      * @param {Array} baseRef - The base reference for the expanded column.
      * @param {string} subqueryAlias - The alias of the `expand` subquery column.
-     * @returns {Object} - The subquery object.
+     * @returns {Object} - The subquery object or null if the expand has a wildcard.
      * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
      */
     function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
@@ -873,7 +874,13 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
+      const wildcardIndex = column.expand.findIndex(e => e === '*')
+      if (wildcardIndex !== -1) {
+        // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
+        return null
+      }
       const expandedColumns = column.expand.flatMap(expand => {
+        if (!expand.ref) return expand
         const fullRef = [...baseRef, ...expand.ref]
 
         if (expand.expand) {
@@ -1409,8 +1416,7 @@ function cqn4sql(originalQuery, model) {
           if (list.every(e => e.val))
             // no need for transformation
             transformedTokenStream.push({ list })
-          else
-            transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
+          else transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -2209,10 +2215,7 @@ function cqn4sql(originalQuery, model) {
       const xpr = search
       const searchFunc = {
         func: 'search',
-        args: [
-          { list: searchIn },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
+        args: [{ list: searchIn }, xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }],
       }
       return searchFunc
     } else {

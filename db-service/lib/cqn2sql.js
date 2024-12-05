@@ -423,8 +423,8 @@ class CQN2SQLRenderer {
         ? c =>
           this.expr(c) +
           (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
-          (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
     )
   }
 
