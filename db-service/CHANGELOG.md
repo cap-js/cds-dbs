@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.16.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.0...db-service-v1.16.1) (2024-12-05)
+
+
+### Fixed
+
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+* wildcard expand with aggregation ([#923](https://github.com/cap-js/cds-dbs/issues/923)) ([bbe7be0](https://github.com/cap-js/cds-dbs/commit/bbe7be00498ad083cf951daf344b7f5fd9f68ab9))
+
 ## [1.16.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.15.1...db-service-v1.16.0) (2024-11-25)
 
 
