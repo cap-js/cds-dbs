@@ -500,8 +500,16 @@ describe('SELECT', () => {
     test('multiple not in a single deep nested expression', async () => {
       const { string } = cds.entities('basic.literals')
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }}`
-      const res = await cds.run(query)
-      assert.strictEqual(res[0].string, 'yes')
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
     })
 
     test('multiple levels of not negations of expression with not + and', async () => {
@@ -514,8 +522,16 @@ describe('SELECT', () => {
     test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
       const { string } = cds.entities('basic.literals')
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }}`
-      const res = await cds.run(query)
-      assert.strictEqual(res[0].string, 'yes')
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) { 
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
     })
 
     test('deep nested not before xpr with CASE statement', async () => {
@@ -528,8 +544,16 @@ describe('SELECT', () => {
     test('deep nested multiple not before xpr with CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }}`
-      const res = await cds.run(query)
-      assert.strictEqual(res[0].string, 'yes')
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
     })
 
     test('deep nested not before CASE statement', async () => {
@@ -542,8 +566,16 @@ describe('SELECT', () => {
     test('deep nested multiple not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }}`
-      const res = await cds.run(query)
-      assert.strictEqual(res[0].string, 'yes')
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
     })
   })
 
@@ -652,7 +684,7 @@ describe('SELECT', () => {
       const desc = SELECT.from(string).columns('string').orderBy('string desc')
       const mixedAsc = SELECT.from(string).columns('string').orderBy('string aSC')
       const asc = SELECT.from(string).columns('string').orderBy('string asc')
-      
+
       expect(await cds.run(mixedDesc)).to.eql(await cds.run(desc))
       expect(await cds.run(mixedAsc)).to.eql(await cds.run(asc))
     })
