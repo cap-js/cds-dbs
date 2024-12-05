@@ -1202,7 +1202,13 @@ function cqn4sql(originalQuery, model) {
 
     if (element.keys) {
       const flatColumns = []
-      element.keys.forEach(fk => {
+      element.keys.filter(k => {
+        // if only one part of a foreign key is requested, only flatten the partial key
+        const keyElement = getElementForRef(k.ref, getDefinition(element.target))
+        return !$refLinks ||
+        element === $refLinks.at(-1).definition ||
+        keyElement === $refLinks.at(-1).definition
+      }).forEach(fk => {
         const fkElement = getElementForRef(fk.ref, getDefinition(element.target))
         let fkBaseName
         if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)

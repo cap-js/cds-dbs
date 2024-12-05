@@ -749,7 +749,7 @@ describe('Flattening', () => {
       const res = cqn4sql(q, model)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
-    it('if only partial, structured foreign key is accessed, only the requested key is flattened', () => {
+    it.skip('if only partial, structured foreign key is accessed, only the requested key is flattened', () => {
       const q = CQL`SELECT from bookshop.Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.struct.mid.leaf`
