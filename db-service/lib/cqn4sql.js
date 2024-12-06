@@ -1439,7 +1439,7 @@ function cqn4sql(originalQuery, model) {
         // expand `struct = null | struct2`
         const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
         const next = tokenStream[i + 1]
-        if (allOps.some(([firstOp]) => firstOp === next) && (definition?.elements || definition?.keys)) {
+        if (allOps.some(([firstOp]) => firstOp === next) && isAssocOrStruct(definition)) {
           const ops = [next]
           let indexRhs = i + 2
           let rhs = tokenStream[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
