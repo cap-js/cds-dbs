@@ -79,6 +79,21 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.every(row => row.author.name)).to.be.true
   })
 
+  test('groupby with multiple path expressions', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toC/toB/ID))', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
+  test('groupby with multiple path expressions and orderby', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$orderby=toB/toC/ID', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
+  test('groupby with multiple path expressions and filter', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
   test('Path expression', async () => {
     const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
