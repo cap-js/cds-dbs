@@ -51,7 +51,7 @@ function cqn4sql(originalQuery, model) {
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
-    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, Object.getPrototypeOf(SELECT()))
+    if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, SELECT.class.prototype)
     const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
     if (searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
@@ -408,6 +408,7 @@ function cqn4sql(originalQuery, model) {
       const last = $refLinks?.[$refLinks.length - 1]
       if (last && !last.skipExpand && last.definition.isAssociation) {
         const expandedSubqueryColumn = expandColumn(col)
+        if (!expandedSubqueryColumn) return []
         setElementOnColumns(expandedSubqueryColumn, col.element)
         res.push(expandedSubqueryColumn)
       } else if (!last?.skipExpand) {
@@ -863,7 +864,7 @@ function cqn4sql(originalQuery, model) {
      * @param {Object} column - To expand.
      * @param {Array} baseRef - The base reference for the expanded column.
      * @param {string} subqueryAlias - The alias of the `expand` subquery column.
-     * @returns {Object} - The subquery object.
+     * @returns {Object} - The subquery object or null if the expand has a wildcard.
      * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
      */
     function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
@@ -873,7 +874,13 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
+      const wildcardIndex = column.expand.findIndex(e => e === '*')
+      if (wildcardIndex !== -1) {
+        // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
+        return null
+      }
       const expandedColumns = column.expand.flatMap(expand => {
+        if (!expand.ref) return expand
         const fullRef = [...baseRef, ...expand.ref]
 
         if (expand.expand) {
@@ -1726,7 +1733,8 @@ function cqn4sql(originalQuery, model) {
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
       let args = from.ref.at(-1).args
-      const subquerySource = transformedFrom.$refLinks[0].target
+      const subquerySource =
+        getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
       if (subquerySource.params && !args) args = {}
       const id = localized(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
@@ -2202,10 +2210,7 @@ function cqn4sql(originalQuery, model) {
       const xpr = search
       const searchFunc = {
         func: 'search',
-        args: [
-          { list: searchIn },
-          xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr },
-        ],
+        args: [{ list: searchIn }, xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }],
       }
       return searchFunc
     } else {

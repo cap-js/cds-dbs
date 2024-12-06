@@ -569,6 +569,18 @@ describe('SELECT', () => {
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
+    test('sort is case insensitive', async () => {
+      const { string } = cds.entities('basic.literals')
+      const mixedDesc = SELECT.from(string).columns('string').orderBy('string DeSc')
+      const desc = SELECT.from(string).columns('string').orderBy('string desc')
+      const mixedAsc = SELECT.from(string).columns('string').orderBy('string aSC')
+      const asc = SELECT.from(string).columns('string').orderBy('string asc')
+      
+      expect(await cds.run(mixedDesc)).to.eql(await cds.run(desc))
+      expect(await cds.run(mixedAsc)).to.eql(await cds.run(asc))
+    })
+
+
     test('localized', async () => {
       const { string } = cds.entities('basic.literals')
       const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
