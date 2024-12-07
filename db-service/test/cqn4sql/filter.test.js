@@ -14,7 +14,7 @@ describe('filter expressions', () => {
   })
 
   describe('on entity ref in from clause', () => {
-    it.skip('flatten managed assoc; rhs is the assoc', () => {
+    it('flatten managed assoc; rhs is the assoc', () => {
       expect(
         cqn4sql(
           CQL`
@@ -25,11 +25,11 @@ describe('filter expressions', () => {
       ).to.deep.equal(
         CQL`
         SELECT from bookshop.Books as Books { Books.ID }
-        where (Books.genre_ID = 1) and Books.genre_ID = Books.ID and Books.ID = Books.genre_ID
+          where Books.ID = Books.genre_ID
         `,
       )
     })
-    it.skip('flatten managed assoc lhs; rhs is val', () => {
+    it('flatten managed assoc lhs; rhs is val', () => {
       expect(
         cqn4sql(
           CQL`
@@ -44,7 +44,7 @@ describe('filter expressions', () => {
         `,
       )
     })
-    it.skip('flatten managed assoc lhs; rhs is ref', () => {
+    it('flatten managed assoc lhs; rhs is ref', () => {
       expect(
         cqn4sql(
           CQL`

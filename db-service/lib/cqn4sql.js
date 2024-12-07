@@ -1439,20 +1439,24 @@ function cqn4sql(originalQuery, model) {
         // expand `struct = null | struct2`
         const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
         const next = tokenStream[i + 1]
-        if (allOps.some(([firstOp]) => firstOp === next) && isAssocOrStruct(definition)) {
-          const ops = [next]
-          let indexRhs = i + 2
-          let rhs = tokenStream[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
-          if (allOps.some(([, secondOp]) => secondOp === rhs)) {
-            ops.push(rhs)
-            rhs = tokenStream[i + 3]
-            indexRhs += 1
-          }
+        let rhs = tokenStream[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
+        const ops = [next]
+        let indexRhs = i + 2
+        if (allOps.some(([, secondOp]) => secondOp === rhs)) {
+          ops.push(rhs)
+          rhs = tokenStream[i + 3]
+          indexRhs += 1
+        }
+        if (
+          allOps.some(([firstOp]) => firstOp === next) &&
+          (isAssocOrStruct(definition) || isAssocOrStruct(rhs.$refLinks?.at(-1).definition))
+        ) {
           if (
-            isAssocOrStruct(rhs.$refLinks?.[rhs.$refLinks.length - 1].definition) ||
+            (isAssocOrStruct(rhs.$refLinks?.at(-1).definition) ||
             rhs.val !== undefined ||
             /* unary operator `is null` parsed as string */
-            rhs === 'null'
+            rhs === 'null') ||
+            (isAssocOrStruct(definition) && rhs)
           ) {
             if (notSupportedOps.some(([firstOp]) => firstOp === next))
               throw new Error(`The operator "${next}" is not supported for structure comparison`)
@@ -1462,8 +1466,7 @@ function cqn4sql(originalQuery, model) {
             i = indexRhs // jump to next relevant index
           }
         } else {
-          // reject associations in expression, except if we are in an infix filter -> $baseLink is set
-          assertNoStructInXpr(token, $baseLink)
+          assertNoStructInXpr(token)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
@@ -1529,21 +1532,23 @@ function cqn4sql(originalQuery, model) {
    * @returns {array}
    */
   function expandComparison(token, operator, value, $baseLink = null) {
-    const { definition } = token.$refLinks[token.$refLinks.length - 1]
+    const lhs = token.$refLinks ? token : value
+    const rhs = token.$refLinks ? value : token
+    const { definition } = lhs.$refLinks.at(-1)
     let flatRhs
     const result = []
-    if (value.$refLinks) {
+    if (rhs.$refLinks) {
       // structural comparison
       flatRhs = flattenWithBaseName(value)
     }
 
     if (flatRhs) {
-      const flatLhs = flattenWithBaseName(token)
+      const flatLhs = flattenWithBaseName(lhs)
       // make sure we can compare both structures
       if (flatRhs.length !== flatLhs.length) {
         throw new Error(
           `Can't compare "${definition.name}" with "${
-            value.$refLinks[value.$refLinks.length - 1].definition.name
+            rhs.$refLinks.at(-1).definition.name
           }": the operands must have the same structure`,
         )
       }
@@ -1569,12 +1574,12 @@ function cqn4sql(originalQuery, model) {
       }
     } else {
       // compare with value
-      const flatLhs = flattenWithBaseName(token)
+      const flatLhs = flattenWithBaseName(lhs)
       if (flatLhs.length > 1 && value.val !== null && value !== 'null')
         throw new Error(`Can't compare structure "${token.ref.join('.')}" with value "${value.val}"`)
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatLhs.forEach((column, i) => {
-        result.push(column, ...operator, value)
+        result.push(column, ...operator, rhs)
         if (flatLhs[i + 1]) result.push(boolOp)
       })
     }
@@ -1595,11 +1600,11 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
-  function assertNoStructInXpr(token, inInfixFilter = false) {
-    if (!inInfixFilter && token.$refLinks?.[token.$refLinks.length - 1].definition.target)
+  function assertNoStructInXpr(token) {
+    if (token.$refLinks?.at(-1).definition.target)
       // REVISIT: let this through if not requested otherwise
       rejectAssocInExpression()
-    if (isStructured(token.$refLinks?.[token.$refLinks.length - 1].definition))
+    if (isStructured(token.$refLinks?.at(-1).definition))
       // REVISIT: let this through if not requested otherwise
       rejectStructInExpression()
 

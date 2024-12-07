@@ -826,9 +826,9 @@ describe('Flattening', () => {
     //   TODO if implementation is same for all clauses, we probably don't need all these tests
     //   relax for certain patterns -> see "Expressions in where clauses"
 
-    it('rejects managed associations in expressions in HAVING clause (1)', () => {
-      expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+    it('flattens managed associations if compared to val', () => {
+      expect(cqn4sql(CQL`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.deep.equal(
+        CQL`SELECT from bookshop.Books as Books { Books.ID } HAVING 2 = Books.author_ID`,
       )
     })
 

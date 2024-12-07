@@ -215,7 +215,7 @@ describe('Structural comparison', () => {
       expect(query).to.deep.equal(CQL(expectedQueryString))
     })
   })
-  // TODO (SMW) - should work ...
+
   it('compare struct with assoc (2)', () => {
     eqOps.forEach(op => {
       const [first] = op
