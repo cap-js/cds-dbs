@@ -3,6 +3,7 @@ const cds = require('@sap/cds')
 Object.defineProperties(module.exports, {
   hdb: { get: () => require('./hdb') },
   'hana-client': { get: () => require('./hana-client') },
+  'odbc': { get: () => require('./odbc') },
   default: {
     get() {
       try {

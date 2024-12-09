@@ -333,7 +333,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
+
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -1236,7 +1236,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
       const stmt = await this.dbc.prepare(createContainerDatabase)
       const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+      res && DEBUG?.(res.changes?.map?.(r => r.MESSAGE).join('\n'))
     } finally {
       if (this.dbc) {
         // Release table lock
@@ -1282,7 +1282,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         try {
           const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
           const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
-          res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
+          res && DEBUG?.(res.changes?.map?.(r => r.MESSAGE).join('\n'))
           break
         } catch (e) {
           err = e
