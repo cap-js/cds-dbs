@@ -232,7 +232,6 @@ class Pool extends EventEmitter {
         await Promise.all(resourcesToEvict.map(resource => this.#destroy(resource)))
       } finally {
         this.#scheduleEviction()
-        // cds.emit('pool:scheduleEviction:after', { op: 'scheduleEviction:after', tenant: this.tenant })
       }
     }, evictionRunIntervalMillis).unref()
   }
