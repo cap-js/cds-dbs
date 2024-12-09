@@ -749,6 +749,7 @@ describe('Flattening', () => {
       const res = cqn4sql(q, model)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
+    // TODO: currently no-op in runtime (those structured elements are flat), however this should work
     it.skip('if only partial, structured foreign key is accessed, only the requested key is flattened', () => {
       const q = CQL`SELECT from bookshop.Intermediate {
         ID
