@@ -20,6 +20,7 @@ const StandardFunctions = {
   month: x => `date_part('month', ${castVal(x)})`,
   day: x => `date_part('day', ${castVal(x)})`,
   time: x => `to_char(${castVal(x)}, 'HH24:MI:SS')`,
+  date: x => `to_char(${castVal(x)}, 'YYYY-MM-DD')`,
   hour: x => `date_part('hour', ${castVal(x)})`,
   minute: x => `date_part('minute', ${castVal(x)})`,
   second: x => `floor(date_part('second', ${castVal(x)}))`,
