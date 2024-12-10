@@ -577,6 +577,27 @@ describe('SELECT', () => {
         assert.strictEqual(res[0].string, 'yes')
       })
     })
+
+    test('not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('and beetwen CASE statements', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('and beetwen CASE statements with not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
   })
 
   describe('groupby', () => {
