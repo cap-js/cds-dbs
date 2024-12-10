@@ -154,10 +154,7 @@ class DatabaseService extends cds.Service {
    */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)
-    if (data !== undefined && typeof query === 'string' && typeof data !== 'object') {
-      data = [data, ...etc]
-      return super.run(query, data)
-    }
+    if (data !== undefined && typeof query === 'string' && typeof data !== 'object') arguments[1] = [data, ...etc]
     return super.run(...arguments) //> important to call like that for tagged template literal args
   }
 
