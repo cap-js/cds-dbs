@@ -171,15 +171,15 @@ describe('SELECT', () => {
       await expect(cds.run(cqn)).rejected
     })
 
-    test.skip('select xpr', async () => {
+    test('select xpr', async () => {
       // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string}`
+      const cqn = CQL`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      assert.equal(res[0].xpr, true)
+      assert.equal(res[0].xpr, null)
       assert.equal(res[1].xpr, false)
-      assert.equal(res[2].xpr, false)
+      assert.equal(res[2].xpr, true)
     })
 
     test('select calculation', async () => {
@@ -433,7 +433,7 @@ describe('SELECT', () => {
     // search tests don't check results as the search behavior is undefined
     test('search one column', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = SELECT.from(string).where([{func: 'search', args: [{list: [{ref: ['string']}]}, {val: 'yes'}]}])
+      const cqn = SELECT.from(string).where([{ func: 'search', args: [{ list: [{ ref: ['string'] }] }, { val: 'yes' }] }])
       await cds.run(cqn)
     })
 
@@ -467,6 +467,136 @@ describe('SELECT', () => {
 
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, `Ensure that only matches comeback`)
+    })
+
+    test('deep nested not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested boolean function w/o operator', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`startswith(string,${'n'})`] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('deep nested not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple levels of not negations of expressions', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple not in a single deep nested expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }}`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('multiple levels of not negations of expression with not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }}`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) { 
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('deep nested not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', CXL`string = 'no' ? true : false`] }] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested multiple not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }}`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('deep nested not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }] }}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested multiple not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }}`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('and beetwen CASE statements', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('and beetwen CASE statements with not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr]}}`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
     })
   })
 
@@ -575,7 +705,7 @@ describe('SELECT', () => {
       const desc = SELECT.from(string).columns('string').orderBy('string desc')
       const mixedAsc = SELECT.from(string).columns('string').orderBy('string aSC')
       const asc = SELECT.from(string).columns('string').orderBy('string asc')
-      
+
       expect(await cds.run(mixedDesc)).to.eql(await cds.run(desc))
       expect(await cds.run(mixedAsc)).to.eql(await cds.run(asc))
     })
@@ -1006,7 +1136,7 @@ describe('SELECT', () => {
     unified.scalar = [
       // TODO: investigate search issue for nvarchar columns
       ...unified.ref.filter(ref => cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeString).map(ref => {
-        return unified.string.map(val => ({ func: 'search', args: [{list:[ref]}, val] }))
+        return unified.string.map(val => ({ func: 'search', args: [{ list: [ref] }, val] }))
       }).flat(),
       // ...unified.string.map(val => ({ func: 'search', args: [{ list: unified.ref.filter(stringRefs) }, val] })),
       ...unified.ref.filter(stringRefs).filter(noBooleanRefs).map(X => {
@@ -1236,7 +1366,7 @@ describe('SELECT', () => {
       for (const comp of unified.comparators) {
         yield { xpr: ['CASE', 'WHEN', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
         if (!minimal || unified.comparators[0] === comp) {
-          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', ...comp.xpr] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
+          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', comp] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           // for (const comp2 of unified.comparators) {
           yield { xpr: ['CASE', 'WHEN', comp, 'AND', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           yield { xpr: ['CASE', 'WHEN', comp, 'OR', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
