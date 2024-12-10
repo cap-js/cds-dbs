@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.0...hana-v1.5.1) (2024-12-10)
+
+
+### Fixed
+
+* deep groupby ([#919](https://github.com/cap-js/cds-dbs/issues/919)) ([ce24264](https://github.com/cap-js/cds-dbs/commit/ce24264185aa7d2b7b2f04724c21937694e0e33f))
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+
 ## [1.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.1...hana-v1.5.0) (2024-11-25)
 
 
