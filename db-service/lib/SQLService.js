@@ -10,6 +10,8 @@ const BINARY_TYPES = {
   'cds.hana.BINARY': 1
 }
 
+const cacheSqlSymbol = Symbol('sql cache')
+
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
@@ -166,8 +168,8 @@ class SQLService extends DatabaseService {
    * Handler for INSERT
    * @type {Handler}
    */
-  async onINSERT({ query, data }) {
-    const { sql, entries, cqn } = this.cqn2sql(query, data)
+  async onINSERT({ query }) {
+    const { sql, entries, cqn } = this.cqn2sql(query)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
@@ -178,8 +180,8 @@ class SQLService extends DatabaseService {
    * Handler for UPSERT
    * @type {Handler}
    */
-  async onUPSERT({ query, data }) {
-    const { sql, entries } = this.cqn2sql(query, data)
+  async onUPSERT({ query }) {
+    const { sql, entries } = this.cqn2sql(query)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     const ps = await this.prepare(sql)
     const results = entries ? await Promise.all(entries.map(e => ps.run(e))) : await ps.run()
@@ -206,8 +208,8 @@ class SQLService extends DatabaseService {
    * Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN
    * @type {Handler}
    */
-  async onSIMPLE({ query, data }) {
-    const { sql, values } = this.cqn2sql(query, data)
+  async onSIMPLE({ query }) {
+    const { sql, values } = this.cqn2sql(query)
     let ps = await this.prepare(sql)
     return (await ps.run(values)).changes
   }
@@ -377,6 +379,11 @@ class SQLService extends DatabaseService {
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
+    if (Object.hasOwn(query,cacheSqlSymbol)) {
+      const cache = query[cacheSqlSymbol]
+      return {__proto__: cache, values: cache.params.map(x => values[x] ?? null) }
+    }
+
     let q = this.cqn4sql(query)
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
@@ -385,7 +392,7 @@ class SQLService extends DatabaseService {
       if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
-    return cqn2sql.render(q, values)
+    return query[cacheSqlSymbol] = cqn2sql.render(q, values)
   }
 
   /**

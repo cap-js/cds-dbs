@@ -8,7 +8,7 @@ const { Readable } = require('stream')
 
 const DEBUG = cds.debug('sql|sqlite')
 const LOG_SQL = cds.log('sql')
-const LOG_SQLITE =  cds.log('sqlite')
+const LOG_SQLITE = cds.log('sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -71,29 +71,24 @@ class CQN2SQLRenderer {
    * @param {unknown[]|undefined} vars Values to be used for params
    * @returns {CQN2SQLRenderer|unknown}
    */
-  render(q, vars) {
+  render(q, params = q.$params) {
     const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
     /**
      * @type {string} the rendered SQL string
      */
     this.sql = '' // to have it as first property for debugging
-    /** @type {unknown[]} */
-    this.values = [] // prepare values, filled in by subroutines
+    if (params) this.params = [] // prepare params, filled in by subroutines
+    else this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
-    if (vars?.length && !this.values?.length) this.values = vars
-    if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
-    const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+    if (params) this.values = this.params.map(k => params[k] ?? null)
 
-    
     if (DEBUG && (LOG_SQL._debug || LOG_SQLITE._debug)) {
-      let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
-      if (values && !Array.isArray(values)) {
-        values = [values]
-      }
+      const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+      let values = sanitize_values && (this.entries || this.values?.length > 0)
+        ? ['***']
+        : this.entries || this.values || []
       DEBUG(this.sql, ...values)
     }
-
-    
     return this
   }
 
@@ -913,7 +908,12 @@ class CQN2SQLRenderer {
    */
   param({ ref }) {
     if (ref.length > 1) throw cds.error`Unsupported nested ref parameter: ${ref}`
-    return ref[0] === '?' ? '?' : `:${ref}`
+    if (ref[0] === '?') {
+      this.params.push(this._param_counter ??= 0)
+      this._param_counter++
+    }
+    else this.params.push(ref[0])
+    return '?'
   }
 
   /**

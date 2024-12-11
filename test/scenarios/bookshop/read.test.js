@@ -16,6 +16,17 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(5)
   })
 
+  test('params', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const cqn = CQL`SELECT ID FROM ${Books} WHERE ID = :ID`
+
+    const results = await Promise.all([
+      cds.run(cqn),
+      cds.run(cqn, { ID: 201 }),
+      cds.run(cqn, { ID: 100 }),
+    ])
+  })
+
   test('Books $count with $top=0', async () => {
     const res = await GET('/browse/ListOfBooks?$count=true&$top=0')
     expect(res.status).to.be.eq(200)
@@ -55,10 +66,10 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
     expect(
       res.data.value.every(
-      item =>
-        'author' in item &&
-        'ID' in item.author && // foreign key is renamed to element name in target
-        !('author_ID' in item.author),
+        item =>
+          'author' in item &&
+          'ID' in item.author && // foreign key is renamed to element name in target
+          !('author_ID' in item.author),
       ),
     ).to.be.true
   })
@@ -254,10 +265,11 @@ describe('Bookshop - Read', () => {
       expect(res2.status).to.be.eq(200)
       expect(res2.data.value[1].title).to.be.eq('dracula')
 
-      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      let q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
       expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
+      q = cds.ql.clone(q) // Clone before modifying to nullify caching
       q.SELECT.localized = true
       const res4 = await cds.run(q)
       expect(res4[1].title).to.be.eq('dracula')
@@ -370,9 +382,9 @@ describe('Bookshop - Read', () => {
   })
 
   it('allows filtering with between operator', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where({ stock: { between: 0, and: 100 } })
 
-    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
+    return expect((await query).every(row => row.stock >= 0 && row.stock <= 100)).to.be.true
   })
 
   it('allows various mechanisms for expressing "not in"', async () => {
@@ -382,7 +394,7 @@ describe('Bookshop - Read', () => {
       SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251])
     ])
 
-    for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
+    for (const row of results) expect(row).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
   })
 
   it('select all authors which have written books that have genre.name = null', async () => {
