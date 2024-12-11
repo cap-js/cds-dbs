@@ -23,6 +23,7 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       fetchSize: 1 << 16, // V8 default memory page size
+      sslUseDefaultTrustStore: false,
       ...creds,
     }
 
