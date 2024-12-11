@@ -1,4 +1,4 @@
-const cds = require("@sap/cds")
+import cds from '@sap/cds'
 
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
@@ -356,4 +356,4 @@ const HANAFunctions = {
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+export default { ...StandardFunctions, ...HANAFunctions }

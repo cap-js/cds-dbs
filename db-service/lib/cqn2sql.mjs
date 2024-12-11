@@ -1,14 +1,19 @@
-const cds = require('@sap/cds')
-const cds_infer = require('./infer')
-const cqn4sql = require('./cqn4sql')
-const _simple_queries = cds.env.features.sql_simple_queries
+import cds from '@sap/cds'
+import cds_infer from './infer/index.mjs'
+import cqn4sql from './cqn4sql.mjs'
+const _simple_queries = (await cds.env).features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
-const { Readable } = require('stream')
+import { Readable } from 'stream'
 
+import functions from './cql-functions.mjs'
+
+await cds.log
 const DEBUG = cds.debug('sql|sqlite')
 const LOG_SQL = cds.log('sql')
-const LOG_SQLITE =  cds.log('sqlite')
+const LOG_SQLITE = cds.log('sqlite')
+
+const types = (await cds.builtin).types
 
 class CQN2SQLRenderer {
   /**
@@ -37,7 +42,6 @@ class CQN2SQLRenderer {
 
   static _add_mixins(aspect, mixins) {
     const fqn = this.name + aspect
-    const types = cds.builtin.types
     for (let each in mixins) {
       const def = types[each]
       if (!def) continue
@@ -84,7 +88,7 @@ class CQN2SQLRenderer {
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
-    
+
     if (LOG_SQL._debug || LOG_SQLITE._debug) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
@@ -93,7 +97,7 @@ class CQN2SQLRenderer {
       DEBUG(this.sql, ...values)
     }
 
-    
+
     return this
   }
 
@@ -961,7 +965,7 @@ class CQN2SQLRenderer {
     return '?'
   }
 
-  static Functions = require('./cql-functions')
+  static Functions = functions
   /**
    * Renders a function call into mapped SQL definitions from the Functions definition
    * @param {import('./infer/cqn').func} param0
@@ -1151,11 +1155,11 @@ class CQN2SQLRenderer {
 }
 
 // REVISIT: Workaround for JSON.stringify to work with buffers
-Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
-}
+// Buffer.prototype.toJSON = function () {
+//   return this.toString('base64')
+// }
 
-Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
+// Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {
@@ -1171,6 +1175,9 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
-module.exports.class = CQN2SQLRenderer
-module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word
+const exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
+exports.class = CQN2SQLRenderer
+exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word
+export const classDefinition = exports.classDefinition
+
+export default exports

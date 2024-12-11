@@ -1,10 +1,10 @@
 'use strict'
 
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
 
-const infer = require('./infer')
-const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement } = require('./utils')
+import infer from './infer/index.mjs'
+import { computeColumnsToBeSearched } from './search.mjs'
+import { prettyPrintRef, isCalculatedOnRead, isCalculatedElement } from './utils.mjs'
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -23,7 +23,7 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
-const { pseudos } = require('./infer/pseudos')
+import { pseudos } from './infer/pseudos.mjs'
 /**
  * Transforms a CDL style query into SQL-Like CQN:
  *  - transform association paths in `from` to `WHERE exists` subqueries
@@ -2388,7 +2388,7 @@ const refWithConditions = step => {
 }
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 
-module.exports = Object.assign(cqn4sql, {
+export default Object.assign(cqn4sql, {
   // for own tests only:
   eqOps,
   notEqOps,

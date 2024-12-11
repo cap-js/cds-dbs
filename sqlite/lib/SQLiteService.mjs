@@ -1,11 +1,20 @@
-const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds')
-const sqlite = require('better-sqlite3')
-const $session = Symbol('dbc.session')
-const convStrm = require('stream/consumers')
-const { Readable } = require('stream')
+import { SQLService } from '@cap-js/db-service'
+import cds from '@sap/cds'
+import convStrm from 'stream/consumers'
+import { Readable } from 'stream'
+let sqlite
+try {
+  sqlite = (await import('better-sqlite3')).default
+} catch (err) {
+  // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+  sqlite = (await import('./sql.js.mjs')).default
+}
 
-const keywords = cds.compiler.to.sql.sqlite.keywords
+import funcs from './cql-functions.mjs'
+
+const $session = Symbol('dbc.session')
+
+const keywords = (await cds.compiler).to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
   prev[curr] = 1
@@ -20,9 +29,10 @@ class SQLiteService extends SQLService {
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
-      create: tenant => {
+      create: async tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
+        await dbc.ready
 
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
@@ -232,7 +242,7 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions, ...require('./cql-functions') }
+    static Functions = { ...super.Functions, ...funcs }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -293,4 +303,4 @@ function _not_unique(err, code) {
   return err
 }
 
-module.exports = SQLiteService
+export default SQLiteService

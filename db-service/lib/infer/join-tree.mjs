@@ -1,6 +1,6 @@
 'use strict'
 
-const { prettyPrintRef } = require('../utils')
+import { prettyPrintRef } from '../utils.mjs'
 
 // REVISIT: define following unknown types
 
@@ -260,4 +260,4 @@ class JoinTree {
   }
 }
 
-module.exports = JoinTree
+export default JoinTree

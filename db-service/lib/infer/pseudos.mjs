@@ -2,7 +2,7 @@
 
 // REVISIT: we should always return cds.linked elements
 // > e.g. cds.linked({definitions:{pseudos}})
-const pseudos = {
+export const pseudos = {
   elements: {
     $user: {
       elements: {
@@ -20,4 +20,4 @@ const pseudos = {
   },
 }
 
-module.exports = { pseudos }
+export default { pseudos }

@@ -11,7 +11,7 @@ const USAGE_SAMPLE = async () => {
   ])
 }
 
-module.exports = class InsertResult {
+export default class InsertResult {
   /**
    * @param {import('@sap/cds/apis/cqn').INSERT} query
    * @param {unknown[]} results

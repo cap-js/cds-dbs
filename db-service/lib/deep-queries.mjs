@@ -1,5 +1,5 @@
-const cds = require('@sap/cds')
-const { _target_name4 } = require('./SQLService')
+import cds from '@sap/cds'
+import { _target_name4 } from './SQLService.mjs'
 
 const ROOT = Symbol('root')
 
@@ -64,7 +64,7 @@ async function onDeep(req, next) {
   return rootResult ?? beforeData.length
 }
 
-const hasDeep = (q, target) => {
+export const hasDeep = (q, target) => {
   const data = q.INSERT?.entries || (q.UPDATE?.data && [q.UPDATE.data]) || (q.UPDATE?.with && [q.UPDATE.with])
   if (data)
     for (const c in target.compositions) {
@@ -295,7 +295,7 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
   return root ? { updates, inserts, deletes } : dirty
 }
 
-module.exports = {
+export default {
   onDeep,
   hasDeep,
   getDeepQueries, // only for testing

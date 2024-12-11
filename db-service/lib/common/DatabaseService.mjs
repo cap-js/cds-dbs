@@ -1,11 +1,11 @@
-const SessionContext = require('./session-context')
-const ConnectionPool = require('./generic-pool')
-const infer = require('../infer')
-const cds = require('@sap/cds')
+import SessionContext from './session-context.mjs'
+import ConnectionPool from './generic-pool.mjs'
+import infer from '../infer/index.mjs'
+import cds from '@sap/cds'
 
 /** @typedef {unknown} DatabaseDriver */
 
-class DatabaseService extends cds.Service {
+class DatabaseService extends (await cds.Service) {
 
   init() {
     cds.on('shutdown', () => this.disconnect())
@@ -128,9 +128,9 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
-  async disconnect (tenant) {
+  async disconnect(tenant) {
     const tenants = tenant ? [tenant] : Object.keys(this.pools)
-    await Promise.all (tenants.map (async t => {
+    await Promise.all(tenants.map(async t => {
       const pool = this.pools[t]; if (!pool) return
       delete this.pools[t]
       await pool.drain()
@@ -167,4 +167,4 @@ class DatabaseService extends cds.Service {
 }
 
 DatabaseService.prototype.isDatabaseService = true
-module.exports = DatabaseService
+export default DatabaseService

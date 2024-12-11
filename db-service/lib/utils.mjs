@@ -8,7 +8,7 @@
  * @param {Object} model - The model object containing definitions.
  * @returns {string} The formatted string representation of the reference.
  */
-function prettyPrintRef(ref, model = null) {
+export function prettyPrintRef(ref, model = null) {
   return ref.reduce((acc, curr, j) => {
     if (j > 0) {
       if (j === 1 && model?.definitions[ref[0]]?.kind === 'entity') {
@@ -31,15 +31,15 @@ function prettyPrintRef(ref, model = null) {
  * @param {Object} def - The definition to check.
  * @returns {boolean} - Returns true if the definition is calculated on read, otherwise false.
  */
-function isCalculatedOnRead(def) {
+export function isCalculatedOnRead(def) {
   return isCalculatedElement(def) && !def.value.stored && !def.on
 }
-function isCalculatedElement(def) {
+export function isCalculatedElement(def) {
   return def?.value
 }
 
 // export the function to be used in other modules
-module.exports = {
+export default {
   prettyPrintRef,
   isCalculatedOnRead,
   isCalculatedElement

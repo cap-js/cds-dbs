@@ -15,7 +15,7 @@
     "CDS"
   ],
   "author": "SAP SE (https://www.sap.com)",
-  "main": "index.js",
+  "main": "index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "lib",

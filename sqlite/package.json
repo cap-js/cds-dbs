@@ -16,18 +16,19 @@
     "SQLite"
   ],
   "author": "SAP SE (https://www.sap.com)",
-  "main": "index.js",
+  "main": "index.mjs",
   "files": [
     "cds-plugin.js",
     "lib",
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test $(../test/find)"
+    "test": "cds-test"
   },
   "dependencies": {
     "@cap-js/db-service": "^1.14.1",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "sql.js": "^1.12.0"
   },
   "peerDependencies": {
     "@sap/cds": ">=7.6"

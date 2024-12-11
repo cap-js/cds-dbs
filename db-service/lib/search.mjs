@@ -30,7 +30,7 @@ const aggregateFunctions = {
  * @param [options.keysOnly=false]
  * @returns {Array<object>} - array of columns
  */
-const getColumns = (
+export const getColumns = (
   entity,
   { onlyNames = false, removeIgnore = false, filterDraft = true, filterVirtual = false, keysOnly = false },
 ) => {
@@ -138,7 +138,7 @@ const _getSearchableColumns = entity => {
 /**
  * @returns {Array<object>} - array of columns
  */
-const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) => {
+export const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) => {
   let toBeSearched = []
 
   // aggregations case
@@ -199,7 +199,7 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
   return toBeSearched
 }
 
-module.exports = {
+export default {
   getColumns,
   computeColumnsToBeSearched,
 }

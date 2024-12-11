@@ -1,12 +1,12 @@
 'use strict'
 
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
 
-const JoinTree = require('./join-tree')
-const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead } = require('../utils')
-const { t } = require('@sap/cds/lib/utils/tar')
-const cdsTypes = cds.linked({
+import JoinTree from './join-tree.mjs'
+import { pseudos } from './pseudos.mjs'
+import { isCalculatedOnRead } from '../utils.mjs'
+
+const cdsTypes = (await cds.linked)({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
     DateTime: { type: 'cds.DateTime' },
@@ -19,6 +19,12 @@ const cdsTypes = cds.linked({
   },
 }).definitions
 for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
+
+await Promise.all([
+  cds.struct,
+  cds.array,
+])
+
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
@@ -1152,4 +1158,4 @@ function applyToFunctionArgs(funcArgs, cb, cbArgs) {
   else if (typeof funcArgs === 'object') Object.keys(funcArgs).forEach(prop => cb(funcArgs[prop], ...cbArgs))
 }
 
-module.exports = infer
+export default infer

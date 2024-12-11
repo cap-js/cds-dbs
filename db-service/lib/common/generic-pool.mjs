@@ -1,4 +1,26 @@
-const { createPool } = require('generic-pool')
+let createPool
+try {
+  createPool = (await import('generic-pool')).createPool
+} catch {
+  createPool = function (factory, options) {
+    return {
+      queue: factory.create(),
+      acquire() {
+        const prom = {}
+        prom.prom = new Promise((resolve, reject) => {
+          prom.resolve = resolve
+          prom.reject = reject
+        })
+        const ret = this.queue.then(dbc => { dbc._prom = prom; return dbc})
+        this.queue = prom.prom
+        return ret
+      },
+      release(dbc) {
+        dbc._prom.resolve(dbc)
+      },
+    }
+  }
+}
 
 class ConnectionPool {
   constructor(factory, tenant) {
@@ -31,4 +53,4 @@ function _track_connections4(pool) {
   })
 }
 
-module.exports = ConnectionPool
+export default ConnectionPool

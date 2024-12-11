@@ -1,9 +1,13 @@
-const cds = require('@sap/cds'),
-  DEBUG = cds.debug('sql|db')
-const { Readable } = require('stream')
-const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
-const DatabaseService = require('./common/DatabaseService')
-const cqn4sql = require('./cqn4sql')
+import cds from '@sap/cds'
+const DEBUG = cds.debug('sql|db')
+import { Readable } from 'stream'
+import { resolveView, getDBTable, getTransition } from '@sap/cds/libx/_runtime/common/utils/resolveView'
+import DatabaseService from './common/DatabaseService.mjs'
+import cqn4sql from './cqn4sql.mjs'
+import InsertResults from './InsertResults.mjs'
+import CQN2SQL from './cqn2sql.mjs'
+import fillInKeys from './fill-in-keys.mjs'
+import deepQueries from './deep-queries.mjs'
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -21,8 +25,8 @@ const BINARY_TYPES = {
 
 class SQLService extends DatabaseService {
   init() {
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], fillInKeys) // REVISIT should be replaced by correct input processing eventually
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], deepQueries.onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
         const elements = query.target?.elements
@@ -343,13 +347,13 @@ class SQLService extends DatabaseService {
    * Helper class for results of INSERTs.
    * Subclasses may override this.
    */
-  static InsertResults = require('./InsertResults')
+  static InsertResults = InsertResults
 
   /**
    * Helper class implementing {@link SQLService#cqn2sql}.
    * Subclasses commonly override this.
    */
-  static CQN2SQL = require('./cqn2sql').class
+  static CQN2SQL = CQN2SQL.class
 
   // REVISIT: There must be a better way!
   // preserves $count for .map calls on array
@@ -472,7 +476,7 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
-const _target_name4 = q => {
+export const _target_name4 = q => {
   const target =
     q._target_ref ||
     q.from_into_ntt ||
@@ -498,7 +502,8 @@ const sqls = new (class extends SQLService {
     return cds.model
   }
 })()
-cds.extend(cds.ql.Query).with(
+const extend = await cds.extend
+extend(cds.ql.Query).with(
   class {
     forSQL() {
       let cqn = (cds.db || sqls).cqn4sql(this)
@@ -516,4 +521,4 @@ cds.extend(cds.ql.Query).with(
 )
 
 Object.assign(SQLService, { _target_name4 })
-module.exports = SQLService
+export default SQLService
