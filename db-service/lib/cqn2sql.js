@@ -23,10 +23,9 @@ class CQN2SQLRenderer {
     this.model = srv?.model
     // Overwrite smart quoting
     if (cds.env.sql.names === 'quoted') {
-      this.class.prototype.name = (name) => {
-        let e = name.id || name
-        const pn = this.model?.definitions[e]?.['@cds.persistence.name']
-        return pn || e
+      this.class.prototype.name = (name, query) => {
+        const e = name.id || name
+        return (query.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e 
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -127,7 +126,7 @@ class CQN2SQLRenderer {
       target = typeof entity === 'string' ? { name: entity } : q.CREATE.entity
     }
 
-    const name = this.name(target.name)
+    const name = this.name(target.name, q)
     // Don't allow place holders inside views
     delete this.values
     this.sql =
@@ -216,7 +215,7 @@ class CQN2SQLRenderer {
     const { target } = q
     const isView = target?.query || target?.projection || q.DROP.view
     const name = target?.name || q.DROP.table?.ref?.[0] || q.DROP.view?.ref?.[0]
-    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name))}`)
+    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name, q))}`)
   }
 
   // SELECT Statements ------------------------------------------------
@@ -356,9 +355,9 @@ class CQN2SQLRenderer {
     if (ref) {
       let z = ref[0]
       if (z.args) {
-        return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
+        return _aliased(`${this.quote(this.name(z, q))}${this.from_args(z.args)}`)
       }
-      return _aliased(this.quote(this.name(z)))
+      return _aliased(this.quote(this.name(z, q)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
@@ -502,7 +501,7 @@ class CQN2SQLRenderer {
     this.columns = columns
 
     const alias = INSERT.into.as
-    const entity = this.name(q.target?.name || INSERT.into.ref[0])
+    const entity = this.name(q.target?.name || INSERT.into.ref[0], q)
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
@@ -636,7 +635,7 @@ class CQN2SQLRenderer {
    */
   INSERT_rows(q) {
     const { INSERT } = q
-    const entity = this.name(q.target?.name || INSERT.into.ref[0])
+    const entity = this.name(q.target?.name || INSERT.into.ref[0], q)
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = this.columns = INSERT.columns || cds.error`Cannot insert rows without columns or elements`
@@ -682,7 +681,7 @@ class CQN2SQLRenderer {
    */
   INSERT_select(q) {
     const { INSERT } = q
-    const entity = this.name(q.target.name)
+    const entity = this.name(q.target.name, q)
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements || {}
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
@@ -750,7 +749,7 @@ class CQN2SQLRenderer {
       .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
-    const entity = this.name(q.target?.name || UPSERT.into.ref[0])
+    const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
     sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
     const updateColumns = columns.filter(c => {
@@ -777,7 +776,7 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
-    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity))}`
+    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity, q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
@@ -1026,6 +1025,7 @@ class CQN2SQLRenderer {
   /**
    * Calculates the Database name of the given name
    * @param {string|import('./infer/cqn').ref} name
+   * @param {import('./infer/cqn').Query} query
    * @returns {string} Database name
    */
   name(name) {

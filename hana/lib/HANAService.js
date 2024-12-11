@@ -647,7 +647,7 @@ class HANAService extends SQLService {
       this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
+      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0], q)
 
       const elements = q.elements || q.target?.elements
       if (!elements) {
@@ -744,7 +744,7 @@ class HANAService extends SQLService {
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0])
+      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0], q)
       const elements = q.target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
