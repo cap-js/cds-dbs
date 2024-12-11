@@ -21,10 +21,13 @@ class CQN2SQLRenderer {
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
     this.model = srv?.model
-
     // Overwrite smart quoting
     if (cds.env.sql.names === 'quoted') {
-      this.class.prototype.name = (name) => name.id || name
+      this.class.prototype.name = (name) => {
+        let e = name.id || name
+        const pn = this.model?.definitions[e]?.['@cds.persistence.name']
+        return pn || e
+      }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
   }
@@ -352,11 +355,6 @@ class CQN2SQLRenderer {
     const _aliased = as ? s => s + ` as ${this.quote(as)}` : s => s
     if (ref) {
       let z = ref[0]
-      if (cds.env.sql.names === 'quoted') {
-        // use SELECT.from to infer query, cds.infer also expects a query
-        const { target } = q || SELECT.from(from)
-        z = target?.['@cds.persistence.name'] || ref[0]
-      }
       if (z.args) {
         return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
       }
