@@ -1050,6 +1050,60 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+
+  it('aggregation with mulitple path steps', () => {
+    const q = CQL`SELECT from bookshop.Intermediate {
+      ID,
+      toAssocWithStructuredKey { toStructuredKey { second } }
+    } group by toAssocWithStructuredKey.toStructuredKey.second`
+
+    const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
+    left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
+      on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+    {
+      Intermediate.ID,
+      (SELECT from DUMMY {
+        (SELECT from DUMMY {
+          toAssocWithStructuredKey.toStructuredKey_second as second 
+        }) as toStructuredKey
+      }) as toAssocWithStructuredKey
+    } group by toAssocWithStructuredKey.toStructuredKey_second`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it.skip('simple aggregation expand ref wrapped in func', () => {
+    // TODO: how to detect the nested ref?
+    const q = CQL`SELECT from bookshop.Books {
+      ID,
+      Books.author { toLower(name) as lower }
+    } group by author.name`
+
+    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+      Books.ID,
+      (SELECT from DUMMY { toLower(author.name) as name }) as author
+    } group by author.name`
+    qx.SELECT.columns[1].SELECT.from = null
+
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
+  it('wildcard expand vanishes for aggregations', () => {
+    const q = CQL`SELECT from bookshop.TestPublisher {
+      ID
+    } group by ID, publisher.structuredKey_ID, publisher.title`
+
+    const qx = CQL`SELECT from bookshop.TestPublisher as TestPublisher
+    left join bookshop.Publisher as publisher on publisher.structuredKey_ID = TestPublisher.publisher_structuredKey_ID {
+      TestPublisher.ID
+    } group by TestPublisher.ID, TestPublisher.publisher_structuredKey_ID, publisher.title`
+    // the key is not flat in the model so we use a flat csn for this test
+    const res = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
   it('aggregation with structure', () => {
     const q = CQL`SELECT from bookshop.Authors as Authors {
       ID,
@@ -1231,7 +1285,9 @@ describe('Expands with aggregations are special', () => {
       author[name='King'] { name }
     } group by author.name`
 
-    expect(() => cqn4sql(q, model)).to.throw(`The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`)
+    expect(() => cqn4sql(q, model)).to.throw(
+      `The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`,
+    )
   })
   it('expand path with filter must be an exact match in group by (2)', () => {
     const q = CQL`SELECT from bookshop.Books {
