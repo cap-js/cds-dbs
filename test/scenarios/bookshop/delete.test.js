@@ -56,4 +56,9 @@ describe('Bookshop - Delete', () => {
     expect(beforeDelete).to.have.lengthOf(1)
     expect(afterDelete).to.have.lengthOf(0)
   })
+
+  test('Delete with correlated subselect using aliases', async () => {
+    await cds.delete({ ref: ['CatalogService.Genres'], as: 'g' })
+      .where({ 'not exists': SELECT.from('CatalogService.Books', ['1']).alias('b').where('b.genre_ID = g.ID')})
+  })
 })
