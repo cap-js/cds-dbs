@@ -25,7 +25,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e 
+        return (query?.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e 
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -808,8 +808,9 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').DELETE} param0
    * @returns {string} SQL
    */
-  DELETE({ DELETE: { from, where } }) {
-    let sql = `DELETE FROM ${this.from(from)}`
+  DELETE(q) {
+    const { DELETE: { from, where } } = q
+    let sql = `DELETE FROM ${this.from(from, q)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
   }
