@@ -212,11 +212,18 @@ class HANAService extends SQLService {
     const values = temporary
       .map(t => {
         const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-        return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
+        return blobColumns.length
+          ? `SELECT "_path_","_blobs_","_expands_","_json_",${blobColumns} FROM (${t.select})`
+          : t.select
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
+    const pathOrder = ' ORDER BY "_path_" ASC'
+    const ret = withclause + (
+      values.length === 1
+        ? values[0] + (values[0].indexOf(`SELECT '$[' as "_path_"`) < 0 ? pathOrder : '')
+        : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
+    )
     DEBUG?.(ret)
     return ret
   }
