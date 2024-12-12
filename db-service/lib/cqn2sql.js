@@ -1150,9 +1150,9 @@ class CQN2SQLRenderer {
 }
 
 // REVISIT: Workaround for JSON.stringify to work with buffers
-Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
-}
+// Buffer.prototype.toJSON = function () {
+//   return this.toString('base64')
+// }
 
 Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
 
