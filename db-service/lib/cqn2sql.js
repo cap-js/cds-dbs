@@ -87,7 +87,7 @@ class CQN2SQLRenderer {
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
     
-    if (LOG_SQL._debug || LOG_SQLITE._debug) {
+    if (DEBUG && (LOG_SQL._debug || LOG_SQLITE._debug)) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
         values = [values]
