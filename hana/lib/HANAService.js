@@ -333,17 +333,17 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
         const walkAlias = q => {
           if (q.args) return q.as || walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return q.as || cds.error`Missing alias for subquery`
         }
-        q.as = walkAlias(q)
-        q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+        const alias = q.as // Use query alias as path name
+        q.as = walkAlias(q) // Use from alias for query re use alias
+        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
         const src = q
 
         const { element, elements } = q
@@ -460,7 +460,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.from({ ref: [q.src.alias] })
+        const fromSQL = this.quote(this.name(q.src.alias))
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
@@ -510,24 +510,41 @@ class HANAService extends SQLService {
                     // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
-                      if (col.ref[0] !== parent.as) {
+                      if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                        const isSource = from => {
+                          if (from.as === col.ref[0]) return true
+                          return from.args?.some(a => {
+                            if (a.args) return isSource(a)
+                            return a.as === col.ref[0]
+                          })
+                        }
+
                         // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
+                        let rename = col.ref[0] !== parent.as
                         let curPar = parent
                         while (curPar) {
-                          if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                          if (isSource(curPar.SELECT.from)) {
+                            if (curPar.SELECT.columns.find(c => c.as === as)) {
+                              rename = true
+                            } else {
+                              rename = rename || curPar === parent
+                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
+                            }
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
                             curPar = curPar.SELECT.parent
                           }
                         }
-                        col.as = colName
-                        col.ref = [parent.as, as]
-                      } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
-                        // Inject local columns into parent select
-                        parent.SELECT.columns.push({ __proto__: col })
+                        if (rename) {
+                          col.as = colName
+                          col.ref = [parent.as, as]
+                        } else {
+                          col.ref = [parent.as, colName]
+                        }
+                      } else {
+                        col.ref[1] = colName
                       }
                     }
                   })
@@ -647,7 +664,7 @@ class HANAService extends SQLService {
       this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
+      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0], q)
 
       const elements = q.elements || q.target?.elements
       if (!elements) {
@@ -744,7 +761,7 @@ class HANAService extends SQLService {
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0])
+      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0], q)
       const elements = q.target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
