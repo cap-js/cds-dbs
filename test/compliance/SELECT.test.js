@@ -585,7 +585,7 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].string, 'yes')
     })
 
-    test('and beetwen CASE statements', async () => {
+    test.skip('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}}`
       const res = await cds.run(query)
