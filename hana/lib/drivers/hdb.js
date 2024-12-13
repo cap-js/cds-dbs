@@ -9,7 +9,7 @@ const iconv = require('iconv-lite')
 const { driver, prom, handleLevel } = require('./base')
 const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
 
-if (cds.env.features.sql_simple_queries === 1) {
+if (cds.env.features.sql_simple_queries === 3) {
   // Make hdb return true / false
   const Reader = require('hdb/lib/protocol/Reader.js')
   Reader.prototype._readTinyInt = Reader.prototype.readTinyInt
