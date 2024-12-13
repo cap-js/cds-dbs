@@ -333,7 +333,7 @@ class HANAService extends SQLService {
       }
 
       let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
+
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -577,7 +577,7 @@ class HANAService extends SQLService {
         this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
         if (
           cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&  
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
           !q?.src?.SELECT?.parent &&
           this.temporary.length === 0
