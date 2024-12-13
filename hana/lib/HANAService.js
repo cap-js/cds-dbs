@@ -829,7 +829,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     xpr(_xpr, iscompare) {
-      const { xpr, top, _internal } = _xpr
+      let { xpr, top, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
       const compareTranslations = {
         '==': true,
@@ -849,7 +849,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
 
       if (!_internal) {
-        let curIsCompare = iscompare
+        const iscompareStack = [iscompare]
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
@@ -880,7 +880,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (curIsCompare ? x in compareTranslations : x in expressionTranslations) {
+            if (iscompareStack.at(-1) ? x in compareTranslations : x in expressionTranslations) {
               const left = xpr[i - 1]
               const right = xpr[i + 1]
               const ifNull = expressionTranslations[x]
@@ -915,11 +915,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = curIsCompare ? ' = TRUE' : ''
+              xpr[i + 1] = iscompareStack.at(-1) ? ' = TRUE' : ''
             } else {
               const up = x.toUpperCase()
+              if (up === 'CASE') iscompareStack.push(1)
+              if (up === 'END') iscompareStack.pop()
+              if (up in logicOperators && iscompareStack.length === 1) top = true
               if (up in caseOperators) {
-                curIsCompare = caseOperators[up]
+                iscompareStack[iscompareStack.length - 1] = caseOperators[up]
               }
             }
           }
@@ -927,18 +930,18 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       }
 
       const sql = []
-      let curIsCompare = iscompare
-      let curIsTop = top
+      const iscompareStack = [iscompare]
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
           const up = x.toUpperCase()
+          if (up === 'CASE') iscompareStack.push(1)
+          if (up === 'END') iscompareStack.pop()
           if (up in caseOperators) {
-            curIsCompare = caseOperators[up]
-            curIsTop = caseOperators[up]
+            iscompareStack[iscompareStack.length - 1] = caseOperators[up]
           }
-          sql.push(this.operator(x, i, xpr, curIsTop))
-        } else if (x.xpr) sql.push(`(${this.xpr(x, curIsCompare)})`)
+          sql.push(this.operator(x, i, xpr, top || iscompareStack.length > 1))
+        } else if (x.xpr) sql.push(`(${this.xpr(x, iscompareStack.at(-1))})`)
         // default
         else sql.push(this.expr(x))
       }
