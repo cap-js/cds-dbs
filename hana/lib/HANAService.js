@@ -819,24 +819,26 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     where(xpr) {
-      xpr = { xpr }
+      xpr = { xpr, top: true }
       const suffix = this.is_comparator(xpr)
-      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
+      return `${this.xpr(xpr, true)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
       return this.where(xpr)
     }
 
-    xpr(_xpr, caseSuffix = '') {
-      const { xpr, _internal } = _xpr
+    xpr(_xpr, iscompare) {
+      let { xpr, top, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
-      const compareOperators = {
+      const compareTranslations = {
         '==': true,
         '!=': false,
-
-        // These operators are not allowed in column expressions
-        /* REVISIT: Only adjust these operators when inside the column expression
+      }
+      const expressionTranslations = { // These operators are not allowed in column expressions
+        '==': true,
+        '!=': false,
+        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -844,11 +846,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         '<=': null,
         '!<': null,
         '!>': null,
-        */
       }
 
-      let endWithCompare = false
       if (!_internal) {
+        const iscompareStack = [iscompare]
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
@@ -879,11 +880,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (x in compareOperators) {
-              endWithCompare = true
+            if (iscompareStack.at(-1) ? x in compareTranslations : x in expressionTranslations) {
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[x]
+              const ifNull = expressionTranslations[x]
               x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
@@ -915,31 +915,38 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ' = TRUE'
+              xpr[i + 1] = iscompareStack.at(-1) ? ' = TRUE' : ''
+            } else {
+              const up = x.toUpperCase()
+              if (up === 'CASE') iscompareStack.push(1)
+              if (up === 'END') iscompareStack.pop()
+              if (up in logicOperators && iscompareStack.length === 1) top = true
+              if (up in caseOperators) {
+                iscompareStack[iscompareStack.length - 1] = caseOperators[up]
+              }
             }
           }
         }
       }
 
       const sql = []
+      const iscompareStack = [iscompare]
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
           const up = x.toUpperCase()
-          if (up in logicOperators) {
-            // Force current expression to end with a comparison
-            endWithCompare = true
+          if (up === 'CASE') iscompareStack.push(1)
+          if (up === 'END') iscompareStack.pop()
+          if (up in caseOperators) {
+            iscompareStack[iscompareStack.length - 1] = caseOperators[up]
           }
-          if (endWithCompare && (up in caseOperators || up === ')')) {
-            endWithCompare = false
-          }
-          sql.push(this.operator(x, i, xpr))
-        } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
+          sql.push(this.operator(x, i, xpr, top || iscompareStack.length > 1))
+        } else if (x.xpr) sql.push(`(${this.xpr(x, iscompareStack.at(-1))})`)
         // default
         else sql.push(this.expr(x))
       }
 
-      if (endWithCompare) {
+      if (iscompare) {
         const suffix = this.operator('OR', xpr.length, xpr).slice(0, -3)
         if (suffix) {
           sql.push(suffix)
@@ -949,12 +956,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return `${sql.join(' ')}`
     }
 
-    operator(x, i, xpr) {
+    operator(x, i, xpr, top) {
       const up = x.toUpperCase()
       // Add "= TRUE" before THEN in case statements
       if (
         up in logicOperators &&
-        !this.is_comparator({ xpr }, i - 1)
+        logicOperators[up] &&
+        this.is_comparator({ xpr, top }, i - 1) === false
       ) {
         return ` = ${this.val({ val: true })} ${x}`
       }
@@ -973,7 +981,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
      * @param {} xpr
      * @returns
      */
-    is_comparator({ xpr }, start) {
+    is_comparator({ xpr, top }, start) {
       const local = start != null
       for (let i = start ?? xpr.length; i > -1; i--) {
         const cur = xpr[i]
@@ -985,12 +993,25 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           if (up in logicOperators) {
             // ensure AND is not part of BETWEEN
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            // ensure NOT is not part of a compare operator
+            if (up === 'NOT' && xpr[i - 1]?.toUpperCase?.() in compareOperators) return true
             return !local
           }
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
+          // When there is an END of a case statement walk around it to keep checking
+          if (up === 'END') {
+            let casedepth = 0
+            for (; i > -1; i--) {
+              const up = xpr[i]?.toUpperCase?.()
+              if (up === 'END') casedepth++
+              if (up === 'CASE') casedepth--
+              if (casedepth === 0) break
+            }
+            if (casedepth > 0) return false
+          }
           // When a case operator is found it is the start of the expression
-          if (up in caseOperators) break
+          if (up in caseOperators) return false
           continue
         }
         if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
@@ -1000,7 +1021,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           if (nested) return true
         }
       }
-      return false
+      return top ? false : 0
     }
 
     list(list) {
@@ -1357,16 +1378,19 @@ function _not_unique(err, code) {
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 
+// All case key words and whether they start an comparison or an expression
 const caseOperators = {
   'CASE': 1,
   'WHEN': 1,
-  'THEN': 1,
-  'ELSE': 1,
+  'THEN': 0,
+  'ELSE': 0,
 }
+// All logic operators and whether they have a left hand comparison
 const logicOperators = {
   'THEN': 1,
   'AND': 1,
   'OR': 1,
+  'NOT': 0,
 }
 const compareOperators = {
   '=': 1,
