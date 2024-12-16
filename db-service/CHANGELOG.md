@@ -4,6 +4,18 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.16.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.0...db-service-v1.16.1) (2024-12-16)
+
+
+### Fixed
+
+* funcs.test.js used wrong arguments for .where() ([#943](https://github.com/cap-js/cds-dbs/issues/943)) ([33a0685](https://github.com/cap-js/cds-dbs/commit/33a0685623b3d6dca3841ac89a936a795f72b7a7))
+* handle undefined DEBUG ([#942](https://github.com/cap-js/cds-dbs/issues/942)) ([dd2da3a](https://github.com/cap-js/cds-dbs/commit/dd2da3a8d8feb5beaae5860d493e9e1158dbf99f)), closes [#941](https://github.com/cap-js/cds-dbs/issues/941)
+* only expand partial foreign key if explicitly requested ([#916](https://github.com/cap-js/cds-dbs/issues/916)) ([96911ad](https://github.com/cap-js/cds-dbs/commit/96911ada1831e71febb84d8a382b57d55d24c1bc))
+* quoted mode ([#937](https://github.com/cap-js/cds-dbs/issues/937)) ([9e62b22](https://github.com/cap-js/cds-dbs/commit/9e62b22a1be90ada9f57cfa63505735d8b8eed88))
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+* wildcard expand with aggregation ([#923](https://github.com/cap-js/cds-dbs/issues/923)) ([bbe7be0](https://github.com/cap-js/cds-dbs/commit/bbe7be00498ad083cf951daf344b7f5fd9f68ab9))
+
 ## [1.16.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.15.1...db-service-v1.16.0) (2024-11-25)
 
 
