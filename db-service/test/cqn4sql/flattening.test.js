@@ -735,6 +735,36 @@ describe('Flattening', () => {
           `)
     })
 
+    it('if only partial foreign key is accessed, only the requested key is flattened', () => {
+      const q = CQL`SELECT from bookshop.Intermediate {
+        ID
+      } group by toAssocWithStructuredKey.toStructuredKey.second`
+  
+      const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
+      left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
+        on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+      {
+        Intermediate.ID
+      } group by toAssocWithStructuredKey.toStructuredKey_second`
+      const res = cqn4sql(q, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+    // TODO: currently no-op in runtime (those structured elements are flat), however this should work
+    it.skip('if only partial, structured foreign key is accessed, only the requested key is flattened', () => {
+      const q = CQL`SELECT from bookshop.Intermediate {
+        ID
+      } group by toAssocWithStructuredKey.toStructuredKey.struct.mid.leaf`
+  
+      const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
+      left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
+        on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+      {
+        Intermediate.ID
+      } group by toAssocWithStructuredKey.toStructuredKey_struct_mid_leaf`
+      const res = cqn4sql(q, model)
+      expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+
     it('rejects managed associations in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(CQL`SELECT from bookshop.Books { ID } GROUP BY 2*author`, model)).to.throw(
         /An association can't be used as a value in an expression/,
