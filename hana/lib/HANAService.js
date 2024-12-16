@@ -212,11 +212,18 @@ class HANAService extends SQLService {
     const values = temporary
       .map(t => {
         const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-        return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
+        return blobColumns.length
+          ? `SELECT "_path_","_blobs_","_expands_","_json_",${blobColumns} FROM (${t.select})`
+          : t.select
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
+    const pathOrder = ' ORDER BY "_path_" ASC'
+    const ret = withclause + (
+      values.length === 1
+        ? values[0] + (values[0].indexOf(`SELECT '$[' as "_path_"`) < 0 ? pathOrder : '')
+        : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
+    )
     DEBUG?.(ret)
     return ret
   }
@@ -332,7 +339,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, from, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -385,23 +392,48 @@ class HANAService extends SQLService {
           })
         }
 
-        // Insert row number column for reducing or sorting the final result
-        const over = { xpr: [] }
-        // TODO: replace with full path partitioning
-        if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
-        if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
-        const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
-        q.as = q.SELECT.from.as
+        let hasBooleans = false
+        let hasExpands = false
+        let hasStructures = false
+        const aliasedOutputColumns = outputColumns.map(c => {
+          if (c.element?.type === 'cds.Boolean') hasBooleans = true
+          if (c.elements && c.element?.isAssociation) hasExpands = true
+          if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
+          return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
+        })
 
-        q = cds.ql.SELECT(['*', rn]).from(q)
-        q.as = q.SELECT.from.as
+        const isSimpleQuery = (
+          cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+          !hasStructures &&
+          !parent
+        )
 
-        q = cds.ql.SELECT(outputColumns.map(c => (c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }))).from(q)
-        q.as = q.SELECT.from.as
-        Object.defineProperty(q, 'elements', { value: elements })
-        Object.defineProperty(q, 'element', { value: element })
+        const rowNumberRequired = parent // If this query has a parent it is an expand
+          || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
+          || hasExpands // Expands depend on parent $$RN$$
 
-        if (!q.SELECT.columns.find(c => c.as === '_path_')) {
+        if (rowNumberRequired) {
+          // Insert row number column for reducing or sorting the final result
+          const over = { xpr: [] }
+          // TODO: replace with full path partitioning
+          if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
+          if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
+          const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
+          q.as = q.SELECT.from.as
+
+          q = cds.ql.SELECT(['*', rn]).from(q)
+          q.as = q.SELECT.from.as
+        }
+
+        if (rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
+          q = cds.ql.SELECT(aliasedOutputColumns).from(q)
+          q.as = q.SELECT.from.as
+          Object.defineProperty(q, 'elements', { value: elements })
+          Object.defineProperty(q, 'element', { value: element })
+        }
+
+        if (rowNumberRequired && !q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
             xpr: [
               {
@@ -476,10 +508,11 @@ class HANAService extends SQLService {
       const { SELECT, src } = q
       if (!SELECT.columns) return '*'
       const structures = []
+      const blobrefs = []
       let expands = {}
       let blobs = {}
       let hasBooleans = false
-      let path = `'$['`
+      let path
       let sql = SELECT.columns
         .map(
           SELECT.expand === 'root'
@@ -562,6 +595,7 @@ class HANAService extends SQLService {
                 return false
               }
               if (x.element?.type in this.BINARY_TYPES) {
+                blobrefs.push(x)
                 blobs[this.column_name(x)] = null
                 return false
               }
@@ -577,7 +611,8 @@ class HANAService extends SQLService {
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
               const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(this.quote(columnName), x.element)} as "${columnName.replace(/"/g, '""')}"`
+              const sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+              return `${converter(sql, x.element)} as "${columnName.replace(/"/g, '""')}"`
             }
             : x => {
               if (x === '*') return '*'
@@ -609,7 +644,7 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
@@ -629,11 +664,16 @@ class HANAService extends SQLService {
 
         // Calculate final output columns once
         let outputColumns = ''
-        outputColumns = `${this.quote('_path_')} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+        outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
         if (blobColumns.length)
           outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
         this._outputColumns = outputColumns
-        sql = `*,${path} as ${this.quote('_path_')}`
+        if (path) {
+          sql = `*,${path} as ${this.quote('_path_')}`
+        } else {
+          structures.forEach(x => sql.push(this.column_expr(x)))
+          blobrefs.forEach(x => sql.push(this.column_expr(x)))
+        }
       }
       return sql
     }
