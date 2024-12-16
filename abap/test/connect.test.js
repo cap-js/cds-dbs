@@ -23,7 +23,7 @@ describe('DEBUG', () => {
       .where`AirlineID = ${'GA'}`
 
     for (const res of [airline, passenger, travelAgency, limit, offset, notnull, whereid]) {
-      for await (const row of res) {
+      for (const row of res) {
         console.log(row)
       }
     }
