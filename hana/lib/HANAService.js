@@ -339,7 +339,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, from, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -410,7 +410,7 @@ class HANAService extends SQLService {
         )
 
         const rowNumberRequired = parent // If this query has a parent it is an expand
-          || (!isSimpleQuery && orderBy) // If using JSON functions the _path_ is used for top level sorting
+          || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
           || hasExpands // Expands depend on parent $$RN$$
 
         if (rowNumberRequired) {
