@@ -9,7 +9,6 @@
 
 ### Fixed
 
-* funcs.test.js used wrong arguments for .where() ([#943](https://github.com/cap-js/cds-dbs/issues/943)) ([33a0685](https://github.com/cap-js/cds-dbs/commit/33a0685623b3d6dca3841ac89a936a795f72b7a7))
 * **sqlite:** default `[development]` URL to `:memory:` ([#926](https://github.com/cap-js/cds-dbs/issues/926)) ([51e8aa7](https://github.com/cap-js/cds-dbs/commit/51e8aa70868a78594626ba19c02ff495571e751f))
 
 ## [1.7.7](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.6...sqlite-v1.7.7) (2024-11-14)
