@@ -7,9 +7,104 @@ const cds = require('@sap/cds')
 
 class DatabaseService extends cds.Service {
 
-  init() {
+  async init() {
     cds.on('shutdown', () => this.disconnect())
+    if (Object.getOwnPropertyDescriptor(cds, 'test') || this.options.isolate) {
+      await this._isolate()
+    }
     return super.init()
+  }
+
+  async _isolate() {
+    const { options = {} } = cds
+    const fts = cds.requires.toggles && cds.resolve(cds.env.features.folders)
+    const src = [options.from || '*', ...(fts || [])]
+    const fullSrc = [cds.root, ...src]
+
+    const isolate = {}
+    if (typeof this.database === 'function' && typeof this.tenant === 'function') {
+      const hash = str => {
+        const { createHash } = require('crypto')
+        const hash = createHash('sha1')
+        hash.update(str)
+        return hash.digest('hex')
+      }
+
+      const isolation = process.env.TRAVIS_JOB_ID || process.env.GITHUB_RUN_ID || require('os').userInfo().username || 'test_db'
+      const srchash = hash(fullSrc.join('/'))
+      // Create one database for each overall test execution
+      isolate.database = 'D' + hash(isolation)
+      // Create one tenant for each model source definition
+      isolate.tenant = 'T' + srchash
+      // Track source definition hash
+      isolate.source = srchash
+
+      // Create new database isolation
+      await this.database(isolate)
+
+      // Create/Clean tenant isolation in database
+      await this.tenant(isolate)
+    }
+
+    try {
+      const m = await cds.load(src, options).then(cds.minify)
+      options.schema_evolution = 'auto'
+      await cds.deploy(m).to(this, options)
+    } catch (err) {
+      if (err.code === 'MODEL_NOT_FOUND') return
+      throw err
+    }
+
+    this.before(['*'], async function (req) {
+      if (
+        !req.query ||
+        req.query?.SELECT ||
+        (typeof req.query === 'string' && /^(BEGIN|COMMIT|ROLLBACK|SELECT)/i.test(req.query))
+      ) return // Ignore reading requests
+      if (this._isolating) await this._isolating
+      this._isolating = this.commit()
+        .then(() => this._isolate_write(isolate))
+      await this._isolating
+    })
+  }
+
+  async _isolate_write(isolate) {
+    await this.database(isolate)
+
+    const databaseModel = cds.linked({
+      definitions: {
+        schemas: new cds.entity({
+          kind: 'entity',
+          elements: {
+            tenant: { type: 'String', key: true },
+            source: { type: 'String' },
+            available: { type: 'Boolean' },
+            started: { type: 'Timestamp' },
+          },
+        }),
+      }
+    })
+
+    await this.run(CREATE(databaseModel.definitions.schemas)).catch(() => { })
+
+    await this.tx(async tx => {
+      const schemas = await tx.run(SELECT.from('schemas').where`source=${isolate.source} and available=${true}`.forUpdate())
+      if (schemas.length) {
+        const tenant = isolate.tenant = schemas[0].tenant
+        await tx.run(UPDATE('schemas').where`tenant=${tenant}`.with({ available: false, started: new Date() }))
+      } else {
+        await tx.run(INSERT({ tenant: isolate.tenant, source: isolate.source, available: false, started: new Date() }).into('schemas'))
+      }
+    })
+
+    await this.tenant(isolate)
+
+    // Release schema for follow up test runs
+    cds.on('shutdown', async () => {
+      await this.database(isolate) // switch back to database level
+      await this.run(UPDATE('schemas').where`tenant=${isolate.tenant}`.with({ available: true }))
+      await this.disconnect()
+    })
   }
 
   /**
@@ -47,7 +142,7 @@ class DatabaseService extends cds.Service {
    * transaction with `BEGIN`
    * @returns this
    */
-  async begin (min) {
+  async begin(min) {
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
 
@@ -129,9 +224,9 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
-  async disconnect (tenant) {
+  async disconnect(tenant) {
     const tenants = tenant ? [tenant] : Object.keys(this.pools)
-    await Promise.all (tenants.map (async t => {
+    await Promise.all(tenants.map(async t => {
       const pool = this.pools[t]; if (!pool) return
       delete this.pools[t]
       await pool.drain()

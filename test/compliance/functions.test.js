@@ -1,8 +1,7 @@
 const cds = require('../cds.js')
 
 describe('functions', () => {
-  const { expect, data } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('ABAP_ALPHANUM', () => {
     test.skip('missing', () => {

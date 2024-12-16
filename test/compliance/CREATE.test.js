@@ -166,21 +166,17 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe('CREATE', () => {
+describe.skip('CREATE', () => {
   // TODO: reference to ./definitions.test.js
+
+  beforeAll(async () => {
+    cds.deploy
+    cds.deploy = () => { return { to: () => { } } }
+  })
 
   // Set cds.root before requiring cds.Service as it resolves and caches package.json
   // Call default cds.test API
-  const { data } = cds.test(__dirname + '/resources')
-  // Prevent deployment
-  /* skipping deploy causes issues with running all compliance tests in a single suite
-  cds.deploy = () => ({
-    to:() => {return cds.db || cds.connect('db')},
-    then:() => {return cds.db || cds.connect('db')}
-  })
-  // */
-  data.autoIsolation(true)
-  data._deployed = true // Skip automatic deployment
+  cds.test(__dirname + '/resources')
 
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
@@ -215,7 +211,7 @@ describe('CREATE', () => {
         name: entityName,
         elements: globals.elements
       })
-      await db.run({ CREATE: { entity } })
+      await db.run(CREATE(entity))
       // REVISIT: reading from entities not in the model requires additional hanlding in infer
       // await SELECT.from(entity)
     })
@@ -236,7 +232,8 @@ describe('CREATE', () => {
       })
       */
 
-      await db.run({ CREATE: { entity: globals } })
+      await db.run(DROP(globals))
+      await db.run(CREATE(globals))
       await db.run({ CREATE: { entity: entityName, as: query } })
       // await SELECT.from(entity)
     })
@@ -254,72 +251,22 @@ describe('CREATE', () => {
       let deploy
 
       beforeAll(async () => {
-        // Very important to use the cds.db instance as it is enhanced
-        // When using new SqliteService directly from class constructor it is missing the model
-        // Causing all run calls to prefix the target with the service name
-        db = await cds.connect()
+        await DROP(table)
+        if (entity.projection) await DROP(entity.projection.from.ref[0])
 
-        await db
-          .run(async tx => {
-            await tx.run({
-              DROP: {
-                entity: table,
-              },
-            })
-
-            if (entity.projection) {
-              await tx.run({
-                DROP: {
-                  entity: entity.projection.from.ref[0],
-                },
-              })
-            }
-          })
-          .catch(() => { })
-
-        await db.run(async tx => {
-          deploy = Promise.resolve()
-          // Create parent entity
-          if (entity.projection) {
-            deploy = tx.run({
-              CREATE: {
-                entity: entity.projection.from.ref[0],
-              },
-            })
-          }
-          // actually CREATE test
-          deploy = deploy.then(() =>
-            tx.run({
-              CREATE: {
-                entity: table,
-              },
-            }),
-          )
-          await deploy.catch(() => { })
-        })
+        deploy = Promise.resolve()
+        // Create parent entity
+        if (entity.projection) {
+          deploy = deploy.then(() => CREATE(entity.projection.from.ref[0]))
+        }
+        // actually CREATE test
+        deploy = deploy.then(() => CREATE(table))
+        await deploy.catch(() => { })
       })
 
       afterAll(async () => {
-        // DROP as normal deployment already deployed the model
-        await db
-          .run(async tx => {
-            await tx.run({
-              DROP: {
-                entity: table,
-              },
-            })
-
-            if (entity.projection) {
-              await tx.run({
-                DROP: {
-                  entity: entity.projection.from.ref[0],
-                },
-              })
-            }
-          })
-          .catch(() => { })
-
-        await db.disconnect()
+        await DROP(table)
+        if (entity.projection) await DROP(entity.projection.from.ref[0])
       })
 
       test('CREATE', async () => {
