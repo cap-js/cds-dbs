@@ -38,6 +38,7 @@ class ABAPService extends SQLService {
     try {
       const stmt = await this.dbc.createStatement()
       await stmt.prepare(sql)
+      // console.log('SQL:', sql)
       const run = (..._) => stmt.bind(..._).then(() => stmt.execute())
       return {
         run,
