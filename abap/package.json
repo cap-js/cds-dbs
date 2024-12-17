@@ -33,6 +33,9 @@
     "@sap/cds": ">=7.6"
   },
   "cds": {
+    "features": {
+      "sql_simple_queries": true
+    },
     "requires": {
       "kinds": {
         "sql": {

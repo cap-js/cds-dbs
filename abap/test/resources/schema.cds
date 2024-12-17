@@ -1,9 +1,10 @@
 type abap.sstring : String;
  
 @cds.external : true
-// service ITAPC1_SQL_FLIGHTS_1 {
+// service ![/ITAPC1/SQL_FLIGHTS_1] {
 
   @cds.persistence.exists : true
+  @readonly : true
   entity Airline {
     key AirlineID : abap.sstring(3);
     Name : abap.sstring(40);
@@ -24,6 +25,8 @@ type abap.sstring : String;
     CountryCode_code : abap.sstring(3);
     PhoneNumber : abap.sstring(30);
     EMailAddress : abap.sstring(256);
+
+    AgenciesInMyCity : Association to one TravelAgency on AgenciesInMyCity.City = City;
   };
  
   @cds.persistence.exists : true
