@@ -658,6 +658,13 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
+
+    test('with groupby filtering on aggregated properties', async () => {
+      const { string } = cds.entities('basic.literals')
+      const cqn = CQL`SELECT string FROM ${string} GROUP BY string HAVING string = ${'yes'} or char = ${'y'} or lower(char) = ${'y'}`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
   })
 
   describe('orderby', () => {
