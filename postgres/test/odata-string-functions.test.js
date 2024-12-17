@@ -6,7 +6,6 @@ process.env.DEBUG && jest.setTimeout(100000)
 describe('String + Collection functions', () => {
   const { GET, expect, data } = cds.test('serve', '--project', project).verbose()
 
-  data.autoIsolation(true)
   data.autoReset(true)
 
   test('concat', async () => {

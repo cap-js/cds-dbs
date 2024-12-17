@@ -635,19 +635,17 @@ GROUP BY k
     creds.password = creds.user
 
     try {
-      let tx = cds.tx()
       if (!clean) {
-        await this
+        await this.tx(tx => tx
           .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
           .catch(e => {
-            tx.commit()
-            tx = cds.tx()
-            if (e.code === '42710') return
+            if (e.code === '42710' || e.code === '23505') return
             throw e
-          })
+          }))
+
         // Retry granting priviledges as this is being done by multiple instances
         // Postgres just rejects when other connections are granting the same user
-        const grant = (i = 0) => this.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+        const grant = (i = 0) => this.tx(tx => tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`))
           .catch((err) => {
             if (i > 100) throw err
             return grant(i + 1)
@@ -660,12 +658,12 @@ GROUP BY k
       this.options.credentials = Object.assign({}, this.options.credentials, creds)
 
       // Create new schema using schema owner
-      if (clean) await this.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-      else await this.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+      if (clean) await this.tx(tx => tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`))
+      else await this.tx(tx => tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
         .catch(err => {
           if (err.code == '42P06') return
           throw err
-        })
+        }))
     } finally {
       await this.disconnect()
     }

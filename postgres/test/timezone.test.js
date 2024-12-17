@@ -7,7 +7,6 @@ process.env.DEBUG && jest.setTimeout(100000)
 describe('CAP PostgreSQL Adapter', () => {
   const { GET, PUT, expect, data } = cds.test('serve', '--project', project).verbose()
 
-  data.autoIsolation(true)
   data.autoReset(true)
 
   describe('Timezone Handling', () => {

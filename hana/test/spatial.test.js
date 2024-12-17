@@ -2,7 +2,6 @@ const cds = require('../../test/cds.js')
 
 describe('Spatial Types', () => {
   const { data, expect } = cds.test(__dirname + '/../../test/compliance/resources')
-  data.autoIsolation(true)
   data.autoReset()
 
   test('point', async () => {

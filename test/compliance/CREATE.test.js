@@ -166,20 +166,20 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe.skip('CREATE', () => {
-  // TODO: reference to ./definitions.test.js
-
-  beforeAll(async () => {
-    cds.deploy
-    cds.deploy = () => { return { to: () => { } } }
+describe('CREATE', () => {
+  // Call default cds.test API
+  beforeAll(() => {
+    cds.env.features.ieee754compatible = true
   })
 
-  // Set cds.root before requiring cds.Service as it resolves and caches package.json
-  // Call default cds.test API
-  cds.test(__dirname + '/resources')
+  cds.test(__dirname, 'empty.cds')
 
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
+
+  beforeAll(() => {
+    cds.model = cds.db.model = cds.compile.for.nodejs(model)
+  })
 
   const literals = Object.keys(model.definitions)
     .filter(n =>
