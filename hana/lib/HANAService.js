@@ -426,7 +426,7 @@ class HANAService extends SQLService {
           q.as = q.SELECT.from.as
         }
 
-        if (rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
+        if (cds.env.features.sql_simple_queries || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
           q = cds.ql.SELECT(aliasedOutputColumns).from(q)
           q.as = q.SELECT.from.as
           Object.defineProperty(q, 'elements', { value: elements })
