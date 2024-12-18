@@ -247,6 +247,7 @@ class SQLiteService extends SQLService {
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
+      Map: () => 'JSON_TEXT'
     }
 
     get is_distinct_from_() {

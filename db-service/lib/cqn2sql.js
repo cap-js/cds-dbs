@@ -197,6 +197,7 @@ class CQN2SQLRenderer {
     Association: () => false,
     Composition: () => false,
     array: () => 'NCLOB',
+    Map: () => 'NCLOB',
     // HANA types
     'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',

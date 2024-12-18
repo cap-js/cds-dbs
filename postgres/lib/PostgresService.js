@@ -512,6 +512,7 @@ GROUP BY k
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
+      Map: () => 'JSONB',
 
       // HANA Types
       'cds.hana.CLOB': () => 'BYTEA',
@@ -542,6 +543,7 @@ GROUP BY k
       DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Binary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
       LargeBinary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      Map: e => e[0] === '$' ? e : `CAST(${e} as jsonb)`,
 
       // HANA Types
       'cds.hana.CLOB': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
