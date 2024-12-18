@@ -1155,6 +1155,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Map: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
