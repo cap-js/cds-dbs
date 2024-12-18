@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.1...hana-v1.5.2) (2024-12-18)
+
+
+### Fixed
+
+* Force `sql_simple_queries` to quote in outer select ([#954](https://github.com/cap-js/cds-dbs/issues/954)) ([2071dc8](https://github.com/cap-js/cds-dbs/commit/2071dc8ead5afeb596870b95766e4cd5f3ea70ff))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.0...hana-v1.5.1) (2024-12-16)
 
 
