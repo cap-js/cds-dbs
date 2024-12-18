@@ -577,9 +577,6 @@ class CQN2SQLRenderer {
 
   async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
     const elements = this.cqn.target?.elements || {}
-    const transformBase64 = binaryEncoding === 'base64'
-      ? a => a
-      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
     const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
@@ -606,8 +603,8 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[this.columns[key]]?.type in this.BINARY_TYPES) {
-            val = transformBase64(val)
+          if (val != null && elements[this.columns[key]]?.type in this.BINARY_TYPES) {
+            val = Buffer.from(val, 'base64').toString(binaryEncoding)
           }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
