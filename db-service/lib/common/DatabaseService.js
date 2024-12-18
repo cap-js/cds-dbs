@@ -105,6 +105,16 @@ class DatabaseService extends cds.Service {
         if (req.target) this._modified[req.target.name] = true
         if (req.tx._isolating) return req.tx._isolating
         if (this._isolating) return
+
+        // Add modification tracking for deep-queries internal calls
+        for (const fn of ['onSIMPLE', 'onUPDATE', 'onINSERT']) {
+          const org = this[fn]
+          this[fn] = function (req) {
+            if (req.query?.target) this._modified[req.query.target.name] = true
+            return org.apply(this, arguments)
+          }
+        }
+
         this._isolating = true
         return (req.tx._isolating = req.tx.commit()
           .then(() => this._isolate_write(isolate))
@@ -141,16 +151,15 @@ class DatabaseService extends cds.Service {
     cds.on('shutdown', async () => {
       try {
         // Clean tenant entities
-        // REVISIT: once cds.deploy is no longer used DELETE + INSERT is required to reset the table data
-        // for (const entity in this._modified) {
-        //   await this.run(DELETE(entity).where`true = true`)
-        //     .catch((err) => {
-        //       if (err.message?.startsWith('Transitive circular composition detected:')) return
-        //       throw err
-        //     })
-        // }
-        // REVISIT: cds.deploy creates the INSERT/UPSERT statements for the csv files
-        await this._isolate_deploy(isolate)
+        await this.tx(async tx => {
+          await tx.begin()
+          for (const entity in this._modified) {
+            const query = DELETE(entity).where`true=true`
+            if (!query.target._unresolved) await tx.onSIMPLE({ query }) // Skip deep delete
+          }
+          // UPSERT all data sources again
+          await cds.deploy.data(tx, tx.model, { schema_evolution: 'auto' })
+        })
 
         await this.database(isolate) // switch back to database level
         await this.tx(tx => {

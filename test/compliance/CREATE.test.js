@@ -172,12 +172,18 @@ describe('CREATE', () => {
     cds.env.features.ieee754compatible = true
   })
 
+  let emptyModel
+  afterAll(() => {
+    cds.model = cds.db.model = emptyModel
+  })
+
   cds.test(__dirname, 'empty.cds')
 
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
 
   beforeAll(() => {
+    emptyModel = cds.model
     cds.model = cds.db.model = cds.compile.for.nodejs(model)
   })
 
