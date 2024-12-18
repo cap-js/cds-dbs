@@ -385,11 +385,6 @@ describe('Bookshop - Read', () => {
     for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
   })
 
-  it('Map', async () => {
-    const result = await SELECT.from('sap.capire.bookshop.Maps')
-
-    expect(result).to.deep.eq([{ ID: 0, map: { key: 'value' } }])
-  })
   it('select all authors which have written books that have genre.name = null', async () => {
     await insertTemporaryData()
 

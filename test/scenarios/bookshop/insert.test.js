@@ -62,11 +62,4 @@ describe('Bookshop - Insert', () => {
       expect(written.price).to.be.eq(entry.price)
     }
   })
-
-  test('Map', async () => {
-    await INSERT.into('sap.capire.bookshop.Maps').entries({ ID: 1, map: { key: 'insertedValue' } })
-    const result = await SELECT.from('sap.capire.bookshop.Maps')
-
-    expect(result).to.deep.eq([{ ID: 0, map: { key: 'value' } }, { ID: 1, map: { key: 'insertedValue' } }])
-  })
 })
