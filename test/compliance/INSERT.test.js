@@ -1,8 +1,7 @@
 const cds = require('../cds')
 
 describe('INSERT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('into', () => {
     test.skip('missing', () => {

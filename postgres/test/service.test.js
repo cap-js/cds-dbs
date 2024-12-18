@@ -13,7 +13,6 @@ const guidRegEx = /\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f
 describe('OData to Postgres dialect', () => {
   const { GET, POST, PUT, PATCH, DELETE, expect, data } = cds.test('serve', '--project', project)
 
-  data.autoIsolation(true)
   data.autoReset(true)
 
   // making sure we're running the beershop
