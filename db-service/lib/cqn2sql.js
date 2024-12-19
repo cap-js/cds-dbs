@@ -287,8 +287,6 @@ class CQN2SQLRenderer {
         return col
       }).flat()
 
-    if (isSimple) return `SELECT ${cols} FROM (${sql})`
-
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
     for (let i = 0; i < cols.length; i += 48) {
