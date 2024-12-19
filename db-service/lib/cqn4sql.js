@@ -270,6 +270,7 @@ function cqn4sql(originalQuery, model) {
       r.children.forEach(c => {
         from = joinForBranch(from, c)
         from = { join: c.join || 'left', args: [from], on: [] }
+        Object.assign(from, { cardinality: c.$refLink.definition.cardinality })
       })
     })
     return from.args.length > 1 ? from : from.args[0]
