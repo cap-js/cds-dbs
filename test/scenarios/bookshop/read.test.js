@@ -228,6 +228,16 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('Expand Book with alias', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from`${Books}[ID=252]`
+
+    expect(res.i).to.be.eq(252)
+    expect(res.t).to.be.eq('Eleonora')
+    expect(res.a.n).to.be.eq('Edgar Allen Poe')
+    expect(res.a.b.length).to.be.eq(2)
+  })
+
   test.skip('Expand Book($count,$top,$orderby)', async () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
