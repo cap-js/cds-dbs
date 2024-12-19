@@ -22,7 +22,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
       `
     expect(query).to.deep.equal(expected)
   })
-  it.only('in select, one assoc to many', () => {
+  it('in select, one assoc to many', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Authors { ID, name } where books.title LIKE '%Potter%'`, model)
     const expected = CQL`SELECT from bookshop.Authors as Authors
         left outer join bookshop.Books as books on books.author_ID = Authors.ID
