@@ -1261,4 +1261,21 @@ describe('functions', () => {
       }
     })
   })
+
+  describe('odata', () => {
+    test('totalseconds', async () => {
+      const cqn = SELECT.one
+        .from('edge.hana.functions.timestamps')
+        .columns("totalseconds('P12DT23H59M59.999999999999S') as ts")
+      const res = await cds.run(cqn)
+      expect(res).to.have.property('ts').that.equals(1123200)
+    })
+
+    test('date', async () => {
+      const cqn = SELECT.one.from('edge.hana.functions.timestamps').columns('date(a) as dateOnly', 'a as fullTimestamp')
+      const res = await cds.run(cqn)
+      expect(res).to.have.property('fullTimestamp').that.equals('2627-10-10T23:00:00.000Z')
+      expect(res).to.have.property('dateOnly').that.equals('2627-10-10')
+    })
+  })
 })

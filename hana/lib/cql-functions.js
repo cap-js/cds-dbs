@@ -104,7 +104,45 @@ const StandardFunctions = {
   maxdatetime: () => "'9999-12-31T23:59:59.999Z'",
   mindatetime: () => "'0001-01-01T00:00:00.000Z'",
   now: () => `session_context('$now')`,
-  fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`
+  fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
+  totalseconds: x => {
+    // 1. Extract and convert days to seconds
+    // 2. Extract and convert hours to seconds
+    // 3. Extract and convert minutes to seconds
+    // 4. Extract seconds (including fractional part) and convert to double
+    // --> Add all together
+    return `(
+      CAST(
+        SUBSTRING(${x}, 2, LOCATE(${x}, 'DT') - 2
+      ) AS INTEGER) * 86400
+    ) + (
+      (
+        CAST(
+          SUBSTRING(
+            ${x},
+            LOCATE(${x}, 'DT') + 2,
+            LOCATE(${x}, 'H') - LOCATE(${x}, 'DT') - 2
+          ) AS INTEGER
+        ) * 3600
+      ) + (
+        CAST(
+          SUBSTRING(
+            ${x},
+            LOCATE(${x}, 'H') + 1,
+            LOCATE(${x}, 'M') - LOCATE(${x}, 'H') - 1
+          ) AS INTEGER
+        ) * 60
+      ) + (
+        CAST(
+          SUBSTRING(
+            ${x},
+            LOCATE(${x}, 'M') + 1,
+            LOCATE(${x}, 'S') - LOCATE(${x}, 'M') - 1
+          ) AS DOUBLE
+        )
+      )
+    )`;
+  },
 }
 
 const HANAFunctions = {

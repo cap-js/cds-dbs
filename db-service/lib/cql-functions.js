@@ -224,16 +224,16 @@ const StandardFunctions = {
 
   // odata spec defines the value format for totalseconds as a duration like: P12DT23H59M59.999999999999S
   // P -> duration indicator
-  // D -> days, T -> Time seperator, H -> hours, M -> minutes, S -> fractional seconds
+  // D -> days, T -> Time separator, H -> hours, M -> minutes, S -> fractional seconds
   // By splitting the DT and calculating the seconds of the time separate from the day
   // it possible to determine the full amount of seconds by adding them together as fractionals and multiplying
   // the number of seconds in a day
   // As sqlite is most accurate with juliandays it is better to do then then using actual second function
   // while the odata specification states that the seconds has to be fractional which only julianday allows
   /**
-   * Generates SQL statement that produces an OData compliant duration string like: P12DT23H59M59.999999999999S
+   * Generates SQL statement that produces a number for a OData compliant duration string like: P12DT23H59M59.999999999999S
    * @param {string} x
-   * @returns {string}
+   * @returns {number}
    */
   totalseconds: x => `(
     (

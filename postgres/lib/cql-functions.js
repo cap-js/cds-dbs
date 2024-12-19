@@ -20,29 +20,26 @@ const StandardFunctions = {
   month: x => `date_part('month', ${castVal(x)})`,
   day: x => `date_part('day', ${castVal(x)})`,
   time: x => `to_char(${castVal(x)}, 'HH24:MI:SS')`,
+  date: x => `to_char(${castVal(x)}, 'YYYY-MM-DD')`,
   hour: x => `date_part('hour', ${castVal(x)})`,
   minute: x => `date_part('minute', ${castVal(x)})`,
   second: x => `floor(date_part('second', ${castVal(x)}))`,
   fractionalseconds: x => `CAST(date_part('second', ${castVal(x)}) - floor(date_part('second', ${castVal(x)})) AS DECIMAL)`,
+  // 1. Extract and convert days to seconds
+  // 2. Extract and convert hours to seconds
+  // 3. Extract and convert minutes to seconds
+  // 4. Extract seconds (including fractional part) and convert to double
+  // --> Add all together
   totalseconds: x => `(
+    CAST(substring(${x}, 2, strpos(${x}, 'DT') - 2) AS INTEGER) * 86400
+  ) + (
     (
-      (
-        CAST(substring(${x},2,strpos(${x},'DT') - 2) AS INTEGER)
-      ) + (
-        EXTRACT (EPOCH FROM 
-          CAST(
-            replace(
-            replace(
-            replace(
-              substring(${x},strpos(${x},'DT') + 2),
-              'H',':'
-            ),'M',':'
-            ),'S','Z'
-            )
-          as TIME)
-        ) - 0.5
-      )
-    ) * 86400
+      CAST(split_part(substring(${x}, strpos(${x}, 'DT') + 2), 'H', 1) AS INTEGER) * 3600
+    ) + (
+      CAST(split_part(split_part(substring(${x}, strpos(${x}, 'DT') + 2), 'H', 2), 'M', 1) AS INTEGER) * 60
+    ) + (
+      CAST(replace(split_part(split_part(substring(${x}, strpos(${x}, 'DT') + 2), 'M', 2), 'S', 1), 'Z', '') AS DOUBLE PRECISION)
+    )
   )`,
   now: function() {
     return this.session_context({val: '$now'})
