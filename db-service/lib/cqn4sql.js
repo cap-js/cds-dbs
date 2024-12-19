@@ -270,7 +270,6 @@ function cqn4sql(originalQuery, model) {
       r.children.forEach(c => {
         from = joinForBranch(from, c)
         from = { join: c.join || 'left', args: [from], on: [] }
-        Object.assign(from, { cardinality: c.$refLink.definition.cardinality })
       })
     })
     return from.args.length > 1 ? from : from.args[0]
@@ -312,10 +311,13 @@ function cqn4sql(originalQuery, model) {
         node.children.forEach(c => {
           lhs = { join: c.join || 'left', args: [lhs], on: [] }
           lhs = joinForBranch(lhs, c)
-          Object.assign(lhs, { cardinality: c.$refLink.definition.cardinality })
         })
       }
-      return lhs.args.length > 1 ? lhs : lhs.args[0]
+      const res = lhs.args.length > 1 ? lhs : lhs.args[0]
+      // default is to-one
+      if(nextAssoc && nextAssoc.$refLink.definition.cardinality)
+        Object.defineProperty(res, 'cardinality', { value: nextAssoc.$refLink.definition.cardinality, /* why do we need this */writable: true })
+      return res
     }
   }
 
