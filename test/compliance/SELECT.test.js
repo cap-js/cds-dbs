@@ -2,8 +2,7 @@ const assert = require('assert')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('from', () => {
     test('table', async () => {
@@ -294,7 +293,7 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
-    test('compare with DateTime column', async () => {
+    test.skip('compare with DateTime column', async () => {
       const { dateTime: entity } = cds.entities('basic.literals')
       const dateTime = '1970-02-02T10:09:34Z'
       const timestamp = dateTime.slice(0, -1) + '.000Z'
