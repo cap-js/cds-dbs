@@ -1,0 +1,57 @@
+{
+  "name": "@cap-js/abap",
+  "version": "0.1.0",
+  "description": "CDS database service for ABAP",
+  "homepage": "https://github.com/cap-js/cds-dbs/tree/main/abap#cds-database-service-for-abap",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cap-js/cds-dbs"
+  },
+  "bugs": {
+    "url": "https://github.com/cap-js/cds-dbs/issues"
+  },
+  "keywords": [
+    "CAP",
+    "CDS",
+    "ABAP"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "main": "index.js",
+  "files": [
+    "cds-plugin.js",
+    "lib",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "cds-test"
+  },
+  "dependencies": {
+    "@cap-js/db-service": "^1.14.1",
+    "odbc": "^2.4.9"
+  },
+  "peerDependencies": {
+    "@sap/cds": ">=7.6"
+  },
+  "cds": {
+    "features": {
+      "sql_simple_queries": true
+    },
+    "requires": {
+      "kinds": {
+        "sql": {
+          "[production]": {
+            "kind": "abap",
+            "vcap": {
+              "label": "abap"
+            }
+          }
+        },
+        "abap": {
+          "impl": "@cap-js/abap"
+        }
+      },
+      "db": "sql"
+    }
+  },
+  "license": "SEE LICENSE"
+}

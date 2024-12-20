@@ -140,3 +140,4 @@ dist
 
 # cds temp folders
 **/_out
+*.so
