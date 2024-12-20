@@ -315,8 +315,8 @@ function cqn4sql(originalQuery, model) {
       }
       const res = lhs.args.length > 1 ? lhs : lhs.args[0]
       // default is to-one
-      if(nextAssoc && nextAssoc.$refLink.definition.cardinality)
-        Object.defineProperty(res, 'cardinality', { value: nextAssoc.$refLink.definition.cardinality, /* why do we need this */writable: true })
+      if(nextAssoc && nextAssoc.$refLink.definition)
+        Object.defineProperty(res, 'element', { value: nextAssoc.$refLink.definition, /* why do we need this */writable: true })
       return res
     }
   }
