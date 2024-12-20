@@ -339,7 +339,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -373,6 +373,7 @@ class HANAService extends SQLService {
 
         let orderByHasOutputColumnRef = false
         if (orderBy) {
+          if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
             if (!c.ref) {
