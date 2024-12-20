@@ -686,6 +686,17 @@ class HANAService extends SQLService {
       return sql
     }
 
+    from(from, q) {
+      const { element, ref, SELECT } = from
+      if (!element?.cardinality || ref || SELECT) return super.from(from, q)
+      const { type, cardinality: { min, max } } = element
+      const cardinality =
+        (type === 'cds.Composition' ? 'EXACT ONE' : 'MANY')
+        + ' TO '
+        + (max == 1 ? min == 1 ? 'EXACT ONE' : 'ONE' : 'MANY')
+      if (from.join) return `${this.from(from.args[0])} ${from.join} ${cardinality} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
+    }
+
     from_dummy() {
       return ' FROM DUMMY'
     }
