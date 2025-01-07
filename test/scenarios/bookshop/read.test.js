@@ -153,7 +153,7 @@ describe('Bookshop - Read', () => {
       .orderBy`a.ID`
 
     expect(res.length).to.be.eq(4)
-    expect(res[0].ID).to.be.eq('101')
+    expect(res[0].ID).to.be.eq(101)
   })
 
   test('reuse already executed select as subselect', async () => {
