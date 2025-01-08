@@ -1233,7 +1233,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   async dispatch(req) {
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
-    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string')) {
+    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
