@@ -741,10 +741,10 @@ class CQN2SQLRenderer {
 
     const extractkeys = managed
       .filter(c => keys.includes(c.name))
-      .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
+      .map(c => `${(c.onInsert || c.sql).replace('"$$value$$"', 'value')} as ${this.quote(c.name)}`)
 
     const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
-    sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -1126,9 +1126,10 @@ class CQN2SQLRenderer {
 
   managed_extract(name, element, converter) {
     const { UPSERT, INSERT } = this.cqn
+    const value = UPSERT ? '"$$value$$"' : 'value'
     const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
-      ? `value->>'$[${this.columns.indexOf(name)}]'`
-      : `value->>'$."${name.replace(/"/g, '""')}"'`
+      ? `${value}->>'$[${this.columns.indexOf(name)}]'`
+      : `${value}->>'$."${name.replace(/"/g, '""')}"'`
     const sql = converter?.(extract) || extract
     return { extract, sql }
   }
@@ -1139,7 +1140,7 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
-    return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+    return `(CASE WHEN json_type("$$value$$",${this.managed_extract(name).extract.slice(14)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
 

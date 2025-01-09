@@ -68,4 +68,9 @@ entity C : managed {
       toB : Composition of many B
               on toB.ID = $self.B;
 };
+
+entity Values {
+  key ID : Integer;
+  value  : String;
+}
 entity BooksAnnotated as projection on Books;
