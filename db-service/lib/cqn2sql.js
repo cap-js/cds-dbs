@@ -1140,8 +1140,8 @@ class CQN2SQLRenderer {
   }
 
   managed_default(name, managed, src) {
-    const value = this.cqn.UPSERT ? '"$$value$$"' : 'value'
-    return `(CASE WHEN json_type(${value},${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+    const value = this.cqn.INSERT ? 'value' : '"$$value$$"'
+    return `(CASE WHEN json_type(${value},${this.managed_extract(name).extract.slice(value.length + 3)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
 }
 
