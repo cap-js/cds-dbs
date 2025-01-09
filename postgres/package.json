@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "description": "CDS database service for Postgres",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
   "repository": {
@@ -23,7 +23,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test $(../test/find)",
+    "test": "npm start && cds-test",
     "start": "docker compose -f pg-stack.yml up -d"
   },
   "dependencies": {
@@ -59,6 +59,7 @@
         },
         "postgres": {
           "impl": "@cap-js/postgres",
+          "kind": "sqlite",
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"

@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.5](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.4...postgres-v1.10.5) (2024-12-16)
+
+
+### Fixed
+
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+
 ## [1.10.4](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.3...postgres-v1.10.4) (2024-11-14)
 
 
