@@ -49,7 +49,7 @@ class Queue {
   }
 }
 
-const _vis = cds.requires.multitenancy.diagnostics ? (name, ...body) => cds.emit(`pool:${name}`, ...body) : null
+const _vis = cds.requires.multitenancy?.diagnostics ? (name, ...body) => cds.emit(`pool:${name}`, ...body) : null
 
 class Pool extends EventEmitter {
 
