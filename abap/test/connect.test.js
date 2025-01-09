@@ -49,29 +49,11 @@ describe('ABAP', async () => {
     expect(res).to.exist
   })
 
-  /*
-  It seems like they don't support a dummy select like 'SELECT 1 as 1' in our exists subquery
-
-    message: '[SAP][ODBCforABAP] (42000) [MESSAGE:GF5]"1" is invalid here (due to grammar).: line 1 col 549\n' +
-    ' in statement 
-    SELECT 
-    …
-    FROM (
-      SELECT 
-        …
-      FROM /ITAPC1/SQL_FLIGHTS_1.Passenger as Passenger 
-      WHERE exists (
-        SELECT 1 as 1 
-        FROM /ITAPC1/SQL_FLIGHTS_1.TravelAgency as AgenciesInMyCity 
-        WHERE AgenciesInMyCity.City = Passenger.City 
-        AND AgenciesInMyCity.City = ?
-      )
-    )'
-  */
-  test.skip('exists', async () => {
+  test('exists', async () => {
     const { Passenger } = cds.entities
     const exists = await SELECT.from(Passenger)
       .where("exists AgenciesInMyCity[City = 'Rome']")
+      // TODO: check if we can actually get something useful from the db
     expect(exists).to.exist
   })
 })

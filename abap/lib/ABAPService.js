@@ -89,6 +89,15 @@ class ABAPService extends SQLService {
     name(name) {
       return `${this.context.tx.dbc.schema}.${name}`
     }
+
+    // All aliases must be strings
+    // this is not the case for the `exists (SELECT 1 as 1 …)` subqueries
+    column_alias4(x) {
+      const as = x.as || x.func || x.val;
+      return as && typeof as !== 'string' ? `"${as}"` : as;
+    }
+    
+
   }
 
   // As no write operations are supported BEGIN, COMMIT and ROLLBACK are not required
