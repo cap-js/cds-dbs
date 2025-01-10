@@ -876,12 +876,6 @@ class CQN2SQLRenderer {
         ? '<>'
         : this.is_distinct_from_
     
-    // Wrap not with functions with coalesce to always return true or false
-    if (x === 'not' && typeof xpr[i + 1] !== 'string' && 'func' in xpr[i + 1]) {
-      xpr[i + 1] = { args: [xpr[i + 1], { val: false, param: false }], func: 'coalesce' }
-      return x
-    } 
-    
     else return x
 
     function _inline_null(n) {
