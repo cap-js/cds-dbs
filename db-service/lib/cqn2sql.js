@@ -875,7 +875,7 @@ class CQN2SQLRenderer {
       : _not_null(i - 1) && _not_null(i + 1)
         ? '<>'
         : this.is_distinct_from_
-    
+
     else return x
 
     function _inline_null(n) {
