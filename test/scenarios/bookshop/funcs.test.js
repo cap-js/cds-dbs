@@ -42,13 +42,13 @@ describe('Bookshop - Functions', () => {
       expect(wrong.data.value.length).to.be.eq(0)
     })
 
-    test('not endswith', async () => {
+    test('not endswith findes null', async () => {
       const { Books } = cds.entities('sap.capire.bookshop')
-      await cds.run(INSERT.into(Books).columns(['ID']).rows([123]))
-      const res = await GET(`/browse/Books?$filter=not endswith(title,'Sturm')`)
+      await cds.run(INSERT.into(Books).columns(['ID']).rows([456]))
+      const res = await GET(`/browse/Books?$filter=not endswith(title,'höhe')`)
       expect(res.status).to.be.eq(200)
-      expect(res.data.value.some(item => item.ID === 123)).to.be.true
-      await cds.run(DELETE.from(Books).where({ ID: 123 }))
+      expect(res.data.value.some(item => item.ID === 456)).to.be.true
+      await cds.run(DELETE.from(Books).where({ ID: 456 }))
     })
 
     test('indexof', async () => {
@@ -76,13 +76,13 @@ describe('Bookshop - Functions', () => {
       expect(wrong.data.value.length).to.be.eq(0)
     })
 
-    test('not startswith', async () => {
+    test('not startswith finds null', async () => {
       const { Books } = cds.entities('sap.capire.bookshop')
-      await cds.run(INSERT.into(Books).columns(['ID']).rows([123]))
+      await cds.run(INSERT.into(Books).columns(['ID']).rows([456]))
       const res = await GET(`/browse/Books?$filter=not startswith(title,'Sturm')`)
       expect(res.status).to.be.eq(200)
-      expect(res.data.value.some(item => item.ID === 123)).to.be.true
-      await cds.run(DELETE.from(Books).where({ ID: 123 }))
+      expect(res.data.value.some(item => item.ID === 456)).to.be.true
+      await cds.run(DELETE.from(Books).where({ ID: 456 }))
     })
 
     test('substring', async () => {
