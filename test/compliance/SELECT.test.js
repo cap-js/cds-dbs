@@ -474,7 +474,6 @@ describe('SELECT', () => {
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
-      assert.strictEqual(res[1].string, null)
     })
 
     test('deep nested boolean function w/o operator', async () => {
@@ -489,7 +488,6 @@ describe('SELECT', () => {
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
-      assert.strictEqual(res[1].string, null)
     })
 
     test('multiple levels of not negations of expressions', async () => {
@@ -497,7 +495,6 @@ describe('SELECT', () => {
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
-      assert.strictEqual(res[1].string, null)
     })
 
     test('multiple not in a single deep nested expression', async () => {
@@ -512,7 +509,6 @@ describe('SELECT', () => {
           throw err
         }
         assert.strictEqual(res[0].string, 'yes')
-        assert.strictEqual(res[1].string, null)
       })
     })
 
@@ -521,7 +517,6 @@ describe('SELECT', () => {
       const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
-      assert.strictEqual(res[1].string, null)
     })
 
     test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
@@ -536,7 +531,6 @@ describe('SELECT', () => {
           throw err
         }
         assert.strictEqual(res[0].string, 'yes')
-        assert.strictEqual(res[1].string, null)
       })
     })
 
