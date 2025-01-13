@@ -7,7 +7,7 @@ const streamConsumers = require('stream/consumers')
 const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
-describe.skip('Bookshop - Stream Performance', () => {
+describe.skip('Bookshop: Stream Performance', () => {
   cds.test(bookshop)
 
   const imageData = fs.readFileSync(path.join(__dirname, '../../../sqlite/test/general/samples/test.jpg'))

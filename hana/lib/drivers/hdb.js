@@ -176,7 +176,7 @@ class HDBDriver extends driver {
   }
 }
 
-async function* rsIterator(rs, one) {
+async function rsIterator(rs, one, objectMode) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
