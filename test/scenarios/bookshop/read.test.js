@@ -151,6 +151,17 @@ describe('Bookshop - Read', () => {
     expect(res[0].price).to.be.eq('150')
   })
 
+  test('select distinct order by selected result column with alias', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.distinct
+      .columns`ID`
+      .from`${Authors} as a`
+      .orderBy`a.ID`
+
+    expect(res.length).to.be.eq(4)
+    expect(res[0].ID).to.be.eq(101)
+  })
+
   test('reuse already executed select as subselect', async () => {
     let s = SELECT.columns('ID').from('sap.capire.bookshop.Books')
     let res = await s
