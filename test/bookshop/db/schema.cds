@@ -6,7 +6,7 @@ entity Books : managed {
   title  : localized String(111);
   descr  : localized String(1111);
   author : Association to Authors;
-  genre  : Association to Genres;
+  genre  : Association to Genres default 10;
   stock  : Integer;
   price  : Decimal;
   currency : Currency;
@@ -67,4 +67,5 @@ entity C : managed {
       B   : Integer;
       toB : Composition of many B
               on toB.ID = $self.B;
-}
+};
+entity BooksAnnotated as projection on Books;

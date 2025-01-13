@@ -4,6 +4,50 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.5](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.4...postgres-v1.10.5) (2024-12-16)
+
+
+### Fixed
+
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+
+## [1.10.4](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.3...postgres-v1.10.4) (2024-11-14)
+
+
+### Fixed
+
+* enable nulls first ([#893](https://github.com/cap-js/cds-dbs/issues/893)) ([6684436](https://github.com/cap-js/cds-dbs/commit/66844363588864813d304a9dcfd66e856c7542dd))
+
+## [1.10.3](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.2...postgres-v1.10.3) (2024-10-30)
+
+
+### Fixed
+
+* increase min version cap-js/db-service ([#876](https://github.com/cap-js/cds-dbs/issues/876)) ([e20eef8](https://github.com/cap-js/cds-dbs/commit/e20eef83f3ef0e1595932e31885096ca566cb153))
+
+## [1.10.2](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.1...postgres-v1.10.2) (2024-10-28)
+
+
+### Fixed
+
+* properly support `default`, `cds.on.insert` and `cds.on.update` for `UPSERT` queries ([#425](https://github.com/cap-js/cds-dbs/issues/425)) ([338e9f5](https://github.com/cap-js/cds-dbs/commit/338e9f5de9109d36013208547fc648c17ce8c7b0))
+
+## [1.10.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.0...postgres-v1.10.1) (2024-10-15)
+
+
+### Fixed
+
+* add cds schema for postgres build plugin ([#843](https://github.com/cap-js/cds-dbs/issues/843)) ([6306d5c](https://github.com/cap-js/cds-dbs/commit/6306d5ce50c071b38a3d9f61b0820ea713a782d8))
+* Improved behavioral consistency between the database services ([#837](https://github.com/cap-js/cds-dbs/issues/837)) ([b6f7187](https://github.com/cap-js/cds-dbs/commit/b6f718701e48dfb1c4c3d98ee016ec45930f8e7b))
+* null as default value ([#845](https://github.com/cap-js/cds-dbs/issues/845)) ([0041ec0](https://github.com/cap-js/cds-dbs/commit/0041ec0a26c29b30f91470d93611b29acd837216))
+
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.1...postgres-v1.10.0) (2024-07-25)
+
+
+### Changed
+
+* build script generates cds8 dependency in deployer app ([#758](https://github.com/cap-js/cds-dbs/issues/758)) ([5c21a67](https://github.com/cap-js/cds-dbs/commit/5c21a6758ccc927cde857e98145c3f4393deb739))
+
 ## [1.9.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.9.0...postgres-v1.9.1) (2024-07-09)
 
 

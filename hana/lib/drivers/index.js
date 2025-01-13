@@ -15,7 +15,7 @@ Object.defineProperties(module.exports, {
         if (dependencies.hdb) return module.exports.hdb
         if (dependencies['@sap/hana-client']) return module.exports['hana-client']
       } catch {
-        console.trace(`WARNING! Unable to require the project's package.json at "${cds.root + '/package.json'}". Please check your project setup.`)
+        console.trace(`WARNING! Unable to require the project's package.json at "${cds.root + '/package.json'}". Please check your project setup.`) // eslint-disable-line no-console
       }
 
       // When no driver is installed still try to load any of the drivers

@@ -1,3 +1,5 @@
+const cds = require("@sap/cds")
+
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
@@ -23,9 +25,16 @@ const StandardFunctions = {
   search: function (ref, arg) {
     if (!('val' in arg)) throw new Error(`Only single value arguments are allowed for $search`)
     // only apply first search term, rest is ignored
-    arg.val = arg.__proto__.val = arg.val.split(' ')[0].replace(/"/g, '')
-    const refs = ref.list || [ref],
-      { toString } = ref
+    const sub = /("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/.exec(arg.val)
+    let val
+    try {
+      val = (sub[2] ? JSON.parse(sub[2]) : sub[3]) || ''
+    } catch {
+      val = sub[2] || sub[3] || ''
+    }
+    arg.val = arg.__proto__.val = val
+    const refs = ref.list
+    const { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
   },
   /**
@@ -52,7 +61,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  countdistinct: x => `count(distinct ${x || '*'})`,
+  countdistinct: x => `count(distinct ${x || cds.error`countdistinct requires a ref to be counted`})`,
   /**
    * Generates SQL statement that produces the index of the first occurrence of the second string in the first string
    * @param {string} x
@@ -150,16 +159,12 @@ const StandardFunctions = {
 
   // Date and Time Functions
 
-  current_date: p => (p ? `current_date(${p})` : 'current_date'),
-  current_time: p => (p ? `current_time(${p})` : 'current_time'),
-  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
-
   /**
    * Generates SQL statement that produces current point in time (date and time with time zone)
    * @returns {string}
    */
-   now: function() {
-    return this.session_context({val: '$now'})
+  now: function () {
+    return this.session_context({ val: '$now' })
   },
   /**
    * Generates SQL statement that produces the year of a given timestamp
@@ -248,20 +253,23 @@ const StandardFunctions = {
         ) - 0.5
       )
     ) * 86400
-  )`,
+  )`
+}
+
+const HANAFunctions = {
+  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
 
   /**
    * Generates SQL statement that calls the session_context function with the given parameter
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context('${x.val}')`,
-}
-
-const HANAFunctions = {
-  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
+    session_context: x => `session_context('${x.val}')`,
 
   // Time functions
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
   /**
    * Generates SQL statement that calculates the difference in 100nanoseconds between two timestamps
    * @param {string} x left timestamp

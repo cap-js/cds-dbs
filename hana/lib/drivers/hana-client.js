@@ -6,6 +6,7 @@ const hdb = require('@sap/hana-client')
 const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
 
+const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
 const LOG = cds.log('@sap/hana-client')
 if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.\nLearn more: https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/31a8c93a574b4f8fb6a8366d2c758f21.html")
 
@@ -46,6 +47,7 @@ class HANAClientDriver extends driver {
 
     super(creds)
     this._native = hdb.createConnection(creds)
+    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
   }
 
@@ -102,7 +104,7 @@ class HANAClientDriver extends driver {
             row[col.columnName] = i > 3 ?
               rs.isNull(i)
                 ? null
-                : col.nativeType === 13 // return binary type as simple buffer
+                : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
                   ? await getValue(i)
                   : Readable.from(streamBlob(rsStreams, rs._rowPosition, i), { objectMode: false })
               : values[i]
@@ -313,7 +315,7 @@ async function rsIterator(rs, one, objectMode) {
   return resultSetStream(state, one, objectMode)
 }
 
-async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer.allocUnsafe(1 << 16)) {
+async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
   const promChain = {
     resolve: () => { },
     reject: () => { }
@@ -357,14 +359,14 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer = Buffer
     let blobPosition = 0
 
     while (true) {
-      // REVISIT: Ensure that the data read is divisible by 3 as that allows for base64 encoding
-      const read = await getData(columnIndex, blobPosition, binaryBuffer, 0, binaryBuffer.byteLength)
+      const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)
+      const read = await getData(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
       blobPosition += read
-      if (read < binaryBuffer.byteLength) {
-        yield binaryBuffer.subarray(0, read)
+      if (read < buffer.byteLength) {
+        yield buffer.subarray(0, read)
         break
       }
-      yield binaryBuffer
+      yield buffer
     }
   } catch (e) {
     promChain.reject(e)

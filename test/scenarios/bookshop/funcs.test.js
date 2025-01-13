@@ -25,7 +25,7 @@ describe('Bookshop - Functions', () => {
 
     test('avg', async () => {
       const { Books } = cds.entities
-      const res = await cds.run(CQL`SELECT from ${Books} { 
+      const res = await cds.run(CQL`SELECT from ${Books} {
         average(stock) as avgStock
       }`)
       expect(res[0].avgStock).to.not.be.undefined
@@ -228,7 +228,7 @@ describe('Bookshop - Functions', () => {
         const result = data.type ? func.extract(data) : data.value
         const cqn = SELECT.one(`${func.func}('${data.value}') as result`)
           .from('sap.capire.bookshop.Books')
-          .where([`${func.func}('${data.value}') = `], result)
+          .where(`${func.func}('${data.value}') = `, result)
 
         if (data.type & func.type) {
           const res = await cqn

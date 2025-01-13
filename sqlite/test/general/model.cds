@@ -11,6 +11,7 @@ entity db.fooTemporal : managed, temporal {
 service test {
   entity foo : managed {
     key ID : Integer;
+    defaultValue: Integer default 100;
   }
 
   entity bar {

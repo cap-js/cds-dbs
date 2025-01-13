@@ -12,10 +12,17 @@ const sqliteKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
+// define date and time functions in js to allow for throwing errors
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
+const toDate = (d, allowTime = false) => {
+  const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
+  if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
+  return date
+}
+
+
 class SQLiteService extends SQLService {
-  init() {
-    return super.init(...arguments)
-  }
 
   get factory() {
     return {
@@ -23,27 +30,16 @@ class SQLiteService extends SQLService {
       create: tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database)
-
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-
-        // define date and time functions in js to allow for throwing errors
-        const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
-        const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
-        const toDate = (d, allowTime = false) => {
-          const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
-          if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
-          return date
-        }
         dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
         dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
         dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -136,6 +132,15 @@ class SQLiteService extends SQLService {
     return stream
   }
 
+  pragma (pragma, options) {
+    if (!this.dbc) return this.begin('pragma') .then (tx => {
+      try { return tx.pragma (pragma, options) }
+      finally { tx.release() }
+    })
+    return this.dbc.pragma (pragma, options)
+  }
+
+
   exec(sql) {
     return this.dbc.exec(sql)
   }
@@ -210,12 +215,12 @@ class SQLiteService extends SQLService {
       ...super.InputConverters,
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
-      Date: e => `strftime('%Y-%m-%d',${e})`,
-      Time: e => `strftime('%H:%M:%S',${e})`,
+      Date: e => e === '?' ? e : `strftime('%Y-%m-%d',${e})`,
+      Time: e => e === '?' ? e : `strftime('%H:%M:%S',${e})`,
       // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
-      DateTime: e => `ISO(${e})`,
-      Timestamp: e => `ISO(${e})`,
+      DateTime: e => e === '?' ? e : `ISO(${e})`,
+      Timestamp: e => e === '?' ? e : `ISO(${e})`,
     }
 
     static OutputConverters = {
@@ -226,7 +231,10 @@ class SQLiteService extends SQLService {
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+      boolean:
+        cds.env.features.sql_simple_queries === 2
+          ? undefined
+          : expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
       // Timestamps are returned with ms, as written by InputConverters.
@@ -238,7 +246,10 @@ class SQLiteService extends SQLService {
       Int64: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.ieee754compatible ? expr => `CAST(${expr} as TEXT)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `CASE WHEN ${expr} IS NULL THEN NULL ELSE format('%.${elem.scale}f', ${expr}) END`
+        : `CAST(${expr} as TEXT)`
+        : undefined,
       // Binary is not allowed in json objects
       Binary: expr => `${expr} || ''`,
     }

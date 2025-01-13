@@ -701,19 +701,23 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  it('exists cannot leverage calculated elements', () => {
+  it('exists cannot leverage calculated elements which ends in string', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists youngAuthorName`, model)).to.throw(
-      `Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”`,
+      `Expecting path “youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”`,
+    )
+  })
+  it('exists cannot leverage calculated elements which is an expression', () => {
+    // at the leaf of a where exists path, there must be an association
+    expect(() => cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists authorFullName`, model)).to.throw(
+      `Expecting path “authorFullName” following “EXISTS” predicate to end with association/composition, found “expression”`,
     )
   })
   it('exists cannot leverage calculated elements w/ path expressions', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() =>
       cqn4sql(CQL`SELECT from booksCalc.Books { ID } where exists author.books.youngAuthorName`, model),
-    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists author.books.youngAuthorName”')
+    ).to.throw('Expecting path “author.books.youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”')
   })
 
   it('exists cannot leverage calculated elements in CASE', () => {
@@ -727,12 +731,11 @@ describe('Unfolding calculated elements in select list', () => {
      }`,
         model,
       ),
-    ).to.throw('Calculated elements cannot be used in “exists” predicates in: “exists youngAuthorName”')
+    ).to.throw('Expecting path “youngAuthorName” following “EXISTS” predicate to end with association/composition, found “cds.String”')
   })
 
   it('scoped query cannot leverage calculated elements', () => {
     // at the leaf of a where exists path, there must be an association
-    // calc elements can't end in an association, hence this does not work, yet.
     expect(() => cqn4sql(CQL`SELECT from booksCalc.Books:youngAuthorName { ID }`, model)).to.throw(
       'Query source must be a an entity or an association',
     )
@@ -968,6 +971,42 @@ describe('Unfolding calculated elements in other places', () => {
     }`
     expect(query).to.deep.equal(expected)
   })
+  it('variable replacements are left untouched in calc element navigation', () => {
+    const q = CQL`SELECT from booksCalc.VariableReplacements { ID, authorAlive.firstName }`
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements
+    left join booksCalc.Authors as authorAlive on ( authorAlive.ID = VariableReplacements.author_ID )
+    and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
+    {
+        VariableReplacements.ID,
+        authorAlive.firstName as authorAlive_firstName
+    }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+  it('variable replacements are left untouched in calc elements via wildcard', () => {
+    const q = CQL`SELECT from booksCalc.VariableReplacements { * }`
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements
+    {
+        VariableReplacements.ID,
+        VariableReplacements.author_ID
+    }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
+  it('with expand', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.VariableReplacements { ID, authorAlive { ID }  }`, model)
+    const expected = CQL`SELECT from booksCalc.VariableReplacements as VariableReplacements {
+      VariableReplacements.ID,
+      (
+        SELECT from booksCalc.Authors as authorAlive
+        {
+          authorAlive.ID,
+        }
+        where (authorAlive.ID = VariableReplacements.author_ID)
+        and ( authorAlive.dateOfBirth <= $now and authorAlive.dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob' )
+      ) as authorAlive
+    }`
+    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
+  })
 })
 
 describe('Unfolding calculated elements ... misc', () => {
@@ -1002,7 +1041,6 @@ describe('Unfolding calculated elements and localized', () => {
     expect(query).to.deep.equal(expected)
   })
 
-  // enable once cds-compiler v4.1 is released
   it('calculated element refers to localized element', () => {
     const q = CQL`SELECT from booksCalc.LBooks { ID, title, ctitle }`
     q.SELECT.localized = true
