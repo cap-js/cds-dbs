@@ -290,8 +290,9 @@ describe('Bookshop - Read', () => {
       const res3 = await cds.run(q)
       expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
-      q.SELECT.localized = true
-      const res4 = await cds.run(q)
+      const qloc = cds.ql.clone(q)
+      qloc.SELECT.localized = true
+      const res4 = await cds.run(qloc)
       expect(res4[1].title).to.be.eq('dracula')
     } finally {
       await DELETE('/admin/Books(280)', admin)

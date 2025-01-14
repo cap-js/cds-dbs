@@ -1,4 +1,5 @@
 const cds = require('@sap/cds')
+const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
 const _simple_queries = cds.env.features.sql_simple_queries
@@ -17,6 +18,7 @@ class CQN2SQLRenderer {
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
   constructor(srv) {
+    this.srv = srv
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
@@ -81,11 +83,11 @@ class CQN2SQLRenderer {
     this.sql = '' // to have it as first property for debugging
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
+    const hasVars = ObjectKeys(vars).length > 0
+    if (hasVars) this.params = []
     this[kind]((this.cqn = q)) // actual sql rendering happens here
-    if (vars?.length && !this.values?.length) this.values = vars
-    if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
+    if (hasVars) this.updateParams(vars)
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
-
 
     if (DEBUG && (LOG_SQL._debug || LOG_SQLITE._debug)) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
@@ -94,7 +96,6 @@ class CQN2SQLRenderer {
       }
       DEBUG(this.sql, ...values)
     }
-
 
     return this
   }
@@ -110,6 +111,14 @@ class CQN2SQLRenderer {
 
   cqn4sql(q) {
     return cqn4sql(q, this.model)
+  }
+
+  updateParams(vars) {
+    this.values = []
+    const params = this.params
+    this.params = undefined
+    params.forEach(p => this.val({ val: vars[p] }))
+    this.params = params
   }
 
   // CREATE Statements ------------------------------------------------
@@ -391,6 +400,44 @@ class CQN2SQLRenderer {
   }
 
   /**
+   * Renders a transformed where clause that maps the query target view to the source table
+   * @param {import('./infer/cqn').source} from
+   * @param {import('./infer/cqn').predicate} where
+   * @param {import('./infer/cqn').query} q
+   * @returns SQL
+   */
+  where_resolved(from, where, q) {
+    try {
+      const transitions = getTransition(q.target, this.srv)
+      if (transitions.target === transitions.queryTarget) return this.where(where)
+
+      // view and table column refs to be matched
+      const viewCols = []
+      const tableCols = []
+
+      // Only match key columns when possible
+      const elements = q.target.keys || q.target.elements
+      for (const c in elements) {
+        if (
+          c in elements
+          && transitions.mapping.has(c)
+          && !elements[c].virtual
+          && !elements[c].value
+          && !elements[c].isAssociation
+        ) {
+          viewCols.push({ ref: [c] })
+          tableCols.push(transitions.mapping.get(c))
+        }
+      }
+      return this.where([
+        { list: tableCols },
+        'in',
+        SELECT.from(from).columns(viewCols).where(where),
+      ])
+    } catch (err) { debugger }
+  }
+
+  /**
    * Renders a HAVING clause into generic SQL
    * @param {import('./infer/cqn').predicate} xpr
    * @returns {string} SQL
@@ -493,15 +540,21 @@ class CQN2SQLRenderer {
     if (!elements && !INSERT.entries?.length) {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
+    const transitions = getTransition(q.target, this.srv)
     const columns = elements
-      ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+      ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+        && c in transitions.target.elements
+        && !transitions.target.elements[c].virtual
+        && !transitions.target.elements[c].value
+        && !transitions.target.elements[c].isAssociation
+      )
       : ObjectKeys(INSERT.entries[0])
 
     /** @type {string[]} */
     this.columns = columns
 
     const alias = INSERT.into.as
-    const entity = this.name(q.target?.name || INSERT.into.ref[0], q)
+    const entity = q.target ? this.table_name(q) : INSERT.into.ref[0]
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
@@ -522,7 +575,7 @@ class CQN2SQLRenderer {
     }
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
   }
 
@@ -629,7 +682,7 @@ class CQN2SQLRenderer {
    */
   INSERT_rows(q) {
     const { INSERT } = q
-    const entity = this.name(q.target?.name || INSERT.into.ref[0], q)
+    const entity = q.target ? this.table_name(q) : INSERT.into.ref[0]
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements
     const columns = this.columns = INSERT.columns || cds.error`Cannot insert rows without columns or elements`
@@ -654,7 +707,8 @@ class CQN2SQLRenderer {
       .slice(0, columns.length)
       .map(c => c.converter(c.extract))
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))
+    const transitions = getTransition(q.target, this.srv)
+    return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
 
@@ -675,13 +729,18 @@ class CQN2SQLRenderer {
    */
   INSERT_select(q) {
     const { INSERT } = q
-    const entity = this.name(q.target.name, q)
+    const entity = q.target ? this.table_name(q) : INSERT.into.ref[0]
     const alias = INSERT.into.as
     const elements = q.elements || q.target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
-      c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
-    ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
+    const transitions = getTransition(q.target, this.srv)
+    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements))
+      .filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+        && c in transitions.target.elements
+        && !transitions.target.elements[c].virtual
+        && !transitions.target.elements[c].value
+        && !transitions.target.elements[c].isAssociation
+      ))
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${this.SELECT(
       this.cqn4sql(INSERT.as),
     )}`
     this.entries = [this.values]
@@ -743,7 +802,7 @@ class CQN2SQLRenderer {
       .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
-    const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
+    const entity = q.target ? this.table_name(q) : INSERT.into.ref[0]
     sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
     const updateColumns = columns.filter(c => {
@@ -756,7 +815,8 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(c))}) ${sql
+    const transitions = getTransition(q.target, this.srv)
+    return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
 
@@ -770,28 +830,33 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q.target?.elements
-    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity, q))}`
+    let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
+    const transitions = getTransition(q.target, this.srv)
     let columns = []
-    if (data) _add(data, val => this.val({ val }))
+    if (data) _add(data, this.params ? (_, p) => this.param({ ref: [p] }) : val => this.val({ val }))
     if (_with) _add(_with, x => this.expr(x))
     function _add(data, sql4) {
-      for (let c in data) {
-        const columnExistsInDatabase =
-          elements && c in elements && !elements[c].virtual && !elements[c].isAssociation && !elements[c].value
+      for (let col in data) {
+        const c = transitions.mapping.get(col)?.ref[0] || col
+        const columnExistsInDatabase = elements
+          && c in transitions.target.elements
+          && !transitions.target.elements[c].virtual
+          && !transitions.target.elements[c].value
+          && !transitions.target.elements[c].isAssociation
         if (!elements || columnExistsInDatabase) {
-          columns.push({ name: c, sql: sql4(data[c]) })
+          columns.push({ name: c, sql: sql4(data[col], col) })
         }
       }
     }
 
     const extraction = this.managed(columns, elements)
       .filter((c, i) => columns[i] || c.onUpdate)
-      .map((c, i) => `${this.quote(c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
+      .map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
-    if (where) sql += ` WHERE ${this.where(where)}`
+    if (where) sql += ` WHERE ${this.where_resolved(entity, where, q)}`
     return (this.sql = sql)
   }
 
@@ -803,8 +868,9 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   DELETE(q) {
-    const { DELETE: { from, where } } = q
-    let sql = `DELETE FROM ${this.from(from, q)}`
+    const { DELETE: { where, from } } = q
+    let sql = `DELETE FROM ${this.quote(this.table_name(q))}`
+    if (from.as) sql += ` AS ${this.quote(from.as)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
   }
@@ -903,9 +969,13 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    * @throws {Error} When an unsupported ref definition is provided
    */
-  param({ ref }) {
+  param(param) {
+    let { ref } = param
     if (ref.length > 1) throw cds.error`Unsupported nested ref parameter: ${ref}`
-    return ref[0] === '?' ? '?' : `:${ref}`
+    // REVISIT: ? refs are problematic, because of rewrites like cql-functions
+    ref[0] = ref[0] === '?' ? this.params.length : ref[0]
+    if (this.params) this.params.push(ref[0])
+    return '?'
   }
 
   /**
@@ -941,7 +1011,7 @@ class CQN2SQLRenderer {
           else val = JSON.stringify(val)
         }
     }
-    if (!this.values || param === false) {
+    if (this.params || !this.values || param === false) {
       switch (typeof val) {
         case 'string': return this.string(val)
         case 'object': return 'NULL'
@@ -1015,6 +1085,16 @@ class CQN2SQLRenderer {
       // REVISIT: When could this ever happen? I think this is only about that irrealistic test whech uses column_name to implement SELECT_columns. We should eliminate column_name as its only used and designed for use in SELECT_expand, isn't it?
       cds.error`Query was not inferred and includes '*' in the columns. For which there is no column name available.`
     return (typeof col.as === 'string' && col.as) || ('val' in col && col.val + '') || col.func || col.ref.at(-1)
+  }
+
+  /**
+   * Calculates the Database table name of the query target
+   * @param {import('./infer/cqn').Query} query
+   * @returns {string} Database table name
+   */
+  table_name(q) {
+    const table = getDBTable(q.target)
+    return this.name(table.name, q)
   }
 
   /**

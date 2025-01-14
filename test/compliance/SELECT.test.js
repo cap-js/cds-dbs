@@ -391,14 +391,14 @@ describe('SELECT', () => {
     })
 
     // REVISIT: it is not yet fully supported to have named parameters on all databases
-    test.skip('param named', async () => {
+    test('param named', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string = :param`
       const res = await cds.run(cqn, { param: 'yes' })
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
-    test.skip('param number', async () => {
+    test('param number', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string = :7`
       const res = await cds.run(cqn, { 7: 'yes' })

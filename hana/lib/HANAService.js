@@ -5,6 +5,7 @@ const { Readable } = require('stream')
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
+const { getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const collations = require('./collations.json')
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
@@ -118,7 +119,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data } = req
+    const { query, data = query.params } = req
 
     if (!query.target) {
       try { this.infer(query) } catch { /**/ }
@@ -167,7 +168,7 @@ class HANAService extends SQLService {
     return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
-  async onINSERT({ query, data }) {
+  async onINSERT({ query, data = query.params }) {
     try {
       const { sql, entries, cqn } = this.cqn2sql(query, data)
       if (!sql) return // Do nothing when there is nothing to be done
@@ -708,16 +709,21 @@ class HANAService extends SQLService {
     INSERT_entries(q) {
       this.values = undefined
       const { INSERT } = q
-      // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0], q)
 
       const elements = q.elements || q.target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
 
+      const entity = q.target ? this.table_name(q) : INSERT.into.ref[0]
+      const transitions = getTransition(q.target, this.srv)
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+          && c in transitions.target.elements
+          && !transitions.target.elements[c].virtual
+          && !transitions.target.elements[c].value
+          && !transitions.target.elements[c].isAssociation
+        )
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
@@ -760,9 +766,8 @@ class HANAService extends SQLService {
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
       // But the chunk size determines the maximum size of a single row
-      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
-        this.quote(c),
-      )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
+        }) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
