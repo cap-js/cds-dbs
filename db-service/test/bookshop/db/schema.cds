@@ -196,6 +196,7 @@ entity Receipt {
 
 entity Authors : managed, Person {
   books  : Association to many Books on books.author = $self;
+  booksWithALotInStock = books[stock > 100];
 }
 entity AuthorsUnmanagedBooks : managed, Person {
   books  : Association to many Books on books.coAuthor_ID_unmanaged = ID;

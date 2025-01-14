@@ -1,11 +1,10 @@
 const cds = require('../cds')
-
 const { Readable } = require('stream')
+
 
 describe('INSERT', () => {
   const { data, expect } = cds.test(__dirname + '/resources')
   data.autoIsolation(true)
-  data.autoReset()
 
   describe('into', () => {
     test.skip('missing', () => {
@@ -85,6 +84,15 @@ describe('INSERT', () => {
   describe('as', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
+    })
+  })
+
+  describe('default values', () => {
+    test('default values are generated', async () => {
+      const { 'basic.literals.defaults': entity } = cds.db.entities
+      await cds.run(INSERT.into(entity).entries({ID: 1}))
+      const result = await cds.run(SELECT.from(entity, 1))
+      expect(result).to.deep.eq({ ID: 1, boolean: false, integer: 0, nulls: null, string: ''})
     })
   })
 })

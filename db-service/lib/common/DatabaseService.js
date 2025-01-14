@@ -47,13 +47,14 @@ class DatabaseService extends cds.Service {
    * transaction with `BEGIN`
    * @returns this
    */
-  async begin() {
+  async begin (min) {
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
 
     // If .begin is called explicitly it starts a new transaction and executes begin
-    if (!ctx) return this.tx().begin()
+    if (!ctx) return this.tx().begin(min)
 
+    // REVISIT: can we revisit the below revisit now?
     // REVISIT: tenant should be undefined if !this.isMultitenant
     let isMultitenant = 'multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy
     let tenant = isMultitenant && ctx.tenant
@@ -63,10 +64,10 @@ class DatabaseService extends cds.Service {
 
     // Acquire a pooled connection
     this.dbc = await this.acquire()
-    this.dbc.destroy = this.destroy.bind(this)
+    this.dbc.destroy = this.destroy.bind(this) // REVISIT: this is bad
 
     // Begin a session...
-    try {
+    if (!min) try {
       await this.set(new SessionContext(ctx))
       await this.send('BEGIN')
     } catch (e) {
@@ -153,8 +154,8 @@ class DatabaseService extends cds.Service {
    */
   run(query, data, ...etc) {
     // Allow db.run('...',1,2,3,4)
-    if (data !== undefined && typeof query === 'string' && typeof data !== 'object') data = [data, ...etc]
-    return super.run(query, data)
+    if (data !== undefined && typeof query === 'string' && typeof data !== 'object') arguments[1] = [data, ...etc]
+    return super.run(...arguments) //> important to call like that for tagged template literal args
   }
 
   /**
