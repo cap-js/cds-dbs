@@ -62,6 +62,16 @@ describe('search', () => {
       const res = await cqn
       expect(res.length).to.be(2) // Eleonora and Jane Eyre
     })
+
+    test('fallback - 1 search term with escaped quotes', async () => {
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(Books).search('"autobio"', '"Ja\\"ne"').columns('1')
+      const { sql, values } = cqn.toSQL()
+      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
+      expect(sql.match(/(like)/g).length).to.be(10)
+      expect(values).to.include('%autobio%')
+      expect(values).to.include('%ja"ne%')
+    })
     
     test('fallback - 2 search terms', async () => {
       const { Books } = cds.entities('sap.capire.bookshop')

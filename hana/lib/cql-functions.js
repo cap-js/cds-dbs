@@ -31,7 +31,7 @@ const StandardFunctions = {
       else arg = [arg]
       const searchTerms = arg[0].val
           .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
-          .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').toLowerCase()}%`)
+          .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').replace(/\\\"/g, `"`).toLowerCase()}%`)
 
       const columns = ref.list
       const xpr = []
