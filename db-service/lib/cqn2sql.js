@@ -607,9 +607,7 @@ class CQN2SQLRenderer {
         } else {
           if (val != null && elements[this.columns[key]]?.type in this.BINARY_TYPES) {
             val = Buffer.from(val, 'base64').toString(binaryEncoding)
-          } else {
-            buffer += `${sepsub}${val == null ? 'null' : JSON.stringify(val)}`
-          }
+          buffer += `${sepsub}${val == null ? 'null' : JSON.stringify(val)}`
         }
 
         if (!sepsub) sepsub = ','
