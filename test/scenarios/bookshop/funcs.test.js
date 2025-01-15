@@ -23,6 +23,24 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(2)
     })
 
+    test('contains with explicit equals boolean value', async () => {
+      const res = await GET("/browse/Books?$filter=contains(author,'Allen') eq true")
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+    })
+  
+    test('contains with explicit not equals boolean value', async () => {
+      const res = await GET("/browse/Books?$filter=contains(author,'Allen') ne false")
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+    })
+  
+    test('not contains with explicit equals boolean value', async () => {
+      const res = await GET("/browse/Books?$filter=not contains(author,'Allen') eq false")
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+    })
+
     test('avg', async () => {
       const { Books } = cds.entities
       const res = await cds.run(CQL`SELECT from ${Books} {
