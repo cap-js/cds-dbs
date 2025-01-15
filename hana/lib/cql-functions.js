@@ -30,9 +30,16 @@ const StandardFunctions = {
       if (Array.isArray(arg)) arg = [{ val: arg.filter(a => a.val).map(a => a.val).join(' ') }]
       else arg = [arg]
       const searchTerms = arg[0].val
-          .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
-          .filter(el => el.length).map(el => `%${el.replace(/^\"|\"$/g, '').replace(/\\\"/g, `"`).toLowerCase()}%`)
-
+        .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
+        .filter(el => el.length)
+        .map(el => {
+          try {
+            return `%${JSON.parse(el).toLowerCase()}%`
+          } catch {
+            return `%${el.toLowerCase()}%`
+          }
+        })
+      
       const columns = ref.list
       const xpr = []
       for (const s of searchTerms) {
