@@ -75,7 +75,7 @@ const StandardFunctions = {
    * @param {string} y
    * @returns {string}
    */
-  startswith: (x, y) => `instr(${x},${y}) = 1`, // sqlite instr is 1 indexed
+  startswith: (x, y) => `coalesce(instr(${x},${y}) = 1,false)`, // sqlite instr is 1 indexed
   // takes the end of the string of the size of the target and compares it with the target
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string ends with the second string
@@ -83,7 +83,7 @@ const StandardFunctions = {
    * @param {string} y
    * @returns {string}
    */
-  endswith: (x, y) => `substr(${x}, length(${x}) + 1 - length(${y})) = ${y}`,
+  endswith: (x, y) => `coalesce(substr(${x}, length(${x}) + 1 - length(${y})) = ${y},false)`,
   /**
    * Generates SQL statement that produces the substring of a given string
    * @example
