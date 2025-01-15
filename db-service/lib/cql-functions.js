@@ -49,7 +49,7 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  contains: (...args) => `ifnull(instr(${args}),0)`,
+  contains: (...args) => `(ifnull(instr(${args}),0) > 0)`,
   /**
    * Generates SQL statement that produces the number of elements in a given collection
    * @param {string} x
