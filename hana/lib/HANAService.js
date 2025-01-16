@@ -34,6 +34,8 @@ class HANAService extends SQLService {
     return super.init()
   }
 
+  /* Infrastructure */
+
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
@@ -44,18 +46,19 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const options = cds.requires.db.pool = {
+      min: 0,
+      max: 10,
+      acquireTimeoutMillis,
+      idleTimeoutMillis: 10000,
+      evictionRunIntervalMillis: 15000,
+      numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
+      ...(this.options.pool || {}),
+      testOnBorrow: true,
+      fifo: false
+    }
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 10000,
-        evictionRunIntervalMillis: 15000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options,
       create: async function (tenant) {
         try {
           const { credentials } = isMultitenant
@@ -103,8 +106,8 @@ class HANAService extends SQLService {
     }
   }
 
-  // REVISIT: Add multi tenant credential look up when clarified
   url4(tenant) {
+    // REVISIT: Add multi tenant credential look up when clarified
     tenant
     let { host, port, driver } = this.options?.credentials || this.options || {}
     return `hana@${host}:${port}${driver ? `(${driver})` : ''}`
@@ -113,6 +116,96 @@ class HANAService extends SQLService {
   ensureDBC() {
     return this.dbc || cds.error`Database connection is ${this._done || 'disconnected'}`
   }
+
+  // Creates a new database using HDI container groups
+  async database({ database }, clean = false) {
+    if (clean) {
+      // Reset back to system credentials
+      this.options.credentials = this.options.credentials.__system__
+    }
+
+    const creds = {
+      containerGroup: database.toUpperCase(),
+      usergroup: `${database}_USERS`.toUpperCase(),
+      user: `${database}_USER_MANAGER`.toUpperCase(),
+    }
+    creds.schema = creds.user
+    creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
+
+    try {
+      const con = await this.factory.create(this.options.credentials)
+      this.dbc = con
+
+      const stmt = await this.dbc.prepare(createContainerDatabase)
+      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
+      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
+    } finally {
+      if (this.dbc) {
+        // Release table lock
+        await this.onCOMMIT()
+
+        await this.dbc.disconnect()
+        delete this.dbc
+
+        // Update credentials to new Database owner
+        await this.disconnect()
+        this.options.credentials = Object.assign({}, this.options.credentials, creds, {
+          __system__: this.options.credentials,
+        })
+      }
+    }
+  }
+
+  // Creates a new HDI container inside the database container group
+  // As the tenants are located in a specific container group the containers can have the same name
+  // This removes SCHEMA name conflicts when testing in the same system
+  // Additionally this allows for deploying using the HDI procedures
+  async tenant({ database, tenant }, clean = false) {
+    if (clean) {
+      // Reset back to database credentials
+      this.options.credentials = this.options.credentials.__database__
+    }
+
+    const creds = {
+      containerGroup: database.toUpperCase(),
+      usergroup: `${database}_USERS`.toUpperCase(),
+      schema: tenant.toUpperCase(),
+      user: `${tenant}_USER`.toUpperCase(),
+    }
+    creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
+
+    try {
+      this.options.credentials.tenant = tenant
+      const con = await this.factory.create(this.options.credentials)
+      this.dbc = con
+
+      let i = 0
+      let err
+      for (; i < 100; i++) {
+        try {
+          const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
+          const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
+          res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
+          break
+        } catch (e) {
+          err = e
+        }
+      }
+      if (i === 100) {
+        throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
+      }
+    } finally {
+      await this.dbc.disconnect()
+      delete this.dbc
+    }
+    // Update credentials to new Tenant owner
+    await this.disconnect()
+    this.options.credentials = Object.assign({}, this.options.credentials, creds, {
+      __database__: this.options.credentials,
+    })
+  }
+
+  /* SQL */
 
   async set(variables) {
     // REVISIT: required to be compatible with generated views
@@ -1220,94 +1313,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       .catch(() => { })
     )
     return this.dbc?.rollback()
-  }
-
-  // Creates a new database using HDI container groups
-  async database({ database }, clean = false) {
-    if (clean) {
-      // Reset back to system credentials
-      this.options.credentials = this.options.credentials.__system__
-    }
-
-    const creds = {
-      containerGroup: database.toUpperCase(),
-      usergroup: `${database}_USERS`.toUpperCase(),
-      user: `${database}_USER_MANAGER`.toUpperCase(),
-    }
-    creds.schema = creds.user
-    creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
-
-    try {
-      const con = await this.factory.create(this.options.credentials)
-      this.dbc = con
-
-      const stmt = await this.dbc.prepare(createContainerDatabase)
-      const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.containerGroup, !clean])
-      res && DEBUG?.(res.changes.map(r => r.MESSAGE).join('\n'))
-    } finally {
-      if (this.dbc) {
-        // Release table lock
-        await this.onCOMMIT()
-
-        await this.dbc.disconnect()
-        delete this.dbc
-
-        // Update credentials to new Database owner
-        await this.disconnect()
-        this.options.credentials = Object.assign({}, this.options.credentials, creds, {
-          __system__: this.options.credentials,
-        })
-      }
-    }
-  }
-
-  // Creates a new HDI container inside the database container group
-  // As the tenants are located in a specific container group the containers can have the same name
-  // This removes SCHEMA name conflicts when testing in the same system
-  // Additionally this allows for deploying using the HDI procedures
-  async tenant({ database, tenant }, clean = false) {
-    if (clean) {
-      // Reset back to database credentials
-      this.options.credentials = this.options.credentials.__database__
-    }
-
-    const creds = {
-      containerGroup: database.toUpperCase(),
-      usergroup: `${database}_USERS`.toUpperCase(),
-      schema: tenant.toUpperCase(),
-      user: `${tenant}_USER`.toUpperCase(),
-    }
-    creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
-
-    try {
-      this.options.credentials.tenant = tenant
-      const con = await this.factory.create(this.options.credentials)
-      this.dbc = con
-
-      let i = 0
-      let err
-      for (; i < 100; i++) {
-        try {
-          const stmt = await this.dbc.prepare(createContainerTenant.replaceAll('{{{GROUP}}}', creds.containerGroup))
-          const res = this.ensureDBC() && await stmt.run([creds.user, creds.password, creds.schema, !clean])
-          res && DEBUG?.(res.changes.map?.(r => r.MESSAGE).join('\n'))
-          break
-        } catch (e) {
-          err = e
-        }
-      }
-      if (i === 100) {
-        throw new Error(`Failed to create tenant: ${err.message || err.stack || err}`)
-      }
-    } finally {
-      await this.dbc.disconnect()
-      delete this.dbc
-    }
-    // Update credentials to new Tenant owner
-    await this.disconnect()
-    this.options.credentials = Object.assign({}, this.options.credentials, creds, {
-      __database__: this.options.credentials,
-    })
   }
 
   async _getProcedureMetadata(name, schema) {
