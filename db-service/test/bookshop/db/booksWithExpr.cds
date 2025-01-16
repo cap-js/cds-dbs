@@ -99,3 +99,10 @@ entity VariableReplacements {
   // with variable replacements
   authorAlive = author[dateOfBirth <= $now and dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob'];
 }
+
+entity Ternary {
+  key ID        : Integer;
+      value     : Integer;
+      book      : Association to Books;
+      nestedTernary : Integer = (1 > 0 ? 1 : (book.stock > 10 ? value : 3));
+}

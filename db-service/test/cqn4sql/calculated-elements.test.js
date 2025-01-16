@@ -46,6 +46,16 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
 
+  it('in ternary', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Ternary { ID, nestedTernary }`, model)
+    const expected = CQL`SELECT from booksCalc.Ternary as Ternary
+      left join booksCalc.Books as book on book.ID = Ternary.book_ID
+    {
+        Ternary.ID,
+        (case when 1 > 0 then 1 else (case when book.stock > 10 then Ternary.value else 3 end) end) as nestedTernary
+      }`
+    expect(query).to.deep.equal(expected)
+  })
   it('in function', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Books { ID, round(area, 2) as f }`, model)
     const expected = CQL`SELECT from booksCalc.Books as Books {
