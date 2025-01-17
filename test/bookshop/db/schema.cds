@@ -67,5 +67,6 @@ entity C : managed {
       B   : Integer;
       toB : Composition of many B
               on toB.ID = $self.B;
-};
+}
+
 entity BooksAnnotated as projection on Books;
