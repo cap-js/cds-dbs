@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.16.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.1...db-service-v1.16.2) (2024-12-18)
+
+
+### Fixed
+
+* do not override .toJSON of buffers ([#949](https://github.com/cap-js/cds-dbs/issues/949)) ([ed52f72](https://github.com/cap-js/cds-dbs/commit/ed52f72206df6e683106ab0bbbecf4b778cf36b5))
+
 ## [1.16.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.0...db-service-v1.16.1) (2024-12-16)
 
 

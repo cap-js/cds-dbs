@@ -339,7 +339,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, from, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -371,7 +371,9 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        let orderByHasOutputColumnRef = false
         if (orderBy) {
+          if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
             if (!c.ref) {
@@ -388,6 +390,7 @@ class HANAService extends SQLService {
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            orderByHasOutputColumnRef = true
             return c
           })
         }
@@ -426,7 +429,9 @@ class HANAService extends SQLService {
           q.as = q.SELECT.from.as
         }
 
-        if (rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
+        const outputAliasSimpleQueriesRequired = cds.env.features.sql_simple_queries
+          && (orderByHasOutputColumnRef || having)
+        if (outputAliasSimpleQueriesRequired || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
           q = cds.ql.SELECT(aliasedOutputColumns).from(q)
           q.as = q.SELECT.from.as
           Object.defineProperty(q, 'elements', { value: elements })
@@ -442,7 +447,7 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
+                      args: [{ ref: ['_parent_path_'] }, { val: `].${alias}[`, param: false }],
                     },
                     { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
@@ -1230,7 +1235,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   async dispatch(req) {
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
-    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string')) {
+    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
