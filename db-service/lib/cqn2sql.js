@@ -719,7 +719,7 @@ class CQN2SQLRenderer {
   }
 
   INSERT_rows_update(entries) {
-    entries = Array.isArray(entries) ? entries : [entries]
+    entries = Array.isArray(entries?.[0]) ? entries : [entries]
     const stream = entries[0] instanceof Readable
       ? entries[0]
       : Readable.from(this.INSERT_rows_stream(entries), { objectMode: false })
