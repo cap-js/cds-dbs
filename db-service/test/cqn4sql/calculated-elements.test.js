@@ -56,6 +56,19 @@ describe('Unfolding calculated elements in select list', () => {
       }`
     expect(query).to.deep.equal(expected)
   })
+
+  it('calcualted element in nested ternary', () => {
+    let query = cqn4sql(CQL`SELECT from booksCalc.Ternary { ID, calculatedElementInNestedTernary }`, model)
+    const expected = CQL`SELECT from booksCalc.Ternary as Ternary
+      left join booksCalc.Books as book on book.ID = Ternary.book_ID
+      left join booksCalc.Authors as author on author.ID = book.author_ID
+      {
+        Ternary.ID,
+        (case when 1 > 0 then 1 else (case when book.stock > (case when 1 > 0 then 1 else (case when book.stock > years_between(author.dateOfBirth, author.dateOfDeath) then Ternary.value else 3 end) end) then Ternary.value else 3 end) end) as calculatedElementInNestedTernary
+      }`
+    //                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    expect(query).to.deep.equal(expected)
+  })
   it('list in ternary', () => {
     let query = cqn4sql(CQL`SELECT from booksCalc.Ternary { ID, nestedTernaryWithNestedXpr }`, model)
     const expected = CQL`SELECT from booksCalc.Ternary as Ternary
