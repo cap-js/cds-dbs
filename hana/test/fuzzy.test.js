@@ -77,13 +77,15 @@ describe('search', () => {
 
     test('fallback - 3 search terms with special characters', async () => {
       const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"123"', '456', '"Ja\\"ne"').columns('1')
+      const cqn = SELECT.from(Books).search('"1847"', '1846', '"\\"Ellis Bell\\""').columns('1')
       const { sql, values } = cqn.toSQL()
       // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
       expect(sql.match(/(like)/g).length).to.be(15)
-      expect(values).to.include('%123%')
-      expect(values).to.include('%456%')
-      expect(values).to.include('%ja"ne%')
+      expect(values).to.include('%1847%')
+      expect(values).to.include('%1846%')
+      expect(values).to.include('%"ellis bell"%')
+      const res = await cqn
+      expect(res.length).to.be(1) //Emily Brontë
     })
   })
 })
