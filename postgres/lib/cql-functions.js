@@ -10,8 +10,8 @@ const StandardFunctions = {
   countdistinct: x => `count(distinct ${x.val || x || '*'})`,
   contains: (...args) => `(coalesce(strpos(${args}),0) > 0)`,
   indexof: (x, y) => `strpos(${x},${y}) - 1`, // strpos is 1 indexed
-  startswith: (x, y) => `strpos(${x},${y}) = 1`, // strpos is 1 indexed
-  endswith: (x, y) => `substr(${x},length(${x}) + 1 - length(${y})) = ${y}`,
+  startswith: (x, y) => `coalesce(strpos(${x},${y}) = 1,false)`, // strpos is 1 indexed
+  endswith: (x, y) => `coalesce(substr(${x},length(${x}) + 1 - length(${y})) = ${y},false)`,
   matchesPattern: (x, y) => `regexp_like(${x}, ${y})`,
   matchespattern: (x, y) => `regexp_like(${x}, ${y})`,
 
