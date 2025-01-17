@@ -85,7 +85,7 @@ describe('search', () => {
       expect(values).to.include('%1846%')
       expect(values).to.include('%"ellis bell"%')
       const res = await cqn
-      expect(res.length).to.be(1) //Emily Brontë
+      expect(res.length).to.be(1) // Emily Brontë
     })
   })
 })
