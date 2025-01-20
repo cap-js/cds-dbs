@@ -8,6 +8,7 @@ service AdminService @(requires:'admin', path:'/admin') {
   entity RenameKeys as projection on my.Books {
     key ID as foo,
     author,
-    author.name
+    author.name,
+    stock
   }
 }

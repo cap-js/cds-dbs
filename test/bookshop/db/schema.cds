@@ -1,6 +1,11 @@
 using { Currency, managed, sap } from '@sap/cds/common';
 namespace sap.capire.bookshop;
 
+@assert.constraint#stockNotEmpty : {
+  condition: ( stock >= 0 ),
+  message: 'The stock must be greater than 0 after withdrawal',
+  parameters: []     // to be inserted into the message
+}
 entity Books : managed {
   key ID : Integer;
   title  : localized String(111);
