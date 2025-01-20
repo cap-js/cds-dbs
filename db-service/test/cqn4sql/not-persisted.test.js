@@ -86,20 +86,6 @@ describe('not persisted', () => {
         order by ID`)
     })
 
-    it('dont remove in xpr in ORDER BY', () => {
-      let query = cqn4sql(
-        CQL`SELECT from bookshop.Foo { ID, virtualField as x }
-        order by ID, x, (Foo.toFoo.virtualField * 42)`,
-        model,
-      )
-      expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.Foo as Foo left join bookshop.Foo as toFoo on toFoo.ID = Foo.toFoo_ID
-        {
-          Foo.ID
-        }
-        order by ID, (toFoo.virtualField * 42)`,
-      )
-    })
 
     it('Navigation to virtual field does not cause join', () => {
       let query = cqn4sql(
@@ -117,41 +103,30 @@ describe('not persisted', () => {
     // Virtual fields in expressions are left untouched and will cause an error in the DB.
     // The idea to replace conditions involving virtual fields by "1=1" doesn't work, as we
     // are not able to detect where the conditions start/end (-> we don't understand xpr)
-    it('leave untouched in expressions', () => {
-      let query = cqn4sql(
-        CQL`SELECT from bookshop.Foo {
-        ID,
-        virtualField - 2 * stru.v + stru.nested.nv as c
-      } where virtualField = 2 * stru.v + stru.nested.nv and virtualField`,
-        model,
-      )
-      expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
-        Foo.ID,
-        Foo.virtualField - 2 * Foo.stru_v + Foo.stru_nested_nv as c
-      } where Foo.virtualField = 2 * Foo.stru_v + Foo.stru_nested_nv and Foo.virtualField`)
+    it('reject virtual elements in expressions', () => {
+      let query = CQL`SELECT from bookshop.Foo {
+        ID
+      } where virtualField = 2 * stru.v + stru.nested.nv and virtualField`;
+      expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
 
-    it('Navigation to virtual field does cause join in expression', () => {
-      let query = cqn4sql(
-        CQL`SELECT from bookshop.Foo {
+    it('reject virtual elements in column expressions', () => {
+      let query = CQL`SELECT from bookshop.Foo {
         ID,
         toFoo.virtualField + 42 / 20 as virtualField,
-      }`,
-        model,
-      )
-      expect(query).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo
-        left join bookshop.Foo as toFoo on toFoo.ID = Foo.toFoo_ID
-      {
-        Foo.ID,
-        toFoo.virtualField + 42 / 20 as virtualField
-      }`)
+      }`
+      expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
 
-    it('leave untouched also in simple conditions', () => {
-      let query = cqn4sql(CQL`SELECT from bookshop.Foo { ID } where ID = 5 and virtualField = 6`, model)
-      expect(query).to.deep.equal(
-        CQL`SELECT from bookshop.Foo as Foo { Foo.ID } where Foo.ID = 5 and Foo.virtualField = 6`,
-      )
+    it('reject virtual elements in simple conditions', () => {
+      let query = CQL`SELECT from bookshop.Foo { ID } where ID = 5 and virtualField = 6`
+      expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
+    })
+
+    it('reject virtual elements in order by', () => {
+      let query =  CQL`SELECT from bookshop.Foo { ID, virtualField as x }
+        order by ID, x, (Foo.toFoo.virtualField * 42)`
+      expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
   })
 
