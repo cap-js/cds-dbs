@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds')
 const { Readable } = require('stream')
 const odbc = require('odbc')
+const path = require('path');
 
 class ABAPService extends SQLService {
   init() {
@@ -12,7 +13,9 @@ class ABAPService extends SQLService {
     return {
       options: { ...this.options.pool },
       create: async (/*tenant*/) => {
-        const credentials = this.options.credentials
+        let credentials = this.options.credentials
+        if(!credentials.connectionString) 
+          credentials.connectionString = this.getConnectionString(credentials)
         const dbc = await odbc.connect(credentials)
         dbc.schema = credentials.schema
 
@@ -22,6 +25,24 @@ class ABAPService extends SQLService {
       validate: dbc => dbc.open,
     }
   }
+
+  getConnectionString(credentials) {
+    return [
+      `driver=${path.resolve(__dirname, '../bin/ODBC_driver_for_ABAP.so')}`,
+      'client=100',
+      'trustall=true',
+      `CryptoLibrary=${path.resolve(__dirname, '../bin/libsapcrypto.so')}`,
+      `host=${credentials.ABAP_HOST || 'localhost'}`,
+      `port=${credentials.ABAP_PORT || '443'}`,
+      `servicePath=${credentials.ABAP_PATH || '/sap/bc/sql/sql1/sap/s_privileged'}`,
+      `uid=${credentials.ABAP_USER || 'SYSTEM'}`,
+      `pwd=${credentials.ABAP_PASSWORD || 'Manager1'}`,
+      `language=EN`,
+      'uidType=alias',
+      'typeMap=semantic',
+    ].join(';');
+  }
+  
 
   url4(/*tenant*/) {
     let { connectionString } = this.options.credentials || this.options || {}
@@ -38,7 +59,7 @@ class ABAPService extends SQLService {
     try {
       const stmt = await this.dbc.createStatement()
       await stmt.prepare(sql)
-      // console.log('SQL:', sql)
+      console.log('SQL:', sql)
       const run = (..._) => stmt.bind(..._).then(() => stmt.execute())
       return {
         run,
@@ -65,7 +86,7 @@ class ABAPService extends SQLService {
     return this.dbc.query(sql)
   }
 
-  static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+  static CQN2SQL = class CQN2AbapSql extends SQLService.CQN2SQL {
 
     static OutputConverters = {
       ...super.OutputConverters,
@@ -87,7 +108,9 @@ class ABAPService extends SQLService {
 
     // All entity names require a schema prefix
     name(name) {
-      return `${this.context.tx.dbc.schema}.${name}`
+      // REVISIT: how to best access the schema name
+      const schema = this.context?.tx.dbc?.schema || cds.services.abap.options.credentials.schema;
+      return `${schema}.${name.replace(/abap./, '')}`
     }
 
     // All aliases must be strings

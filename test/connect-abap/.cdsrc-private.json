@@ -1,0 +1,20 @@
+{
+  "features": {
+    "sql_simple_queries": true
+  },
+  "requires": {
+    "abap": {
+      "impl": "@cap-js/abap",
+      "kind": "abap",
+      "model": "./srv/external/abap",
+      "credentials": {
+        "schema": "/ITAPC1/SQL_FLIGHTS_1",
+        "ABAP_HOST": "25638c75-a54b-4658-8b04-3a1156f2c4f5.abap.eu10.hana.ondemand.com",
+        "ABAP_PORT": "443",
+        "ABAP_PATH": "/sap/bc/sql/sql1/sap/s_privileged",
+        "ABAP_USER": "ITAPC1_SQL_CAP_TESTS",
+        "ABAP_PASSWORD": "du2wPBiDdYbRbvvyGliPedKLvNHuWX_hzAvVNEH"
+      }
+    }
+  }
+}
