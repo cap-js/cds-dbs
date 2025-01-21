@@ -49,43 +49,8 @@ const StandardFunctions = {
    */
   matchespattern: (x, y) => `(${x} regexp ${y})`,
 
-  // date functions
-  /**
-   * Generates SQL statement that produces the year of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  year: x => `cast( strftime('%Y',${x}) as Integer )`,
-  /**
-   * Generates SQL statement that produces the month of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  month: x => `cast( strftime('%m',${x}) as Integer )`,
-  /**
-   * Generates SQL statement that produces the day of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  day: x => `cast( strftime('%d',${x}) as Integer )`,
-  /**
-   * Generates SQL statement that produces the hours of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  hour: x => `cast( strftime('%H',${x}) as Integer )`,
-  /**
-   * Generates SQL statement that produces the minutes of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  minute: x => `cast( strftime('%M',${x}) as Integer )`,
-  /**
-   * Generates SQL statement that produces the seconds of a given timestamp
-   * @param {string} x
-   * @returns {string}
-   */
-  second: x => `cast( strftime('%S',${x}) as Integer )`,
+  // date functions (year, month, day, hour, minute, second) are added as UDF in SQLiteService
+
   // REVISIT: make precision configurable
   /**
    * Generates SQL statement that produces the fractional seconds of a given timestamp
