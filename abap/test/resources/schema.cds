@@ -5,6 +5,7 @@ type abap.sstring : String;
 
   @cds.persistence.exists : true
   @readonly : true
+  @readonly : true
   entity Airline {
     key AirlineID : abap.sstring(3);
     Name : abap.sstring(40);
