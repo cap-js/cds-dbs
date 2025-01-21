@@ -7,18 +7,73 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  // ==============================
+  // String Functions
+  // ==============================
+
+  /**
+   * Generates SQL statement that produces the index of the first occurrence of the second string in the first string
+   * @param {string} x - The string to search
+   * @param {string} y - The substring to find
+   * @returns {string} - SQL statement
+   */
   indexof: (x, y) => `locate(${x},${y}) - 1`, // locate is 1 indexed
-  startswith: (x, y) => `(CASE WHEN locate(${x},${y}) = 1 THEN TRUE ELSE FALSE END)`, // locate is 1 indexed
+
+  /**
+   * Generates SQL statement that produces a boolean value indicating whether the first string starts with the second string
+   * @param {string} x - The string to evaluate
+   * @param {string} y - The prefix to check
+   * @returns {string} - SQL statement
+   */
+  startswith: (x, y) => `(CASE WHEN locate(${x},${y}) = 1 THEN TRUE ELSE FALSE END)`,
+
+  /**
+   * Generates SQL statement that produces a boolean value indicating whether the first string ends with the second string
+   * @param {string} x - The string to evaluate
+   * @param {string} y - The suffix to check
+   * @returns {string} - SQL statement
+   */
   endswith: (x, y) => `(CASE WHEN substring(${x},length(${x})+1 - length(${y})) = ${y} THEN TRUE ELSE FALSE END)`,
+
+  /**
+   * Generates SQL statement that matches the given string against a regular expression
+   * @param {string} x - The string to match
+   * @param {string} y - The regular expression
+   * @returns {string} - SQL statement
+   */
   matchesPattern: (x, y) => `(CASE WHEN ${x} LIKE_REGEXPR ${y} THEN TRUE ELSE FALSE END)`,
+
+  /**
+   * Alias for matchesPattern
+   * @param {string} x - The string to match
+   * @param {string} y - The regular expression
+   * @returns {string} - SQL statement
+   */
   matchespattern: (x, y) => `(CASE WHEN ${x} LIKE_REGEXPR ${y} THEN TRUE ELSE FALSE END)`,
+
+  /**
+   * Generates SQL statement that checks if the first string contains the second string
+   * @param  {...string} args - The strings to evaluate
+   * @returns {string} - SQL statement
+   */
   contains: (...args) =>
     args.length > 2 ? `CONTAINS(${args})` : `(CASE WHEN coalesce(locate(${args}),0)>0 THEN TRUE ELSE FALSE END)`,
+
+  // ==============================
+  // Search Function
+  // ==============================
+
+  /**
+   * Generates SQL statement for search functionality
+   * @param {string} ref - Reference object containing columns
+   * @param {string} arg - Argument object containing search values
+   * @returns {string} - SQL statement
+   */
   search: function (ref, arg) {
     if (cds.env.hana.fuzzy === false) {
-      // REVISIT: remove once the protocol adapter only creates vals
+      // Handle non-fuzzy search
       arg = arg.xpr ? arg.xpr : arg
-      if (Array.isArray(arg))
+      if (Array.isArray(arg)) {
         arg = [
           {
             val: arg
@@ -27,7 +82,8 @@ const StandardFunctions = {
               .join(' '),
           },
         ]
-      else arg = [arg]
+      } else arg = [arg]
+
       const searchTerms = arg[0].val
         .match(/("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/g)
         .filter(el => el.length)
@@ -55,16 +111,12 @@ const StandardFunctions = {
       return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
     }
 
-    // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
 
     const csnElements = ref.list
-    // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
         let fuzzy = `FUZZY`
-
-        // weighted search
         const rank = e.element?.['@Search.ranking']?.['=']
         switch (rank) {
           case 'HIGH':
@@ -82,12 +134,7 @@ const StandardFunctions = {
               `Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`,
             )
         }
-
-        // fuzziness
         fuzzy += ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
-
-        // rewrite ref to xpr to mix in search config
-        // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
         delete e.ref
       })
@@ -95,38 +142,35 @@ const StandardFunctions = {
       ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
-    // REVISIT: remove once the protocol adapter only creates vals
-    if (Array.isArray(arg.xpr))
+    if (Array.isArray(arg.xpr)) {
       arg = {
         val: arg.xpr
           .filter(a => a.val)
           .map(a => a.val)
           .join(' '),
       }
+    }
 
     return `(CASE WHEN SCORE(${arg} IN ${ref}) > 0 THEN TRUE ELSE FALSE END)`
   },
 
+  // ==============================
+  // Arithmetic Functions
+  // ==============================
+
   /**
    * Generates SQL statement that produces the rounded value of a given number
-   * @param {string} x
-   * @param {string?} p precision
-   * @param {string?} r rounding mode (for compatibility with native HANA function)
-   * <rounding_mode> ::=
-   * ROUND_HALF_UP
-   *| ROUND_HALF_DOWN
-   *| ROUND_HALF_EVEN
-   *| ROUND_UP
-   *| ROUND_DOWN
-   *| ROUND_CEILING
-   *| ROUND_FLOOR
-   * @returns {string}
+   * @param {string} x - The number input
+   * @param {string} [p] - Precision
+   * @param {string} [r] - Rounding mode (for compatibility with native HANA function)
+   * <rounding_mode> ::= ROUND_HALF_UP | ROUND_HALF_DOWN | ROUND_HALF_EVEN | ROUND_UP | ROUND_DOWN | ROUND_CEILING | ROUND_FLOOR
+   * @returns {string} - SQL statement
    */
   round: (x, p, r) => {
     if (p) {
       if (r) {
-        // REVISIT: r needs to be a string constant, this does not work with parameters
-        // e.g. ROUND(Books.price, 2, ROUND_UP)
+        // REVISIT: r is a literal string, should be passed as is and not as param
+        // e.g. ROUND(1.2345, 2, ROUND_HALF_UP)
         return `ROUND(${x}, ${p}, ${r})`
       }
       return `ROUND(${x}, ${p})`
@@ -134,7 +178,10 @@ const StandardFunctions = {
     return `ROUND(${x})`
   },
 
+  // ==============================
   // Date and Time Functions
+  // ==============================
+
   year: x => `YEAR(${getDateCast(x)})`,
   month: x => `MONTH(${getDateCast(x)})`,
   day: x => `DAYOFMONTH(${getDateCast(x)})`,
@@ -151,7 +198,6 @@ const HANAFunctions = {
   current_date: () => 'current_utcdate',
   current_time: () => 'current_utctime',
   current_timestamp: () => 'current_utctimestamp',
-  // REVISIT: also for other DBs!
   current_utctimestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
 }
 
