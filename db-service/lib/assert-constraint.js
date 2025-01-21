@@ -42,7 +42,15 @@ function getConstraints(entity) {
 module.exports = async function assert_constraint(results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   
-  const { where } = req.query[req.event]?.entity || {}
+  let where
+  if (req.event === 'UPDATE' || req.event === 'UPSERT') {
+    const prop = req.event
+    if(req.query[prop].where) {
+      where = req.query[prop].where
+    } else if (req.query[prop].entity.ref[0].where) {
+      where = req.query[prop].entity.ref[0].where
+    }
+  }
 
   const constraints = getConstraints(req.target)
   // if constraints is an empty object return next()
@@ -61,6 +69,17 @@ module.exports = async function assert_constraint(results, req) {
       }
   })
   validation.SELECT.columns = columns
-  const valRes = await validation
+  validation.where = where
+  validation.SELECT.one = true
+  const validationResult = await validation
+
+  for (const name in constraints) {
+    const result = validationResult[name]
+    if (!result) {
+      const { message } = constraints[name]
+      req.reject(400, message || `Constraint ${name} failed`)
+      await this.rollback()
+    }
+  }
   return
 }
