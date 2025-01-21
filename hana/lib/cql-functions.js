@@ -1,3 +1,5 @@
+'use strict'
+
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
 const isVal = x => x && 'val' in x

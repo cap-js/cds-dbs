@@ -1,7 +1,6 @@
 'use strict'
 
 const StandardFunctions = {
-
   // ==============================
   // Date and Time Functions
   // ==============================
@@ -81,10 +80,9 @@ const StandardFunctions = {
    * @returns {string} - SQL statement
    */
   matchespattern: (x, y) => `(${x} regexp ${y})`,
-};
+}
 
 const HANAFunctions = {
-
   // ==============================
   // Timestamp Difference Functions
   // ==============================
@@ -153,10 +151,10 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   years_between(x, y) {
-    return `floor(${this.months_between(x, y)} / 12)`;
+    return `floor(${this.months_between(x, y)} / 12)`
   },
-};
+}
 
-for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each];
+for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions };
+module.exports = { ...StandardFunctions, ...HANAFunctions }
