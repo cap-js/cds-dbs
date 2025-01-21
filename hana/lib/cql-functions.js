@@ -1,5 +1,7 @@
 'use strict'
 
+const cds = require('@sap/cds')
+
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
 const isVal = x => x && 'val' in x
@@ -113,12 +115,15 @@ const StandardFunctions = {
       return `(CASE WHEN (${toString({ xpr })}) THEN TRUE ELSE FALSE END)`
     }
 
+    // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
 
     const csnElements = ref.list
+    // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
         let fuzzy = `FUZZY`
+        // weighted search
         const rank = e.element?.['@Search.ranking']?.['=']
         switch (rank) {
           case 'HIGH':
@@ -137,6 +142,8 @@ const StandardFunctions = {
             )
         }
         fuzzy += ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        // rewrite ref to xpr to mix in search config
+        // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
         delete e.ref
       })

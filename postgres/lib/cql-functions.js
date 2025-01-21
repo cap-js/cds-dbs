@@ -1,3 +1,5 @@
+'use strict'
+
 const session = require('./session.json')
 
 const StandardFunctions = {
