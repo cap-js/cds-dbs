@@ -971,7 +971,7 @@ function cqn4sql(originalQuery, model) {
               } else {
                 // we must replace the reference with the underlying expression
                 const { val, func, args, xpr } = col
-                if (val) res.push({ val })
+                // if (val) res.push({ val })
                 if (func) res.push({ func, args })
                 if (xpr) res.push({ xpr })
                 continue

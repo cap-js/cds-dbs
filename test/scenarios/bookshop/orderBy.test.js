@@ -34,8 +34,6 @@ describe('Bookshop - Order By', () => {
     expect(res[0]).to.eql({ title: 'Catweazle', pri: 150})
   })
   test('collations with val', async () => {
-    if(cds.env.requires.db.impl === '@cap-js/hana')
-      return // FIXME: the `val` is put into window function, which ends in an error on HANA
     const query = CQL(`SELECT from sap.capire.bookshop.Books {
       'simple string' as foo: cds.String,
       author.name as author
