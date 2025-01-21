@@ -2,6 +2,28 @@
 
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 const StandardFunctions = {
+  /**
+   * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
+   * @param {string} ref - The reference object containing column information
+   * @param {string} arg - The argument object containing the search value
+   * @returns {string} - SQL statement
+   */
+  search: function (ref, arg) {
+    if (!('val' in arg)) throw new Error('Only single value arguments are allowed for $search')
+    // Only apply first search term, rest is ignored
+    const sub = /("")|("(?:[^"]|\\")*(?:[^\\]|\\\\)")|(\S*)/.exec(arg.val)
+    let val
+    try {
+      val = (sub[2] ? JSON.parse(sub[2]) : sub[3]) || ''
+    } catch {
+      val = sub[2] || sub[3] || ''
+    }
+    arg.val = arg.__proto__.val = val
+    const refs = ref.list
+    const { toString } = ref
+    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
+  },
+
   // ==============================
   // Aggregation Functions
   // ==============================
