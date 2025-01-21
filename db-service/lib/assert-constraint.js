@@ -77,8 +77,8 @@ module.exports = async function assert_constraint(results, req) {
     const result = validationResult[name]
     if (!result) {
       const { message } = constraints[name]
-      req.reject(400, message || `Constraint ${name} failed`)
       await this.rollback()
+      req.reject(400, message || `Constraint ${name} failed`)
     }
   }
   return
