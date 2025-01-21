@@ -44,28 +44,54 @@ module.exports = async function assert_constraint(results, req) {
   const constraints = getConstraints(req.target)
   if (Object.keys(constraints).length === 0) return
 
-  let where
-  if (req.event === 'UPDATE' || req.event === 'UPSERT') {
-    const prop = req.event
-    if (req.query[prop].where) {
-      where = req.query[prop].where
-    } else if (req.query[prop].entity.ref[0].where) {
-      where = req.query[prop].entity.ref[0].where
-    }
-  } else if (req.event === 'INSERT' || req.event === 'CREATE') {
-    // REVISIT: handle batch
-    const primaryKeys = Object.keys(req.target.keys)
-    const values = req.data
-    where = primaryKeys.reduce((where, key) => {
-      if (where.length) where.push('and')
-      where.push({ ref: [key] }, '=', values[key])
-      return where
-    }, [])
-    console.log('where', where)
-  }
+  let whereClauses = [];
 
-  // now we send a select query with a columns clause that contains all the constraints
-  const validation = SELECT.from(req.target)
+if (req.event === 'INSERT' || req.event === 'CREATE') {
+  const primaryKeys = Object.keys(req.target.keys);
+  const dataEntries = Array.isArray(req.data) ? req.data : [req.data]; // Ensure batch handling
+  
+  // Construct where clauses for each data entry
+  whereClauses = dataEntries.map(entry =>
+    primaryKeys.reduce((where, key) => {
+      const propertyValue = entry[key];
+      if (propertyValue === undefined) {
+        // Skip keys with undefined values, e.g. csv import
+        return where;
+      }
+      if (where.length) where.push('and');
+      where.push({ ref: [key] }, '=', { val: propertyValue });
+      return where;
+    }, [])
+  );
+
+} else if (req.event === 'UPDATE' || req.event === 'UPSERT') {
+  const prop = req.event;
+  
+  if (req.query[prop]?.where) {
+    whereClauses.push(req.query[prop].where);
+  } else if (req.query[prop]?.entity?.ref[0]?.where) {
+    whereClauses.push(req.query[prop].entity.ref[0].where);
+  }
+}
+
+// REVISIT: Ensure whereClauses is defined for other cases
+if (!whereClauses.length) {
+  // Handle scenarios where no `where` clause is defined
+  // E.g., aggregation assertions
+  return;
+}
+
+// Process each where clause
+await Promise.all(
+  whereClauses.map(async where => {
+    await validateConstraints.call(this, req, constraints, where);
+  })
+);
+
+return;
+}
+async function validateConstraints(req, constraints, where) {
+  const validation = SELECT.from(req.target).where(...where)
   const columns = Object.keys(constraints).map(name => {
     const constraint = constraints[name]
     const {
@@ -79,8 +105,11 @@ module.exports = async function assert_constraint(results, req) {
       },
     }
   })
+  let foo = SELECT.from(req.target).where('ID = 43')
+  foo.SELECT.columns = ['*', ...columns]
+  const bar = await foo
   validation.SELECT.columns = columns
-  validation.where = where
+  // validation.SELECT.where = where
   validation.SELECT.one = true
   const validationResult = await validation
 
@@ -92,5 +121,4 @@ module.exports = async function assert_constraint(results, req) {
       req.reject(400, message || `Constraint ${name} failed`)
     }
   }
-  return
 }

@@ -34,19 +34,19 @@ describe('Bookshop - assertions', () => {
     })
   })
 
-  describe.only('INSERT', () => {
+  describe('INSERT', () => {
     test('simple assertion, no negative stocks', async () => {
-      await expect(INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books))
+      await INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books)
       // book should not have been inserted
       const book = await SELECT.one.from(Books).where({ ID: 43 })
       expect(book).to.be.undefined
     })
 
-    test.skip('assertion in batch', async () => {
-      await expect(INSERT.into(Books).entries([
+    test('assertion in batch', async () => {
+      await INSERT.into(Books).entries([
         { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
         { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },
-      ]))
+      ])
       // both books should not have been inserted
       const books = await SELECT.from(Books).where({ ID: { in: [44, 45] } })
       expect(books).to.have.length(0)
