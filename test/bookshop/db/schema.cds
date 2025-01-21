@@ -6,6 +6,12 @@ namespace sap.capire.bookshop;
   message: 'The stock must be greater than 0 after withdrawal',
   parameters: []     // to be inserted into the message
 }
+@assert.constraint#averagePriceNotTooHigh : {
+  condition: ( avg(price) <= 50 ),
+  aggregation: true,
+  message: 'The average price of the books must not exceed 50',
+  parameters: []     // to be inserted into the message
+}
 entity Books : managed {
   key ID : Integer;
   title  : localized String(111);

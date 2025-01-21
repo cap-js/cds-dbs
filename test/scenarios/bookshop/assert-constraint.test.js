@@ -7,8 +7,7 @@ describe('Bookshop - assertions', () => {
 
   before('bootstrap the database', async () => {
     Books = cds.entities.Books
-    cats = await cds.connect.to('CatalogService')
-    await INSERT({ ID: 42, title: 'Harry Potter and the Chamber of Secrets', stock: 15 }).into(Books)
+    await INSERT({ ID: 42, title: 'Harry Potter and the Chamber of Secrets', stock: 15, price: 15 }).into(Books)
   })
 
   describe('UPDATE', () => {
@@ -21,6 +20,7 @@ describe('Bookshop - assertions', () => {
     })
 
     test('assertion via action', async () => {
+      cats = await cds.connect.to('CatalogService')
       // try to withdraw more books than there are in stock
       await cats.tx({ user: 'alice' }, async () => {
         await expect(cats.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
@@ -50,6 +50,13 @@ describe('Bookshop - assertions', () => {
       // both books should not have been inserted
       const books = await SELECT.from(Books).where({ ID: { in: [44, 45] } })
       expect(books).to.have.length(0)
+    })
+
+    test.only('assertion via aggregation', async () => {
+      await INSERT({ ID: 46, title: 'Harry Potter and the Half-Blood Prince', stock: 10 }).into(Books)
+      // stock for harry potter should still be 15
+      const book = await SELECT.one.from(Books).where({ ID: 46 })
+      expect(book.stock).to.equal(10)
     })
   })
 })

@@ -1,45 +1,8 @@
-const cds = require('@sap/cds')
+'use strict'
 
-// returns all properties which start with '@assert.constraint#…' from the given entity
-// everything after the qualifier '#' and up to the first dot is considered as constraint name
-// everything after the dot e.g. '…#foo.value' should result in:
-// constraints = { foo: { value: … } }
-function getConstraints(entity) {
-  const constraints = {}
+const { getTarget } = require("@sap/cds/libx/common/assert/utils")
 
-  for (const key in entity) {
-    if (key.startsWith('@assert.constraint#')) {
-      // Extract the part after '#'
-      const constraintPart = key.split('#')[1]
-
-      // Extract the constraint name and path
-      const [name, ...pathParts] = constraintPart.split('.')
-
-      // Initialize the constraint object if not already present
-      if (!constraints[name]) {
-        constraints[name] = {}
-      }
-
-      // Use the path parts to set the nested property
-      let current = constraints[name]
-      for (let i = 0; i < pathParts.length - 1; i++) {
-        const part = pathParts[i]
-        if (!current[part]) {
-          current[part] = {}
-        }
-        current = current[part]
-      }
-
-      // Set the final value
-      const finalKey = pathParts[pathParts.length - 1]
-      current[finalKey] = entity[key]
-    }
-  }
-
-  return constraints
-}
-
-module.exports = async function assert_constraint(results, req) {
+module.exports = async function assert_constraint(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   const constraints = getConstraints(req.target)
   if (Object.keys(constraints).length === 0) return
@@ -96,7 +59,18 @@ async function validateConstraints(req, constraints, where) {
     const constraint = constraints[name]
     const {
       condition: { xpr },
+      aggregation,
     } = constraint
+    if (aggregation) {
+      const subselect = SELECT.from(req.target).columns({ xpr, as: name }).where(...where)
+      return {
+        ...subselect,
+        as: name,
+        cast: {
+          type: 'cds.Boolean',
+        },
+      }
+    }
     return {
       xpr,
       as: name,
@@ -105,11 +79,7 @@ async function validateConstraints(req, constraints, where) {
       },
     }
   })
-  let foo = SELECT.from(req.target).where('ID = 43')
-  foo.SELECT.columns = ['*', ...columns]
-  const bar = await foo
   validation.SELECT.columns = columns
-  // validation.SELECT.where = where
   validation.SELECT.one = true
   const validationResult = await validation
 
@@ -121,4 +91,43 @@ async function validateConstraints(req, constraints, where) {
       req.reject(400, message || `Constraint ${name} failed`)
     }
   }
+}
+
+// returns all properties which start with '@assert.constraint#…' from the given entity
+// everything after the qualifier '#' and up to the first dot is considered as constraint name
+// everything after the dot e.g. '…#foo.value' should result in:
+// constraints = { foo: { value: … } }
+function getConstraints(entity) {
+  const constraints = {}
+
+  for (const key in entity) {
+    if (key.startsWith('@assert.constraint#')) {
+      // Extract the part after '#'
+      const constraintPart = key.split('#')[1]
+
+      // Extract the constraint name and path
+      const [name, ...pathParts] = constraintPart.split('.')
+
+      // Initialize the constraint object if not already present
+      if (!constraints[name]) {
+        constraints[name] = {}
+      }
+
+      // Use the path parts to set the nested property
+      let current = constraints[name]
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i]
+        if (!current[part]) {
+          current[part] = {}
+        }
+        current = current[part]
+      }
+
+      // Set the final value
+      const finalKey = pathParts[pathParts.length - 1]
+      current[finalKey] = entity[key]
+    }
+  }
+
+  return constraints
 }

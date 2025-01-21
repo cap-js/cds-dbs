@@ -9,6 +9,7 @@ service AdminService @(requires:'admin', path:'/admin') {
     key ID as foo,
     author,
     author.name,
-    stock
+    stock,
+    price,
   }
 }
