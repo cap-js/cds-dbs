@@ -796,8 +796,10 @@ function cqn4sql(originalQuery, model) {
     // columns of the expand must be in the groupBy
     if (transformedQuery.SELECT.groupBy) {
       const baseRef = column.$refLinks[0].definition.SELECT || ref
-
-      return _subqueryForGroupBy(column, baseRef, columnAlias)
+      const wildcardIndex = column.expand.findIndex(e => e === '*')
+      if (wildcardIndex === -1) {
+        return _subqueryForGroupBy(column, baseRef, columnAlias)
+      }
     }
 
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
@@ -877,11 +879,6 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
-      const wildcardIndex = column.expand.findIndex(e => e === '*')
-      if (wildcardIndex !== -1) {
-        // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
-        return null
-      }
       const expandedColumns = column.expand.flatMap(expand => {
         if (!expand.ref) return expand
         const fullRef = [...baseRef, ...expand.ref]
