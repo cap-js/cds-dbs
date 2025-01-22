@@ -1,9 +1,10 @@
 const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable } = require('stream')
-const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const cacheSymbol = Symbol('sql cache')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -117,7 +118,7 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
+  async onSELECT({ query, data = query.params }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
@@ -166,7 +167,7 @@ class SQLService extends DatabaseService {
    * Handler for INSERT
    * @type {Handler}
    */
-  async onINSERT({ query, data }) {
+  async onINSERT({ query, data = query.params }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
@@ -178,7 +179,7 @@ class SQLService extends DatabaseService {
    * Handler for UPSERT
    * @type {Handler}
    */
-  async onUPSERT({ query, data }) {
+  async onUPSERT({ query, data = query.params }) {
     const { sql, entries } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     const ps = await this.prepare(sql)
@@ -206,7 +207,7 @@ class SQLService extends DatabaseService {
    * Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN
    * @type {Handler}
    */
-  async onSIMPLE({ query, data }) {
+  async onSIMPLE({ query, data = query.params }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     return (await ps.run(values)).changes
@@ -377,15 +378,19 @@ class SQLService extends DatabaseService {
    * @returns {typeof SQLService.CQN2SQL}
    */
   cqn2sql(query, values) {
-    let q = this.cqn4sql(query)
-    let kind = q.kind || Object.keys(q)[0]
-    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
-      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
+    if (Object.hasOwn(query, cacheSymbol)) {
+      const cache = query[cacheSymbol]
+      if (!cache.params) return cache
+      const ret = { __proto__: cache }
+      ret.updateParams(values)
+      return ret
     }
+
+    let q = this.cqn4sql(query)
     let cqn2sql = new this.class.CQN2SQL(this)
-    return cqn2sql.render(q, values)
+    const ret = cqn2sql.render(q, values)
+    Object.defineProperty(query, cacheSymbol, { value: ret })
+    return ret
   }
 
   /**

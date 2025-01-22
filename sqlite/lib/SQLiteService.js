@@ -114,12 +114,12 @@ class SQLiteService extends SQLService {
     yield ']'
   }
 
-  pragma (pragma, options) {
-    if (!this.dbc) return this.begin('pragma') .then (tx => {
-      try { return tx.pragma (pragma, options) }
+  pragma(pragma, options) {
+    if (!this.dbc) return this.begin('pragma').then(tx => {
+      try { return tx.pragma(pragma, options) }
       finally { tx.release() }
     })
-    return this.dbc.pragma (pragma, options)
+    return this.dbc.pragma(pragma, options)
   }
 
 
@@ -137,7 +137,7 @@ class SQLiteService extends SQLService {
     return any ? Promise.all(values) : values
   }
 
-  async onSIMPLE({ query, data }) {
+  async onSIMPLE({ query, data = query.params }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     const vals = await this._prepareStreams(values)

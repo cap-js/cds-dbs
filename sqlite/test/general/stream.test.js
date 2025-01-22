@@ -85,7 +85,7 @@ describe('streaming', () => {
           { ID: ID1, data: stream1, data2: stream2 },
           { ID: ID2, data: stream3, data2: stream4 },
           { ID: ID3, data: stream5, data2: stream6 }
-        ] = await SELECT.from(Images).columns(['ID', 'data', 'data2'])
+        ] = await SELECT.from(Images).columns(['ID', 'data', 'data2']).orderBy`ID`
         await checkSize(stream1)
         await checkSize(stream2)
         expect(stream3).to.be.null
@@ -107,7 +107,7 @@ describe('streaming', () => {
 
       test('READ multiple entries ignore stream properties if columns = all', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
-        const result = await SELECT.from(Images)
+        const result = await SELECT.from(Images).orderBy`ID`
         expect(result[0].ID).equals(1)
         expect(result[0].data).to.be.undefined
         expect(result[0].data2).to.be.undefined

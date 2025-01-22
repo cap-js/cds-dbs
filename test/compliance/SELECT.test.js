@@ -391,14 +391,14 @@ describe('SELECT', () => {
     })
 
     // REVISIT: it is not yet fully supported to have named parameters on all databases
-    test.skip('param named', async () => {
+    test('param named', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string = :param`
       const res = await cds.run(cqn, { param: 'yes' })
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
-    test.skip('param number', async () => {
+    test('param number', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = CQL`SELECT string FROM ${string} WHERE string = :7`
       const res = await cds.run(cqn, { 7: 'yes' })
@@ -526,7 +526,7 @@ describe('SELECT', () => {
         let res
         try {
           res = await tx.run(query)
-        } catch (err) { 
+        } catch (err) {
           if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
           throw err
         }
@@ -580,21 +580,21 @@ describe('SELECT', () => {
 
     test('not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('and beetwen CASE statements with not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = CQL`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
@@ -1420,7 +1420,7 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list', ...(minimal ? [] : ['SELECT'])]) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)

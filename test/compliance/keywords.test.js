@@ -56,8 +56,6 @@ describe('keywords', () => {
     expect(select).to.eql({ ID: 42, select: 4711 })
 
     await UPSERT.into(ASC).entries({ ID: 42, alias: 9 })
-      .columns(['ID', 'select'])
-      .rows([[42, 4711]])
     select = await SELECT.one.from(ASC).where('ID = 42')
     expect(select).to.eql({ ID: 42, select: 4711, alias: 9 })
   })
