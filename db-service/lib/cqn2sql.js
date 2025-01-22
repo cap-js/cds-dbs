@@ -701,7 +701,8 @@ class CQN2SQLRenderer {
 
     if (!elements) {
       this.entries = INSERT.rows
-      const param = this.param.bind(this, { ref: ['?'] })
+      const param = () => this.param({ ref: ['?'] })
+      this.updateParams = this.INSERT_rows_unresolved_update
       return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(c))}) VALUES (${columns.map(param)})`)
     }
 
@@ -726,6 +727,19 @@ class CQN2SQLRenderer {
     stream.type = 'json'
     stream._raw = entries
     this.entries = [[stream]]
+  }
+
+  INSERT_rows_unresolved_update(entries) {
+    entries = Array.isArray(entries?.[0]) ? entries : [entries]
+
+    const params = this.params
+    this.params = undefined
+    this.entries = []
+    for(const row of entries) {
+      this.values = []
+      params.forEach(p => this.val({ val: row[p] }))
+      this.entries.push(this.values)
+    }
   }
 
   /**

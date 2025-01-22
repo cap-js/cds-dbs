@@ -179,7 +179,7 @@ class HANAService extends SQLService {
           ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
           : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
         : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, results)
+      return new this.class.InsertResults(cqn, [results])
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
     }
@@ -224,7 +224,7 @@ class HANAService extends SQLService {
       values.length === 1
         ? values[0] + (values[0].indexOf(`SELECT '$[' as "_path_"`) < 0 ? pathOrder : '')
         : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
-    )
+    ) + ' WITH HINT(USE_HEX_PLAN,OPTIMIZATION_LEVEL(RULE_BASED))'
     DEBUG?.(ret)
     return ret
   }
@@ -727,33 +727,14 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this.managed(columns.map(c => ({ name: c })), elements)
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
       const converter = extractions.map(c => c.insert)
 
-      const _stream = entries => {
-        const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
-        stream.setEncoding('utf-8')
-        stream.type = 'json'
-        stream._raw = entries
-        return stream
-      }
-
-      // HANA Express does not process large JSON documents
-      // The limit is somewhere between 64KB and 128KB
-      if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable
-          ? [e]
-          : [_stream([e])]))
-      } else {
-        this.entries = [[
-          INSERT.entries[0] instanceof Readable
-            ? INSERT.entries[0]
-            : _stream(INSERT.entries)
-        ]]
-      }
+      if (this.params) this.updateParams = this.INSERT_entries_update
+      else this.INSERT_entries_update(INSERT.entries)
 
       // WITH SRC is used to force HANA to interpret the ? as a NCLOB allowing for streaming of the data
       // Additionally for drivers that did allow for streaming of NVARCHAR they quickly reached size limits
@@ -771,9 +752,51 @@ class HANAService extends SQLService {
       SELECT ${converter} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW`)
     }
 
+    INSERT_entries_update(entries) {
+      const _stream = entries => {
+        const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
+        stream.setEncoding('utf-8')
+        stream.type = 'json'
+        stream._raw = entries
+        return stream
+      }
+
+      entries = Array.isArray(entries) ? entries : [entries]
+
+      // HANA Express does not process large JSON documents
+      // The limit is somewhere between 64KB and 128KB
+      if (HANAVERSION <= 2) {
+        this.entries = entries.map(e => (e instanceof Readable
+          ? [e]
+          : [_stream([e])]))
+      } else {
+        this.entries = [[
+          entries[0] instanceof Readable
+            ? entries[0]
+            : _stream(entries)
+        ]]
+      }
+    }
+
     INSERT_rows(q) {
       const { INSERT } = q
 
+      const elements = q.elements || q.target?.elements
+      if (!elements) {
+        return super.INSERT_rows(q)
+      }
+
+      if (!this.params) {
+        this.INSERT_rows_update(INSERT.rows)
+        INSERT.entries = this.entries
+      }
+
+      const ret = this.INSERT_entries(q)
+      if (this.params) this.updateParams = this.INSERT_rows_update
+      return ret
+    }
+
+    INSERT_rows_update(rows) {
       // Convert the rows into entries to simplify inserting
       // Tested:
       // - Array JSON INSERT (1.5x)
@@ -782,18 +805,18 @@ class HANAService extends SQLService {
       // - Object JSON INSERT (1x)
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
-      const elements = q.elements || q.target?.elements
-      if (!elements) {
-        return super.INSERT_rows(q)
-      }
 
+      rows = Array.isArray(rows?.[0]) ? rows : [rows]
+
+      const q = this.cqn
+      const INSERT = q.INSERT || q.UPSERT
+      const elements = q.elements || q.target?.elements
       const columns = INSERT.columns || []
       for (const col of ObjectKeys(elements)) {
         if (!columns.includes(col)) columns.push(col)
       }
 
-      const entries = new Array(INSERT.rows.length)
-      const rows = INSERT.rows
+      const entries = new Array(rows.length)
       for (let x = 0; x < rows.length; x++) {
         const row = rows[x]
         const entry = {}
@@ -804,8 +827,8 @@ class HANAService extends SQLService {
         }
         entries[x] = entry
       }
-      INSERT.entries = entries
-      return this.INSERT_entries(q)
+
+      this.INSERT_entries_update(entries)
     }
 
     UPSERT(q) {
@@ -822,22 +845,25 @@ class HANAService extends SQLService {
       // temporal data
       keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
 
-      const managed = this.managed(
-        this.columns.map(c => ({ name: c })),
-        elements
-      )
-
+      const managed = this._managed
       const keyCompare = managed
         .filter(c => keys.includes(c.name))
         .map(c => `${c.insert}=OLD.${this.quote(c.name)}`)
         .join(' AND ')
 
-      const mixing = managed.map(c => c.upsert)
-      const extraction = managed.map(c => c.extract)
-
-      const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
-
+      let src
+      let prefix = ''
+      if (UPSERT.as) {
+        // Reset values and params as they where already created in INSERT_select
+        if (this.values) this.values = []
+        if (this.params) this.params = []
+        src = `SELECT ${managed.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(this.cqn4sql(UPSERT.as))}) AS NEW`
+      } else {
+        const extract = managed.map(c => c.extract)
+        prefix = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)`
+        src = `SELECT * FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extract}))`
+      }
+      const sql = `${prefix}SELECT ${managed.slice(0, this.columns.length).map(c => c.upsert)} FROM (${src}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
 

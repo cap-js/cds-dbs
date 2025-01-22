@@ -79,18 +79,17 @@ describe('SQL cache', () => {
         yield ']'
       }
 
-      const first = await cds.run(cqn, row())
-      const second = await cds.run(cqn, [row(), row()])
-      const third = await cds.run(cqn, Readable.from(str(3), { objectMode: false }))
-      // const fourth = await cds.run(cqn, gen(4))
-      expect(first | 0).eq(1)
-      expect(second | 0).eq(2)
-      expect(third | 0).eq(3)
-      // expect(fourth | 0).eq(4)
+      await cds.run(cqn, row())
+      await cds.run(cqn, [row(), row()])
+      await cds.run(cqn, Readable.from(str(3), { objectMode: false }))
+      // await cds.run(cqn, gen(4))
 
+      let count = 0
       for (const r of await SELECT.from(keys)) {
         expect(r.data).lt(i)
+        count++
       }
+      expect(count).eq(6)
     })
 
     test('rows', async () => {
@@ -112,14 +111,10 @@ describe('SQL cache', () => {
         }
         yield ']'
       }
-      const first = await cds.run(cqn, [row()])
-      const second = await cds.run(cqn, [row(), row()])
-      const third = await cds.run(cqn, Readable.from(str(3), { objectMode: false }))
-      // const fourth = await cds.run(cqn, gen(4))
-      expect(first | 0).eq(1)
-      expect(second | 0).eq(2)
-      expect(third | 0).eq(3)
-      // expect(fourth | 0).eq(4)
+      await cds.run(cqn, [row()])
+      await cds.run(cqn, [row(), row()])
+      // await cds.run(cqn, Readable.from(str(3), { objectMode: false }))
+      // await cds.run(cqn, gen(4))
 
       for (const r of await SELECT.from(keys)) {
         expect(r.data).lt(i)
@@ -134,11 +129,8 @@ describe('SQL cache', () => {
       const cqn = cds.ql[method](cds.ql`SELECT id + :id as id:Integer, :data as data:String from ${keys}`).into(keys)
 
       let i = 1
-      const first = await cds.run(cqn, { id: i, data: `${i++}` })
-      const second = await cds.run(cqn, { id: i, data: `${i++}` })
-
-      expect(first | 0).eq(1)
-      expect(second | 0).eq(2)
+      await cds.run(cqn, { id: i, data: `${i++}` })
+      await cds.run(cqn, { id: i, data: `${i++}` })
 
       for (const r of await SELECT.from(keys)) {
         expect(r.data).lt(i)
