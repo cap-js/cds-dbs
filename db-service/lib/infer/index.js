@@ -44,9 +44,17 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
+  // path expressions in from.ref.at(-1).where
+  // are collected here and merged once the joinTree is initialized
+  const mergeOnceJoinTreeIsInitialized = []
+
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
+  if (mergeOnceJoinTreeIsInitialized.length) {
+    mergeOnceJoinTreeIsInitialized.forEach(arg => joinTree.mergeColumn(arg, originalQuery.outerQueries))
+  }
+
   Object.defineProperties(inferred, {
     // REVISIT: public, or for local reuse, or in cqn4sql only?
     sources: { value: sources, writable: true },
@@ -401,7 +409,7 @@ function infer(originalQuery, model) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom } = context
+    const { inExists, inExpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, atFromLeaf } = context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
@@ -448,7 +456,7 @@ function infer(originalQuery, model) {
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
               if (isNonForeignKeyNavigation(element, nextStep)) {
-                if (inExists) {
+                if (inExists || inFrom) {
                   Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
                 } else {
                   rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
@@ -567,13 +575,19 @@ function infer(originalQuery, model) {
               inExpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
+              atFromLeaf: inFrom && !arg.ref[i + 1],
             })
           } else if (token.func) {
             if (token.args) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
-                arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inExpr: true, inInfixFilter: true, inFrom },
+                arg.$refLinks[i], {
+                  inExists: skipJoinsForFilter || inExists,
+                  inExpr: true,
+                  inInfixFilter: true,
+                  inFrom,
+                  atFromLeaf: inFrom && !arg.ref[i + 1],
+                },
               ])
             }
           }
@@ -629,7 +643,14 @@ function infer(originalQuery, model) {
     })
 
     // we need inner joins for the path expressions inside filter expressions after exists predicate
-    if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
+    if ($baseLink?.pathExpressionInsideFilter) {
+      Object.defineProperty(arg, 'join', { value: 'inner' })
+      if (inFrom && atFromLeaf && !inExists) {
+        // join tree not yet initialized
+        Object.defineProperty(arg, 'isJoinRelevant', { value: true })
+        mergeOnceJoinTreeIsInitialized.push(arg)
+      }
+    }
 
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
@@ -876,8 +897,7 @@ function infer(originalQuery, model) {
             step[nestedProp].forEach(a => {
               // reset sub path for each nested argument
               // e.g. case when <path> then <otherPath> else <anotherPath> end
-              if(!a.ref)
-                subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+              if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
           }
@@ -888,7 +908,7 @@ function infer(originalQuery, model) {
         const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
         if (calcElementIsJoinRelevant) {
           if (!calcElement.value.isJoinRelevant)
-            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true,  })
+            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
           joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,

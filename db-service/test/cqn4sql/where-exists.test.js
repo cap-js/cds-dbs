@@ -1553,7 +1553,7 @@ describe('path expression within infix filter following exists predicate', () =>
         )`,
     )
   })
-  it('rejects the path expression at the leaf of scoped queries', () => {
+  it.skip('rejects the path expression at the leaf of scoped queries', () => {
     // original idea was to just add the `genre.name` as where clause to the query
     // however, with left outer joins we might get too many results
     //
@@ -1565,6 +1565,51 @@ describe('path expression within infix filter following exists predicate', () =>
 
     expect(() => cqn4sql(query, model)).to.throw(
       `Only foreign keys of “genre” can be accessed in infix filter, but found “name”`
+    )
+  })
+  it('renders inner joins for the path expression at the leaf of scoped queries', () => {
+    let query = CQL`SELECT from bookshop.Authors:books[genre.name = null] { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        )
+        and genre.name = NULL`,
+    )
+  })
+  it('renders inner joins for the path expression along the scoped query path', () => {
+    let query = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null] as MyBook { ID }`
+    // REVISIT:
+    // if no explicit alias is provided, books.title in the infix filter refers to outer query
+    // --> no join is generated in that case. How do the statements semantically differ?
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as MyBook
+      inner join bookshop.Genres as genre on genre.ID = MyBook.genre_ID
+      { MyBook.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors
+          inner join bookshop.Books as books on books.author_ID = Authors.ID
+          where Authors.ID = MyBook.author_ID and books.title LIKE '%POE%'
+        )
+        and genre.name = NULL`,
+    )
+
+    let queryShadowsAlias = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null] { ID }`
+    const transformedShadowsAlias = cqn4sql(queryShadowsAlias, model)
+    expect(transformedShadowsAlias).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors
+          where Authors.ID = books.author_ID and books.title LIKE '%POE%'
+        )
+        and genre.name = NULL`,
     )
   })
 
