@@ -638,7 +638,14 @@ describe('SELECT', () => {
 
     test('navigation with duplicate identifier in path', async () => {
       const { Books } = cds.entities('complex.associations')
-      const cqn = CQL`SELECT FROM ${Books} { name { name } } GROUP BY name.name`
+      const cqn = CQL`SELECT name { name } FROM ${Books} GROUP BY name.name`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+
+    test('navigation with duplicate identifier in path and aggregation', async () => {
+      const { Books } = cds.entities('complex.associations')
+      const cqn = CQL`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
