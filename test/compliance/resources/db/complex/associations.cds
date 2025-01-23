@@ -4,6 +4,7 @@ entity Books {
   key ID : Integer;
   title  : String(111);
   author : Association to Authors;
+  name   : Association to Authors on $self.author.ID = ID;
 }
 
 entity Authors {

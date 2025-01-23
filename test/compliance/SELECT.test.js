@@ -635,6 +635,13 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
+
+    test('navigation with duplicate identifier in path', async () => {
+      const { Books } = cds.entities('complex.associations')
+      const cqn = CQL`SELECT FROM ${Books} { name { name } } GROUP BY name.name`
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
   })
 
   describe('having', () => {
