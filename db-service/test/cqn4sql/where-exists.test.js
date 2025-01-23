@@ -1596,6 +1596,26 @@ describe('path expression within infix filter following exists predicate', () =>
         and parent.name = NULL`,
     )
   })
+  it('renders nested inner joins for the path expression NOT ONLY at the leaf of scoped queries', () => {
+    // Shadowing is also an issue here.
+    // should it at all be possible to break out of filter scope (target of assoc)?
+    let query = CQL`SELECT from bookshop.Authors[books.genre.name = 'Fantasy']:books[genre.parent.name = null] as MyBook { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as MyBook
+      inner join bookshop.Genres as genre on genre.ID = MyBook.genre_ID
+      inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      { MyBook.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors
+          inner join bookshop.Books as books on books.author_ID = Authors.ID
+          inner join bookshop.Genres as genre2 on genre2.ID = books.genre_ID
+          where Authors.ID = MyBook.author_ID and genre2.name = 'Fantasy'
+        )
+        and parent.name = NULL`,
+    )
+  })
   it('renders inner joins for the path expression along the scoped query path', () => {
     let query = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null] as MyBook { ID }`
     // REVISIT:
