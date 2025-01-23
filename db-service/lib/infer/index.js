@@ -520,7 +520,7 @@ function infer(originalQuery, model) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
             if (isNonForeignKeyNavigation(element, nextStep)) {
-              if (inExists) {
+              if (inExists || inFrom) {
                 Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
               } else {
                 rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
