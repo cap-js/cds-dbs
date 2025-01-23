@@ -1613,6 +1613,27 @@ describe('path expression within infix filter following exists predicate', () =>
     )
   })
 
+  it('renders inner joins for the path expression along the scoped query with 3 paths', () => {
+    let query = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null].genre[parent.name = null] as MyGenre { ID }`
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Genres as MyGenre
+      inner join bookshop.Genres as parent on parent.ID = MyGenre.parent_ID
+      { MyGenre.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as books
+          inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+          where books.genre_ID = MyGenre.ID and genre.name = null
+          and EXISTS (
+            SELECT 1 from bookshop.Authors as Authors
+            inner join bookshop.Books as books2 on books2.author_ID = Authors.ID
+            where Authors.ID = books.author_ID and books2.title LIKE '%POE%'
+            )
+        )
+        and parent.name = NULL`,
+    )
+  })
+
   it('in case statements', () => {
     // TODO: Aliases for genre could be improved
     let query = cqn4sql(
