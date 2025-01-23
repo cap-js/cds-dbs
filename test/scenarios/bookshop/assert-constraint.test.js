@@ -12,7 +12,6 @@ describe('Bookshop - assertions', () => {
 
   describe('UPDATE', () => {
     test('simple assertion', async () => {
-      // await expect(UPDATE(Books, '42').with({ stock: -1 })).to.be.rejectedWith(/The stock must be greater than 0/)
       await UPDATE(Books, '42').with({ stock: -1 })
       // stock for harry potter should still be 15
       const book = await SELECT.one.from(Books).where({ ID: 42 })
@@ -52,11 +51,15 @@ describe('Bookshop - assertions', () => {
       expect(books).to.have.length(0)
     })
 
-    test.only('assertion via aggregation', async () => {
+    test('assertion via aggregation', async () => {
       await INSERT({ ID: 46, title: 'Harry Potter and the Half-Blood Prince', stock: 10 }).into(Books)
-      // stock for harry potter should still be 15
-      const book = await SELECT.one.from(Books).where({ ID: 46 })
+      const book = await SELECT.one.from(Books).where({ ID: 46 }) // no problem if no price provided
       expect(book.stock).to.equal(10)
+      // Insert very expensive book
+      await INSERT({ ID: 47, title: 'Harry Potter and the Deathly Hallows', stock: 10, price: 1000 }).into(Books)
+      // book should not have been inserted
+      const book2 = await SELECT.one.from(Books).where({ ID: 47 })
+      expect(book2).to.be.undefined
     })
   })
 })

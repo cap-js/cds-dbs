@@ -1,7 +1,6 @@
 'use strict'
 
-const { getTarget } = require("@sap/cds/libx/common/assert/utils")
-
+const cds = require('@sap/cds')
 module.exports = async function assert_constraint(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   const constraints = getConstraints(req.target)
@@ -55,6 +54,7 @@ return;
 }
 async function validateConstraints(req, constraints, where) {
   const validation = SELECT.from(req.target).where(...where)
+let foo 
   const columns = Object.keys(constraints).map(name => {
     const constraint = constraints[name]
     const {
@@ -62,9 +62,9 @@ async function validateConstraints(req, constraints, where) {
       aggregation,
     } = constraint
     if (aggregation) {
-      const subselect = SELECT.from(req.target).columns({ xpr, as: name }).where(...where)
+      const subquery = SELECT.from(req.target).columns({ xpr, as: name })
       return {
-        ...subselect,
+        ...subquery,
         as: name,
         cast: {
           type: 'cds.Boolean',
@@ -79,6 +79,7 @@ async function validateConstraints(req, constraints, where) {
       },
     }
   })
+
   validation.SELECT.columns = columns
   validation.SELECT.one = true
   const validationResult = await validation
