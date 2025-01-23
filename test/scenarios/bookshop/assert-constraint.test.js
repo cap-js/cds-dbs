@@ -61,5 +61,13 @@ describe('Bookshop - assertions', () => {
       const book2 = await SELECT.one.from(Books).where({ ID: 47 })
       expect(book2).to.be.undefined
     })
+
+    test('no stock is okay', async () => {
+      await INSERT({ ID: 48, title: 'Harry Potter and the Cursed Child', stock: null }).into(Books)
+
+      const book = await SELECT.one.from(Books).where({ ID: 48 })
+      expect(book).to.exist
+
+    })
   })
 })

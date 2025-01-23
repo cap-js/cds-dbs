@@ -7,7 +7,7 @@ using {
 namespace sap.capire.bookshop;
 
 @assert.constraint#stockNotEmpty : {
-  condition: ( stock >= 0 ),
+  condition: ( stock >= 0 or stock IS NULL ),
   message: 'The stock must be greater than 0 after withdrawal',
   parameters: []     // to be inserted into the message
 }
