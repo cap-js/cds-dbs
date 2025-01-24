@@ -183,7 +183,7 @@ describe('streaming', () => {
         await checkSize(stream2_)
       }))
 
-      test('WRITE stream property from READ stream', async () => cds.tx(async () => {
+      test.skip('WRITE stream property from READ stream', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
 

@@ -861,7 +861,7 @@ class HANAService extends SQLService {
       } else {
         const extract = managed.map(c => c.extract)
         prefix = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)`
-        src = `SELECT * FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extract}))`
+        src = `SELECT * FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extract}) ERROR ON ERROR)`
       }
       const sql = `${prefix}SELECT ${managed.slice(0, this.columns.length).map(c => c.upsert)} FROM (${src}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)

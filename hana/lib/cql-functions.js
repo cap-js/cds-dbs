@@ -111,7 +111,7 @@ const HANAFunctions = {
   current_date: () => 'current_utcdate',
   current_time: () => 'current_utctime',
   current_timestamp: () => 'current_utctimestamp',
-  current_utctimestamp: x => x ? `current_utctimestamp(${x})` : 'current_utctimestamp',
+  current_utctimestamp: x => x ? `current_utctimestamp(cast(${x} as Integer))` : 'current_utctimestamp',
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]

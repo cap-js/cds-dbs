@@ -89,7 +89,8 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
-  test('groupby with multiple path expressions and filter', async () => {
+  // REVISIT: problematic test case as the result is not checked and the CQN generate is: (having null = 1)
+  test.skip('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
     expect(res.status).to.be.eq(200)
   })

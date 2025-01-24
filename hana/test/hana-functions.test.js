@@ -5,46 +5,27 @@ describe('HANA native functions', () => {
 
   describe('current_timestamp', () => {
     test('no arguments', async () => {
-      const cqn = { SELECT: {
-        one: true,
-        from: {ref: ['DUMMY']}, 
-        columns: [{func: 'CURRENT_UTCTIMESTAMP', as: 'NO'}]
-      }}
-  
-      const res = await cds.run(cqn)
-  
-      expect(res.NO.match(/\.(\d\d\d)0000/)).not.to.be.null // default 3
-    })
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const [{ no, p1, p2, p3, p4, p5, p6, p7 }] = await cds.ql`SELECT FROM ${Books} {
+        CURRENT_UTCTIMESTAMP() AS no,
+        CURRENT_UTCTIMESTAMP(0) AS p0,
+        CURRENT_UTCTIMESTAMP(1) AS p1,
+        CURRENT_UTCTIMESTAMP(2) AS p2,
+        CURRENT_UTCTIMESTAMP(3) AS p3,
+        CURRENT_UTCTIMESTAMP(4) AS p4,
+        CURRENT_UTCTIMESTAMP(5) AS p5,
+        CURRENT_UTCTIMESTAMP(6) AS p6,
+        CURRENT_UTCTIMESTAMP(7) AS p7,
+      }`
 
-    // HXE does not allow args
-    test.skip('0 skips ms precision', async () => {
-      const cqn = { SELECT: {
-        one: true,
-        from: {ref: ['DUMMY']}, 
-        columns: [
-          {func: 'current_utctimestamp', as: 'NO'},
-          {func: 'current_utctimestamp', args: [{val: 0}], as: 'P0'}]
-      }}
-  
-      const res = await cds.run(cqn)
-
-      expect(res.P0.match(/\.0000000/)).not.to.be.null
-    })
-
-    // HXE does not allow args
-    test.skip('arbitrary values', async () => {
-      const cqn = { SELECT: {
-        one: true,
-        from: {ref: ['DUMMY']}, 
-        columns: [
-          {func: 'current_utctimestamp', args: [{val: 3}], as: 'P3'},
-          {func: 'current_utctimestamp', args: [{val: 7}], as: 'P7'}] 
-      }}
-  
-      const res = await cds.run(cqn)
-  
-      expect(res.P3.match(/\.(\d\d\d)0000/)).not.to.be.null
-      expect(res.P7.match(/\.(\d\d\d\d\d\d\d)/)).not.to.be.null
+      expect(/\.\d{3}0{4}/.test(no)).true // default 3
+      expect(/\.\d{1}0{6}/.test(p1)).true
+      expect(/\.\d{2}0{5}/.test(p2)).true
+      expect(/\.\d{3}0{4}/.test(p3)).true
+      expect(/\.\d{4}0{3}/.test(p4)).true
+      expect(/\.\d{5}0{2}/.test(p5)).true
+      expect(/\.\d{6}0{1}/.test(p6)).true
+      expect(/\.\d{7}/.test(p7)).true
     })
   })
 })

@@ -617,7 +617,7 @@ describe('SELECT', () => {
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string,${1}`
+      const cqn = CQL`SELECT string FROM ${string} GROUP BY string,${'static'}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })

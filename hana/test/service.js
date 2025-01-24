@@ -9,6 +9,6 @@ module.exports = {
     "encrypt": true,
     "sslValidateCertificate": false,
     "disableCloudRedirect": true,
-    "driver": "hana-client"
+    "driver": "hdb"
   }
 }
