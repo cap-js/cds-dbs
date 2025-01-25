@@ -93,6 +93,8 @@ class Pool extends EventEmitter {
         reject(reason)
       }
       request.timeout = setTimeout(() => {
+        let idx = this._queue._queue.indexOf(request)
+        if (idx >= 0) this._queue._queue.splice(idx, 1)
         request.reject(new Error('ResourceRequest timed out'))
       }, this.options.acquireTimeoutMillis)
     })
@@ -160,17 +162,27 @@ class Pool extends EventEmitter {
     const waiting = this._queue.length
     if (waiting < 1) return
     const capacity = this._available.size + this._creates.size
-    if (capacity < waiting && this.size < this.options.max) {
-      const _create = this.#createResource()
-      this._creates.add(_create)
-      await _create
-      this._creates.delete(_create)
+    const shortfall = waiting - capacity
+    if (shortfall > 0 && this.size < this.options.max) {
+      const needed = Math.min(shortfall, this.options.max - this.size)
+      for (let i = 0; i < needed; i++) {
+        const _create = this.#createResource()
+        this._creates.add(_create)
+        _create.finally(() => {
+          this._creates.delete(_create)
+          this.#dispense()
+        })
+      }
     }
     const dispense = async resource => {
       const request = this._queue.dequeue()
       if (!request) {
         resource.updateState(ResourceState.IDLE)
         this._available.add(resource)
+        return false
+      }
+      if (request.state !== 'pending') {
+        this.#dispense()
         return false
       }
       this._loans.set(resource.obj, { pooledResource: resource })
