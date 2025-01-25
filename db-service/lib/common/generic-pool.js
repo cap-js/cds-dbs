@@ -198,12 +198,18 @@ class Pool extends EventEmitter {
       if (this.options.testOnBorrow) {
         const validationPromise = (async () => {
           resource.updateState(ResourceState.VALIDATION)
-          const isValid = await this.factory.validate(resource.obj)
-          if (!isValid) {
+          try {
+            const isValid = await this.factory.validate(resource.obj)
+            if (!isValid) {
+              resource.updateState(ResourceState.INVALID)
+              await this.#destroy(resource)
+            }
+            return dispense(resource)
+          } catch {
             resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
+            return false
           }
-          return dispense(resource)
         })()
         _dispenses.push(validationPromise)
       } else {
