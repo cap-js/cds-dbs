@@ -4,6 +4,29 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.1...hana-v1.5.2) (2024-12-18)
+
+
+### Fixed
+
+* Force `sql_simple_queries` to quote in outer select ([#954](https://github.com/cap-js/cds-dbs/issues/954)) ([2071dc8](https://github.com/cap-js/cds-dbs/commit/2071dc8ead5afeb596870b95766e4cd5f3ea70ff))
+
+## [1.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.0...hana-v1.5.1) (2024-12-16)
+
+
+### Fixed
+
+* deep groupby ([#919](https://github.com/cap-js/cds-dbs/issues/919)) ([ce24264](https://github.com/cap-js/cds-dbs/commit/ce24264185aa7d2b7b2f04724c21937694e0e33f))
+* expressions with not on HANA ([#925](https://github.com/cap-js/cds-dbs/issues/925)) ([e67a31b](https://github.com/cap-js/cds-dbs/commit/e67a31b741bead715a474ff65c9f75384605405f))
+* quoted mode ([#937](https://github.com/cap-js/cds-dbs/issues/937)) ([9e62b22](https://github.com/cap-js/cds-dbs/commit/9e62b22a1be90ada9f57cfa63505735d8b8eed88))
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+* track expression type through expressions ([#950](https://github.com/cap-js/cds-dbs/issues/950)) ([a083f74](https://github.com/cap-js/cds-dbs/commit/a083f7427e71f37396654c6933977a9396abbff0))
+
+
+### Performance Improvements
+
+* Remove `$$RN$$` and additional sub selects ([#929](https://github.com/cap-js/cds-dbs/issues/929)) ([b3743a1](https://github.com/cap-js/cds-dbs/commit/b3743a19b72b9bc44b7855578912c7482eade2ea))
+
 ## [1.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.1...hana-v1.5.0) (2024-11-25)
 
 

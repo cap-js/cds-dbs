@@ -5,7 +5,6 @@ const cds = require('@sap/cds')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const { isCalculatedOnRead } = require('../utils')
-const { t } = require('@sap/cds/lib/utils/tar')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -860,7 +859,7 @@ function infer(originalQuery, model) {
       } else if (arg.xpr || arg.args) {
         const prop = arg.xpr ? 'xpr' : 'args'
         arg[prop].forEach(step => {
-          const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+          let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
           if (step.ref) {
             step.$refLinks.forEach((link, i) => {
               const { definition } = link
@@ -875,6 +874,10 @@ function infer(originalQuery, model) {
           } else if (step.args || step.xpr) {
             const nestedProp = step.xpr ? 'xpr' : 'args'
             step[nestedProp].forEach(a => {
+              // reset sub path for each nested argument
+              // e.g. case when <path> then <otherPath> else <anotherPath> end
+              if(!a.ref)
+                subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
           }
@@ -960,7 +963,8 @@ function infer(originalQuery, model) {
           if (element.type !== 'cds.LargeBinary') {
             queryElements[k] = element
           }
-          if (isCalculatedOnRead(element)) {
+          // only relevant if we actually select the calculated element
+          if (originalQuery.SELECT && isCalculatedOnRead(element)) {
             linkCalculatedElement(element)
           }
         }
@@ -1059,14 +1063,6 @@ function infer(originalQuery, model) {
     if (from.as && base.name !== from.as) Object.defineProperty(result, 'name', { value: from.as }) // TODO double check if this is needed
     // in subqueries we need the linked element if an outer query accesses it
     return Object.setPrototypeOf(result, base)
-  }
-
-  // REVISIT: functions without return are by nature side-effect functions -> bad
-  function init$refLinks(arg) {
-    Object.defineProperty(arg, '$refLinks', {
-      value: [],
-      writable: true,
-    })
   }
 
   function getCdsTypeForVal(val) {
