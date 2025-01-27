@@ -83,10 +83,10 @@ function cqn4sql(originalQuery, model) {
       transformedProp.where = getTransformedTokenStream(where)
     }
 
+    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
     // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
     // The already transformed `where` clause is then glued together with the resulting subqueries.
     const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
-    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
     if (inferred.SELECT) {
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
@@ -1721,8 +1721,13 @@ function cqn4sql(originalQuery, model) {
       }
 
       // only append infix filter to outer where if it is the leaf of the from ref
-      if (refReverse[0].where)
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+      if (refReverse[0].where) {
+        const whereIsTransformedLater = (inferred.joinTree && !inferred.joinTree.isInitial) && (originalQuery.DELETE || originalQuery.UPDATE)
+        if (whereIsTransformedLater)
+          filterConditions.push(refReverse[0].where)
+        else
+          filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+      }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
