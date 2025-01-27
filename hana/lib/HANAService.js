@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 /**
  * @implements SQLService
@@ -180,7 +181,7 @@ class HANAService extends SQLService {
         : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
     }
   }
 
@@ -1411,13 +1412,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === 301)
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 
