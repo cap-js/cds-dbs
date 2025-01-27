@@ -644,8 +644,7 @@ describe('SELECT', () => {
 
     test('navigation with duplicate identifier in path and aggregation', async () => {
       const { Books } = cds.entities('complex.associations')
-      const cqn = CQL`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
-      const res = await cds.run(cqn)
+      const res = await cds.ql`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
   })
