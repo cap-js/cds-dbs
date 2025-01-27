@@ -92,11 +92,12 @@ class Pool extends EventEmitter {
         request.state = 'rejected'
         reject(reason)
       }
+      const ttl = this.options.acquireTimeoutMillis
       request.timeout = setTimeout(() => {
-        let idx = this._queue._queue.indexOf(request)
-        if (idx >= 0) this._queue._queue.splice(idx, 1)
-        request.reject(new Error('ResourceRequest timed out'))
-      }, this.options.acquireTimeoutMillis)
+        let i = this._queue._queue.indexOf(request)
+        if (i >= 0) this._queue._queue.splice(i, 1)
+        request.reject(new Error(`ResourceRequest timed out after ${ttl/1000}s`))
+      }, ttl)
     })
     this._queue.enqueue(request)
     this.#dispense()
@@ -147,11 +148,10 @@ class Pool extends EventEmitter {
       this._all.add(pooledResource)
       pooledResource.updateState(ResourceState.IDLE)
       this._available.add(pooledResource)
-    } catch (reason) {
+    } catch (error) {
       const request = this._queue.dequeue()
-      if (request) request.reject(reason)
+      request.reject(error)
     } finally {
-      this._creates.delete(this.factory.create)
       this.#dispense()
       _vis?.('createResource:after', { op: 'createResource:after', tenant: this.tenant })
     }
@@ -228,6 +228,8 @@ class Pool extends EventEmitter {
     this._loans.delete(resource.obj)
     try {
       await this.factory.destroy(resource.obj)
+    } catch {
+      /* FIXME: TypeError in hdb */
     } finally {
       if (!this._draining && this.size < this.options.min) {
         await this.#createResource()
@@ -280,7 +282,7 @@ class Pool extends EventEmitter {
 const createPool = (factory, config) => new Pool(factory, config)
 
 function ConnectionPool (factory, tenant) {
-  let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
+  let bound_factory = { __proto__: factory, create: factory.create.bind(factory, tenant) }
   return createPool(bound_factory, factory.options)
 }
 
