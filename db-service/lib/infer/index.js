@@ -859,7 +859,7 @@ function infer(originalQuery, model) {
       } else if (arg.xpr || arg.args) {
         const prop = arg.xpr ? 'xpr' : 'args'
         arg[prop].forEach(step => {
-          const subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+          let subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
           if (step.ref) {
             step.$refLinks.forEach((link, i) => {
               const { definition } = link
@@ -874,6 +874,10 @@ function infer(originalQuery, model) {
           } else if (step.args || step.xpr) {
             const nestedProp = step.xpr ? 'xpr' : 'args'
             step[nestedProp].forEach(a => {
+              // reset sub path for each nested argument
+              // e.g. case when <path> then <otherPath> else <anotherPath> end
+              if(!a.ref)
+                subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
           }
@@ -959,7 +963,8 @@ function infer(originalQuery, model) {
           if (element.type !== 'cds.LargeBinary') {
             queryElements[k] = element
           }
-          if (isCalculatedOnRead(element)) {
+          // only relevant if we actually select the calculated element
+          if (originalQuery.SELECT && isCalculatedOnRead(element)) {
             linkCalculatedElement(element)
           }
         }
