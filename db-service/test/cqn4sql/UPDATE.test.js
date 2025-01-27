@@ -170,13 +170,14 @@ describe('UPDATE', () => {
   })
 })
 describe('UPDATE with path expression', () => {
-  let model
+  let forNodeModel
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/model/update').then(cds.linked)
-    model = cds.compile.for.nodejs(model)
+    cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+    forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
   })
 
-  it('with path expressions with draft enabled entity', () => {
+  it('with path expressions with draft enabled entity', async () => {
+    const draftModel = await cds.load(__dirname + '/model/update').then(cds.linked)
     const { UPDATE } = cds.ql
     let u = UPDATE.entity({ ref: ['bookshop.CatalogService.Books'] }).where(`author.name LIKE '%Bron%'`)
 
@@ -197,7 +198,57 @@ describe('UPDATE with path expression', () => {
       as: 'Books2',
       ref: ['bookshop.CatalogService.Books'],
     }
-    let res = cqn4sql(u, model)
+    let res = cqn4sql(u, draftModel)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('inner joins for the path expression at the leaf of scoped queries', () => {
+    let query = UPDATE.entity('bookshop.Authors:books[genre.name = null]')
+
+    const transformed = cqn4sql(query, forNodeModel)
+    const subquery = cds.ql`
+      SELECT books.ID from bookshop.Books as books
+        inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+      ) and genre.name = null`
+    const expected = UPDATE.entity('bookshop.Books').alias('books2')
+    expected.UPDATE.where = [{ list: [{ ref: ['books2', 'ID'] }] }, 'in', subquery]
+
+    expect(transformed).to.deep.equal(expected)
+  })
+  it('inner joins for the path expression at the leaf of scoped queries, two assocs (UPDATE)', () => {
+    let query = UPDATE.entity('bookshop.Authors:books[genre.parent.name = null]')
+
+    const transformed = cqn4sql(query, forNodeModel)
+    const subquery = cds.ql`
+      SELECT books.ID from bookshop.Books as books
+        inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+        inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+      ) and parent.name = null`
+    const expected = UPDATE.entity('bookshop.Books').alias('books2')
+    expected.UPDATE.where = [{ list: [{ ref: ['books2', 'ID'] }] }, 'in', subquery]
+
+    expect(transformed).to.deep.equal(expected)
+  })
+  it('inner joins for the path expression NOT at the leaf of scoped queries, two assocs (UPDATE)', () => {
+    let query = UPDATE.entity(`bookshop.Authors[books.title = 'bar']:books[genre.parent.name = null]`).alias('MyBook')
+
+    const transformed = cqn4sql(query, forNodeModel)
+    const subquery = cds.ql`
+      SELECT MyBook.ID from bookshop.Books as MyBook
+        inner join bookshop.Genres as genre on genre.ID = MyBook.genre_ID
+        inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Authors as Authors
+          inner join bookshop.Books as books on books.author_ID = Authors.ID
+        where Authors.ID = MyBook.author_ID and books.title = 'bar'
+      ) and parent.name = null`
+    const expected = UPDATE.entity('bookshop.Books').alias('MyBook2')
+    expected.UPDATE.where = [{ list: [{ ref: ['MyBook2', 'ID'] }] }, 'in', subquery]
+
+    expect(transformed).to.deep.equal(expected)
   })
 })
