@@ -43,23 +43,28 @@ class HANAService extends SQLService {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
-    const acquireTimeoutMillis = 1000//this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const options = cds.requires.db.pool = {
+      min: 0,
+      max: 10,
+      acquireTimeoutMillis,
+      idleTimeoutMillis: 10000,
+      evictionRunIntervalMillis: 15000,
+      numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
+      ...(this.options.pool || {}),
+      testOnBorrow: true,
+      fifo: false
+    }
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true
-      },
+      options,
       create: async function (tenant) {
         try {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+
+          const { database_id, schema } = credentials ?? {}
+          cds.emit('hana:create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -72,7 +77,8 @@ class HANAService extends SQLService {
           } else if (err.code !== 10) throw err
         }
       },
-      error: (err /*, tenant*/) => {
+      error: (err, tenant) => {
+        cds.emit('hana:error', { op: 'error', data: { hana: { tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -85,12 +91,16 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: async (dbc) => {
-        if (dbc && dbc.readyState === 'connected') {
-          await dbc.disconnect()
-        }
+      destroy: async dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        cds.emit('hana:destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
+        return dbc.disconnect()
       },
-      validate: (dbc) => dbc.validate(),
+      validate: dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        cds.emit('hana:validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
+        return dbc.validate()
+      }
     }
   }
 
@@ -1295,6 +1305,7 @@ class HANAService extends SQLService {
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
+      this.options.credentials.tenant ??= tenant
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
