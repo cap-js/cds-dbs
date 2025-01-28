@@ -16,7 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
-const _vis = (event, payload) => cds.requires.multitenancy.diagnostics ? cds.emit(event, payload) : null
+const _vis = (event, payload) => cds.requires.multitenancy?.diagnostics ? cds.emit(event, payload) : null
 
 /**
  * @implements SQLService
