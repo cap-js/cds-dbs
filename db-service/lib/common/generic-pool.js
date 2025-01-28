@@ -228,8 +228,10 @@ class Pool extends EventEmitter {
     this._loans.delete(resource.obj)
     try {
       await this.factory.destroy(resource.obj)
-    } catch {
-      /* FIXME: TypeError in hdb */
+    } catch (error) {
+       /* FIXME: We have to ignore errors here due to a TypeError in hdb */
+       /* This was also a problem with the generic-pool implementation */
+      DEBUG?.('ignoring', error)
     } finally {
       if (!this._draining && this.size < this.options.min) {
         await this.#createResource()
