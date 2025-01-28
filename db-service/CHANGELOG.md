@@ -4,24 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.17.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.2...db-service-v1.17.0) (2025-01-28)
-
-
-### Added
-
-* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
-
-
-### Fixed
-
-* **`UPDATE`:** no assocs in list which matches subquery results ([4bcb88a](https://github.com/cap-js/cds-dbs/commit/4bcb88a1f40540e26cebd4907bdd33e90d08bb9d))
-* **`UPDATE`:** only perform subselect matching if necessary ([#989](https://github.com/cap-js/cds-dbs/issues/989)) ([4bcb88a](https://github.com/cap-js/cds-dbs/commit/4bcb88a1f40540e26cebd4907bdd33e90d08bb9d))
-* contains not evaluting to bool ([#980](https://github.com/cap-js/cds-dbs/issues/980)) ([760484b](https://github.com/cap-js/cds-dbs/commit/760484be4cf3d0c755254e90f7740ba0b34b9249))
-* nested ternary in calculated element ([#981](https://github.com/cap-js/cds-dbs/issues/981)) ([5f4a1fe](https://github.com/cap-js/cds-dbs/commit/5f4a1feed7b74bb1736f6140527e70b1e261f368))
-* reject virtual elements in all expressions ([#972](https://github.com/cap-js/cds-dbs/issues/972)) ([d0c949d](https://github.com/cap-js/cds-dbs/commit/d0c949d8a3a9851ccd70b3f998caec0b5f01ce0e))
-* starts endswith for null values ([#975](https://github.com/cap-js/cds-dbs/issues/975)) ([f0330bc](https://github.com/cap-js/cds-dbs/commit/f0330bc334fd3a8ed5377afcdd04b731baa8c753))
-* use "$$value$$" as internal column name for UPSERT ([#976](https://github.com/cap-js/cds-dbs/issues/976)) ([8c86b86](https://github.com/cap-js/cds-dbs/commit/8c86b863a69833d50cff91483150bf0314bb7258))
-
 ## [1.16.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.1...db-service-v1.16.2) (2024-12-18)
 
 
