@@ -1,3 +1,5 @@
+require('../cds')
+
 describe('definitions', () => {
   describe('types', () => {
     test.skip('missing', () => {
