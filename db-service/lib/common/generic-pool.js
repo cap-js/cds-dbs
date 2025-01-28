@@ -2,6 +2,7 @@
 // TODO: Test min > 0
 // TODO: fifo: true? relevant for our use case?
 // TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access?
+// TODO: Perf tests
 
 const cds = require('@sap/cds')
 const { EventEmitter } = require('events')
@@ -24,28 +25,6 @@ class PooledResource {
   updateState(newState) {
     if (newState === ResourceState.IDLE) this.lastIdleTime = Date.now()
     this.state = newState
-  }
-}
-
-class Queue {
-  constructor() {
-    this._queue = []
-  }
-
-  enqueue(request) {
-    this._queue.push(request)
-  }
-
-  dequeue() {
-    return this._queue.shift()
-  }
-
-  get length() {
-    return this._queue.length
-  }
-
-  get tail() {
-    return this._queue[this._queue.length - 1]
   }
 }
 
@@ -73,7 +52,7 @@ class Pool extends EventEmitter {
     this._loans = new Map()
     this._all = new Set()
     this._creates = new Set()
-    this._queue = new Queue()
+    this._queue = []
     this.#scheduleEviction()
     for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
   }
@@ -95,12 +74,10 @@ class Pool extends EventEmitter {
       }
       const ttl = this.options.acquireTimeoutMillis
       request.timeout = setTimeout(() => {
-        let i = this._queue._queue.indexOf(request)
-        if (i >= 0) this._queue._queue.splice(i, 1)
         request.reject(new Error(`ResourceRequest timed out after ${ttl/1000}s`))
       }, ttl)
     })
-    this._queue.enqueue(request)
+    this._queue.push(request)
     this.#dispense()
     return request.promise
   }
@@ -133,7 +110,7 @@ class Pool extends EventEmitter {
   async drain() {
     _vis?.('drain', { op: 'drain', tenant: this.tenant })
     this._draining = true
-    if (this._queue.length > 0) await this._queue.tail.promise
+    if (this._queue.length > 0) await this._queue[this._queue.length - 1].promise
     await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
     await Promise.all(Array.from(this._creates))
@@ -150,7 +127,7 @@ class Pool extends EventEmitter {
       pooledResource.updateState(ResourceState.IDLE)
       this._available.add(pooledResource)
     } catch (error) {
-      const request = this._queue.dequeue()
+      const request = this._queue.shift()
       request.reject(error)
     } finally {
       this.#dispense()
@@ -176,7 +153,7 @@ class Pool extends EventEmitter {
       }
     }
     const dispense = async resource => {
-      const request = this._queue.dequeue()
+      const request = this._queue.shift()
       if (!request) {
         resource.updateState(ResourceState.IDLE)
         this._available.add(resource)
@@ -281,7 +258,10 @@ class Pool extends EventEmitter {
   }
 }
 
-const createPool = (factory, config) => new Pool(factory, config)
+const createPool = (factory, config) => {
+  if (cds.requires.db.pool.new) return new Pool(factory, config)
+  return require('generic-pool').createPool(factory, config)
+}
 
 function ConnectionPool (factory, tenant) {
   let bound_factory = { __proto__: factory, create: factory.create.bind(factory, tenant) }
