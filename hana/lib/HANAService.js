@@ -49,7 +49,7 @@ class HANAService extends SQLService {
       min: 0,
       max: 10,
       acquireTimeoutMillis,
-      idleTimeoutMillis: 10000,
+      idleTimeoutMillis: 60000,
       evictionRunIntervalMillis: 15000,
       numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
       ...(this.options.pool || {}),
