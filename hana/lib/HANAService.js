@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+const _vis = (event, payload) => cds.requires.multitenancy.diagnostics ? cds.emit(event, payload) : null
 
 /**
  * @implements SQLService
@@ -65,7 +66,7 @@ class HANAService extends SQLService {
             : service.options
 
           const { database_id, schema } = credentials ?? {}
-          cds.emit('hana:create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
+          _vis?.('hana:create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -79,7 +80,7 @@ class HANAService extends SQLService {
         }
       },
       error: (err, tenant) => {
-        cds.emit('hana:error', { op: 'error', data: { hana: { tenant, error: err }}})
+        _vis?.('hana:error', { op: 'error', data: { hana: { tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -94,12 +95,12 @@ class HANAService extends SQLService {
       },
       destroy: async dbc => {
         const { schema, database_id, tenant } = dbc._creds
-        cds.emit('hana:destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
+        _vis?.('hana:destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
         return dbc.disconnect()
       },
       validate: dbc => {
         const { schema, database_id, tenant } = dbc._creds
-        cds.emit('hana:validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
+        _vis?.('hana:validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
         return dbc.validate()
       }
     }
