@@ -1,6 +1,6 @@
 // Fork of/drop-in replacement for https://github.com/coopernurse/node-pool
-// TODO: min > 0?
-// TODO: fifo: true?
+// TODO: Test min > 0
+// TODO: fifo: true? relevant for our use case?
 // TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access?
 
 const cds = require('@sap/cds')
@@ -64,6 +64,7 @@ class Pool extends EventEmitter {
       idleTimeoutMillis: 30000,
       acquireTimeoutMillis: null,
       destroyTimeoutMillis: null,
+      fifo: false,
       min: 0,
       max: 10
     }, options)
