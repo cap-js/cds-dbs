@@ -43,7 +43,7 @@ module.exports = DEBUG ? TrackedConnectionPool : ConnectionPool
 // TODO: Perf tests
 
 const { EventEmitter } = require('events')
-const _vis = cds.requires.multitenancy?.diagnostics ? (name, ...body) => cds.emit(`pool:${name}`, ...body) : null
+const _vis = cds.requires.multitenancy?.diagnostics ? (eve, ...args) => cds.emit(`pool:${eve}`, ...args) : null
 
 const ResourceState = Object.freeze({
   ALLOCATED: 'ALLOCATED',
