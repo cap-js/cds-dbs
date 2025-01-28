@@ -1,3 +1,5 @@
+const cds = require("@sap/cds")
+
 const StandardFunctions = {
   // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 
@@ -31,7 +33,7 @@ const StandardFunctions = {
       val = sub[2] || sub[3] || ''
     }
     arg.val = arg.__proto__.val = val
-    const refs = ref.list || [ref]
+    const refs = ref.list
     const { toString } = ref
     return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
   },
@@ -47,7 +49,7 @@ const StandardFunctions = {
    * @param  {...string} args
    * @returns {string}
    */
-  contains: (...args) => `ifnull(instr(${args}),0)`,
+  contains: (...args) => `(ifnull(instr(${args}),0) > 0)`,
   /**
    * Generates SQL statement that produces the number of elements in a given collection
    * @param {string} x
@@ -59,7 +61,7 @@ const StandardFunctions = {
    * @param {string} x
    * @returns {string}
    */
-  countdistinct: x => `count(distinct ${x || '*'})`,
+  countdistinct: x => `count(distinct ${x || cds.error`countdistinct requires a ref to be counted`})`,
   /**
    * Generates SQL statement that produces the index of the first occurrence of the second string in the first string
    * @param {string} x
@@ -73,7 +75,7 @@ const StandardFunctions = {
    * @param {string} y
    * @returns {string}
    */
-  startswith: (x, y) => `instr(${x},${y}) = 1`, // sqlite instr is 1 indexed
+  startswith: (x, y) => `coalesce(instr(${x},${y}) = 1,false)`, // sqlite instr is 1 indexed
   // takes the end of the string of the size of the target and compares it with the target
   /**
    * Generates SQL statement that produces a boolean value indicating whether the first string ends with the second string
@@ -81,7 +83,7 @@ const StandardFunctions = {
    * @param {string} y
    * @returns {string}
    */
-  endswith: (x, y) => `substr(${x}, length(${x}) + 1 - length(${y})) = ${y}`,
+  endswith: (x, y) => `coalesce(substr(${x}, length(${x}) + 1 - length(${y})) = ${y},false)`,
   /**
    * Generates SQL statement that produces the substring of a given string
    * @example
@@ -156,10 +158,6 @@ const StandardFunctions = {
   round: (x, p) => `round(${x}${p ? `,${p}` : ''})`,
 
   // Date and Time Functions
-
-  current_date: p => (p ? `current_date(${p})` : 'current_date'),
-  current_time: p => (p ? `current_time(${p})` : 'current_time'),
-  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
 
   /**
    * Generates SQL statement that produces current point in time (date and time with time zone)
@@ -255,20 +253,23 @@ const StandardFunctions = {
         ) - 0.5
       )
     ) * 86400
-  )`,
+  )`
+}
+
+const HANAFunctions = {
+  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
 
   /**
    * Generates SQL statement that calls the session_context function with the given parameter
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-  session_context: x => `session_context('${x.val}')`,
-}
-
-const HANAFunctions = {
-  // https://help.sap.com/docs/SAP_HANA_PLATFORM/4fe29514fd584807ac9f2a04f6754767/f12b86a6284c4aeeb449e57eb5dd3ebd.html
+    session_context: x => `session_context('${x.val}')`,
 
   // Time functions
+  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_time: p => (p ? `current_time(${p})` : 'current_time'),
+  current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
   /**
    * Generates SQL statement that calculates the difference in 100nanoseconds between two timestamps
    * @param {string} x left timestamp
