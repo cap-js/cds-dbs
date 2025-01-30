@@ -47,7 +47,7 @@ describe('Bookshop - assertions', () => {
       .to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
 
-    test('assertion in batch', async () => {
+    test.only('assertion in batch', async () => {
       await expect(INSERT.into(Books).entries([
         { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
         { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },

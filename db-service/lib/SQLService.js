@@ -4,6 +4,7 @@ const { Readable } = require('stream')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
+const {attachConstraints, checkConstraints} = require('./assert-constraint')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -22,7 +23,7 @@ const BINARY_TYPES = {
 class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.after(['INSERT', 'UPSERT', 'UPDATE'], require('./assert-constraint'))
+    this.after(['INSERT', 'UPSERT', 'UPDATE'], attachConstraints)
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
@@ -53,6 +54,7 @@ class SQLService extends DatabaseService {
     this.on(['DELETE'], this.onDELETE)
     this.on(['CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
+    this.before(['COMMIT'], checkConstraints)
     this.on(['*'], this.onPlainSQL)
     return super.init()
   }
