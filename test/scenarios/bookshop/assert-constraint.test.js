@@ -28,14 +28,12 @@ describe('Bookshop - assertions', () => {
       expect(book.stock).to.equal(10)
     })
 
-    test.skip('assertion via action', async () => {
+    test('assertion via action', async () => {
       catService = await cds.connect.to('CatalogService')
       // try to withdraw more books than there are in stock
-      await catService.tx({ user: 'alice' }, async () => {
-        await expect(catService.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
-          /The stock must be greater than or equal to 0/,
-        )
-      })
+      await expect(catService.tx({ user: 'alice' }, async () => {
+        await catService.send('submitOrder', { book: 42, quantity: 16 })
+      })).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
 
       // stock for harry potter should still be 15
       const book = await SELECT.one.from(Books).where({ ID: 42 })
