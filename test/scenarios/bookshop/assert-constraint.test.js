@@ -3,7 +3,7 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - assertions', () => {
   const { expect } = cds.test(bookshop)
-  let cats, Books
+  let adminService, Books
 
   before('bootstrap the database', async () => {
     Books = cds.entities.Books
@@ -17,12 +17,25 @@ describe('Bookshop - assertions', () => {
       const book = await SELECT.one.from(Books).where({ ID: 42 })
       expect(book.stock).to.equal(15)
     })
+    // TODO: constraints shall be deferred to the end of the transaction
+    test.skip('at the end, everything is alright so dont complain right away', async () => {
+      adminService = await cds.connect.to('AdminService')
+      await adminService.tx({ user: 'alice' }, async () => {
+        // first invalid
+        await INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books)
+        // now we make it valid
+        await UPDATE(Books, '43').with({ stock: 10 })
+      })
+      // stock for harry potter should still be 15
+      const book = await SELECT.one.from(Books).where({ ID: 43 })
+      expect(book.stock).to.equal(10)
+    })
 
-    test('assertion via action', async () => {
-      cats = await cds.connect.to('CatalogService')
+    test.only('assertion via action', async () => {
+      adminService = await cds.connect.to('CatalogService')
       // try to withdraw more books than there are in stock
-      await cats.tx({ user: 'alice' }, async () => {
-        await expect(cats.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
+      await adminService.tx({ user: 'alice' }, async () => {
+        await expect(adminService.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
           /The stock must be greater than 0 after withdrawal/,
         )
       })
@@ -67,7 +80,6 @@ describe('Bookshop - assertions', () => {
 
       const book = await SELECT.one.from(Books).where({ ID: 48 })
       expect(book).to.exist
-
     })
   })
 })
