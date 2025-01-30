@@ -62,32 +62,37 @@ class DatabaseService extends cds.Service {
         await this.tx(tx => tx.run(CREATE(databaseModel.definitions.schemas))).catch(() => { })
         await this.tx(async tx => {
           tx.model = databaseModel
-          // await tx.run(DELETE.from('schemas').where`true=true`)
+          await tx.run(DELETE.from('schemas').where`tenant=${isolate.tenant} and available=${false} and seconds_between(started, $now) > ${120}`)
           // If insert works the schema does not yet exist and this client has won the race and can deploy the contents
           await tx.run(INSERT({ tenant: isolate.tenant, source: isolate.source, available: false, started: new Date() }).into('schemas'))
           isnew = true
         })
       } catch (err) {
+        const query = SELECT.from('schemas').where`tenant=${isolate.tenant} and available=${true}`
         // If the schema already exists wait for the row to be updated with available=true
-        let available = []
-        while (available.length === 0) {
-          await this.tx(async tx => {
-            tx.model = databaseModel
-            available = await tx.run(SELECT.from('schemas').where`tenant=${isolate.tenant} and available=${true}`)
-          })
-        }
+        await this.tx(async tx => {
+          tx.model = databaseModel
+          let available = []
+          while (available.length === 0) available = await tx.run(query)
+        })
       }
 
       // Create/Activate tenant isolation in database
       await this.tenant(isolate)
 
       if (isnew) {
-        await this._isolate_deploy(isolate)
+        let err
+        await this._isolate_deploy(isolate).catch(e => { err = e })
         await this.database(isolate)
         await this.tx(async tx => {
           tx.model = databaseModel
-          await tx.run(UPDATE('schemas').where`tenant=${isolate.tenant}`.with({ available: true, started: new Date() }))
+          if (err) {
+            await tx.run(DELETE('schemas').where`tenant=${isolate.tenant}`)
+          } else {
+            await tx.run(UPDATE('schemas').where`tenant=${isolate.tenant}`.with({ available: true, started: new Date() }))
+          }
         })
+        if (err) throw err
         await this.tenant(isolate)
       }
     } else {
