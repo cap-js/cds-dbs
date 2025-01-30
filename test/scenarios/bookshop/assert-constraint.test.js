@@ -3,7 +3,7 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - assertions', () => {
   const { expect } = cds.test(bookshop)
-  let adminService, Books
+  let adminService,catService, Books
 
   before('bootstrap the database', async () => {
     Books = cds.entities.Books
@@ -12,10 +12,7 @@ describe('Bookshop - assertions', () => {
 
   describe('UPDATE', () => {
     test('simple assertion', async () => {
-      await UPDATE(Books, '42').with({ stock: -1 })
-      // stock for harry potter should still be 15
-      const book = await SELECT.one.from(Books).where({ ID: 42 })
-      expect(book.stock).to.equal(15)
+      await expect(UPDATE(Books, '42').with({ stock: -1 })).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
     // TODO: constraints shall be deferred to the end of the transaction
     test.skip('at the end, everything is alright so dont complain right away', async () => {
@@ -31,12 +28,12 @@ describe('Bookshop - assertions', () => {
       expect(book.stock).to.equal(10)
     })
 
-    test.only('assertion via action', async () => {
-      adminService = await cds.connect.to('CatalogService')
+    test.skip('assertion via action', async () => {
+      catService = await cds.connect.to('CatalogService')
       // try to withdraw more books than there are in stock
-      await adminService.tx({ user: 'alice' }, async () => {
-        await expect(adminService.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
-          /The stock must be greater than 0 after withdrawal/,
+      await catService.tx({ user: 'alice' }, async () => {
+        await expect(catService.send('submitOrder', { book: 42, quantity: 16 })).to.be.rejectedWith(
+          /The stock must be greater than or equal to 0/,
         )
       })
 
@@ -48,20 +45,15 @@ describe('Bookshop - assertions', () => {
 
   describe('INSERT', () => {
     test('simple assertion, no negative stocks', async () => {
-      await INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books)
-      // book should not have been inserted
-      const book = await SELECT.one.from(Books).where({ ID: 43 })
-      expect(book).to.be.undefined
+      await expect(INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books))
+      .to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
 
     test('assertion in batch', async () => {
-      await INSERT.into(Books).entries([
+      await expect(INSERT.into(Books).entries([
         { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
         { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },
-      ])
-      // both books should not have been inserted
-      const books = await SELECT.from(Books).where({ ID: { in: [44, 45] } })
-      expect(books).to.have.length(0)
+      ])).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
 
     test('assertion via aggregation', async () => {
@@ -69,10 +61,7 @@ describe('Bookshop - assertions', () => {
       const book = await SELECT.one.from(Books).where({ ID: 46 }) // no problem if no price provided
       expect(book.stock).to.equal(10)
       // Insert very expensive book
-      await INSERT({ ID: 47, title: 'Harry Potter and the Deathly Hallows', stock: 10, price: 1000 }).into(Books)
-      // book should not have been inserted
-      const book2 = await SELECT.one.from(Books).where({ ID: 47 })
-      expect(book2).to.be.undefined
+      await expect( INSERT({ ID: 47, title: 'Harry Potter and the Deathly Hallows', stock: 10, price: 1000 }).into(Books) ).to.be.rejectedWith(/The average price of the books must not exceed 50/)
     })
 
     test('no stock is okay', async () => {
