@@ -6,48 +6,47 @@ function attachConstraints(_results, req) {
   if (Object.keys(constraints).length === 0) return
 
   // which entry shall be checked? We need the IDs of the current req
-  let entriesToCheck = []
+  let whereClauses = []
   if (req.event === 'INSERT' || req.event === 'CREATE') {
     const primaryKeys = Object.keys(req.target.keys)
     const dataEntries = Array.isArray(req.data) ? req.data : [req.data] // Ensure batch handling
 
     // construct {key:value} pairs holding information about the entry to check
-    entriesToCheck = dataEntries.map(entry =>
+    whereClauses = dataEntries.map(entry =>
       primaryKeys.reduce((identifier, key) => {
         const value = entry[key]
         if (value === undefined) {
           // Skip keys with undefined values, e.g. csv import
           return
         }
-        identifier.push({ [key]: value })
+        if(identifier.length > 0) identifier.push('and')
+        identifier.push({ ref: [key] }, '=', { val: value })
         return identifier
       }, []),
-    ).filter(Boolean)
+      )
+      .filter(Boolean)
   } else if (req.event === 'UPDATE' || req.event === 'UPSERT') {
     const prop = req.event
 
     if (req.query[prop]?.where) {
-      entriesToCheck.push(req.query[prop].where)
+      whereClauses.push(req.query[prop].where)
     } else if (req.query[prop]?.entity?.ref[0]?.where) {
-      entriesToCheck.push(req.query[prop].entity.ref[0].where)
+      whereClauses.push(req.query[prop].entity.ref[0].where)
     }
   }
 
   // REVISIT: Ensure whereClauses is defined for other cases
-  if (entriesToCheck.length === 0) {
+  if (whereClauses.length === 0) {
     // Handle scenarios where no `where` clause is defined
     // E.g., aggregation assertions
     return
   }
 
-  // Process each where clause
-  for (const ids of entriesToCheck) {
-    const where = ids.reduce((acc, id) => {
-      if (acc.length > 0) acc.push('and')
-      const [[key, value]] = Object.entries(id)
-      acc.push({ ref: [key] }, '=', { val: value })
-      return acc
-    }, [])
+  // each entry identifies a row to check
+  // --> calculate the validation query for each entry
+  //     attach information about the identity of the entry for messages
+  //     validation queries are executed just before commit
+  for (const where of whereClauses) {
     const validationQuery = _getValidationQuery(req, constraints, where)
     if (this.tx.assert_constraints) this.tx.assert_constraints.push({ validationQuery, constraints })
     else this.tx.assert_constraints = [{ validationQuery, constraints }]
@@ -85,15 +84,6 @@ function attachConstraints(_results, req) {
     validationQuery.SELECT.where = where
     validationQuery.SELECT.one = true
     return validationQuery
-
-    // for (const name in constraints) {
-    //   const result = validationResult[name]
-    //   if (!result) {
-    //     const { message } = constraints[name]
-    //     // await this.rollback()
-    //     req.error(400, message || `Constraint ${name} failed`)
-    //   }
-    // }
   }
 
   // returns all properties which start with '@assert.constraint#…' from the given entity
@@ -136,9 +126,25 @@ function attachConstraints(_results, req) {
   }
 }
 
-async function checkConstraints(entity, req) {
-  const foo = this.tx.assert_constraints
-  console.log(entity, req)
+async function checkConstraints(req) {
+  if (this.tx.assert_constraints) {
+    for (const check of this.tx.assert_constraints) {
+      const { validationQuery, constraints } = check
+      const result = await this.run(validationQuery)
+      if(!result) continue
+      for (const name in constraints) {
+        const constraintFulfilled = result[name]
+        if (!constraintFulfilled) {
+          const { message } = constraints[name]
+          // await this.rollback()
+          req.error(400, message || `Constraint ${name} failed`)
+        }
+      }
+    }
+    // REVISIT: we can probably get rid of this
+    this.tx.assert_constraints = []
+    console.log('Checking constraints')
+  }
 }
 
 module.exports = {

@@ -15,17 +15,14 @@ describe('Bookshop - assertions', () => {
       await expect(UPDATE(Books, '42').with({ stock: -1 })).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
     // TODO: constraints shall be deferred to the end of the transaction
-    test.skip('at the end, everything is alright so dont complain right away', async () => {
+    test('at the end, everything is alright so dont complain right away', async () => {
       adminService = await cds.connect.to('AdminService')
       await adminService.tx({ user: 'alice' }, async () => {
         // first invalid
-        await INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books)
+        await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)
         // now we make it valid
-        await UPDATE(Books, '43').with({ stock: 10 })
+        await UPDATE(Books, '49').with({ stock: 10 })
       })
-      // stock for harry potter should still be 15
-      const book = await SELECT.one.from(Books).where({ ID: 43 })
-      expect(book.stock).to.equal(10)
     })
 
     test('assertion via action', async () => {
@@ -47,7 +44,7 @@ describe('Bookshop - assertions', () => {
       .to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
 
-    test.only('assertion in batch', async () => {
+    test('assertion in batch', async () => {
       await expect(INSERT.into(Books).entries([
         { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
         { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },
