@@ -5,10 +5,10 @@ module.exports = {
     "password": process.env.HANA_PASSWORD || "Manager1",
     "host": process.env.HANA_HOST || "localhost",
     "port": process.env.HANA_PORT || "30041",
-    "useTLS": false,
-    "encrypt": false,
+    "useTLS": true,
+    "encrypt": true,
     "sslValidateCertificate": false,
-    "disableCloudRedirect": false,
+    "disableCloudRedirect": true,
     "driver": "hana-client"
   }
 }
