@@ -7,7 +7,8 @@ using {
 namespace sap.capire.bookshop;
 
 @assert.constraint#stockNotEmpty : {
-  condition: ( ( stock >= 0 or stock IS NULL ) ),
+  // ternary to workaround https://github.com/cap-js/cds-dbs/issues/1007
+  condition: ( ( stock >= 0 or stock IS NULL ) ? true : false ),
   message: 'The stock must be greater than or equal to 0',
   parameters: []     // to be inserted into the message
 }

@@ -143,7 +143,6 @@ async function checkConstraints(req) {
     }
     // REVISIT: we can probably get rid of this
     this.tx.assert_constraints = []
-    console.log('Checking constraints')
   }
 }
 
