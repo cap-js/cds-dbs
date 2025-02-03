@@ -469,7 +469,6 @@ describe('table alias access', () => {
       ]
 
       expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
-      
     })
     it('refer to my own column in calc expression', () => {
       const q = cds.ql`
