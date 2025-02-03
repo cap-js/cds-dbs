@@ -447,6 +447,39 @@ describe('table alias access', () => {
        `,
       )
     })
+    it('refer to my own column in function expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          cast('2007-07-07' as Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as Date) as twoLeapYearsLater,
+          months_between($self.twoLeapYearsEarlier, $self.twoLeapYearsLater)
+        }`
+      const transformed = cqn4sql(q, model)
+      const expectation = cds.ql`
+        SELECT from bookshop.Books as Books {
+          cast('2007-07-07' as cds.Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as cds.Date) as twoLeapYearsLater,
+          months_between(cast('2007-07-07' as cds.Date), cast('2007-07-06' as cds.Date)) as months_between
+        }`
+      // cast expression inside argument is parsed without surrounding "xpr"
+      // hence we need to adjust the expectation
+      expectation.SELECT.columns[2].args = [
+        { xpr: expectation.SELECT.columns[0].xpr },
+        { xpr: expectation.SELECT.columns[1].xpr },
+      ]
+
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
+      
+    })
+    it('refer to my own column in calc expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          cast('2007-07-07' as Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as Date) as twoLeapYearsLater,
+          $self.twoLeapYearsEarlier +  months_between(($self.twoLeapYearsEarlier + 15)) as calc
+        }
+      `
+    })
   })
 
   describe('in ORDER BY', () => {

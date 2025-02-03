@@ -428,7 +428,8 @@ function infer(originalQuery, model) {
       expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
     }
     if(dollarSelfRefs && firstStepIsSelf) {
-      dollarSelfRefs.push({...arg, inXpr: true})
+      Object.defineProperty(arg, 'inXpr', { value: true, writable: true })
+      dollarSelfRefs.push(arg)
       return
     }
     const nameSegments = []
