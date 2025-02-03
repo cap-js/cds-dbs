@@ -1030,7 +1030,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 })
 
-describe('Expands with aggregations are special', () => {
+describe.skip('Expands with aggregations are special', () => {
   let model
   beforeAll(async () => {
     cds.model = model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)

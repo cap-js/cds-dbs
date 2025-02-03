@@ -792,16 +792,6 @@ function cqn4sql(originalQuery, model) {
     // this is the alias of the column which holds the correlated subquery
     const columnAlias = column.as || ref.map(idOnly).join('_')
 
-    // if there is a group by on the main query, all
-    // columns of the expand must be in the groupBy
-    if (transformedQuery.SELECT.groupBy) {
-      const baseRef = column.$refLinks[0].definition.SELECT || ref
-      const wildcardIndex = column.expand.findIndex(e => e === '*')
-      if (wildcardIndex === -1) {
-        return _subqueryForGroupBy(column, baseRef, columnAlias)
-      }
-    }
-
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
     const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, inferred.outerQueries)
@@ -858,75 +848,6 @@ function cqn4sql(originalQuery, model) {
         return x
       }
       return subq
-    }
-
-    /**
-     * Generates a special subquery for the `expand` of the `column`.
-     * All columns in the `expand` must be part of the GROUP BY clause of the main query.
-     * If this is the case, the subqueries columns match the corresponding references of the group by.
-     * Nested expands are also supported.
-     *
-     * @param {Object} column - To expand.
-     * @param {Array} baseRef - The base reference for the expanded column.
-     * @param {string} subqueryAlias - The alias of the `expand` subquery column.
-     * @returns {Object} - The subquery object or null if the expand has a wildcard.
-     * @throws {Error} - If one of the `ref`s in the `column.expand` is not part of the GROUP BY clause.
-     */
-    function _subqueryForGroupBy(column, baseRef, subqueryAlias) {
-      const groupByLookup = new Map(
-        transformedQuery.SELECT.groupBy.map(c => [c.ref && c.ref.map(refWithConditions).join('.'), c]),
-      )
-
-      // to be attached to dummy query
-      const elements = {}
-      const expandedColumns = column.expand.flatMap(expand => {
-        if (!expand.ref) return expand
-        const fullRef = [...baseRef, ...expand.ref]
-
-        if (expand.expand) {
-          const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
-          setElementOnColumns(nested, expand.element)
-          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
-          return nested
-        }
-
-        const groupByRef = groupByLookup.get(fullRef.map(refWithConditions).join('.'))
-        if (!groupByRef) {
-          throw new Error(
-            `The expanded column "${fullRef.map(refWithConditions).join('.')}" must be part of the group by clause`,
-          )
-        }
-
-        const copy = Object.create(groupByRef)
-        // always alias for this special case, so that they nested element names match the expected result structure
-        // otherwise we'd get `author { <outer>.author_ID }`, but we need `author { <outer>.author_ID as ID }`
-        copy.as = expand.as || expand.ref.at(-1)
-        const tableAlias = getTableAlias(copy)
-        const res = getFlatColumnsFor(copy, { tableAlias })
-        res.forEach(c => {
-          elements[c.as || c.ref.at(-1)] = c.element
-        })
-        return res
-      })
-
-      const SELECT = {
-        from: null,
-        columns: expandedColumns,
-      }
-      return Object.defineProperties(
-        {},
-        {
-          SELECT: {
-            value: Object.defineProperties(SELECT, {
-              expand: { value: true, writable: true }, // non-enumerable
-              one: { value: column.$refLinks.at(-1).definition.is2one, writable: true }, // non-enumerable
-            }),
-            enumerable: true,
-          },
-          as: { value: subqueryAlias, enumerable: true, writable: true },
-          elements: { value: elements }, // non-enumerable
-        },
-      )
     }
   }
 
