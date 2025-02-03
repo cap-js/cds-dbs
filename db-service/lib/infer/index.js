@@ -963,7 +963,8 @@ function infer(originalQuery, model) {
           if (element.type !== 'cds.LargeBinary') {
             queryElements[k] = element
           }
-          if (isCalculatedOnRead(element)) {
+          // only relevant if we actually select the calculated element
+          if (originalQuery.SELECT && isCalculatedOnRead(element)) {
             linkCalculatedElement(element)
           }
         }
