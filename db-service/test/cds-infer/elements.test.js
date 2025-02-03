@@ -196,6 +196,36 @@ describe('infer elements', () => {
         overwritesFoo: { ...inferred.elements.realIDWithAnno, '@foo': 'bar' },
       })
     })
+    it('refer to my own column in function expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          cast('2007-07-07' as Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as Date) as twoLeapYearsLater,
+          months_between($self.twoLeapYearsEarlier, $self.twoLeapYearsLater)
+        }
+      `
+      let inferred = _inferred(q)
+      expect(inferred.elements).to.deep.equal({
+        twoLeapYearsEarlier: { type: 'cds.Date' },
+        twoLeapYearsLater: { type: 'cds.Date' },
+        months_between: {},
+      })
+    })
+    it('refer to my own column in calc expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          cast('2007-07-07' as Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as Date) as twoLeapYearsLater,
+          $self.twoLeapYearsEarlier +  months_between(($self.twoLeapYearsEarlier + 15)) as calc
+        }
+      `
+      let inferred = _inferred(q)
+      expect(inferred.elements).to.deep.equal({
+        twoLeapYearsEarlier: { type: 'cds.Date' },
+        twoLeapYearsLater: { type: 'cds.Date' },
+        calc: {},
+      })
+    })
   })
   describe('multiple sources', () => {
     it('supports queries based on multiple sources without projections', () => {
