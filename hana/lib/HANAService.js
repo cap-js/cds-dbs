@@ -142,8 +142,8 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    const { append } = query.SELECT
-    if (append) sqlScript += ` ${append}`
+    const{ hints } = query.SELECT
+    if (hints) sqlScript += ` WITH HINT (${Array.isArray(hints) ? hints.join(',') : hints})`
     let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
