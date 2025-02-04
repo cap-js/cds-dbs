@@ -170,12 +170,13 @@ describe('UPDATE', () => {
   })
 })
 describe('UPDATE with path expression', () => {
+  let model
   beforeAll(async () => {
-    cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/update').then(cds.linked)
+    model = cds.compile.for.nodejs(model)
   })
 
   it('with path expressions with draft enabled entity', async () => {
-    const draftModel = await cds.load(__dirname + '/model/update').then(cds.linked)
     const { UPDATE } = cds.ql
     let u = UPDATE.entity({ ref: ['bookshop.CatalogService.Books'] }).where(`author.name LIKE '%Bron%'`)
 
@@ -196,8 +197,45 @@ describe('UPDATE with path expression', () => {
       as: 'Books2',
       ref: ['bookshop.CatalogService.Books'],
     }
-    let res = cqn4sql(u, draftModel)
+    let res = cqn4sql(u, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('path expression via calculated element leads to subquery if used in where', () => {
+    const q = UPDATE('bookshop.Orders.Items').set({ price: 5 }).where('price = 4.99')
+
+    const res = cqn4sql(q, model)
+
+    const expected = UPDATE.entity({ ref: ['bookshop.Orders.Items'] }).alias('Items2')
+    expected.UPDATE.where = [
+      {
+        list: [{ ref: ['Items2', 'up__ID'] }, { ref: ['Items2', 'book_ID'] }],
+      },
+      'in',
+      cds.ql`
+        (SELECT
+          Items.up__ID,
+          Items.book_ID
+        FROM bookshop.Orders.Items AS Items
+        LEFT JOIN bookshop.Books AS book ON book.ID = Items.book_ID
+        WHERE (book.stock * 2) = 4.99
+        )
+      `,
+    ]
+
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('if there is no path expression in the where, we dont need subselect magic', () => {
+    const q = UPDATE('bookshop.Orders.Items').set({ quantity: 3 }).where('1 = 1')
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.eql({
+      UPDATE: {
+        entity: { ref: ['bookshop.Orders.Items'], as: 'Items' },
+        where: [{ val: 1 }, '=', { val: 1 }],
+      },
+    })
+    expect(res.UPDATE).to.have.property('data')
   })
 })
 
