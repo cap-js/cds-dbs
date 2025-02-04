@@ -170,10 +170,8 @@ describe('UPDATE', () => {
   })
 })
 describe('UPDATE with path expression', () => {
-  let forNodeModel
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
-    forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
   })
 
   it('with path expressions with draft enabled entity', async () => {
@@ -200,6 +198,14 @@ describe('UPDATE with path expression', () => {
     }
     let res = cqn4sql(u, draftModel)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+})
+
+describe('UPDATE with path expression more complex', () => {
+  let forNodeModel
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+    forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
   })
 
   it('inner joins for the path expression at the leaf of scoped queries', () => {
