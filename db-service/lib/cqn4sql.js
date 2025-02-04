@@ -134,7 +134,7 @@ function cqn4sql(originalQuery, model) {
         const primaryKey = { list: [] }
         for (const k of Object.keys(queryTarget.elements)) {
           const e = queryTarget.elements[k]
-          if (e.key === true && !e.virtual) {
+          if (e.key === true && !e.virtual && e.isAssociation !== true) {
             subquery.SELECT.columns.push({ ref: [e.name] })
             primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
           }
@@ -1286,7 +1286,7 @@ function cqn4sql(originalQuery, model) {
         }
       }
       return flatColumns
-    } else if (element.elements) {
+    } else if (element.elements && element.type !== 'cds.Map') {
       const flatRefs = []
       Object.values(element.elements).forEach(e => {
         const alias = columnAlias ? `${columnAlias}_${e.name}` : null

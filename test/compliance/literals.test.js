@@ -56,4 +56,10 @@ describe('literals', () => {
       throw new Error('not supported')
     })
   })
+
+  describe('maps', () => {
+    test.skip('missing', () => {
+      throw new Error('not supported')
+    })
+  })
 })

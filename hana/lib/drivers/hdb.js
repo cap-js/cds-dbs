@@ -8,7 +8,7 @@ const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
-const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
+const { wrap_client } = require('./dynatrace')
 
 if (cds.env.features.sql_simple_queries === 3) {
   // Make hdb return true / false
@@ -45,7 +45,7 @@ class HDBDriver extends driver {
 
     super(creds)
     this._native = hdb.createClient(creds)
-    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
+    this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
 
