@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.17.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.0...db-service-v1.17.1) (2025-02-04)
+
+
+### Fixed
+
+* deep update resulting in deep delete of sub-element ([#1006](https://github.com/cap-js/cds-dbs/issues/1006)) ([ef2f817](https://github.com/cap-js/cds-dbs/commit/ef2f8175df6fc7076fa8a9290e1863f44d267d8d))
+* nested $self reference to other column ([#1009](https://github.com/cap-js/cds-dbs/issues/1009)) ([41a76d8](https://github.com/cap-js/cds-dbs/commit/41a76d89a884ac8266ccbd2d087af435e8f26ccb))
+
 ## [1.17.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.2...db-service-v1.17.0) (2025-01-28)
 
 
