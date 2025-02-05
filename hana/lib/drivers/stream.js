@@ -5,10 +5,16 @@ function rsNext(state, cb) {
   let done
   if (!cb) done = state.done()
   if (done?.then) return done.then(done => {
-    if (done) return { done }
+    if (done) {
+      state.inject(handleLevel(state.levels, '$', {}))
+      return { done }
+    }
     return rsNext(state, true)
   })
-  if (done) return { done }
+  if (done) {
+    state.inject(handleLevel(state.levels, '$', {}))
+    return { done }
+  }
 
   let _path = state.readString()
   // if (_path.then) _path = await _path

@@ -227,6 +227,7 @@ async function rsIterator(rs, one, objectMode) {
             return true
           })
       }
+      this.columnIndex = 0
     },
     ensure(size) {
       const totalSize = this.reading + size
@@ -416,7 +417,6 @@ const readString = function (state, isJson = false) {
 }
 
 const { readInt64LE } = require('hdb/lib/util/bignum.js')
-const { func } = require('@sap/cds/lib/ql/cds-ql')
 const readBlob = function (state, encoding) {
   // Check if the blob is null
   let ens = state.ensure(2)

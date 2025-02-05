@@ -211,16 +211,17 @@ const enhanceError = function (err, stack, query, message) {
 
 const handleLevel = function (levels, path, expands) {
   let buffer = ''
+  path = `${path}`
   // Find correct level for the current row
   while (levels.length) {
     const level = levels[levels.length - 1]
     // Check if the current row is a child of the current level
-    if (path.indexOf(level.path) === 0) {
+    if (path.indexOf(level.path) === 0 && path != level.path) {
       // Check if the current row is an expand of the current level
-      const property = path.slice(level.path.length + 2, -7)
+      const property = `${path.slice(level.path.length + 2, -7)}`
       if (property && property in level.expands) {
         const is2Many = level.expands[property]
-        // delete level.expands[property]
+        delete level.expands[property]
         if (level.hasProperties) {
           buffer += ','
         } else {
