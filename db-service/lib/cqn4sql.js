@@ -134,7 +134,7 @@ function cqn4sql(originalQuery, model) {
         const primaryKey = { list: [] }
         for (const k of Object.keys(queryTarget.elements)) {
           const e = queryTarget.elements[k]
-          if (e.key === true && !e.virtual) {
+          if (e.key === true && !e.virtual && e.isAssociation !== true) {
             subquery.SELECT.columns.push({ ref: [e.name] })
             primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
           }
@@ -1286,7 +1286,7 @@ function cqn4sql(originalQuery, model) {
         }
       }
       return flatColumns
-    } else if (element.elements) {
+    } else if (element.elements && element.type !== 'cds.Map') {
       const flatRefs = []
       Object.values(element.elements).forEach(e => {
         const alias = columnAlias ? `${columnAlias}_${e.name}` : null
@@ -1450,7 +1450,7 @@ function cqn4sql(originalQuery, model) {
         transformedTokenStream.push({ ...token })
       } else {
         // expand `struct = null | struct2`
-        const { definition } = token.$refLinks?.[token.$refLinks.length - 1] || {}
+        const definition = token.$refLinks?.at(-1).definition
         const next = tokenStream[i + 1]
         if (allOps.some(([firstOp]) => firstOp === next) && (definition?.elements || definition?.keys)) {
           const ops = [next]
@@ -1477,6 +1477,9 @@ function cqn4sql(originalQuery, model) {
         } else {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
           assertNoStructInXpr(token, $baseLink)
+          // reject virtual elements in expressions as they will lead to a sql error down the line
+          if(definition?.virtual)
+            throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
@@ -1620,10 +1623,10 @@ function cqn4sql(originalQuery, model) {
       rejectStructInExpression()
 
     function rejectAssocInExpression() {
-      throw new Error("An association can't be used as a value in an expression")
+      throw new Error(`An association can't be used as a value in an expression`)
     }
     function rejectStructInExpression() {
-      throw new Error("A structured element can't be used as a value in an expression")
+      throw new Error(`A structured element can't be used as a value in an expression`)
     }
   }
 

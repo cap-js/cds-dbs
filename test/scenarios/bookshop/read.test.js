@@ -144,6 +144,12 @@ describe('Bookshop - Read', () => {
   test('Plain sql', async () => {
     const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
     expect(res.length).to.be.eq(5)
+    const [res1, res2] = await cds.run([
+      'SELECT * FROM sap_capire_bookshop_Books',
+      'SELECT * FROM sap_capire_bookshop_Books',
+    ])
+    expect(res1.length).to.be.eq(5)
+    expect(res2.length).to.be.eq(5)
   })
 
   test('Plain sql with values', async () => {
@@ -165,6 +171,17 @@ describe('Bookshop - Read', () => {
       .orderBy`price desc`
     expect(res.length).to.be.eq(4)
     expect(res[0].price).to.be.eq('150')
+  })
+
+  test('select distinct order by selected result column with alias', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.distinct
+      .columns`ID`
+      .from`${Authors} as a`
+      .orderBy`a.ID`
+
+    expect(res.length).to.be.eq(4)
+    expect(res[0].ID).to.be.eq(101)
   })
 
   test('reuse already executed select as subselect', async () => {

@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 /**
  * @implements SQLService
@@ -120,7 +121,7 @@ class HANAService extends SQLService {
   async onSELECT(req) {
     const { query, data } = req
 
-    if (!query.target) {
+    if (!query.target || query.target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
     if (!query.target || query.target._unresolved) {
@@ -180,7 +181,7 @@ class HANAService extends SQLService {
         : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
     }
   }
 
@@ -339,7 +340,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -373,6 +374,7 @@ class HANAService extends SQLService {
 
         let orderByHasOutputColumnRef = false
         if (orderBy) {
+          if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
             if (!c.ref) {
@@ -596,7 +598,49 @@ class HANAService extends SQLService {
                     col.ref = [parent.as, colName]
                   }
                 } else {
-                  col.ref[1] = colName
+                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
+                  x.SELECT.columns.forEach(col => {
+                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+                    if (col.ref?.length > 1) {
+                      const colName = this.column_name(col)
+                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
+                        const isSource = from => {
+                          if (from.as === col.ref[0]) return true
+                          return from.args?.some(a => {
+                            if (a.args) return isSource(a)
+                            return a.as === col.ref[0]
+                          })
+                        }
+
+                        // Inject foreign columns into parent selects (recursively)
+                        const as = `$$${col.ref.join('.')}$$`
+                        let rename = col.ref[0] !== parent.as
+                        let curPar = parent
+                        while (curPar) {
+                          if (isSource(curPar.SELECT.from)) {
+                            if (curPar.SELECT.columns.find(c => c.as === as)) {
+                              rename = true
+                            } else {
+                              rename = rename || curPar === parent
+                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
+                            }
+                            break
+                          } else {
+                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                            curPar = curPar.SELECT.parent
+                          }
+                        }
+                        if (rename) {
+                          col.as = colName
+                          col.ref = [parent.as, as]
+                        } else {
+                          col.ref = [parent.as, colName]
+                        }
+                      } else {
+                        col.ref[1] = colName
+                      }
+                    }
+                  })
                 }
               }
             })
@@ -1173,6 +1217,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Map: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
@@ -1247,7 +1292,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   async dispatch(req) {
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
-    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string')) {
+    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
@@ -1423,13 +1468,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === 301)
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 
