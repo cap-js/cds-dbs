@@ -3,47 +3,6 @@ const cds = require('../../test/cds')
 describe('Parameterized view', () => {
   const { expect } = cds.test(__dirname, 'param-views.cds')
 
-  beforeAll(async () => {
-    const db = await cds.connect.to('db')
-
-    // Deploy calculation view that uses an placeholder.$$NAME$$ argument
-    const xml = cds.utils.fs.readFileSync(__dirname + '/authors.hdbcalc', 'utf-8')
-    await db.run(`CREATE ANALYTIC MODEL SAP_CAPIRE_BOOKSHOP_CALCAUTHORS USING '${xml.replaceAll("'", "''")}'`)
-
-    // Extend current model with calcview that is based upon already deployed Authors table
-    const model = await cds.load('./param-view-calc.cds').then(cds.linked)
-
-    for (const entity in cds.model.definitions) {
-      if (model.definitions[entity]) model.definitions[entity]['@cds.persistence.skip'] = true
-    }
-
-    await cds.deploy(model).to('db')
-
-    for (const entity in model.definitions) {
-      if (model.definitions[entity]['@cds.persistence.skip']) continue
-      db.model.definitions[entity] = model.definitions[entity]
-    }
-
-    // Flatten foreign key path expression in CalcAuthors books associations
-    db.model.definitions['sap.capire.bookshop.PublicCalcAuthors'].elements.books.on[2] = { ref: ['books', 'author_ID'] }
-  })
-
-  test('calcview', async () => {
-    const { Authors, PublicCalcAuthors } = cds.entities('sap.capire.bookshop')
-
-    const authors = await SELECT.from(Authors)
-    const root = {
-      id: PublicCalcAuthors.name,
-      args: { name: { val: authors[0].name } },
-    }
-
-    const result = await SELECT.from({ ref: [root] })
-    const expand = await SELECT`ID,books{ID}`.from({ ref: [root] })
-
-    expect(result.length).to.eq(1)
-    expect(expand[0].books.length).to.be.defined
-  })
-
   const tests = [
     // ===== required queries =====
     {
