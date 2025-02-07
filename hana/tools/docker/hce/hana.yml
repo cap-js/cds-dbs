@@ -5,8 +5,6 @@ services:
     image: hana-master:current
     restart: always
     hostname: hcehost
-    networks:
-      - backend
     command:
       - --init
       - role=worker:services=indexserver,dpserver,diserver:database=H00:create
@@ -25,7 +23,7 @@ services:
 
   jaeger:
     networks:
-      backend:
+      default:
         # This is the host name used in Prometheus scrape configuration.
         aliases: [ spm_metrics_source ]
     image: jaegertracing/jaeger:${JAEGER_VERSION:-latest}
@@ -40,13 +38,23 @@ services:
       - "4318:4318"
 
   prometheus:
-    networks:
-      - backend
     image: prom/prometheus:v3.1.0
     volumes:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
     ports:
       - "9090:9090"
 
-networks:
-  backend:
+  bookshop:
+    image: "node:latest"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=development
+      - PORT=4008
+    volumes:
+      - ../../../../test/bookshop/:/home/node/app
+    expose:
+      - "4008"
+    ports:
+      - "4008:4008"
+    command: "npm start"

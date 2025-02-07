@@ -1,11 +1,19 @@
--- Ensures that the HDI is enabled on the system
 DO
 BEGIN
   DECLARE dbName NVARCHAR(25) = 'HXE';
   DECLARE diserverCount INT = 0;
+  DECLARE dpserverCount INT = 0;
+
+  -- Ensures that the HDI is enabled on the system
   SELECT COUNT(*) INTO diserverCount FROM SYS_DATABASES.M_SERVICES WHERE SERVICE_NAME = 'diserver' AND DATABASE_NAME = :dbName AND ACTIVE_STATUS = 'YES';
   IF diserverCount = 0 THEN 
     EXEC 'ALTER DATABASE ' || :dbName || ' ADD ''diserver''';
+  END IF;
+  
+  -- Ensure that remote sources are enabled on the system
+  SELECT COUNT(*) INTO dpserverCount FROM SYS_DATABASES.M_SERVICES WHERE SERVICE_NAME = 'dpserver' AND DATABASE_NAME = :dbName AND ACTIVE_STATUS = 'YES';
+  IF dpserverCount = 0 THEN 
+    EXEC 'ALTER DATABASE ' || :dbName || ' ADD ''dpserver''';
   END IF;
 END;
 
