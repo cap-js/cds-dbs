@@ -46,10 +46,10 @@ entity Suppliers {
                    on SupplierID = Products.SupplierID;
 }
 
-@(
-  cds.remote.source: 'Bookshop',
-  cds.remote.entity: 'Books'
-)
+// @(
+//   cds.remote.source: 'Bookshop',
+//   cds.remote.entity: 'Books'
+// )
 entity Books : managed {
   key ID             : Integer;
       title          : localized String(111);
@@ -64,10 +64,10 @@ entity Books : managed {
       authorsAddress : String = author.address;
 }
 
-@(
-  cds.remote.source: 'Bookshop',
-  cds.remote.entity: 'Authors'
-)
+// @(
+//   cds.remote.source: 'Bookshop',
+//   cds.remote.entity: 'Authors'
+// )
 entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
