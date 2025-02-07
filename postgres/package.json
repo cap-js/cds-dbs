@@ -59,7 +59,7 @@
         },
         "postgres": {
           "impl": "@cap-js/postgres",
-          "kind": "postgres",
+          "kind": "sqlite",
           "dialect": "postgres",
           "vcap": {
             "label": "postgresql-db"
