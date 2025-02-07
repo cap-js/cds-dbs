@@ -19,11 +19,11 @@ afterEach(() => {
 })
 
 it('should run pg build with explicit build task', () => {
-  execSync('cds build --for postgres', { cwd: workDir })
+  execSync('npx cds build --for postgres', { cwd: workDir })
   expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
 })
 
 it('should run pg build with production profile', () => {
-  execSync('cds build --production', { cwd: workDir })
+  execSync('npx cds build --production', { cwd: workDir })
   expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
 })
