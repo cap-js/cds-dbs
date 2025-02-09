@@ -39,7 +39,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing
-      - run: npm test -ws -- --unmute
+      - run: npm test -ws
         env:
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
