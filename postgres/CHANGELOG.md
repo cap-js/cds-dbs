@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.11.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.0...postgres-v1.11.1) (2025-02-09)
+
+
+### Fixed
+
+* postgres build plugin w `--production` ([#1018](https://github.com/cap-js/cds-dbs/issues/1018)) ([aafffc9](https://github.com/cap-js/cds-dbs/commit/aafffc99cb509380e5ae7738376e4d30ce5d66f2))
+
 ## [1.11.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.5...postgres-v1.11.0) (2025-01-28)
 
 

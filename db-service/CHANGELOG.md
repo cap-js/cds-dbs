@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.17.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.1...db-service-v1.17.2) (2025-02-09)
+
+
+### Fixed
+
+* replace polynomial regex with simple string op ([#1015](https://github.com/cap-js/cds-dbs/issues/1015)) ([3fe6e6b](https://github.com/cap-js/cds-dbs/commit/3fe6e6b7f7aaf5aafb811acf2838cd1da30052a8))
+
 ## [1.17.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.0...db-service-v1.17.1) (2025-02-04)
 
 
