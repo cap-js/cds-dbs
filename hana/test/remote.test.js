@@ -1,3 +1,5 @@
+process.env.CDS_SQL_NAMES = 'quoted'
+
 const cds = require('../../test/cds')
 
 /**
@@ -91,7 +93,7 @@ WITH CREDENTIAL TYPE 'PASSWORD' USING
 
       await ensureSSL()
 
-      // await ensureRemoteOData('Bookshop', 'http://bookshop:4008/admin')
+      await ensureRemoteOData('Bookshop', 'http://bookshop:4008/admin')
       await ensureRemoteOData('Northwind', 'https://services.odata.org/V4/Northwind/Northwind.svc/')
     })
 
@@ -115,10 +117,10 @@ WITH CREDENTIAL TYPE 'PASSWORD' USING
         await cds.run(`CREATE VIRTUAL TABLE "${entity.name}" AT "${entity[anno.source]}"."<NULL>"."<NULL>"."${entity[anno.entity]}"`)
       }
     }
-    const { /* Books, Authors, */ Products } = entities
+    const {  Books, Authors, Products } = entities
 
-    // const books = await cds.ql`SELECT FROM ${Books} { *, author { * } } excluding { footnotes } limit 2`
-    // const authors = await cds.ql`SELECT FROM ${Authors} { *, books { * } excluding { footnotes } } limit 2`
+    const books = await cds.ql`SELECT FROM ${Books} { *, author { * } } excluding { footnotes } limit 2`
+    const authors = await cds.ql`SELECT FROM ${Authors} { *, books { * } excluding { footnotes } } limit 2`
     const products = await cds.ql`SELECT FROM ${Products} { *, Supplier { * } } limit 2`
 
     // expect(books).length(2)

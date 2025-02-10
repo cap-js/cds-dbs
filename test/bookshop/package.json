@@ -22,9 +22,6 @@
   "cds": {
     "features": {
       "ieee754compatible": true
-    },
-    "sql": {
-      "names": "quoted"
     }
   }
 }
