@@ -49,7 +49,7 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin;
-        { npm start -w hana; } &
+        { npm start -w hana; }
       env:
         TAG: ${{ steps.find-hxe.outputs.TAG }}
         IMAGE_ID: ${{ steps.find-hxe.outputs.IMAGE_ID }}
