@@ -39,7 +39,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
-    const { credentials, kind } = service.options
+    const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
@@ -62,7 +62,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver(credentials)
+          const dbc = new driver({...credentials, ...clientOptions})
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc

@@ -28,7 +28,7 @@ class PostgresService extends SQLService {
         ...this.options.pool,
       },
       create: async () => {
-        const cr = this.options.credentials || {}
+        const { credentials: cr = {}, client: clientOptions = {} } = this.options
         const credentials = {
           // Cloud Foundry provides the user in the field username the pg npm module expects user
           user: cr.username || cr.user,
@@ -49,7 +49,7 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client(credentials)
+        const dbc = new Client({...credentials, ...clientOptions})
         await dbc.connect()
         return dbc
       },
