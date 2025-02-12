@@ -59,18 +59,7 @@ function attachConstraints(_results, req) {
       const constraint = constraints[name]
       const {
         condition: { xpr },
-        aggregation,
       } = constraint
-      if (aggregation) {
-        const subquery = SELECT.from(req.target).columns({ xpr, as: name })
-        return {
-          ...subquery,
-          as: name,
-          cast: {
-            type: 'cds.Boolean',
-          },
-        }
-      }
       return {
         xpr,
         as: name,

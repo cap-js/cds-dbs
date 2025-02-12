@@ -58,16 +58,6 @@ describe('Bookshop - assertions', () => {
       ).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
     })
 
-    test('assertion via aggregation', async () => {
-      await INSERT({ ID: 46, title: 'Harry Potter and the Half-Blood Prince', stock: 10 }).into(Books)
-      const book = await SELECT.one.from(Books).where({ ID: 46 }) // no problem if no price provided
-      expect(book.stock).to.equal(10)
-      // Insert very expensive book
-      await expect(
-        INSERT({ ID: 47, title: 'Harry Potter and the Deathly Hallows', stock: 10, price: 1000 }).into(Books),
-      ).to.be.rejectedWith(/The average price of the books must not exceed 50/)
-    })
-
     test('no stock is okay', async () => {
       await INSERT({ ID: 48, title: 'Harry Potter and the Cursed Child', stock: null }).into(Books)
 
