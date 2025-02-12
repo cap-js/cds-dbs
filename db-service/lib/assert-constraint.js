@@ -62,9 +62,9 @@ function attachConstraints(_results, req) {
         condition: { xpr },
         element,
       } = constraint
-      // if the element is nullable, we prepend xpr with `(<element> IS NULL OR <xpr>)`
+      // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
       if (!element.notNull) {
-        xpr.unshift('(', { ref: [element.name] }, 'IS NULL', ')', 'OR')
+        xpr.unshift({ ref: [element.name] }, 'IS', 'NULL', 'OR')
       }
       return {
         // case … when … needed for hana compatibility
