@@ -24,6 +24,23 @@ entity Books : managed {
       descr          : localized String(1111);
       author         : Association to Authors;
       genre          : Association to Genres default 10;
+      @assert.constraint.lessThanPrice: { // prefix with elem name
+        condition: ( stock <= price ),
+        message: 'The stock must be less than or equal to price: {price}'
+      }
+      // postfix name not necessary
+      // @assert.constraint: { //> implicit name: @assert.constraint.stock
+      //   condition: ( stock <= price ),
+      //   message: 'The stock must be less than or equal to price: {price}'
+      // }
+
+      // @assert.constraint: ( stock <= price ) //> implicit name: @assert.constraint.stock
+      // default message: @assert.constraint.stock failed (lookup in i18n)
+      // 
+      @assert.constraint: { //> implicit name: @assert.constraint.stock
+        condition: ( stock <= price ),
+        message: '{i18n>stockLessThanPrice}'
+      }
       stock          : Integer;
       price          : Decimal;
       // one of the tests inserts a very big decimal which
