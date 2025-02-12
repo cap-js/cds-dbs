@@ -6,35 +6,29 @@ using {
 
 namespace sap.capire.bookshop;
 
-@assert.constraint#stockNotEmpty : {
-  // ternary to workaround https://github.com/cap-js/cds-dbs/issues/1007
-  condition: ( ( stock >= 0 or stock IS NULL ) ? true : false ),
-  message: 'The stock must be greater than or equal to 0',
-  parameters: []     // to be inserted into the message
-}
 entity Books : managed {
   key ID             : Integer;
       title          : localized String(111);
       descr          : localized String(1111);
       author         : Association to Authors;
       genre          : Association to Genres default 10;
-      @assert.constraint.lessThanPrice: { // prefix with elem name
-        condition: ( stock <= price ),
-        message: 'The stock must be less than or equal to price: {price}'
-      }
-      // postfix name not necessary
-      // @assert.constraint: { //> implicit name: @assert.constraint.stock
-      //   condition: ( stock <= price ),
-      //   message: 'The stock must be less than or equal to price: {price}'
-      // }
-
       // @assert.constraint: ( stock <= price ) //> implicit name: @assert.constraint.stock
       // default message: @assert.constraint.stock failed (lookup in i18n)
       // 
-      @assert.constraint: { //> implicit name: @assert.constraint.stock
-        condition: ( stock <= price ),
-        message: '{i18n>stockLessThanPrice}'
-      }
+      // @assert.constraint: { //> implicit name: @assert.constraint.stock
+      //   condition: ( stock <= price ),
+      //   message: '{i18n>stockLessThanPrice}'
+      // }
+      @assert.constraint.stockNotEmpty : {
+        condition: ( stock >= 0 ),
+        message: 'The stock must be greater than or equal to 0',
+        parameters: []     // to be inserted into the message
+      } 
+      // @assert.constraint : {
+      //   condition: ( stock <= price ),
+      //   message: 'The stock must be less than or equal to price',
+      //   parameters: []     // to be inserted into the message
+      // } 
       stock          : Integer;
       price          : Decimal;
       // one of the tests inserts a very big decimal which

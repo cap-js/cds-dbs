@@ -12,17 +12,18 @@ function attachConstraints(_results, req) {
     const dataEntries = Array.isArray(req.data) ? req.data : [req.data] // Ensure batch handling
 
     // construct {key:value} pairs holding information about the entry to check
-    whereClauses = dataEntries.map(entry =>
-      primaryKeys.reduce((identifier, key) => {
-        const value = entry[key]
-        if (value === undefined) {
-          // Skip keys with undefined values, e.g. csv import
-          return
-        }
-        if(identifier.length > 0) identifier.push('and')
-        identifier.push({ ref: [key] }, '=', { val: value })
-        return identifier
-      }, []),
+    whereClauses = dataEntries
+      .map(entry =>
+        primaryKeys.reduce((identifier, key) => {
+          const value = entry[key]
+          if (value === undefined) {
+            // Skip keys with undefined values, e.g. csv import
+            return
+          }
+          if (identifier.length > 0) identifier.push('and')
+          identifier.push({ ref: [key] }, '=', { val: value })
+          return identifier
+        }, []),
       )
       .filter(Boolean)
   } else if (req.event === 'UPDATE' || req.event === 'UPSERT') {
@@ -59,9 +60,16 @@ function attachConstraints(_results, req) {
       const constraint = constraints[name]
       const {
         condition: { xpr },
+        element,
       } = constraint
+      // if the element is nullable, we prepend xpr with `(<element> IS NULL OR <xpr>)`
+      if (!element.notNull) {
+        xpr.unshift('(', { ref: [element.name] }, 'IS NULL', ')', 'OR')
+      }
       return {
-        xpr,
+        // case … when … needed for hana compatibility
+        // REVISIT: can we move workaround to HANAService only?
+        xpr: ['case', 'when', { xpr }, 'then', { val: true }, 'else', { val: false }, 'end'],
         as: name,
         cast: {
           type: 'cds.Boolean',
@@ -75,43 +83,71 @@ function attachConstraints(_results, req) {
     return validationQuery
   }
 
-  // returns all properties which start with '@assert.constraint#…' from the given entity
-  // everything after the qualifier '#' and up to the first dot is considered as constraint name
-  // everything after the dot e.g. '…#foo.value' should result in:
-  // constraints = { foo: { value: … } }
   function collectConstraints(entity) {
     const constraints = {}
 
-    for (const key in entity) {
-      if (key.startsWith('@assert.constraint#')) {
-        // Extract the part after '#'
-        const constraintPart = key.split('#')[1]
+    // Iterate over all elements in the entity
+    for (const elementKey in entity.elements) {
+      const element = entity.elements[elementKey]
+      // Ensure the element has a name (if not provided, infer it from the key)
+      if (!element.name) {
+        element.name = elementKey
+      }
 
-        // Extract the constraint name and path
-        const [name, ...pathParts] = constraintPart.split('.')
+      // Extract constraints from the current element
+      const elementConstraints = extractConstraintsFromElement(element)
 
-        // Initialize the constraint object if not already present
-        if (!constraints[name]) {
-          constraints[name] = {}
+      // Merge the element constraints into the global constraints map
+      for (const constraintName in elementConstraints) {
+        if (!constraints[constraintName]) {
+          constraints[constraintName] = elementConstraints[constraintName]
+        } else {
+          // Merge properties if the same constraint already exists, can that happen?
+          Object.assign(constraints[constraintName], elementConstraints[constraintName])
         }
-
-        // Use the path parts to set the nested property
-        let current = constraints[name]
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          const part = pathParts[i]
-          if (!current[part]) {
-            current[part] = {}
-          }
-          current = current[part]
-        }
-
-        // Set the final value
-        const finalKey = pathParts[pathParts.length - 1]
-        current[finalKey] = entity[key]
       }
     }
-
     return constraints
+
+    function extractConstraintsFromElement(element) {
+      const elmConstraints = {}
+      const elementName = element.name // Used if no constraint name is provided
+
+      for (const key in element) {
+        if (key.startsWith('@assert.constraint')) {
+          // Remove the fixed prefix
+          let remainder = key.substring('@assert.constraint'.length)
+          // Remove a leading dot, if any
+          if (remainder.startsWith('.')) {
+            remainder = remainder.substring(1)
+          }
+
+          // separate constraint name and property
+          const parts = remainder.split('.')
+          let constraintName, propertyName
+          if (parts.length === 1) {
+            // No explicit name: use the element's name as constraint name
+            constraintName = elementName
+            propertyName = parts[0]
+          } else {
+            // First part is the constraint name; the rest is the property name
+            constraintName = parts[0]
+            propertyName = parts.slice(1).join('.')
+          }
+
+          // Initialize the constraint object if needed
+          if (!elmConstraints[constraintName]) {
+            elmConstraints[constraintName] = {}
+          }
+          // Assign the property value from the element
+          elmConstraints[constraintName][propertyName] = element[key]
+        }
+      }
+      Object.keys(elmConstraints).forEach(name => {
+        elmConstraints[name].element = element
+      })
+      return elmConstraints
+    }
   }
 }
 
@@ -120,7 +156,7 @@ async function checkConstraints(req) {
     for (const check of this.tx.assert_constraints) {
       const { validationQuery, constraints } = check
       const result = await this.run(validationQuery)
-      if(!result) continue
+      if (!result) continue
       for (const name in constraints) {
         const constraintFulfilled = result[name]
         if (!constraintFulfilled) {
