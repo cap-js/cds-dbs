@@ -62,13 +62,15 @@ function attachConstraints(_results, req) {
       const xpr = []
       // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
       if (!element.notNull && !element.on) {
+        // if(element.on) --> REVISIT: HANA doesnt like this, what can we do to ensure nullability?
+        //   xpr.unshift({ ...coalesce(condition.xpr) }, 'or')
         xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
       }
       xpr.push({ xpr: condition.xpr })
       return {
         // case … when … needed for hana compatibility
         // REVISIT: can we move workaround to HANAService only?
-        xpr: ['case', 'when', { xpr }, 'then', { val: true }, 'else', { val: false }, 'end'],
+        xpr: wrapInCaseWhen(xpr),
         as: name,
         cast: {
           type: 'cds.Boolean',
@@ -138,6 +140,9 @@ function attachConstraints(_results, req) {
 
   function wrapInCaseWhen(xpr) {
     return ['case', 'when', { xpr }, 'then', { val: true }, 'else', { val: false }, 'end']
+  }
+  function coalesce(xpr) {
+    return { func: 'coalesce', args: [{ xpr }, { val: true }] }
   }
 }
 

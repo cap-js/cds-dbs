@@ -116,5 +116,14 @@ describe('Bookshop - assertions', () => {
       // both should have been created
       expect(genres).to.have.length(2)
     })
+
+    test('genre without children works', async () => {
+      await POST('admin/Genres', {
+        ID: 102,
+        name: 'Genre without children',
+      }, { auth: { username: 'alice' } })
+      const genre = await SELECT.one.from(Genres).where({ ID: 102 })
+      expect(genre).to.exist
+    })
   })
 })

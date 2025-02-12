@@ -17,15 +17,8 @@ entity Books : managed {
         message: 'The stock must be greater than or equal to 0',
         parameters: []     // to be inserted into the message
       } 
-      // @assert.constraint : {
-      //   condition: ( stock <= price ),
-      //   message: 'The stock must be less than or equal to price',
-      //   parameters: []     // to be inserted into the message
-      // } 
       stock          : Integer;
       price          : Decimal;
-      // one of the tests inserts a very big decimal which
-      // collides with our constraint above :D
       dummyDecimal   : Decimal;
       currency       : Currency;
       image          : LargeBinary @Core.MediaType: 'image/png';
@@ -55,9 +48,10 @@ entity Authors : managed {
 /** Hierarchically organized Code List for Genres */
 entity Genres : sap.common.CodeList {
   key ID       : Integer;
+      @assert.constraint: ( parent.name is not null)
       parent   : Association to Genres;
       // make sure only our pre-defined genres are allowed
-      @assert.constraint: ( children.name in (
+      @assert.constraint: ( ( children.ID is null ) or children.name in (
         'Fiction', 'Drama', 'Poetry', 'Fantasy', 'Science Fiction',
         'Romance', 'Mystery', 'Thriller', 'Dystopia', 'Fairy Tale',
         'Non-Fiction', 'Biography', 'Autobiography', 'Essay', 'Speech',
