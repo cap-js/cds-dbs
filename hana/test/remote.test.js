@@ -8,11 +8,20 @@ const cds = require('../../test/cds')
  */
 
 describe('remote', () => {
+  let hasReplicaSupport = true
+  afterAll(async () => {
+    // this afterAll has to be defined before cds.test as otherwise the afterAll inside cds.test fails
+    // If the real time replica is not dropped it is not longer possible to drop the test tenant
+    if (hasReplicaSupport) await cds.run(`ALTER VIRTUAL TABLE "sap.capire.bookshop.Target" DROP REPLICA`)
+  })
+
   const { expect } = cds.test(__dirname + '/../../test/bookshop')
 
   beforeAll(async () => {
+    cds.requires.system = { ...cds.requires.db }
     const credentials = cds.db.options.credentials
-    const sys = await cds.connect.to('db', { credentials: credentials.__system__ })
+
+    const sys = await cds.connect.to('system')
     await sys.tx(async tx => {
       await tx.run(`CREATE ADAPTER "ODataAdapter" PROPERTIES 'display_name=OData Adapter;description=OData Adapter' AT LOCATION DPSERVER;`).catch(() => { })
 
@@ -80,7 +89,7 @@ D4oWCFEn2r6Z9arcpYkn53pYkThyIjI6Rs2ELgP/p2rqwhw3MQz7JIQIcQ==
 '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ConnectionProperties name="connection_properties">
     <PropertyEntry name="URL" displayName="URL">${url}</PropertyEntry>
-    <PropertyEntry name="supportformatquery" displayName="Support Format Query">true</PropertyEntry>
+    <PropertyEntry name="supportformatquery" displayName="Support Format Query">false</PropertyEntry>
 </ConnectionProperties>' 
 WITH CREDENTIAL TYPE 'PASSWORD' USING 
 '<CredentialEntry name="password">
@@ -89,42 +98,99 @@ WITH CREDENTIAL TYPE 'PASSWORD' USING
 </CredentialEntry>'`)
         await tx.run(`CALL CHECK_REMOTE_SOURCE('${name}')`)
         await tx.run(`GRANT CREATE VIRTUAL TABLE ON REMOTE SOURCE "${name}" TO "${credentials.user}"`)
+        await tx.run(`GRANT CREATE REMOTE SUBSCRIPTION ON REMOTE SOURCE "${name}" TO "${credentials.user}"`)
+        remotes[name] = true
+      }
+
+      const ensureRemoteHANA = async function (name, creds) {
+        await tx.run(`DROP REMOTE SOURCE "${name}" CASCADE`).catch((err) => { debugger })
+        await tx.run(`CREATE REMOTE SOURCE "${name}" ADAPTER "hanaodbc" 
+CONFIGURATION 'Driver=libodbcHDB.so;ServerNode=${creds.host}:${creds.port};trustall=TRUE;encrypt=TRUE;sslValidateCertificate=FALSE'
+WITH CREDENTIAL TYPE 'PASSWORD' USING 'user=${creds.user};password=${creds.password}'`)
+        await tx.run(`CALL CHECK_REMOTE_SOURCE('${name}')`)
+        await tx.run(`GRANT CREATE VIRTUAL TABLE ON REMOTE SOURCE "${name}" TO "${credentials.user}"`)
+        await tx.run(`GRANT CREATE REMOTE SUBSCRIPTION ON REMOTE SOURCE "${name}" TO "${credentials.user}"`)
+        remotes[name] = true
       }
 
       await ensureSSL()
 
-      await ensureRemoteOData('Bookshop', 'http://bookshop:4008/admin')
+      await ensureRemoteOData('Bookshop', 'http://bookshop:4008/admin').catch(() => { })
       await ensureRemoteOData('Northwind', 'https://services.odata.org/V4/Northwind/Northwind.svc/')
-    })
 
-    await cds.connect.to('db', { credentials })
+      await ensureRemoteHANA('Self', credentials)
+        // HXE uses a different internal port then exposed in docker
+        .catch(() => ensureRemoteHANA('Self', { ...credentials, port: 39041 }))
+
+        // HXE doesn't have the RTR version of virtual table replicas
+        ;[{ hasReplicaSupport }] = await tx.run(`SELECT COUNT(*) as "hasReplicaSupport" FROM SYS.M_FEATURES WHERE COMPONENT_NAME='TABLE REPLICATION' AND FEATURE_NAME='REMOTE ASYNCHRONOUS REPLICA'`)
+
+      // Create a remote table that can be used as target (called TARGET)
+      await tx.run(`DROP TABLE "TARGET"`).catch(() => { })
+      await tx.run(`CREATE TABLE "TARGET" (ID INTEGER NOT NULL, KEY NVARCHAR(255), VALUE NVARCHAR(255), PRIMARY KEY (ID))`)
+      await tx.run(`INSERT INTO "TARGET" (ID, KEY, VALUE) VALUES (?,?,?)`, [
+        [1, 'property', 'value'],
+        [2, 'pointer', 'memory'],
+      ])
+      await tx.run(`GRANT ALL PRIVILEGES ON "TARGET" TO "${credentials.user}"`)
+      // const entities = await tx.dbc._native.execute(`CALL SYS.GET_REMOTE_SOURCE_OBJECT_TREE('Self','<NULL>SYSTEM',?,?)`)
+      // debugger
+    })
   })
+
+  // Track successfully created remotes to only attempt to create virtual tables where the remote exists
+  const remotes = {}
 
   test('debugger', async () => {
     const entities = cds.entities('sap.capire.bookshop')
 
     const anno = {
       source: '@cds.remote.source',
+      database: '@cds.remote.database',
+      schema: '@cds.remote.schema',
       entity: '@cds.remote.entity',
+      replicated: '@cds.remote.replicated',
     }
 
     for (const name in entities) {
       const entity = entities[name]
-      if (entity[anno.source] && entity[anno.entity]) {
+      if (entity[anno.source] && entity[anno.entity] && remotes[entity[anno.source]]) {
         // Remove original table
         await cds.run(cds.ql.DROP(entity))
         // Create virtual table
-        await cds.run(`CREATE VIRTUAL TABLE "${entity.name}" AT "${entity[anno.source]}"."<NULL>"."<NULL>"."${entity[anno.entity]}"`)
+        await cds.run(`CREATE VIRTUAL TABLE "${entity.name}" AT "${entity[anno.source]}"."${entity[anno.database] || '<NULL>'}"."${entity[anno.schema] || '<NULL>'}"."${entity[anno.entity]}"`)
+        if (entity[anno.replicated] && hasReplicaSupport) await cds.run(`ALTER VIRTUAL TABLE "${entity.name}" ADD SHARED REPLICA`)
       }
     }
-    const {  Books, Authors, Products } = entities
+    let { Books, Products, Target } = entities
 
-    const books = await cds.ql`SELECT FROM ${Books} { *, author { * } } excluding { footnotes } limit 2`
-    const authors = await cds.ql`SELECT FROM ${Authors} { *, books { * } excluding { footnotes } } limit 2`
     const products = await cds.ql`SELECT FROM ${Products} { *, Supplier { * } } limit 2`
-
-    // expect(books).length(2)
-    // expect(authors).length(2)
     expect(products).length(2)
+
+    const targetBefore = await cds.ql`SELECT FROM ${Target} { * }`
+
+    // Insert entries into the remote table TARGET
+    const sys = await cds.connect.to('system')
+    await sys.run(`INSERT INTO "TARGET" (ID, KEY, VALUE) VALUES (?,?,?)`, [
+      [3, 'prop', 'val'],
+      [4, 'p', 'm'],
+    ])
+
+    // Poll local replica for new entries
+    const s = performance.now()
+    let targetAfter = []
+    let counter = 0
+    while (targetAfter.length <= targetBefore.length) {
+      targetAfter = await cds.ql`SELECT FROM ${Target} { * }`
+      counter++
+    }
+    const dur = performance.now() - s
+
+    console.log('target updated after:', dur >>> 0, 'ms (read:', counter, 'times)')
+
+    await cds.ql.DELETE(Books) // DELETE works, but with a where clause it doesn't actually send the DELETE requests
+    await cds.ql.INSERT([{ ID: 999 }]).into(Books)
+    const booksAfter = await cds.ql`SELECT FROM ${Books} { * } excluding { footnotes } where ID = 999`
+    expect(booksAfter).length(1)
   })
 })

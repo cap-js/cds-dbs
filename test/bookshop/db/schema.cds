@@ -46,6 +46,20 @@ entity Suppliers {
                    on SupplierID = Products.SupplierID;
 }
 
+type HANABool  : String(5); // REVISIT: stored as TRUE/FALSE would be good to be a boolean
+
+@(
+  cds.remote.source: 'Self',
+  cds.remote.schema: 'SYSTEM',
+  cds.remote.entity: 'TARGET',
+  cds.remote.replicated // Creates the default behavior RTR replication
+)
+entity Target {
+  key ID     : Integer;
+      ![KEY] : String(255);
+      VALUE  : String(255);
+}
+
 @(
   cds.remote.source: 'Bookshop',
   cds.remote.entity: 'Books'
