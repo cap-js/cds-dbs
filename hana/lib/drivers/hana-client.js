@@ -45,13 +45,12 @@ class HANAClientDriver extends driver {
     super(creds)
     this._native = hdb.createConnection(creds)
     this._native = wrap_client(this._native, creds, creds.tenant)
-    this._native.setAutoCommit(false)
-  }
-
-  set(variables) {
-    for (const key in variables) {
-      this._native.setClientInfo(key, variables[key])
+    this._native.set = function (variables) {
+      for (const key in variables) {
+        this.setClientInfo(key, variables[key])
+      }
     }
+    this._native.setAutoCommit(false)
   }
 
   async prepare(sql, hasBlobs) {

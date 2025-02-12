@@ -1,0 +1,8 @@
+{
+  "name": "tiny-sample",
+  "version": "1.0.0",
+  "description": "A simple CAP project, to test the build plugin",
+  "dependencies": {
+    "@cap-js/postgres": "../../."
+  }
+}
