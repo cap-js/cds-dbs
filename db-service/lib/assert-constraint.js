@@ -5,7 +5,7 @@ function attachConstraints(_results, req) {
   const constraints = collectConstraints(req.target) // collect constraints from annotations
   if (Object.keys(constraints).length === 0) return
 
-  // which entry shall be checked? We need the IDs of the current req
+  // which entry shall be checked? We need the IDs / condition of the current req
   let whereClauses = []
   if (req.event === 'INSERT' || req.event === 'CREATE') {
     const primaryKeys = Object.keys(req.target.keys)
@@ -86,34 +86,17 @@ function attachConstraints(_results, req) {
   }
 
   function collectConstraints(entity) {
-    const constraints = {}
-
-    // Iterate over all elements in the entity
+    let constraints = {}
     for (const elementKey in entity.elements) {
       const element = entity.elements[elementKey]
-      // Ensure the element has a name (if not provided, infer it from the key)
-      if (!element.name) {
-        element.name = elementKey
-      }
-
       // Extract constraints from the current element
       const elementConstraints = extractConstraintsFromElement(element)
-
-      // Merge the element constraints into the global constraints map
-      for (const constraintName in elementConstraints) {
-        if (!constraints[constraintName]) {
-          constraints[constraintName] = elementConstraints[constraintName]
-        } else {
-          // Merge properties if the same constraint already exists, can that happen?
-          Object.assign(constraints[constraintName], elementConstraints[constraintName])
-        }
-      }
+      constraints = { ...constraints, ...elementConstraints }
     }
     return constraints
 
     function extractConstraintsFromElement(element) {
       const elmConstraints = {}
-      const elementName = element.name // Used if no constraint name is provided
 
       for (const key in element) {
         if (key.startsWith('@assert.constraint')) {
@@ -129,22 +112,23 @@ function attachConstraints(_results, req) {
           let constraintName, propertyName
           if (parts.length === 1) {
             // No explicit name: use the element's name as constraint name
-            constraintName = elementName
-            if (remainder.length === 0)
-              // shorthand has no condition prop
+            constraintName = element.name
+            if (remainder.length === 0) {
+              // no xpr => no constraint
+              if (!element['@assert.constraint'].xpr) continue
+
+              // shorthand has no condition prop, e.g. `@assert.constraint: ( children.name in ( … ) )`
               propertyName = 'condition'
-            else propertyName = parts[0]
+            } else propertyName = parts[0]
           } else {
             // First part is the constraint name; the rest is the property name
             constraintName = parts[0]
             propertyName = parts.slice(1).join('.')
           }
 
-          // Initialize the constraint object if needed
           if (!elmConstraints[constraintName]) {
             elmConstraints[constraintName] = {}
           }
-          // Assign the property value from the element
           elmConstraints[constraintName][propertyName] = element[key]
         }
       }
@@ -166,7 +150,6 @@ async function checkConstraints(req) {
         const constraintFulfilled = result[name]
         if (!constraintFulfilled) {
           const { message } = constraints[name]
-          // await this.rollback()
           req.error(400, message || `@assert.constraint ”${name}” failed`)
         }
       }
