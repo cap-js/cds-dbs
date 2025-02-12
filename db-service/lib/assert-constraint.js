@@ -61,11 +61,8 @@ function attachConstraints(_results, req) {
       const { condition, element } = constraint
       const xpr = []
       // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
-      if (!element.notNull) {
-        if (element.on)
-          // null check the whole xpr for unmanaged assocs which vanish in the result
-          xpr.unshift({ xpr: condition.xpr }, 'is', 'null', 'or')
-        else xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
+      if (!element.notNull && !element.on) {
+        xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
       }
       xpr.push({ xpr: condition.xpr })
       return {
@@ -137,6 +134,10 @@ function attachConstraints(_results, req) {
       })
       return elmConstraints
     }
+  }
+
+  function wrapInCaseWhen(xpr) {
+    return ['case', 'when', { xpr }, 'then', { val: true }, 'else', { val: false }, 'end']
   }
 }
 

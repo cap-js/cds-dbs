@@ -60,7 +60,8 @@ entity Genres : sap.common.CodeList {
       @assert.constraint: ( children.name in (
         'Fiction', 'Drama', 'Poetry', 'Fantasy', 'Science Fiction',
         'Romance', 'Mystery', 'Thriller', 'Dystopia', 'Fairy Tale',
-        'Non-Fiction', 'Biography', 'Autobiography', 'Essay', 'Speech'
+        'Non-Fiction', 'Biography', 'Autobiography', 'Essay', 'Speech',
+        'New Genre', 'New Sub-Genre'
        ) )
       children : Composition of many Genres
                    on children.parent = $self;

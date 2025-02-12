@@ -102,9 +102,19 @@ describe('Bookshop - assertions', () => {
           ]
         }, { auth: { username: 'alice' } })
       ).to.be.rejectedWith(/@assert.constraint ”children” failed/)
-      // nothing should have been created
       const genre = await SELECT.from(Genres).where('ID in (90, 91)')
       expect(genre).to.be.empty
+      // positive case
+      await POST('admin/Genres', {
+        ID: 100,
+        name: 'New Genre', // OK
+        children: [
+          { ID: 101, name: 'New Sub-Genre' }, // also OK
+        ],
+      }, { auth: { username: 'alice' } })
+      const genres = await SELECT.from(Genres).where('ID in (100, 101)')
+      // both should have been created
+      expect(genres).to.have.length(2)
     })
   })
 })
