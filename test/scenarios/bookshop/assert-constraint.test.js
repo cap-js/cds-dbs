@@ -2,11 +2,12 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - assertions', () => {
-  const { expect } = cds.test(bookshop)
-  let adminService, catService, Books
+  const { expect, POST } = cds.test(bookshop)
+  let adminService, catService, Books, Genres
 
   before('bootstrap the database', async () => {
     Books = cds.entities.Books
+    Genres = cds.entities.Genres
     await INSERT({ ID: 42, title: 'Harry Potter and the Chamber of Secrets', stock: 15, price: 15 }).into(Books)
   })
 
@@ -63,6 +64,47 @@ describe('Bookshop - assertions', () => {
 
       const book = await SELECT.one.from(Books).where({ ID: 48 })
       expect(book).to.exist
+    })
+
+    test('deepInsert should not proceed after constraint violation in header', async () => {
+      await expect(
+        POST(
+          '/admin/Authors',
+          {
+            ID: 55,
+            name: 'Brandon Sanderson',
+            dateOfBirth: null, // mixed up date of birth and date of death
+            dateOfDeath: '1975-12-19',
+            books: [
+              {
+                ID: 55,
+                title: 'The Way of Kings',
+                stock: 10,
+                price: 10,
+              },
+            ],
+          },
+          { auth: { username: 'alice' } },
+        ),
+      ).to.be.rejectedWith(/The date of birth must be before the date of death/)
+      // book should not have been created
+      const book = await SELECT.one.from(Books).where({ ID: 55 })
+      expect(book).to.not.exist
+    })
+
+    test('deep insert violates constraint with path expression', async () => {
+      await expect(
+        POST('admin/Genres', {
+          ID: 90,
+          name: 'Fairy Tale', // OK
+          children: [
+            { ID: 91, name: 'Fable' }, // NOT OK
+          ]
+        }, { auth: { username: 'alice' } })
+      ).to.be.rejectedWith(/@assert.constraint ”children” failed/)
+      // nothing should have been created
+      const genre = await SELECT.from(Genres).where('ID in (90, 91)')
+      expect(genre).to.be.empty
     })
   })
 })

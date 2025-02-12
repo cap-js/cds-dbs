@@ -12,13 +12,6 @@ entity Books : managed {
       descr          : localized String(1111);
       author         : Association to Authors;
       genre          : Association to Genres default 10;
-      // @assert.constraint: ( stock <= price ) //> implicit name: @assert.constraint.stock
-      // default message: @assert.constraint.stock failed (lookup in i18n)
-      // 
-      // @assert.constraint: { //> implicit name: @assert.constraint.stock
-      //   condition: ( stock <= price ),
-      //   message: '{i18n>stockLessThanPrice}'
-      // }
       @assert.constraint.stockNotEmpty : {
         condition: ( stock >= 0 ),
         message: 'The stock must be greater than or equal to 0',
@@ -44,6 +37,10 @@ entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
       dateOfBirth  : Date;
+      @assert.constraint : {
+        condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
+        message: 'The date of birth must be before the date of death',
+      }
       dateOfDeath  : Date;
       placeOfBirth : String;
       placeOfDeath : String;
@@ -59,6 +56,12 @@ entity Authors : managed {
 entity Genres : sap.common.CodeList {
   key ID       : Integer;
       parent   : Association to Genres;
+      // make sure only our pre-defined genres are allowed
+      @assert.constraint: ( children.name in (
+        'Fiction', 'Drama', 'Poetry', 'Fantasy', 'Science Fiction',
+        'Romance', 'Mystery', 'Thriller', 'Dystopia', 'Fairy Tale',
+        'Non-Fiction', 'Biography', 'Autobiography', 'Essay', 'Speech'
+       ) )
       children : Composition of many Genres
                    on children.parent = $self;
 }

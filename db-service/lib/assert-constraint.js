@@ -58,14 +58,16 @@ function attachConstraints(_results, req) {
     // each column represents a constraint
     const columns = Object.keys(constraints).map(name => {
       const constraint = constraints[name]
-      const {
-        condition: { xpr },
-        element,
-      } = constraint
+      const { condition, element } = constraint
+      const xpr = []
       // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
       if (!element.notNull) {
-        xpr.unshift({ ref: [element.name] }, 'IS', 'NULL', 'OR')
+        if (element.on)
+          // null check the whole xpr for unmanaged assocs which vanish in the result
+          xpr.unshift({ xpr: condition.xpr }, 'is', 'null', 'or')
+        else xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
       }
+      xpr.push({ xpr: condition.xpr })
       return {
         // case … when … needed for hana compatibility
         // REVISIT: can we move workaround to HANAService only?
@@ -128,7 +130,10 @@ function attachConstraints(_results, req) {
           if (parts.length === 1) {
             // No explicit name: use the element's name as constraint name
             constraintName = elementName
-            propertyName = parts[0]
+            if (remainder.length === 0)
+              // shorthand has no condition prop
+              propertyName = 'condition'
+            else propertyName = parts[0]
           } else {
             // First part is the constraint name; the rest is the property name
             constraintName = parts[0]
@@ -162,7 +167,7 @@ async function checkConstraints(req) {
         if (!constraintFulfilled) {
           const { message } = constraints[name]
           // await this.rollback()
-          req.error(400, message || `Constraint ${name} failed`)
+          req.error(400, message || `@assert.constraint ”${name}” failed`)
         }
       }
     }
