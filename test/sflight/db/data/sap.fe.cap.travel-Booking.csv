@@ -1,0 +1,5 @@
+BookingUUID                      ;to_Travel_TravelUUID             ;BookingID ;BookingDate ;to_Customer_CustomerID ;to_Carrier_AirlineID ;ConnectionID ;FlightDate ;FlightPrice ;CurrencyCode_code ;BookingStatus_code ;LastChangedAt
+7A757221A8E4645C17002DF03754AB66 ;52657221A8E4645C17002DF03754AB66 ;     0001 ;2023-08-02  ;                000099 ;SW                   ;        1537 ;2023-08-04 ;     438.00 ;USD               ;N                  ;2023-07-21T18:48:08Z
+4A787221A8E4645C17002DF03754AB66 ;EE657221A8E4645C17002DF03754AB66 ;     0001 ;2023-07-12  ;                000473 ;EA                   ;        0403 ;2023-07-31 ;    2300.00 ;EUR               ;B                  ;2023-07-20T07:58:08Z
+3A997221A8E4645C17002DF03754AB66 ;76757221A8E4645C17002DF03754AB66 ;     0001 ;2024-05-13  ;                000115 ;GA                   ;        0018 ;2024-05-30 ;    3657.00 ;USD               ;N                  ;2023-10-20T11:03:30Z
+3B997221A8E4645C17002DF03754AB66 ;76757221A8E4645C17002DF03754AB66 ;     0002 ;2024-05-13  ;                000096 ;FA                   ;        0018 ;2024-05-30 ;    3657.00 ;USD               ;N                  ;2023-10-20T11:03:30Z

@@ -1,11 +1,23 @@
-const { Readable, Stream } = require('stream')
+const { Readable, Stream, promises: { pipeline } } = require('stream')
 const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
+const cds = require('@sap/cds')
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
+const { wrap_client } = require('./dynatrace')
+
+if (cds.env.features.sql_simple_queries === 3) {
+  // Make hdb return true / false
+  const Reader = require('hdb/lib/protocol/Reader.js')
+  Reader.prototype._readTinyInt = Reader.prototype.readTinyInt
+  Reader.prototype.readTinyInt = function () {
+    const ret = this._readTinyInt()
+    return ret == null ? ret : !!ret
+  }
+}
 
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
@@ -21,7 +33,6 @@ class HDBDriver extends driver {
    */
   constructor(creds) {
     creds = {
-      useCesu8: false,
       fetchSize: 1 << 16, // V8 default memory page size
       ...creds,
     }
@@ -33,17 +44,17 @@ class HDBDriver extends driver {
 
     super(creds)
     this._native = hdb.createClient(creds)
+    this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
+    this._native.set = function(variables) {
+      const clientInfo = this._connection.getClientInfo()
+      for (const key in variables) {
+        clientInfo.setProperty(key, variables[key])
+      }
+    }
 
     this.connected = false
-  }
-
-  set(variables) {
-    const clientInfo = this._native._connection.getClientInfo()
-    for (const key in variables) {
-      clientInfo.setProperty(key, variables[key])
-    }
   }
 
   async validate() {
@@ -136,7 +147,7 @@ class HDBDriver extends driver {
   _getResultForProcedure(rows, outParameters) {
     // on hdb, rows already contains results for scalar params
     const isArray = Array.isArray(rows)
-    const result = isArray ? {...rows[0]} : {...rows}
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
     const args = isArray ? rows.slice(1) : []
@@ -156,6 +167,14 @@ class HDBDriver extends driver {
     const streams = []
     values = values.map((v, i) => {
       if (v instanceof Stream) {
+        if (this._creds.useCesu8 !== false && v.type === 'json') {
+          const encode = iconv.encodeStream('cesu8')
+          v.setEncoding('utf-8')
+          // hdb will react to the stream error no need to handle it twice
+          pipeline(v, encode).catch(() => { })
+          return encode
+        }
+
         streams[i] = v
         const iterator = v[Symbol.asyncIterator]()
         return Readable.from(iterator, { objectMode: false })

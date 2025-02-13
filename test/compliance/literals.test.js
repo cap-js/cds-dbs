@@ -1,3 +1,5 @@
+require('../cds')
+
 describe('literals', () => {
   describe('globals', () => {
     describe('boolean', () => {
@@ -50,6 +52,12 @@ describe('literals', () => {
   })
 
   describe('arrays', () => {
+    test.skip('missing', () => {
+      throw new Error('not supported')
+    })
+  })
+
+  describe('maps', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
     })

@@ -263,6 +263,49 @@ describe('table alias access', () => {
       let result = cqn4sql(query, model)
       expect(result).to.deep.equal(expected)
     })
+
+    it('refs in function args in on condition are aliased', () => {
+      let query = CQL`
+        SELECT
+          ID,
+          iSimilar { name }
+        from bookshop.Posts`
+
+      const expected = CQL`
+        SELECT
+          Posts.ID,
+          (
+            SELECT from bookshop.Posts as iSimilar {
+              iSimilar.name
+            }
+            where UPPER(Posts.name) = UPPER(iSimilar.name)
+          ) as iSimilar
+        from bookshop.Posts as Posts`
+
+      let result = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(result))).to.deep.equal(expected)
+    })
+    it('refs in nested function args in on condition are aliased', () => {
+      let query = CQL`
+        SELECT
+          ID,
+          iSimilarNested { name }
+        from bookshop.Posts`
+
+      const expected = CQL`
+        SELECT
+          Posts.ID,
+          (
+            SELECT from bookshop.Posts as iSimilarNested {
+              iSimilarNested.name
+            }
+            where UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(Posts.name)), Posts.name)
+          ) as iSimilarNested
+        from bookshop.Posts as Posts`
+
+      let result = cqn4sql(query, model)
+      expect(JSON.parse(JSON.stringify(result))).to.deep.equal(expected)
+    })
   })
 
   describe('replace $self references', () => {
@@ -403,6 +446,45 @@ describe('table alias access', () => {
         where 2 / (1+1) = 1
        `,
       )
+    })
+    it('refer to my own column in function expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          cast('2007-07-07' as Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as Date) as twoLeapYearsLater,
+          months_between($self.twoLeapYearsEarlier, $self.twoLeapYearsLater)
+        }`
+      const transformed = cqn4sql(q, model)
+      const expectation = cds.ql`
+        SELECT from bookshop.Books as Books {
+          cast('2007-07-07' as cds.Date) as twoLeapYearsEarlier,
+          cast('2013-07-06' as cds.Date) as twoLeapYearsLater,
+          months_between(cast('2007-07-07' as cds.Date), cast('2007-07-06' as cds.Date)) as months_between
+        }`
+      // cast expression inside argument is parsed without surrounding "xpr"
+      // hence we need to adjust the expectation
+      expectation.SELECT.columns[2].args = [
+        { xpr: expectation.SELECT.columns[0].xpr },
+        { xpr: expectation.SELECT.columns[1].xpr },
+      ]
+
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
+    })
+    it('refer to my own column in calc expression', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books {
+          (cast('2007-07-07' as Date) + 1) as twoLeapYearsEarlier,
+          (cast('2013-07-06' as Date) + 1) as twoLeapYearsLater,
+          $self.twoLeapYearsEarlier +  months_between($self.twoLeapYearsEarlier + 15) as calc
+        }`
+      const transformed = cqn4sql(q, model)
+      const expectation = cds.ql`
+        SELECT from bookshop.Books as Books {
+          (cast('2007-07-07' as cds.Date) + 1) as twoLeapYearsEarlier,
+          (cast('2013-07-06' as cds.Date) + 1) as twoLeapYearsLater,
+          (cast('2007-07-07' as cds.Date) + 1) + months_between((cast('2007-07-07' as cds.Date) + 1) + 15) as calc
+        }`
+      expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expectation)
     })
   })
 

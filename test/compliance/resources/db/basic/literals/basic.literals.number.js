@@ -56,12 +56,23 @@ module.exports = [
     integer64: '-9223372036854775808',
   },
   {
+    decimal: null
+  },
+  {
+    decimal: 0,
+    '=decimal': '0.0000'
+  },
+  {
+    decimal: 1,
+    '=decimal': '1.0000'
+  },
+  {
     decimal: '3.14153',
-    '=decimal': /^3\.1415/
+    '=decimal': '3.1415'
   },
   {
     decimal: 3.14,
-    '=decimal': /^3\.14/
+    '=decimal': '3.1400'
   },
   {
     double: 3.14159265358979

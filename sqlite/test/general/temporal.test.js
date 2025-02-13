@@ -1,7 +1,7 @@
 const cds = require('../../../test/cds.js')
 
 describe('temporal', () => {
-  const { GET, POST } = cds.test(__dirname, 'model.cds')
+  const { GET, POST, expect } = cds.test(__dirname, 'model.cds')
 
   beforeAll(async () => {
     const db = await cds.connect.to('db')
@@ -17,19 +17,19 @@ describe('temporal', () => {
 
     validAt = '1970-01-01T00:00:00.000Z'
     res = await GET(`/test/fooTemporal?sap-valid-at=${validAt}`)
-    expect(res.data.value.length).toBe(0)
+    expect(res.data.value.length).equals(0)
 
     validAt = '1995-01-01T00:00:00.000Z'
     res = await GET(`/test/fooTemporal?sap-valid-at=${validAt}`)
-    expect(res.data.value.length).toBe(1)
+    expect(res.data.value.length).equals(1)
     const it = res.data.value[0]
-    expect(it).toMatchObject({ ID: 1 })
+    expect(it).to.containSubset({ ID: 1 })
     // managed and temporal shall not clash
-    expect(it.createdAt).not.toEqual(it.validFrom)
+    expect(it.createdAt).not.equals(it.validFrom)
 
     validAt = '2010-01-01T00:00:00.000Z'
     res = await GET(`/test/fooTemporal?sap-valid-at=${validAt}`)
-    expect(res.data.value.length).toBe(2)
+    expect(res.data.value.length).equals(2)
   })
 
   test('UPSERT', async () => {
@@ -37,6 +37,6 @@ describe('temporal', () => {
     const url = `/test/fooTemporal?sap-valid-from=${validFrom}`
     const data = { ID: 42, validFrom }
     const res = await POST(url, data)
-    expect(res.data).toMatchObject({ validFrom })
+    expect(res.data).to.containSubset({ validFrom })
   })
 })
