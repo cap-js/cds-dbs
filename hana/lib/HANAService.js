@@ -656,7 +656,7 @@ class HANAService extends SQLService {
         const rawJsonColumn = sql.length
           ? JSON_CONCAT
             ? `'{' || ${toJson.join(` || ',' || `)} || '}'`
-            : `(SELECT ${sql} FROM (SELECT 1 as "$$HoWdIdYoUCaLlItThIs$$" FROM DUMMY) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+            : `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
