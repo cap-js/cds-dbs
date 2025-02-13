@@ -51,12 +51,10 @@ entity Genres : sap.common.CodeList {
       @assert.constraint: ( parent.name is not null)
       parent   : Association to Genres;
       // make sure only our pre-defined genres are allowed
-      @assert.constraint: ( ( children.ID is null ) or children.name in (
-        'Fiction', 'Drama', 'Poetry', 'Fantasy', 'Science Fiction',
-        'Romance', 'Mystery', 'Thriller', 'Dystopia', 'Fairy Tale',
-        'Non-Fiction', 'Biography', 'Autobiography', 'Essay', 'Speech',
-        'New Genre', 'New Sub-Genre'
-       ) )
+      @assert.constraint: (
+        children.name is null or
+        children.name not in ( 'Foo', 'Bar', 'Forbidden Genre' )
+      )
       children : Composition of many Genres
                    on children.parent = $self;
 }

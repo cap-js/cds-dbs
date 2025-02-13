@@ -98,7 +98,7 @@ describe('Bookshop - assertions', () => {
           ID: 90,
           name: 'Fairy Tale', // OK
           children: [
-            { ID: 91, name: 'Fable' }, // NOT OK
+            { ID: 91, name: 'Forbidden Genre' }, // NOT OK
           ]
         }, { auth: { username: 'alice' } })
       ).to.be.rejectedWith(/@assert.constraint ”children” failed/)
