@@ -264,7 +264,7 @@ const HANAFunctions = {
    * @param {string} x session variable name or SQL expression
    * @returns {string}
    */
-    session_context: x => `session_context('${x.val}')`,
+  session_context: x => `session_context('${x.val}')`,
 
   // Time functions
   current_date: p => (p ? `current_date(${p})` : 'current_date'),

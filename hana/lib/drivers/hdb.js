@@ -47,15 +47,14 @@ class HDBDriver extends driver {
     this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
+    this._native.set = function(variables) {
+      const clientInfo = this._connection.getClientInfo()
+      for (const key in variables) {
+        clientInfo.setProperty(key, variables[key])
+      }
+    }
 
     this.connected = false
-  }
-
-  set(variables) {
-    const clientInfo = this._native._connection.getClientInfo()
-    for (const key in variables) {
-      clientInfo.setProperty(key, variables[key])
-    }
   }
 
   async validate() {

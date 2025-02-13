@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 class PostgresService extends SQLService {
   init() {
@@ -329,7 +330,7 @@ GROUP BY k
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
     }
   }
 
@@ -337,7 +338,7 @@ GROUP BY k
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
     }
   }
 
@@ -872,13 +873,14 @@ class ParameterStream extends Writable {
   }
 }
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === '23505')
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 
