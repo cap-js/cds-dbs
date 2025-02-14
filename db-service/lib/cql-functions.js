@@ -77,7 +77,7 @@ const StandardFunctions = {
    * {func:'substring',args:[{val:'abc'},{val:1},{val:1}]}
    * @param {string} x - The string input
    * @param {string} y - The starting position
-   * @param {string} z - The length of the substring
+   * @param {string} [z] - Optional length of the substring
    * @returns {string} - SQL statement
    */
   substring: (x, y, z) =>
@@ -167,21 +167,20 @@ const HANAFunctions = {
 
   /**
    * Generates SQL statement for the current date
-   * @param {string} [p] - Optional parameter
    * @returns {string} - SQL statement
    */
-  current_date: p => (p ? `current_date(${p})` : 'current_date'),
+  current_date: () => 'current_date',
 
   /**
    * Generates SQL statement for the current time
-   * @param {string} [p] - Optional parameter
+   * @param {string} [p] - Optional precision parameter
    * @returns {string} - SQL statement
    */
   current_time: p => (p ? `current_time(${p})` : 'current_time'),
 
   /**
    * Generates SQL statement for the current timestamp
-   * @param {string} [p] - Optional parameter
+   * @param {string} [p] - Optional precision parameter
    * @returns {string} - SQL statement
    */
   current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
