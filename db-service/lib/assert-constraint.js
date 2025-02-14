@@ -74,7 +74,9 @@ function attachConstraints(_results, req) {
       xpr.push({ xpr: condition.xpr })
       const colsForConstraint = [{
         xpr: wrapInCaseWhen(xpr),
-        as: name,
+        // avoid naming ambiguities for anonymous constraints,
+        // where the element itself is part of the msg params
+        as: name + '_constraint',
         cast: {
           type: 'cds.Boolean',
         },
@@ -161,15 +163,16 @@ async function checkConstraints(req) {
       const { validationQuery, constraints } = check
       const result = await this.run(validationQuery)
       if (!result) continue
-      for (const constraintName in constraints) {
+      for (const key in constraints) {
+        const constraintCol = key + '_constraint'
         for (const row of result) {
-          if (!row[constraintName]) {
-            const { message, parameters } = constraints[constraintName]
+          if (!row[constraintCol]) {
+            const { message, parameters } = constraints[key]
             const msgParams = {}
             if (parameters) {
-              Object.keys(row).filter(alias => alias !== constraintName).forEach(alias => msgParams[alias] = row[alias])
+              Object.keys(row).filter(alias => alias !== constraintCol).forEach(alias => msgParams[alias] = row[alias])
             }
-            req.error(400, message ? (cds.i18n.messages.at(message, msgParams) || message) : `@assert.constraint ”${constraintName}” failed`)
+            req.error(400, message ? (cds.i18n.messages.at(message, msgParams) || message) : `@assert.constraint ”${key}” failed`)
           }
         }
       }

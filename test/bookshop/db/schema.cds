@@ -32,7 +32,8 @@ entity Authors : managed {
       dateOfBirth  : Date;
       @assert.constraint : {
         condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
-        message: 'The date of birth must be before the date of death',
+        message: 'LIFE_BEFORE_DEATH',
+        parameters: ((name, dateOfBirth, dateOfDeath))
       }
       dateOfDeath  : Date;
       placeOfBirth : String;

@@ -86,7 +86,7 @@ describe('Bookshop - assertions', () => {
           },
           { auth: { username: 'alice' } },
         ),
-      ).to.be.rejectedWith(/The date of birth must be before the date of death/)
+      ).to.be.rejectedWith('The Birthday "null" of author "Brandon Sanderson" must not be after the Deathday "1975-12-19"')
       // book should not have been created
       const book = await SELECT.one.from(Books).where({ ID: 55 })
       expect(book).to.not.exist
