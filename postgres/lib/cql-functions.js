@@ -59,7 +59,7 @@ const HANAFunctions = {
   // Time functions
   nano100_between: (x, y) => `EXTRACT(EPOCH FROM ${y} - ${x}) * 10000000`,
   seconds_between: (x, y) => `EXTRACT(EPOCH FROM ${y} - ${x})`,
-  days_between: (x, y) => `EXTRACT(DAY FROM ${y} - ${x})`,
+  days_between: (x, y) => `EXTRACT(DAY FROM ${y}::timestamp - ${x}::timestamp)::integer`,
 
   months_between: (x, y) => `((
         (EXTRACT(YEAR FROM ${y}) - EXTRACT(YEAR FROM ${x})) * 12
