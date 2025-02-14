@@ -149,7 +149,7 @@ function attachConstraints(_results, req) {
 async function checkConstraints(req) {
   if (this.tx.assert_constraints) {
     for (const check of this.tx.assert_constraints) {
-      const { validationQuery, constraints } = check
+      const {  validationQuery, constraints } = check
       const result = await this.run(validationQuery)
       if (!result) continue
       for (const name in constraints) {

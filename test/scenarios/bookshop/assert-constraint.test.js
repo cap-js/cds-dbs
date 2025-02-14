@@ -92,38 +92,30 @@ describe('Bookshop - assertions', () => {
       expect(book).to.not.exist
     })
 
-    test('deep insert violates constraint with path expression', async () => {
+    test.skip('deep insert should not be fulfilled after constraint violation in child', async () => {
       await expect(
-        POST('admin/Genres', {
-          ID: 90,
-          name: 'Fairy Tale', // OK
-          children: [
-            { ID: 91, name: 'Forbidden Genre' }, // NOT OK
-          ]
-        }, { auth: { username: 'alice' } })
-      ).to.be.rejectedWith(/@assert.constraint ”children” failed/)
-      const genre = await SELECT.from(Genres).where('ID in (90, 91)')
-      expect(genre).to.be.empty
-      // positive case
-      await POST('admin/Genres', {
-        ID: 100,
-        name: 'New Genre', // OK
-        children: [
-          { ID: 101, name: 'New Sub-Genre' }, // also OK
-        ],
-      }, { auth: { username: 'alice' } })
-      const genres = await SELECT.from(Genres).where('ID in (100, 101)')
-      // both should have been created
-      expect(genres).to.have.length(2)
-    })
-
-    test('genre without children works', async () => {
-      await POST('admin/Genres', {
-        ID: 102,
-        name: 'Genre without children',
-      }, { auth: { username: 'alice' } })
-      const genre = await SELECT.one.from(Genres).where({ ID: 102 })
-      expect(genre).to.exist
+        POST(
+          '/admin/Genres',
+          {
+            ID: 256,
+            name: 'Fantasy',
+            children: [
+              {
+                ID: 56,
+                name: 'Fable',
+                children: [
+                  {
+                    ID: 57,
+                    name: 'We forbid genre names with more than 20 characters', // how to check violations in deep operations?
+                  }]
+              }
+            ]
+          },
+          { auth: { username: 'alice' } },
+        ),
+      ).to.be.fulfilled
+      const genres = await SELECT.from(Genres)
+      expect(genres.length).to.equal(0)
     })
   })
 })

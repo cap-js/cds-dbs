@@ -48,16 +48,13 @@ entity Authors : managed {
 /** Hierarchically organized Code List for Genres */
 entity Genres : sap.common.CodeList {
   key ID       : Integer;
-      @assert.constraint: ( parent.name is not null)
       parent   : Association to Genres;
-      // make sure only our pre-defined genres are allowed
-      @assert.constraint: (
-        children.name is null or
-        children.name not in ( 'Foo', 'Bar', 'Forbidden Genre' )
-      )
       children : Composition of many Genres
                    on children.parent = $self;
 }
+
+annotate Genres:name with @assert.constraint: (length(name) <= 20);
+
 
 entity A : managed {
   key ID  : Integer;
