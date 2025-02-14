@@ -86,6 +86,8 @@ function attachConstraints(_results, req) {
           parameters.list.forEach(p => colsForConstraint.push(p))
         else if (parameters.ref)
           colsForConstraint.push(parameters.ref)
+        else if (parameters.length)
+          parameters.forEach(p => colsForConstraint.push({ref: [p['=']]}))
       }
       return colsForConstraint
     })

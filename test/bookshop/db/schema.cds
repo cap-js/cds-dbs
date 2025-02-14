@@ -16,7 +16,7 @@ entity Books : managed {
         condition: ( stock >= 0 ),
         message: 'STOCK_NOT_EMPTY',
         parameters: ((title, ID))     // to be inserted into the message
-      } 
+      }
       stock          : Integer;
       price          : Decimal;
       dummyDecimal   : Decimal;
@@ -54,8 +54,7 @@ entity Genres : sap.common.CodeList {
                    on children.parent = $self;
 }
 
-annotate Genres:name with @assert.constraint: (length(name) <= 20);
-
+annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [name], message: 'GENRE_NAME_TOO_LONG'};
 
 entity A : managed {
   key ID  : Integer;
