@@ -162,7 +162,7 @@ const HANAFunctions = {
    * @param {string} y - End timestamp
    * @returns {string} - SQL statement
    */
-  days_between: (x, y) => `EXTRACT(DAY FROM ${y} - ${x})`,
+  days_between: (x, y) => `EXTRACT(DAY FROM ${y}::timestamp - ${x}::timestamp)::integer`,
 
   /**
    * Generates SQL statement for the difference in months between two timestamps
