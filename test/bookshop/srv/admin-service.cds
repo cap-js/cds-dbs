@@ -11,7 +11,7 @@ service AdminService @(requires:'admin', path:'/admin') {
     author,
     author.name,
     stock,
-    title,
+    title as myTitle,
     price,
   }
 }
