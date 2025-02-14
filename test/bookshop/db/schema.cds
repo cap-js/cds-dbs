@@ -14,8 +14,8 @@ entity Books : managed {
       genre          : Association to Genres default 10;
       @assert.constraint.stockNotEmpty : {
         condition: ( stock >= 0 ),
-        message: 'The stock must be greater than or equal to 0',
-        parameters: []     // to be inserted into the message
+        message: 'STOCK_NOT_EMPTY',
+        parameters: ((title, ID))     // to be inserted into the message
       } 
       stock          : Integer;
       price          : Decimal;

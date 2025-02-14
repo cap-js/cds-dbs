@@ -1,5 +1,7 @@
 'use strict'
 
+const cds = require('@sap/cds')
+
 function attachConstraints(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   const constraints = collectConstraints(req.target) // collect constraints from annotations
@@ -47,18 +49,21 @@ function attachConstraints(_results, req) {
   // --> calculate the validation query for each entry
   //     attach information about the identity of the entry for messages
   //     validation queries are executed just before commit
+  const validationQuery = _getValidationQuery(req, constraints)
   for (const where of whereClauses) {
-    const validationQuery = _getValidationQuery(req, constraints, where)
-    if (this.tx.assert_constraints) this.tx.assert_constraints.push({ validationQuery, constraints })
-    else this.tx.assert_constraints = [{ validationQuery, constraints }]
+    if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', ...where)
+    else validationQuery.SELECT.where.push(...where)
   }
+
+  if (this.tx.assert_constraints) this.tx.assert_constraints.push({ validationQuery, constraints })
+  else this.tx.assert_constraints = [{ validationQuery, constraints }]
   return
-  function _getValidationQuery(req, constraints, where) {
+  function _getValidationQuery(req, constraints) {
     const validationQuery = SELECT.from(req.target)
     // each column represents a constraint
-    const columns = Object.keys(constraints).map(name => {
+    const columns = Object.keys(constraints).flatMap(name => {
       const constraint = constraints[name]
-      const { condition, element } = constraint
+      const { condition, element, parameters } = constraint
       const xpr = []
       // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
       if (!element.notNull && !element.on) {
@@ -67,20 +72,24 @@ function attachConstraints(_results, req) {
         xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
       }
       xpr.push({ xpr: condition.xpr })
-      return {
-        // case … when … needed for hana compatibility
-        // REVISIT: can we move workaround to HANAService only?
+      const colsForConstraint = [{
         xpr: wrapInCaseWhen(xpr),
         as: name,
         cast: {
           type: 'cds.Boolean',
         },
+      }]
+      if(parameters) {
+        if(parameters.list)
+          parameters.list.forEach(p => colsForConstraint.push(p))
+        else if (parameters.ref)
+          colsForConstraint.push(parameters.ref)
       }
+      return colsForConstraint
     })
 
     validationQuery.SELECT.columns = columns
-    validationQuery.SELECT.where = where
-    validationQuery.SELECT.one = true
+    validationQuery.SELECT.where = []
     return validationQuery
   }
 
@@ -149,14 +158,19 @@ function attachConstraints(_results, req) {
 async function checkConstraints(req) {
   if (this.tx.assert_constraints) {
     for (const check of this.tx.assert_constraints) {
-      const {  validationQuery, constraints } = check
+      const { validationQuery, constraints } = check
       const result = await this.run(validationQuery)
       if (!result) continue
-      for (const name in constraints) {
-        const constraintFulfilled = result[name]
-        if (!constraintFulfilled) {
-          const { message } = constraints[name]
-          req.error(400, message || `@assert.constraint ”${name}” failed`)
+      for (const constraintName in constraints) {
+        for (const row of result) {
+          if (!row[constraintName]) {
+            const { message, parameters } = constraints[constraintName]
+            const msgParams = {}
+            if (parameters) {
+              Object.keys(row).filter(alias => alias !== constraintName).forEach(alias => msgParams[alias] = row[alias])
+            }
+            req.error(400, message ? (cds.i18n.messages.at(message, msgParams) || message) : `@assert.constraint ”${constraintName}” failed`)
+          }
         }
       }
     }

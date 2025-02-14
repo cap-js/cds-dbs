@@ -14,7 +14,7 @@ describe('Bookshop - assertions', () => {
   describe('UPDATE', () => {
     test('simple assertion', async () => {
       await expect(UPDATE(Books, '42').with({ stock: -1 })).to.be.rejectedWith(
-        /The stock must be greater than or equal to 0/,
+        'Stock for book "Harry Potter and the Chamber of Secrets" (42) must not be a negative number',
       )
     })
 
@@ -35,7 +35,7 @@ describe('Bookshop - assertions', () => {
         catService.tx({ user: 'alice' }, async () => {
           await catService.send('submitOrder', { book: 42, quantity: 16 })
         }),
-      ).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
+      ).to.be.rejectedWith('Stock for book "Harry Potter and the Chamber of Secrets" (42) must not be a negative number')
 
       // stock for harry potter should still be 15
       const book = await SELECT.one.from(Books).where({ ID: 42 })
@@ -47,7 +47,7 @@ describe('Bookshop - assertions', () => {
     test('simple assertion, no negative stocks', async () => {
       await expect(
         INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books),
-      ).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
+      ).to.be.rejectedWith('Stock for book "Harry Potter and Prisoner of Azkaban" (43) must not be a negative number')
     })
 
     test('assertion in batch', async () => {
@@ -56,7 +56,7 @@ describe('Bookshop - assertions', () => {
           { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
           { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },
         ]),
-      ).to.be.rejectedWith(/The stock must be greater than or equal to 0/)
+      ).to.be.rejectedWith('Stock for book "Harry Potter and the Order of the Phoenix" (45) must not be a negative number')
     })
 
     test('no stock is okay', async () => {
@@ -116,6 +116,19 @@ describe('Bookshop - assertions', () => {
       ).to.be.fulfilled
       const genres = await SELECT.from(Genres)
       expect(genres.length).to.equal(0)
+    })
+
+    test('assertion in batch (make sure there is only one query in the end)', async () => {
+      await expect(
+        INSERT.into(Books).entries([
+          { ID: 500, title: 'The Way of Kings', stock: 10 },
+          { ID: 501, title: 'Words of Radiance', stock: -1 },
+          { ID: 502, title: 'Oathbringer', stock: 10 },
+          { ID: 503, title: 'Edgedancer', stock: 10 },
+          { ID: 504, title: 'Dawnshard', stock: 10 },
+
+        ]),
+      ).to.be.rejectedWith('Stock for book "Words of Radiance" (501) must not be a negative number')
     })
   })
 })
