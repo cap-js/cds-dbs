@@ -263,7 +263,14 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   SELECT_columns(q) {
-    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x, q))
+    const foreignKeys = {}
+    return (q.SELECT.columns ?? ['*']).map(x => {
+      // Return foreign keys for expands where possible
+      if (x.elements) {
+        return this.column_expand(x, q, foreignKeys)
+      }
+      return this.column_expr(x, q)
+    }).filter(a => a)
   }
 
   /**
@@ -288,6 +295,8 @@ class CQN2SQLRenderer {
         q.elements[e].items // Array types require to be inlined with a json result
       )
 
+    const values = this.values
+    this.values = values ? [] : undefined
     let cols = SELECT.columns.map(isSimple
       ? x => {
         const name = this.column_name(x)
@@ -303,7 +312,7 @@ class CQN2SQLRenderer {
       : x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
+        let col = `'$."${escaped}"',${this.output_converter4(x.element, x._delayed_expand ? this.expr(x) : this.quote(name))}`
         if (x.SELECT?.count) {
           // Return both the sub select and the count for @odata.count
           const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
@@ -313,13 +322,21 @@ class CQN2SQLRenderer {
       }).flat()
 
     if (isSimple) return `SELECT ${cols} FROM (${sql})`
+    if (values) {
+      // prefix value from the expand columns to retain correct values order
+      this.values = this.values.concat(values)
+    }
 
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
     for (let i = 0; i < cols.length; i += 48) {
       obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
+    if (!SELECT.one && !isRoot) {
+      obj = `jsonb_group_array(${obj})`
+    }
+    const alias = q.SELECT.from.args?.[0]?.as || q.SELECT.from.as
+    return `SELECT ${isRoot ? `json(${obj})` : obj} as _json_ FROM (${sql})${alias ? ` as ${this.quote(alias)}` : ''}`
   }
 
   /**
@@ -334,6 +351,15 @@ class CQN2SQLRenderer {
     let alias = this.column_alias4(x, q)
     if (alias) sql += ' as ' + this.quote(alias)
     return sql
+  }
+
+  /**
+   * Renders a SELECT column expression into generic SQL
+   * @param {import('./infer/cqn').col} x
+   * @returns {string} SQL
+   */
+  column_expand(x, q, foreignKeys = {}) {
+    return this.column_expr(x, q)
   }
 
   /**
