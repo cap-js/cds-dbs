@@ -1144,7 +1144,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
-    static Functions = require('./cql-functions')
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static TypeMap = {
       ...super.TypeMap,
