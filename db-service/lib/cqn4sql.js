@@ -1035,8 +1035,9 @@ function cqn4sql(originalQuery, model) {
    * @returns {object} - The cqn4sql transformed subquery.
    */
   function transformSubquery(q) {
-    if (q.outerQueries) q.outerQueries.push(inferred)
-    else {
+    if (q.outerQueries) {
+      q.outerQueries.push(inferred)
+    } else {
       const outerQueries = inferred.outerQueries || []
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
@@ -1225,8 +1226,7 @@ function cqn4sql(originalQuery, model) {
         if (flattenThisForeignKey) {
           const fkElement = getElementForRef(k.ref, getDefinition(element.target))
           let fkBaseName
-          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
-            fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
           // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
           else fkBaseName = k.ref.at(-1)
           const fkPath = [...csnPath, k.ref.at(-1)]
@@ -1478,8 +1478,7 @@ function cqn4sql(originalQuery, model) {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
           assertNoStructInXpr(token, $baseLink)
           // reject virtual elements in expressions as they will lead to a sql error down the line
-          if(definition?.virtual)
-            throw new Error(`Virtual elements are not allowed in expressions`)
+          if (definition?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
@@ -1722,11 +1721,10 @@ function cqn4sql(originalQuery, model) {
 
       // only append infix filter to outer where if it is the leaf of the from ref
       if (refReverse[0].where) {
-        const whereIsTransformedLater = (inferred.joinTree && !inferred.joinTree.isInitial) && (originalQuery.DELETE || originalQuery.UPDATE)
-        if (whereIsTransformedLater)
-          filterConditions.push(refReverse[0].where)
-        else
-          filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+        const whereIsTransformedLater =
+          inferred.joinTree && !inferred.joinTree.isInitial && (originalQuery.DELETE || originalQuery.UPDATE)
+        if (whereIsTransformedLater) filterConditions.push(refReverse[0].where)
+        else filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
       }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
@@ -2149,7 +2147,12 @@ function cqn4sql(originalQuery, model) {
     }
     if (next.pathExpressionInsideFilter) {
       SELECT.where = customWhere
-      const transformedExists = transformSubquery({ SELECT })
+      const sub = { SELECT }
+      // table aliases usually have precedence over elements
+      // for `SELECT from bookshop.Authors[books.title LIKE '%POE%']:books`
+      // the outer queries alias would shadow the `books.title` path
+      Object.defineProperty(sub, 'noBreakout', { value: true })
+      const transformedExists = transformSubquery(sub)
       // infix filter conditions are wrapped in `xpr` when added to the on-condition
       if (transformedExists.SELECT.where) {
         on.push(

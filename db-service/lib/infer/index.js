@@ -488,7 +488,7 @@ function infer(originalQuery, model) {
           })
         } else if (firstStepIsSelf) {
           arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
-        } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
+        } else if (!inferred.noBreakout && arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
           arg.$refLinks.push({
