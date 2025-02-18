@@ -1651,6 +1651,13 @@ describe('path expression within infix filter following exists predicate', () =>
     )
   })
 
+  it('rejects to-many association in infix filter at leaf of scoped query', () => {
+    // here we should not render a join for the books.title as it will increase the queries result set
+    // J.K. Rowling has written multiple books, so we would get n rows with the same author per book
+    let query = cds.ql`SELECT from bookshop.Books:author[books.title LIKE '%Potter%'] { name as author }`
+    expect(() => cqn4sql(query, model)).to.throw(/Filtering via path expressions on to-many associations is not allowed at the leaf of a FROM clause. Use EXISTS predicates instead./)
+  })
+
   it('in case statements', () => {
     // TODO: Aliases for genre could be improved
     let query = cqn4sql(

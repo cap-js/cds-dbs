@@ -654,7 +654,10 @@ function infer(originalQuery, model) {
     if ($baseLink?.pathExpressionInsideFilter) {
       Object.defineProperty(arg, 'join', { value: 'inner' })
       if (inFrom && atFromLeaf && !inExists) {
-        // join tree not yet initialized
+        if(arg.$refLinks.some(link => link.definition.isAssociation && link.definition.is2many)) {
+          throw cds.error`Filtering via path expressions on to-many associations is not allowed at the leaf of a FROM clause. Use EXISTS predicates instead.`
+        }
+      // join tree not yet initialized
         Object.defineProperty(arg, 'isJoinRelevant', { value: true })
         mergeOnceJoinTreeIsInitialized.push(arg)
       }
