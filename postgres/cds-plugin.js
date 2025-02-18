@@ -10,7 +10,8 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
   
   static taskDefaults = { src: cds.env.folders.db }
   
-  static hasTask() { return cds.requires.db?.kind === 'postgres' }
+  static hasTask() { 
+    return cds.requires.db?.kind === 'postgres' }
 
   init() {
     // different from the default build output structure
