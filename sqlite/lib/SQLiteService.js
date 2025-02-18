@@ -1,6 +1,7 @@
 const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds')
 const sqlite = require('better-sqlite3')
+const sqliteWorker = require('./SQLiteWorkerWrapper.js')
 const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
@@ -30,6 +31,11 @@ class SQLiteService extends SQLService {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
+        const workers = this.options.workers || this.options.credentials?.workers
+        if (workers) {
+          return new sqliteWorker(database)
+        }
+
         const dbc = new sqlite(database)
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
@@ -67,9 +73,9 @@ class SQLiteService extends SQLService {
     return super.release()
   }
 
-  prepare(sql) {
+  async prepare(sql) {
     try {
-      const stmt = this.dbc.prepare(sql)
+      const stmt = await this.dbc.prepare(sql)
       return {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
