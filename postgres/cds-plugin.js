@@ -10,8 +10,7 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
   
   static taskDefaults = { src: cds.env.folders.db }
   
-  static hasTask() { 
-    return cds.requires.db?.kind === 'postgres' }
+  static hasTask() { return cds.requires.db?.kind === 'postgres' }
 
   init() {
     // different from the default build output structure
@@ -26,11 +25,23 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
     if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
       promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
     } else {
-      promises.push(
-        this.write({
-          dependencies: { '@sap/cds': '^8', '@cap-js/postgres': '^1' },
-          scripts: { start: 'cds-deploy' },
-        }).to('package.json'),
+      const packageJson = {
+        dependencies: {
+          '@sap/cds': '^8',
+          '@cap-js/postgres': '^1'
+        },
+        scripts: {
+          start: 'cds-deploy'
+        },
+        cds: {}
+      }
+      if (cds.env?.features?.assert_integrity) {
+        packageJson.cds.features = {
+          assert_integrity: cds.env.features.assert_integrity
+        }
+      }
+      promises.push(        
+        this.write(packageJson).to('package.json')
       )
     }
     promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
