@@ -31,5 +31,6 @@ describe('cds build plugin', () => {
   test('should retain assert_integrity setting', () => {
     execSync('CDS_FEATURES_ASSERT__INTEGRITY=db npx cds build --production', { cwd: workDir })
     expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
+    // TODO: find constraints in csn.json
   })
 })
