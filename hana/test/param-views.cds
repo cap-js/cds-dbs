@@ -10,6 +10,7 @@ entity ParamBooks(available : Integer) as
         // Take foreign key for author association
         author.ID as author_ID,
         // author, Compiler does not like associations in parameterized views
+        price,
     }
     where
         stock <= :available;
