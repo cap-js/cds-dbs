@@ -141,7 +141,9 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
 
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    const { hints } = query.SELECT
+    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -1142,7 +1144,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
-    static Functions = require('./cql-functions')
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static TypeMap = {
       ...super.TypeMap,
