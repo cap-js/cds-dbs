@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Calculation:scenario xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:Calculation="http://www.sap.com/ndb/BiModelCalculation.ecore" xmlns:Variable="http://www.sap.com/ndb/BiModelVariable.ecore" schemaVersion="3.0" id="SAP_CAPIRE_BOOKSHOP_CALCAUTHORS" outputViewType="Aggregation" dataCategory="CUBE" enforceSqlExecution="false">
+  <localVariables>
+    <variable id="NAME" parameter="true">
+      <variableProperties datatype="CHAR" length="1" mandatory="true">
+        <valueDomain type="empty"/>
+        <selection multiLine="false" type="SingleValue"/>
+      </variableProperties>
+    </variable>
+  </localVariables>
+  <dataSources>
+    <DataSource id="_Authors">
+      <resourceUri>SAP_CAPIRE_BOOKSHOP_AUTHORS</resourceUri>
+    </DataSource>
+  </dataSources>
+  <calculationViews>
+    <calculationView filterExpressionLanguage="SQL" xsi:type="Calculation:ProjectionView" id="_projection_Authors">
+      <input node="_Authors">
+        <mapping xsi:type="Calculation:AttributeMapping" target="ID" source="ID"/>
+      </input>
+      <filter>&quot;NAME&quot; ='$$NAME$$'</filter>
+      <viewAttributes>
+        <viewAttribute id="ID"/>
+        <viewAttribute id="NAME"/>
+      </viewAttributes>
+      <calculatedViewAttributes/>
+    </calculationView>
+  </calculationViews>
+  <logicalModel id="_projection_Authors">
+    <attributes>
+      <attribute id="NAME">
+        <keyMapping columnObjectName="_projection_Authors" columnName="NAME"/>
+      </attribute>
+    </attributes>
+    <baseMeasures>
+      <measure measureType="simple" id="ID" aggregationType="SUM">
+        <measureMapping columnObjectName="_projection_Authors" columnName="ID"/>
+      </measure>
+    </baseMeasures>
+    <restrictedMeasures/>
+    <calculatedMeasures/>
+  </logicalModel>
+</Calculation:scenario>
