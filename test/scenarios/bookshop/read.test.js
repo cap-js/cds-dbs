@@ -42,6 +42,7 @@ describe('Bookshop - Read', () => {
   test('Books with groupby with path expression and expand result', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
+      //> SELECT author { name }, sum(price) as totalAmount from Books where title != 'bar' GROUP BY author.name
       admin,
     )
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
@@ -50,6 +51,7 @@ describe('Bookshop - Read', () => {
   test('same as above, with foreign key optimization', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name, author/ID),aggregate(price with sum as totalAmount))',
+      //> SELECT author { name, ID }, sum(price) as totalAmount from Books where title != 'bar' GROUP BY author.name, author.ID
       admin,
     )
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
@@ -66,6 +68,7 @@ describe('Bookshop - Read', () => {
   test('same as above, with more depth', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((genre/parent/name),aggregate(price with sum as totalAmount))',
+      //> SELECT genre { parent { name }}, sum(price) as totalAmount from Books where title != 'bar' GROUP BY genre.parent.name
       admin,
     )
     expect(res.data.value[0].genre.parent.name).to.be.eq('Fiction')
@@ -74,6 +77,7 @@ describe('Bookshop - Read', () => {
   test('pseudo expand using groupby and orderby on same column', async () => {
     const res = await GET(
       '/admin/Books?$apply=groupby((author/name))&$orderby=author/name',
+      //> SELECT author { name } from Books GROUP BY author.name ORDER BY author.name
       admin,
     )
     expect(res.data.value.every(row => row.author.name)).to.be.true
@@ -81,16 +85,21 @@ describe('Bookshop - Read', () => {
 
   test('groupby with multiple path expressions', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toC/toB/ID))', admin)
+    //> SELECT toB { toC { ID }, toC { toB { ID } from A GROUP BY toB.toC.ID, toC.toB.ID
     expect(res.status).to.be.eq(200)
   })
 
   test('groupby with multiple path expressions and orderby', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$orderby=toB/toC/ID', admin)
+    //> SELECT toB { toC { ID }, toB { toC { ID } from A GROUP BY toB.toC.ID, toB.toC.ID ORDER BY toB.toC.ID
+    // REVISIT: This should not work at all, due to conflicting columns !!!
     expect(res.status).to.be.eq(200)
   })
 
   test('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
+    //> SELECT toB { toC { ID },toB { toC { ID } from A WHERE ID = 1 GROUP BY toB.toC.ID, toB.toC.ID
+    // REVISIT: This should not work at all, due to conflicting columns !!!
     expect(res.status).to.be.eq(200)
   })
 
@@ -108,7 +117,7 @@ describe('Bookshop - Read', () => {
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
-        ![FROM].author { name as CONSTRAINT } 
+        ![FROM].author { name as CONSTRAINT }
       }
       where ![FROM].title LIKE '%Wuthering%'
       order by group
@@ -338,6 +347,7 @@ describe('Bookshop - Read', () => {
 
   test('Filter Books(complex filter in apply)', async () => {
     const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
+    //> SELECT from Books where (ID = 251 or ID = 252) and (contains(tolower(descr), tolower('Edgar')))
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
   })
