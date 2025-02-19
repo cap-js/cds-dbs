@@ -34,11 +34,11 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
           start: 'cds-deploy'
         }
       }
-      if (cds.env?.features?.assert_integrity) {
+      const assertIntegrity = cds.env?.features?.assert_integrity
+      if (assertIntegrity) {
         packageJson.cds ??= {}
-        packageJson.cds.features = {
-          assert_integrity: cds.env.features.assert_integrity
-        }
+        packageJson.cds.features ??= {}
+        packageJson.cds.features.assert_integrity = assertIntegrity
       }
       promises.push(        
         this.write(packageJson).to('package.json')
