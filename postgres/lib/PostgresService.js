@@ -398,22 +398,11 @@ GROUP BY k
         }
         return col
       })
-      const isRoot = SELECT.expand === 'root'
-      const isSimple = cds.env.features.sql_simple_queries &&
-        isRoot && // Simple queries are only allowed to have a root
-        !Object.keys(q.elements).some(e =>
-          q.elements[e].isAssociation || // Indicates columns contains an expand
-          q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
-          q.elements[e].items // Array types require to be inlined with a json result
-        )
-
-      const subQuery = `SELECT ${cols} FROM (${sql}) as ${queryAlias}`
-      if (isSimple) return subQuery
 
       // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
       let obj = `to_jsonb(${queryAlias}.*)`
-      return `SELECT ${SELECT.one || isRoot ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
-        } as _json_ FROM (${subQuery}) as ${queryAlias}`
+      return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
+        } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
     }
 
     doubleQuote(name) {
