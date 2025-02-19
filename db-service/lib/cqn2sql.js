@@ -263,7 +263,13 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   SELECT_columns(q) {
-    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x, q))
+    const ret = []
+    const arr = q.SELECT.columns ?? ['*']
+    for (const x of arr) {
+      if (x.SELECT?.count) arr.push(this.SELECT_count(x))
+      ret.push(this.column_expr(x, q))
+    }
+    return ret
   }
 
   /**
@@ -292,24 +298,12 @@ class CQN2SQLRenderer {
       ? x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
-        }
-        return col
+        return `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
       }
       : x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `'$."${escaped}@odata.count"',${this.expr(qc)}`]
-        }
-        return col
+        return `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
       }).flat()
 
     if (isSimple) return `SELECT ${cols} FROM (${sql})`
@@ -320,6 +314,17 @@ class CQN2SQLRenderer {
       obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
     return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
+  }
+
+  SELECT_count(q) {
+    const countQuery = cds.ql.clone(q, {
+      columns: [{ func: 'count' }],
+      one: 0, limit: 0, orderBy: 0, expand: 0, count: 0
+    })
+    countQuery.as = q.as + '@odata.count'
+    countQuery.elements = undefined
+    countQuery.element = cds.builtin.types.Int64
+    return countQuery
   }
 
   /**

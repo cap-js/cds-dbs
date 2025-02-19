@@ -39,6 +39,28 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count in expand', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)`, admin
+    )
+    expect(res.status).to.be.eq(200)
+    for (const row of res.data.value) {
+      expect(row['books@odata.count']).to.be.eq(row.books.length + '')
+    }
+  })
+
+  test.skip('Books $count in orderby', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin
+    )
+  })
+
+  test.skip('Books $count in filter', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin
+    )
+  })
+
   test('Books with groupby with path expression and expand result', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
