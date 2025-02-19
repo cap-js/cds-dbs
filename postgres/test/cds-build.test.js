@@ -27,4 +27,9 @@ describe('cds build plugin', () => {
     execSync('npx cds build --production', { cwd: workDir })
     expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
   })
+
+  test('should retain assert_integrity setting', () => {
+    execSync('CDS_FEATURES_ASSERT__INTEGRITY=db npx cds build --production', { cwd: workDir })
+    expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
+  })
 })
