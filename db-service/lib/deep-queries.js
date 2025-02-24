@@ -39,9 +39,9 @@ async function onDeep(req, next) {
   // const target = query.sources[Object.keys(query.sources)[0]]
   if (!this.model?.definitions[_target_name4(req.query)]) return next()
 
-  const { target } = this.infer(query)
-  if (!hasDeep(query, target)) return next()
+  if (!hasDeep(query)) return next()
 
+  const target = this.infer(query)._target
   const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
   if (query.UPDATE && !beforeData.length) return 0
 
@@ -64,10 +64,10 @@ async function onDeep(req, next) {
   return rootResult ?? beforeData.length
 }
 
-const hasDeep = (q, target) => {
+const hasDeep = (q) => {
   const data = q.INSERT?.entries || (q.UPDATE?.data && [q.UPDATE.data]) || (q.UPDATE?.with && [q.UPDATE.with])
   if (data)
-    for (const c in target.compositions) {
+    for (const c in q._target.compositions) {
       for (const row of data) if (row[c] !== undefined) return true
     }
 }

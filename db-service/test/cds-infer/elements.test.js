@@ -257,7 +257,7 @@ describe('infer elements', () => {
       }`)
       let { Books, Genres } = model.entities
 
-      expect(inferred.target)
+      expect(inferred._target)
         .equals(Books.elements.genre._target.elements.foo._target)
         .equals(Genres.elements.foo._target)
 
@@ -272,7 +272,7 @@ describe('infer elements', () => {
     }`)
       let { Books, Authors } = model.entities
 
-      expect(inferred.target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
+      expect(inferred._target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
       expect(inferred.elements).to.deep.equal({
         name: Authors.elements.name,
       })

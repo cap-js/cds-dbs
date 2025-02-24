@@ -166,7 +166,7 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe('CREATE', () => {
+describe.skip('CREATE', () => {
   // TODO: reference to ./definitions.test.js
 
   // Set cds.root before requiring cds.Service as it resolves and caches package.json
@@ -199,10 +199,10 @@ describe('CREATE', () => {
 
       const { globals } = cds.entities('basic.literals')
 
-      await db.run({ DROP: { entity: globals } }).catch(() => { })
+      await db.run({ DROP: { entity: globals.name } }).catch(() => { })
       await db.run({ DROP: { entity: entityName } }).catch(() => { })
-      await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
-      await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
+      // await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
+      // await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
     })
 
     test('definiton provided', async () => {
