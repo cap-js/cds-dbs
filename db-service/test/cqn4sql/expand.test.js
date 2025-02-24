@@ -1092,7 +1092,8 @@ describe('Expands with aggregations are special', () => {
 
   it('wildcard expand vanishes for aggregations', () => {
     const q = CQL`SELECT from bookshop.TestPublisher {
-      ID
+      ID,
+      texts { publisher {*} }
     } group by ID, publisher.structuredKey_ID, publisher.title`
 
     const qx = CQL`SELECT from bookshop.TestPublisher as TestPublisher
