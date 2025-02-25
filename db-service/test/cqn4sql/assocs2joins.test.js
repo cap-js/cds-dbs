@@ -1382,3 +1382,37 @@ describe('optimize fk access', () => {
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 })
+
+describe.skip('path in filter', () => {
+  it('simple path in filter', () => {
+    const query = CQL`SELECT from bookshop.Books { genre[parent.name = 'FOO'].name as parentIsFoo }`
+    const expected = CQL`SELECT from bookshop.Books as Books
+      left join bookshop.Genres as genre on genre.ID = Books.genre_ID and exists (
+        SELECT * from bookshop.Genres as parent where parent.ID = genre.parent_ID and parent.name = 'FOO'
+      ) { genre.name as parentIsFoo }`
+    expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
+  })
+
+  it('path with multiple assocs in filter', () => {
+    const query = CQL`SELECT from bookshop.Books { genre[parent.parent.name = 'FOO'].name as parentsParentIsFoo }`
+    const expected = CQL`SELECT from bookshop.Books as Books
+      left join bookshop.Genres as genre on genre.ID = Books.genre_ID and exists (
+        SELECT * from bookshop.Genres as parent left join bookshop.Genres as parent2 on parent.ID = parent2.parent_ID
+         where parent.ID = genre.parent_ID and parent2.name = 'FOO'
+      ) { genre.name as parentsParentIsFoo }`
+    expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
+  })
+  it('multiple paths each has multiple assocs in filter', () => {
+    const query = CQL`SELECT from bookshop.Authors { books[genre.parent.name = 'FOO' and author.books.title = 'BAR'].title as superComplicatedBook }`
+    const expected = CQL`SELECT from bookshop.Authors as Authors
+      left join bookshop.Books as books on books.author_ID = Authors.ID and exists (
+            SELECT * from bookshop.Genres as genre
+              left join bookshop.Genres as parent on genre.parent_ID = parent.ID
+              cross join bookshop.Authors as author
+              left join bookshop.Books as books2 on books2.author_ID = author.ID
+              where genre.ID = books.genre_ID and parent.name = 'FOO' and author.ID = books.author_ID and books2.title = 'BAR'
+          )
+          { books.title as superComplicatedBook }`
+    expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
+  })
+})
