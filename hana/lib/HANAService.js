@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+const _vis = (eve, ...args) => cds.requires.multitenancy?.diagnostics ? cds.emit(`hana:${eve}`, ...args) : null
 
 /**
  * @implements SQLService
@@ -45,41 +46,41 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
+    const options = cds.requires.db.pool = {
+      min: 0,
+      max: 10,
+      acquireTimeoutMillis,
+      idleTimeoutMillis: 60000,
+      evictionRunIntervalMillis: 100000,
+      numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
+      ...(this.options.pool || {}),
+      testOnBorrow: true,
+      fifo: false
+    }
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options,
       create: async function (tenant) {
         try {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+
+          const { database_id, schema } = credentials ?? {}
+          _vis?.('create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
           const dbc = new driver(credentials)
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
           if (isMultitenant) {
-            // REVISIT: throw the error and break retry loop
-            // Stop trying when the tenant does not exist or is rate limited
-            if (err.status == 404 || err.status == 429)
-              return new Promise(function (_, reject) {
-                setTimeout(() => reject(err), acquireTimeoutMillis)
-              })
+            if (err.status == 404 || err.status == 429) throw err
+            await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+            return this.create(tenant)
           } else if (err.code !== 10) throw err
-          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-          return this.create(tenant)
         }
       },
-      error: (err /*, tenant*/) => {
+      error: (err, tenant) => {
+        _vis?.('error', { op: 'error', data: { hana: { tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -92,8 +93,16 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: dbc => dbc.disconnect(),
-      validate: (dbc) => dbc.validate(),
+      destroy: async dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        _vis?.('destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
+        return dbc.disconnect()
+      },
+      validate: dbc => {
+        const { schema, database_id, tenant } = dbc._creds
+        _vis?.('validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
+        return dbc.validate()
+      }
     }
   }
 
@@ -1360,6 +1369,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
+      this.options.credentials.tenant ??= tenant
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
