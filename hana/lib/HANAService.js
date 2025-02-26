@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 /**
  * @implements SQLService
@@ -38,7 +39,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
-    const { credentials, kind } = service.options
+    const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
@@ -61,7 +62,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver(credentials)
+          const dbc = new driver({...credentials, ...clientOptions})
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
@@ -120,7 +121,7 @@ class HANAService extends SQLService {
   async onSELECT(req) {
     const { query, data } = req
 
-    if (!query.target) {
+    if (!query.target || query.target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
     if (!query.target || query.target._unresolved) {
@@ -140,7 +141,9 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
 
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    const { hints } = query.SELECT
+    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -180,7 +183,7 @@ class HANAService extends SQLService {
         : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
     }
   }
 
@@ -339,7 +342,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, from, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -371,7 +374,9 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        let orderByHasOutputColumnRef = false
         if (orderBy) {
+          if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
             if (!c.ref) {
@@ -388,6 +393,7 @@ class HANAService extends SQLService {
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            orderByHasOutputColumnRef = true
             return c
           })
         }
@@ -426,7 +432,9 @@ class HANAService extends SQLService {
           q.as = q.SELECT.from.as
         }
 
-        if (rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
+        const outputAliasSimpleQueriesRequired = cds.env.features.sql_simple_queries
+          && (orderByHasOutputColumnRef || having)
+        if (outputAliasSimpleQueriesRequired || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
           q = cds.ql.SELECT(aliasedOutputColumns).from(q)
           q.as = q.SELECT.from.as
           Object.defineProperty(q, 'elements', { value: elements })
@@ -442,7 +450,7 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
+                      args: [{ ref: ['_parent_path_'] }, { val: `].${alias}[`, param: false }],
                     },
                     { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
@@ -543,7 +551,7 @@ class HANAService extends SQLService {
                     // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
-                      if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
                         const isSource = from => {
                           if (from.as === col.ref[0]) return true
                           return from.args?.some(a => {
@@ -1136,7 +1144,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
-    static Functions = require('./cql-functions')
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static TypeMap = {
       ...super.TypeMap,
@@ -1155,6 +1163,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Map: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
@@ -1229,7 +1238,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   async dispatch(req) {
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
-    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string')) {
+    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
@@ -1405,13 +1414,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === 301)
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 

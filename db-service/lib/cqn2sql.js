@@ -8,7 +8,7 @@ const { Readable } = require('stream')
 
 const DEBUG = cds.debug('sql|sqlite')
 const LOG_SQL = cds.log('sql')
-const LOG_SQLITE =  cds.log('sqlite')
+const LOG_SQLITE = cds.log('sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -25,7 +25,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query?.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e 
+        return (query?.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -86,7 +86,7 @@ class CQN2SQLRenderer {
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
-    
+
     if (DEBUG && (LOG_SQL._debug || LOG_SQLITE._debug)) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
@@ -95,7 +95,7 @@ class CQN2SQLRenderer {
       DEBUG(this.sql, ...values)
     }
 
-    
+
     return this
   }
 
@@ -197,6 +197,7 @@ class CQN2SQLRenderer {
     Association: () => false,
     Composition: () => false,
     array: () => 'NCLOB',
+    Map: () => 'NCLOB',
     // HANA types
     'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
@@ -528,9 +529,6 @@ class CQN2SQLRenderer {
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
     const elements = this.cqn.target?.elements || {}
-    const transformBase64 = binaryEncoding === 'base64'
-      ? a => a
-      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
     const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
@@ -561,8 +559,8 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[key]?.type in this.BINARY_TYPES) {
-            val = transformBase64(val)
+          if (val != null && elements[key]?.type in this.BINARY_TYPES) {
+            val = Buffer.from(val, 'base64').toString(binaryEncoding)
           }
           buffer += `${keyJSON}${JSON.stringify(val)}`
         }
@@ -580,9 +578,6 @@ class CQN2SQLRenderer {
 
   async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
     const elements = this.cqn.target?.elements || {}
-    const transformBase64 = binaryEncoding === 'base64'
-      ? a => a
-      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
     const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
@@ -609,8 +604,8 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[this.columns[key]]?.type in this.BINARY_TYPES) {
-            val = transformBase64(val)
+          if (val != null && elements[this.columns[key]]?.type in this.BINARY_TYPES) {
+            val = Buffer.from(val, 'base64').toString(binaryEncoding)
           }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
@@ -750,7 +745,10 @@ class CQN2SQLRenderer {
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
     const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
-    sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    sql = `SELECT ${managed.map(c => c.upsert
+      .replace(/value->/g, '"$$$$value$$$$"->')
+      .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
+      } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -1147,11 +1145,6 @@ class CQN2SQLRenderer {
   managed_default(name, managed, src) {
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
-}
-
-// REVISIT: Workaround for JSON.stringify to work with buffers
-Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
 }
 
 Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }

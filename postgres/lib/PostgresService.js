@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 class PostgresService extends SQLService {
   init() {
@@ -27,7 +28,7 @@ class PostgresService extends SQLService {
         ...this.options.pool,
       },
       create: async () => {
-        const cr = this.options.credentials || {}
+        const { credentials: cr = {}, client: clientOptions = {} } = this.options
         const credentials = {
           // Cloud Foundry provides the user in the field username the pg npm module expects user
           user: cr.username || cr.user,
@@ -48,7 +49,7 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client(credentials)
+        const dbc = new Client({...credentials, ...clientOptions})
         await dbc.connect()
         return dbc
       },
@@ -329,7 +330,7 @@ GROUP BY k
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
     }
   }
 
@@ -337,7 +338,7 @@ GROUP BY k
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
     }
   }
 
@@ -512,6 +513,7 @@ GROUP BY k
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
+      Map: () => 'JSONB',
 
       // HANA Types
       'cds.hana.CLOB': () => 'BYTEA',
@@ -542,6 +544,7 @@ GROUP BY k
       DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
       Binary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
       LargeBinary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      Map: e => e[0] === '$' ? e : `CAST(${e} as jsonb)`,
 
       // HANA Types
       'cds.hana.CLOB': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
@@ -867,13 +870,14 @@ class ParameterStream extends Writable {
   }
 }
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === '23505')
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 

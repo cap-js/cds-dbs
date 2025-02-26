@@ -4,6 +4,36 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.6.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.0...hana-v1.6.1) (2025-02-04)
+
+
+### Fixed
+
+* infer when unresolved ([#1005](https://github.com/cap-js/cds-dbs/issues/1005)) ([2fb0bdf](https://github.com/cap-js/cds-dbs/commit/2fb0bdf0fa49a872e5e19d8a5d40ae90f3086bf7))
+
+## [1.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.2...hana-v1.6.0) (2025-01-28)
+
+
+### Added
+
+* support driver self-wrapping (for Dynatrace) ([#974](https://github.com/cap-js/cds-dbs/issues/974)) ([5346bc4](https://github.com/cap-js/cds-dbs/commit/5346bc478b88793fb2d3add40dfdee962663e2fb))
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+
+### Fixed
+
+* Fix expand aliasing ([#959](https://github.com/cap-js/cds-dbs/issues/959)) ([f39097c](https://github.com/cap-js/cds-dbs/commit/f39097c0e991e7726960c6aa3bab6a81efe2669f))
+* groupby path expression with overlapping identifier ([#992](https://github.com/cap-js/cds-dbs/issues/992)) ([b579da8](https://github.com/cap-js/cds-dbs/commit/b579da84231cd18f0ed2dd706b6fce620a0a5d51))
+* multi raw SQL queries ([#973](https://github.com/cap-js/cds-dbs/issues/973)) ([b953480](https://github.com/cap-js/cds-dbs/commit/b95348055ea269e184acb179f8ea3ce632e3cb63))
+* Remove `orderBy` ref check for `sql_simple_queries` ([#964](https://github.com/cap-js/cds-dbs/issues/964)) ([1b77725](https://github.com/cap-js/cds-dbs/commit/1b777256f8f4a692cb566991c62baee927970549))
+
+## [1.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.1...hana-v1.5.2) (2024-12-18)
+
+
+### Fixed
+
+* Force `sql_simple_queries` to quote in outer select ([#954](https://github.com/cap-js/cds-dbs/issues/954)) ([2071dc8](https://github.com/cap-js/cds-dbs/commit/2071dc8ead5afeb596870b95766e4cd5f3ea70ff))
+
 ## [1.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.0...hana-v1.5.1) (2024-12-16)
 
 
