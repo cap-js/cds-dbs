@@ -232,6 +232,31 @@ describe('Bookshop - Read', () => {
     expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
   })
 
+  test('apply SELECT properties from ref', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const query = cds.ql`SELECT FROM ${Books}[
+      where ID > 210
+      group by title
+      having computed
+      order by title desc
+      limit 2
+    ] {
+      ID,
+      title as sorted,
+      true as computed: Boolean
+    }`
+    const { SELECT } = cds.db.cqn4sql(query)
+
+    expect(SELECT).property('where')
+    expect(SELECT).property('groupBy')
+    expect(SELECT).property('having')
+    expect(SELECT).property('orderBy')
+    expect(SELECT).property('limit')
+
+    const res = await cds.run(query)
+    expect(res).length(2)
+  })
+
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',
@@ -454,7 +479,7 @@ describe('Bookshop - Read', () => {
   })
 
   it('cross joins without on condition', async () => {
-    const query = cds.ql `SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
       Books.title, Authors.name as author
     } where Books.author_ID = Authors.ID`
     const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
