@@ -31,9 +31,9 @@ async function onDeep(req, next) {
 }
 
 const hasDeep = (q, target) => {
-  if(q.INSERT && !q.INSERT.entries) return false
-  if(q.UPSERT && !q.UPSERT.entries) return false
-  for(const _ in target.compositions) return true
+  if (q.INSERT && !q.INSERT.entries) return false
+  if (q.UPSERT && !q.UPSERT.entries) return false
+  for (const _ in target.compositions) return true
   return false
 }
 
@@ -50,12 +50,15 @@ const getDeepQueries = async function (query, target) {
   const getEntries = (query) => {
     const cqn2sql = new this.class.CQN2SQL(this)
     cqn2sql.cqn = query
+    const entries = query.INSERT
+      ? query.INSERT.entries
+      : query.UPSERT.entries
+    if (entries[0] instanceof Readable) {
+      entries[0].type = 'json'
+      return entries[0]
+    }
     return Readable.from(
-      cqn2sql.INSERT_entries_stream(
-        query.INSERT
-          ? query.INSERT.entries
-          : query.UPSERT.entries
-      ),
+      cqn2sql.INSERT_entries_stream(entries),
       { ObjectMode: false },
     )
   }
