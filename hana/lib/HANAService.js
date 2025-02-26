@@ -349,7 +349,7 @@ class HANAService extends SQLService {
         const walkAlias = q => {
           if (q.args) return q.as || walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as || cds.error`Missing alias for subquery`
+          return q.as
         }
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q) // Use from alias for query re use alias
