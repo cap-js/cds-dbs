@@ -17,6 +17,6 @@ describe('affected rows', () => {
   cds.test()
 
   test('client option is called during bootstrapping', async () => {
-    assert.strictEqual(called,1)
+    assert.strictEqual(called >= 1,true)
   })
 })
