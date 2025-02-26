@@ -338,6 +338,7 @@ class HANAService extends SQLService {
       for (const name in service.entities) {
         const def = model.definitions[service.entities[name].name]
         def['@cds.external'] = true
+        def['@cds.persistence.table'] = true
       }
     }
 
