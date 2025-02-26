@@ -877,8 +877,8 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
-      const wildcardIndex = column.expand.includes('*')
-      if (wildcardIndex) {
+      const containsWildcard = column.expand.includes('*')
+      if (containsWildcard) {
         // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
         return null
       }
