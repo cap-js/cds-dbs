@@ -912,7 +912,7 @@ function cqn4sql(originalQuery, model) {
           elements[c.as || c.ref.at(-1)] = c.element
         })
         return res
-      }).filter(c => c !== null)
+      }).filter(c => c)
 
       if (expandedColumns.length === 0) {
         return null
