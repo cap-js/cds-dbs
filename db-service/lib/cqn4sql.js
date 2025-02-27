@@ -173,7 +173,10 @@ function cqn4sql(originalQuery, model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
+      if(inferred.correlateWith)
+        transformedQuery.SELECT.columns = ['*']
+      else
+        transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -300,12 +303,20 @@ function cqn4sql(originalQuery, model) {
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
-        const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
-        lhs.on = [
-          ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
-          'and',
-          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
-        ]
+        if(nextAssoc.$refLink.specialExistsSubquery) {
+          const target = getDefinition(nextAssoc.$refLink.definition.target)
+          const sub = SELECT.from(target).where(nextAssoc.where)
+          Object.defineProperty(sub, 'correlateWith', { value: {assoc: nextAssoc, alias: arg.as} })
+          const transformed = cqn4sql(sub, model)
+          console.log('transformed', transformed)
+        } else {
+          const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
+          lhs.on = [
+            ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
+            'and',
+            ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
+          ]
+        }
       }
       if (node.children) {
         node.children.forEach(c => {

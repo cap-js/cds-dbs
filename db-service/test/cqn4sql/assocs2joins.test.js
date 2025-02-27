@@ -1383,8 +1383,11 @@ describe('optimize fk access', () => {
   })
 })
 
-describe.skip('path in filter', () => {
-  it('simple path in filter', () => {
+describe('path in filter', () => {
+  beforeAll(async () => {
+    cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
+  })
+  it.only('simple path in filter', () => {
     const query = CQL`SELECT from bookshop.Books { genre[parent.name = 'FOO'].name as parentIsFoo }`
     const expected = CQL`SELECT from bookshop.Books as Books
       left join bookshop.Genres as genre on genre.ID = Books.genre_ID and exists (
