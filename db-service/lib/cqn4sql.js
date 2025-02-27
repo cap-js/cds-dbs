@@ -888,8 +888,8 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
-      const wildcardIndex = column.expand.findIndex(e => e === '*')
-      if (wildcardIndex !== -1) {
+      const containsWildcard = column.expand.includes('*')
+      if (containsWildcard) {
         // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
         return null
       }
@@ -899,8 +899,10 @@ function cqn4sql(originalQuery, model) {
 
         if (expand.expand) {
           const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
-          setElementOnColumns(nested, expand.element)
-          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          if(nested) {
+            setElementOnColumns(nested, expand.element)
+            elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          }
           return nested
         }
 
@@ -921,7 +923,11 @@ function cqn4sql(originalQuery, model) {
           elements[c.as || c.ref.at(-1)] = c.element
         })
         return res
-      })
+      }).filter(c => c)
+
+      if (expandedColumns.length === 0) {
+        return null
+      }
 
       const SELECT = {
         from: null,
