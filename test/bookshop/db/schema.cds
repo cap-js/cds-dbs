@@ -6,6 +6,64 @@ using {
 
 namespace sap.capire.bookshop;
 
+@(
+  cds.remote.source: 'Northwind',
+  cds.remote.entity: 'Products'
+)
+entity Products {
+  CategoryID      : Integer;
+  Discontinued    : Boolean;
+  ProductID       : Integer;
+  ProductName     : String;
+  QuantityPerUnit : String;
+  ReorderLevel    : Int16;
+  SupplierID      : Integer;
+  UnitPrice       : Decimal;
+  UnitsInStock    : Int16;
+  UnitsOnOrder    : Int16;
+  Supplier        : Association to one Suppliers
+                      on SupplierID = Supplier.SupplierID;
+}
+
+@(
+  cds.remote.source: 'Northwind',
+  cds.remote.entity: 'Suppliers'
+)
+entity Suppliers {
+  SupplierID   : Integer;
+  CompanyName  : String;
+  ContactName  : String;
+  ContactTitle : String;
+  Address      : String;
+  City         : String;
+  Region       : String;
+  PostalCode   : String;
+  Country      : String;
+  Phone        : String;
+  Fax          : String;
+  HomePage     : String;
+  Products     : Association to many Products
+                   on SupplierID = Products.SupplierID;
+}
+
+type HANABool  : String(5); // REVISIT: stored as TRUE/FALSE would be good to be a boolean
+
+@(
+  cds.remote.source: 'Self',
+  cds.remote.schema: 'SYSTEM',
+  cds.remote.entity: 'TARGET',
+  cds.remote.replicated // Creates the default behavior RTR replication
+)
+entity Target {
+  key ID     : Integer;
+      ![KEY] : String(255);
+      VALUE  : String(255);
+}
+
+@(
+  cds.remote.source: 'Bookshop',
+  cds.remote.entity: 'Books'
+)
 entity Books : managed {
   key ID             : Integer;
       title          : localized String(111);
@@ -20,6 +78,10 @@ entity Books : managed {
       authorsAddress : String = author.address;
 }
 
+@(
+  cds.remote.source: 'Bookshop',
+  cds.remote.entity: 'Authors'
+)
 entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
