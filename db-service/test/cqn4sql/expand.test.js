@@ -295,7 +295,7 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
-  it('query modifiers in ref have precedence over expand siblings', () => {
+  it('query modifiers in ref are combined with sibling properties to expand', () => {
     const q = {
       SELECT: {
         from: {
@@ -320,7 +320,7 @@ describe('Unfold expands on associations to special subselects', () => {
             // this order by is overwritten by the one in the ref
             orderBy: [
               {
-                ref: ['name'],
+                ref: ['dateOfDeath'],
                 sort: 'asc',
               },
             ],
@@ -336,7 +336,7 @@ describe('Unfold expands on associations to special subselects', () => {
           author.name
         }
         where Books.author_ID = author.ID
-        order by author.dateOfBirth desc
+        order by author.dateOfDeath asc, author.dateOfBirth desc
         limit 1
         offset 1
       ) as author

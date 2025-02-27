@@ -43,4 +43,42 @@ describe('infix filter on entities', () => {
     let query = cqn4sql(CQL`SELECT from bookshop.Books[author.ID = 22] {Books.ID}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.author_ID = 22`)
   })
+  it('handles query modifiers defined in infix filter at leaf', () => {
+    let query = cqn4sql(
+      cds.ql`SELECT from bookshop.Books[
+        price < 12.13
+        group by title
+        having title
+        order by title desc
+        limit 2
+      ] {ID}`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.price < 12.13 GROUP BY Books.title HAVING Books.title ORDER BY Books.title DESC LIMIT 2`)
+  });
+  it('merges query modifiers defined in infix filter at leaf with those defined at query root', () => {
+    let query = cqn4sql(
+      cds.ql`SELECT from bookshop.Books[
+        price < 12.13
+        group by title
+        having title
+        order by title desc
+        limit 2
+      ] {ID} where price > 5 group by price having price order by price limit 5`, model)
+    expect(query).to.deep.equal(
+      cds.ql`SELECT from bookshop.Books as Books {Books.ID}
+            WHERE (Books.price > 5) and (Books.price < 12.13)
+            GROUP BY Books.price, Books.title
+            HAVING Books.price and Books.title
+            ORDER BY Books.price, Books.title DESC
+            LIMIT 5`)
+  });
+
+  it('handles query modifiers (where only) along the ref of a scoped query', () => {
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[where title = 'bar']:author[group by name] {ID}`, model)
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as author {author.ID} where exists (
+        SELECT 1 from bookshop.Books as Books WHERE Books.author_ID = author.ID and Books.title = 'bar'
+      ) GROUP BY author.name
+    `
+    expect(query).to.deep.equal(expected)
+  });
 })
