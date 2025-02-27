@@ -1413,7 +1413,7 @@ describe('path in filter', () => {
               left join bookshop.Genres as parent on genre.parent_ID = parent.ID
               cross join bookshop.Authors as author
               left join bookshop.Books as books2 on books2.author_ID = author.ID
-              where genre.ID = books.genre_ID and parent.name = 'FOO' and author.ID = books.author_ID and books2.title = 'BAR'
+              where genre.ID = books.genre_ID and author.ID = books.author_ID and (parent.name = 'FOO' and books2.title = 'BAR')
           )
           { books.title as superComplicatedBook }`
     expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
