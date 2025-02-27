@@ -60,14 +60,19 @@ function cqn4sql(originalQuery, model) {
       else if (having) inferred.SELECT.having = having
     }
   }
+  // query modifiers can also be defined in from ref leaf infix filter
+  // > SELECT from bookshop.Books[order by price] {ID}
   if(inferred.SELECT?.from.ref) {
     for(const [key, val] of Object.entries(inferred.SELECT.from.ref.at(-1))) {
-      if(key in { orderBy: 1, groupBy: 1, having: 1 }) {
+      if(key in { orderBy: 1, groupBy: 1 }) {
         if(inferred.SELECT[key]) inferred.SELECT[key].push(...val)
         else inferred.SELECT[key] = val
       } else if(key === 'limit') {
         // limit defined on the query has precedence
         if(!inferred.SELECT.limit) inferred.SELECT.limit = val
+      } else if(key === 'having') {
+        if(!inferred.SELECT.having) inferred.SELECT.having = val
+        else inferred.SELECT.having.push('and', ...val)
       }
     }
   }

@@ -54,6 +54,23 @@ describe('infix filter on entities', () => {
       ] {ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE Books.price < 12.13 GROUP BY Books.title HAVING Books.title ORDER BY Books.title DESC LIMIT 2`)
   });
+  it('merges query modifiers defined in infix filter at leaf with those defined at query root', () => {
+    let query = cqn4sql(
+      cds.ql`SELECT from bookshop.Books[
+        price < 12.13
+        group by title
+        having title
+        order by title desc
+        limit 2
+      ] {ID} where price > 5 group by price having price order by price limit 5`, model)
+    expect(query).to.deep.equal(
+      cds.ql`SELECT from bookshop.Books as Books {Books.ID}
+            WHERE (Books.price > 5) and (Books.price < 12.13)
+            GROUP BY Books.price, Books.title
+            HAVING Books.price and Books.title
+            ORDER BY Books.price, Books.title DESC
+            LIMIT 5`)
+  });
 
   it('handles query modifiers (where only) along the ref of a scoped query', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books[where title = 'bar']:author[group by name] {ID}`, model)
