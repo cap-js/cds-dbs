@@ -157,6 +157,31 @@ class SQLiteService extends SQLService {
   }
 
   static CQN2SQL = class CQN2SQLite extends SQLService.CQN2SQL {
+    // Move as many expand columns outside of the native query
+    // When using ORDER BY or HAVING this materializes all expand columns
+    // Before applying LIMIT which increases query processing time
+    column_expand(x, q, foreignKeys = {}) {
+      const parentAlias = q.SELECT.from.args?.[0]?.as || q.SELECT.from.as
+
+      if (x.element.parent !== q.target || !parentAlias) return this.column_expr(x, q)
+      const fkeys = []
+      const invalid = x.element._foreignKeys.find(k => {
+        const element = k.parentElement
+        const name = element.name
+        if (foreignKeys[name]) return
+        if (!q.elements[name]) {
+          foreignKeys[name] = true
+          fkeys.push(this.expr({ ref: [parentAlias, k.parentElement.name] }))
+        } else if (q.elements[name].parent !== element.parent || q.elements[name].name !== element.name) {
+          return true // Invalid foreignkey inclusion detected
+        }
+      })
+
+      if (invalid) return this.column_expr(x, q)
+      x._delayed_expand = true
+      return fkeys.length ? `${fkeys}` : ''
+    }
+
     column_alias4(x, q) {
       let alias = super.column_alias4(x, q)
       if (alias) return alias
@@ -210,9 +235,9 @@ class SQLiteService extends SQLService {
       ...super.OutputConverters,
       // Structs and arrays are stored as JSON strings; the ->'$' unwraps them.
       // Otherwise they would be added as strings to json_objects.
-      Association: expr => `${expr}->'$'`,
-      struct: expr => `${expr}->'$'`,
-      array: expr => `${expr}->'$'`,
+      Association: expr => `jsonb(${expr})`,
+      struct: expr => `jsonb(${expr})`,
+      array: expr => `jsonb(${expr})`,
       // SQLite has no booleans so we need to convert 0 and 1
       boolean:
         cds.env.features.sql_simple_queries === 2
