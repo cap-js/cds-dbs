@@ -1,8 +1,6 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const _simple_queries = cds.env.features.sql_simple_queries
-const _strict_booleans = _simple_queries < 2
 
 const { Readable } = require('stream')
 
@@ -278,29 +276,7 @@ class CQN2SQLRenderer {
     const SELECT = q.SELECT
     if (!SELECT.columns) return sql
 
-    const isRoot = SELECT.expand === 'root'
-    const isSimple = _simple_queries &&
-      isRoot && // Simple queries are only allowed to have a root
-      !ObjectKeys(q.elements).some(e =>
-        _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
-        q.elements[e].isAssociation || // Indicates columns contains an expand
-        q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
-        q.elements[e].items // Array types require to be inlined with a json result
-      )
-
-    let cols = SELECT.columns.map(isSimple
-      ? x => {
-        const name = this.column_name(x)
-        const escaped = `${name.replace(/"/g, '""')}`
-        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
-        }
-        return col
-      }
-      : x => {
+    let cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
         let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
@@ -312,14 +288,12 @@ class CQN2SQLRenderer {
         return col
       }).flat()
 
-    if (isSimple) return `SELECT ${cols} FROM (${sql})`
-
     // Prevent SQLite from hitting function argument limit of 100
     let obj = "'{}'"
     for (let i = 0; i < cols.length; i += 48) {
       obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
-    return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
+    return `SELECT ${SELECT.expand === 'root' || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
   }
 
   /**
