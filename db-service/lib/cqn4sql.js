@@ -83,10 +83,10 @@ function cqn4sql(originalQuery, model) {
       transformedProp.where = getTransformedTokenStream(where)
     }
 
+    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
     // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
     // The already transformed `where` clause is then glued together with the resulting subqueries.
     const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
-    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
     if (inferred.SELECT) {
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
@@ -173,7 +173,10 @@ function cqn4sql(originalQuery, model) {
     if (columns) {
       transformedQuery.SELECT.columns = getTransformedColumns(columns)
     } else {
-      transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
+      if(inferred.correlateWith)
+        transformedQuery.SELECT.columns = ['*']
+      else
+        transformedQuery.SELECT.columns = getColumnsForWildcard(inferred.SELECT?.excluding)
     }
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
@@ -300,12 +303,20 @@ function cqn4sql(originalQuery, model) {
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
-        const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
-        lhs.on = [
-          ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
-          'and',
-          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
-        ]
+        if(nextAssoc.$refLink.specialExistsSubquery) {
+          const target = getDefinition(nextAssoc.$refLink.definition.target)
+          const sub = SELECT.from(target).where(nextAssoc.where)
+          Object.defineProperty(sub, 'correlateWith', { value: {assoc: nextAssoc, alias: arg.as} })
+          const transformed = cqn4sql(sub, model)
+          console.log('transformed', transformed)
+        } else {
+          const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
+          lhs.on = [
+            ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
+            'and',
+            ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
+          ]
+        }
       }
       if (node.children) {
         node.children.forEach(c => {
@@ -1043,8 +1054,9 @@ function cqn4sql(originalQuery, model) {
    * @returns {object} - The cqn4sql transformed subquery.
    */
   function transformSubquery(q) {
-    if (q.outerQueries) q.outerQueries.push(inferred)
-    else {
+    if (q.outerQueries) {
+      q.outerQueries.push(inferred)
+    } else {
       const outerQueries = inferred.outerQueries || []
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
@@ -1727,8 +1739,12 @@ function cqn4sql(originalQuery, model) {
       }
 
       // only append infix filter to outer where if it is the leaf of the from ref
-      if (refReverse[0].where)
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+      if (refReverse[0].where) {
+        const whereIsTransformedLater =
+          inferred.joinTree && !inferred.joinTree.isInitial && (originalQuery.DELETE || originalQuery.UPDATE)
+        if (whereIsTransformedLater) filterConditions.push(refReverse[0].where)
+        else filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+      }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
@@ -2150,7 +2166,12 @@ function cqn4sql(originalQuery, model) {
     }
     if (next.pathExpressionInsideFilter) {
       SELECT.where = customWhere
-      const transformedExists = transformSubquery({ SELECT })
+      const sub = { SELECT }
+      // table aliases usually have precedence over elements
+      // for `SELECT from bookshop.Authors[books.title LIKE '%POE%']:books`
+      // the outer queries alias would shadow the `books.title` path
+      Object.defineProperty(sub, 'noBreakout', { value: true })
+      const transformedExists = transformSubquery(sub)
       // infix filter conditions are wrapped in `xpr` when added to the on-condition
       if (transformedExists.SELECT.where) {
         on.push(
