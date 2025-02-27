@@ -807,11 +807,13 @@ function cqn4sql(originalQuery, model) {
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
     const subqueryBase = {}
-    for (const [key, value] of Object.entries(column)) {
-      if (!(key in { ref: true, expand: true })) {
-        subqueryBase[key] = value
-      }
+    const queryModifiers = { ...column, ...ref.at(-1) }
+    for (const [key, value] of Object.entries(queryModifiers)) {
+      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1 }) subqueryBase[key] = value
     }
+    // where at leaf already part of subqueryBase
+    if (from.ref.at(-1).where) from.ref[from.ref.length - 1] = [from.ref.at(-1).id]
+
     const subquery = {
       SELECT: {
         ...subqueryBase,
@@ -1231,8 +1233,7 @@ function cqn4sql(originalQuery, model) {
         if (flattenThisForeignKey) {
           const fkElement = getElementForRef(k.ref, getDefinition(element.target))
           let fkBaseName
-          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
-            fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
           // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
           else fkBaseName = k.ref.at(-1)
           const fkPath = [...csnPath, k.ref.at(-1)]
@@ -1484,8 +1485,7 @@ function cqn4sql(originalQuery, model) {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
           assertNoStructInXpr(token, $baseLink)
           // reject virtual elements in expressions as they will lead to a sql error down the line
-          if(definition?.virtual)
-            throw new Error(`Virtual elements are not allowed in expressions`)
+          if (definition?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
