@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const JSON_CONCAT = true
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 /**
@@ -141,9 +142,7 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
 
     // REVISIT: add prepare options when param:true is used
-    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    const { hints } = query.SELECT
-    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+    const sqlScript = (isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)) + ' WITH HINT(RESULT_CACHE,USE_REMOTE_CACHE)' // RESULT_CACHE_MAX_LAG(1)
     let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -521,6 +520,7 @@ class HANAService extends SQLService {
       let blobs = {}
       let hasBooleans = false
       let path
+      let toJson = []
       let sql = SELECT.columns
         .map(
           SELECT.expand === 'root'
@@ -618,7 +618,9 @@ class HANAService extends SQLService {
                 return false
               }
               if (x.element?.type === 'cds.Boolean') hasBooleans = true
-              const converter = x.element?.[this.class._convertOutput] || (e => e)
+              let converter = x.element?.[this.class._convertOutput] || src?.elements[columnName]?.[this.class._convertOutput]
+              toJson.push(`${this.string(JSON.stringify(columnName) + ':')} || coalesce((${(converter ? `'"' || ${converter(this.quote(columnName))} || '"'` : this.quote(columnName)) || ''} || ''), 'null')`)
+              converter ??= e => e
               const sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
               return `${converter(sql, x.element)} as "${columnName.replace(/"/g, '""')}"`
             }
@@ -652,7 +654,9 @@ class HANAService extends SQLService {
         // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
         // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
         const rawJsonColumn = sql.length
-          ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+          ? JSON_CONCAT
+            ? `'{' || ${toJson.join(` || ',' || `)} || '}'`
+            : `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
           : `'{}'`
 
         let jsonColumn = rawJsonColumn
@@ -1203,10 +1207,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
-      Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
-      Time: e => `to_char(${e}, 'HH24:MI:SS')`,
-      DateTime: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
-      Timestamp: e => `to_char(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
+      Date: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD')`,
+      Time: e => `TO_NVARCHAR(${e}, 'HH24:MI:SS')`,
+      DateTime: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
+      Timestamp: e => `TO_NVARCHAR(${e}, 'YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"')`,
       Vector: e => `TO_NVARCHAR(${e})`,
       // Reading int64 as string to not loose precision
       Int64: expr => `TO_NVARCHAR(${expr})`,
@@ -1214,6 +1218,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       Decimal: (expr, elem) => elem?.scale
         ? `TO_NVARCHAR(${expr}, '0.${''.padEnd(elem.scale, '0')}')`
         : `TO_NVARCHAR(${expr})`,
+
+      String: JSON_CONCAT
+        ? e => `${['\\', '"', '\b', '\t', '\n', '\f', '\r'].reduce((l, c) => `REPLACE(${l},'${c}','${JSON.stringify(c).slice(1, -1)}')`, e)}`
+        : undefined,
 
       // HANA types
       'cds.hana.ST_POINT': e => `TO_NVARCHAR(${e})`,
@@ -1239,6 +1247,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
     if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
+      const caches = req.query
+        .filter(q => /(^|')CREATE VIEW (.*) AS/.test(q) && !/[ "]localized[._]/i.test(q))
+        .map(q => `ALTER VIEW ${/(^|')CREATE VIEW (.*) AS/.exec(q)[2]} ADD CACHE RETENTION 60`)
+      req.query.push(...caches)
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
