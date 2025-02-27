@@ -1383,11 +1383,11 @@ describe('optimize fk access', () => {
   })
 })
 
-describe('path in filter', () => {
+describe.skip('path in filter', () => {
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-  it.only('simple path in filter', () => {
+  it('simple path in filter', () => {
     const query = CQL`SELECT from bookshop.Books { genre[parent.name = 'FOO'].name as parentIsFoo }`
     const expected = CQL`SELECT from bookshop.Books as Books
       left join bookshop.Genres as genre on genre.ID = Books.genre_ID and exists (
@@ -1416,6 +1416,43 @@ describe('path in filter', () => {
               where genre.ID = books.genre_ID and author.ID = books.author_ID and (parent.name = 'FOO' and books2.title = 'BAR')
           )
           { books.title as superComplicatedBook }`
+    expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
+  })
+  it('multiple paths each has multiple assocs in filter with same path multiple times', () => {
+    const query = CQL`
+    SELECT from bookshop.Authors {
+      books[
+        genre.parent.name = 'FOO' and author.books.title = 'BAR' and genre.parent.desc = 'BAZ' and genre.parent.parent.desc = 'BUZ'
+      ].title as superComplicatedBook
+    }`
+
+    const expected = CQL`SELECT from bookshop.Authors as Authors
+      left join bookshop.Books as books on books.author_ID = Authors.ID and exists (
+            SELECT * from bookshop.Genres as genre
+              left join bookshop.Genres as parent on genre.parent_ID = parent.ID
+              left join bookshop.Genres as parent2 on parent.parent_ID = parent2.ID
+              cross join bookshop.Authors as author
+              left join bookshop.Books as books2 on books2.author_ID = author.ID
+              where genre.ID = books.genre_ID and author.ID = books.author_ID and
+                (parent.name = 'FOO' and books2.title = 'BAR' and parent.desc = 'BAZ' and parent2.desc = 'BUZ')
+          )
+          { books.title as superComplicatedBook }`
+    expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
+  })
+
+  it.skip('WHAT TO DO?', () => {
+    // are the paths in the infix filter independent from each other?
+    const query = CQL`SELECT from bookshop.Books { author[exists books[stock > 5] and books.genre.name = 'foo'].name as parentIsFoo }`
+    const expected = CQL`SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID and exists (
+
+        SELECT * from bookshop.Books as books
+          left join bookshop.Genres as genre on genre.ID = books.genre_ID
+        where
+        exists ( SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID and books2.stock > 5 )
+        and author.ID = books.author_ID and genre.name = 'foo'
+
+      ) { genre.name as parentIsFoo }`
     expect(cqn4sql(query, cds.model)).to.deep.equal(expected)
   })
 })
