@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.12.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.1...postgres-v1.12.0) (2025-03-01)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+
 ## [1.11.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.0...postgres-v1.11.1) (2025-02-09)
 
 
