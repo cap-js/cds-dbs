@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.1...hana-v1.7.0) (2025-03-01)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+* support for `SELECT.hint` ([#1004](https://github.com/cap-js/cds-dbs/issues/1004)) ([2c6a763](https://github.com/cap-js/cds-dbs/commit/2c6a7634450047cab22322abb7312f8f3d432cdf))
+
+
+### Fixed
+
+* Remove sub query alias check ([#953](https://github.com/cap-js/cds-dbs/issues/953)) ([e5a716c](https://github.com/cap-js/cds-dbs/commit/e5a716c6133be92810800231ba14fe6f33a2597b))
+
 ## [1.6.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.0...hana-v1.6.1) (2025-02-04)
 
 

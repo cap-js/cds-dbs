@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.18.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.2...db-service-v1.18.0) (2025-03-01)
+
+
+### Added
+
+* query modifiers on expand `ref` are propagated to subquery ([#1049](https://github.com/cap-js/cds-dbs/issues/1049)) ([39fbadf](https://github.com/cap-js/cds-dbs/commit/39fbadf25a874f810ac2795f2e6b0a46c3678058))
+* support for `SELECT.hint` ([#1004](https://github.com/cap-js/cds-dbs/issues/1004)) ([2c6a763](https://github.com/cap-js/cds-dbs/commit/2c6a7634450047cab22322abb7312f8f3d432cdf))
+
+
+### Fixed
+
+* expand + groupby may return null, dont attach `.element` ([#1042](https://github.com/cap-js/cds-dbs/issues/1042)) ([cf2e0a2](https://github.com/cap-js/cds-dbs/commit/cf2e0a215e89f9055e28d9f0984adf292e220aee))
+
 ## [1.17.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.1...db-service-v1.17.2) (2025-02-09)
 
 
