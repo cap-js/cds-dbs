@@ -92,7 +92,7 @@ class CQN2SQLRenderer {
       if (values && !Array.isArray(values)) {
         values = [values]
       }
-      DEBUG(this.sql, ...values)
+      DEBUG(this.sql, values)
     }
 
 
