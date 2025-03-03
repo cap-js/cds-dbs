@@ -130,7 +130,7 @@ describe('Bookshop - Read', () => {
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
-        ![FROM].author { name as CONSTRAINT } 
+        ![FROM].author { name as CONSTRAINT }
       }
       where ![FROM].title LIKE '%Wuthering%'
       order by group
@@ -476,9 +476,9 @@ describe('Bookshop - Read', () => {
   })
 
   it('cross joins without on condition', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors')
-      .columns('Books.title', 'Authors.name as author')
-      .where('Books.author_ID = Authors.ID')
+    const query = cds.ql `SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+      Books.title, Authors.name as author
+    } where Books.author_ID = Authors.ID`
     const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
     const crossJoinResult = await cds.db.run(query)
     const pathExpressionResult = await cds.db.run(pathExpressionQuery)
