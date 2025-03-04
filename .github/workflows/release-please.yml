@@ -25,7 +25,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       ## debug info
-      - run: echo "Release outputs:" echo "${{ toJson(steps.release.outputs) }}"
+      - run: echo ${{ steps.release.outputs }} 
       # Run tests
       - run: npm install -g @sap/cds-dk
       # Run tests
