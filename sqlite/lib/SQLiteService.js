@@ -214,10 +214,7 @@ class SQLiteService extends SQLService {
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
-      boolean:
-        cds.env.features.sql_simple_queries === 2
-          ? undefined
-          : expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
       // Timestamps are returned with ms, as written by InputConverters.
