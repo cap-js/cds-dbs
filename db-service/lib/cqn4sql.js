@@ -825,7 +825,7 @@ function cqn4sql(originalQuery, model) {
     const subqueryBase = {}
     const queryModifiers = { ...column }
     for (const [key, value] of Object.entries(queryModifiers)) {
-      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1 }) subqueryBase[key] = value
+      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1, count: 1 }) subqueryBase[key] = value
     }
 
     const subquery = {
