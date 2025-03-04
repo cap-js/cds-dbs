@@ -10,7 +10,6 @@
 ### Added
 
 * query modifiers on expand `ref` are propagated to subquery ([#1049](https://github.com/cap-js/cds-dbs/issues/1049)) ([39fbadf](https://github.com/cap-js/cds-dbs/commit/39fbadf25a874f810ac2795f2e6b0a46c3678058))
-* support for `SELECT.hint` ([#1004](https://github.com/cap-js/cds-dbs/issues/1004)) ([2c6a763](https://github.com/cap-js/cds-dbs/commit/2c6a7634450047cab22322abb7312f8f3d432cdf))
 * support query modifiers at leaf of from ref ([#1050](https://github.com/cap-js/cds-dbs/issues/1050)) ([500a666](https://github.com/cap-js/cds-dbs/commit/500a666a9a054dd72d6ec8ccba0c6a6ddc263cd3))
 
 
