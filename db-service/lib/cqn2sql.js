@@ -226,7 +226,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
       q.SELECT
 
     if (from?.join && !q.SELECT.columns) {
@@ -239,7 +239,8 @@ class CQN2SQLRenderer {
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
-    if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
+    if (recurse) sql += ` FROM ${this.SELECT_recurse(q)}`
+    else if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
     else sql += this.from_dummy()
     if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`

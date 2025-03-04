@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const { x } = require('@sap/cds/lib/utils/tar-lib')
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
 const hanaKeywords = keywords.reduce((prev, curr) => {
@@ -510,6 +511,79 @@ class HANAService extends SQLService {
       }
 
       return this.sql
+    }
+
+    SELECT_recurse(q) {
+      let { from, expand, columns, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
+        q.SELECT
+
+      // let direction = 'descendants'
+      const distanceIndex = recurse.where.findIndex(xpr => xpr?.ref?.[0] === 'distance')
+      const direction = distanceIndex < 0 ? 'DESCENDANTS'
+        : recurse.where[distanceIndex + 1] in { '=': 1, 'between': 1 }
+          ? recurse.where[distanceIndex + 2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
+          : recurse.where[distanceIndex + 1] === '<='
+            ? 'ANCESTORS' : 'DESCENDANTS'
+      const association = q.elements[recurse.ref[0]]
+
+
+      const columnsAliased = columns
+        .filter(x => !x.element?.isAssociation)
+        .map(x => {
+          const name = this.column_name(x)
+          if (name.toUpperCase() in { PARENT_ID: 1, NODE_ID: 1 }) {
+            x = { __proto__: x, as: `$$${name}$$` }
+          }
+          return x
+        })
+
+      const columnsIn = columnsAliased.map(x => this.column_expr(x))
+      const columnsPass = columnsAliased.map(x => this.quote(this.column_name(x)))
+
+      const nodeKeys = []
+      const parentKeys = []
+      association._foreignKeys.forEach(fk => {
+        nodeKeys.push(this.quote(fk.parentElement.name))
+        parentKeys.push(this.quote(fk.childElement.name))
+      })
+
+      columnsIn.push(
+        `${nodeKeys.length === 1 ? nodeKeys : `HIERARCHY_COMPOSITE_ID(${nodeKeys})`} AS NODE_ID`,
+        `${parentKeys.length === 1 ? parentKeys : `HIERARCHY_COMPOSITE_ID(${parentKeys})`} as PARENT_ID`,
+      )
+
+      const source = `SELECT ${columnsIn} FROM ${this.from(from, q)}`
+
+      const fullColumns = [
+        ...columnsPass,
+        `NODE_ID`,
+        `PARENT_ID`,
+        `(HIERARCHY_TREE_SIZE - 1) AS DESCENDANTCOUNT`,
+        `(HIERARCHY_LEVEL-1) AS ${this.quote('DistanceFromRoot')}`,
+        `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
+      ]
+
+      const fullGraph = `SELECT ${fullColumns} FROM HIERARCHY(SOURCE (${source}))`
+
+      const subColumns = [
+        ...columns
+          .filter(x => !x.element?.isAssociation)
+          .map(x => {
+            const name = this.column_name(x)
+            if (name.toUpperCase() in { PARENT_ID: 1, NODE_ID: 1 }) {
+              return `${this.quote(`$$${name}$$`)} AS ${this.quote(name)}`
+            }
+            return this.quote(name)
+          }),
+        this.quote('DistanceFromRoot'),
+        `CASE WHEN DESCENDANTCOUNT = 0 THEN 'leaf' WHEN ( HIERARCHY_TREE_SIZE - 1) = 0 THEN 'collapsed' ELSE 'expanded' END AS ${this.quote('DrillState')}`,
+        `(HIERARCHY_TREE_SIZE - 1) AS ${this.quote('LimitedDescendantCount')}`,
+        `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
+      ]
+
+      const subGraph = `SELECT ${subColumns} FROM HIERARCHY(SOURCE(${fullGraph})${where ? `START WHERE ${this.where(where)}` : ''})`
+
+      debugger
     }
 
     SELECT_columns(q) {
