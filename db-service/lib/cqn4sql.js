@@ -60,6 +60,22 @@ function cqn4sql(originalQuery, model) {
       else if (having) inferred.SELECT.having = having
     }
   }
+  // query modifiers can also be defined in from ref leaf infix filter
+  // > SELECT from bookshop.Books[order by price] {ID}
+  if(inferred.SELECT?.from.ref) {
+    for(const [key, val] of Object.entries(inferred.SELECT.from.ref.at(-1))) {
+      if(key in { orderBy: 1, groupBy: 1 }) {
+        if(inferred.SELECT[key]) inferred.SELECT[key].push(...val)
+        else inferred.SELECT[key] = val
+      } else if(key === 'limit') {
+        // limit defined on the query has precedence
+        if(!inferred.SELECT.limit) inferred.SELECT.limit = val
+      } else if(key === 'having') {
+        if(!inferred.SELECT.having) inferred.SELECT.having = val
+        else inferred.SELECT.having.push('and', ...val)
+      }
+    }
+  }
   inferred = infer(inferred, model)
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
@@ -807,12 +823,10 @@ function cqn4sql(originalQuery, model) {
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
     const subqueryBase = {}
-    const queryModifiers = { ...column, ...ref.at(-1) }
+    const queryModifiers = { ...column }
     for (const [key, value] of Object.entries(queryModifiers)) {
       if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1 }) subqueryBase[key] = value
     }
-    // where at leaf already part of subqueryBase
-    if (from.ref.at(-1).where) from.ref[from.ref.length - 1] = [from.ref.at(-1).id]
 
     const subquery = {
       SELECT: {
