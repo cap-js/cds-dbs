@@ -2,6 +2,8 @@ const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 const alphabetize = (_, i) => alphabet[i % alphabet.length]
 
+const bs = String.fromCharCode(92)
+
 module.exports = [
   {
     string: null,
@@ -43,6 +45,21 @@ module.exports = [
   {
     string:
       'Simplified Chinese: 中国, Traditional Chinese: 中國, Korean: 대한민국, Japanese: 日本国, Russion: Российская Федерация, Greek: Ελληνική Δημοκρατία',
+  },
+  {
+    string: `${bs}\b\t\n\r"${bs}b${bs}t${bs}n${bs}r${bs}"`,
+  },
+  {
+    string: `${bs}b`,
+  },
+  {
+    string: `${bs}`,
+  },
+  {
+    string: `${bs}${bs}`,
+  },
+  {
+    string: `${bs}\b`,
   },
   /* Ignoring transformations
   {
