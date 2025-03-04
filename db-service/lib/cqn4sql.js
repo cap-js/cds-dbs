@@ -809,7 +809,7 @@ function cqn4sql(originalQuery, model) {
     const subqueryBase = {}
     const queryModifiers = { ...column, ...ref.at(-1) }
     for (const [key, value] of Object.entries(queryModifiers)) {
-      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1 }) subqueryBase[key] = value
+      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1, count: 1 }) subqueryBase[key] = value
     }
     // where at leaf already part of subqueryBase
     if (from.ref.at(-1).where) from.ref[from.ref.length - 1] = [from.ref.at(-1).id]
@@ -821,7 +821,6 @@ function cqn4sql(originalQuery, model) {
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
         one: column.$refLinks.at(-1).definition.is2one,
-        count: column.count,
       },
     }
     const expanded = transformSubquery(subquery)
