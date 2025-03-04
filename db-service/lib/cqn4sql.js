@@ -821,6 +821,7 @@ function cqn4sql(originalQuery, model) {
         columns: JSON.parse(JSON.stringify(column.expand)),
         expand: true,
         one: column.$refLinks.at(-1).definition.is2one,
+        count: column.count,
       },
     }
     const expanded = transformSubquery(subquery)
