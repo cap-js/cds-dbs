@@ -6,15 +6,11 @@ SELECT
   NODE_ID,
   PARENT_ID,
   (HIERARCHY_LEVEL -1) AS DistanceFromRoot,
-  CASE
-    WHEN DESCENDANTCOUNT = 1 THEN 'leaf'
-    WHEN HIERARCHY_TREE_SIZE = 1 THEN 'collapsed'
-    ELSE 'expanded'
-  END AS DrillState,
   (HIERARCHY_TREE_SIZE - 1) AS LimitedDescendantCount,
+  (hierarchy_distance) AS Distance,
   (HIERARCHY_RANK -1) AS "RANK"
 FROM
-  HIERARCHY_DESCENDANTS_AGGREGATE(
+  HIERARCHY_DESCENDANTS(
     SOURCE HIERARCHY(
       SOURCE (
         SELECT
@@ -27,6 +23,7 @@ FROM
         FROM
           sap_capire_bookshop_Genres as Genres
       )
-    ) MEASURES (COUNT(*) AS DESCENDANTCOUNT)
-    -- WHERE -- TODO: Find out what we can address inside this WHERE clause
+      START WHERE parent_ID IS NULL
+    )
+    START WHERE parent_ID IS NULL
   )

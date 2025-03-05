@@ -343,7 +343,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -375,8 +375,12 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        if (recurse) {
+          columns.push({ xpr: [{ ref: ['RANK'] }], as: '$$RN$$' })
+        }
+
         let orderByHasOutputColumnRef = false
-        if (orderBy) {
+        if (!recurse && orderBy) {
           if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
@@ -420,7 +424,7 @@ class HANAService extends SQLService {
           || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
           || hasExpands // Expands depend on parent $$RN$$
 
-        if (rowNumberRequired) {
+        if (!recurse && rowNumberRequired) {
           // Insert row number column for reducing or sorting the final result
           const over = { xpr: [] }
           // TODO: replace with full path partitioning
@@ -442,7 +446,7 @@ class HANAService extends SQLService {
           Object.defineProperty(q, 'element', { value: element })
         }
 
-        if (rowNumberRequired && !q.SELECT.columns.find(c => c.as === '_path_')) {
+        if ((recurse || rowNumberRequired) && !q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
             xpr: [
               {
@@ -524,14 +528,60 @@ class HANAService extends SQLService {
           ? recurse.where[distanceIndex + 2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
           : recurse.where[distanceIndex + 1] === '<='
             ? 'ANCESTORS' : 'DESCENDANTS'
-      const association = q.elements[recurse.ref[0]]
+      const association = q.target.elements[recurse.ref[0]]
 
+      const availableComputedColumns = {
+        // Input computed columns
+        PARENT_ID: {},
+        NODE_ID: {},
 
-      const columnsAliased = columns
-        .filter(x => !x.element?.isAssociation)
+        // Full graph computed columns
+        DESCENDANTCOUNT: { full: `(HIERARCHY_TREE_SIZE - 1) AS DESCENDANTCOUNT` },
+        DistanceFromRoot: { full: `(HIERARCHY_LEVEL-1) AS ${this.quote('DistanceFromRoot')}`, sub: this.quote('DistanceFromRoot') },
+
+        // Sub Graph computed columns
+        RANK: { sub: `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}` },
+        Distance: { sub: `(HIERARCHY_LEVEL-1) AS ${this.quote('Distance')}` },
+        DrillState: {
+          sub: `CASE WHEN DESCENDANTCOUNT = 0 THEN 'leaf' WHEN ( HIERARCHY_TREE_SIZE - 1) = 0 THEN 'collapsed' ELSE 'expanded' END AS ${this.quote('DrillState')}`,
+          requires: ['DESCENDANTCOUNT']
+        },
+        LimitedDescendantCount: { sub: `(HIERARCHY_TREE_SIZE - 1) AS ${this.quote('LimitedDescendantCount')}` }
+      }
+      const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true, RANK: true }
+      const addComputedColumn = (name) => {
+        if (requiredComputedColumns[name]) return
+        const def = availableComputedColumns[name]
+        if (def.requires?.length) def.requires.forEach(addComputedColumn)
+        requiredComputedColumns[name] = true
+      }
+      const injectRequiredComputedColumns = (arr, level) => {
+        let injected = false
+        for (const name in requiredComputedColumns) {
+          const def = availableComputedColumns[name]
+          if (def[level]) {
+            arr.push(def[level])
+            injected = true
+          }
+        }
+        return injected
+      }
+
+      const columnsFiltered = columns
+        .filter(x => {
+          if (x.element?.isAssociation) return false
+          const name = this.column_name(x)
+          if (name === '$$RN$$') return false
+          if (name in availableComputedColumns) {
+            addComputedColumn(name)
+            return false
+          }
+          return true
+        })
+      const columnsAliased = columnsFiltered
         .map(x => {
           const name = this.column_name(x)
-          if (name.toUpperCase() in { PARENT_ID: 1, NODE_ID: 1 }) {
+          if (name.toUpperCase() in requiredComputedColumns) {
             x = { __proto__: x, as: `$$${name}$$` }
           }
           return x
@@ -558,32 +608,28 @@ class HANAService extends SQLService {
         ...columnsPass,
         `NODE_ID`,
         `PARENT_ID`,
-        `(HIERARCHY_TREE_SIZE - 1) AS DESCENDANTCOUNT`,
-        `(HIERARCHY_LEVEL-1) AS ${this.quote('DistanceFromRoot')}`,
-        `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
       ]
+      injectRequiredComputedColumns(fullColumns, 'full')
 
-      const fullGraph = `SELECT ${fullColumns} FROM HIERARCHY(SOURCE (${source}))`
+
+      const fullGraph = `SELECT ${fullColumns} FROM HIERARCHY(SOURCE (${source}) START WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])})`
 
       const subColumns = [
-        ...columns
-          .filter(x => !x.element?.isAssociation)
+        ...columnsFiltered
           .map(x => {
             const name = this.column_name(x)
-            if (name.toUpperCase() in { PARENT_ID: 1, NODE_ID: 1 }) {
+            if (name.toUpperCase() in requiredComputedColumns) {
               return `${this.quote(`$$${name}$$`)} AS ${this.quote(name)}`
             }
             return this.quote(name)
           }),
-        this.quote('DistanceFromRoot'),
-        `CASE WHEN DESCENDANTCOUNT = 0 THEN 'leaf' WHEN ( HIERARCHY_TREE_SIZE - 1) = 0 THEN 'collapsed' ELSE 'expanded' END AS ${this.quote('DrillState')}`,
-        `(HIERARCHY_TREE_SIZE - 1) AS ${this.quote('LimitedDescendantCount')}`,
-        `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
       ]
+      injectRequiredComputedColumns(subColumns, 'sub')
 
-      const subGraph = `SELECT ${subColumns} FROM HIERARCHY(SOURCE(${fullGraph})${where ? `START WHERE ${this.where(where)}` : ''})`
 
-      debugger
+      const subGraph = `SELECT ${subColumns} FROM HIERARCHY_${direction}(SOURCE HIERARCHY(SOURCE (${fullGraph})) START WHERE ${where ? this.where(where) : this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])})`
+
+      return `(${subGraph})${q.as ? ` AS ${this.quote(q.as)}` : ''}`
     }
 
     SELECT_columns(q) {

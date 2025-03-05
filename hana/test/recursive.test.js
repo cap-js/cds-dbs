@@ -1,12 +1,18 @@
 const cds = require('../../test/cds')
 
 describe('search', () => {
-  cds.test(__dirname + '/../../test/bookshop')
+  cds.test(__dirname, 'recurse.cds')
 
   test('debug', async () => {
+    const { GenresTree } = cds.entities('Test')
+
     const cqn = {
       SELECT: {
-        from: { ref: ['Genres'] },
+        columns: [
+          '*',
+          { ref: ['children'], expand: ['*'] },
+        ],
+        from: { ref: [GenresTree.name] },
         recurse: {
           ref: ['children'],
           where: [{ ref: ['DistanceFromRoot'] }, '<=', { val: 3 }]
