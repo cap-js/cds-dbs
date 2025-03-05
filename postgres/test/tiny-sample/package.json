@@ -4,5 +4,10 @@
   "description": "A simple CAP project, to test the build plugin",
   "dependencies": {
     "@cap-js/postgres": "../../."
+  },
+  "cds": {
+    "features": {
+      "assert_integrity": "db"
+    }
   }
 }
