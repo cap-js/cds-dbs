@@ -348,7 +348,7 @@ GROUP BY k
         localized
           ? c =>
             this.expr(c) +
-            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
+            (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC NULLS LAST' : ' ASC NULLS FIRST')
           : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC NULLS LAST' : ' ASC NULLS FIRST'),
       )
