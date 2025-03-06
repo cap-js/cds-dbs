@@ -1,3 +1,5 @@
+const semver = require('semver')
+
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
 const cds = require('../../cds.js'), { path } = cds.utils
@@ -695,13 +697,14 @@ describe('draft tests', () => {
       {},
       { auth: { username: 'user1', password: 'user1' } },
     )
+
     expect(res.data).to.containSubset({
       '@odata.context': '../../$metadata#BookingSupplement/$entity',
       // BookingSupplementID: 1,
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
+      to_Travel_TravelUUID: cds.env.features.odata_new_adapter && semver.lt(cds.version, '8.9.0') ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,
