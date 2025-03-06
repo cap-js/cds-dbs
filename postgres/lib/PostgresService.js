@@ -351,7 +351,7 @@ GROUP BY k
             (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        return o + ' NULLS ' + nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST'
+        return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
       })
     }
 

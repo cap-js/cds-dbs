@@ -912,7 +912,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
               : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        if (c.nulls) return o + ' NULLS ' + c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST'
+        if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
         return o
       })
     }
