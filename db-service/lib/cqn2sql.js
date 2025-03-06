@@ -421,14 +421,15 @@ class CQN2SQLRenderer {
    * @returns {string[] | string} SQL
    */
   orderBy(orderBy, localized) {
-    return orderBy.map(
-      localized
-        ? c =>
-          this.expr(c) +
+    return orderBy.map(c => {
+      const o = localized
+        ? this.expr(c) +
           (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
           (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-    )
+        : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+      if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+      return o
+    })
   }
 
   /**
