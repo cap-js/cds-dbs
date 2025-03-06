@@ -429,7 +429,7 @@ class CQN2SQLRenderer {
         : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
       if (c.nulls) return o + ' NULLS ' + c.nulls
       return o
-    });
+    })
   }
 
   /**
