@@ -345,14 +345,14 @@ GROUP BY k
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
     _orderBy(orderBy, localized, locale) {
       return orderBy.map(c => {
+        const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
           ? c =>
             this.expr(c) +
             (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          if (c.nulls) return o + ' NULLS ' + c.nulls
-          return o
+        return o + ' NULLS ' + nulls
       }
       )
     }
