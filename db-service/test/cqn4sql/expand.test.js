@@ -280,6 +280,70 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
+  it('do not loose additional properties on expand column if defined in ref', () => {
+    const q = cds.ql`SELECT from bookshop.Authors { books[order by price] { title } }`
+    const res = cqn4sql(q)
+    const expected = CQL`SELECT from bookshop.Authors as Authors {
+      (
+        SELECT from bookshop.Books as books {
+          books.title
+        }
+        where Authors.ID = books.author_ID
+        order by books.price
+      ) as books
+    }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('query modifiers in ref are combined with sibling properties to expand', () => {
+    const q = {
+      SELECT: {
+        from: {
+          ref: ['bookshop.Books'],
+        },
+        columns: [
+          {
+            ref: [{id: 'author', orderBy: [{ref:['dateOfBirth'], sort: 'desc'}]}],
+            expand: [
+              {
+                ref: ['name'],
+              },
+            ],
+            limit: {
+              offset: {
+                val: 1,
+              },
+              rows: {
+                val: 1,
+              },
+            },
+            // this order by is overwritten by the one in the ref
+            orderBy: [
+              {
+                ref: ['dateOfDeath'],
+                sort: 'asc',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    const res = cqn4sql(q)
+    const expected = CQL`SELECT from bookshop.Books as Books {
+      (
+        SELECT from bookshop.Authors as author {
+          author.name
+        }
+        where Books.author_ID = author.ID
+        order by author.dateOfDeath asc, author.dateOfBirth desc
+        limit 1
+        offset 1
+      ) as author
+    }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
   it('add where exists <assoc> shortcut to expand subquery where condition', () => {
     const q = {
       SELECT: {
@@ -1092,7 +1156,8 @@ describe('Expands with aggregations are special', () => {
 
   it('wildcard expand vanishes for aggregations', () => {
     const q = CQL`SELECT from bookshop.TestPublisher {
-      ID
+      ID,
+      texts { publisher {*} }
     } group by ID, publisher.structuredKey_ID, publisher.title`
 
     const qx = CQL`SELECT from bookshop.TestPublisher as TestPublisher
