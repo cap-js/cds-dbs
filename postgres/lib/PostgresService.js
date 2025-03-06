@@ -347,14 +347,12 @@ GROUP BY k
       return orderBy.map(c => {
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
-          ? c =>
-            this.expr(c) +
+          ? this.expr(c) +
             (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         return o + ' NULLS ' + nulls
-      }
-      )
+      })
     }
 
     orderBy(orderBy) {
