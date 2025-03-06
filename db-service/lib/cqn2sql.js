@@ -427,7 +427,7 @@ class CQN2SQLRenderer {
           (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
           (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-      if (c.nulls) return o + ' NULLS ' + c.nulls
+      if (c.nulls) return o + ' NULLS ' + c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST'
       return o
     })
   }
