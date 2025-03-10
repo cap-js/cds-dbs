@@ -1553,7 +1553,7 @@ describe('path expression within infix filter following exists predicate', () =>
         )`,
     )
   })
-  it('rejects the path expression at the leaf of scoped queries', () => {
+  it.skip('rejects the path expression at the leaf of scoped queries', () => {
     // original idea was to just add the `genre.name` as where clause to the query
     // however, with left outer joins we might get too many results
     //
@@ -1566,6 +1566,96 @@ describe('path expression within infix filter following exists predicate', () =>
     expect(() => cqn4sql(query, model)).to.throw(
       `Only foreign keys of “genre” can be accessed in infix filter, but found “name”`
     )
+  })
+  it('renders inner joins for the path expression at the leaf of scoped queries for to one path', () => {
+    let query = CQL`SELECT from bookshop.Authors:books[genre.name = null] { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        )
+        and genre.name = NULL`,
+    )
+  })
+  it('renders nested inner joins for the path expression at the leaf of scoped queries', () => {
+    let query = CQL`SELECT from bookshop.Authors:books[genre.parent.name = null] { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        )
+        and parent.name = NULL`,
+    )
+  })
+  it('renders nested inner joins for the path expression NOT ONLY at the leaf of scoped queries', () => {
+    let query = CQL`SELECT from bookshop.Authors[books.genre.name = 'Fantasy']:books[genre.parent.name = null] { ID }`
+
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors
+          inner join bookshop.Books as books2 on books2.author_ID = Authors.ID
+          inner join bookshop.Genres as genre2 on genre2.ID = books2.genre_ID
+          where Authors.ID = books.author_ID and genre2.name = 'Fantasy'
+        )
+        and parent.name = NULL`,
+    )
+  })
+  it('renders inner joins for the path expression along the scoped query path', () => {
+    let query = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null] { ID }`
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Books as books
+      inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+      { books.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as Authors
+          inner join bookshop.Books as books2 on books2.author_ID = Authors.ID
+          where Authors.ID = books.author_ID and books2.title LIKE '%POE%'
+        )
+        and genre.name = NULL`,
+    )
+  })
+
+  it('renders inner joins for the path expression along the scoped query with 3 paths', () => {
+    let query = CQL`SELECT from bookshop.Authors[books.title LIKE '%POE%']:books[genre.name = null].genre[parent.name = null] { ID }`
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(
+      CQL`SELECT from bookshop.Genres as genre
+      inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+      { genre.ID }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as books
+          inner join bookshop.Genres as genre2 on genre2.ID = books.genre_ID
+          where books.genre_ID = genre.ID and genre2.name = null
+          and EXISTS (
+            SELECT 1 from bookshop.Authors as Authors
+            inner join bookshop.Books as books2 on books2.author_ID = Authors.ID
+            where Authors.ID = books.author_ID and books2.title LIKE '%POE%'
+            )
+        )
+        and parent.name = NULL`,
+    )
+  })
+
+  it('rejects to-many association in infix filter at leaf of scoped query', () => {
+    // here we should not render a join for the books.title as it will increase the queries result set
+    // J.K. Rowling has written multiple books, so we would get n rows with the same author per book
+    let query = cds.ql`SELECT from bookshop.Books:author[books.title LIKE '%Potter%'] { name as author }`
+    expect(() => cqn4sql(query, model)).to.throw(/Filtering via path expressions on to-many associations is not allowed at the leaf of a FROM clause. Use EXISTS predicates instead./)
   })
 
   it('in case statements', () => {
