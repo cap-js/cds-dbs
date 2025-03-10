@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.18.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.18.0...db-service-v1.18.1) (2025-03-10)
+
+
+### Fixed
+
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+
 ## [1.18.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.2...db-service-v1.18.0) (2025-03-04)
 
 
