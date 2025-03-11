@@ -1153,7 +1153,7 @@ describe('Where exists in combination with assoc to join', () => {
   })
   it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
     let query = cqn4sql(
-      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent
       { parent.parent.parent.descr, }`,
       model,
     )
@@ -1179,7 +1179,7 @@ describe('Where exists in combination with assoc to join', () => {
   // Revisit: Alias count order in where + from could be flipped
   it('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', () => {
     let query = cqn4sql(
-      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent
+      CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent
       { parent.parent.parent.descr } where exists parent`,
       model,
     )

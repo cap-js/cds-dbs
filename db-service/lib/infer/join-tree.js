@@ -163,7 +163,7 @@ class JoinTree {
   mergeColumn(col, outerQueries = null) {
     if (this.isInitial) this.isInitial = false
     const head = col.$refLinks[0]
-    let node = this._roots.get(head.alias)
+    let node = (head.definition.kind === 'entity' || head.definition.SELECT) ? this._roots.get(head.alias) : null
     let i = 0
     if (!node) {
       this._roots.forEach(r => {

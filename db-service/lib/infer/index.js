@@ -423,10 +423,11 @@ function infer(originalQuery, model) {
     // if any path step points to an artifact with `@cds.persistence.skip`
     // we must ignore the element from the queries elements
     let isPersisted = true
-    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
+    let firstStepIsImplicitTableAlias, firstStepIsExplicitTableAlias, firstStepIsSelf, expandOnTableAlias
     if (!inFrom) {
-      firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
-      firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
+      firstStepIsImplicitTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
+      firstStepIsExplicitTableAlias = originalQuery.SELECT?.from.as && arg.ref.length > 1 && arg.ref[0] in sources
+      firstStepIsSelf = !firstStepIsImplicitTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
       expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
     }
     if(dollarSelfRefs && firstStepIsSelf) {
@@ -473,7 +474,7 @@ function infer(originalQuery, model) {
         } else if (inFrom) {
           const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
           arg.$refLinks.push({ definition, target: definition })
-        } else if (firstStepIsTableAlias) {
+        } else if (firstStepIsExplicitTableAlias) {
           arg.$refLinks.push({
             definition: getDefinitionFromSources(sources, id),
             target: getDefinitionFromSources(sources, id),
@@ -493,6 +494,11 @@ function infer(originalQuery, model) {
           const $refLink = { definition, target: $combinedElements[id][0].tableAlias }
           arg.$refLinks.push($refLink)
           nameSegments.push(id)
+        } else if(firstStepIsImplicitTableAlias) {
+          arg.$refLinks.push({
+            definition: getDefinitionFromSources(sources, id),
+            target: getDefinitionFromSources(sources, id),
+          })
         } else if (expandOnTableAlias) {
           // expand on table alias
           arg.$refLinks.push({
@@ -621,7 +627,7 @@ function infer(originalQuery, model) {
               // if the navigation the user has written differs from the final flat ref - e.g. for renamed foreign keys -
               // the inferred name of the element equals the flat version of the user-written ref.
               const refNavigation = arg.ref
-                .slice(firstStepIsSelf || firstStepIsTableAlias ? 1 : 0)
+                .slice(firstStepIsSelf || firstStepIsImplicitTableAlias ? 1 : 0)
                 .map(idOnly)
                 .join('_')
               if (refNavigation !== flatName) elementName = refNavigation
