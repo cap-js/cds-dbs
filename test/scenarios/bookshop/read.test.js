@@ -254,6 +254,19 @@ describe('Bookshop - Read', () => {
     expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
   })
 
+  test('forUpdate query with ignore locked', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const query = SELECT([{ ref: ['ID'] }])
+      .from({ ref: [{ id: Books.name, where: [{ ref: ['ID'] }, '=', { val: 201 }] }, 'author'] })
+      .forUpdate({
+        of: ['ID'],
+        ignoreLocked: true
+      })
+
+    const forUpdateResults = await cds.run(query)
+    expect(forUpdateResults).to.deep.eq([{ ID: 101 }])
+  })
+
   test('Expand Book', async () => {
     const res = await GET(
       '/admin/Books(252)?$select=title&$expand=author($select=name;$expand=books($select=title))',

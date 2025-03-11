@@ -466,9 +466,11 @@ GROUP BY k
     // Postgres does not support locking columns only tables which makes of unapplicable
     // Postgres does not support "wait n" it only supports "nowait"
     forUpdate(update) {
-      const { wait } = update
-      if (wait === 0) return 'FOR UPDATE NOWAIT'
-      return 'FOR UPDATE'
+      const { wait, ignoreLocked } = update
+      let sql = 'FOR UPDATE'
+      if (wait === 0) sql += ' NOWAIT'
+      if (ignoreLocked) sql += ' SKIP LOCKED'
+      return sql
     }
 
     forShareLock(lock) {
