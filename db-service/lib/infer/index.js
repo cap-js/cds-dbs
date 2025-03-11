@@ -626,8 +626,9 @@ function infer(originalQuery, model) {
             } else {
               // if the navigation the user has written differs from the final flat ref - e.g. for renamed foreign keys -
               // the inferred name of the element equals the flat version of the user-written ref.
+              const firstStepIsTableAlias = (firstStepIsExplicitTableAlias || firstStepIsImplicitTableAlias) && arg.$refLinks.at(0).definition.kind !== 'element'
               const refNavigation = arg.ref
-                .slice(firstStepIsSelf || firstStepIsImplicitTableAlias ? 1 : 0)
+                .slice(firstStepIsSelf || firstStepIsTableAlias ? 1 : 0)
                 .map(idOnly)
                 .join('_')
               if (refNavigation !== flatName) elementName = refNavigation

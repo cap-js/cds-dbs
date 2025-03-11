@@ -84,6 +84,21 @@ describe('Flattening', () => {
               Bar.nested_bar_b
             }`)
     })
+
+    it('element via path expression is properly flattened', () => {
+      let transformed = cqn4sql(cds.ql`SELECT ID, name, parent.name from bookshop.Genres:parent`, model)
+      const expectation = cds.ql`
+           SELECT from bookshop.Genres as parent
+           left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+           {
+             parent.ID,
+             parent.name,
+             parent2.name as parent_name
+           } where exists (
+            SELECT 1 from bookshop.Genres as Genres where Genres.parent_ID = parent.ID
+           )`
+      expect(transformed).to.deep.equal(expectation)
+    })
     // unmanaged ...
 
     it('ignores unmanaged association in SELECT clause (has no value)', () => {
@@ -739,7 +754,7 @@ describe('Flattening', () => {
       const q = CQL`SELECT from bookshop.Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.second`
-  
+
       const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
       left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
         on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
@@ -754,7 +769,7 @@ describe('Flattening', () => {
       const q = CQL`SELECT from bookshop.Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.struct.mid.leaf`
-  
+
       const qx = CQL`SELECT from bookshop.Intermediate as Intermediate
       left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
         on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
