@@ -191,11 +191,11 @@ describe.skip('CREATE', () => {
       model.definitions[n].kind === 'entity'
     )
 
-  describe('custom entites', () => {
+  describe('custom entities', () => {
     const entityName = 'custom.entity'
 
     afterEach(async () => {
-      const db = await cds.connect()
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
@@ -205,8 +205,8 @@ describe.skip('CREATE', () => {
       // await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
     })
 
-    test('definiton provided', async () => {
-      const db = await cds.connect()
+    test('definition provided', async () => {
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
@@ -216,17 +216,17 @@ describe.skip('CREATE', () => {
         elements: globals.elements
       })
       await db.run({ CREATE: { entity } })
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
+      // REVISIT: reading from entities not in the model requires additional handling in infer
       // await SELECT.from(entity)
     })
 
-    test('definiton provided', async () => {
-      const db = await cds.connect()
+    test('definition provided', async () => {
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
       const query = SELECT.from(globals)
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
+      // REVISIT: reading from entities not in the model requires additional handling in infer
       /*
       const entity = new cds.entity({
         kind: 'entity',

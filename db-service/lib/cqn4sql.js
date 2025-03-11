@@ -60,6 +60,22 @@ function cqn4sql(originalQuery, model) {
       else if (having) inferred.SELECT.having = having
     }
   }
+  // query modifiers can also be defined in from ref leaf infix filter
+  // > SELECT from bookshop.Books[order by price] {ID}
+  if(inferred.SELECT?.from.ref) {
+    for(const [key, val] of Object.entries(inferred.SELECT.from.ref.at(-1))) {
+      if(key in { orderBy: 1, groupBy: 1 }) {
+        if(inferred.SELECT[key]) inferred.SELECT[key].push(...val)
+        else inferred.SELECT[key] = val
+      } else if(key === 'limit') {
+        // limit defined on the query has precedence
+        if(!inferred.SELECT.limit) inferred.SELECT.limit = val
+      } else if(key === 'having') {
+        if(!inferred.SELECT.having) inferred.SELECT.having = val
+        else inferred.SELECT.having.push('and', ...val)
+      }
+    }
+  }
   inferred = infer(inferred, model)
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
@@ -808,11 +824,11 @@ function cqn4sql(originalQuery, model) {
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
     const subqueryBase = {}
-    for (const [key, value] of Object.entries(column)) {
-      if (!(key in { ref: true, expand: true })) {
-        subqueryBase[key] = value
-      }
+    const queryModifiers = { ...column }
+    for (const [key, value] of Object.entries(queryModifiers)) {
+      if (key in { limit: 1, orderBy: 1, groupBy: 1, excluding: 1, where: 1, having: 1, count: 1 }) subqueryBase[key] = value
     }
+
     const subquery = {
       SELECT: {
         ...subqueryBase,
@@ -878,8 +894,8 @@ function cqn4sql(originalQuery, model) {
 
       // to be attached to dummy query
       const elements = {}
-      const wildcardIndex = column.expand.findIndex(e => e === '*')
-      if (wildcardIndex !== -1) {
+      const containsWildcard = column.expand.includes('*')
+      if (containsWildcard) {
         // expand with wildcard vanishes as expand is part of the group by (OData $apply + $expand)
         return null
       }
@@ -889,8 +905,10 @@ function cqn4sql(originalQuery, model) {
 
         if (expand.expand) {
           const nested = _subqueryForGroupBy(expand, fullRef, expand.as || expand.ref.map(idOnly).join('_'))
-          setElementOnColumns(nested, expand.element)
-          elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          if(nested) {
+            setElementOnColumns(nested, expand.element)
+            elements[expand.as || expand.ref.map(idOnly).join('_')] = nested
+          }
           return nested
         }
 
@@ -911,7 +929,11 @@ function cqn4sql(originalQuery, model) {
           elements[c.as || c.ref.at(-1)] = c.element
         })
         return res
-      })
+      }).filter(c => c)
+
+      if (expandedColumns.length === 0) {
+        return null
+      }
 
       const SELECT = {
         from: null,
@@ -1227,8 +1249,7 @@ function cqn4sql(originalQuery, model) {
         if (flattenThisForeignKey) {
           const fkElement = getElementForRef(k.ref, getDefinition(element.target))
           let fkBaseName
-          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess)
-            fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
           // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
           else fkBaseName = k.ref.at(-1)
           const fkPath = [...csnPath, k.ref.at(-1)]
@@ -1480,8 +1501,7 @@ function cqn4sql(originalQuery, model) {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
           assertNoStructInXpr(token, $baseLink)
           // reject virtual elements in expressions as they will lead to a sql error down the line
-          if(definition?.virtual)
-            throw new Error(`Virtual elements are not allowed in expressions`)
+          if (definition?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
