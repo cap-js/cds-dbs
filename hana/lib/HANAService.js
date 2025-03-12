@@ -158,7 +158,7 @@ class HANAService extends SQLService {
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
       const keys = Object.keys(req.target.keys || {})
-      if (keys.length && query.SELECT.forUpdate.ignoreLocked) {
+      if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
         // REVISIT: No support for count
         // where [keys] in [values]   
         const left = { list: keys.map(k => ({ ref: [k] })) }
