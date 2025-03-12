@@ -799,8 +799,7 @@ describe('SELECT', () => {
           await tx1.run(lock4(true))
 
           // Lock false
-          if (ignoreLocked) await expect(tx2.run(lock4(false)))
-          else await expect(tx2.run(lock4(false))).rejected
+          await expect(tx2.run(lock4(false))).rejected
         } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
         }
