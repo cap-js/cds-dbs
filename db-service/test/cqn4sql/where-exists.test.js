@@ -1043,7 +1043,7 @@ describe('Scoped queries', () => {
   })
 
   it('handles paths with three associations', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Authors:books.genre.parent {parent.ID}`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:books.genre.parent as parent {parent.ID}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent {parent.ID} WHERE EXISTS (
         SELECT 1 from bookshop.Genres as genre where genre.parent_ID = parent.ID and EXISTS (
           SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
@@ -1054,7 +1054,7 @@ describe('Scoped queries', () => {
   })
 
   it('handles paths with recursive associations', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent {parent.ID}`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent {parent.ID}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Genres as parent {parent.ID}
       WHERE EXISTS (
         SELECT 1 from bookshop.Genres as parent2 where parent2.parent_ID = parent.ID and EXISTS (
@@ -1086,13 +1086,13 @@ describe('Scoped queries', () => {
   // (SMW) need more tests with unmanaged ON conds using all sorts of stuff -> e.g. struc access in ON, FK of mgd assoc in FROM ...
 
   it('transforms unmanaged association to where exists subquery and infix filter', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Baz:parent[id<20] {parent.id}`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Baz:parent[id<20] as parent {parent.id}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Baz as parent {parent.id} WHERE EXISTS (
         SELECT 1 from bookshop.Baz as Baz where parent.id = Baz.parent_id or parent.id > 17
       ) AND parent.id < 20`)
   })
   it('transforms unmanaged association to where exists subquery with multiple infix filter', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Baz:parent[id<20 or id > 12] {parent.id}`, model)
+    let query = cqn4sql(CQL`SELECT from bookshop.Baz:parent[id<20 or id > 12] as parent {parent.id}`, model)
     expect(query).to.deep.equal(CQL`SELECT from bookshop.Baz as parent {parent.id} WHERE EXISTS (
         SELECT 1 from bookshop.Baz as Baz where parent.id = Baz.parent_id or parent.id > 17
       ) AND (parent.id < 20 or parent.id > 12)`)

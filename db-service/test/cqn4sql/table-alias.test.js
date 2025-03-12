@@ -9,6 +9,40 @@ describe('table alias access', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
+  describe('naming resolution', () => {
+    it('explicit table alias always takes precedence', () => {
+      let transformed = cqn4sql(
+        cds.ql`SELECT from bookshop.Genres as parent { parent.ID } where parent.name like 'foo' order by parent.name`,
+        model,
+      )
+      expect(transformed).to.deep.equal(
+        cds.ql`SELECT from bookshop.Genres as parent { parent.ID } where parent.name like 'foo' order by parent.name`,
+      )
+    })
+    it('implicit alias looses if there is an element with same name', () => {
+      let transformed = cqn4sql(
+        cds.ql`
+        SELECT from bookshop.Genres:parent {
+          ID, parent.name
+        } where parent.name like 'foo'
+          order by parent.name, (parent.name || 'also in expression')`,
+        model,
+      )
+      const expectation = cds.ql`
+        SELECT from bookshop.Genres as parent
+        left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+        {
+          parent.ID,
+          parent2.name as parent_name
+        } where exists (
+          SELECT 1 from bookshop.Genres as Genres where Genres.parent_ID = parent.ID
+        ) and
+        parent2.name like 'foo'
+        order by parent2.name, (parent2.name || 'also in expression')`
+      expect(transformed).to.deep.equal(expectation)
+    })
+  })
+
   describe('in columns', () => {
     // For the time being, we always add a table alias for field accesses.
     // On DB, the table name is bookshop_Books rather than Books
@@ -507,12 +541,14 @@ describe('table alias access', () => {
     //
     // --- Behavior here ---------------------------------------------------------------------------
     //   single path        length=1 resolved as select item
-    //                      length>1 first path step resolved as table alias of data source (or $self)
+    //                      length>1 first path step resolved as table alias of data source (or $self) only if explicit table alias provided
     //                               then as select item
     //                               then as element of data source -> ok: runtime queries cannot be extended
+    //                               then as implicit table alias
     //   path in expression length=1 resolved as element of data source
-    //                      length>1 first path step resolved as table alias of data source
+    //                      length>1 first path step resolved as table alias of data source only if explicit table alias provided
     //                               then as element of data source
+    //                               then as implicit table alias
     //                               never as select item
 
     // Note: elements of data source can be used in ORDER BY w/o table alias (-> price)
