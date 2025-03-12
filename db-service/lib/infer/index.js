@@ -44,25 +44,18 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.from || _.into || _.entity, {})
-  const joinTree = new JoinTree(sources)
+  // path expressions in from.ref.at(-1).where
+  // are collected here and merged once the joinTree is initialized
+  const mergeOnceJoinTreeIsInitialized = []
+
+  let sources = inferTarget(_.from || _.into || _.entity, {})
+  let joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
-  Object.defineProperties(inferred, {
-    // REVISIT: public, or for local reuse, or in cqn4sql only?
-    sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    }, // REVISIT: legacy?
-  })
-  // also enrich original query -> writable because it may be inferred again
-  Object.defineProperties(originalQuery, {
-    sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    },
-  })
+  if (mergeOnceJoinTreeIsInitialized.length) {
+    mergeOnceJoinTreeIsInitialized.forEach(arg => joinTree.mergeColumn(arg, originalQuery.outerQueries))
+  }
+
+  initializeQueryTargets(inferred, originalQuery, sources)
   if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
     $combinedElements = inferCombinedElements()
     /**
@@ -404,7 +397,7 @@ function infer(originalQuery, model) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs } = context
+    const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, atFromLeaf } = context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
@@ -456,10 +449,10 @@ function infer(originalQuery, model) {
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
               if (isNonForeignKeyNavigation(element, nextStep)) {
-                if (inExists) {
+                if (inExists || inFrom) {
                   Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
                 } else {
-                  rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
+                  Object.defineProperty($baseLink, 'specialExistsSubquery', { value: true })
                 }
               }
             }
@@ -480,7 +473,7 @@ function infer(originalQuery, model) {
           })
         } else if (firstStepIsSelf) {
           arg.$refLinks.push({ definition: { elements: queryElements }, target: { elements: queryElements } })
-        } else if (arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
+        } else if (!inferred.noBreakout && arg.ref.length > 1 && inferred.outerQueries?.find(outer => id in outer.sources)) {
           // outer query accessed via alias
           const outerAlias = inferred.outerQueries.find(outer => id in outer.sources)
           arg.$refLinks.push({
@@ -520,7 +513,7 @@ function infer(originalQuery, model) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
             if (isNonForeignKeyNavigation(element, nextStep)) {
-              if (inExists) {
+              if (inExists || inFrom) {
                 Object.defineProperty($baseLink, 'pathExpressionInsideFilter', { value: true })
               } else {
                 rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
@@ -575,13 +568,19 @@ function infer(originalQuery, model) {
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
+              atFromLeaf: inFrom && !arg.ref[i + 1],
             })
           } else if (token.func) {
             if (token.args) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
-                arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inXpr: true, inInfixFilter: true, inFrom },
+                arg.$refLinks[i], {
+                  inExists: skipJoinsForFilter || inExists,
+                  inXpr: true,
+                  inInfixFilter: true,
+                  inFrom,
+                  atFromLeaf: inFrom && !arg.ref[i + 1],
+                },
               ])
             }
           }
@@ -637,7 +636,18 @@ function infer(originalQuery, model) {
     })
 
     // we need inner joins for the path expressions inside filter expressions after exists predicate
-    if ($baseLink?.pathExpressionInsideFilter) Object.defineProperty(arg, 'join', { value: 'inner' })
+    if ($baseLink?.pathExpressionInsideFilter) {
+      Object.defineProperty(arg, 'join', { value: 'inner' })
+      if (inFrom && atFromLeaf && !inExists) {
+        // REVISIT: would it be enough to check the last assocs cardinality?
+        if(arg.$refLinks.some(link => link.definition.isAssociation && link.definition.is2many)) {
+          throw cds.error`Filtering via path expressions on to-many associations is not allowed at the leaf of a FROM clause. Use EXISTS predicates instead.`
+        }
+      // join tree not yet initialized
+        Object.defineProperty(arg, 'isJoinRelevant', { value: true })
+        mergeOnceJoinTreeIsInitialized.push(arg)
+      }
+    }
 
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
@@ -657,6 +667,19 @@ function infer(originalQuery, model) {
         ? { ref: [...baseColumn.ref, ...arg.ref], $refLinks: [...baseColumn.$refLinks, ...arg.$refLinks] }
         : arg
       if (isColumnJoinRelevant(colWithBase)) {
+        if(originalQuery.correlateWith && joinTree.isInitial) {
+          // the very first assoc sets the alias of the correlated query
+          const firstAssoc = arg.$refLinks.find(link => link.definition.isAssociation)
+          const key = Object.keys(originalQuery.sources)[0];
+          const adjustedSource = {
+            [firstAssoc.alias]: originalQuery.sources[key]
+          }
+          sources = adjustedSource
+          // initializeQueryTargets(inferred, originalQuery, adjustedSource)
+          joinTree = new JoinTree(adjustedSource, originalQuery)
+          inferred.SELECT.from.as = firstAssoc.alias
+          $combinedElements = inferCombinedElements()
+        } 
         Object.defineProperty(arg, 'isJoinRelevant', { value: true })
         joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
       }
@@ -884,8 +907,7 @@ function infer(originalQuery, model) {
             step[nestedProp].forEach(a => {
               // reset sub path for each nested argument
               // e.g. case when <path> then <otherPath> else <anotherPath> end
-              if(!a.ref)
-                subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+              if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
           }
@@ -896,7 +918,7 @@ function infer(originalQuery, model) {
         const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
         if (calcElementIsJoinRelevant) {
           if (!calcElement.value.isJoinRelevant)
-            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true,  })
+            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
           joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,
@@ -963,7 +985,7 @@ function infer(originalQuery, model) {
     const exclude = _.excluding ? x => _.excluding.includes(x) : () => false
 
     if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
-      const { elements } = getDefinitionFromSources(sources, aliases[0])
+      const { elements } = getDefinitionFromSources(sources, Object.keys(sources)[0])
       // only one query source and no overwritten columns
       for (const k of Object.keys(elements)) {
         if (!exclude(k)) {
@@ -1094,10 +1116,6 @@ function infer(originalQuery, model) {
     return model.definitions[name]
   }
 
-  function getDefinitionFromSources(sources, id) {
-    return sources[id].definition
-  }
-
   /**
    * Returns the csn path as string for a given column ref with sibling $refLinks
    *
@@ -1118,6 +1136,30 @@ function infer(originalQuery, model) {
       return res !== '' ? res + dot + cur.definition.name : cur.definition.name
     }, '')
   }
+}
+
+function getDefinitionFromSources(sources, id) {
+  return sources[id].definition
+}
+
+function initializeQueryTargets(inferred, originalQuery, sources) {
+  const aliases = Object.keys(sources)
+  Object.defineProperties(inferred, {
+    // REVISIT: public, or for local reuse, or in cqn4sql only?
+    sources: { value: sources, writable: true },
+    target: {
+      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
+      writable: true,
+    }, // REVISIT: legacy?
+  })
+  // also enrich original query -> writable because it may be inferred again
+  Object.defineProperties(originalQuery, {
+    sources: { value: sources, writable: true },
+    target: {
+      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
+      writable: true,
+    },
+  })
 }
 
 /**
