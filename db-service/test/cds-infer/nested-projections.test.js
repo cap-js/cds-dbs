@@ -16,7 +16,7 @@ describe('nested projections', () => {
 
     describe('structs', () => {
       it('simple element access', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, dedication { text } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, dedication { text } }`
         let inferred = _inferred(query)
         let { Books } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -29,7 +29,7 @@ describe('nested projections', () => {
         })
       })
       it('wildcard access in structs', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, dedication { * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, dedication { * } }`
         let inferred = _inferred(query)
         let { Books } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -40,7 +40,7 @@ describe('nested projections', () => {
         })
       })
       it('respect alias of element in expand, combined with wildcard', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, dedication { dedication as foo, * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, dedication { dedication as foo, * } }`
         let inferred = _inferred(query)
         let { Books } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -55,7 +55,7 @@ describe('nested projections', () => {
       })
 
       it('explicit column and wildcard do not clash - explicit first', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, dedication { dedication, * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, dedication { dedication, * } }`
         let inferred = _inferred(query)
         let { Books } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -72,7 +72,7 @@ describe('nested projections', () => {
       })
 
       it('wildcard first, explicit follows with alias', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, dedication { *, dedication as foo } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, dedication { *, dedication as foo } }`
         let inferred = _inferred(query)
         let { Books } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -89,7 +89,7 @@ describe('nested projections', () => {
 
     describe('associations', () => {
       it('expand assocs via *', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, author { * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, author { * } }`
         let inferred = _inferred(query)
         let { Books, Authors } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -100,7 +100,7 @@ describe('nested projections', () => {
         })
       })
       it('supports nested projections for assocs with a * (2)', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, author { ID as baz, * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, author { ID as baz, * } }`
         let inferred = _inferred(query)
         let { Books, Authors } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -111,7 +111,7 @@ describe('nested projections', () => {
         })
       })
       it('supports nested projections for assocs with a * and respects column alias', () => {
-        let query = CQL`SELECT from bookshop.Books { ID, author as BUBU { ID as baz, * } }`
+        let query = cds.ql`SELECT from bookshop.Books { ID, author as BUBU { ID as baz, * } }`
         let inferred = _inferred(query)
         let { Books, Authors } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -122,7 +122,7 @@ describe('nested projections', () => {
         })
       })
       it('deeply nested ', () => {
-        let query = CQL`SELECT from bookshop.Authors { books { author { name } } }`
+        let query = cds.ql`SELECT from bookshop.Authors { books { author { name } } }`
         let inferred = _inferred(query)
         let { Authors } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -140,7 +140,7 @@ describe('nested projections', () => {
         })
       })
       it('to many', () => {
-        let query = CQL`SELECT from bookshop.Authors { books { title } }`
+        let query = cds.ql`SELECT from bookshop.Authors { books { title } }`
         let inferred = _inferred(query)
         let { Authors } = model.entities
         expect(inferred.elements).to.deep.equal({
@@ -157,7 +157,7 @@ describe('nested projections', () => {
 
     describe('anonymous', () => {
       it('scalar elements', () => {
-        const q = CQL`SELECT from bookshop.Books {
+        const q = cds.ql`SELECT from bookshop.Books {
           ID,
           {
             title,
@@ -178,7 +178,7 @@ describe('nested projections', () => {
           })
       })
       it('wildcard expand with explicit table alias', () => {
-        const q = CQL`SELECT from bookshop.Books {
+        const q = cds.ql`SELECT from bookshop.Books {
           Books { *, 'overwrite ID' as ID }
         }`
         let { Books } = model.entities
@@ -192,7 +192,7 @@ describe('nested projections', () => {
           })
       })
       it('wildcard expand without explicit table alias', () => {
-        const q = CQL`SELECT from bookshop.Books {
+        const q = cds.ql`SELECT from bookshop.Books {
           { *, 'overwrite ID' as ID } as FOO
         }`
         let { Books } = model.entities
@@ -215,13 +215,13 @@ describe('nested projections', () => {
     })
 
     it('prefix notation equivalent to structured access', () => {
-      let queryInlineNotation = CQL`select from Employee {
+      let queryInlineNotation = cds.ql`select from Employee {
         office.{
           floor,
           room
         }
       }`
-      let queryStructuredAccess = CQL`select from Employee {
+      let queryStructuredAccess = cds.ql`select from Employee {
         office.floor,
         office.room
       }`
@@ -234,7 +234,7 @@ describe('nested projections', () => {
       })
     })
     it('mixed with expand', () => {
-      let queryInlineNotation = CQL`select from Employee {
+      let queryInlineNotation = cds.ql`select from Employee {
             office {
               floor,
               address.{
@@ -243,7 +243,7 @@ describe('nested projections', () => {
               }
             }
       }`
-      let variantWithoutInline = CQL`select from Employee {
+      let variantWithoutInline = cds.ql`select from Employee {
         office {
           floor,
           address.city,
@@ -266,7 +266,7 @@ describe('nested projections', () => {
         })
     })
     it('deep inline', () => {
-      let queryInlineNotation = CQL`select from Employee {
+      let queryInlineNotation = cds.ql`select from Employee {
         office.{
           floor,
           address.{
@@ -276,7 +276,7 @@ describe('nested projections', () => {
           }
         }
       }`
-      let variantWithoutInline = CQL`select from Employee {
+      let variantWithoutInline = cds.ql`select from Employee {
         office.floor,
         office.address.city,
         office.address.street,
@@ -294,7 +294,7 @@ describe('nested projections', () => {
     })
     it('deep expand in inline', () => {
       // revisit: naming
-      let queryInlineNotation = CQL`select from Employee {
+      let queryInlineNotation = cds.ql`select from Employee {
         office.{
           floor,
           address {
@@ -303,7 +303,7 @@ describe('nested projections', () => {
           }
         }
       }`
-      let variantWithoutInline = CQL`select from Employee {
+      let variantWithoutInline = cds.ql`select from Employee {
         office.floor,
         office.address {
             city,
@@ -326,10 +326,10 @@ describe('nested projections', () => {
         })
     })
     it('wildcard inline toplevel', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged {
         office.{ * }
       }`
-      let inlineExplicit = CQL`select from EmployeeNoUnmanaged {
+      let inlineExplicit = cds.ql`select from EmployeeNoUnmanaged {
         office.{
           floor,
           room,
@@ -338,7 +338,7 @@ describe('nested projections', () => {
           furniture
         }
       }`
-      let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+      let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
         office.floor,
         office.room,
         office.building,
@@ -365,10 +365,10 @@ describe('nested projections', () => {
         })
     })
     it('wildcard inline deep w/o brackets', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged {
         office.{ address.* }
       }`
-      let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+      let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
         office.address.city,
         office.address.street,
         office.address.country,
@@ -384,10 +384,10 @@ describe('nested projections', () => {
     })
     it('smart wildcard - column overwrite after *', () => {
       // office.address.city replaces office.floor
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged {
         office.{ *, address.city as floor }
       }`
-      let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+      let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
         office.address.city as office_floor,
         office.room,
         office.building,
@@ -413,10 +413,10 @@ describe('nested projections', () => {
     })
     it('smart wildcard - column overwrite before *', () => {
       // office.furniture.chairs replaces office.furniture
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged {
         office.{'skip' as building, furniture.chairs as furniture, *, 'replace' as floor}
       }`
-      let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+      let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
         'skip' as office_building,
         office.furniture.chairs as office_furniture,
         'replace' as office_floor,
@@ -444,7 +444,7 @@ describe('nested projections', () => {
 
     it('smart wildcard only works in local scope', () => {
       // duplicate error, as * already contains a field "office_address"
-      let queryInlineNotation = CQL`select from Employee {
+      let queryInlineNotation = cds.ql`select from Employee {
         office.*,
         office.address.city as office_address
       }`
@@ -452,10 +452,10 @@ describe('nested projections', () => {
     })
 
     it('wildcard - excluding elements from inline', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged {
         office.{*} excluding { building, address }
       }`
-      let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+      let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
         office.floor,
         office.room,
         office.furniture
@@ -470,13 +470,13 @@ describe('nested projections', () => {
       })
     })
     it('wildcard - sql style on table alias', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged as E {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged as E {
         E.{*}
       }`
-      let queryInlineNotationWithoutBrackets = CQL`select from EmployeeNoUnmanaged as E {
+      let queryInlineNotationWithoutBrackets = cds.ql`select from EmployeeNoUnmanaged as E {
         E.*
       }`
-      let regularWildcard = CQL`select from EmployeeNoUnmanaged as E{
+      let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E{
         *
       }`
       let inferredWithoutBrackets = _inferred(queryInlineNotation)
@@ -489,10 +489,10 @@ describe('nested projections', () => {
         .to.deep.equal(EmployeeNoUnmanaged.elements)
     })
     it('wildcard - sql style on table alias with excluding', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged as E {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged as E {
         E.{ *, office.room as office } excluding { department }
       }`
-      let regularWildcard = CQL`select from EmployeeNoUnmanaged as E{
+      let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E{
         *,
         office.room as office
       } excluding { department }`
@@ -508,7 +508,7 @@ describe('nested projections', () => {
     })
 
     it('wildcard - sql style on table alias with excluding and hand written joins', () => {
-      let queryInlineNotation = CQL`select from EmployeeNoUnmanaged as E join Department as D on E.department.id = D.id {
+      let queryInlineNotation = cds.ql`select from EmployeeNoUnmanaged as E join Department as D on E.department.id = D.id {
         E.{ *, office.room as office } excluding { department },
         D.name as depName
       }`

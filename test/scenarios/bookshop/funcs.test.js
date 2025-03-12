@@ -49,7 +49,7 @@ describe('Bookshop - Functions', () => {
 
     test('avg', async () => {
       const { Books } = cds.entities
-      const res = await cds.run(CQL`SELECT from ${Books} {
+      const res = await cds.run(cds.ql`SELECT from ${Books} {
         average(stock) as avgStock
       }`)
       expect(res[0].avgStock).to.not.be.undefined
