@@ -2394,7 +2394,7 @@ function hasLogicalOr(tokenStream) {
  */
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
-  return index != -1 ? str.substring(index + 1) : str
+  return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
 }
 
 function getParentEntity(element) {
