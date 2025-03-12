@@ -752,7 +752,7 @@ describe('SELECT', () => {
     })
   })
 
-  const generalLockTest = (lock4, shared = false) => {
+  const generalLockTest = (lock4, { shared = false, ignoreLocked = false } = {}) => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
@@ -851,7 +851,7 @@ describe('SELECT', () => {
           await tx1.run(lock4(false))
 
           // Lock false
-          if (shared) {
+          if (shared || ignoreLocked) {
             const ret = await tx2.run(lock4(false))
             expect(ret).is.not.undefined
           } else {
@@ -885,7 +885,20 @@ describe('SELECT', () => {
 
     generalLockTest(bool => boolLock.clone()
       .where([{ ref: ['bool'] }, '=', { val: bool }]),
-      true
+      { shared: true }
+    )
+  })
+
+  describe('forUpdate ignore locked', () => {
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forShareLock({
+        of: ['bool'],
+        ignoreLocked: true
+      })
+
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }]),
+      { ignoreLocked: true }
     )
   })
 
