@@ -85,7 +85,6 @@ describe('Flattening', () => {
             }`)
     })
     // unmanaged ...
-
     it('ignores unmanaged association in SELECT clause (has no value)', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { author, coAuthorUnmanaged }`, model)
       expect(query).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.author_ID }`)
