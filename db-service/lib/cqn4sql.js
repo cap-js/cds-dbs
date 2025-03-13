@@ -818,7 +818,7 @@ function cqn4sql(originalQuery, model) {
 
     // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
     // as table alias for the correlated subquery
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(columnAlias, inferred.outerQueries)
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(getLastStringSegment(columnAlias), inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
@@ -2313,7 +2313,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     function getCombinedElementAlias(node) {
-      return getLastStringSegment(inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index)
+      return inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index
     }
   }
   function getTransformedFunctionArgs(args, $baseLink = null) {
@@ -2394,7 +2394,7 @@ function hasLogicalOr(tokenStream) {
  */
 function getLastStringSegment(str) {
   const index = str.lastIndexOf('.')
-  return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
+  return '$'+(index != -1 ? str.substring(index + 1) : str).replace(/^$/, '')[0]
 }
 
 function getParentEntity(element) {
