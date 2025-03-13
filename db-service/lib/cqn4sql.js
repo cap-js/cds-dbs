@@ -870,6 +870,7 @@ function cqn4sql(originalQuery, model) {
         const existsSubqueryAlias = recent[existsIndex + 1].SELECT.from.as
         if (existsSubqueryAlias === x.ref?.[0]) return { ref: [outer, ...x.ref.slice(1)] }
         if (x.xpr) x.xpr = x.xpr.map(replaceAliasWithSubqueryAlias)
+        if (x.args) x.args = x.args.map(replaceAliasWithSubqueryAlias)
         return x
       }
       return subq
@@ -2313,7 +2314,7 @@ function cqn4sql(originalQuery, model) {
         if (
           inferred.SELECT?.from.uniqueSubqueryAlias &&
           !inferred.SELECT?.from.as &&
-          firstStep === getImplicitAlias(transformedQuery.SELECT.from.ref[0])
+          getImplicitAlias(firstStep) === getImplicitAlias(transformedQuery.SELECT.from.ref[0])
         ) {
           return inferred.SELECT?.from.uniqueSubqueryAlias
         }
@@ -2412,7 +2413,7 @@ function hasLogicalOr(tokenStream) {
  */
 function getImplicitAlias(str) {
   const index = str.lastIndexOf('.')
-  return '$' + (index != -1 ? str.substring(index + 1) : str).replace(/^$/, '')[0]
+  return '$' + (index != -1 ? str.substring(index + 1) : str).replace(/^\$/, '')[0]
 }
 
 function getParentEntity(element) {
