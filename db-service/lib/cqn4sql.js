@@ -1993,7 +1993,7 @@ function cqn4sql(originalQuery, model) {
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(lhs.ref[0] === '$self' ? 2 : 1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
-            else if (lhsFirstDef.target) result[i].ref = [result[i].ref.join('_')]
+            else if (lhsFirstDef?.target) result[i].ref = [result[i].ref.join('_')]
           }
         }
         if (backlink) {
