@@ -44,6 +44,7 @@ describe('Bookshop - assertions', () => {
   })
 
   describe('INSERT', () => {
+
     test('simple assertion, no negative stocks', async () => {
       await expect(
         INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books),

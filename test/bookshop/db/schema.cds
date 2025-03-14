@@ -15,7 +15,7 @@ entity Books : managed {
       @assert.constraint.stockNotEmpty : {
         condition: ( stock >= 0 ),
         message: 'STOCK_NOT_EMPTY',
-        parameters: ((title, ID))     // to be inserted into the message
+        parameters: [title, ID]     // to be inserted into the message
       }
       stock          : Integer;
       price          : Decimal;
@@ -33,7 +33,7 @@ entity Authors : managed {
       @assert.constraint : {
         condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
         message: 'LIFE_BEFORE_DEATH',
-        parameters: ((name, dateOfBirth, dateOfDeath))
+        parameters: [name, dateOfBirth, dateOfDeath]
       }
       dateOfDeath  : Date;
       placeOfBirth : String;
