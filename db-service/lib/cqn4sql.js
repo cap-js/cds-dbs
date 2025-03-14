@@ -2016,7 +2016,7 @@ function cqn4sql(originalQuery, model) {
             // sanity check: error out if we can't produce a join
             if (backlink.keys.length === 0) {
               throw new Error(
-                `Path step “${assocRefLink.alias}” is a self comparison with “${getFullName(backlink)}” that has no foreign keys`,
+                `Path step “${assocRefLink.definition.name}” is a self comparison with “${getFullName(backlink)}” that has no foreign keys`,
               )
             }
             // managed backlink -> calculate fk-pk pairs
