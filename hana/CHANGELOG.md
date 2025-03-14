@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.7.0...hana-v1.8.0) (2025-03-14)
+
+
+### Added
+
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+
+
+### Fixed
+
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+* **forUpdate:** forUpdate optional ([#1079](https://github.com/cap-js/cds-dbs/issues/1079)) ([1175b6e](https://github.com/cap-js/cds-dbs/commit/1175b6e52a70814c1967387ae80e628944f5b71f))
+
 ## [1.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.1...hana-v1.7.0) (2025-03-04)
 
 
