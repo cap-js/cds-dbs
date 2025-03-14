@@ -547,6 +547,7 @@ class CQN2SQLRenderer {
       let sepsub = ''
       for (const key in row) {
         let val = row[key]
+        const type = elements[key]?.type
         if (val === undefined) continue
         const keyJSON = `${sepsub}${JSON.stringify(key)}:`
         if (!sepsub) sepsub = ','
@@ -748,7 +749,7 @@ class CQN2SQLRenderer {
     const managed = this._managed.slice(0, columns.length)
 
     const extractkeys = managed
-      .filter(c => keys.includes(c.name))
+      // .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
     const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
@@ -832,6 +833,7 @@ class CQN2SQLRenderer {
     const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
     if (typeof x === 'string') throw cds.error`Unsupported expr: ${x}`
     if (x.param) return wrap(this.param(x))
+    if ('json' in x) return wrap(this.json(x))
     if ('ref' in x) return wrap(this.ref(x))
     if ('val' in x) return wrap(this.val(x))
     if ('func' in x) return wrap(this.func(x))
@@ -1007,6 +1009,20 @@ class CQN2SQLRenderer {
     return `(${list.map(e => this.expr(e))})`
   }
 
+  json(arg) {
+    const { props, elements, json } = arg
+    const { _convertInput } = this.class
+    let val = typeof json === 'string' ? json : (arg.json = JSON.stringify(json))
+    if (val[val.length - 1] === ',') val = arg.json = val.slice(0, -1) + ']'
+    if (val[val.length - 1] === '[') val = arg.json = val + ']'
+    this.values.push(val)
+    const extraction = props.map(p => {
+      const element = elements?.[p]
+      return this.managed_extract(p, element, a => element[_convertInput]?.(a, element) || a).extract
+    })
+    return `(SELECT ${extraction} FROM json_each(?))`
+  }
+
   /**
    * Renders a javascript string into a SQL string literal
    * @param {string} s
@@ -1062,6 +1078,7 @@ class CQN2SQLRenderer {
   managed(columns, elements) {
     const cdsOnInsert = '@cds.on.insert'
     const cdsOnUpdate = '@cds.on.update'
+    const cdsImmutable = '@Core.Immutable'
 
     const { _convertInput } = this.class
     // Ensure that missing managed columns are added
@@ -1082,6 +1099,10 @@ class CQN2SQLRenderer {
 
     const keys = ObjectKeys(elements).filter(e => elements[e].key && !elements[e].isAssociation)
     const keyZero = keys[0] && this.quote(keys[0])
+    const hasChanges = this.managed_changed(
+      [...columns, ...requiredColumns]
+        .filter(({ name }) => !elements?.[name]?.key && !elements?.[name]?.[cdsOnUpdate] && !elements?.[name]?.[cdsImmutable])
+    )
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
       const element = elements?.[name] || {}
@@ -1104,21 +1125,22 @@ class CQN2SQLRenderer {
       if (onUpdate) onUpdate = this.expr(onUpdate)
 
       const qname = this.quote(name)
+      const immutable = element[cdsImmutable]
 
       const insert = onInsert ? this.managed_default(name, converter(onInsert), sql) : sql
-      const update = onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
+      const update = immutable ? undefined : onUpdate ? this.managed_default(name, converter(onUpdate), sql) : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
-          // If both insert and update have the same managed definition exclude the old value check
-          || (onInsert && onUpdate && insert === update)
           ? `${insert} as ${qname}`
           : `CASE WHEN OLD.${keyZero} IS NULL THEN ${
           // If key of old is null execute insert
           insert
           } ELSE ${
           // Else execute managed update or keep old if no new data if provided
-          onUpdate ? update : this.managed_default(name, `OLD.${qname}`, update)
+          !update
+            ? `OLD.${qname}`
+            : this.managed_default(name, `OLD.${qname}`, update)
           } END as ${qname}`
       )
 
@@ -1151,6 +1173,13 @@ class CQN2SQLRenderer {
 
   managed_default(name, managed, src) {
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
+  }
+
+  managed_changed(cols/*, comps*/) {
+    return `CASE WHEN ${[
+      ...cols.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL AND OLD.${this.quote(name)} ${this.is_distinct_from_} NEW.${this.quote(name)}`),
+      // ...comps.map(({ name }) => `json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NOT NULL`)
+    ].join(' OR ')} THEN TRUE ELSE FALSE END`
   }
 }
 
