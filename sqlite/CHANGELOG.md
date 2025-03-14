@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.8.0...sqlite-v1.9.0) (2025-03-04)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+
 ## [1.8.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.8...sqlite-v1.8.0) (2025-01-28)
 
 

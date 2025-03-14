@@ -4,6 +4,21 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.18.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.2...db-service-v1.18.0) (2025-03-04)
+
+
+### Added
+
+* query modifiers on expand `ref` are propagated to subquery ([#1049](https://github.com/cap-js/cds-dbs/issues/1049)) ([39fbadf](https://github.com/cap-js/cds-dbs/commit/39fbadf25a874f810ac2795f2e6b0a46c3678058))
+* support query modifiers at leaf of from ref ([#1050](https://github.com/cap-js/cds-dbs/issues/1050)) ([500a666](https://github.com/cap-js/cds-dbs/commit/500a666a9a054dd72d6ec8ccba0c6a6ddc263cd3))
+
+
+### Fixed
+
+* `<expand>[@odata](https://github.com/odata).count` queries ([#966](https://github.com/cap-js/cds-dbs/issues/966)) ([6607a84](https://github.com/cap-js/cds-dbs/commit/6607a8404aa70f2f3f7c6c65c7e9b1c324a5230b))
+* align debug log format of stmt values ([#1052](https://github.com/cap-js/cds-dbs/issues/1052)) ([93af0fe](https://github.com/cap-js/cds-dbs/commit/93af0fe5f93a0c1b91f592417b31fdb6266fdd79))
+* expand + groupby may return null, dont attach `.element` ([#1042](https://github.com/cap-js/cds-dbs/issues/1042)) ([cf2e0a2](https://github.com/cap-js/cds-dbs/commit/cf2e0a215e89f9055e28d9f0984adf292e220aee))
+
 ## [1.17.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.1...db-service-v1.17.2) (2025-02-09)
 
 

@@ -22,13 +22,13 @@ describe('keywords', () => {
       ],
     }
     await INSERT(data).into(Order)
-    const select = await cds.run(CQL`SELECT from Order { ID, alter { * } } where exists alter`)
+    const select = await cds.run(cds.ql`SELECT from Order { ID, alter { * } } where exists alter`)
     expect(select[0]).to.deep.eql(data)
 
     data.alter.forEach(e => (e.number = 99)) // change data
     await UPDATE.entity(Order).with(data).where('exists alter')
 
-    const selectAfterChange = await cds.run(CQL`SELECT from Order { ID, alter { * } } where exists alter`)
+    const selectAfterChange = await cds.run(cds.ql`SELECT from Order { ID, alter { * } } where exists alter`)
     expect(selectAfterChange[0]).to.deep.eql(data)
   })
 
