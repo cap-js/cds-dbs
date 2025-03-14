@@ -119,8 +119,8 @@ function infer(originalQuery, model) {
       from.uniqueSubqueryAlias ||
       from.as ||
       (ref.length === 1
-        ? first.substring(first.lastIndexOf('.') + 1)
-        : (ref.at(-1).id || ref.at(-1)));    
+        ? getImplicitAlias(first)
+        : getImplicitAlias(ref.at(-1).id || ref.at(-1)));    
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
@@ -136,11 +136,16 @@ function infer(originalQuery, model) {
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
-      querySources[from.substring(from.lastIndexOf('.') + 1)] = { definition }
+      querySources[getImplicitAlias(from)] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }
     return querySources
+  }
+
+  function getImplicitAlias(str) {
+    const index = str.lastIndexOf('.')
+    return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
   }
 
   /**
