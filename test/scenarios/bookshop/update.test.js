@@ -138,7 +138,7 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
       .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
@@ -191,7 +191,7 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(MoreDraftEnabledBooks)
     .where(`author.name = 'Richard Carpenter'`)
     .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
     
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)

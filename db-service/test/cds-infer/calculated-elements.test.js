@@ -11,7 +11,7 @@ describe('Infer types of calculated elements in select list', () => {
   })
   it('calc element has type or has cast', () => {
     let inferred = _inferred(
-      CQL`SELECT from booksCalc.Books {
+      cds.ql`SELECT from booksCalc.Books {
           ID,
           area,
           area as strArea : String,
@@ -33,7 +33,7 @@ describe('Infer types of calculated elements in select list', () => {
   })
   it('calc elements via wildcard', () => {
     let inferred = _inferred(
-      CQL`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`,
+      cds.ql`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`,
       model,
     )
     let { Books } = model.entities
