@@ -242,10 +242,10 @@ class CQN2SQLRenderer {
     if (recurse) sql += ` FROM ${this.SELECT_recurse(q)}`
     else if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
     else sql += this.from_dummy()
-    if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
-    if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
-    if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
-    if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
+    if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where)}`
+    if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
+    if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having)}`
+    if (!recurse && !_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
     if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     if (forUpdate) sql += ` ${this.forUpdate(forUpdate)}`
