@@ -25,11 +25,23 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
     if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
       promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
     } else {
-      promises.push(
-        this.write({
-          dependencies: { '@sap/cds': '^8', '@cap-js/postgres': '^1' },
-          scripts: { start: 'cds-deploy' },
-        }).to('package.json'),
+      const packageJson = {
+        dependencies: {
+          '@sap/cds': '^8',
+          '@cap-js/postgres': '^1'
+        },
+        scripts: {
+          start: 'cds-deploy'
+        }
+      }
+      const assertIntegrity = cds.env?.features?.assert_integrity
+      if (assertIntegrity) {
+        packageJson.cds ??= {}
+        packageJson.cds.features ??= {}
+        packageJson.cds.features.assert_integrity = assertIntegrity
+      }
+      promises.push(        
+        this.write(packageJson).to('package.json')
       )
     }
     promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))

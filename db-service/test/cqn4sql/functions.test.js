@@ -10,10 +10,10 @@ describe('functions', () => {
   })
   describe('general', () => {
     it('function in filter of expand', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
           author[substring(placeOfBirth, 0, 2) = 'DE'] { name }
         }`
-      const qx = CQL`SELECT from bookshop.Books as Books {
+      const qx = cds.ql`SELECT from bookshop.Books as Books {
           (
             SELECT author.name
              from bookshop.Authors as author
@@ -28,10 +28,10 @@ describe('functions', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('function val in func.args must not be expanded to fk comparison', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          1
         } where not exists author[contains(toLower('foo'))]`
-      const qx = CQL`SELECT from bookshop.Books as Books {
+      const qx = cds.ql`SELECT from bookshop.Books as Books {
           1
         } where not exists (
           SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and contains(toLower('foo'))
@@ -40,10 +40,10 @@ describe('functions', () => {
       expect(res).to.deep.equal(qx)
     })
     it('function with dot operator', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          func1(ID, 'bar').func2(author.name, 'foo') as dotOperator
         } `
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID
         {
           func1(Books.ID, 'bar').func2(author.name, 'foo') as dotOperator
@@ -55,10 +55,10 @@ describe('functions', () => {
 
   describe('with named parameters', () => {
     it('in column', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          getAuthorsName( author => author.name, book => title ) as foo
         } `
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID
         {
           getAuthorsName( author => author.name, book => Books.title ) as foo
@@ -67,10 +67,10 @@ describe('functions', () => {
       expect(res).to.deep.equal(qx)
     })
     it('in infix filter', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          author[ 'King' = getAuthorsName( author => ID ) ].ID as foo
         } `
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID and
           'King' = getAuthorsName( author => author.ID )
@@ -81,10 +81,10 @@ describe('functions', () => {
       expect(res).to.deep.equal(qx)
     })
     it('in where', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          ID
         } where getAuthorsName( author => author.name ) = 'King'`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID
         {
@@ -95,10 +95,10 @@ describe('functions', () => {
     })
 
     it('in order by', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          ID
         } order by getAuthorsName( author => author.name )`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID
         {
@@ -109,10 +109,10 @@ describe('functions', () => {
     })
 
     it('in group by', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          ID
         } group by getAuthorsName( author => author.name )`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID
         {
@@ -123,10 +123,10 @@ describe('functions', () => {
     })
 
     it('in having', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          ID
         } having getAuthorsName( author => author.name ) = 'King'`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID
         {
@@ -137,10 +137,10 @@ describe('functions', () => {
     })
 
     it('in xpr', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books {
          ID
         } where ('Stephen ' + getAuthorsName( author => author.name )) = 'Stephen King'`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
           left join bookshop.Authors as author on author.ID = Books.author_ID
         {
@@ -150,10 +150,10 @@ describe('functions', () => {
       expect(res).to.deep.equal(qx)
     })
     it('in from', () => {
-      const q = CQL`SELECT from bookshop.Books[getAuthorsName( author => author.ID ) = 1] {
+      const q = cds.ql`SELECT from bookshop.Books[getAuthorsName( author => author.ID ) = 1] {
          ID
         }`
-      const qx = CQL`
+      const qx = cds.ql`
         SELECT from bookshop.Books as Books
         {
           Books.ID
@@ -172,7 +172,7 @@ describe('functions', () => {
           where: [{ func: 'current_date' }, '=', { val: 'today' }],
         },
       }
-      let expected = CQL`
+      let expected = cds.ql`
         SELECT Books.ID from bookshop.Books as Books
        where current_date = 'today'
       `
