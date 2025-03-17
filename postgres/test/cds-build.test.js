@@ -9,7 +9,8 @@ const cds = require('../../test/cds.js')
 
 const workDir = path.join(__dirname, 'tiny-sample')
 const genDir = path.join(workDir, 'gen')
-const dbDest = path.join(genDir, 'pg/db')
+const pgDest = path.join(genDir, 'pg')
+const dbDest = path.join(pgDest, 'db')
 
 // delete the generated folder after each test
 afterEach(() => {
@@ -26,5 +27,13 @@ describe('cds build plugin', () => {
   test('should run pg build with production profile', () => {
     execSync('npx cds build --production', { cwd: workDir })
     expect(fs.existsSync(path.join(dbDest, 'csn.json'))).to.be.true
+  })
+
+  test('should retain assert_integrity setting', () => {
+    execSync('npx cds build --production', { cwd: workDir })
+    const packageJson = require(path.join(pgDest, 'package.json'))
+    expect(packageJson.cds?.features?.assert_integrity).to.equal('db')
+    const ddl = String(execSync('npx cds deploy --dry', { cwd: workDir }))
+    expect(ddl).to.contain('REFERENCES')
   })
 })

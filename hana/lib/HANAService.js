@@ -39,7 +39,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
-    const { credentials, kind } = service.options
+    const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
@@ -62,7 +62,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver(credentials)
+          const dbc = new driver({...credentials, ...clientOptions})
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
@@ -157,6 +157,15 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
+      const keys = Object.keys(req.target.keys || {})
+      if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
+        // REVISIT: No support for count
+        // where [keys] in [values]   
+        const left = { list: keys.map(k => ({ ref: [k] })) }
+        const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
+        resultQuery.SELECT.limit = undefined
+        resultQuery.SELECT.where = [left, 'in', right]
+      }
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -349,7 +358,7 @@ class HANAService extends SQLService {
         const walkAlias = q => {
           if (q.args) return q.as || walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as || cds.error`Missing alias for subquery`
+          return q.as
         }
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q) // Use from alias for query re use alias
@@ -630,35 +639,89 @@ class HANAService extends SQLService {
     SELECT_columns(q) {
       const { SELECT, src } = q
       if (!SELECT.columns) return '*'
+      if (SELECT.expand !== 'root') {
+        const ret = []
+        for (const x of q.SELECT.columns) {
+          if (x.elements && x.element?.isAssociation) continue
+          ret.push(this.column_expr(x, q))
+        }
+        return ret
+      }
       const structures = []
       const blobrefs = []
       let expands = {}
       let blobs = {}
       let hasBooleans = false
       let path
-      let sql = SELECT.columns
-        .map(
-          SELECT.expand === 'root'
-            ? x => {
-              if (x === '*') return '*'
-              // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) {
-                expands[this.column_name(x)] = x.SELECT.one ? null : []
+      let sql = []
 
-                const parent = src
-                this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
-                  const columnName = this.column_name(ref)
-                  if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
-                    parent.SELECT.columns.push(ref)
+      // Remove sub expands and track special return column types
+      for (const x of SELECT.columns) {
+        if (x === '*') sql.push('*')
+        // means x is a sub select expand
+        if (x.elements && x.element?.isAssociation) {
+          if (x.SELECT?.count) {
+            // Add count query to src query and output  query
+            const cq = this.SELECT_count(x)
+            src.SELECT.columns.push(cq)
+            if (q !== src) q.SELECT.columns.push({ ref: [cq.as], element: cq.element })
+          }
+
+          expands[this.column_name(x)] = x.SELECT.one ? null : []
+
+          const parent = src
+          this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
+            const columnName = this.column_name(ref)
+            if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
+              parent.SELECT.columns.push(ref)
+            }
+          })
+
+          if (x.SELECT.from) {
+            x.SELECT.from = {
+              join: 'inner',
+              args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+              on: x.SELECT.where,
+              as: x.SELECT.from.as,
+            }
+          } else {
+            x.SELECT.from = { ref: [parent.alias], as: parent.as }
+            x.SELECT.columns.forEach(col => {
+              // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+              if (col.ref?.length > 1) {
+                const colName = this.column_name(col)
+                if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                  const isSource = from => {
+                    if (from.as === col.ref[0]) return true
+                    return from.args?.some(a => {
+                      if (a.args) return isSource(a)
+                      return a.as === col.ref[0]
+                    })
                   }
-                })
 
-                if (x.SELECT.from) {
-                  x.SELECT.from = {
-                    join: 'inner',
-                    args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-                    on: x.SELECT.where,
-                    as: x.SELECT.from.as,
+                  // Inject foreign columns into parent selects (recursively)
+                  const as = `$$${col.ref.join('.')}$$`
+                  let rename = col.ref[0] !== parent.as
+                  let curPar = parent
+                  while (curPar) {
+                    if (isSource(curPar.SELECT.from)) {
+                      if (curPar.SELECT.columns.find(c => c.as === as)) {
+                        rename = true
+                      } else {
+                        rename = rename || curPar === parent
+                        curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
+                      }
+                      break
+                    } else {
+                      curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                      curPar = curPar.SELECT.parent
+                    }
+                  }
+                  if (rename) {
+                    col.as = colName
+                    col.ref = [parent.as, as]
+                  } else {
+                    col.ref = [parent.as, colName]
                   }
                 } else {
                   x.SELECT.from = { ref: [parent.alias], as: parent.as }
@@ -705,104 +768,106 @@ class HANAService extends SQLService {
                     }
                   })
                 }
-
-                x.SELECT.where = undefined
-                x.SELECT.expand = 'root'
-                x.SELECT.parent = parent
-
-                const values = this.values
-                this.values = []
-                parent.SELECT.expand = true
-                this.SELECT(x)
-                this.values = values
-                return false
               }
-              if (x.element?.type in this.BINARY_TYPES) {
-                blobrefs.push(x)
-                blobs[this.column_name(x)] = null
-                return false
-              }
-              if (x.element?.elements || x.element?.items) {
-                // support for structured types and arrays
-                structures.push(x)
-                return false
-              }
-              const columnName = this.column_name(x)
-              if (columnName === '_path_') {
-                path = this.expr(x)
-                return false
-              }
-              if (x.element?.type === 'cds.Boolean') hasBooleans = true
-              const converter = x.element?.[this.class._convertOutput] || (e => e)
-              const sql = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
-              return `${converter(sql, x.element)} as "${columnName.replace(/"/g, '""')}"`
-            }
-            : x => {
-              if (x === '*') return '*'
-              // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) return false
-              return this.column_expr(x)
-            },
-        )
-        .filter(a => a)
-
-      if (SELECT.expand === 'root') {
-        this._blobs = blobs
-        const blobColumns = Object.keys(blobs)
-        this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
-        if (
-          cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
-          structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
-          !q?.src?.SELECT?.parent &&
-          this.temporary.length === 0
-        ) {
-          return `${sql}`
-        }
-
-        expands = this.string(JSON.stringify(expands))
-        blobs = this.string(JSON.stringify(blobs))
-        // When using FOR JSON the whole dataset is put into a single blob
-        // To increase the potential maximum size of the result set every row is converted to a JSON
-        // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
-        // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
-        const rawJsonColumn = sql.length
-          ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
-          : `'{}'`
-
-        let jsonColumn = rawJsonColumn
-        if (structures.length) {
-          // Appending the structured columns to prevent them from being quoted and escaped
-          // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
-          const structuresConcat = structures
-            .map((x, i) => {
-              const name = this.column_name(x)
-              return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
             })
-            .join(' || ')
-          jsonColumn = sql.length
-            ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
-            : `${structuresConcat} || '}'`
-        }
+          }
 
-        // Calculate final output columns once
-        let outputColumns = ''
-        outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
-        if (blobColumns.length)
-          outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
-        this._outputColumns = outputColumns
-        if (path) {
-          sql = `*,${path} as ${this.quote('_path_')}`
-        } else {
-          structures.forEach(x => sql.push(this.column_expr(x)))
-          blobrefs.forEach(x => sql.push(this.column_expr(x)))
+          x.SELECT.where = undefined
+          x.SELECT.expand = 'root'
+          x.SELECT.parent = parent
+
+          const values = this.values
+          this.values = []
+          parent.SELECT.expand = true
+          this.SELECT(x)
+          this.values = values
+          continue
         }
+        if (x.element?.type in this.BINARY_TYPES) {
+          blobrefs.push(x)
+          blobs[this.column_name(x)] = null
+          continue
+        }
+        if (x.element?.elements || x.element?.items) {
+          // support for structured types and arrays
+          structures.push(x)
+          continue
+        }
+        const columnName = this.column_name(x)
+        if (columnName === '_path_') {
+          path = this.expr(x)
+          continue
+        }
+        if (x.element?.type === 'cds.Boolean') hasBooleans = true
+        const converter = x.element?.[this.class._convertOutput] || (e => e)
+        const s = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+        sql.push(`${converter(s, x.element)} as "${columnName.replace(/"/g, '""')}"`)
+      }
+
+      this._blobs = blobs
+      const blobColumns = Object.keys(blobs)
+      this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
+      if (
+        cds.env.features.sql_simple_queries &&
+        (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+        structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
+        !q?.src?.SELECT?.parent &&
+        this.temporary.length === 0
+      ) {
+        return `${sql}`
+      }
+
+      expands = this.string(JSON.stringify(expands))
+      blobs = this.string(JSON.stringify(blobs))
+      // When using FOR JSON the whole dataset is put into a single blob
+      // To increase the potential maximum size of the result set every row is converted to a JSON
+      // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
+      // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
+      const rawJsonColumn = sql.length
+        ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+        : `'{}'`
+
+      let jsonColumn = rawJsonColumn
+      if (structures.length) {
+        // Appending the structured columns to prevent them from being quoted and escaped
+        // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
+        const structuresConcat = structures
+          .map((x, i) => {
+            const name = this.column_name(x)
+            return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
+          })
+          .join(' || ')
+        jsonColumn = sql.length
+          ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
+          : `${structuresConcat} || '}'`
+      }
+
+      // Calculate final output columns once
+      let outputColumns = ''
+      outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      if (blobColumns.length)
+        outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
+      this._outputColumns = outputColumns
+      if (path) {
+        sql = `*,${path} as ${this.quote('_path_')}`
+      } else {
+        structures.forEach(x => sql.push(this.column_expr(x)))
+        blobrefs.forEach(x => sql.push(this.column_expr(x)))
       }
       return sql
     }
 
     SELECT_expand(_, sql) {
       return sql
+    }
+
+    SELECT_count(q) {
+      const countQuery = super.SELECT_count(q)
+      countQuery.SELECT.from = countQuery.SELECT.from
+      countQuery.SELECT.where = countQuery.SELECT.where
+      // Ensure that the query is not considered an expand query
+      countQuery.SELECT.parent = undefined
+      return countQuery
     }
 
     from_dummy() {
@@ -963,17 +1028,17 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     orderBy(orderBy, localized) {
-      return orderBy.map(
-        localized
-          ? c =>
-            this.expr(c) +
+      return orderBy.map(c => {
+        const o = localized
+          ? this.expr(c) +
             (c.element?.[this.class._localized]
-              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']
-              }`
+              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
               : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+        return o
+      })
     }
 
     limit({ rows, offset }) {

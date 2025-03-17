@@ -39,6 +39,28 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count in expand', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)`, admin
+    )
+    expect(res.status).to.be.eq(200)
+    for (const row of res.data.value) {
+      expect(row['books@odata.count']).to.be.eq(row.books.length + '')
+    }
+  })
+
+  test.skip('Books $count in orderby', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin
+    )
+  })
+
+  test.skip('Books $count in filter', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin
+    )
+  })
+
   test('Books with groupby with path expression and expand result', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
@@ -95,7 +117,7 @@ describe('Bookshop - Read', () => {
   })
 
   test('Path expression', async () => {
-    const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
+    const q = cds.ql`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
     expect(res.length).to.be.eq(4)
     const columns = Object.keys(res[0])
@@ -104,7 +126,7 @@ describe('Bookshop - Read', () => {
   })
 
   test('Smart quotation', async () => {
-    const q = CQL`
+    const q = cds.ql`
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
@@ -144,7 +166,7 @@ describe('Bookshop - Read', () => {
     const { Authors } = cds.entities('sap.capire.bookshop')
     const res = await SELECT
       .columns`ID,sum(books_price) as price :Decimal`
-      .from(CQL`SELECT ID,books.price from ${Authors}`)
+      .from(cds.ql`SELECT ID,books.price from ${Authors}`)
       .groupBy`ID`
       .orderBy`price desc`
     expect(res.length).to.be.eq(4)
@@ -292,7 +314,7 @@ describe('Bookshop - Read', () => {
       expect(res2.status).to.be.eq(200)
       expect(res2.data.value[1].title).to.be.eq('dracula')
 
-      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
       expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
