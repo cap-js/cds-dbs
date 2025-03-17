@@ -117,7 +117,7 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data, hasPostProcessing, iterator }) {
+  async onSELECT({ query, data, iterator, objectMode }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
@@ -134,7 +134,7 @@ class SQLService extends DatabaseService {
     const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = (hasPostProcessing === false || iterator) ? await ps.stream(values, isOne, iterator) : await ps.all(values)
+    let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
@@ -160,7 +160,7 @@ class SQLService extends DatabaseService {
       return SQLService._arrayWithCount(rows, await this.count(query, rows))
     }
 
-    return hasPostProcessing !== false && isOne ? rows[0] : rows
+    return iterator !== false && isOne ? rows[0] : rows
   }
 
   /**

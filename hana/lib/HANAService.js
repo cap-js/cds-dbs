@@ -119,7 +119,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data, hasPostProcessing, iterator } = req
+    const { query, data, iterator, objectMode } = req
 
     if (!query.target || query.target._unresolved) {
       try { this.infer(query) } catch { /**/ }
@@ -140,16 +140,16 @@ class HANAService extends SQLService {
 
     const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
-    const canStream = (hasPostProcessing === false || iterator) && !isLockQuery
+    const isStream = iterator && !isLockQuery
 
     // REVISIT: add prepare options when param:true is used
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
-    if (values?.length || blobs.length > 0 || canStream) {
+    if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps[canStream ? 'stream' : 'all'](values || [], isOne, iterator)
+      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
       rows = await this.exec(sqlScript)
     }
@@ -178,7 +178,7 @@ class HANAService extends SQLService {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return isOne && !canStream ? rows[0] : rows
+    return isOne && !isStream ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -731,7 +731,7 @@ class HANAService extends SQLService {
 
       // Calculate final output columns once
       let outputColumns = ''
-      outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
       if (blobColumns.length)
         outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
       this._outputColumns = outputColumns

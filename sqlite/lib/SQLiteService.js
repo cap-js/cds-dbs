@@ -120,13 +120,19 @@ class SQLiteService extends SQLService {
     yield buffer
   }
 
+  async *_iteratorObjectMode(rs) {
+    for (const row of rs) {
+      yield JSON.parse(row[0])
+    }
+  }
+
   async _allStream(stmt, binding_params, one, objectMode) {
     stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
     stmt.raw(true)
     const get = stmt.get(binding_params)
     if (!get) return []
     const rs = stmt.iterate(binding_params)
-    const stream = Readable.from(objectMode ? rs : this._iteratorRaw(rs, one), { objectMode })
+    const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
     stream.on('close', () => {
       rs.return() // finish result set when closed early
     })

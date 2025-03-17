@@ -68,7 +68,7 @@ describe.skip('Bookshop: Stream Performance', () => {
           ...(withImage ? [{ ref: ['image'] }] : []),
           ...(withExpands ? [{ ref: ['author'], expand: ['*'] }, { ref: ['genre'], expand: ['*'] }] : []),
         ]).from(Books)
-        const req = new cds.Request({ query, iterator: objectMode, hasPostProcessing: objectMode == null ? undefined : false })
+        const req = new cds.Request({ query, iterator: objectMode == null ? false : true, objectMode })
 
         const rows = numberOfBooks * (withExpands ? 3 : 1)
 

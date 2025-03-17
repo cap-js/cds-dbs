@@ -116,6 +116,23 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
+  test('Books aggregation using for await', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let total = 0
+    for await (const row of cds.ql`SELECT price FROM ${Books}`) {
+      total += Number.parseFloat(row.price)
+    }
+    expect(total).gt(200)
+  })
+
+  test('Books download using pipe', async () => {
+    const { json } = require('stream/consumers')
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let result
+    await cds.ql`SELECT FROM ${Books}`.pipe(async stream => { result = await json(stream) })
+    expect(result).length(5)
+  })
+
   test('Path expression', async () => {
     const q = cds.ql`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
@@ -476,7 +493,7 @@ describe('Bookshop - Read', () => {
   })
 
   it('cross joins without on condition', async () => {
-    const query = cds.ql `SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
       Books.title, Authors.name as author
     } where Books.author_ID = Authors.ID`
     const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
