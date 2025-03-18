@@ -264,7 +264,7 @@ class HANAService extends SQLService {
       while (levels.length) {
         const level = levels[levels.length - 1]
         // Check if the current row is a child of the current level
-        if (row._path_.indexOf(level.path) === 0) {
+        if (row._path_.indexOf(level.path) === 0 && row._path_ != level.path) {
           // Check if the current row is an expand of the current level
           const property = row._path_.slice(level.path.length + 2, -7)
           if (property in level.expands) {
