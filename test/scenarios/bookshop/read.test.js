@@ -116,7 +116,8 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
-  test('Books aggregation using for await', async () => {
+  // REVISIT: un skip when SELECT[async iterator] is merged into @sap/cds
+  test.skip('Books aggregation using for await', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     let total = 0
     for await (const row of cds.ql`SELECT price FROM ${Books}`) {
@@ -125,7 +126,8 @@ describe('Bookshop - Read', () => {
     expect(total).gt(200)
   })
 
-  test('Books download using pipe', async () => {
+  // REVISIT: un skip when SELECT.pipe is merged into @sap/cds
+  test.skip('Books download using pipe', async () => {
     const { json } = require('stream/consumers')
     const { Books } = cds.entities('sap.capire.bookshop')
     let result

@@ -137,26 +137,26 @@ class SQLService extends DatabaseService {
     let ps = await this.prepare(sql)
     let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
     try {
-    if (rows.length)
-      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+      if (rows.length)
+        if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
       if (!iterator) {
         // REVISIT: remove after removing stream_compat feature flag
-    if (cds.env.features.stream_compat) {
-      if (query._streaming) {
-        if (!rows.length) return
-            this._changeToStreams(cqn.SELECT.columns, rows, one, true)
-        const result = rows[0]
+        if (cds.env.features.stream_compat) {
+          if (query._streaming) {
+            if (!rows.length) return
+            this._changeToStreams(cqn.SELECT.columns, rows, true, true)
+            const result = rows[0]
 
-        // stream is always on position 0. Further properties like etag are inserted later.
-        let [key, val] = Object.entries(result)[0]
-        result.value = val
-        delete result[key]
+            // stream is always on position 0. Further properties like etag are inserted later.
+            let [key, val] = Object.entries(result)[0]
+            result.value = val
+            delete result[key]
 
-        return result
-      }
-    } else {
-      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
+            return result
+          }
+        } else {
+          this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
         }
       } else if (objectMode) {
         const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
@@ -169,14 +169,14 @@ class SQLService extends DatabaseService {
         })
         pipeline(rows, changeToStreams)
         rows = changeToStreams
-    }
+      }
 
-    if (cqn.SELECT.count) {
-      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-      return SQLService._arrayWithCount(rows, await this.count(query, rows))
-    }
+      if (cqn.SELECT.count) {
+        // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+        return SQLService._arrayWithCount(rows, await this.count(query, rows))
+      }
 
-    return iterator !== false && isOne ? rows[0] : rows
+      return iterator !== false && isOne ? rows[0] : rows
     } catch (err) {
       // Ensure that iterators receive pre stream errors
       if (iterator) rows.emit('error', err)
@@ -384,6 +384,50 @@ class SQLService extends DatabaseService {
       $count: { value: count, enumerable: false, configurable: true, writable: true },
       map: { value: map, enumerable: false, configurable: true, writable: true },
     })
+  }
+
+  streamConverter(columns) {
+    const converter = columns && this._streamConverter(columns)
+    return converter && new Function('stream', 'buffer', 'row', converter).bind(null, stream, buffer)
+
+    function stream(val) {
+      if (val === null) return null
+      if (val instanceof Readable) return val
+      return Readable.from(Buffer.from(val, 'base64'))
+    }
+
+    function buffer(val) {
+      if (val === null) return null
+      return Buffer.from(val, 'base64')
+    }
+  }
+
+  _streamConverter(columns) {
+    let changes = false
+    let converter = ''
+    for (let col of columns) {
+      const name = JSON.stringify(col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col))
+      if (col.element?.isAssociation) {
+        const c = this._streamConverter(col.SELECT.columns)
+        if (c) {
+          converter += col.element.is2one
+            ? `const tmp = row
+  {
+    const row = tmp[${name}]
+    ${c}
+  }
+  `
+            : `for(const row of row[${name}]){${c}}`
+        }
+      } else if (col.element?.type === 'cds.LargeBinary') {
+        converter += `row[${name}] = stream(row[${name}])\n`
+        changes = true
+      } else if (col.element?.type in BINARY_TYPES) {
+        converter += `row[${name}] = buffer(row[${name}])\n`
+        changes = true
+      }
+    }
+    return converter
   }
 
   /** @param {unknown[]} args */
