@@ -695,7 +695,7 @@ class QueryStream extends Query {
     this._prom = new Promise((resolve, reject) => {
       this.once('error', reject)
       this.once('end', () => {
-        if (!this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) this.push(this.constructor.close)
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
         resolve(null)
@@ -738,9 +738,9 @@ class QueryStream extends Query {
     } else {
       this.handleDataRow = msg => {
         const val = msg.fields[0]
-        if (!this._one && val !== null) this.push(this.constructor.open)
-        this.emit('row', val)
         const objectMode = this.stream.readableObjectMode
+        if (!objectMode && !this._one && val !== null) this.push(this.constructor.open)
+        this.emit('row', val)
         this.push(objectMode ? JSON.parse(val) : val)
 
         delete this.handleDataRow
