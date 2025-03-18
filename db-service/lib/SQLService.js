@@ -1,6 +1,7 @@
 const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
-const { Readable } = require('stream')
+const { Readable, Transform } = require('stream')
+const { pipeline } = require('stream/promises')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
@@ -135,15 +136,18 @@ class SQLService extends DatabaseService {
 
     let ps = await this.prepare(sql)
     let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
+    try {
     if (rows.length)
       if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
+      if (!iterator) {
+        // REVISIT: remove after removing stream_compat feature flag
     if (cds.env.features.stream_compat) {
       if (query._streaming) {
-        this._changeToStreams(cqn.SELECT.columns, rows, true, true)
         if (!rows.length) return
-
+            this._changeToStreams(cqn.SELECT.columns, rows, one, true)
         const result = rows[0]
+
         // stream is always on position 0. Further properties like etag are inserted later.
         let [key, val] = Object.entries(result)[0]
         result.value = val
@@ -153,6 +157,18 @@ class SQLService extends DatabaseService {
       }
     } else {
       this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
+        }
+      } else if (objectMode) {
+        const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
+        const changeToStreams = new Transform({
+          objectMode: true,
+          transform(row, enc, cb) {
+            converter(row)
+            cb(null, row)
+          }
+        })
+        pipeline(rows, changeToStreams)
+        rows = changeToStreams
     }
 
     if (cqn.SELECT.count) {
@@ -161,6 +177,11 @@ class SQLService extends DatabaseService {
     }
 
     return iterator !== false && isOne ? rows[0] : rows
+    } catch (err) {
+      // Ensure that iterators receive pre stream errors
+      if (iterator) rows.emit('error', err)
+      throw err
+    }
   }
 
   /**

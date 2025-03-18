@@ -133,18 +133,18 @@ class SQLiteService extends SQLService {
     if (!get) return []
     const rs = stmt.iterate(binding_params)
     const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
-    stream.on('close', () => {
-      rs.return() // finish result set when closed early
-    })
+    const close = () => rs.return() // finish result set when closed early
+    stream.on('error', close)
+    stream.on('close', close)
     return stream
   }
 
-  pragma (pragma, options) {
-    if (!this.dbc) return this.begin('pragma') .then (tx => {
-      try { return tx.pragma (pragma, options) }
+  pragma(pragma, options) {
+    if (!this.dbc) return this.begin('pragma').then(tx => {
+      try { return tx.pragma(pragma, options) }
       finally { tx.release() }
     })
-    return this.dbc.pragma (pragma, options)
+    return this.dbc.pragma(pragma, options)
   }
 
 

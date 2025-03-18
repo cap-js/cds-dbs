@@ -580,21 +580,21 @@ describe('SELECT', () => {
 
     test('not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('and beetwen CASE statements with not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
@@ -980,6 +980,85 @@ describe('SELECT', () => {
       cqn.SELECT.distinct = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+  })
+
+  describe('foreach', () => {
+    const process = function (row) {
+      for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
+    }
+
+    test('aggregate', async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cqn.clone().foreach(process.bind(aggregate))
+      expect(aggregate).deep.eq(expected)
+    })
+
+    // REVISIT: unskip when merged into @sap/cds
+    test.skip('async iterator', async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      for await (const row of cqn.clone()) process.call(aggregate, row)
+      expect(aggregate).deep.eq(expected)
+    })
+  })
+
+  // REVISIT: unskip when merged into @sap/cds
+  describe.skip('pipe', () => {
+    test('json stream', async () => {
+      const { json } = require('stream/consumers')
+      const { binaries } = cds.entities('basic.literals')
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+      const expected = await cqn.clone()
+
+      let result
+      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      expect(result).deep.eq(expected)
+    })
+
+    test('req.res stream', async () => {
+      const http = require('http')
+      const { json } = require('stream/consumers')
+      const { promisify } = require('util')
+
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      // Start simple http server
+      const srv = http.createServer((_, res) => cqn.pipe(res))
+      await promisify(srv.listen.bind(srv))()
+      cds.once('shutdown', () => { srv.close() })
+
+      const expected = await cqn.clone()
+
+      const result = await new Promise((resolve, reject) => {
+        const { port } = srv.address()
+        const req = http.get(`http://localhost:${port}/`)
+        req.on('error', reject)
+        req.on('response', res => {
+          expect(res.headers).to.have.property('content-type').eq('application/json')
+          expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
+          json(res).then(resolve, reject)
+        })
+      })
+
+      expect(result).deep.eq(expected)
     })
   })
 
