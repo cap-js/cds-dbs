@@ -305,9 +305,12 @@ async function rsIterator(rs, one, objectMode) {
     }
     state.readBlob = function readBlob() {
       const index = this.columnIndex++
-      const stream = Readable.from(streamBlob(this.rs, rs._rowPosition, index, this.binaryBuffer), { objectMode: false })
-      stream.setEncoding('base64')
-      return stream
+      if (rs.isNull(index)) return null
+      return rs.isNull(i)
+        ? null
+        : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
+          ? this.rs.getValue(index)
+          : Readable.from(streamBlob(this.rs, rs._rowPosition, index), { objectMode: false })
     }
   }
 

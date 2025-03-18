@@ -113,7 +113,7 @@ function rsNextRaw(state, next) {
     state.inject(`${JSON.stringify(blobColumn)}:`)
 
     const blobLength = state.readBlob()
-    if (blobLength.then) return blobLength.then(() => nextBlob(state, i + 1))
+    if (blobLength?.then) return blobLength.then(() => nextBlob(state, i + 1))
   }
 
   const _return = () => {

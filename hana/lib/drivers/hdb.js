@@ -48,7 +48,7 @@ class HDBDriver extends driver {
     this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
-    this._native.set = function(variables) {
+    this._native.set = function (variables) {
       const clientInfo = this._connection.getClientInfo()
       for (const key in variables) {
         clientInfo.setProperty(key, variables[key])
@@ -334,6 +334,15 @@ async function rsIterator(rs, one, objectMode) {
       return readString(this, this.columnIndex === 4)
     },
     readBlob() {
+      const meta = this.rs.metadata[this.columnIndex]
+      this.columnIndex++
+      if (meta.dataType === 12 || meta.dataType === 13) {
+        const binary = readString(this)
+        if (binary == null) this.inject('null')
+        else this.inject(`"${Buffer.from(binary).toString('base64')}"`)
+        return
+      }
+
       return readBlob(state, new StringDecoder('base64'))
     }
   }
@@ -348,9 +357,17 @@ async function rsIterator(rs, one, objectMode) {
     }
     state.inject = function inject() { }
     state.readString = function _readString() {
+      this.columnIndex++
       return readString(this)
     }
     state.readBlob = function _readBlob() {
+      const meta = this.rs.metadata[this.columnIndex]
+      this.columnIndex++
+
+      if (meta.dataType === 12 || meta.dataType === 13) {
+        return readString(this)
+      }
+
       const binaryStream = new Readable({
         read() {
           if (binaryStream._prefetch) {
@@ -360,7 +377,7 @@ async function rsIterator(rs, one, objectMode) {
           this.resume()
         }
       })
-      readBlob(state, {
+      const isNull = readBlob(state, {
         end() { binaryStream.push(null) },
         write(chunk) {
           if (!binaryStream.readableDidRead) {
@@ -375,7 +392,7 @@ async function rsIterator(rs, one, objectMode) {
         }
       })
         ?.catch((err) => { if (binaryStream) binaryStream.emit('error', err) })
-      return binaryStream
+      return isNull === null ? null : binaryStream
     }
   }
 
@@ -390,7 +407,8 @@ const readString = function (state, isJson = false) {
   let offset = 1
   switch (length) {
     case 0xff:
-      throw new Error('Missing stream metadata')
+      state.read(offset)
+      return null
     case 0xf6:
       ens = state.ensure(2)
       if (ens) return ens.then(() => readString(state, isJson))
