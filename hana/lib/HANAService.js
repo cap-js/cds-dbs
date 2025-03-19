@@ -901,7 +901,7 @@ class HANAService extends SQLService {
       const extraction = managed.map(c => c.extract)
 
       const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }

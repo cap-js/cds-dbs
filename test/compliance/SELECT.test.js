@@ -296,14 +296,13 @@ describe('SELECT', () => {
 
     test('compare with DateTime column', async () => {
       const { dateTime: entity } = cds.entities('basic.literals')
-      const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0, -1) + '.000Z'
-      await DELETE.from(entity)
-      await INSERT({ dateTime }).into(entity)
-      const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
-      assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
-      const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
-      assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+      const sel = SELECT('dateTime').from(entity)
+      const [{ dateTime }] = await sel.clone()
+      const timestamp = new Date(dateTime)
+
+      expect(await sel.clone().where(`dateTime = `, dateTime)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp.toISOString())).length(1)
     })
 
     test('combine expr with nested functions and other compare', async () => {
@@ -526,7 +525,7 @@ describe('SELECT', () => {
         let res
         try {
           res = await tx.run(query)
-        } catch (err) { 
+        } catch (err) {
           if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
           throw err
         }
@@ -617,7 +616,7 @@ describe('SELECT', () => {
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${1}`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${'1'}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
@@ -756,31 +755,39 @@ describe('SELECT', () => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
-      let oldMax
+      let oldMax, oldTimeout
       beforeAll(async () => {
-        if (isSQLite()) return
+        const options = cds.db.pools._factory.options
+        oldMax = options.max
+        oldTimeout = options.acquireTimeoutMillis
+
+        if (isSQLite()) {
+          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+          cds.db.pools.undefined._config.acquireTimeoutMillis =
+            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          return
+        }
         await cds.db.disconnect()
-        oldMax = cds.db.pools._factory.options.max
-        cds.db.pools._factory.options.max = max
+
+        options.max = max
+        options.acquireTimeoutMillis = 1000
       })
 
       afterAll(async () => {
-        if (isSQLite()) return
-        cds.db.pools._factory.options.max = oldMax
+        const options = cds.db.pools._factory.options
+
+        if (isSQLite()) {
+          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+          cds.db.pools.undefined._config.acquireTimeoutMillis =
+            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          return
+        }
+        await cds.db.disconnect()
+
+        options.max = oldMax
+        options.acquireTimeoutMillis = oldTimeout
       })
     }
-
-    let oldTimeout
-    beforeAll(async () => {
-      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
-    })
-
-    afterAll(() => {
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
-    })
 
     describe('pool max = 1', () => {
       setMax(1)
@@ -1524,20 +1531,26 @@ describe('SELECT', () => {
       )
     })
 
+    const os = require('os')
     for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
-          // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const batches = new Array(1).fill('')
+          const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
+          const batches = new Array(batchCount).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
 
           const { [targetName]: target } = cds.entities
-          await Promise.all(batches.map(() => cds.tx(async (tx) => {
+          await Promise.all(batches.map((_, i) => cds.tx(async (tx) => {
             for (const t of iterator) {
               // limit(0) still validates that the query is valid, but improves test execution time
               await tx.run(SELECT([t]).from(target).limit(0))
             }
-          })))
+          })
+            .catch(err => {
+              if (err.name === 'TimeoutError') return
+              throw err
+            }))
+          )
         })
       })
     }
