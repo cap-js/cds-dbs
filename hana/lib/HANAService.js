@@ -798,6 +798,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
+        entries = entries[0] instanceof Iterator || entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
@@ -808,12 +809,12 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable
+        this.entries = INSERT.entries.map(e => (e instanceof Readable && e.readableObjectMode
           ? [e]
           : [_stream([e])]))
       } else {
         this.entries = [[
-          INSERT.entries[0] instanceof Readable
+          INSERT.entries[0] instanceof Readable && !INSERT.entries[0].readableObjectMode
             ? INSERT.entries[0]
             : _stream(INSERT.entries)
         ]]
