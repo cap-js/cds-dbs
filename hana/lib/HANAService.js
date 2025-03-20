@@ -62,7 +62,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver({...credentials, ...clientOptions})
+          const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
@@ -351,7 +351,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -383,8 +383,12 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        if (recurse) {
+          columns.push({ xpr: [{ ref: ['RANK'] }], as: '$$RN$$' })
+        }
+
         let orderByHasOutputColumnRef = false
-        if (orderBy) {
+        if (!recurse && orderBy) {
           if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
@@ -428,7 +432,7 @@ class HANAService extends SQLService {
           || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
           || hasExpands // Expands depend on parent $$RN$$
 
-        if (rowNumberRequired) {
+        if (!recurse && rowNumberRequired) {
           // Insert row number column for reducing or sorting the final result
           const over = { xpr: [] }
           // TODO: replace with full path partitioning
@@ -450,7 +454,7 @@ class HANAService extends SQLService {
           Object.defineProperty(q, 'element', { value: element })
         }
 
-        if (rowNumberRequired && !q.SELECT.columns.find(c => c.as === '_path_')) {
+        if ((recurse || rowNumberRequired) && !q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
             xpr: [
               {
@@ -519,6 +523,177 @@ class HANAService extends SQLService {
       }
 
       return this.sql
+    }
+
+    SELECT_recurse(q) {
+      let { from, expand, columns, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
+        q.SELECT
+
+      const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true, RANK: true }
+      const addComputedColumn = (name) => {
+        if (requiredComputedColumns[name]) return
+        requiredComputedColumns[name] = true
+      }
+
+      const distanceIndex = recurse.where?.findIndex(xpr => xpr?.ref?.[0] in { Distance: 1, DistanceFromRoot: 1 }) ?? -1
+      const distanceType = recurse.where?.[distanceIndex]?.ref[0]
+      const direction = distanceIndex < 0
+        ? where?.length
+          ? 'ANCESTORS'
+          : 'DESCENDANTS'
+        : recurse.where[distanceIndex + 1] in { '=': 1, 'between': 1 }
+          ? recurse.where[distanceIndex + 2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
+          : recurse.where[distanceIndex + 1] === '<=' && where?.length
+            ? 'ANCESTORS'
+            : 'DESCENDANTS'
+      if (distanceIndex > -1) addComputedColumn(distanceType)
+
+      // DrillState Where clause
+      const dsw = recurse.where
+      const dst = dsw?.[0]?.ref[0]
+      if (dst) addComputedColumn(dst)
+
+      // TODO: convert computed columns to cqn for better SQL generation
+      const availableComputedColumns = {
+        // Input computed columns
+        PARENT_ID: false,
+        NODE_ID: false,
+
+        // Sub Graph computed columns
+        RANK: `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
+        Distance: `HIERARCHY_DISTANCE AS ${this.quote('Distance')}`,
+        DistanceFromRoot: `(HIERARCHY_LEVEL-1) AS ${this.quote('DistanceFromRoot')}`,
+        DrillState: `CASE WHEN HIERARCHY_TREE_SIZE = 1 THEN 'leaf'${where?.length
+          ? ` WHEN HIERARCHY_DISTANCE = 0 THEN 'leaf'`
+          : ''
+          } ${dsw
+            ? `WHEN ${dst === 'DistanceFromRoot'
+              ? `NOT HIERARCHY_LEVEL ${dsw[1]} ${dsw[2].val}`
+              : `NOT HIERARCHY_DISTANCE ${dsw[1]} ${dsw[2].val - 1}`
+            } THEN 'collapsed' ELSE 'expanded'`
+            : `ELSE 'expanded'`
+          } END AS ${this.quote('DrillState')}`,
+        LimitedDescendantCount: `(HIERARCHY_TREE_SIZE - 1) AS ${this.quote('LimitedDescendantCount')}`,
+      }
+
+      const columnsFiltered = columns
+        .filter(x => {
+          if (x.element?.isAssociation) return false
+          const name = this.column_name(x)
+          if (name === '$$RN$$') return false
+          if (name in availableComputedColumns) {
+            addComputedColumn(name)
+            return false
+          }
+          return true
+        })
+      const columnsAliased = columnsFiltered
+        .map(x => {
+          const name = this.column_name(x)
+          if (name.toUpperCase() in requiredComputedColumns) {
+            x = { __proto__: x, as: `$$${name}$$` }
+          }
+          return x
+        })
+
+      // TODO: move column_expr down to where the SQL is generated for correct `values` generation
+      const columnsIn = columnsAliased.map(x => this.column_expr(x))
+
+      const nodeKeys = []
+      const parentKeys = []
+      const association = q.target.elements[recurse.ref[0]]
+      association._foreignKeys.forEach(fk => {
+        nodeKeys.push(this.quote(fk.childElement.name))
+        parentKeys.push(this.quote(fk.parentElement.name))
+      })
+
+      columnsIn.push(
+        `${nodeKeys.length === 1 ? nodeKeys : `HIERARCHY_COMPOSITE_ID(${nodeKeys})`} AS NODE_ID`,
+        `${parentKeys.length === 1 ? parentKeys : `HIERARCHY_COMPOSITE_ID(${parentKeys})`} as PARENT_ID`,
+      )
+
+      const alias = q.SELECT.from.as
+      const source = () => `HIERARCHY(SOURCE (SELECT ${columnsIn} FROM ${this.from(from, q)})) AS ${this.quote(alias)}`
+
+      // TODO: unify these two arrays as all expanded nodes with distance 1 should be using the same list cqn
+      const expandedNodes = []
+      const expandedFilter = []
+      if (recurse.where) for (let i = 0; i < recurse.where.length; i++) {
+        let cur = {}
+        let keys = false
+        let distance = null
+        for (; i < recurse.where.length + 1; i++) {
+          const c = recurse.where[i]
+          if (c === 'or' || i === recurse.where.length) {
+            if (keys) { // TODO: when distance is above 1 a join for all children has to be added
+              distance
+              expandedNodes.push(cur)
+              if (expandedFilter.length) expandedFilter.push('or')
+              expandedFilter.push({ ref: ['PARENT_ID'] }, '=', { val: cur[nodeKeys[0]] })
+            }
+            break
+          }
+          if (c.ref) {
+            // Collect keys
+            if (nodeKeys.includes(c.ref[0])) {
+              keys = true
+              i += 2
+              cur[c.ref[0]] = recurse.where[i].val
+              continue
+            }
+            // Collect Distance
+            if (c.ref[0] === 'Distance') {
+              i += 2
+              distance = recurse.where[i].val
+            }
+            // Include DistanceFromRoot
+            if (c.ref[0] === 'DistanceFromRoot') {
+              if (expandedFilter.length) expandedFilter.push('or')
+              expandedFilter.push({ ref: ['HIERARCHY_LEVEL'] }, recurse.where[i + 1], { val: recurse.where[i + 2].val + 1 })
+              i += 2
+            }
+          }
+        }
+      }
+      if (expandedNodes.length) {
+        availableComputedColumns.DrillState = `CASE
+          WHEN HIERARCHY_TREE_SIZE = 1 THEN 'leaf'
+          ${where?.length ? `WHEN HIERARCHY_DISTANCE = 0 THEN 'leaf'` : ''}
+          ${dst === 'DistanceFromRoot' ? `WHEN HIERARCHY_LEVEL ${dsw[1]} ${dsw[2].val} THEN 'expanded'` : ''}
+          WHEN NODE_ID IN (${expandedNodes.map(n => `'${n[nodeKeys[0]]}'`)}) THEN 'expanded'
+          ELSE 'collapsed' 
+        END AS ${this.quote('DrillState')}`
+      }
+
+      const subColumns = [
+        ...columnsFiltered
+          .map(x => {
+            const name = this.column_name(x)
+            if (name.toUpperCase() in requiredComputedColumns) {
+              return `${this.quote(`$$${name}$$`)} AS ${this.quote(name)}`
+            }
+            return this.quote(name)
+          }),
+      ]
+
+      for (const name in requiredComputedColumns) {
+        const def = availableComputedColumns[name]
+        if (def) subColumns.push(def)
+      }
+
+      const subGraph = `SELECT ${subColumns
+        } FROM HIERARCHY_${direction}(SOURCE ${source()} START ${where
+          ? `WHERE ${this.where(where)}`
+          : `WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])}`
+        }${distanceType === 'Distance'
+          ? ` DISTANCE ${recurse.where[1] === '=' ? '' : recurse.where[1] === 'between' ? 'FROM ' : 'TO '}${this.expr(recurse.where[2])}`
+          : ''
+        })${expandedFilter.length
+          ? ` WHERE ${this.where(expandedFilter)}`
+          : ''
+        }`
+
+      return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''}`
     }
 
     SELECT_columns(q) {
@@ -916,10 +1091,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return orderBy.map(c => {
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized]
-              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
-              : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          (c.element?.[this.class._localized]
+            ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
+            : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
         return o
