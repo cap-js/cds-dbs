@@ -67,10 +67,10 @@ function attachConstraints(_results, req) {
       const xpr = []
       // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
       if (!element.notNull && !element.on) {
-        if(element.on) // --> REVISIT: HANA doesnt like this, what can we do to ensure nullability?
-          xpr.unshift({ ...coalesce(condition.xpr) }, 'or')
-        else
-          xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
+        // if(element.on) // --> REVISIT: HANA doesnt like this, what can we do to ensure nullability?
+        //   xpr.unshift({ ...coalesce(condition.xpr) }, 'or')
+        // else
+        xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
       }
       xpr.push({ xpr: condition.xpr })
       const colsForConstraint = [{
