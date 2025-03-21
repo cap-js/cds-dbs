@@ -47,21 +47,16 @@ function infer(originalQuery, model) {
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
+  const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
     // REVISIT: public, or for local reuse, or in cqn4sql only?
     sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    }, // REVISIT: legacy?
+    _target: { value: target, writable: true, configurable: true }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
   Object.defineProperties(originalQuery, {
     sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    },
+    _target: { value: target, writable: true, configurable: true },
   })
   if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
     $combinedElements = inferCombinedElements()
@@ -120,7 +115,7 @@ function infer(originalQuery, model) {
       from.as ||
       (ref.length === 1
         ? first.substring(first.lastIndexOf('.') + 1)
-        : (ref.at(-1).id || ref.at(-1)));    
+        : (ref.at(-1).id || ref.at(-1)));
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
