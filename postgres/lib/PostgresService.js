@@ -453,6 +453,33 @@ GROUP BY k
       return ref[0] === '?' ? `$${this._paramCount++}` : `:${ref}`
     }
 
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+        this.values.push(JSON.stringify(list.list))
+        const extraction = first.list.map((v, i) => this.class.InputConverters.Decimal(`(value->${i})->>'val'`))
+        return `(SELECT ${extraction} FROM json_array_elements($${this.values.length}::json))`
+      }
+      // normal SQL behavior
+      return super.list(list)
+    }
+
+    json(arg) {
+      const { props, elements, json } = arg
+      const { _convertInput } = this.class
+      let val = typeof json === 'string' ? json : (arg.json = JSON.stringify(json))
+      if (val[val.length - 1] === ',') val = arg.json = val.slice(0, -1) + ']'
+      if (val[val.length - 1] === '[') val = arg.json = val + ']'
+      this.values.push(val)
+      const extraction = props.map(p => {
+        const element = elements?.[p]
+        const converter = a => element[_convertInput]?.(a, element) || this.class.InputConverters[element.type.slice(4)]?.(a, element) || a
+        return converter(this.managed_extract(p, element, converter).extract)
+      })
+      return `(SELECT ${extraction} FROM json_array_elements($${this.values.length}::json))`
+    }
+
     val(val) {
       const ret = super.val(val)
       return ret === '?' ? `$${this.values.length}` : ret

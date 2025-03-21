@@ -172,6 +172,18 @@ class SQLiteService extends SQLService {
       }
     }
 
+    list(list) {
+      const first = list.list[0]
+      // If the list only contains of lists it is replaced with a json function and a placeholder
+      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+        this.values.push(JSON.stringify(list.list))
+        const extraction = first.list.map((v, i) => `value->>'$.list[${i}].val'`)
+        return `(SELECT ${extraction} FROM json_each(?))`
+      }
+      // normal SQL behavior
+      return super.list(list)
+    }
+
     val(v) {
       if (typeof v.val === 'boolean') v.val = v.val ? 1 : 0
       else if (Buffer.isBuffer(v.val)) v.val = v.val.toString('base64')
