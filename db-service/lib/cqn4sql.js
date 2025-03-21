@@ -816,8 +816,9 @@ function cqn4sql(originalQuery, model) {
       return _subqueryForGroupBy(column, baseRef, columnAlias)
     }
 
-    // we need to respect the aliases of the outer query, so the columnAlias might not be suitable
-    // as table alias for the correlated subquery
+    // Alias in expand subquery is derived from but not equal to
+    // the alias of the column because to account for potential ambiguities
+    // the alias cannot be addressed anyways
     const uniqueSubqueryAlias = getNextAvailableTableAlias(getImplicitAlias(columnAlias), inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
