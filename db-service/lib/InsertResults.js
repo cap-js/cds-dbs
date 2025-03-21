@@ -69,9 +69,10 @@ module.exports = class InsertResult {
     }
 
     // If no generated keys in entries/rows/values we might have database-generated keys
-    const rows = this.results.slice(0, this.affectedRows) // only up to # of root entries
     return (super[iterator] = function* () {
-      for (const each of rows) yield { [k1]: this.insertedRowId4(each) } // REVISIT: sqlite only returns a single lastID per row -> how is that with others?
+      const length = this.affectedRows
+      const last = this.insertedRowId4(this.results[0])
+      for (let id = last - length + 1; id <= last; id++)  yield { [k1]: id } // REVISIT: sqlite only returns a single lastID per row -> how is that with others?
     })
   }
 
@@ -82,7 +83,7 @@ module.exports = class InsertResult {
   get affectedRows() {
     const { INSERT: _ } = this.query
     if (_.as) return (super.affectedRows = this.affectedRows4(this.results[0] || this.results))
-    else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
+    else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.reduce((l, res) => (l + this.affectedRows4(res)), 0) || 1)
   }
 
   /**
@@ -99,7 +100,7 @@ module.exports = class InsertResult {
    * @returns {number}
    */
   insertedRowId4(result) {
-    return result.lastID
+    return result.lastInsertRowid
   }
 
   /**
