@@ -1,3 +1,5 @@
+namespace complex.keywords;
+
 // ORDER / ALTER / ASC / NUMBER are reserved words in ANSI SQL standard
 entity Order {
   key ID : Integer;
