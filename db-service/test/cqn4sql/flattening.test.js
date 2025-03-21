@@ -14,7 +14,7 @@ describe('Flattening', () => {
   describe('in columns', () => {
     it('unfolds structure', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar {
+        cds.ql`SELECT from bookshop.Bar as Bar {
               ID,
               structure
             }`,
@@ -44,7 +44,7 @@ describe('Flattening', () => {
 
     it('unfolds structure also with alias', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar {
+        cds.ql`SELECT from bookshop.Bar as Bar {
               structure as ding
             }`,
         model,
@@ -57,7 +57,7 @@ describe('Flattening', () => {
 
     it('unfolds structure repeatedly if properly aliased', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar {
+        cds.ql`SELECT from bookshop.Bar as Bar {
               structure as ding,
               Bar.structure as bing
             }`,
@@ -73,7 +73,7 @@ describe('Flattening', () => {
 
     it('unfolds nested structure', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar {
+        cds.ql`SELECT from bookshop.Bar as Bar {
               nested
             }`,
         model,
@@ -86,7 +86,7 @@ describe('Flattening', () => {
     })
     // unmanaged ...
     it('ignores unmanaged association in SELECT clause (has no value)', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { author, coAuthorUnmanaged }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author, coAuthorUnmanaged }`, model)
       expect(query).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.author_ID }`)
     })
 
@@ -136,7 +136,7 @@ describe('Flattening', () => {
 
     it('unfolds managed associations in SELECT clause', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             ID,
             author,
             coAuthor,
@@ -154,7 +154,7 @@ describe('Flattening', () => {
 
     it('unfolds managed associations in SELECT clause with foreign keys', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             ID,
             author,
             author_ID,
@@ -191,7 +191,7 @@ describe('Flattening', () => {
 
     it('unfolds managed associations in SELECT clause also with alias', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             ID,
             author as person,
             Books.genre as topic
@@ -325,7 +325,7 @@ describe('Flattening', () => {
 
     // TODO move out
     it('does not transform queries with multiple query sources, but just returns the inferred query', () => {
-      const query = cds.ql`SELECT from bookshop.Books, bookshop.Authors {Books.ID as bid, Authors.ID as aid}`
+      const query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Authors as Authors {Books.ID as bid, Authors.ID as aid}`
       expect(cqn4sql(query, model)).to.deep.equal(_inferred(query, model))
     })
 
@@ -374,8 +374,8 @@ describe('Flattening', () => {
   describe('in where', () => {
     it('unfolds structure in subquery', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID } WHERE exists (
-              SELECT address from bookshop.Authors where ID > Books.ID
+        cds.ql`SELECT from bookshop.Books as Books { ID } WHERE exists (
+              SELECT address from bookshop.Authors as Authors where ID > Books.ID
               )`,
         model,
       )
@@ -440,9 +440,9 @@ describe('Flattening', () => {
 
     it('unfolds structure in value subquery (result is invalid SQL)', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
           ID,
-          (SELECT from bookshop.Person { address }) as foo
+          (SELECT from bookshop.Person as Person { address }) as foo
         }`,
         model,
       )
@@ -454,8 +454,8 @@ describe('Flattening', () => {
 
     it('unfolds structure in value subquery (result is invalid SQL), access outer table alias in inner query', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
-          (SELECT address from bookshop.Authors where ID > Books.ID) as authorColumn,
+        cds.ql`SELECT from bookshop.Books as Books {
+          (SELECT address from bookshop.Authors as Authors where ID > Books.ID) as authorColumn,
 
           (SELECT from bookshop.Genres as G {
             (SELECT address from bookshop.Authors as genreAuthor where ID > Books.ID and G.ID = 42) as AuthorInG,
@@ -479,15 +479,15 @@ describe('Flattening', () => {
           }`,
         model,
       )
-      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {
-            Books.ID,
-            (SELECT from bookshop.Books as Books2 { Books2.author_ID }) as foo
+      expect(JSON.parse(JSON.stringify(query))).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B {
+            $B.ID,
+            (SELECT from bookshop.Books as $B2 { $B2.author_ID }) as foo
           }`)
     })
 
     it('unfolds managed association in value subquery (result is invalid SQL)', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             ID,
             (SELECT from bookshop.AssocMaze1 as AM { a_struc as a }) as foo
           }`,
@@ -504,7 +504,7 @@ describe('Flattening', () => {
 
     it('unfolds managed association in EXISTS subquery', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Authors { ID } WHERE exists (
+        cds.ql`SELECT from bookshop.Authors as Authors { ID } WHERE exists (
             SELECT author from bookshop.Books as Books where Books.ID > Authors.ID
             )`,
         model,
@@ -517,7 +517,7 @@ describe('Flattening', () => {
 
     it('unfolds managed association in FROM subquery', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from (select from bookshop.Books { author, coAuthor as co}) as Q {
+        cds.ql`SELECT from (select from bookshop.Books as Books { author, coAuthor as co}) as Q {
         author,
         co
       }`,
@@ -535,13 +535,13 @@ describe('Flattening', () => {
 
   describe('in order by', () => {
     it('unfolds struct field with a single element in ORDER BY clause', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar { stock } ORDER BY struct1`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { stock } ORDER BY struct1`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar { Bar.stock }
             ORDER BY Bar.struct1_foo
           `)
     })
     it('unfolds nested struct field with a single leaf element in ORDER BY clause', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar { stock } ORDER BY nested1`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { stock } ORDER BY nested1`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar { Bar.stock }
               ORDER BY Bar.nested1_foo_x
             `)
@@ -592,7 +592,7 @@ describe('Flattening', () => {
 
     it('xy unfolds structured access to a single element in ORDER BY clause', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
+        cds.ql`SELECT from bookshop.Bar as Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
         model,
       )
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar {
@@ -609,7 +609,7 @@ describe('Flattening', () => {
 
     it('unfolds structured access to a single element in ORDER BY clause', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
+        cds.ql`SELECT from bookshop.Bar as Bar { structure as out } ORDER BY out.foo, out.baz, Bar.nested.foo, Bar.nested.bar.a, Bar.nested.bar.b`,
         model,
       )
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar {
@@ -637,7 +637,7 @@ describe('Flattening', () => {
     })
     it('unfolds managed association with one FK in ORDER BY clause', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books  { ID, author, coAuthor as co }
+        cds.ql`SELECT from bookshop.Books as Books { ID, author, coAuthor as co }
         order by Books.author, co`,
         model,
       )
@@ -652,7 +652,7 @@ describe('Flattening', () => {
     })
     it('same as above but navigation to foreign key in order by', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books  {
+        cds.ql`SELECT from bookshop.Books as Books  {
           ID,
           author,
           coAuthor as co
@@ -690,7 +690,7 @@ describe('Flattening', () => {
       )
     })
     it('ignores unmanaged associations in ORDER BY clause', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } ORDER BY ID, coAuthorUnmanaged`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } ORDER BY ID, coAuthorUnmanaged`, model)
       expect(query).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.ID } order by ID`)
     })
     it('rejects unmanaged associations in expressions in ORDER BY clause (1)', () => {
@@ -708,7 +708,7 @@ describe('Flattening', () => {
 
   describe('in group by', () => {
     it('unfolds struct field in GROUP BY clause', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } group by Bar.structure, nested`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } group by Bar.structure, nested`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar { Bar.ID } group by
             Bar.structure_foo,
             Bar.structure_baz,
@@ -720,7 +720,7 @@ describe('Flattening', () => {
 
     it('unfolds managed association in GROUP BY clause', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID, author, coAuthor as co }
+        cds.ql`SELECT from bookshop.Books as Books { ID, author, coAuthor as co }
             group by author, Books.coAuthor`,
         model,
       )
@@ -735,7 +735,7 @@ describe('Flattening', () => {
     })
 
     it('if only partial foreign key is accessed, only the requested key is flattened', () => {
-      const q = cds.ql`SELECT from bookshop.Intermediate {
+      const q = cds.ql`SELECT from bookshop.Intermediate as Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.second`
   
@@ -776,28 +776,28 @@ describe('Flattening', () => {
       )
     })
     it('rejects struct fields in expressions in GROUP BY clause (1)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } GROUP BY 2*nested`, model)).to.throw(
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } GROUP BY 2*nested`, model)).to.throw(
         /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('rejects struct fields in expressions in GROUP BY clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } GROUP BY sin(nested)`, model)).to.throw(
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } GROUP BY sin(nested)`, model)).to.throw(
         /A structured element can't be used as a value in an expression/,
       )
     })
 
     it('ignores unmanaged associations in GROUP BY clause', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } GROUP BY ID, coAuthorUnmanaged`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } GROUP BY ID, coAuthorUnmanaged`, model)
       expect(query).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.ID } GROUP BY Books.ID`)
     })
 
     it('ignores unmanaged associations in GROUP BY and deletes the clause if it is the only GROUP BY column', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } GROUP BY coAuthorUnmanaged`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } GROUP BY coAuthorUnmanaged`, model)
       expect(JSON.parse(JSON.stringify(query))).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.ID }`)
     })
     it('ignores unmanaged associations in ORDER BY and deletes the clause if it is the only ORDER BY column', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } ORDER BY coAuthorUnmanaged`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } ORDER BY coAuthorUnmanaged`, model)
       expect(JSON.parse(JSON.stringify(query))).to.deep.eql(cds.ql`SELECT from bookshop.Books as Books { Books.ID }`)
     })
 
