@@ -809,7 +809,7 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable && e.readableObjectMode
+        this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
       } else {
