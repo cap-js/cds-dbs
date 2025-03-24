@@ -116,7 +116,7 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
+  async onSELECT({ query, data = query.params }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!query.target) {
@@ -165,7 +165,7 @@ class SQLService extends DatabaseService {
    * Handler for INSERT
    * @type {Handler}
    */
-  async onINSERT({ query, data }) {
+  async onINSERT({ query, data = query.params }) {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: fix within mtxs
     const ps = await this.prepare(sql)
@@ -177,7 +177,7 @@ class SQLService extends DatabaseService {
    * Handler for UPSERT
    * @type {Handler}
    */
-  async onUPSERT({ query, data }) {
+  async onUPSERT({ query, data = query.params }) {
     const { sql, entries } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done // REVISIT: When does this happen?
     const ps = await this.prepare(sql)
@@ -205,7 +205,7 @@ class SQLService extends DatabaseService {
    * Handler for CREATE, DROP, UPDATE, DELETE, with simple CQN
    * @type {Handler}
    */
-  async onSIMPLE({ query, data }) {
+  async onSIMPLE({ query, data = query.params }) {
     const { sql, values } = this.cqn2sql(query, data)
     let ps = await this.prepare(sql)
     return (await ps.run(values)).changes
@@ -378,12 +378,6 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
-    let kind = q.kind || Object.keys(q)[0]
-    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
-      q = cds.ql.resolve.resolve4db(q, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
-    }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
   }
