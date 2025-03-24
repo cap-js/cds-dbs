@@ -82,7 +82,7 @@ module.exports = class InsertResult {
   get affectedRows() {
     const { INSERT: _ } = this.query
     if (_.as) return (super.affectedRows = this.affectedRows4(this.results[0] || this.results))
-    else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
+    else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results?.reduce((l, c) => l + this.affectedRows4(c), 0) || 1)
   }
 
   /**

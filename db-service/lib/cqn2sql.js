@@ -413,7 +413,7 @@ class CQN2SQLRenderer {
    * @returns SQL
    */
   where_resolved(from, where, q) {
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     if (transitions.target === transitions.queryTarget) return this.where(where)
 
     // view and table column refs to be matched
@@ -546,11 +546,11 @@ class CQN2SQLRenderer {
    */
   INSERT_entries(q) {
     const { INSERT } = q
-    const elements = q.elements || q.target?.elements
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
+    const elements = q.elements || transitions.target.elements || q.target?.elements
     if (!elements && !INSERT.entries?.length) {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
     const columns = elements
       ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
         && c in transitions.target.elements
@@ -719,7 +719,7 @@ class CQN2SQLRenderer {
       .slice(0, columns.length)
       .map(c => c.converter(c.extract))
 
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -768,7 +768,7 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const src = this.cqn4sql(INSERT.as)
     const elements = q.elements || q.target?.elements || {}
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
       .filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
         && c in transitions.target.elements
@@ -864,7 +864,7 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
@@ -882,7 +882,7 @@ class CQN2SQLRenderer {
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
-    const transitions = cds.ql.resolve.transitions(q, this.srv)
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     let columns = []
     if (data) _add(data, this.params ? (_, p) => this.param({ ref: [p] }) : val => this.val({ val }))
     if (_with) _add(_with, x => this.expr(x))
