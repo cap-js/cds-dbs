@@ -2,11 +2,22 @@ const { Readable, Stream, promises: { pipeline } } = require('stream')
 const { StringDecoder } = require('string_decoder')
 const { text } = require('stream/consumers')
 
+const cds = require('@sap/cds')
 const hdb = require('hdb')
 const iconv = require('iconv-lite')
 
 const { driver, prom, handleLevel } = require('./base')
-const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
+const { wrap_client } = require('./dynatrace')
+
+if (cds.env.features.sql_simple_queries === 3) {
+  // Make hdb return true / false
+  const Reader = require('hdb/lib/protocol/Reader.js')
+  Reader.prototype._readTinyInt = Reader.prototype.readTinyInt
+  Reader.prototype.readTinyInt = function () {
+    const ret = this._readTinyInt()
+    return ret == null ? ret : !!ret
+  }
+}
 
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
@@ -33,18 +44,17 @@ class HDBDriver extends driver {
 
     super(creds)
     this._native = hdb.createClient(creds)
-    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
+    this._native = wrap_client(this._native, creds, creds.tenant)
     this._native.setAutoCommit(false)
     this._native.on('close', () => this.destroy?.())
+    this._native.set = function(variables) {
+      const clientInfo = this._connection.getClientInfo()
+      for (const key in variables) {
+        clientInfo.setProperty(key, variables[key])
+      }
+    }
 
     this.connected = false
-  }
-
-  set(variables) {
-    const clientInfo = this._native._connection.getClientInfo()
-    for (const key in variables) {
-      clientInfo.setProperty(key, variables[key])
-    }
   }
 
   async validate() {

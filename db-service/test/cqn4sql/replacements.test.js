@@ -18,7 +18,7 @@ describe('in where', () => {
       .where({ ID: { in: [] } })
 
     expect(cqn4sql(original, model)).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Books as Books { Books.ID } where Books.ID = null
      `,
     )
@@ -28,7 +28,7 @@ describe('in where', () => {
     original.SELECT.where = [{ ref: ['ID'] }, 'not', 'in', { list: [] }]
 
     expect(cqn4sql(original, model)).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Books as Books { Books.ID } where Books.ID is not null
      `,
     )
@@ -39,7 +39,7 @@ describe('in where', () => {
     })
 
     expect(cqn4sql(query, model)).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Books as Books
         left join bookshop.Authors as author
           on author.ID = Books.author_ID and author.name is not null
@@ -55,7 +55,7 @@ describe('in where', () => {
     })
 
     expect(cqn4sql(query, model)).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Authors as author
        { author.ID }
        where exists (

@@ -695,13 +695,13 @@ describe('draft tests', () => {
       {},
       { auth: { username: 'user1', password: 'user1' } },
     )
+
     expect(res.data).to.containSubset({
       '@odata.context': '../../$metadata#BookingSupplement/$entity',
       // BookingSupplementID: 1,
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,

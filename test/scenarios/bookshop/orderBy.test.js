@@ -66,4 +66,13 @@ describe('Bookshop - Order By', () => {
     expect(res.length).to.be.eq(1)
     expect(res[0].author).to.eq('Charlotte Brontë')
   })
+
+  test('nulls first | last', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    await INSERT.into(Authors).entries({ ID: 42, name: 'Brandon Sanderson' }) // dateOfDeath => null
+    const nullsFirst = await cds.ql`SELECT from ${Authors} { name } order by dateOfDeath asc nulls first`
+    expect(nullsFirst[0].name).to.eq('Brandon Sanderson')
+    const nullsLast = await cds.ql`SELECT from ${Authors} { name } order by dateOfDeath asc nulls last`
+    expect(nullsLast.at(-1).name).to.eq('Brandon Sanderson')
+  });
 })

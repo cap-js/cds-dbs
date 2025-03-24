@@ -13,9 +13,9 @@ describe('localized', () => {
     model = await cds.load(__dirname + '/../bookshop/db/schema').then( m => cds.compile.for.nodejs(m, options))
   })
   it('performs no replacement if not requested', () => {
-    const q = CQL`SELECT from bookshop.Books {ID, title}`
+    const q = cds.ql`SELECT from bookshop.Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.Books as Books
                     {
                       Books.ID,
@@ -25,7 +25,7 @@ describe('localized', () => {
   it('performs simple replacement of ref', () => {
     const q = SELECT.localized `from bookshop.Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from localized.bookshop.Books as Books
                     {
                       Books.ID,
@@ -57,7 +57,7 @@ describe('localized', () => {
   it('performs no replacement of ref if ”@cds.localized: false”', () => {
     const q = SELECT.localized `from bookshop.BP {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.BP as BP
                     {
                       BP.ID,
@@ -67,7 +67,7 @@ describe('localized', () => {
   it('performs no replacement of ref if ”@cds.localized: false” and does not yield localized results for expand', () => {
     const q = SELECT.localized `from bookshop.BP {ID, title, currency { code } }`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.BP as BP
                     {
                       BP.ID,
@@ -113,7 +113,7 @@ describe('localized', () => {
   it('performs replacement of ref if ”@cds.localized: true” and localized is set', () => {
     const q = SELECT.localized `from bookshop.BPLocalized {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from localized.bookshop.BPLocalized as BPLocalized
                     {
                       BPLocalized.ID,
@@ -123,7 +123,7 @@ describe('localized', () => {
   it('performs simple replacement of ref within subquery', () => {
     const q = SELECT.localized `from bookshop.Books {ID, title, (SELECT title from bookshop.Books) as foo}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from localized.bookshop.Books as Books
                     {
                       Books.ID,
@@ -134,7 +134,7 @@ describe('localized', () => {
   it('performs simple replacement of ref within subquery in from', () => {
     const q = SELECT.localized `from (SELECT Books.title from bookshop.Books) as foo { foo.title }`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from (
             SELECT Books.title from localized.bookshop.Books as Books
           ) as foo
@@ -146,7 +146,7 @@ describe('localized', () => {
   it('performs no replacement of ref within subquery if main query has ”@cds.localized: false”', () => {
     const q = SELECT.localized `from bookshop.BP {ID, title, (SELECT title from bookshop.Books) as foo}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.BP as BP
                     {
                       BP.ID,

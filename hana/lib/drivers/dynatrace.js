@@ -8,7 +8,7 @@ try {
   // If module was not required, do not do anything
 }
 
-const isDynatraceEnabled = () => {
+const _shall_wrap = () => {
   return dynatrace.sdk !== undefined && !process.env.CDS_SKIP_DYNATRACE
 }
 
@@ -65,7 +65,7 @@ const _preparedStmtUsingDynatrace = function (client, prepareFn, dbInfo) {
   }
 }
 
-const dynatraceClient = (client, credentials, tenant) => {
+const _wrapped = (client, credentials, tenant) => {
   const dbInfo = {
     name: `SAPHANA${tenant ? `-${tenant}` : ''}`,
     vendor: dynatrace.sdk.DatabaseVendor.HANADB,
@@ -88,4 +88,10 @@ const dynatraceClient = (client, credentials, tenant) => {
   return client
 }
 
-module.exports = { dynatraceClient, isDynatraceEnabled }
+module.exports = {
+  wrap_client: (client, credentials, tenant) => {
+    if (client.isDynatraceSupported) return client //> client will wrap itself
+    if (!_shall_wrap()) return client
+    return _wrapped(client, credentials, tenant)
+  }
+}

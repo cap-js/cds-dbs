@@ -8,7 +8,7 @@ const { Readable } = require('stream')
 
 const DEBUG = cds.debug('sql|sqlite')
 const LOG_SQL = cds.log('sql')
-const LOG_SQLITE =  cds.log('sqlite')
+const LOG_SQLITE = cds.log('sqlite')
 
 class CQN2SQLRenderer {
   /**
@@ -25,7 +25,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query?.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e 
+        return (query?.target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -86,16 +86,16 @@ class CQN2SQLRenderer {
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
-    
+
     if (DEBUG && (LOG_SQL._debug || LOG_SQLITE._debug)) {
       let values = sanitize_values && (this.entries || this.values?.length > 0) ? ['***'] : this.entries || this.values || []
       if (values && !Array.isArray(values)) {
         values = [values]
       }
-      DEBUG(this.sql, ...values)
+      DEBUG(this.sql, values)
     }
 
-    
+
     return this
   }
 
@@ -197,6 +197,7 @@ class CQN2SQLRenderer {
     Association: () => false,
     Composition: () => false,
     array: () => 'NCLOB',
+    Map: () => 'NCLOB',
     // HANA types
     'cds.hana.TINYINT': () => 'TINYINT',
     'cds.hana.REAL': () => 'REAL',
@@ -262,7 +263,13 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   SELECT_columns(q) {
-    return (q.SELECT.columns ?? ['*']).map(x => this.column_expr(x, q))
+    const ret = []
+    const arr = q.SELECT.columns ?? ['*']
+    for (const x of arr) {
+      if (x.SELECT?.count) arr.push(this.SELECT_count(x))
+      ret.push(this.column_expr(x, q))
+    }
+    return ret
   }
 
   /**
@@ -291,24 +298,12 @@ class CQN2SQLRenderer {
       ? x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `${this.expr(qc)} AS "${escaped}@odata.count"`]
-        }
-        return col
+        return `${this.output_converter4(x.element, this.quote(name))} AS "${escaped}"`
       }
       : x => {
         const name = this.column_name(x)
         const escaped = `${name.replace(/"/g, '""')}`
-        let col = `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          return [col, `'$."${escaped}@odata.count"',${this.expr(qc)}`]
-        }
-        return col
+        return `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
       }).flat()
 
     if (isSimple) return `SELECT ${cols} FROM (${sql})`
@@ -319,6 +314,17 @@ class CQN2SQLRenderer {
       obj = `jsonb_insert(${obj},${cols.slice(i, i + 48)})`
     }
     return `SELECT ${isRoot || SELECT.one ? obj.replace('jsonb', 'json') : `jsonb_group_array(${obj})`} as _json_ FROM (${sql})`
+  }
+
+  SELECT_count(q) {
+    const countQuery = cds.ql.clone(q, {
+      columns: [{ func: 'count' }],
+      one: 0, limit: 0, orderBy: 0, expand: 0, count: 0
+    })
+    countQuery.as = q.as + '@odata.count'
+    countQuery.elements = undefined
+    countQuery.element = cds.builtin.types.Int64
+    return countQuery
   }
 
   /**
@@ -415,14 +421,15 @@ class CQN2SQLRenderer {
    * @returns {string[] | string} SQL
    */
   orderBy(orderBy, localized) {
-    return orderBy.map(
-      localized
-        ? c =>
-          this.expr(c) +
+    return orderBy.map(c => {
+      const o = localized
+        ? this.expr(c) +
           (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
           (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-        : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-    )
+        : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+      if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+      return o
+    })
   }
 
   /**
@@ -442,9 +449,10 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   forUpdate(update) {
-    const { wait, of } = update
+    const { wait, of, ignoreLocked } = update
     let sql = 'FOR UPDATE'
     if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (ignoreLocked) sql += ' IGNORE LOCKED'
     if (typeof wait === 'number') sql += ` WAIT ${wait}`
     return sql
   }
@@ -528,9 +536,6 @@ class CQN2SQLRenderer {
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
     const elements = this.cqn.target?.elements || {}
-    const transformBase64 = binaryEncoding === 'base64'
-      ? a => a
-      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
     const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
@@ -561,8 +566,8 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[key]?.type in this.BINARY_TYPES) {
-            val = transformBase64(val)
+          if (val != null && elements[key]?.type in this.BINARY_TYPES) {
+            val = Buffer.from(val, 'base64').toString(binaryEncoding)
           }
           buffer += `${keyJSON}${JSON.stringify(val)}`
         }
@@ -580,9 +585,6 @@ class CQN2SQLRenderer {
 
   async *INSERT_rows_stream(entries, binaryEncoding = 'base64') {
     const elements = this.cqn.target?.elements || {}
-    const transformBase64 = binaryEncoding === 'base64'
-      ? a => a
-      : a => a != null ? Buffer.from(a, 'base64').toString(binaryEncoding) : a
     const bufferLimit = 65536 // 1 << 16
     let buffer = '['
 
@@ -609,8 +611,8 @@ class CQN2SQLRenderer {
 
           buffer += '"'
         } else {
-          if (elements[this.columns[key]]?.type in this.BINARY_TYPES) {
-            val = transformBase64(val)
+          if (val != null && elements[this.columns[key]]?.type in this.BINARY_TYPES) {
+            val = Buffer.from(val, 'base64').toString(binaryEncoding)
           }
           buffer += `${sepsub}${val === undefined ? 'null' : JSON.stringify(val)}`
         }
@@ -750,7 +752,10 @@ class CQN2SQLRenderer {
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
     const entity = this.name(q.target?.name || UPSERT.into.ref[0], q)
-    sql = `SELECT ${managed.map(c => c.upsert)} FROM (SELECT value, ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    sql = `SELECT ${managed.map(c => c.upsert
+      .replace(/value->/g, '"$$$$value$$$$"->')
+      .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
+      } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -1147,11 +1152,6 @@ class CQN2SQLRenderer {
   managed_default(name, managed, src) {
     return `(CASE WHEN json_type(value,${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
   }
-}
-
-// REVISIT: Workaround for JSON.stringify to work with buffers
-Buffer.prototype.toJSON = function () {
-  return this.toString('base64')
 }
 
 Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }

@@ -77,7 +77,7 @@ describe('DELETE', () => {
     const query = cqn4sql(d, forNodeModel)
 
     // this is the final exists subquery
-    const subquery = CQL`
+    const subquery = cds.ql`
      SELECT author.ID from bookshop.Authors as author
       left join bookshop.Books as books on books.author_ID = author.ID
      where exists (

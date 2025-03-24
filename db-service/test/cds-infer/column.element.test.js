@@ -20,7 +20,7 @@ describe('assign element onto columns', () => {
 
   describe('assigns element property for path expressions', () => {
     it('along simple association', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, currency.code }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, currency.code }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       // ID
@@ -32,7 +32,7 @@ describe('assign element onto columns', () => {
     })
 
     it('with filter conditions', () => {
-      let query = CQL`SELECT from bookshop.Books { dedication.addressee[placeOfBirth <> 'foo'].name, dedication.addressee.name as nameWithoutFilter }`
+      let query = cds.ql`SELECT from bookshop.Books { dedication.addressee[placeOfBirth <> 'foo'].name, dedication.addressee.name as nameWithoutFilter }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       // dedication_addressee_name
@@ -48,7 +48,7 @@ describe('assign element onto columns', () => {
 
   describe('literals', () => {
     it('should allow selecting simple literal values', () => {
-      const inferred = _inferred(CQL`
+      const inferred = _inferred(cds.ql`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
       // '11'
@@ -72,7 +72,7 @@ describe('assign element onto columns', () => {
 
   describe('virtual', () => {
     it("infers a query's virtual elements", () => {
-      let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
+      let query = cds.ql`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -90,7 +90,7 @@ describe('assign element onto columns', () => {
 
   describe('scoped queries', () => {
     it('use table alias of scoped query (assoc defined via type reference)', () => {
-      let inferred = _inferred(CQL`SELECT from bookshop.Books:coAuthor {
+      let inferred = _inferred(cds.ql`SELECT from bookshop.Books:coAuthor {
       coAuthor.name as name
     }`)
       let { Authors } = model.entities
@@ -106,7 +106,7 @@ describe('assign element onto columns', () => {
   })
   describe('subqueries', () => {
     it('supports expressions and subqueries in the select list', () => {
-      let query = CQL`
+      let query = cds.ql`
     SELECT from bookshop.Books {
       1 + 1 as Two,
       (select from bookshop.Authors { name }) as subquery
@@ -128,7 +128,7 @@ describe('assign element onto columns', () => {
   })
   describe('expressions', () => {
     it('anonymous functions are inferred by their func property name', () => {
-      let functionWithoutAlias = CQL`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
+      let functionWithoutAlias = cds.ql`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
       const inferred = _inferred(functionWithoutAlias)
       // 'sum'
       expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['sum']).to.deep.equal({})
@@ -137,7 +137,7 @@ describe('assign element onto columns', () => {
     })
 
     it('supports an expression with fields in the select list', () => {
-      let query = CQL`SELECT from bookshop.Books { title + descr as noType }`
+      let query = cds.ql`SELECT from bookshop.Books { title + descr as noType }`
       let inferred = _inferred(query)
       // 'noType'
       expect(inferred.SELECT.columns[0].element).to.deep.equal(inferred.elements['noType']).to.deep.equal({})
@@ -158,7 +158,7 @@ describe('assign element onto columns', () => {
     })
 
     it('supports a cast expression in the select list', () => {
-      let query = CQL`SELECT from bookshop.Books {
+      let query = cds.ql`SELECT from bookshop.Books {
         cast(cast(ID as Integer) as String) as IDS,
         cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType
       }`
@@ -174,7 +174,7 @@ describe('assign element onto columns', () => {
     })
 
     it('supports a cdl-style cast in the select list', () => {
-      let query = CQL`
+      let query = cds.ql`
         SELECT from bookshop.Books {
           dedication.sub.foo: Integer,
           ID as IDS: String,
@@ -211,7 +211,7 @@ describe('assign element onto columns', () => {
           },
         },
       }
-      let query = CQL`SELECT from bookshop.Bar {
+      let query = cds.ql`SELECT from bookshop.Bar {
         $user,
         $user.tenant,
         $user.unknown.foo.bar,
@@ -234,7 +234,7 @@ describe('assign element onto columns', () => {
 
   describe('binding params', () => {
     it('put binding parameter into query elements as empty object', () => {
-      const query = CQL`
+      const query = cds.ql`
         SELECT from bookshop.Books {
           ID,
           ? as discount
@@ -245,7 +245,7 @@ describe('assign element onto columns', () => {
       expect(inferred.SELECT.columns[1].element).to.deep.equal(inferred.elements['discount']).to.deep.equal({})
     })
     it('respect cast type on binding parameter', () => {
-      const query = CQL`
+      const query = cds.ql`
         SELECT from bookshop.Books {
           ID,
           ? as discount: Integer

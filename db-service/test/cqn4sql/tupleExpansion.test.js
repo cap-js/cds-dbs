@@ -403,11 +403,11 @@ describe('Structural comparison', () => {
     })
   })
   it('Struct needs to be unfolded in on-condition of join', () => {
-    const query = CQL`SELECT from bookshop.Unmanaged {
+    const query = cds.ql`SELECT from bookshop.Unmanaged {
       toSelf.field
     }`
 
-    const expected = CQL`SELECT from bookshop.Unmanaged as Unmanaged
+    const expected = cds.ql`SELECT from bookshop.Unmanaged as Unmanaged
     left join bookshop.Unmanaged as toSelf
     on Unmanaged.struct_leaf = toSelf.struct_leaf and Unmanaged.struct_toBook_ID = toSelf.struct_toBook_ID {
       toSelf.field as toSelf_field

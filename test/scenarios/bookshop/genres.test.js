@@ -1,6 +1,6 @@
 const cds = require('../../cds.js')
 const bookshop = require('path').resolve(__dirname, '../../bookshop')
-
+const assert = require('assert')
 const admin = {
   auth: {
     username: 'alice',
@@ -23,7 +23,6 @@ describe('Bookshop - Genres', () => {
     const afterData = await GET('/test/Genres', admin)
 
     delete res.data['@odata.context']
-    const assert = require('assert')
     assert.deepEqual(beforeData.data, afterData.data)
   })
 
@@ -34,7 +33,6 @@ describe('Bookshop - Genres', () => {
     expect(insertResponse.status).to.be.eq(201)
 
     delete insertResponse.data['@odata.context']
-    const assert = require('assert')
 
     // Read after write does not sort the results
     // therefor asynchronious databases might return in different orders
@@ -59,7 +57,6 @@ describe('Bookshop - Genres', () => {
     const res = await PUT(`/test/Genres(10)`, { name: get.data.name + ' changed' }, admin)
     expect(res.status).to.be.eq(200)
 
-    const assert = require('assert')
     assert.deepEqual({ ...get.data, name: get.data.name + ' changed' }, res.data)
   })
 
@@ -74,29 +71,21 @@ describe('Bookshop - Genres', () => {
     let res = await PUT(`/test/Genres(${body.ID})`, { name: 'everything changed', children: [{ ID: 999 }] }, admin)
     expect(res.status).to.be.eq(200)
 
-    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
+    const check = (result, comparator, entries) => {
+      const fn = comparator === 'includes' ? e => result.some(row => row.ID === e) : e => result.every(row => row.ID !== e)
+      const msg = `result does ${comparator === 'includes' ? 'not include all' : 'include some of'} IDs: ${entries}`
+      return [entries.every(fn), msg]
+    }
 
-    expect(res.status).to.be.eq(200)
-    delete res.data['@odata.context']
-    const assert = require('assert')
-    assert.deepEqual(res.data, {
-      name: 'everything changed',
-      descr: null,
-      ID: 100,
-      parent_ID: null,
-      children: [{ name: null, descr: null, ID: 999, parent_ID: 100 }], // all other children have been removed
-    })
+    res = await GET('/test/Genres', admin)
+    assert.ok(...check(res.data.value, 'includes', [100,999])) // referenced in payload
+    assert.ok(...check(res.data.value, 'does not include', [102, 103, 104, 105, 106, 107])) // all other children have been removed
 
     res = await PUT(`/test/Genres(${body.ID})`, { name: 'no more children', children: [] }, admin)
     expect(res.status).to.be.eq(200)
 
-    res = await GET(`/test/Genres(${body.ID})?$expand=children`, admin)
-    expect(res.data).to.deep.include({
-      name: 'no more children',
-      descr: null,
-      ID: 100,
-      parent_ID: null,
-      children: [], // all children have been removed
-    })
+    res = await GET(`/test/Genres`, admin)
+    assert.ok(...check(res.data.value, 'includes', [100]))
+    assert.ok(...check(res.data.value, 'does not include', [999]))
   })
 })

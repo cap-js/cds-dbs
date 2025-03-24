@@ -32,6 +32,7 @@ jobs:
           cache: 'npm'
 
       - run: npm ci
+      - run: npm install -g @sap/cds-dk
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe

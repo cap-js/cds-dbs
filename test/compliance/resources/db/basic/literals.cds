@@ -58,6 +58,10 @@ entity array {
   integer : array of Integer;
 }
 
+entity map {
+  map : Map;
+}
+
 entity binaries {
   binary      : Binary;
   largebinary : LargeBinary;

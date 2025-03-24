@@ -111,18 +111,18 @@ describe('compare structures', () => {
   })
 
   it('list in where', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } where (author.ID, 1) in ('foo', 'bar')`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in ('foo', 'bar')`
+    let query = cds.ql`SELECT from bookshop.Books { ID } where (author.ID, 1) in ('foo', 'bar')`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in ('foo', 'bar')`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
   it('tuple list in where', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } where (author.ID, 1) in (('foo', 1), ('bar', 2))`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in (('foo', 1), ('bar', 2))`
+    let query = cds.ql`SELECT from bookshop.Books { ID } where (author.ID, 1) in (('foo', 1), ('bar', 2))`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in (('foo', 1), ('bar', 2))`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
   it('list in having', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } having (author.ID, 1) in ('foo', 'bar')`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } having (Books.author_ID, 1) in ('foo', 'bar')`
+    let query = cds.ql`SELECT from bookshop.Books { ID } having (author.ID, 1) in ('foo', 'bar')`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } having (Books.author_ID, 1) in ('foo', 'bar')`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 
@@ -130,10 +130,10 @@ describe('compare structures', () => {
     // `IS NULL` concat with "and"
     // `<> NULL` concat with "or"
     let query = cqn4sql(
-      CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
+      cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
       model,
     )
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
         where 1<2
           and (AWSK.toStructuredKey_struct_mid_leaf is null
           and AWSK.toStructuredKey_struct_mid_anotherLeaf is null
@@ -145,8 +145,8 @@ describe('compare structures', () => {
   })
 
   it('IS NULL comparison with a structure', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Bar { ID } where Bar.structure is null`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {Bar.ID}
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } where Bar.structure is null`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar {Bar.ID}
           where (Bar.structure_foo is null
             and Bar.structure_baz is null)`)
   })

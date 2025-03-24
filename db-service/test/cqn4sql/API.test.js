@@ -14,16 +14,16 @@ describe('Repetitive calls to cqn4sql must work', () => {
   })
 
   it('query can be extended by another element', () => {
-    const original = CQL`SELECT from bookshop.Books { ID }`
+    const original = cds.ql`SELECT from bookshop.Books { ID }`
     let query = cqn4sql(original, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID }`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID }`)
     original.SELECT.columns.push({ ref: ['title'] })
     query = cqn4sql(original, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { Books.ID, Books.title }`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID, Books.title }`)
     original.SELECT.where = ['exists', { ref: ['author'] }]
     query = cqn4sql(original, model)
     expect(query).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Books as Books
       { Books.ID, Books.title }
       WHERE EXISTS (
@@ -34,18 +34,18 @@ describe('Repetitive calls to cqn4sql must work', () => {
   })
 
   it('accepts empty select list', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Books { }`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Books as Books { }`)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books { }`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { }`)
   })
 
   it('yields the same result if same query is transformed multiple times', () => {
-    const input = CQL`SELECT from bookshop.Books:author`
+    const input = cds.ql`SELECT from bookshop.Books:author`
     let query = cqn4sql(input, model)
     let query2 = cqn4sql(input, model)
     expect(query).to.deep.equal(query2)
   })
   it('yields the same result if same query is transformed multiple times (2)', () => {
-    const input = CQL`SELECT from bookshop.Books where author.name like '%Poe'`
+    const input = cds.ql`SELECT from bookshop.Books where author.name like '%Poe'`
     let query = cqn4sql(input, model)
     let query2 = cqn4sql(input, model)
     expect(query2).to.deep.equal(query)
