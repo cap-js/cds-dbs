@@ -11,7 +11,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('simple reference', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, stock2 }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, stock2 }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         Books.stock as stock2
@@ -20,7 +20,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('simple val', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID, IBAN }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors as Authors { ID, IBAN }`, model)
     const expected = cds.ql`SELECT from booksCalc.Authors as Authors {
         Authors.ID,
         'DE' || Authors.checksum || Authors.sortCode || Authors.accountNumber as IBAN
@@ -29,7 +29,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('directly', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, area }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, area }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         Books.length * Books.width as area
@@ -38,7 +38,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in expression', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, stock * area as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, stock * area as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         Books.stock * ( Books.length * Books.width ) as f
@@ -47,7 +47,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in ternary', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary { ID, nestedTernary }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary as Ternary { ID, nestedTernary }`, model)
     const expected = cds.ql`SELECT from booksCalc.Ternary as Ternary
       left join booksCalc.Books as book on book.ID = Ternary.book_ID
       {
@@ -58,7 +58,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calcualted element in nested ternary', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary { ID, calculatedElementInNestedTernary }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary as Ternary { ID, calculatedElementInNestedTernary }`, model)
     const expected = cds.ql`SELECT from booksCalc.Ternary as Ternary
       left join booksCalc.Books as book on book.ID = Ternary.book_ID
       left join booksCalc.Authors as author on author.ID = book.author_ID
@@ -70,7 +70,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('list in ternary', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary { ID, nestedTernaryWithNestedXpr }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Ternary as Ternary { ID, nestedTernaryWithNestedXpr }`, model)
     const expected = cds.ql`SELECT from booksCalc.Ternary as Ternary
       left join booksCalc.Books as book on book.ID = Ternary.book_ID
       {
@@ -80,7 +80,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in function', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, round(area, 2) as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, round(area, 2) as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         round(Books.length * Books.width, 2) as f
@@ -88,7 +88,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in function with named param', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID, ageNamedParams as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors as Authors { ID, ageNamedParams as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Authors as Authors {
       Authors.ID,
       years_between(DOB => Authors.dateOfBirth, DOD => Authors.dateOfDeath) as f
@@ -97,7 +97,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem is function', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, ctitle }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, ctitle }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         substring(Books.title, 3, Books.stock) as ctitle
@@ -105,7 +105,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('calc elem is xpr with multiple functions as args', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, authorAgeNativePG }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorAgeNativePG }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left join booksCalc.Authors as author on author.ID = Books.author_ID
       {
@@ -115,7 +115,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('calc elem is xpr with nested xpr which has multiple functions as args', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, authorAgeInDogYears }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorAgeInDogYears }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left join booksCalc.Authors as author on author.ID = Books.author_ID
       {
@@ -125,7 +125,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('calc elem is xpr with multiple functions as args - back and forth', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.books.authorAgeNativePG }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.books.authorAgeNativePG }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left join booksCalc.Authors as author on author.ID = Books.author_ID
       left join booksCalc.Books as books2 on books2.author_ID = author.ID
@@ -138,7 +138,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem is function, nested in direct expression', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, ctitle || title as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, ctitle || title as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         substring(Books.title, 3, Books.stock) || Books.title as f
@@ -147,7 +147,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('nested calc elems', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, volume, storageVolume }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, volume, storageVolume }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         (Books.length * Books.width) * Books.height as volume,
@@ -157,7 +157,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('nested calc elems, nested in direct expression', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, storageVolume / volume as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, storageVolume / volume as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books {
         Books.ID,
         (Books.stock * ((Books.length * Books.width) * Books.height))
@@ -171,7 +171,7 @@ describe('Unfolding calculated elements in select list', () => {
   //
 
   it('via an association path', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.name }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.name }`, model)
     // revisit: alias follows our "regular" naming scheme -> ref.join('_')
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
@@ -182,7 +182,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via an association in columns and where', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.name } where author.name like '%Bro%'`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.name } where author.name like '%Bro%'`, model)
     // revisit: alias follows our "regular" naming scheme -> ref.join('_')
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
@@ -193,7 +193,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via an association path, nested in direct expression', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, substring(author.name, 2, stock) as f }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, substring(author.name, 2, stock) as f }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID {
         Books.ID,
@@ -203,7 +203,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('via two association paths', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID, books[stock<5].area, books[stock>5].area as a2}`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors as Authors { ID, books[stock<5].area, books[stock>5].area as a2}`, model)
     const expected = cds.ql`SELECT from booksCalc.Authors as Authors
       left outer join booksCalc.Books as books  on books.author_ID  = Authors.ID and books.stock  < 5
       left outer join booksCalc.Books as books2 on books2.author_ID = Authors.ID and books2.stock > 5
@@ -216,7 +216,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID, books[area >17].title }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors as Authors { ID, books[area >17].title }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, books[(length * width) > 1].title }
     const expected = cds.ql`SELECT from booksCalc.Authors as Authors
@@ -230,7 +230,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem contains association', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, authorName, authorLastName }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorName, authorLastName }`, model)
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.name, author.lastName }
     const expected = cds.ql`SELECT from booksCalc.Books as Books
@@ -244,7 +244,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem contains associations in xpr', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, authorFullName }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorFullName }`, model)
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.name, author.lastName }
     const expected = cds.ql`SELECT from booksCalc.Books as Books
@@ -258,7 +258,7 @@ describe('Unfolding calculated elements in select list', () => {
 
   it('calc elem contains other calculated element in xpr with nested joins', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from booksCalc.Books { ID, authorFullNameWithAddress } where authorFullNameWithAddress = 'foo'`,
+      cds.ql`SELECT from booksCalc.Books as Books { ID, authorFullNameWithAddress } where authorFullNameWithAddress = 'foo'`,
       model,
     )
     // intermediate:
@@ -275,7 +275,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem contains association, nested', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, authorAdrText }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, authorAdrText }`, model)
     // intermediate:
     // SELECT from booksCalc.Books { ID, author.address.{street || ', ' || city} }
     const expected = cds.ql`SELECT from booksCalc.Books as Books
@@ -289,7 +289,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('calc elem contains association with filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors { ID, addressTextFilter }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors as Authors { ID, addressTextFilter }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, address[number * 2 > 17].{street || ', ' || city}  }
     const expected = cds.ql`SELECT from booksCalc.Authors as Authors
@@ -306,7 +306,7 @@ describe('Unfolding calculated elements in select list', () => {
   // inline, expand
   //
   it('in inline', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.{name, IBAN } }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.{name, IBAN } }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
       {
@@ -317,7 +317,7 @@ describe('Unfolding calculated elements in select list', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in inline back and forth', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.books.author.{name, IBAN } }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.books.author.{name, IBAN } }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       left outer join booksCalc.Authors as author on author.ID = Books.author_ID
       left outer join booksCalc.Books as books2 on books2.author_ID = author.ID
@@ -331,10 +331,10 @@ describe('Unfolding calculated elements in select list', () => {
   })
   it('in subquery, using the same calc element - not join relevant in subquery', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from booksCalc.Books {
+      cds.ql`SELECT from booksCalc.Books as Books {
       ID,
       (
-        SELECT from booksCalc.Authors {
+        SELECT from booksCalc.Authors as Authors {
           name,
           IBAN,
           addressText
@@ -367,7 +367,7 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in inline, 2 assocs', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author.{name, addressText } }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author.{name, addressText } }`, model)
     // intermediate:
     // SELECT from booksCalc.Authors { ID, author.{firstName || ' ' || lastName, address.{street || ', ' || city}}}  }
     const expected = cds.ql`SELECT from booksCalc.Books as Books
@@ -382,15 +382,15 @@ describe('Unfolding calculated elements in select list', () => {
   })
 
   it('in expand (to-one)', () => {
-    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books { ID, author {name, IBAN } }`, model)
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Books as Books { ID, author {name, IBAN } }`, model)
     const expected = cds.ql`SELECT from booksCalc.Books as Books
       {
         Books.ID,
         (
-          SELECT from booksCalc.Authors as author {
-            author.firstName || ' ' || author.lastName as name,
-            'DE' || author.checksum || author.sortCode  || author.accountNumber as IBAN
-          } where Books.author_ID = author.ID
+          SELECT from booksCalc.Authors as $a {
+            $a.firstName || ' ' || $a.lastName as name,
+            'DE' || $a.checksum || $a.sortCode  || $a.accountNumber as IBAN
+          } where Books.author_ID = $a.ID
         ) as author
       }`
     expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
@@ -403,7 +403,7 @@ describe('Unfolding calculated elements in select list', () => {
         Books.ID,
         (
           SELECT from booksCalc.Authors as $a
-          left join booksCalc.Addresses as address on address.ID = author.address_ID
+          left join booksCalc.Addresses as address on address.ID = $a.address_ID
           {
             $a.firstName || ' ' || $a.lastName as name,
             address.street || ', ' || address.city as addressText
