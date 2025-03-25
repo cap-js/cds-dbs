@@ -305,7 +305,7 @@ GROUP BY k
     }
   }
 
-  async onSELECT({ query, data = query.params }) {
+  async onSELECT({ query, data }) {
     // workaround for chunking odata streaming
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
@@ -315,7 +315,6 @@ GROUP BY k
       let res = await super.onSELECT({ query, data })
       if (!res) return res
       // SELECT only binary column
-      query = cds.ql.clone(query)
       query.SELECT.columns = binary
       const { sql: streamSql, values: valuesStream } = this.cqn2sql(query, data)
       const ps = this.prepare(streamSql)
@@ -448,9 +447,10 @@ GROUP BY k
       return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
-    param(param) {
-      super.param(param)
-      return '$' + this.params.length
+    param({ ref }) {
+      this._paramCount = this._paramCount || 1
+      if (ref.length > 1) throw cds.error`Unsupported nested ref parameter: ${ref}`
+      return ref[0] === '?' ? `$${this._paramCount++}` : `:${ref}`
     }
 
     val(val) {

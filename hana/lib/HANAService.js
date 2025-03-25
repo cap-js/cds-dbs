@@ -119,7 +119,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data = query.params } = req
+    const { query, data } = req
 
     if (!query.target || query.target._unresolved) {
       try { this.infer(query) } catch { /**/ }
@@ -179,7 +179,7 @@ class HANAService extends SQLService {
     return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
   }
 
-  async onINSERT({ query, data = query.params }) {
+  async onINSERT({ query, data }) {
     try {
       const { sql, entries, cqn } = this.cqn2sql(query, data)
       if (!sql) return // Do nothing when there is nothing to be done
@@ -190,7 +190,7 @@ class HANAService extends SQLService {
           ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
           : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
         : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, [results])
+      return new this.class.InsertResults(cqn, results)
     } catch (err) {
       throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
     }
