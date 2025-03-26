@@ -1,0 +1,44 @@
+const cds = require('../../test/cds')
+
+describe('Versioned table', () => {
+  before(() => {
+    cds.requires.toggles = true
+  })
+
+  const { expect } = cds.test(
+    __dirname + '/../../test/compliance/resources',
+    // Additional model definition is required, because feature flags don't work correctly without mtx
+    __dirname + '/../../test/compliance/resources/fts/versioning/versioning.cds'
+  )
+
+  test('debug', async () => {
+    const { versioned } = cds.entities('edge.hana.versioning')
+    const { history } = cds.entities('edge.hana.versioning.versioned')
+
+    const sel = SELECT.one`*, history[order by validFrom asc] {*}`.from(versioned)
+
+    const ID = cds.utils.uuid()
+    await INSERT([{ ID, data: 'original' }]).into(versioned)
+    const org = await sel.clone()
+
+    await UPSERT([{ ID, data: 'upserted' }]).into(versioned)
+    await UPDATE(versioned).data({ data: 'updated' }).where({ ID })
+    const upd = await sel.clone()
+
+    await DELETE(versioned)
+    const del = await sel.clone()
+    const his = await SELECT.from(history)
+
+    expect(org).property('data').eq('original')
+    expect(upd).property('data').eq('updated')
+    expect(del).falsy
+
+    expect(org).property('history').length(0)
+    expect(upd).property('history').length(2)
+    expect(upd).property('history').property('0').property('data').eq('original')
+    expect(upd).property('history').property('1').property('data').eq('upserted')
+
+    expect(his).length(3)
+  })
+
+})

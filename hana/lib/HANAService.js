@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
  * @implements SQLService
@@ -785,7 +786,7 @@ class HANAService extends SQLService {
       }
 
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !elements[c][SYSTEM_VERSIONED])
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
