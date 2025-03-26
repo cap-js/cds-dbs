@@ -66,7 +66,7 @@ async function deploy(dbs, isolate) {
       // options.schema_evolution = 'auto'
       await cds.deploy(m).to(ten, options)
     } catch (err) {
-      if (err.code === 'MODEL_NOT_FOUND' || err.code === 288) return
+      if (err.code === 'MODEL_NOT_FOUND') return
       throw err
     }
   })
@@ -105,6 +105,7 @@ async function getReadTenant(dbs, isolate) {
   if (isnew) {
     let err
     await deploy(dbs, isolate).catch(e => { err = e })
+    if (err) await ten.tenant(isolate, true)
     await dat.tx(async tx => {
       if (err) {
         await tx.run(DELETE(schemas).where`tenant=${isolate.tenant}`)
