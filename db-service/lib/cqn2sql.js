@@ -874,7 +874,7 @@ class CQN2SQLRenderer {
   DELETE(q) {
     const { DELETE: { where, from } } = q
     let sql = `DELETE FROM ${this.quote(this.table_name(q))}`
-    if (from.as) sql += ` as ${this.quote(from.as)}`
+    if (from.as) sql += ` AS ${this.quote(from.as)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
   }
