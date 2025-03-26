@@ -378,6 +378,8 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
+    let kind = q.kind || Object.keys(q)[0]
+    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) q = cds.ql.resolve.resolve4db(q, this)
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
   }

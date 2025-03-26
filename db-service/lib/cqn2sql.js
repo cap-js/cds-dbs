@@ -833,11 +833,11 @@ class CQN2SQLRenderer {
    */
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
-    const elements = q.target?.elements
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
+    const elements = transitions.target?.elements
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
-    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     let columns = []
     if (data) _add(data, val => this.val({ val }))
     if (_with) _add(_with, x => this.expr(x))
@@ -860,7 +860,7 @@ class CQN2SQLRenderer {
       .map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
-    if (where) sql += ` WHERE ${this.where_resolved(entity, where, q)}`
+    if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
   }
 
@@ -874,7 +874,7 @@ class CQN2SQLRenderer {
   DELETE(q) {
     const { DELETE: { where, from } } = q
     let sql = `DELETE FROM ${this.quote(this.table_name(q))}`
-    if (from.as) sql += ` AS ${this.quote(from.as)}`
+    if (from.as) sql += ` as ${this.quote(from.as)}`
     if (where) sql += ` WHERE ${this.where(where)}`
     return (this.sql = sql)
   }
