@@ -1,4 +1,3 @@
-const { value } = require('@sap/cds/libx/_runtime/cds-services/adapter/odata-v4/okra/odata-server/serializer/SerializerFactory')
 const cds = require('../../test/cds')
 
 describe('Versioned table', () => {

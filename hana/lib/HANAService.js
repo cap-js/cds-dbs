@@ -113,6 +113,9 @@ class HANAService extends SQLService {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$valid.to'] || variables['$valid.from']) variables['TEMPORAL_SYSTEM_TIME_AS_OF'] = variables['$valid.to'] < variables['$valid.from']
+      ? variables['$valid.to']
+      : variables['$valid.from']
     if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
     if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
 
@@ -917,10 +920,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return orderBy.map(c => {
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized]
-              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
-              : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          (c.element?.[this.class._localized]
+            ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
+            : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
         return o
