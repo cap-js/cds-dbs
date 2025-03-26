@@ -449,9 +449,10 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   forUpdate(update) {
-    const { wait, of } = update
+    const { wait, of, ignoreLocked } = update
     let sql = 'FOR UPDATE'
     if (!_empty(of)) sql += ` OF ${of.map(x => this.expr(x)).join(', ')}`
+    if (ignoreLocked) sql += ' IGNORE LOCKED'
     if (typeof wait === 'number') sql += ` WAIT ${wait}`
     return sql
   }

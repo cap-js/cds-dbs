@@ -81,7 +81,7 @@ describe('UPDATE', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Books2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
             (SELECT Books.ID from bookshop.Books as Books
               left join bookshop.Authors as author on author.ID = Books.author_ID
               where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15
@@ -105,7 +105,7 @@ describe('UPDATE', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Authors2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
       (SELECT Authors.ID from bookshop.Authors as Authors
                 left join bookshop.Books as books on books.author_ID = Authors.ID
                 where books.title LIKE '%Heights%'
@@ -186,7 +186,7 @@ describe('UPDATE with path expression', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Books2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
             (SELECT Books.ID from bookshop.CatalogService.Books as Books
               left join bookshop.CatalogService.Authors as author on author.ID = Books.author_ID
               where author.name LIKE '%Bron%'

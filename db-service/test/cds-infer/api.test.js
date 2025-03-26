@@ -16,7 +16,7 @@ describe('infer elements', () => {
 
   describe('all query elements are linked', () => {
     it('expands and inlines are linked', () => {
-      let query = CQL`SELECT from bookshop.Books {
+      let query = cds.ql`SELECT from bookshop.Books {
         ID,
         author  as expandOnAssoc { * },
         dedication as expandOnStruct { * },
@@ -29,7 +29,7 @@ describe('infer elements', () => {
       })
     })
     it('values / functions / expr with type are linked', () => {
-      let query = CQL`SELECT from bookshop.Books {
+      let query = cds.ql`SELECT from bookshop.Books {
         1,
         true,
         'foo',
@@ -45,7 +45,7 @@ describe('infer elements', () => {
   })
 
   it('element has the same name as the query alias', () => {
-    let query = CQL`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
+    let query = cds.ql`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
     let inferred = _inferred(query)
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
@@ -55,7 +55,7 @@ describe('infer elements', () => {
   })
 
   it('infer inferred query multiple times', () => {
-    let query = CQL`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
+    let query = cds.ql`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
     let inferred = _inferred(query)
     let inferredInferred = _inferred(inferred)
     expect(inferred).to.eql(inferredInferred)
@@ -66,7 +66,7 @@ describe('infer elements', () => {
     const keepModel = cds.model
     cds.model = null
     // subsequent infer calls should always use explicitly passed model parameter
-    let query = CQL`SELECT from bookshop.Books { ID, (SELECT from bookshop.Books) as triggerRecursiveInfer }`
+    let query = cds.ql`SELECT from bookshop.Books { ID, (SELECT from bookshop.Books) as triggerRecursiveInfer }`
     let inferred = _inferred(query, model)
     let { Books } = model.entities
     expect(inferred.elements).to.deep.equal({
