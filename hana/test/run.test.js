@@ -1,29 +1,23 @@
 const cds = require('../../test/cds')
 
-let schema
-
 async function createProcedures() {
-
-  const rs = await cds.run('SELECT CURRENT_SCHEMA "current schema" FROM DUMMY')
-  schema = rs[0]['current schema']
-
   const procs = [
-    `CREATE PROCEDURE "procTest0" ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), OUT TEST_2 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE "procTest0" ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), OUT TEST_2 NVARCHAR(32) ) AS
     BEGIN TEST_1 = SELECT '1' AS TEST_1_COL_1 FROM DUMMY; TEST_2 = '2'; END`,
 
-    `CREATE PROCEDURE PROC_TEST_1 ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), IN VAL_2 NVARCHAR(32), OUT TEST_2 TABLE ( TEST_2_COL_1 NVARCHAR(32) ), INOUT VAL_1 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE PROC_TEST_1 ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), IN VAL_2 NVARCHAR(32), OUT TEST_2 TABLE ( TEST_2_COL_1 NVARCHAR(32) ), INOUT VAL_1 NVARCHAR(32) ) AS
     BEGIN TEST_1 = SELECT VAL_1 AS TEST_1_COL_1 FROM DUMMY; TEST_2 = SELECT VAL_2 AS TEST_2_COL_1 FROM DUMMY; END`,
 
-    `CREATE PROCEDURE PROC_TEST_2 ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE PROC_TEST_2 ( OUT TEST_1 TABLE ( TEST_1_COL_1 NVARCHAR(32) ), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
     BEGIN TEST_1 = SELECT VAL_1 AS TEST_1_COL_1 FROM DUMMY; TEST_2 = VAL_2; END`,
 
-    `CREATE PROCEDURE PROC_TEST_3 ( OUT TEST_1 NVARCHAR(32), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE PROC_TEST_3 ( OUT TEST_1 NVARCHAR(32), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
     BEGIN TEST_1 = VAL_1; TEST_2 = VAL_2; END`,
 
-    `CREATE PROCEDURE ";sap. secmon~analysis#framework!pattern@getNewAndExistingAlerts" ( OUT TEST_1 NVARCHAR(32), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE ";sap. secmon~analysis#framework!pattern@getNewAndExistingAlerts" ( OUT TEST_1 NVARCHAR(32), IN VAL_2 NVARCHAR(32), OUT TEST_2 NVARCHAR(32), INOUT VAL_1 NVARCHAR(32) ) AS
     BEGIN TEST_1 = VAL_1; TEST_2 = VAL_2; END`,
 
-    `CREATE PROCEDURE "PROC_TEST_4" (
+    `CREATE OR REPLACE PROCEDURE "PROC_TEST_4" (
         OUT TEST_1 TABLE ( ID INTEGER, "title" NVARCHAR(32) ),
         INOUT TEST_3 INTEGER,
         OUT TEST_2 TABLE ( ID INTEGER, "title" NVARCHAR(32) ),
@@ -34,7 +28,7 @@ async function createProcedures() {
         TEST_3 = VAL_1;
       END`,
 
-    `CREATE PROCEDURE "PROC_TEST_5" (
+    `CREATE OR REPLACE PROCEDURE "PROC_TEST_5" (
         IN A INTEGER,
         OUT B INTEGER,
         OUT C DUMMY,
@@ -48,16 +42,15 @@ async function createProcedures() {
         C = SELECT * FROM DUMMY;
       END`,
 
-    `CREATE PROCEDURE PROC_TEST_6 ( OUT TABLE_1 TABLE ( COL_1 NVARCHAR(32) ), IN TABLE_2 TABLE ( COL_1 NVARCHAR(32) ), OUT TABLE_3 TABLE ( COL_1 NVARCHAR(32) ), INOUT VAL_1 NVARCHAR(32) ) AS
+    `CREATE OR REPLACE PROCEDURE PROC_TEST_6 ( OUT TABLE_1 TABLE ( COL_1 NVARCHAR(32) ), IN TABLE_2 TABLE ( COL_1 NVARCHAR(32) ), OUT TABLE_3 TABLE ( COL_1 NVARCHAR(32) ), INOUT VAL_1 NVARCHAR(32) ) AS
       BEGIN TABLE_1 = SELECT VAL_1 AS COL_1 FROM DUMMY; TABLE_3 = SELECT COL_1 AS COL_1 FROM :TABLE_2; END`,
 
-    `CREATE PROCEDURE MY_PROC (
+    `CREATE OR REPLACE PROCEDURE MY_PROC (
         IN PARAM_0 INT,
         OUT PARAM_1 TABLE ( NUM0 INT ),
         OUT PARAM_2 TABLE ( NUM1 INT )
       )
       LANGUAGE SQLSCRIPT
-      DEFAULT SCHEMA ${schema}
       AS
       BEGIN
         PARAM_1=SELECT :PARAM_0 AS NUM0 FROM dummy;
@@ -65,33 +58,13 @@ async function createProcedures() {
       END;`
   ]
 
-  for (let proc of procs) {
-    try {
-      await cds.run(proc)
-    } catch (e) {
-      if (e.code === 329) { // name exists
-        // ignore
-      } else {
-        throw e
-      }
-    }
-  }
-}
-
-async function addData() {
-  const data = await cds.run(SELECT.from('SAP_CAPIRE_TESTENTITY'))
-  if (data.length) return
-  await cds.run(INSERT.into('SAP_CAPIRE_TESTENTITY').columns(['ID', 'title']).rows([1, '1']))
-  await cds.run(INSERT.into('SAP_CAPIRE_TESTENTITY').columns(['ID', 'title']).rows([2, '2']))
-  await cds.run(INSERT.into('SAP_CAPIRE_TESTENTITY').columns(['ID', 'title']).rows([3, '3']))
-  await cds.run(INSERT.into('SAP_CAPIRE_TESTENTITY').columns(['ID', 'title']).rows([4, '4']))
+  await Promise.all(procs.map(sql => cds.run(sql)))
 }
 
 describe('stored procedures', () => {
   const { expect } = cds.test(__dirname, 'proc.cds')
 
   beforeAll(async () => {
-    await addData()
     await createProcedures()
   })
 
@@ -178,8 +151,12 @@ describe('stored procedures', () => {
   })
 
   describe('with schema name', () => {
+    const getSchema = async function () {
+      return (await cds.run('SELECT CURRENT_SCHEMA FROM DUMMY'))[0].CURRENT_SCHEMA
+    }
+
     test('schema name — undelimited', async () => {
-      const result = await cds.run(`CALL ${schema}.MY_PROC(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
+      const result = await cds.run(`CALL ${await getSchema()}.MY_PROC(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
       expect(result).to.containSubset({
         PARAM_1: [{ NUM0: 0 }],
         PARAM_2: [{ NUM1: 1 }]
@@ -187,7 +164,7 @@ describe('stored procedures', () => {
     })
 
     test('schema name — delimited', async () => {
-      const result = await cds.run(`CALL "${schema}"."MY_PROC"(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
+      const result = await cds.run(`CALL "${await getSchema()}"."MY_PROC"(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
       expect(result).to.containSubset({
         PARAM_1: [{ NUM0: 0 }],
         PARAM_2: [{ NUM1: 1 }]

@@ -1,8 +1,7 @@
 const cds = require('../cds.js')
 
 describe('UPSERT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('into', () => {
     test('Apply default for keys before join to existing data', async () => {
