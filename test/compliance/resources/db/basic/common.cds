@@ -12,6 +12,7 @@ entity temporal : _cuid, _temporal {}
 
 // Set default values for all literals from ./literals.cds
 entity ![default] : _cuid {
+  uuidDflt  : UUID default '00000000-0000-0000-4000-000000000000';
   bool      : Boolean default false;
   integer8  : UInt8 default 8;
   integer16 : Int16 default 9;

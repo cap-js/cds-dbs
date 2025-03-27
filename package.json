@@ -10,7 +10,7 @@
     "hana"
   ],
   "devDependencies": {
-    "@capire/sflight": "github:sap-samples/cap-sflight"
+    "axios": "^1"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",

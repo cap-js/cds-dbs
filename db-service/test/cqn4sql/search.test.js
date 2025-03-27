@@ -11,57 +11,55 @@ describe('Replace attribute search by search predicate', () => {
 
   it('one string element with one search element', () => {
     // WithStructuredKey is the only entity with only one string element in the model ...
-    let query = CQL`SELECT from bookshop.WithStructuredKey as wsk { second }`
+    let query = cds.ql`SELECT from bookshop.WithStructuredKey as wsk { second }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
     // single val is stored as val directly, not as expr with val
-    const expected = CQL`SELECT from bookshop.WithStructuredKey as wsk {
-      wsk.second
-    } where search(wsk.second, 'x')`
+    const expected = cds.ql`SELECT from bookshop.WithStructuredKey as wsk { wsk.second }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ ref: ['wsk', 'second']}] }, {val: 'x'}]}]
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('one string element', () => {
     // WithStructuredKey is the only entity with only one string element in the model ...
-    let query = CQL`SELECT from bookshop.WithStructuredKey as wsk { second }`
+    let query = cds.ql`SELECT from bookshop.WithStructuredKey as wsk { second }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`SELECT from bookshop.WithStructuredKey as wsk {
-      wsk.second
-    } where search(wsk.second, ('x' OR 'y'))`
+    const expected = cds.ql`SELECT from bookshop.WithStructuredKey as wsk { wsk.second }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ ref: ['wsk', 'second']}] }, {xpr: [{val: 'x'}, 'or', {val: 'y'}]}]}]
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('multiple string elements', () => {
-    let query = CQL`SELECT from bookshop.Genres { ID }`
+    let query = cds.ql`SELECT from bookshop.Genres { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
     } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`)
   })
 
   it('with existing WHERE clause', () => {
-    let query = CQL`SELECT from bookshop.Genres { ID } where ID < 4 or ID > 5`
+    let query = cds.ql`SELECT from bookshop.Genres { ID } where ID < 4 or ID > 5`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Genres as Genres {
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
     } where (Genres.ID < 4 or Genres.ID > 5)
         and search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`)
   })
 
   it('with filter on data source', () => {
-    let query = CQL`SELECT from bookshop.Genres[ID < 4 or ID > 5] { ID }`
+    let query = cds.ql`SELECT from bookshop.Genres[ID < 4 or ID > 5] { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     // todo, not necessary to add the search predicate as xpr
-    const expected = CQL`SELECT from bookshop.Genres as Genres {
+    const expected = cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
     } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y')) and (Genres.ID < 4 or Genres.ID > 5)`
     expected.SELECT.where[0] = { xpr: [expected.SELECT.where[0]] }
@@ -69,31 +67,31 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('string fields inside struct', () => {
-    let query = CQL`SELECT from bookshop.Person { ID }`
+    let query = cds.ql`SELECT from bookshop.Person { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Person as Person {
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Person as Person {
       Person.ID
     } where search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' OR 'y'))`)
   })
 
   it('ignores virtual string elements', () => {
-    let query = CQL`SELECT from bookshop.Foo { ID }`
+    let query = cds.ql`SELECT from bookshop.Foo { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(CQL`SELECT from bookshop.Foo as Foo {
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo {
       Foo.ID
     }`)
   })
   it('Uses primary query source in case of joins', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, author.books.title as authorsBook }`
+    let query = cds.ql`SELECT from bookshop.Books { ID, author.books.title as authorsBook }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
-      CQL`
+      cds.ql`
       SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
         left join bookshop.Books as books2 on  books2.author_ID = author.ID
@@ -105,27 +103,27 @@ describe('Replace attribute search by search predicate', () => {
   })
   it('Search columns if result is grouped', () => {
     // in this case, we actually search the "title" which comes from the join
-    let query = CQL`SELECT from bookshop.Books { ID, author.books.title as authorsBook } group by title`
+    let query = cds.ql`SELECT from bookshop.Books { ID, author.books.title as authorsBook } group by title`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
-      CQL`
-      SELECT from bookshop.Books as Books
-        left join bookshop.Authors as author on author.ID = Books.author_ID
-        left join bookshop.Books as books2 on  books2.author_ID = author.ID
-      {
-        Books.ID,
-        books2.title as authorsBook
-      } where search(books2.title, ('x' OR 'y')) group by Books.title `,
-    )
+    const expected =       cds.ql`
+    SELECT from bookshop.Books as Books
+      left join bookshop.Authors as author on author.ID = Books.author_ID
+      left join bookshop.Books as books2 on  books2.author_ID = author.ID
+    {
+      Books.ID,
+      books2.title as authorsBook
+    } where search(books2.title, ('x' OR 'y')) group by Books.title `
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ ref: ['books2', 'title']}] }, {xpr: [{val: 'x'}, 'or', {val: 'y'}]}]}]
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('Search on navigation', () => {
-    let query = CQL`SELECT from bookshop.Authors:books { ID }`
+    let query = cds.ql`SELECT from bookshop.Authors:books { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
       SELECT from bookshop.Books as books
       {
         books.ID,
@@ -147,15 +145,16 @@ describe('Replace attribute search by search predicate', () => {
       .columns({ args: [{ ref: ['title'] }], as: 'firstInAlphabet', func: 'MIN' })
       .groupBy('title')
       .search('Cat')
-
-    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
-      SELECT from bookshop.Books as Books {
-        MIN(Books.title) as firstInAlphabet
-      } group by Books.title having search(MIN(Books.title), 'Cat')`)
+    const expected = cds.ql`
+    SELECT from bookshop.Books as Books {
+      MIN(Books.title) as firstInAlphabet
+    } group by Books.title having search(MIN(Books.title), 'Cat')`
+    expected.SELECT.having = [ {func: 'search', args: [{ list: [{func: 'MIN', args: [{ ref: ['Books', 'title']}]}] }, {val: 'Cat'}]}]
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
 
   it('Ignore non string aggregates from being searched', () => {
-    const query = CQL`
+    const query = cds.ql`
       SELECT from bookshop.Books {
         title,
         AVG(Books.stock) as searchRelevant,
@@ -163,15 +162,16 @@ describe('Replace attribute search by search predicate', () => {
       `
 
     query.SELECT.search = [{ val: 'x' }]
-
-    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
-      SELECT from bookshop.Books as Books {
-        Books.title,
-        AVG(Books.stock) as searchRelevant,
-      } where search(Books.title, 'x') group by Books.title`)
+    const expected = cds.ql`
+    SELECT from bookshop.Books as Books {
+      Books.title,
+      AVG(Books.stock) as searchRelevant,
+    } where search(Books.title, 'x') group by Books.title`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ ref: ['Books', 'title']}] }, {val: 'x'}]}]
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
   it('aggregations which are not of type string are not searched', () => {
-    const query = CQL`
+    const query = cds.ql`
       SELECT from bookshop.Books {
         ID,
         SUM(Books.stock) as notSearchRelevant,
@@ -180,7 +180,7 @@ describe('Replace attribute search by search predicate', () => {
 
     query.SELECT.search = [{ val: 'x' }]
 
-    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(cds.ql`
       SELECT from bookshop.Books as Books {
         Books.ID,
         SUM(Books.stock) as notSearchRelevant,
@@ -189,7 +189,7 @@ describe('Replace attribute search by search predicate', () => {
   it('func is search relevant via cast', () => {
     // this aggregation is not relevant for search per default
     // but due to the cast to string, we search
-    const query = CQL`
+    const query = cds.ql`
       SELECT from bookshop.Books {
         ID,
         substring(Books.stock) as searchRelevantViaCast: cds.String,
@@ -197,17 +197,21 @@ describe('Replace attribute search by search predicate', () => {
       `
 
     query.SELECT.search = [{ val: 'x' }]
-
-    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
-      SELECT from bookshop.Books as Books {
-        Books.ID,
-        substring(Books.stock) as searchRelevantViaCast: cds.String,
-      } group by Books.title having search(substring(Books.stock), 'x')`)
+    const expected = cds.ql`
+    SELECT from bookshop.Books as Books {
+      Books.ID,
+      substring(Books.stock) as searchRelevantViaCast: cds.String,
+    } group by Books.title having search(substring(Books.stock), 'x')`
+    expected.SELECT.having = [ {func: 'search', args: [{ list: [{
+      args: [ { ref: [ 'Books', 'stock' ] } ],
+      func: 'substring'
+    }] }, {val: 'x'}]}]
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
   it('xpr is search relevant via cast', () => {
     // this aggregation is not relevant for search per default
     // but due to the cast to string, we search
-    const query = CQL`
+    const query = cds.ql`
       SELECT from bookshop.Books {
         ID,
         ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
@@ -216,13 +220,21 @@ describe('Replace attribute search by search predicate', () => {
       `
 
     query.SELECT.search = [{ val: 'x' }]
-
-    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(CQL`
-      SELECT from bookshop.Books as Books {
-        Books.ID,
-        ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
-        ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
-      } group by Books.title having search(('very' + 'useful' + 'string'), 'x')`)
+    const expected = cds.ql`
+    SELECT from bookshop.Books as Books {
+      Books.ID,
+      ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
+      ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
+    } group by Books.title`
+    expected.SELECT.having = [ {func: 'search', args: [{ list: [{
+      xpr: [
+        { val: 'very' },
+        '+',
+        { val: 'useful' },
+        '+',
+        { val: 'string' }
+      ] }] }, {val: 'x'}]}]
+    expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
   })
 })
 
@@ -233,25 +245,26 @@ describe('search w/ path expressions', () => {
   })
 
   it('one string element with one search element', () => {
-    let query = CQL`SELECT from search.BooksSearchAuthorName { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthorName { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.BooksSearchAuthorName as BooksSearchAuthorName left join search.Authors as author on author.ID = BooksSearchAuthorName.author_ID
     {
       BooksSearchAuthorName.ID,
       BooksSearchAuthorName.title
-  } where search(author.lastName, 'x')`
+  }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ref: ['author', 'lastName']}]}, {val: 'x'}]}]
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('search all searchable fields in target', () => {
-    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
     {
       Books.ID,
@@ -261,11 +274,11 @@ describe('search w/ path expressions', () => {
   })
 
   it('search only some searchable fields via multiple association paths', () => {
-    let query = CQL`SELECT from search.BooksSearchAuthorAndAddress as Books { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthorAndAddress as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.BooksSearchAuthorAndAddress as Books
       left join search.AuthorsSearchAddresses as authorWithAddress on authorWithAddress.ID = Books.authorWithAddress_ID
       left join search.Addresses as address on address.ID = authorWithAddress.address_ID
@@ -273,6 +286,21 @@ describe('search w/ path expressions', () => {
       Books.ID,
       Books.title
   } where search((authorWithAddress.note, address.city), 'x')`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('dont dump for non existing search paths, but ignore the path', () => {
+    let query = cds.ql`SELECT from search.BookShelf { ID, genre }`
+    query.SELECT.search = [{ val: 'Harry Plotter' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.BookShelf as BookShelf
+    {
+      BookShelf.ID,
+      BookShelf.genre
+  }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ref: ['BookShelf', 'genre']}]}, {val: 'Harry Plotter'}]}]
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 })
@@ -284,11 +312,11 @@ describe('calculated elements', () => {
   })
 
   it('search calculated element via path expression', () => {
-    let query = CQL`SELECT from search.AuthorsSearchCalculatedAddress as Authors { lastName }`
+    let query = cds.ql`SELECT from search.AuthorsSearchCalculatedAddress as Authors { lastName }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.AuthorsSearchCalculatedAddress as Authors
         left join search.CalculatedAddresses as address on address.ID = Authors.address_ID
     {
@@ -298,15 +326,12 @@ describe('calculated elements', () => {
   })
 
   it('search calculated element only if explicitly requested', () => {
-    let query = CQL`SELECT from search.CalculatedAddressesWithoutAnno as Address { Address.ID }`
+    let query = cds.ql`SELECT from search.CalculatedAddressesWithoutAnno as Address { Address.ID }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
-    SELECT from search.CalculatedAddressesWithoutAnno as Address
-    {
-      Address.ID
-  } where search((Address.city), 'x')`
+    const expected = cds.ql`SELECT from search.CalculatedAddressesWithoutAnno as Address { Address.ID }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ref: ['Address', 'city']}]}, {val: 'x'}]}]
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 })
@@ -318,11 +343,11 @@ describe('caching searchable fields', () => {
   })
 
   it('should cache searchable fields for entity', () => {
-    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
     {
       Books.ID,
@@ -342,11 +367,11 @@ describe('caching searchable fields', () => {
   // it is not required to set the searchable fields dynamically
   it.skip('should be possible to define new search criteria during runtime', () => {
     const { BooksSearchAuthor } = cds.entities
-    let query = CQL`SELECT from search.BooksSearchAuthor as Books { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthor as Books { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
-    const expected = CQL`
+    const expected = cds.ql`
     SELECT from search.BooksSearchAuthor as Books left join search.Authors as author on author.ID = Books.author_ID
     {
       Books.ID,

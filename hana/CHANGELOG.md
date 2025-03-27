@@ -4,6 +4,79 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.1...hana-v1.7.0) (2025-03-04)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+* support for `SELECT.hint` ([#1004](https://github.com/cap-js/cds-dbs/issues/1004)) ([2c6a763](https://github.com/cap-js/cds-dbs/commit/2c6a7634450047cab22322abb7312f8f3d432cdf))
+
+
+### Fixed
+
+* `expand@odata.count` queries ([#966](https://github.com/cap-js/cds-dbs/issues/966)) ([6607a84](https://github.com/cap-js/cds-dbs/commit/6607a8404aa70f2f3f7c6c65c7e9b1c324a5230b))
+* Remove sub query alias check ([#953](https://github.com/cap-js/cds-dbs/issues/953)) ([e5a716c](https://github.com/cap-js/cds-dbs/commit/e5a716c6133be92810800231ba14fe6f33a2597b))
+
+## [1.6.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.0...hana-v1.6.1) (2025-02-04)
+
+
+### Fixed
+
+* infer when unresolved ([#1005](https://github.com/cap-js/cds-dbs/issues/1005)) ([2fb0bdf](https://github.com/cap-js/cds-dbs/commit/2fb0bdf0fa49a872e5e19d8a5d40ae90f3086bf7))
+
+## [1.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.2...hana-v1.6.0) (2025-01-28)
+
+
+### Added
+
+* support driver self-wrapping (for Dynatrace) ([#974](https://github.com/cap-js/cds-dbs/issues/974)) ([5346bc4](https://github.com/cap-js/cds-dbs/commit/5346bc478b88793fb2d3add40dfdee962663e2fb))
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+
+### Fixed
+
+* Fix expand aliasing ([#959](https://github.com/cap-js/cds-dbs/issues/959)) ([f39097c](https://github.com/cap-js/cds-dbs/commit/f39097c0e991e7726960c6aa3bab6a81efe2669f))
+* groupby path expression with overlapping identifier ([#992](https://github.com/cap-js/cds-dbs/issues/992)) ([b579da8](https://github.com/cap-js/cds-dbs/commit/b579da84231cd18f0ed2dd706b6fce620a0a5d51))
+* multi raw SQL queries ([#973](https://github.com/cap-js/cds-dbs/issues/973)) ([b953480](https://github.com/cap-js/cds-dbs/commit/b95348055ea269e184acb179f8ea3ce632e3cb63))
+* Remove `orderBy` ref check for `sql_simple_queries` ([#964](https://github.com/cap-js/cds-dbs/issues/964)) ([1b77725](https://github.com/cap-js/cds-dbs/commit/1b777256f8f4a692cb566991c62baee927970549))
+
+## [1.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.1...hana-v1.5.2) (2024-12-18)
+
+
+### Fixed
+
+* Force `sql_simple_queries` to quote in outer select ([#954](https://github.com/cap-js/cds-dbs/issues/954)) ([2071dc8](https://github.com/cap-js/cds-dbs/commit/2071dc8ead5afeb596870b95766e4cd5f3ea70ff))
+
+## [1.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.5.0...hana-v1.5.1) (2024-12-16)
+
+
+### Fixed
+
+* deep groupby ([#919](https://github.com/cap-js/cds-dbs/issues/919)) ([ce24264](https://github.com/cap-js/cds-dbs/commit/ce24264185aa7d2b7b2f04724c21937694e0e33f))
+* expressions with not on HANA ([#925](https://github.com/cap-js/cds-dbs/issues/925)) ([e67a31b](https://github.com/cap-js/cds-dbs/commit/e67a31b741bead715a474ff65c9f75384605405f))
+* quoted mode ([#937](https://github.com/cap-js/cds-dbs/issues/937)) ([9e62b22](https://github.com/cap-js/cds-dbs/commit/9e62b22a1be90ada9f57cfa63505735d8b8eed88))
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+* track expression type through expressions ([#950](https://github.com/cap-js/cds-dbs/issues/950)) ([a083f74](https://github.com/cap-js/cds-dbs/commit/a083f7427e71f37396654c6933977a9396abbff0))
+
+
+### Performance Improvements
+
+* Remove `$$RN$$` and additional sub selects ([#929](https://github.com/cap-js/cds-dbs/issues/929)) ([b3743a1](https://github.com/cap-js/cds-dbs/commit/b3743a19b72b9bc44b7855578912c7482eade2ea))
+
+## [1.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.1...hana-v1.5.0) (2024-11-25)
+
+
+### Added
+
+* config options for fuzzy search ([#898](https://github.com/cap-js/cds-dbs/issues/898)) ([f6593e6](https://github.com/cap-js/cds-dbs/commit/f6593e69de6df3e85a39c048794a56c7eb842c4c))
+* support current_utctimestamp ([#865](https://github.com/cap-js/cds-dbs/issues/865)) ([aaf39ad](https://github.com/cap-js/cds-dbs/commit/aaf39ad6aacefe501664bc25d1c0330d97f0a389))
+
+
+### Fixed
+
+* `current_date`, `current_time`, `current_timestamp` and `current_utctimestamp` are SAP HANA functions and are callable in upper case ([#910](https://github.com/cap-js/cds-dbs/issues/910)) ([50ebd10](https://github.com/cap-js/cds-dbs/commit/50ebd106b9ee5bf7e1026658b89401e904ffe051))
+
 ## [1.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.4.0...hana-v1.4.1) (2024-10-30)
 
 

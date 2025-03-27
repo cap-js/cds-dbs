@@ -4,6 +4,34 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.8.0...sqlite-v1.9.0) (2025-03-04)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.8...sqlite-v1.8.0) (2025-01-28)
+
+
+### Added
+
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+## [1.7.8](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.7...sqlite-v1.7.8) (2024-12-16)
+
+
+### Fixed
+
+* default `[development]` URL to `:memory:` ([#926](https://github.com/cap-js/cds-dbs/issues/926)) ([51e8aa7](https://github.com/cap-js/cds-dbs/commit/51e8aa70868a78594626ba19c02ff495571e751f))
+
+## [1.7.7](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.6...sqlite-v1.7.7) (2024-11-14)
+
+
+### Fixed
+
+* boolean for sql_simple_queries  ([#886](https://github.com/cap-js/cds-dbs/issues/886)) ([d8139fa](https://github.com/cap-js/cds-dbs/commit/d8139fa2ea0cb6bebf966ac5b781b2f8f7c67207))
+
 ## [1.7.6](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.7.5...sqlite-v1.7.6) (2024-10-30)
 
 

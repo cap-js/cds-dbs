@@ -4,6 +4,51 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.12.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.1...postgres-v1.12.0) (2025-03-04)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+
+
+### Fixed
+
+* `expand@odata.count` queries ([#966](https://github.com/cap-js/cds-dbs/issues/966)) ([6607a84](https://github.com/cap-js/cds-dbs/commit/6607a8404aa70f2f3f7c6c65c7e9b1c324a5230b))
+
+## [1.11.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.0...postgres-v1.11.1) (2025-02-09)
+
+
+### Fixed
+
+* postgres build plugin w `--production` ([#1018](https://github.com/cap-js/cds-dbs/issues/1018)) ([aafffc9](https://github.com/cap-js/cds-dbs/commit/aafffc99cb509380e5ae7738376e4d30ce5d66f2))
+
+## [1.11.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.5...postgres-v1.11.0) (2025-01-28)
+
+
+### Added
+
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+
+### Fixed
+
+* starts endswith for null values ([#975](https://github.com/cap-js/cds-dbs/issues/975)) ([f0330bc](https://github.com/cap-js/cds-dbs/commit/f0330bc334fd3a8ed5377afcdd04b731baa8c753))
+
+## [1.10.5](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.4...postgres-v1.10.5) (2024-12-16)
+
+
+### Fixed
+
+* sort property is case insensitive ([#924](https://github.com/cap-js/cds-dbs/issues/924)) ([2c72c87](https://github.com/cap-js/cds-dbs/commit/2c72c871d6c7f65797b8bd8692305149b3ea65f8))
+
+## [1.10.4](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.3...postgres-v1.10.4) (2024-11-14)
+
+
+### Fixed
+
+* enable nulls first ([#893](https://github.com/cap-js/cds-dbs/issues/893)) ([6684436](https://github.com/cap-js/cds-dbs/commit/66844363588864813d304a9dcfd66e856c7542dd))
+
 ## [1.10.3](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.2...postgres-v1.10.3) (2024-10-30)
 
 

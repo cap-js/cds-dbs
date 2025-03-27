@@ -1,5 +1,6 @@
 process.env.cds_requires_db_kind = 'better-sqlite'
-const cds = require('../../cds.js')
+const cds = require('../../cds.js'), { path } = cds.utils
+const sflight = path.resolve(__dirname,'../../../test/sflight')
 
 // IMPORTANT: Wrapping that in beforeAll to avoid loading cds.env before cds.test()
 beforeAll(() => {
@@ -8,8 +9,7 @@ beforeAll(() => {
 })
 
 describe('SFlight - Read', () => {
-  // Jest require.resolve does not want to find @capire/sflight
-  const { expect, GET, axios } = cds.test('@capire/sflight')
+  const { expect, GET, axios } = cds.test(sflight)
   axios.defaults.auth = { username: 'alice', password: 'admin' }
 
   const processorPaths = [

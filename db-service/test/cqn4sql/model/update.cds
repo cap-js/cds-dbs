@@ -15,6 +15,14 @@ entity Authors {
   alive  : Boolean;
 }
 
+entity Orders {
+  key ID: UUID;
+  Items: composition of many {
+    key book: Association to Books;
+    price: Decimal = book.stock * 2;
+  }
+}
+
 service CatalogService {
    @odata.draft.enabled
    entity Books as projection on bookshop.Books;

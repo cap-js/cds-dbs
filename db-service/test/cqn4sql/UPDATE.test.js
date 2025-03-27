@@ -81,7 +81,7 @@ describe('UPDATE', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Books2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
             (SELECT Books.ID from bookshop.Books as Books
               left join bookshop.Authors as author on author.ID = Books.author_ID
               where author.name LIKE '%Bron%' or ( author.name LIKE '%King' and Books.title = 'The Dark Tower') and Books.stock >= 15
@@ -105,7 +105,7 @@ describe('UPDATE', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Authors2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
       (SELECT Authors.ID from bookshop.Authors as Authors
                 left join bookshop.Books as books on books.author_ID = Authors.ID
                 where books.title LIKE '%Heights%'
@@ -186,7 +186,7 @@ describe('UPDATE with path expression', () => {
     expected.UPDATE.where = [
       { list: [{ ref: ['Books2', 'ID'] }] },
       'in',
-      CQL`
+      cds.ql`
             (SELECT Books.ID from bookshop.CatalogService.Books as Books
               left join bookshop.CatalogService.Authors as author on author.ID = Books.author_ID
               where author.name LIKE '%Bron%'
@@ -199,5 +199,42 @@ describe('UPDATE with path expression', () => {
     }
     let res = cqn4sql(u, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('path expression via calculated element leads to subquery if used in where', () => {
+    const q = UPDATE('bookshop.Orders.Items').set({ price: 5 }).where('price = 4.99')
+
+    const res = cqn4sql(q, model)
+
+    const expected = UPDATE.entity({ ref: ['bookshop.Orders.Items'] }).alias('Items2')
+    expected.UPDATE.where = [
+      {
+        list: [{ ref: ['Items2', 'up__ID'] }, { ref: ['Items2', 'book_ID'] }],
+      },
+      'in',
+      cds.ql`
+        (SELECT
+          Items.up__ID,
+          Items.book_ID
+        FROM bookshop.Orders.Items AS Items
+        LEFT JOIN bookshop.Books AS book ON book.ID = Items.book_ID
+        WHERE (book.stock * 2) = 4.99
+        )
+      `,
+    ]
+
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
+  })
+
+  it('if there is no path expression in the where, we dont need subselect magic', () => {
+    const q = UPDATE('bookshop.Orders.Items').set({ quantity: 3 }).where('1 = 1')
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.eql({
+      UPDATE: {
+        entity: { ref: ['bookshop.Orders.Items'], as: 'Items' },
+        where: [{ val: 1 }, '=', { val: 1 }],
+      },
+    })
+    expect(res.UPDATE).to.have.property('data')
   })
 })

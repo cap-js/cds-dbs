@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "1.7.6",
+  "version": "1.9.0",
   "description": "CDS database service for SQLite",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/sqlite#cds-database-service-for-sqlite",
   "repository": {
@@ -23,10 +23,10 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "cds-test $(../test/find)"
+    "test": "cds-test"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.14.1",
+    "@cap-js/db-service": "^1.18.0",
     "better-sqlite3": "^11.0.0"
   },
   "peerDependencies": {
@@ -37,7 +37,10 @@
       "kinds": {
         "sql": {
           "[development]": {
-            "kind": "sqlite"
+            "kind": "sqlite",
+            "credentials": {
+              "url": ":memory:"
+            }
           }
         },
         "sqlite": {

@@ -15,6 +15,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 /**
  * @implements SQLService
@@ -38,7 +39,7 @@ class HANAService extends SQLService {
   get factory() {
     const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
-    const { credentials, kind } = service.options
+    const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
@@ -61,7 +62,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver(credentials)
+          const dbc = new driver({...credentials, ...clientOptions})
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
@@ -120,10 +121,10 @@ class HANAService extends SQLService {
   async onSELECT(req) {
     const { query, data } = req
 
-    if (!query.target) {
+    if (!query._target || query._target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (!query.target || query.target._unresolved) {
+    if (!query._target || query._target._unresolved) {
       return super.onSELECT(req)
     }
 
@@ -140,7 +141,9 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
 
     // REVISIT: add prepare options when param:true is used
-    const sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    const { hints } = query.SELECT
+    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
     if (values?.length || blobs.length > 0) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -154,6 +157,15 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
+      const keys = Object.keys(req.target.keys || {})
+      if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
+        // REVISIT: No support for count
+        // where [keys] in [values]   
+        const left = { list: keys.map(k => ({ ref: [k] })) }
+        const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
+        resultQuery.SELECT.limit = undefined
+        resultQuery.SELECT.where = [left, 'in', right]
+      }
       return this.onSELECT({ query: resultQuery, __proto__: req })
     }
 
@@ -180,7 +192,7 @@ class HANAService extends SQLService {
         : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
     }
   }
 
@@ -212,11 +224,18 @@ class HANAService extends SQLService {
     const values = temporary
       .map(t => {
         const blobColumns = blobs.map(b => (b in t.blobs) ? blobColumn(b) : `NULL AS ${blobColumn(b)}`)
-        return `SELECT "_path_","_blobs_","_expands_","_json_"${blobColumns.length ? ',' : ''}${blobColumns} FROM (${t.select})`
+        return blobColumns.length
+          ? `SELECT "_path_","_blobs_","_expands_","_json_",${blobColumns} FROM (${t.select})`
+          : t.select
       })
 
     const withclause = withclauses.length ? `WITH ${withclauses} ` : ''
-    const ret = withclause + (values.length === 1 ? values[0] : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ')) + ' ORDER BY "_path_" ASC'
+    const pathOrder = ' ORDER BY "_path_" ASC'
+    const ret = withclause + (
+      values.length === 1
+        ? values[0] + (values[0].indexOf(`SELECT '$[' as "_path_"`) < 0 ? pathOrder : '')
+        : 'SELECT * FROM ' + values.map(v => `(${v})`).join(' UNION ALL ') + pathOrder
+    )
     DEBUG?.(ret)
     return ret
   }
@@ -332,8 +351,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, orderBy, expand, columns = ['*'], localized, count, parent } = q.SELECT
-      
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -342,8 +360,9 @@ class HANAService extends SQLService {
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
           return q.as
         }
-        q.as = walkAlias(q)
-        q.alias = `${parent ? parent.alias + '.' : ''}${q.as}`
+        const alias = q.as // Use query alias as path name
+        q.as = walkAlias(q) // Use from alias for query re use alias
+        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
         const src = q
 
         const { element, elements } = q
@@ -364,7 +383,9 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        let orderByHasOutputColumnRef = false
         if (orderBy) {
+          if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
             if (!c.ref) {
@@ -381,27 +402,55 @@ class HANAService extends SQLService {
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
+            orderByHasOutputColumnRef = true
             return c
           })
         }
 
-        // Insert row number column for reducing or sorting the final result
-        const over = { xpr: [] }
-        // TODO: replace with full path partitioning
-        if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
-        if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
-        const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
-        q.as = q.SELECT.from.as
+        let hasBooleans = false
+        let hasExpands = false
+        let hasStructures = false
+        const aliasedOutputColumns = outputColumns.map(c => {
+          if (c.element?.type === 'cds.Boolean') hasBooleans = true
+          if (c.elements && c.element?.isAssociation) hasExpands = true
+          if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
+          return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
+        })
 
-        q = cds.ql.SELECT(['*', rn]).from(q)
-        q.as = q.SELECT.from.as
+        const isSimpleQuery = (
+          cds.env.features.sql_simple_queries &&
+          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+          !hasStructures &&
+          !parent
+        )
 
-        q = cds.ql.SELECT(outputColumns.map(c => (c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }))).from(q)
-        q.as = q.SELECT.from.as
-        Object.defineProperty(q, 'elements', { value: elements })
-        Object.defineProperty(q, 'element', { value: element })
+        const rowNumberRequired = parent // If this query has a parent it is an expand
+          || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
+          || hasExpands // Expands depend on parent $$RN$$
 
-        if (!q.SELECT.columns.find(c => c.as === '_path_')) {
+        if (rowNumberRequired) {
+          // Insert row number column for reducing or sorting the final result
+          const over = { xpr: [] }
+          // TODO: replace with full path partitioning
+          if (parent) over.xpr.push(`PARTITION BY ${this.ref({ ref: ['_parent_path_'] })}`)
+          if (orderBy?.length) over.xpr.push(` ORDER BY ${this.orderBy(orderBy, localized)}`)
+          const rn = { xpr: [{ func: 'ROW_NUMBER', args: [] }, 'OVER', over], as: '$$RN$$' }
+          q.as = q.SELECT.from.as
+
+          q = cds.ql.SELECT(['*', rn]).from(q)
+          q.as = q.SELECT.from.as
+        }
+
+        const outputAliasSimpleQueriesRequired = cds.env.features.sql_simple_queries
+          && (orderByHasOutputColumnRef || having)
+        if (outputAliasSimpleQueriesRequired || rowNumberRequired || q.SELECT.columns.length !== aliasedOutputColumns.length) {
+          q = cds.ql.SELECT(aliasedOutputColumns).from(q)
+          q.as = q.SELECT.from.as
+          Object.defineProperty(q, 'elements', { value: elements })
+          Object.defineProperty(q, 'element', { value: element })
+        }
+
+        if (rowNumberRequired && !q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
             xpr: [
               {
@@ -410,7 +459,7 @@ class HANAService extends SQLService {
                   ? [
                     {
                       func: 'concat',
-                      args: [{ ref: ['_parent_path_'] }, { val: `].${q.element.name}[`, param: false }],
+                      args: [{ ref: ['_parent_path_'] }, { val: `].${alias}[`, param: false }],
                     },
                     { func: 'lpad', args: [{ ref: ['$$RN$$'] }, { val: 6, param: false }, { val: '0', param: false }] },
                   ]
@@ -460,7 +509,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.from({ ref: [q.src.alias] })
+        const fromSQL = this.quote(this.name(q.src.alias))
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
@@ -475,34 +524,89 @@ class HANAService extends SQLService {
     SELECT_columns(q) {
       const { SELECT, src } = q
       if (!SELECT.columns) return '*'
+      if (SELECT.expand !== 'root') {
+        const ret = []
+        for (const x of q.SELECT.columns) {
+          if (x.elements && x.element?.isAssociation) continue
+          ret.push(this.column_expr(x, q))
+        }
+        return ret
+      }
       const structures = []
+      const blobrefs = []
       let expands = {}
       let blobs = {}
       let hasBooleans = false
-      let path = `'$['`
-      let sql = SELECT.columns
-        .map(
-          SELECT.expand === 'root'
-            ? x => {
-              if (x === '*') return '*'
-              // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) {
-                expands[this.column_name(x)] = x.SELECT.one ? null : []
+      let path
+      let sql = []
 
-                const parent = src
-                this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
-                  const columnName = this.column_name(ref)
-                  if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
-                    parent.SELECT.columns.push(ref)
+      // Remove sub expands and track special return column types
+      for (const x of SELECT.columns) {
+        if (x === '*') sql.push('*')
+        // means x is a sub select expand
+        if (x.elements && x.element?.isAssociation) {
+          if (x.SELECT?.count) {
+            // Add count query to src query and output  query
+            const cq = this.SELECT_count(x)
+            src.SELECT.columns.push(cq)
+            if (q !== src) q.SELECT.columns.push({ ref: [cq.as], element: cq.element })
+          }
+
+          expands[this.column_name(x)] = x.SELECT.one ? null : []
+
+          const parent = src
+          this.extractForeignKeys(x.SELECT.where, parent.as, []).forEach(ref => {
+            const columnName = this.column_name(ref)
+            if (!parent.SELECT.columns.find(c => this.column_name(c) === columnName)) {
+              parent.SELECT.columns.push(ref)
+            }
+          })
+
+          if (x.SELECT.from) {
+            x.SELECT.from = {
+              join: 'inner',
+              args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+              on: x.SELECT.where,
+              as: x.SELECT.from.as,
+            }
+          } else {
+            x.SELECT.from = { ref: [parent.alias], as: parent.as }
+            x.SELECT.columns.forEach(col => {
+              // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
+              if (col.ref?.length > 1) {
+                const colName = this.column_name(col)
+                if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                  const isSource = from => {
+                    if (from.as === col.ref[0]) return true
+                    return from.args?.some(a => {
+                      if (a.args) return isSource(a)
+                      return a.as === col.ref[0]
+                    })
                   }
-                })
 
-                if (x.SELECT.from) {
-                  x.SELECT.from = {
-                    join: 'inner',
-                    args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
-                    on: x.SELECT.where,
-                    as: x.SELECT.from.as,
+                  // Inject foreign columns into parent selects (recursively)
+                  const as = `$$${col.ref.join('.')}$$`
+                  let rename = col.ref[0] !== parent.as
+                  let curPar = parent
+                  while (curPar) {
+                    if (isSource(curPar.SELECT.from)) {
+                      if (curPar.SELECT.columns.find(c => c.as === as)) {
+                        rename = true
+                      } else {
+                        rename = rename || curPar === parent
+                        curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
+                      }
+                      break
+                    } else {
+                      curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
+                      curPar = curPar.SELECT.parent
+                    }
+                  }
+                  if (rename) {
+                    col.as = colName
+                    col.ref = [parent.as, as]
+                  } else {
+                    col.ref = [parent.as, colName]
                   }
                 } else {
                   x.SELECT.from = { ref: [parent.alias], as: parent.as }
@@ -510,119 +614,145 @@ class HANAService extends SQLService {
                     // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
-                      if (col.ref[0] !== parent.as) {
+                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
+                        const isSource = from => {
+                          if (from.as === col.ref[0]) return true
+                          return from.args?.some(a => {
+                            if (a.args) return isSource(a)
+                            return a.as === col.ref[0]
+                          })
+                        }
+
                         // Inject foreign columns into parent selects (recursively)
                         const as = `$$${col.ref.join('.')}$$`
+                        let rename = col.ref[0] !== parent.as
                         let curPar = parent
                         while (curPar) {
-                          if (curPar.SELECT.from?.args?.some(a => a.as === col.ref[0])) {
-                            if (!curPar.SELECT.columns.find(c => c.as === as)) curPar.SELECT.columns.push({ __proto__: col, ref: col.ref, as })
+                          if (isSource(curPar.SELECT.from)) {
+                            if (curPar.SELECT.columns.find(c => c.as === as)) {
+                              rename = true
+                            } else {
+                              rename = rename || curPar === parent
+                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
+                            }
                             break
                           } else {
                             curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
                             curPar = curPar.SELECT.parent
                           }
                         }
-                        col.as = colName
-                        col.ref = [parent.as, as]
-                      } else if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
-                        // Inject local columns into parent select
-                        parent.SELECT.columns.push({ __proto__: col })
+                        if (rename) {
+                          col.as = colName
+                          col.ref = [parent.as, as]
+                        } else {
+                          col.ref = [parent.as, colName]
+                        }
+                      } else {
+                        col.ref[1] = colName
                       }
                     }
                   })
                 }
-
-                x.SELECT.where = undefined
-                x.SELECT.expand = 'root'
-                x.SELECT.parent = parent
-
-                const values = this.values
-                this.values = []
-                parent.SELECT.expand = true
-                this.SELECT(x)
-                this.values = values
-                return false
               }
-              if (x.element?.type in this.BINARY_TYPES) {
-                blobs[this.column_name(x)] = null
-                return false
-              }
-              if (x.element?.elements || x.element?.items) {
-                // support for structured types and arrays
-                structures.push(x)
-                return false
-              }
-              const columnName = this.column_name(x)
-              if (columnName === '_path_') {
-                path = this.expr(x)
-                return false
-              }
-              if (x.element?.type === 'cds.Boolean') hasBooleans = true
-              const converter = x.element?.[this.class._convertOutput] || (e => e)
-              return `${converter(this.quote(columnName), x.element)} as "${columnName.replace(/"/g, '""')}"`
-            }
-            : x => {
-              if (x === '*') return '*'
-              // means x is a sub select expand
-              if (x.elements && x.element?.isAssociation) return false
-              return this.column_expr(x)
-            },
-        )
-        .filter(a => a)
-
-      if (SELECT.expand === 'root') {
-        this._blobs = blobs
-        const blobColumns = Object.keys(blobs)
-        this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
-        if (
-          cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
-          structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
-          !q?.src?.SELECT?.parent &&
-          this.temporary.length === 0
-        ) {
-          return `${sql}`
-        }
-
-        expands = this.string(JSON.stringify(expands))
-        blobs = this.string(JSON.stringify(blobs))
-        // When using FOR JSON the whole dataset is put into a single blob
-        // To increase the potential maximum size of the result set every row is converted to a JSON
-        // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
-        // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
-        const rawJsonColumn = sql.length
-          ? `(SELECT ${sql} FROM JSON_TABLE('[{}]', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
-          : `'{}'`
-
-        let jsonColumn = rawJsonColumn
-        if (structures.length) {
-          // Appending the structured columns to prevent them from being quoted and escaped
-          // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
-          const structuresConcat = structures
-            .map((x, i) => {
-              const name = this.column_name(x)
-              return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
             })
-            .join(' || ')
-          jsonColumn = sql.length
-            ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
-            : `${structuresConcat} || '}'`
-        }
+          }
 
-        // Calculate final output columns once
-        let outputColumns = ''
-        outputColumns = `${this.quote('_path_')} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
-        if (blobColumns.length)
-          outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
-        this._outputColumns = outputColumns
+          x.SELECT.where = undefined
+          x.SELECT.expand = 'root'
+          x.SELECT.parent = parent
+
+          const values = this.values
+          this.values = []
+          parent.SELECT.expand = true
+          this.SELECT(x)
+          this.values = values
+          continue
+        }
+        if (x.element?.type in this.BINARY_TYPES) {
+          blobrefs.push(x)
+          blobs[this.column_name(x)] = null
+          continue
+        }
+        if (x.element?.elements || x.element?.items) {
+          // support for structured types and arrays
+          structures.push(x)
+          continue
+        }
+        const columnName = this.column_name(x)
+        if (columnName === '_path_') {
+          path = this.expr(x)
+          continue
+        }
+        if (x.element?.type === 'cds.Boolean') hasBooleans = true
+        const converter = x.element?.[this.class._convertOutput] || (e => e)
+        const s = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
+        sql.push(`${converter(s, x.element)} as "${columnName.replace(/"/g, '""')}"`)
+      }
+
+      this._blobs = blobs
+      const blobColumns = Object.keys(blobs)
+      this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
+      if (
+        cds.env.features.sql_simple_queries &&
+        (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
+        structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
+        !q?.src?.SELECT?.parent &&
+        this.temporary.length === 0
+      ) {
+        return `${sql}`
+      }
+
+      expands = this.string(JSON.stringify(expands))
+      blobs = this.string(JSON.stringify(blobs))
+      // When using FOR JSON the whole dataset is put into a single blob
+      // To increase the potential maximum size of the result set every row is converted to a JSON
+      // Making each row a maximum size of 2gb instead of the whole result set to be 2gb
+      // Excluding binary columns as they are not supported by FOR JSON and themselves can be 2gb
+      const rawJsonColumn = sql.length
+        ? `(SELECT ${path ? sql : sql.map(c => c.slice(c.lastIndexOf(' as "') + 4))} FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647))`
+        : `'{}'`
+
+      let jsonColumn = rawJsonColumn
+      if (structures.length) {
+        // Appending the structured columns to prevent them from being quoted and escaped
+        // In case of the deep JSON select queries the deep columns depended on a REGEXP_REPLACE which will probably be slower
+        const structuresConcat = structures
+          .map((x, i) => {
+            const name = this.column_name(x)
+            return `'${i ? ',' : '{'}"${name}":' || COALESCE(${this.quote(name)},'null')`
+          })
+          .join(' || ')
+        jsonColumn = sql.length
+          ? `${structuresConcat} || ',' || SUBSTRING(${rawJsonColumn}, 2)`
+          : `${structuresConcat} || '}'`
+      }
+
+      // Calculate final output columns once
+      let outputColumns = ''
+      outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      if (blobColumns.length)
+        outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
+      this._outputColumns = outputColumns
+      if (path) {
         sql = `*,${path} as ${this.quote('_path_')}`
+      } else {
+        structures.forEach(x => sql.push(this.column_expr(x)))
+        blobrefs.forEach(x => sql.push(this.column_expr(x)))
       }
       return sql
     }
 
     SELECT_expand(_, sql) {
       return sql
+    }
+
+    SELECT_count(q) {
+      const countQuery = super.SELECT_count(q)
+      countQuery.SELECT.from = countQuery.SELECT.from
+      countQuery.SELECT.where = countQuery.SELECT.where
+      // Ensure that the query is not considered an expand query
+      countQuery.SELECT.parent = undefined
+      return countQuery
     }
 
     from_dummy() {
@@ -647,9 +777,9 @@ class HANAService extends SQLService {
       this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0])
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || INSERT.into.ref[0], q)
 
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
@@ -715,7 +845,7 @@ class HANAService extends SQLService {
       // - Object JSON INSERT (1x)
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_rows(q)
       }
@@ -744,16 +874,16 @@ class HANAService extends SQLService {
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0])
-      const elements = q.target?.elements || {}
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || UPSERT.into.ref[0], q)
+      const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
-      let keys = q.target?.keys
+      let keys = q._target?.keys
       if (!keys) return insert
       keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
       // temporal data
-      keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
+      keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
 
       const managed = this.managed(
         this.columns.map(c => ({ name: c })),
@@ -783,17 +913,17 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     orderBy(orderBy, localized) {
-      return orderBy.map(
-        localized
-          ? c =>
-            this.expr(c) +
+      return orderBy.map(c => {
+        const o = localized
+          ? this.expr(c) +
             (c.element?.[this.class._localized]
-              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']
-              }`
+              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
               : '') +
-            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+        return o
+      })
     }
 
     limit({ rows, offset }) {
@@ -802,24 +932,26 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     }
 
     where(xpr) {
-      xpr = { xpr }
+      xpr = { xpr, top: true }
       const suffix = this.is_comparator(xpr)
-      return `${this.xpr(xpr)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
+      return `${this.xpr(xpr, true)}${suffix ? '' : ` = ${this.val({ val: true })}`}`
     }
 
     having(xpr) {
       return this.where(xpr)
     }
 
-    xpr(_xpr, caseSuffix = '') {
-      const { xpr, _internal } = _xpr
+    xpr(_xpr, iscompare) {
+      let { xpr, top, _internal } = _xpr
       // Maps the compare operators to what to return when both sides are null
-      const compareOperators = {
+      const compareTranslations = {
         '==': true,
         '!=': false,
-
-        // These operators are not allowed in column expressions
-        /* REVISIT: Only adjust these operators when inside the column expression
+      }
+      const expressionTranslations = { // These operators are not allowed in column expressions
+        '==': true,
+        '!=': false,
+        '=': null,
         '>': null,
         '<': null,
         '<>': null,
@@ -827,11 +959,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
         '<=': null,
         '!<': null,
         '!>': null,
-        */
       }
 
-      let endWithCompare = false
       if (!_internal) {
+        const iscompareStack = [iscompare]
         for (let i = 0; i < xpr.length; i++) {
           let x = xpr[i]
           if (typeof x === 'string') {
@@ -862,11 +993,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
             // const effective = x === '=' && xpr[i + 1]?.val === null ? '==' : x
             // HANA does not support comparators in all clauses (e.g. SELECT 1>0 FROM DUMMY)
             // HANA does not have an 'IS' or 'IS NOT' operator
-            if (x in compareOperators) {
-              endWithCompare = true
+            if (iscompareStack.at(-1) ? x in compareTranslations : x in expressionTranslations) {
               const left = xpr[i - 1]
               const right = xpr[i + 1]
-              const ifNull = compareOperators[x]
+              const ifNull = expressionTranslations[x]
               x = x === '==' ? '=' : x
 
               const compare = [left, x, right]
@@ -898,31 +1028,38 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 
               xpr[i - 1] = ''
               xpr[i] = expression
-              xpr[i + 1] = ' = TRUE'
+              xpr[i + 1] = iscompareStack.at(-1) ? ' = TRUE' : ''
+            } else {
+              const up = x.toUpperCase()
+              if (up === 'CASE') iscompareStack.push(1)
+              if (up === 'END') iscompareStack.pop()
+              if (up in logicOperators && iscompareStack.length === 1) top = true
+              if (up in caseOperators) {
+                iscompareStack[iscompareStack.length - 1] = caseOperators[up]
+              }
             }
           }
         }
       }
 
       const sql = []
+      const iscompareStack = [iscompare]
       for (let i = 0; i < xpr.length; ++i) {
         const x = xpr[i]
         if (typeof x === 'string') {
           const up = x.toUpperCase()
-          if (up in logicOperators) {
-            // Force current expression to end with a comparison
-            endWithCompare = true
+          if (up === 'CASE') iscompareStack.push(1)
+          if (up === 'END') iscompareStack.pop()
+          if (up in caseOperators) {
+            iscompareStack[iscompareStack.length - 1] = caseOperators[up]
           }
-          if (endWithCompare && (up in caseOperators || up === ')')) {
-            endWithCompare = false
-          }
-          sql.push(this.operator(x, i, xpr))
-        } else if (x.xpr) sql.push(`(${this.xpr(x, caseSuffix)})`)
+          sql.push(this.operator(x, i, xpr, top || iscompareStack.length > 1))
+        } else if (x.xpr) sql.push(`(${this.xpr(x, iscompareStack.at(-1))})`)
         // default
         else sql.push(this.expr(x))
       }
 
-      if (endWithCompare) {
+      if (iscompare) {
         const suffix = this.operator('OR', xpr.length, xpr).slice(0, -3)
         if (suffix) {
           sql.push(suffix)
@@ -932,12 +1069,13 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return `${sql.join(' ')}`
     }
 
-    operator(x, i, xpr) {
+    operator(x, i, xpr, top) {
       const up = x.toUpperCase()
       // Add "= TRUE" before THEN in case statements
       if (
         up in logicOperators &&
-        !this.is_comparator({ xpr }, i - 1)
+        logicOperators[up] &&
+        this.is_comparator({ xpr, top }, i - 1) === false
       ) {
         return ` = ${this.val({ val: true })} ${x}`
       }
@@ -956,7 +1094,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
      * @param {} xpr
      * @returns
      */
-    is_comparator({ xpr }, start) {
+    is_comparator({ xpr, top }, start) {
       const local = start != null
       for (let i = start ?? xpr.length; i > -1; i--) {
         const cur = xpr[i]
@@ -968,12 +1106,25 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           if (up in logicOperators) {
             // ensure AND is not part of BETWEEN
             if (up === 'AND' && xpr[i - 2]?.toUpperCase?.() in { 'BETWEEN': 1, 'NOT BETWEEN': 1 }) return true
+            // ensure NOT is not part of a compare operator
+            if (up === 'NOT' && xpr[i - 1]?.toUpperCase?.() in compareOperators) return true
             return !local
           }
           // When a compare operator is found the expression is a comparison
           if (up in compareOperators) return true
+          // When there is an END of a case statement walk around it to keep checking
+          if (up === 'END') {
+            let casedepth = 0
+            for (; i > -1; i--) {
+              const up = xpr[i]?.toUpperCase?.()
+              if (up === 'END') casedepth++
+              if (up === 'CASE') casedepth--
+              if (casedepth === 0) break
+            }
+            if (casedepth > 0) return false
+          }
           // When a case operator is found it is the start of the expression
-          if (up in caseOperators) break
+          if (up in caseOperators) return false
           continue
         }
         if (cur.func?.toUpperCase() === 'CONTAINS' && cur.args?.length > 2) return true
@@ -983,7 +1134,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           if (nested) return true
         }
       }
-      return false
+      return top ? false : 0
     }
 
     list(list) {
@@ -1058,7 +1209,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
-    static Functions = require('./cql-functions')
+    static Functions = { ...super.Functions, ...require('./cql-functions') }
 
     static TypeMap = {
       ...super.TypeMap,
@@ -1077,6 +1228,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       LargeBinary: () => `NVARCHAR(2147483647)`,
       Binary: () => `NVARCHAR(2147483647)`,
       array: () => `NVARCHAR(2147483647) FORMAT JSON`,
+      Map: () => `NVARCHAR(2147483647) FORMAT JSON`,
       Vector: () => `NVARCHAR(2147483647)`,
       Decimal: () => `DECIMAL`,
 
@@ -1151,7 +1303,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
   async dispatch(req) {
     // Look for deployment batch dispatch and execute as single query
     // When deployment is not executed in a batch it will fail to create views
-    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string')) {
+    if (Array.isArray(req.query) && !req.query.find(q => typeof q !== 'string' || this.hasResults(q))) {
       req.query = `DO BEGIN ${req.query
         .map(
           q =>
@@ -1327,29 +1479,33 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.code === 301)
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 
+// All case key words and whether they start an comparison or an expression
 const caseOperators = {
   'CASE': 1,
   'WHEN': 1,
-  'THEN': 1,
-  'ELSE': 1,
+  'THEN': 0,
+  'ELSE': 0,
 }
+// All logic operators and whether they have a left hand comparison
 const logicOperators = {
   'THEN': 1,
   'AND': 1,
   'OR': 1,
+  'NOT': 0,
 }
 const compareOperators = {
   '=': 1,

@@ -40,11 +40,12 @@ cds.test = Object.setPrototypeOf(function () {
       const sep = path.sep
       const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
       const serviceDefinitionPath = `${testSource}/test/service`
-      cds.env.requires.db = require(serviceDefinitionPath)
+      cds.env.requires.db = {...cds.env.requires.db, ...require(serviceDefinitionPath)}
       require(testSource + '/cds-plugin')
     } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = require('@cap-js/sqlite/test/service')
+      cds.env.requires.db = {...cds.env.requires.db, ...require('@cap-js/sqlite/test/service')}
+      require('@cap-js/sqlite/cds-plugin')
     }
   })
 

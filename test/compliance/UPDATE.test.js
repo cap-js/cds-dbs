@@ -54,6 +54,18 @@ describe('UPDATE', () => {
       const result = await SELECT.one.from(string)
       expect(result.string).to.equal('ab')
     })
+
+    test('non existing values', async () => {
+      const { string } = cds.entities('basic.literals')
+      try {
+        await UPDATE(string).with({ nonExisting: { val: 'not updated' } })
+        // should not get here
+        expect(0).to.be(1)
+      } catch (error) {
+        // nonExisting is filtered, so the sql is incomplete
+        expect(error.query).to.match(/UPDATE basic_literals_string AS ["]?string["]? SET [\n]?/i)
+      }
+    })
   })
 
   describe('data + with', () => {

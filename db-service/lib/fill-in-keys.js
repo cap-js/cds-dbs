@@ -35,7 +35,7 @@ const generateUUIDandPropagateKeys = (entity, data, event) => {
   if (event === 'CREATE') {
     const keys = entity.keys
     for (const k in keys)
-      if (keys[k].isUUID && !data[k] && !assoc4(keys[k])) //> skip key assocs, and foreign keys thereof
+      if (keys[k].isUUID && !data[k] && !assoc4(keys[k]) && !keys[k].default) //> skip key assocs, and foreign keys thereof
         data[k] = cds.utils.uuid()
   }
   for (const each in entity.elements) {
@@ -59,7 +59,7 @@ module.exports = async function fill_in_keys(req, next) {
   // REVISIT dummy handler until we have input processing
   if (!req.target || !this.model || req.target._unresolved) return next()
   // only for deep update
-  if (req.event === 'UPDATE' && hasDeep(req.query, req.target)) {
+  if (req.event === 'UPDATE' && hasDeep(req.query)) {
     // REVISIT for deep update we need to inject the keys first
     enrichDataWithKeysFromWhere(req.data, req, this)
   }

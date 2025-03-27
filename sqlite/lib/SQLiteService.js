@@ -5,6 +5,7 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
+const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
@@ -12,38 +13,34 @@ const sqliteKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
+// define date and time functions in js to allow for throwing errors
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
+const toDate = (d, allowTime = false) => {
+  const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
+  if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
+  return date
+}
+
+
 class SQLiteService extends SQLService {
-  init() {
-    return super.init(...arguments)
-  }
 
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
-        const dbc = new sqlite(database)
-
+        const dbc = new sqlite(database, this.options.client)
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-
-        // define date and time functions in js to allow for throwing errors
-        const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
-        const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
-        const toDate = (d, allowTime = false) => {
-          const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
-          if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
-          return date
-        }
         dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
         dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
         dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -117,6 +114,15 @@ class SQLiteService extends SQLService {
     }
     yield ']'
   }
+
+  pragma (pragma, options) {
+    if (!this.dbc) return this.begin('pragma') .then (tx => {
+      try { return tx.pragma (pragma, options) }
+      finally { tx.release() }
+    })
+    return this.dbc.pragma (pragma, options)
+  }
+
 
   exec(sql) {
     return this.dbc.exec(sql)
@@ -208,7 +214,10 @@ class SQLiteService extends SQLService {
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+      boolean:
+        cds.env.features.sql_simple_queries === 2
+          ? undefined
+          : expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
       // Timestamps are returned with ms, as written by InputConverters.
@@ -239,6 +248,7 @@ class SQLiteService extends SQLService {
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
+      Map: () => 'JSON_TEXT'
     }
 
     get is_distinct_from_() {
@@ -259,7 +269,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onINSERT(req)
     } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
+      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
     }
   }
 
@@ -267,7 +277,7 @@ class SQLiteService extends SQLService {
     try {
       return await super.onUPDATE(req)
     } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
+      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
     }
   }
 }
@@ -280,13 +290,14 @@ class SQLiteService extends SQLService {
 //   })
 // }
 
-function _not_unique(err, code) {
+function _not_unique(err, code, data) {
   if (err.message.match(/unique constraint/i))
     return Object.assign(err, {
       originalMessage: err.message, // FIXME: required because of next line
       message: code, // FIXME: misusing message as code
       code: 400, // FIXME: misusing code as (http) status
     })
+  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
   return err
 }
 

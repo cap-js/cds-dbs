@@ -1,14 +1,12 @@
 const { createPool } = require('generic-pool')
 
-class ConnectionPool {
-  constructor(factory, tenant) {
-    let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
-    return _track_connections4(createPool(bound_factory, factory.options))
-  }
+function ConnectionPool (factory, tenant) {
+  let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
+  return createPool(bound_factory, factory.options)
 }
 
-// REVISIT: Is that really neccessary ?!
-function _track_connections4(pool) {
+function TrackedConnectionPool (factory, tenant) {
+  const pool = new ConnectionPool (factory, tenant)
   const { acquire, release } = pool
   return Object.assign(pool, {
     async acquire() {
@@ -23,7 +21,6 @@ function _track_connections4(pool) {
         throw err
       }
     },
-
     release(dbc) {
       this._trackedConnections?.delete(dbc._beginStack)
       return release.call(this, dbc)
@@ -31,4 +28,5 @@ function _track_connections4(pool) {
   })
 }
 
-module.exports = ConnectionPool
+const DEBUG = /\bpool\b/.test(process.env.DEBUG)
+module.exports = DEBUG ? TrackedConnectionPool : ConnectionPool

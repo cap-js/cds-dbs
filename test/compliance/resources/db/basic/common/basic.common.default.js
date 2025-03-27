@@ -1,6 +1,7 @@
 const dstring = size => ({ d: 'default'.slice(0, size), o: 'not default'.slice(0, size) })
 
 const columns = {
+  uuidDflt: { d: '00000000-0000-0000-4000-000000000000', o: '11111111-1111-1111-4111-111111111111'},
   bool: { d: false, o: true },
   integer8: { d: 8, o: 18 },
   integer16: { d: 9, o: 19 },
