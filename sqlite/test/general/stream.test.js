@@ -187,8 +187,12 @@ describe('streaming', () => {
         const { Images } = cds.entities('test')
         const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
 
-        const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-        expect(changes).to.equal(1)
+        const insert = async () => {
+          const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
+          expect(changes).to.equal(1)
+        }
+        if(cds.db.pools._factory.options.max > 1) await cds.tx(insert) // Stream over multiple transaction for `hdb` limitation
+        else await insert()
 
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
