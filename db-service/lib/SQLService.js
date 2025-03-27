@@ -377,6 +377,7 @@ class SQLService extends DatabaseService {
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
+
     const map = function (..._) {
       return SQLService._arrayWithCount(_map.call(a, ..._), count)
     }
@@ -384,50 +385,6 @@ class SQLService extends DatabaseService {
       $count: { value: count, enumerable: false, configurable: true, writable: true },
       map: { value: map, enumerable: false, configurable: true, writable: true },
     })
-  }
-
-  streamConverter(columns) {
-    const converter = columns && this._streamConverter(columns)
-    return converter && new Function('stream', 'buffer', 'row', converter).bind(null, stream, buffer)
-
-    function stream(val) {
-      if (val === null) return null
-      if (val instanceof Readable) return val
-      return Readable.from(Buffer.from(val, 'base64'))
-    }
-
-    function buffer(val) {
-      if (val === null) return null
-      return Buffer.from(val, 'base64')
-    }
-  }
-
-  _streamConverter(columns) {
-    let changes = false
-    let converter = ''
-    for (let col of columns) {
-      const name = JSON.stringify(col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col))
-      if (col.element?.isAssociation) {
-        const c = this._streamConverter(col.SELECT.columns)
-        if (c) {
-          converter += col.element.is2one
-            ? `const tmp = row
-  {
-    const row = tmp[${name}]
-    ${c}
-  }
-  `
-            : `for(const row of row[${name}]){${c}}`
-        }
-      } else if (col.element?.type === 'cds.LargeBinary') {
-        converter += `row[${name}] = stream(row[${name}])\n`
-        changes = true
-      } else if (col.element?.type in BINARY_TYPES) {
-        converter += `row[${name}] = buffer(row[${name}])\n`
-        changes = true
-      }
-    }
-    return converter
   }
 
   /** @param {unknown[]} args */
