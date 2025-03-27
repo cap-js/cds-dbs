@@ -5,10 +5,7 @@ annotate versioning.versioned with @sql.append: 'WITH SYSTEM VERSIONING HISTORY 
 annotate versioning.versioned with {
   validFrom @(
     hana.systemversioned,
-    // When cds.valid.from is defined the column is turned into a key
-    // the START column is not allowed to be a key column
-    cds.valid.from: false,
-    sql.append    : 'NOT NULL GENERATED ALWAYS AS ROW START'
+    sql.append: 'NOT NULL GENERATED ALWAYS AS ROW START'
   );
   validTo   @(
     hana.systemversioned,
@@ -18,9 +15,4 @@ annotate versioning.versioned with {
   // As the @sql.append is doing a classic bit of SQL injection
   // to include the required period definition for the history table
   data      @(sql.append: ', PERIOD FOR SYSTEM_TIME (validFrom, validTo)')
-}
-
-annotate versioning.versioned.history with {
-  // The history table is not allowed to have key columns (feature not supported)
-  validFrom @(cds.valid.from: false);
 }
