@@ -63,15 +63,8 @@ function attachConstraints(_results, req) {
     // each column represents a constraint
     const columns = Object.keys(constraints).flatMap(name => {
       const constraint = constraints[name]
-      const { condition, element, parameters } = constraint
+      const { condition, parameters } = constraint
       const xpr = []
-      // if the element is nullable, we prepend xpr with `<element> IS NULL OR …`
-      if (!element.notNull && !element.on) {
-        // if(element.on) // --> REVISIT: HANA doesnt like this, what can we do to ensure nullability?
-        //   xpr.unshift({ ...coalesce(condition.xpr) }, 'or')
-        // else
-        xpr.unshift({ ref: [element.name] }, 'is', 'null', 'or')
-      }
       xpr.push({ xpr: condition.xpr })
       const colsForConstraint = [{
         xpr: wrapInCaseWhen(xpr),
@@ -153,7 +146,7 @@ function attachConstraints(_results, req) {
   }
 
   function wrapInCaseWhen(xpr) {
-    return ['case', 'when', { xpr }, 'then', { val: true }, 'else', { val: false }, 'end']
+    return ['case', 'when', 'not', { xpr }, 'then', { val: false }, 'else', { val: true }, 'end']
   }
   function coalesce(xpr) {
     return { func: 'coalesce', args: [{ xpr }, { val: true }] }
