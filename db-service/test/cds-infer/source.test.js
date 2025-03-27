@@ -18,10 +18,10 @@ describe('simple', () => {
     let query = cds.ql`SELECT from bookshop.Books { ID, author }`
     let inferred = _inferred(query)
     expect(inferred).to.deep.equal(query)
-    expect(inferred).to.have.property('target')
+    expect(inferred).to.have.property('_target')
     expect(inferred).to.have.property('elements')
     let { Books } = model.entities
-    expect(inferred.target).to.deep.equal(Books)
+    expect(inferred._target).to.deep.equal(Books)
     expect(inferred.elements).to.deep.equal({
       ID: Books.elements.ID,
       author: Books.elements.author,
@@ -35,9 +35,9 @@ describe('simple', () => {
     let i = INSERT.into`bookshop.Books`.entries({ ID: 201 })
     let d = DELETE.from('bookshop.Books').where({ stock: { '<': 1 } })
     let { Authors, Books } = model.entities
-    expect(_inferred(u)).to.have.property('target').that.equals(Authors)
-    expect(_inferred(i)).to.have.property('target').that.equals(Books)
-    expect(_inferred(d)).to.have.property('target').that.equals(Books)
+    expect(_inferred(u)).to.have.property('_target').that.equals(Authors)
+    expect(_inferred(i)).to.have.property('_target').that.equals(Books)
+    expect(_inferred(d)).to.have.property('_target').that.equals(Books)
   })
 })
 describe('scoped queries', () => {
@@ -116,7 +116,7 @@ describe('multiple sources', () => {
     }`)
     let { Books, Authors } = model.entities
 
-    expect(inferred.target).to.deep.equal(inferred)
+    expect(inferred._target).to.deep.equal(inferred)
 
     expect(inferred.elements).to.deep.equal({
       aID: Authors.elements.ID,
@@ -150,7 +150,7 @@ describe('multiple sources', () => {
     let { Books } = model.entities
 
     // same base entity, addressable via both aliases
-    expect(inferred.target).to.deep.equal(inferred)
+    expect(inferred._target).to.deep.equal(inferred)
     expect(inferred.sources['firstBook'].definition).to.deep.equal(inferred.sources['secondBook'].definition).to.deep.equal(Books)
 
     expect(inferred.elements).to.deep.equal({
