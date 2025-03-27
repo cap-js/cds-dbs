@@ -120,7 +120,8 @@ describe('INSERT', () => {
       await INSERT(Readable.from(gen())).into(binaries)
       const files = await SELECT`binary as path, largebinary as content`.from(binaries)
       for (const file of files) {
-        console.log(file.path + '', (await text(file.content)).length)
+        file.path = file.path + ''
+        file.content = await text(file.content)
       }
     })
 

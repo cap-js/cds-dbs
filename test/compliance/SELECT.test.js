@@ -1029,7 +1029,6 @@ describe('SELECT', () => {
   describe.skip('pipe', () => {
     test('json stream', async () => {
       const { json } = require('stream/consumers')
-      const { binaries } = cds.entities('basic.literals')
       const { all } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT FROM ${all}`
       const expected = await cqn.clone()
@@ -1540,7 +1539,7 @@ describe('SELECT', () => {
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
 
           const { [targetName]: target } = cds.entities
-          await Promise.all(batches.map((_, i) => cds.tx(async (tx) => {
+          await Promise.all(batches.map(() => cds.tx(async (tx) => {
             for (const t of iterator) {
               // limit(0) still validates that the query is valid, but improves test execution time
               await tx.run(SELECT([t]).from(target).limit(0))
