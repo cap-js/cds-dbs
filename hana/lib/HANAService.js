@@ -526,32 +526,26 @@ class HANAService extends SQLService {
     }
 
     SELECT_recurse(q) {
-      let { from, expand, columns, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
-        q.SELECT
+      let { from, columns, where, recurse, _internal } = q.SELECT
 
-      const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true, RANK: true }
+      const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
+      if (!_internal) requiredComputedColumns.RANK = true
       const addComputedColumn = (name) => {
         if (requiredComputedColumns[name]) return
         requiredComputedColumns[name] = true
       }
 
-      const distanceIndex = recurse.where?.findIndex(xpr => xpr?.ref?.[0] in { Distance: 1, DistanceFromRoot: 1 }) ?? -1
-      const distanceType = recurse.where?.[distanceIndex]?.ref[0]
-      const direction = distanceIndex < 0
-        ? where?.length
-          ? 'ANCESTORS'
-          : 'DESCENDANTS'
-        : recurse.where[distanceIndex + 1] in { '=': 1, 'between': 1 }
-          ? recurse.where[distanceIndex + 2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
-          : recurse.where[distanceIndex + 1] === '<=' && where?.length
-            ? 'ANCESTORS'
-            : 'DESCENDANTS'
-      if (distanceIndex > -1) addComputedColumn(distanceType)
-
-      // DrillState Where clause
-      const dsw = recurse.where
-      const dst = dsw?.[0]?.ref[0]
-      if (dst) addComputedColumn(dst)
+      const distanceType = recurse.where?.[0]?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurse.where?.[0]?.ref?.[0]
+      // Determine direction based upon whether the distance is negative or positive
+      const direction = !distanceType || recurse.where[1] in { '<': 1, '<=': 1 }
+        ? where?.length ? 'ANCESTORS' : 'DESCENDANTS' // If no where clause is provided it has to be toplevel
+        : recurse.where[1] in { '=': 1, 'between': 1 } // First val of between is the lowest number according to SQL specification
+          ? recurse.where[2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
+          : recurse.where[1] in { '>': 1, '>=': 1 }
+            ? 'DESCENDANTS'
+            : cds.error`Invalid recurse.where: ${JSON.stringify(recurse.where)}`
+      // Ensure that the distance value is being computed
+      if (distanceType) addComputedColumn(distanceType)
 
       // TODO: convert computed columns to cqn for better SQL generation
       const availableComputedColumns = {
@@ -559,21 +553,12 @@ class HANAService extends SQLService {
         PARENT_ID: false,
         NODE_ID: false,
 
-        // Sub Graph computed columns
-        RANK: `(HIERARCHY_RANK-1) AS ${this.quote('RANK')}`,
-        Distance: `HIERARCHY_DISTANCE AS ${this.quote('Distance')}`,
-        DistanceFromRoot: `(HIERARCHY_LEVEL-1) AS ${this.quote('DistanceFromRoot')}`,
-        DrillState: `CASE WHEN HIERARCHY_TREE_SIZE = 1 THEN 'leaf'${where?.length
-          ? ` WHEN HIERARCHY_DISTANCE = 0 THEN 'leaf'`
-          : ''
-          } ${dsw
-            ? `WHEN ${dst === 'DistanceFromRoot'
-              ? `NOT HIERARCHY_LEVEL ${dsw[1]} ${dsw[2].val}`
-              : `NOT HIERARCHY_DISTANCE ${dsw[1]} ${dsw[2].val - 1}`
-            } THEN 'collapsed' ELSE 'expanded'`
-            : `ELSE 'expanded'`
-          } END AS ${this.quote('DrillState')}`,
-        LimitedDescendantCount: `(HIERARCHY_TREE_SIZE - 1) AS ${this.quote('LimitedDescendantCount')}`,
+        // Output computed columns
+        RANK: { xpr: [{ ref: ['HIERARCHY_RANK'] }, '-', { val: 1, param: false }], as: 'RANK' },
+        Distance: { ref: ['HIERARCHY_DISTANCE'], as: 'Distance' },
+        DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
+        DrillState: false,
+        LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
       }
 
       const columnsFiltered = columns
@@ -581,13 +566,14 @@ class HANAService extends SQLService {
           if (x.element?.isAssociation) return false
           const name = this.column_name(x)
           if (name === '$$RN$$') return false
-          if (name in availableComputedColumns) {
+          // REVISIT: ensure that the selected column is one of the hierarchy computed columns by unifying their common definition
+          if (x.element?.['@Core.Computed'] && name in availableComputedColumns) {
             addComputedColumn(name)
             return false
           }
           return true
         })
-      const columnsAliased = columnsFiltered
+      const columnsIn = columnsFiltered
         .map(x => {
           const name = this.column_name(x)
           if (name.toUpperCase() in requiredComputedColumns) {
@@ -595,9 +581,6 @@ class HANAService extends SQLService {
           }
           return x
         })
-
-      // TODO: move column_expr down to where the SQL is generated for correct `values` generation
-      const columnsIn = columnsAliased.map(x => this.column_expr(x))
 
       const nodeKeys = []
       const parentKeys = []
@@ -608,16 +591,21 @@ class HANAService extends SQLService {
       })
 
       columnsIn.push(
-        `${nodeKeys.length === 1 ? nodeKeys : `HIERARCHY_COMPOSITE_ID(${nodeKeys})`} AS NODE_ID`,
-        `${parentKeys.length === 1 ? parentKeys : `HIERARCHY_COMPOSITE_ID(${parentKeys})`} as PARENT_ID`,
+        nodeKeys.length === 1
+          ? { ref: nodeKeys, as: 'NODE_ID' }
+          : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ ref: [n] })), as: 'NODE_ID' },
+        parentKeys.length === 1
+          ? { ref: parentKeys, as: 'PARENT_ID' }
+          : { func: 'HIERARCHY_COMPOSITE_ID', args: parentKeys.map(n => ({ ref: [n] })), as: 'PARENT_ID' },
       )
 
       const alias = q.SELECT.from.as
-      const source = () => `HIERARCHY(SOURCE (SELECT ${columnsIn} FROM ${this.from(from, q)})) AS ${this.quote(alias)}`
+      const source = () => `HIERARCHY(SOURCE(SELECT ${columnsIn.map(c => this.column_expr(c, q))} FROM ${this.from(from, q)})) AS ${this.quote(alias)}`
 
-      // TODO: unify these two arrays as all expanded nodes with distance 1 should be using the same list cqn
-      const expandedNodes = []
-      const expandedFilter = []
+      const expandedByNr = { list: [] }
+      const expandedByOne = { list: [] }
+      const expandedByZero = { list: [] }
+      let expandedFilter = []
       if (recurse.where) for (let i = 0; i < recurse.where.length; i++) {
         let cur = {}
         let keys = false
@@ -626,10 +614,16 @@ class HANAService extends SQLService {
           const c = recurse.where[i]
           if (c === 'or' || i === recurse.where.length) {
             if (keys) { // TODO: when distance is above 1 a join for all children has to be added
-              distance
-              expandedNodes.push(cur)
-              if (expandedFilter.length) expandedFilter.push('or')
-              expandedFilter.push({ ref: ['PARENT_ID'] }, '=', { val: cur[nodeKeys[0]] })
+              const expr = nodeKeys.length === 1
+                ? { val: cur[nodeKeys[0]] }
+                : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
+              switch (distance) {
+                case 1: expandedByOne.list.push(expr)
+                  break;
+                case 0: expandedByZero.list.push(expr)
+                  break;
+                default: expandedByNr.list.push(expr)
+              }
             }
             break
           }
@@ -643,57 +637,126 @@ class HANAService extends SQLService {
             }
             // Collect Distance
             if (c.ref[0] === 'Distance') {
+              if (recurse.where[i + 1] === 'between') i += 2
               i += 2
               distance = recurse.where[i].val
             }
             // Include DistanceFromRoot
             if (c.ref[0] === 'DistanceFromRoot') {
-              if (expandedFilter.length) expandedFilter.push('or')
+              if (expandedFilter.length) cds.error`recurse.where is only allowed to have a single "DistanceFromRoot" ref`
               expandedFilter.push({ ref: ['HIERARCHY_LEVEL'] }, recurse.where[i + 1], { val: recurse.where[i + 2].val + 1 })
               i += 2
             }
           }
         }
       }
-      if (expandedNodes.length) {
-        availableComputedColumns.DrillState = `CASE
-          WHEN HIERARCHY_TREE_SIZE = 1 THEN 'leaf'
-          ${where?.length ? `WHEN HIERARCHY_DISTANCE = 0 THEN 'leaf'` : ''}
-          ${dst === 'DistanceFromRoot' ? `WHEN HIERARCHY_LEVEL ${dsw[1]} ${dsw[2].val} THEN 'expanded'` : ''}
-          WHEN NODE_ID IN (${expandedNodes.map(n => `'${n[nodeKeys[0]]}'`)}) THEN 'expanded'
-          ELSE 'collapsed' 
-        END AS ${this.quote('DrillState')}`
+      availableComputedColumns.DrillState = {
+        xpr: [
+          'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
+          ...(where?.length // When there is a where filter the final node will always be a leaf
+            ? ['WHEN', { ref: ['HIERARCHY_DISTANCE'] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
+            : []
+          ),
+          ...(expandedByZero.list.length
+            ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', expandedByZero, 'THEN', { val: 'collapsed', param: false }]
+            : []
+          ),
+          ...(expandedByNr.list.length || expandedByOne.list.length
+            ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', { list: [...expandedByNr.list, ...expandedByOne.list] }, 'THEN', { val: 'expanded', param: false }]
+            : []
+          ),
+          ...(expandedByOne.list.length
+            ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
+            : []
+          ),
+          ...(distanceType
+            ? ['WHEN', ...(distanceType === 'DistanceFromRoot'
+              ? [{ ref: ['HIERARCHY_LEVEL'] }, '!=', { val: recurse.where[2].val + 1 }]
+              : [{ ref: ['HIERARCHY_DISTANCE'] }, recurse.where[1], { val: recurse.where[2].val - 1 }]
+            ), 'THEN', { val: 'expanded', param: false },
+            ]
+            : []
+          ),
+
+          'ELSE', { val: recurse.where && distanceType ? 'collapsed' : 'expanded', param: false },
+          'END',
+        ],
+        as: 'DrillState'
+      }
+      if (expandedByOne.list.length) {
+        if (expandedFilter.length) expandedFilter.push('OR')
+        expandedFilter.push({ ref: ['PARENT_ID'] }, 'IN', expandedByOne)
       }
 
-      const subColumns = [
+      if (expandedByNr.list.length) {
+        if (expandedFilter.length) expandedFilter.push('OR')
+        expandedFilter.push({ ref: ['NODE_ID'] }, 'IN', {
+          SELECT: {
+            _internal: true,
+            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+            from: q.SELECT.from,
+            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByNr],
+            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+          },
+          target: q.target,
+        })
+      }
+
+      if (expandedByZero.list.length) {
+        expandedFilter = [...(expandedFilter.length
+          ? [{ xpr: expandedFilter }, 'AND']
+          : []
+        ), { ref: ['NODE_ID'] }, 'NOT IN', {
+          SELECT: {
+            _internal: true,
+            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+            from: q.SELECT.from,
+            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByZero],
+            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+          },
+          target: q.target,
+        }]
+      }
+
+      const columnsOut = [
         ...columnsFiltered
           .map(x => {
             const name = this.column_name(x)
             if (name.toUpperCase() in requiredComputedColumns) {
-              return `${this.quote(`$$${name}$$`)} AS ${this.quote(name)}`
+              return { ref: [`$$${name}$$`], as: name }
             }
-            return this.quote(name)
+            return { ref: [name] }
           }),
       ]
 
       for (const name in requiredComputedColumns) {
         const def = availableComputedColumns[name]
-        if (def) subColumns.push(def)
+        if (def) columnsOut.push(def)
       }
+      if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
 
-      const subGraph = `SELECT ${subColumns
-        } FROM HIERARCHY_${direction}(SOURCE ${source()} START ${where
+      const subGraph = `SELECT ${columnsOut.map(c => this.column_expr(c, q))
+        } FROM HIERARCHY_${direction} (SOURCE ${source()} START ${where
           ? `WHERE ${this.where(where)}`
           : `WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])}`
         }${distanceType === 'Distance'
-          ? ` DISTANCE ${recurse.where[1] === '=' ? '' : recurse.where[1] === 'between' ? 'FROM ' : 'TO '}${this.expr(recurse.where[2])}`
+          ? ` DISTANCE ${recurse.where[1] === '='
+            ? ''
+            : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
+              ? 'FROM '
+              : 'TO '
+          }${this.expr(recurse.where[2])
+          }${recurse.where[1] in { 'between': 1 }
+            ? ` TO ${recurse.where[4]}`
+            : ''
+          }`
           : ''
         })${expandedFilter.length
           ? ` WHERE ${this.where(expandedFilter)}`
           : ''
         }`
 
-      return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''}`
+      return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''} `
     }
 
     SELECT_columns(q) {
@@ -760,7 +823,7 @@ class HANAService extends SQLService {
                   }
 
                   // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')}$$`
+                  const as = `$$${col.ref.join('.')} $$`
                   let rename = col.ref[0] !== parent.as
                   let curPar = parent
                   while (curPar) {
@@ -799,7 +862,7 @@ class HANAService extends SQLService {
                         }
 
                         // Inject foreign columns into parent selects (recursively)
-                        const as = `$$${col.ref.join('.')}$$`
+                        const as = `$$${col.ref.join('.')} $$`
                         let rename = col.ref[0] !== parent.as
                         let curPar = parent
                         while (curPar) {
