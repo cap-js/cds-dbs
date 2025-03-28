@@ -121,10 +121,10 @@ class HANAService extends SQLService {
   async onSELECT(req) {
     const { query, data } = req
 
-    if (!query.target || query.target._unresolved) {
+    if (!query._target || query._target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (!query.target || query.target._unresolved) {
+    if (!query._target || query._target._unresolved) {
       return super.onSELECT(req)
     }
 
@@ -1017,9 +1017,9 @@ class HANAService extends SQLService {
       this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0], q)
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || INSERT.into.ref[0], q)
 
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
@@ -1085,7 +1085,7 @@ class HANAService extends SQLService {
       // - Object JSON INSERT (1x)
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_rows(q)
       }
@@ -1114,16 +1114,16 @@ class HANAService extends SQLService {
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0], q)
-      const elements = q.target?.elements || {}
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || UPSERT.into.ref[0], q)
+      const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
-      let keys = q.target?.keys
+      let keys = q._target?.keys
       if (!keys) return insert
       keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
       // temporal data
-      keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
+      keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
 
       const managed = this.managed(
         this.columns.map(c => ({ name: c })),
