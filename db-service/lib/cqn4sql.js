@@ -5,7 +5,7 @@ cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._ta
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -2401,26 +2401,6 @@ function copy(obj) {
 
 function hasLogicalOr(tokenStream) {
   return tokenStream.some(t => t in { OR: true, or: true })
-}
-
-/**
- * Calculates the implicit table alias for a given string.
- * 
- * Based on the last part of the string, the implicit alias is calculated
- * by taking the first character and prepending it with '$'.
- * A leading '$' is removed if the last part already starts with '$'.
- * 
- * @example
- * getImplicitAlias('Books') => '$B'
- * getImplicitAlias('bookshop.Books') => '$B'
- * getImplicitAlias('bookshop.$B') => '$B'
- * 
- * @param {string} str - The input string.
- * @returns {string} 
- */
-function getImplicitAlias(str) {
-  const index = str.lastIndexOf('.')
-  return '$' + (index != -1 ? str.substring(index + 1) : str).replace(/^\$/, '')[0]
 }
 
 function getParentEntity(element) {

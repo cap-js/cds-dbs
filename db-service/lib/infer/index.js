@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -136,27 +136,6 @@ function infer(originalQuery, model) {
       infer(from, model)
     }
     return querySources
-  }
-
-  /**
-   * Returns the implicit alias for a given string (potentially with dots).
-   * 
-   * The baseline for the implicit alias is the last part of the string after the last dot.
-   * If the string does not contain a dot, the whole string is the baseline.
-   * 
-   * The implicit alias is the first character of the baseline, prefixed with a dollar sign.
-   * If the `useTechnicalAlias` flag is set to `false`, the implicit alias is the baseline itself.
-   * --> this is the case for custom join queries, to be more in line with sql aliasing
-   * 
-   * @param {string} name - The name of the definition to retrieve.
-   * @returns {object} The definition of the given `name`.
-   */
-  function getImplicitAlias(str, useTechnicalAlias = true) {
-    const index = str.lastIndexOf('.')
-    if(useTechnicalAlias)
-      return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
-    
-    return index != -1 ? str.substring(index + 1) : str
   }
 
   /**
