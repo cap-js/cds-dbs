@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
-cds.infer.target = q => q._target || q.target // instanceof cds.entity ? q._target : q.target
+cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')

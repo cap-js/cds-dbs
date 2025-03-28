@@ -2,8 +2,7 @@ const assert = require('assert')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('from', () => {
     test('table', async () => {
@@ -526,7 +525,7 @@ describe('SELECT', () => {
         let res
         try {
           res = await tx.run(query)
-        } catch (err) { 
+        } catch (err) {
           if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
           throw err
         }
@@ -774,7 +773,7 @@ describe('SELECT', () => {
     beforeAll(async () => {
       oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
       cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+        cds.db.pools._factory.options.acquireTimeoutMillis = isSQLite() ? 11: 1000
     })
 
     afterAll(() => {
@@ -1445,20 +1444,15 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list',
+      'SELECT' // REVISIT: this is horribly expensive, blocking a single worker for 11+ seconds -> do we really need this, that way?
+    ]) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const batches = new Array(1).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
-
           const { [targetName]: target } = cds.entities
-          await Promise.all(batches.map(() => cds.tx(async (tx) => {
-            for (const t of iterator) {
-              // limit(0) still validates that the query is valid, but improves test execution time
-              await tx.run(SELECT([t]).from(target).limit(0))
-            }
-          })))
+          await cds.run ([...iterator].map(t => SELECT([t]).from(target).limit(0)))
         })
       })
     }
