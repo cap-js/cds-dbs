@@ -95,7 +95,7 @@ describe('negative', () => {
     })
 
     it('$self reference is not found in the query elements -> infer hints alternatives', () => {
-      let query = cds.ql`SELECT from bookshop.Books { ID, $self.author }`
+      let query = cds.ql`SELECT from bookshop.Books as Books { ID, $self.author }`
       expect(() => _inferred(query)).to.throw(
         /"author" not found in the columns list of query, did you mean "Books.author"?/, // revisit: error message
       )
@@ -185,27 +185,27 @@ describe('negative', () => {
       // queries with multiple sources are not supported for cqn4sql transformation  (at least for now)
       // however, such queries can still be inferred
       it('element reference is ambiguous', () => {
-        let query = cds.ql`SELECT from bookshop.Books, bookshop.Authors { ID }`
+        let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Authors as Authors { ID }`
         expect(() => _inferred(query)).to.throw(/ambiguous reference to "ID", write "Books.ID", "Authors.ID" instead/)
       })
 
       it('table alias is ambiguous', () => {
-        let query = cds.ql`SELECT from bookshop.Books, bookshop.Books { * }`
+        let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Books as Books { * }`
         expect(() => _inferred(query)).to.throw(/Duplicate alias "Books"/)
       })
 
       it('table alias via association is ambiguous', () => {
-        let query = cds.ql`SELECT from bookshop.Books:author join bookshop.Books:author on 1 = 1 { * }`
+        let query = cds.ql`SELECT from bookshop.Books:author as author join bookshop.Books:author as author on 1 = 1 { * }`
         expect(() => _inferred(query)).to.throw(/Duplicate alias "author"/)
       })
 
       it('wildcard (no projection) is ambiguous', () => {
-        let query = cds.ql`SELECT from bookshop.Books, bookshop.Foo`
+        let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Foo as Foo`
         expect(() => _inferred(query)).to.throw(/select "ID" explicitly with "Books.ID", "Foo.ID"/)
       })
 
       it('wildcard (*) is ambiguous', () => {
-        let query = cds.ql`SELECT from bookshop.Books, bookshop.Authors { * }`
+        let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Authors as Authors { * }`
         expect(() => _inferred(query)).to.throw(
           `Ambiguous wildcard elements:
        select "createdAt" explicitly with "Books.createdAt", "Authors.createdAt"
@@ -217,7 +217,7 @@ describe('negative', () => {
       })
 
       it('wildcard (*) is ambiguous with subqueries', () => {
-        let query = cds.ql`SELECT from (select from bookshop.Books) as BooksSub, bookshop.Authors { * }`
+        let query = cds.ql`SELECT from (select from bookshop.Books) as BooksSub, bookshop.Authors as Authors { * }`
         expect(() => _inferred(query)).to.throw(
           `Ambiguous wildcard elements:
        select "createdAt" explicitly with "BooksSub.createdAt", "Authors.createdAt"
@@ -432,7 +432,7 @@ describe('negative', () => {
 
   describe('order by', () => {
     it('reject join relevant path via queries own columns', () => {
-      let query = cds.ql`SELECT from bookshop.Books  {
+      let query = cds.ql`SELECT from bookshop.Books as Books  {
         ID,
         author,
         coAuthor as co

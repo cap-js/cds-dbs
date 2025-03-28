@@ -421,7 +421,7 @@ entity Unmanaged {
 
 entity Item {
   key ID: Integer;
-  item: Association to Item;
+  Item: Association to Item;
 }
 
 entity Posts {
@@ -429,4 +429,16 @@ entity Posts {
   name: String;
   iSimilar: Association to many Posts on UPPER(name) = UPPER(iSimilar.name);
   iSimilarNested: Association to many Posts on UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(name)), name); 
+}
+
+entity ![$special] {
+  key ID: Integer;
+  name: String;
+  ![$special] : Association to ![$special];
+}
+
+entity ![$] {
+  key ID: Integer;
+  name: String;
+  ![$] : Association to ![$];
 }

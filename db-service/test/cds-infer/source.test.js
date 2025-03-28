@@ -47,7 +47,7 @@ describe('scoped queries', () => {
   })
 
   it('select from association', () => {
-    let query = cds.ql`SELECT from bookshop.Books:author { ID }`
+    let query = cds.ql`SELECT from bookshop.Books:author as author { ID }`
     let inferred = _inferred(query)
 
     let { Authors } = model.entities
@@ -58,13 +58,13 @@ describe('scoped queries', () => {
     expect(Object.keys(inferred.elements)).to.have.lengthOf(query.SELECT.columns.length)
   })
   it('navigate along multiple assocs', () => {
-    let query = cds.ql`SELECT from bookshop.Books:author.books`
+    let query = cds.ql`SELECT from bookshop.Books:author.books as books`
     let inferred = _inferred(query)
     let { Books } = model.entities
     expect(inferred.sources).to.have.nested.property('books.definition', Books)
   })
   it('multiple assocs with filter', () => {
-    let query = cds.ql`SELECT from bookshop.Books[201]:author[111].books`
+    let query = cds.ql`SELECT from bookshop.Books[201]:author[111].books as books`
     let inferred = _inferred(query)
     let { Books } = model.entities
     expect(inferred.sources).to.have.nested.property('books.definition', Books)
@@ -77,7 +77,7 @@ describe('subqueries', () => {
   })
 
   it('subquery in from', () => {
-    let query = cds.ql`SELECT from (select from bookshop.Books { ID as barID }) as Bar { barID }`
+    let query = cds.ql`SELECT from (select from bookshop.Books as Books { ID as barID }) as Bar { barID }`
     let inferred = _inferred(query)
 
     let { Books } = model.entities
@@ -89,7 +89,7 @@ describe('subqueries', () => {
   })
 
   it('subquery in from with wildcard', () => {
-    let query = cds.ql`SELECT from (select from bookshop.Books) as Bar { ID, author }`
+    let query = cds.ql`SELECT from (select from bookshop.Books as Books) as Bar { ID, author }`
     let inferred = _inferred(query)
 
     let { Books } = model.entities
@@ -127,7 +127,7 @@ describe('multiple sources', () => {
 
   it('infers multiple table aliases as the queries source with a nested join', () => {
     let inferred = _inferred(cds.ql`
-    SELECT from bookshop.Books:author as Authors join bookshop.Books on 1 = 1 join bookshop.Foo on 1 = 1 {
+    SELECT from bookshop.Books:author as Authors join bookshop.Books as Books on 1 = 1 join bookshop.Foo As Foo on 1 = 1 {
       Authors.ID as aID,
       Books.ID as bID,
       Foo.ID as fooID

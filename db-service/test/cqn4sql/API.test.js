@@ -14,7 +14,7 @@ describe('Repetitive calls to cqn4sql must work', () => {
   })
 
   it('query can be extended by another element', () => {
-    const original = cds.ql`SELECT from bookshop.Books { ID }`
+    const original = cds.ql`SELECT from bookshop.Books as Books { ID }`
     let query = cqn4sql(original, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID }`)
     original.SELECT.columns.push({ ref: ['title'] })
@@ -27,14 +27,14 @@ describe('Repetitive calls to cqn4sql must work', () => {
       SELECT from bookshop.Books as Books
       { Books.ID, Books.title }
       WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+        SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID
       )
      `,
     )
   })
 
   it('accepts empty select list', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books { }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { }`)
   })
 
