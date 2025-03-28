@@ -92,7 +92,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources) {
+  function inferTarget(from, querySources, useTechnicalAlias = true) {
     const { ref } = from
     if (ref) {
       const { id, args } = ref[0]
@@ -114,14 +114,14 @@ function infer(originalQuery, model) {
       from.uniqueSubqueryAlias ||
       from.as ||
       (ref.length === 1
-        ? getImplicitAlias(first)
-        : getImplicitAlias(ref.at(-1).id || ref.at(-1)));    
+        ? getImplicitAlias(first, useTechnicalAlias)
+        : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias));    
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
-      from.args.forEach(a => inferTarget(a, querySources))
+      from.args.forEach(a => inferTarget(a, querySources, false))
     } else if (from.SELECT) {
       const subqueryInFrom = infer(from, model) // we need the .elements in the sources
       // if no explicit alias is provided, we make up one
@@ -131,16 +131,32 @@ function infer(originalQuery, model) {
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
-      querySources[getImplicitAlias(from)] = { definition }
+      querySources[getImplicitAlias(from, useTechnicalAlias)] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }
     return querySources
   }
 
-  function getImplicitAlias(str) {
+  /**
+   * Returns the implicit alias for a given string (potentially with dots).
+   * 
+   * The baseline for the implicit alias is the last part of the string after the last dot.
+   * If the string does not contain a dot, the whole string is the baseline.
+   * 
+   * The implicit alias is the first character of the baseline, prefixed with a dollar sign.
+   * If the `useTechnicalAlias` flag is set to `false`, the implicit alias is the baseline itself.
+   * --> this is the case for custom join queries, to be more in line with sql aliasing
+   * 
+   * @param {string} name - The name of the definition to retrieve.
+   * @returns {object} The definition of the given `name`.
+   */
+  function getImplicitAlias(str, useTechnicalAlias = true) {
     const index = str.lastIndexOf('.')
-    return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
+    if(useTechnicalAlias)
+      return '$'+(index != -1 ? str.substring(index + 1) : str)[0]
+    
+    return index != -1 ? str.substring(index + 1) : str
   }
 
   /**

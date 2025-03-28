@@ -109,7 +109,7 @@ describe('multiple sources', () => {
   })
   it('infers multiple table aliases as the queries source with a simple cross join', () => {
     let inferred = _inferred(cds.ql`
-    SELECT from bookshop.Books:author as A, bookshop.Books as Books {
+    SELECT from bookshop.Books:author as A, bookshop.Books {
       A.ID as aID,
       Books.ID as bID,
       Books.author.name as authorName

@@ -229,7 +229,7 @@ describe('infer elements', () => {
   })
   describe('multiple sources', () => {
     it('supports queries based on multiple sources without projections', () => {
-      let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Receipt as Receipt`
+      let query = cds.ql`SELECT from bookshop.Books, bookshop.Receipt`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
@@ -240,7 +240,7 @@ describe('infer elements', () => {
     })
 
     it('supports queries based on multiple sources with a *', () => {
-      let query = cds.ql`SELECT from bookshop.Books as Books, bookshop.Receipt as Receipt { * }`
+      let query = cds.ql`SELECT from bookshop.Books, bookshop.Receipt { * }`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
