@@ -258,6 +258,10 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
+  SELECT_recurse() {
+    cds.error`Feature "recurse" queries not supported.`
+  }
+
   /**
    * Renders a column clause into generic SQL
    * @param {import('./infer/cqn').SELECT} param0

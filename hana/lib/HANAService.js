@@ -735,7 +735,9 @@ class HANAService extends SQLService {
       }
       if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
 
-      const subGraph = `SELECT ${columnsOut.map(c => this.column_expr(c, q))
+      const subGraph = distanceType === 'DistanceFromRoot' && !where
+        ? `SELECT ${columnsOut.map(c => this.column_expr(c, q))} FROM ${source()} WHERE ${this.where(expandedFilter)}`
+        : `SELECT ${columnsOut.map(c => this.column_expr(c, q))
         } FROM HIERARCHY_${direction} (SOURCE ${source()} START ${where
           ? `WHERE ${this.where(where)}`
           : `WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])}`
