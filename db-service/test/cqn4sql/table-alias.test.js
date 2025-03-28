@@ -9,7 +9,7 @@ describe('table alias access', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  describe.only('implicit aliasing', () => {
+  describe('implicit aliasing', () => {
     it('can handle entities beginning with $', () => {
       const query = cds.ql`SELECT from bookshop.![$special] { ID }`
       const result = cqn4sql(query, model)
