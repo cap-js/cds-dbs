@@ -533,7 +533,7 @@ class CQN2SQLRenderer {
   INSERT_entries(q) {
     const { INSERT } = q
     const transitions = cds.ql.resolve.transitions4db(q, this.srv)
-    const elements = q.elements || transitions.target.elements || q.target?.elements
+    const elements = q.elements || q.target?.elements
     if (!elements && !INSERT.entries?.length) {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
@@ -572,7 +572,7 @@ class CQN2SQLRenderer {
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
-      }) SELECT ${extractions.map(c => c.insert)} FROM json_each(?)`)
+      }) SELECT ${extractions.slice(0, columns.length).map(c => c.insert)} FROM json_each(?)`)
   }
 
   async *INSERT_entries_stream(entries, binaryEncoding = 'base64') {
@@ -834,7 +834,8 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const transitions = cds.ql.resolve.transitions4db(q, this.srv)
-    const elements = transitions.target?.elements
+    const elements = q.target?.elements
+    
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
@@ -850,17 +851,19 @@ class CQN2SQLRenderer {
           && !transitions.target.elements[c].value
           && !transitions.target.elements[c].isAssociation
         if (!elements || columnExistsInDatabase) {
-          columns.push({ name: c, sql: sql4(data[c]) })
+          columns.push({ name: c, sql: sql4(data[col], col) })
         }
       }
     }
 
     const extraction = this.managed(columns, elements)
-      .filter((c, i) => columns[i] || c.onUpdate)
-      .map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
+      .filter((c, i) => {
+        if(transitions.mapping.get(c.name)?.ref?.length > 1) return false
+        return columns[i] || c.onUpdate
+      }).map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
     sql += ` SET ${extraction}`
-    if (where) sql += ` WHERE ${this.where(where)}`
+    if (where) sql += ` WHERE ${this.where_resolved(entity, where, q)}`
     return (this.sql = sql)
   }
 
