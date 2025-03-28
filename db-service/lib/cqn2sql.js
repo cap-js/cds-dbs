@@ -226,7 +226,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').SELECT} q
    */
   SELECT(q) {
-    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock } =
+    let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
       q.SELECT
 
     if (from?.join && !q.SELECT.columns) {
@@ -239,12 +239,13 @@ class CQN2SQLRenderer {
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
     if (!_empty(columns)) sql += ` ${columns}`
-    if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
+    if (recurse) sql += ` FROM ${this.SELECT_recurse(q)}`
+    else if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
     else sql += this.from_dummy()
-    if (!_empty(where)) sql += ` WHERE ${this.where(where)}`
-    if (!_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
-    if (!_empty(having)) sql += ` HAVING ${this.having(having)}`
-    if (!_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
+    if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where)}`
+    if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
+    if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having)}`
+    if (!recurse && !_empty(orderBy)) sql += ` ORDER BY ${this.orderBy(orderBy, localized)}`
     if (one) limit = Object.assign({}, limit, { rows: { val: 1 } })
     if (limit) sql += ` LIMIT ${this.limit(limit)}`
     if (forUpdate) sql += ` ${this.forUpdate(forUpdate)}`
@@ -255,6 +256,10 @@ class CQN2SQLRenderer {
       else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
     return (this.sql = sql)
+  }
+
+  SELECT_recurse() {
+    cds.error`Feature "recurse" queries not supported.`
   }
 
   /**
