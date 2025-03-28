@@ -535,7 +535,8 @@ class HANAService extends SQLService {
         requiredComputedColumns[name] = true
       }
 
-      const distanceType = recurse.where?.[0]?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurse.where?.[0]?.ref?.[0]
+      const recurseWhereRefZero = recurse.where?.[0]?.xpr ? recurse.where?.[0]?.xpr?.[0] : recurse.where?.[0]
+      const distanceType = recurseWhereRefZero?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurseWhereRefZero.ref[0]
       // Determine direction based upon whether the distance is negative or positive
       const direction = !distanceType || recurse.where[1] in { '<': 1, '<=': 1 }
         ? where?.length ? 'ANCESTORS' : 'DESCENDANTS' // If no where clause is provided it has to be toplevel
@@ -606,50 +607,13 @@ class HANAService extends SQLService {
       const expandedByOne = { list: [] }
       const expandedByZero = { list: [] }
       let expandedFilter = []
-      if (recurse.where) for (let i = 0; i < recurse.where.length; i++) {
-        let cur = {}
-        let keys = false
-        let distance = null
-        for (; i < recurse.where.length + 1; i++) {
-          const c = recurse.where[i]
-          if (c === 'or' || i === recurse.where.length) {
-            if (keys) { // TODO: when distance is above 1 a join for all children has to be added
-              const expr = nodeKeys.length === 1
-                ? { val: cur[nodeKeys[0]] }
-                : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
-              switch (distance) {
-                case 1: expandedByOne.list.push(expr)
-                  break;
-                case 0: expandedByZero.list.push(expr)
-                  break;
-                default: expandedByNr.list.push(expr)
-              }
-            }
-            break
-          }
-          if (c.ref) {
-            // Collect keys
-            if (nodeKeys.includes(c.ref[0])) {
-              keys = true
-              i += 2
-              cur[c.ref[0]] = recurse.where[i].val
-              continue
-            }
-            // Collect Distance
-            if (c.ref[0] === 'Distance') {
-              if (recurse.where[i + 1] === 'between') i += 2
-              i += 2
-              distance = recurse.where[i].val
-            }
-            // Include DistanceFromRoot
-            if (c.ref[0] === 'DistanceFromRoot') {
-              if (expandedFilter.length) cds.error`recurse.where is only allowed to have a single "DistanceFromRoot" ref`
-              expandedFilter.push({ ref: ['HIERARCHY_LEVEL'] }, recurse.where[i + 1], { val: recurse.where[i + 2].val + 1 })
-              i += 2
-            }
-          }
-        }
+
+      if (recurse.where && !distanceType || distanceType === 'DistanceFromRoot') {
+        if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
+        expandedFilter = [...recurse.where]
+        collectDistanceTo(expandedFilter)
       }
+
       availableComputedColumns.DrillState = {
         xpr: [
           'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
@@ -682,40 +646,6 @@ class HANAService extends SQLService {
           'END',
         ],
         as: 'DrillState'
-      }
-      if (expandedByOne.list.length) {
-        if (expandedFilter.length) expandedFilter.push('OR')
-        expandedFilter.push({ ref: ['PARENT_ID'] }, 'IN', expandedByOne)
-      }
-
-      if (expandedByNr.list.length) {
-        if (expandedFilter.length) expandedFilter.push('OR')
-        expandedFilter.push({ ref: ['NODE_ID'] }, 'IN', {
-          SELECT: {
-            _internal: true,
-            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
-            from: q.SELECT.from,
-            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByNr],
-            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
-          },
-          target: q.target,
-        })
-      }
-
-      if (expandedByZero.list.length) {
-        expandedFilter = [...(expandedFilter.length
-          ? [{ xpr: expandedFilter }, 'AND']
-          : []
-        ), { ref: ['NODE_ID'] }, 'NOT IN', {
-          SELECT: {
-            _internal: true,
-            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
-            from: q.SELECT.from,
-            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByZero],
-            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
-          },
-          target: q.target,
-        }]
       }
 
       const columnsOut = [
@@ -759,6 +689,55 @@ class HANAService extends SQLService {
         }`
 
       return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''} `
+
+      function collectDistanceTo(where, innot = false) {
+        for (let i = 0; i < where.length; i++) {
+          const c = where[i]
+          if (c === 'not') innot = true
+          if (c.xpr) {
+            where[i] = { xpr: [...c.xpr] }
+            collectDistanceTo(c.xpr, innot)
+          }
+          else if (c.func === 'DistanceTo') {
+            const expr = c.args[0]
+            // { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
+            const to = c.args[1].val
+            const list = to === 1
+              ? expandedByOne
+              : innot
+                ? expandedByZero
+                : expandedByNr
+
+            if (!list.list.length) {
+              where.splice(i, 1,
+                ...(to === 1
+                  ? [{ ref: ['PARENT_ID'] }, 'IN', list]
+                  : [{ ref: ['NODE_ID'] }, 'IN', {
+                    SELECT: {
+                      _internal: true,
+                      columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+                      from: q.SELECT.from,
+                      where: [{ ref: ['NODE_ID'] }, 'IN', list],
+                      recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+                    },
+                    target: q.target,
+                  }])
+              )
+              i += 2
+            } else {
+              // Remove current entry from where
+              where.splice(i - 1, 2)
+              i -= 2
+            }
+            list.list.push(expr)
+          }
+          else if (c.ref?.[0] === 'DistanceFromRoot') {
+            where[i] = { ref: ['HIERARCHY_LEVEL'] }
+            i += 2
+            where[i] = { val: where[i].val + 1 }
+          }
+        }
+      }
     }
 
     SELECT_columns(q) {
