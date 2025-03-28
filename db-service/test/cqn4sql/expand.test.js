@@ -1090,7 +1090,7 @@ describe('Unfold expands on associations to special subselects', () => {
         where $t.Item_ID = $I.ID
       ) as Item
     }`
-    expect(JSON.parse(JSON.stringify(cqn4sql(q)))).to.eql(expected)
+    expect(JSON.parse(JSON.stringify(cqn4sql(q, model)))).to.eql(expected)
   })
 })
 
