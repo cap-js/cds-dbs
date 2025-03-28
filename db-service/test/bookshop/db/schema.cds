@@ -421,7 +421,7 @@ entity Unmanaged {
 
 entity Item {
   key ID: Integer;
-  item: Association to Item;
+  Item: Association to Item;
 }
 
 entity Posts {

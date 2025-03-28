@@ -1737,8 +1737,11 @@ function cqn4sql(originalQuery, model) {
            * the table alias of the `expand` host to the join tree
            * --> This is an artificial query, which will later be correlated
            * with the main query alias. see @function expandColumn()
+           * There is one exception:
+           * - if current and next have the same alias, we need to assign a new alias to the next
+           *                          
            */
-          if (!(inferred.SELECT?.expand === true)) {
+          if (!(inferred.SELECT?.expand === true && current.alias.toLowerCase() !== as.toLowerCase())) {
             as = getNextAvailableTableAlias(as)
           }
           next.alias = as

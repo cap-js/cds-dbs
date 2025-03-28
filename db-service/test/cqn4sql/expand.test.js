@@ -1077,6 +1077,21 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     `)
   })
+
+  it('assign unique subquery alias if implicit alias would be ambiguous', () => {
+    const q = cds.ql`SELECT from bookshop.Item as $t {
+      Item {
+        ID
+      }
+    }`
+    const expected = cds.ql`SELECT from bookshop.Item as $t {
+      (
+        SELECT $I.ID from bookshop.Item as $I
+        where $t.Item_ID = $I.ID
+      ) as Item
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(q)))).to.eql(expected)
+  })
 })
 
 describe('Expands with aggregations are special', () => {
