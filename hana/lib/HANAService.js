@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
  * @implements SQLService
@@ -112,6 +113,9 @@ class HANAService extends SQLService {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$valid.to'] || variables['$valid.from']) variables['TEMPORAL_SYSTEM_TIME_AS_OF'] = variables['$valid.to'] < variables['$valid.from']
+      ? variables['$valid.to']
+      : variables['$valid.from']
     if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
     if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
 
@@ -1025,7 +1029,7 @@ class HANAService extends SQLService {
       }
 
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !elements[c][SYSTEM_VERSIONED])
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
