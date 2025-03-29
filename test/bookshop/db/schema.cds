@@ -12,8 +12,14 @@ entity Books : managed {
       descr          : localized String(1111);
       author         : Association to Authors;
       genre          : Association to Genres default 10;
+      @assert.constraint.stockNotEmpty : {
+        condition: ( stock >= 0 ),
+        message: 'STOCK_NOT_EMPTY',
+        parameters: [title, ID]     // to be inserted into the message
+      }
       stock          : Integer;
       price          : Decimal;
+      dummyDecimal   : Decimal;
       currency       : Currency;
       image          : LargeBinary @Core.MediaType: 'image/png';
       footnotes      : array of String;
@@ -24,6 +30,11 @@ entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
       dateOfBirth  : Date;
+      @assert.constraint : {
+        condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
+        message: 'LIFE_BEFORE_DEATH',
+        parameters: [name, dateOfBirth, dateOfDeath]
+      }
       dateOfDeath  : Date;
       placeOfBirth : String;
       placeOfDeath : String;
@@ -42,6 +53,8 @@ entity Genres : sap.common.CodeList {
       children : Composition of many Genres
                    on children.parent = $self;
 }
+
+annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [name], message: 'GENRE_NAME_TOO_LONG'};
 
 entity A : managed {
   key ID  : Integer;
