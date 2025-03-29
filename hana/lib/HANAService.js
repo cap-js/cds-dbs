@@ -601,7 +601,11 @@ class HANAService extends SQLService {
       )
 
       const alias = q.SELECT.from.as
-      const source = () => `HIERARCHY(SOURCE(SELECT ${columnsIn.map(c => this.column_expr(c, q))} FROM ${this.from(from, q)})) AS ${this.quote(alias)}`
+      const source = () => ({
+        func: 'HIERARCHY',
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from, } }] }],
+        as: alias
+      })
 
       const expandedByNr = { list: [] }
       const expandedByOne = { list: [] }
@@ -635,7 +639,7 @@ class HANAService extends SQLService {
           ),
           ...(distanceType
             ? ['WHEN', ...(distanceType === 'DistanceFromRoot'
-              ? [{ ref: ['HIERARCHY_LEVEL'] }, '!=', { val: recurse.where[2].val + 1 }]
+              ? [{ ref: ['HIERARCHY_LEVEL'] }, '<>', { val: recurse.where[2].val + 1 }]
               : [{ ref: ['HIERARCHY_DISTANCE'] }, recurse.where[1], { val: recurse.where[2].val - 1 }]
             ), 'THEN', { val: 'expanded', param: false },
             ]
@@ -665,30 +669,43 @@ class HANAService extends SQLService {
       }
       if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
 
-      const subGraph = distanceType === 'DistanceFromRoot' && !where
-        ? `SELECT ${columnsOut.map(c => this.column_expr(c, q))} FROM ${source()} WHERE ${this.where(expandedFilter)}`
-        : `SELECT ${columnsOut.map(c => this.column_expr(c, q))
-        } FROM HIERARCHY_${direction} (SOURCE ${source()} START ${where
-          ? `WHERE ${this.where(where)}`
-          : `WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])}`
-        }${distanceType === 'Distance'
-          ? ` DISTANCE ${recurse.where[1] === '='
-            ? ''
-            : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
-              ? 'FROM '
-              : 'TO '
-          }${this.expr(recurse.where[2])
-          }${recurse.where[1] in { 'between': 1 }
-            ? ` TO ${recurse.where[4]}`
-            : ''
-          }`
-          : ''
-        })${expandedFilter.length
-          ? ` WHERE ${this.where(expandedFilter)}`
-          : ''
-        }`
+      const graph = distanceType === 'DistanceFromRoot' && !where
+        ? { SELECT: { columns: columnsOut, from: source(), where: expandedFilter } }
+        : {
+          SELECT: {
+            columns: columnsOut,
+            from: {
+              func: `HIERARCHY_${direction}`,
+              args: [{
+                xpr: [
+                  'SOURCE', source(), 'AS', this.quote(alias),
+                  'START', 'WHERE', {
+                    xpr: where // Requires special where logic before being put into the args
+                      ? this.is_comparator({ xpr: where }) ? where : [...where, '=', { val: true, param: false }]
+                      : [{ ref: ['PARENT_ID'] }, '=', { val: null }]
+                  },
+                  ...(distanceType === 'Distance'
+                    ? ['DISTANCE', ...(
+                      recurse.where[1] === '='
+                        ? []
+                        : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
+                          ? ['FROM']
+                          : ['TO']
+                    ), recurse.where[2], ...(
+                      recurse.where[1] === 'betweem'
+                        ? ['TO', recurse.where[4]]
+                        : []
+                    )]
+                    : []
+                  )
+                ]
+              }]
+            },
+            where: expandedFilter.length ? expandedFilter : undefined
+          }
+        }
 
-      return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''} `
+      return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
 
       function collectDistanceTo(where, innot = false) {
         for (let i = 0; i < where.length; i++) {
@@ -1716,6 +1733,7 @@ const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) |
 const caseOperators = {
   'CASE': 1,
   'WHEN': 1,
+  'WHERE': 1,
   'THEN': 0,
   'ELSE': 0,
 }
