@@ -294,9 +294,9 @@ class CQN2SQLRenderer {
       isRoot && // Simple queries are only allowed to have a root
       !ObjectKeys(q.elements).some(e =>
         _strict_booleans && q.elements[e].type === 'cds.Boolean' || // REVISIT: Booleans require json for sqlite
-        q.elements[e].isAssociation || // Indicates columns contains an expand
+        q.elements[e].elements || // Indicates columns contains an expand
         q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
-        q.elements[e].items // Array types require to be inlined with a json result
+        q.elements[e].items // Arrays / to-many expands require to be inlined with a json result
       )
 
     let cols = SELECT.columns.map(isSimple
