@@ -2049,7 +2049,7 @@ function cqn4sql(originalQuery, model) {
             if (lhs.ref[0] !== assocRefLink.alias && lhs.ref[0] !== targetSideRefLink.alias) {
               // we need to find correct table alias for the structured access
               const { definition } = lhs.$refLinks[0]
-              if (definition === assocRefLink.definition) {
+              if (definition === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]) {
                 // first step is the association itself -> use it's name as it becomes the table alias
                 result[i].ref.splice(0, 1, assocRefLink.alias)
               } else if (
@@ -2067,6 +2067,7 @@ function cqn4sql(originalQuery, model) {
     }
     /**
      * Recursively calculates the containing entity for a given element.
+     * If the query is localized, this function may return the localized entity.
      *
      * @param {CSN.element} element
      * @returns {CSN.definition} the entity containing the given element

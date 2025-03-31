@@ -50,13 +50,13 @@ describe('Bookshop - Read', () => {
   })
 
   test.skip('Books $count in orderby', async () => {
-    const res = await GET(
+    await GET(
       `/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin
     )
   })
 
   test.skip('Books $count in filter', async () => {
-    const res = await GET(
+    await GET(
       `/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin
     )
   })
