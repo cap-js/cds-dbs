@@ -1296,7 +1296,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
           sql.push(this.operator(x, i, xpr, top || iscompareStack.length > 1))
         } else if (x.xpr) sql.push(`(${this.xpr(x, iscompareStack.at(-1))})`)
         // default
-        else sql.push(this.expr(x))
+        else {
+          x.operator = sql[sql.length - 1]
+          sql.push(this.expr(x))
+        }
       }
 
       if (iscompare) {
