@@ -942,7 +942,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').val} param0
    * @returns {string} SQL
    */
-  val({ val, param, operator }) {
+  val({ val, param }) {
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
