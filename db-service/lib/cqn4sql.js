@@ -1944,10 +1944,18 @@ function cqn4sql(originalQuery, model) {
               const definition =
                 prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
               const target = getParentEntity(definition)
-              thing.$refLinks[i] = {
-                definition,
-                target,
-                alias: definition === assocRefLink.definition ? assocRefLink.alias : definition.name,
+              if (definition.name === assocRefLink.definition.name && definition.parent === assocRefLink.definition.parent) {
+                thing.$refLinks[i] = {
+                  definition: assocRefLink.definition, // use the unlocalized version
+                  target,
+                  alias:  assocRefLink.alias,
+                }
+              } else {
+                thing.$refLinks[i] = {
+                  definition,
+                  target,
+                  alias: definition === assocRefLink.definition ? assocRefLink.alias : definition.name,
+                }
               }
               return prev?.elements?.[res] || getDefinition(prev?.target)?.elements[res] || pseudos.elements[res]
             }, assocHost)
@@ -1995,7 +2003,7 @@ function cqn4sql(originalQuery, model) {
             // assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
             else if (
-              lhsFirstDef === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
+              lhsFirstDef === assocRefLink.definition
             )
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(lhs.ref[0] === '$self' ? 2 : 1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
