@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.9.0...sqlite-v1.10.0) (2025-03-31)
+
+
+### Added
+
+* support for HANA history tables ([#1091](https://github.com/cap-js/cds-dbs/issues/1091)) ([cc649b9](https://github.com/cap-js/cds-dbs/commit/cc649b908c422811ae98f41673212d8618a148aa))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.8.0...sqlite-v1.9.0) (2025-03-04)
 
 

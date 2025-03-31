@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.12.0...postgres-v1.13.0) (2025-03-31)
+
+
+### Added
+
+* **collate:** only collate if locale is provided ([#1060](https://github.com/cap-js/cds-dbs/issues/1060)) ([dedd768](https://github.com/cap-js/cds-dbs/commit/dedd768c085aa29be0e38db11f11678ff55d5b7b))
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+* Persist assert_integrity feature ([#1032](https://github.com/cap-js/cds-dbs/issues/1032)) ([2956279](https://github.com/cap-js/cds-dbs/commit/2956279777ac94330c98373d8bca32cf0f8e967e))
+
+
+### Fixed
+
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+
 ## [1.12.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.1...postgres-v1.12.0) (2025-03-04)
 
 
