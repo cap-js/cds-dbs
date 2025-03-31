@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.9.0...sqlite-v1.10.0) (2025-03-31)
+
+
+### Added
+
+* reject recursive cqn queries ([#1089](https://github.com/cap-js/cds-dbs/issues/1089)) ([f09b0f8](https://github.com/cap-js/cds-dbs/commit/f09b0f815c3788349f3d39419990cd1c00963b7d))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.8.0...sqlite-v1.9.0) (2025-03-04)
 
 
