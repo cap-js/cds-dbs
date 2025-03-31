@@ -262,4 +262,14 @@ describe('localized', () => {
       )
     `))
   })
+  it('can handle redirections', () => {
+    const q = SELECT.localized `from bookshop.Third[ID = 4711]:first { BUBU }`
+    let query = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from localized.bookshop.FirstRedirected as $f { $f.BUBU }
+      where exists (
+        SELECT 1 from localized.bookshop.Third as $T where $T.ID = $f.BUBU and $T.ID = 4711
+      )`
+    expect(JSON.parse(JSON.stringify(expected))).to.eql(JSON.parse(JSON.stringify(query)))
+  })
 })
