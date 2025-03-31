@@ -14,6 +14,7 @@ describe('in where', () => {
 
   it('replace ` in <empty array>` in where', () => {
     const original = SELECT.from('bookshop.Books')
+      .alias('Books')
       .columns(['ID'])
       .where({ ID: { in: [] } })
 
@@ -24,7 +25,7 @@ describe('in where', () => {
     )
   })
   it('replace `not in <empty array>` in where', () => {
-    const original = SELECT.from('bookshop.Books').columns(['ID'])
+    const original = SELECT.from('bookshop.Books').alias('Books').columns(['ID'])
     original.SELECT.where = [{ ref: ['ID'] }, 'not', 'in', { list: [] }]
 
     expect(cqn4sql(original, model)).to.deep.equal(
@@ -34,7 +35,9 @@ describe('in where', () => {
     )
   })
   it('replace `in <empty array>` in join condition induced by infix filter', () => {
-    const query = SELECT.from('bookshop.Books').columns({
+    const query = SELECT.from('bookshop.Books')
+    .alias('Books')
+    .columns({
       ref: [{ id: 'author', where: [{ ref: ['name'] }, 'not', 'in', { list: [] }] }, 'ID'],
     })
 
@@ -56,10 +59,10 @@ describe('in where', () => {
 
     expect(cqn4sql(query, model)).to.deep.equal(
       cds.ql`
-      SELECT from bookshop.Authors as author
-       { author.ID }
+      SELECT from bookshop.Authors as $a
+       { $a.ID }
        where exists (
-        SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and Books.title is not null
+        SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID and $B.title is not null
        )
      `,
     )

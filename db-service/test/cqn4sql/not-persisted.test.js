@@ -23,7 +23,7 @@ describe('not persisted', () => {
 
   describe('virtual fields', () => {
     it('remove from columns', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo { ID, virtualField }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo as Foo { ID, virtualField }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo { Foo.ID }`)
     })
 
@@ -35,7 +35,7 @@ describe('not persisted', () => {
     })
 
     it('remove from columns in struc', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo { ID, stru }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo as Foo { ID, stru }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo {
         Foo.ID,
         Foo.stru_u,
@@ -45,7 +45,7 @@ describe('not persisted', () => {
 
     it('remove from columns with path into struc', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Foo {
+        cds.ql`SELECT from bookshop.Foo as Foo {
         ID,
         stru.u,
         stru.v,
@@ -62,7 +62,7 @@ describe('not persisted', () => {
     })
 
     it('remove from columns via wildcard', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo as Foo`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo {
         Foo.ID,
         Foo.toFoo_ID,
@@ -72,13 +72,13 @@ describe('not persisted', () => {
     })
 
     it('remove from GROUP BY', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo { ID } group by ID, virtualField`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Foo as Foo { ID } group by ID, virtualField`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Foo as Foo { Foo.ID } group by Foo.ID`)
     })
 
     it('remove from ORDER BY', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Foo { ID, virtualField as x }
+        cds.ql`SELECT from bookshop.Foo as Foo { ID, virtualField as x }
         order by ID, x, Foo.virtualField`,
         model,
       )
@@ -89,7 +89,7 @@ describe('not persisted', () => {
 
     it('Navigation to virtual field does not cause join', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Foo {
+        cds.ql`SELECT from bookshop.Foo as Foo {
         ID,
         toFoo.virtualField,
       }`,
@@ -119,12 +119,12 @@ describe('not persisted', () => {
     })
 
     it('reject virtual elements in simple conditions', () => {
-      let query = cds.ql`SELECT from bookshop.Foo { ID } where ID = 5 and virtualField = 6`
+      let query = cds.ql`SELECT from bookshop.Foo as Foo { ID } where ID = 5 and virtualField = 6`
       expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
 
     it('reject virtual elements in order by', () => {
-      let query =  cds.ql`SELECT from bookshop.Foo { ID, virtualField as x }
+      let query =  cds.ql`SELECT from bookshop.Foo as Foo { ID, virtualField as x }
         order by ID, x, (Foo.toFoo.virtualField * 42)`
       expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
@@ -132,7 +132,7 @@ describe('not persisted', () => {
 
   describe('paths with @cds.persistence.skip', () => {
     it('ignores column if assoc in path expression has target ”@cds.persistence.skip”', () => {
-      const q = cds.ql`SELECT from bookshop.NotSkipped {
+      const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID, skipped.notSkipped.text
     }`
       const qx = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped
@@ -143,7 +143,7 @@ describe('not persisted', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('ignores column if assoc in path expression has target ”@cds.persistence.skip” in order by / group by', () => {
-      const q = cds.ql`SELECT from bookshop.NotSkipped {
+      const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID
     } group by skipped.notSkipped.text
       order by skipped.notSkipped.text`
@@ -163,7 +163,7 @@ describe('not persisted', () => {
 
     // same as for virtual
     it('does not touch expression but renders the potentially wrong SQL', () => {
-      const q = cds.ql`SELECT from bookshop.NotSkipped {
+      const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID, skipped.notSkipped.text * 2 + 5 as bar
     } where (skipped.notSkipped.text / 2 + 5) = 42`
       const qx = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped
@@ -177,7 +177,7 @@ describe('not persisted', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('No join for a skip path within filter if outer path is not persisted', () => {
-      const q = cds.ql`SELECT from bookshop.NotSkipped {
+      const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID, skipped[notSkipped.ID = 42].notSkipped.text
     }`
       const qx = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped
@@ -189,7 +189,7 @@ describe('not persisted', () => {
     })
 
     it('Join for a skip path within filter if outer path is persisted', () => {
-      const q = cds.ql`SELECT from bookshop.SkippedAndNotSkipped {
+      const q = cds.ql`SELECT from bookshop.SkippedAndNotSkipped as SkippedAndNotSkipped {
       ID, self[skipped.ID = 42].ID
     }`
       const qx = cds.ql`SELECT from bookshop.SkippedAndNotSkipped as SkippedAndNotSkipped
@@ -202,7 +202,7 @@ describe('not persisted', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('Join for a skip path within filter if outer path is persisted in order by', () => {
-      const q = cds.ql`SELECT from bookshop.SkippedAndNotSkipped {
+      const q = cds.ql`SELECT from bookshop.SkippedAndNotSkipped as SkippedAndNotSkipped {
       ID
     } order by self[skipped.ID = 42].ID`
       const qx = cds.ql`SELECT from bookshop.SkippedAndNotSkipped as SkippedAndNotSkipped
@@ -215,7 +215,7 @@ describe('not persisted', () => {
     })
 
     it('do not remove from simple conditions', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.NotSkipped { ID } where skipped.notSkipped.text`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.NotSkipped as NotSkipped { ID } where skipped.notSkipped.text`, model)
       expect(query).to.deep.equal(
         cds.ql`SELECT from bookshop.NotSkipped as NotSkipped
           left outer join bookshop.Skip as skipped on skipped.ID = NotSkipped.skipped_ID
