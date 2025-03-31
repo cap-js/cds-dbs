@@ -9,6 +9,7 @@
 
 ### Added
 
+* **collate:** only collate if locale is provided ([#1060](https://github.com/cap-js/cds-dbs/issues/1060)) ([dedd768](https://github.com/cap-js/cds-dbs/commit/dedd768c085aa29be0e38db11f11678ff55d5b7b))
 * **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
 * Persist assert_integrity feature ([#1032](https://github.com/cap-js/cds-dbs/issues/1032)) ([2956279](https://github.com/cap-js/cds-dbs/commit/2956279777ac94330c98373d8bca32cf0f8e967e))
 
