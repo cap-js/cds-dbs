@@ -16,7 +16,6 @@
   ],
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
-  "types": "./dist/index.d.ts",
   "files": [
     "lib",
     "CHANGELOG.md"
