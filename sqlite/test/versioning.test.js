@@ -45,7 +45,7 @@ describe('Versioned table', () => {
 
     expect(org).property('data').eq('original')
     expect(upd).property('data').eq('updated')
-    expect(del).falsy
+    expect(del).to.be.undefined
 
     expect(org).property('history').length(0)
     expect(upd).property('history').length(2)
