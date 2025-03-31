@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -47,21 +47,16 @@ function infer(originalQuery, model) {
   const sources = inferTarget(_.from || _.into || _.entity, {})
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
+  const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
     // REVISIT: public, or for local reuse, or in cqn4sql only?
     sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    }, // REVISIT: legacy?
+    _target: { value: target, writable: true, configurable: true }, // REVISIT: legacy?
   })
   // also enrich original query -> writable because it may be inferred again
   Object.defineProperties(originalQuery, {
     sources: { value: sources, writable: true },
-    target: {
-      value: aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery,
-      writable: true,
-    },
+    _target: { value: target, writable: true, configurable: true },
   })
   if (originalQuery.SELECT || originalQuery.DELETE || originalQuery.UPDATE) {
     $combinedElements = inferCombinedElements()
@@ -97,7 +92,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources) {
+  function inferTarget(from, querySources, useTechnicalAlias = true) {
     const { ref } = from
     if (ref) {
       const { id, args } = ref[0]
@@ -119,14 +114,14 @@ function infer(originalQuery, model) {
       from.uniqueSubqueryAlias ||
       from.as ||
       (ref.length === 1
-        ? first.substring(first.lastIndexOf('.') + 1)
-        : (ref.at(-1).id || ref.at(-1)));    
+        ? getImplicitAlias(first, useTechnicalAlias)
+        : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias));    
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: target, args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
-      from.args.forEach(a => inferTarget(a, querySources))
+      from.args.forEach(a => inferTarget(a, querySources, false))
     } else if (from.SELECT) {
       const subqueryInFrom = infer(from, model) // we need the .elements in the sources
       // if no explicit alias is provided, we make up one
@@ -136,7 +131,7 @@ function infer(originalQuery, model) {
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
-      querySources[from.substring(from.lastIndexOf('.') + 1)] = { definition }
+      querySources[getImplicitAlias(from, useTechnicalAlias)] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }

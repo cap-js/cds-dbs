@@ -27,7 +27,7 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
-        const elements = query.target?.elements
+        const elements = query._target?.elements
         if (!elements) return
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
@@ -123,10 +123,10 @@ class SQLService extends DatabaseService {
   async onSELECT({ query, data }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
-    if (!query.target) {
+    if (!(query._target instanceof cds.entity)) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (query.target && !query.target._unresolved) {
+    if (!query._target?._unresolved) { // REVISIT: use query._target instead
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -270,7 +270,7 @@ class SQLService extends DatabaseService {
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
-            query.target = c._target
+            query._target = c._target
             return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
@@ -385,7 +385,7 @@ class SQLService extends DatabaseService {
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
       let target = q[kind]._transitions?.[0].target
-      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
+      if (target) q._target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
