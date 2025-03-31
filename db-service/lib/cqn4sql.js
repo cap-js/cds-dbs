@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
@@ -224,7 +225,8 @@ function cqn4sql(originalQuery, model) {
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
-    transformedQuery[kind].into = { ref: [inferred.target.name] }
+    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    transformedQuery[kind].into = { ref: [target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
   }
@@ -800,7 +802,7 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery.SELECT.from.target.name]),
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ transformedQuery.SELECT.from.SELECT.from.ref),
         ...ref,
       ]
     }
@@ -1063,7 +1065,8 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
-    if (isLocalized(inferred.target)) q.SELECT.localized = true
+    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     return cqn4sql(q, model)
 
@@ -2243,7 +2246,7 @@ function cqn4sql(originalQuery, model) {
    * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
    */
   function getSearchTerm(search, query) {
-    const entity = query.SELECT.from.SELECT ? query.SELECT.from : query.target
+    const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
     if (searchIn.length > 0) {
       const xpr = search

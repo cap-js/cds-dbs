@@ -16,7 +16,7 @@ describe('infer elements', () => {
 
   describe('path expressions', () => {
     it('along simple association', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, currency.code }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, currency.code }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -26,7 +26,7 @@ describe('infer elements', () => {
     })
 
     it('along multiple associations', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, Books.genre.parent.ID }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, Books.genre.parent.ID }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -36,7 +36,7 @@ describe('infer elements', () => {
     })
 
     it.skip('represents the formal correct behavior w.r.t. the name of the structured element', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, currency.code, dedication.text }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, currency.code, dedication.text }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -47,7 +47,7 @@ describe('infer elements', () => {
     })
 
     it('along structs (name of element is ref.join("_"))', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, dedication.sub.foo, dedication.sub }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, dedication.sub.foo, dedication.sub }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -57,7 +57,7 @@ describe('infer elements', () => {
       })
     })
     it('with filter conditions', () => {
-      let query = CQL`SELECT from bookshop.Books { dedication.addressee[placeOfBirth <> 'foo'].name, dedication.addressee.name as nameWithoutFilter }`
+      let query = cds.ql`SELECT from bookshop.Books { dedication.addressee[placeOfBirth <> 'foo'].name, dedication.addressee.name as nameWithoutFilter }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -69,7 +69,7 @@ describe('infer elements', () => {
 
   describe('literals', () => {
     it('should allow selecting simple literal values', () => {
-      const inferred = _inferred(CQL`
+      const inferred = _inferred(cds.ql`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
       expect(inferred.elements).to.deep.equal({
@@ -83,7 +83,7 @@ describe('infer elements', () => {
 
   describe('virtual and persistence skip', () => {
     it('infers a queries virtual elements', () => {
-      let query = CQL`SELECT from bookshop.Foo { ID, virtualField }`
+      let query = cds.ql`SELECT from bookshop.Foo { ID, virtualField }`
       let inferred = _inferred(query)
       let { Foo } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -92,7 +92,7 @@ describe('infer elements', () => {
       })
     })
     it('infers paths with ”@cds.persistence.skip” as query element', () => {
-      const q = CQL`SELECT from bookshop.NotSkipped {
+      const q = cds.ql`SELECT from bookshop.NotSkipped {
         ID,
         skipped.notSkipped.text as skippedPath
       }`
@@ -107,7 +107,7 @@ describe('infer elements', () => {
 
   describe('everything but "columns" is not relevant for queries elements', () => {
     it('does not infer an element only used in a WHERE condition as the queries element', () => {
-      let query = CQL`SELECT from bookshop.Books { ID } WHERE dedication.text = 'bar'`
+      let query = cds.ql`SELECT from bookshop.Books { ID } WHERE dedication.text = 'bar'`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -118,7 +118,7 @@ describe('infer elements', () => {
 
   describe('access elements via table alias', () => {
     it('implicit alias via entity name', () => {
-      let query = CQL`SELECT from bookshop.Books { ID, Books.author }`
+      let query = cds.ql`SELECT from bookshop.Books { ID, Books.author }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -128,7 +128,7 @@ describe('infer elements', () => {
     })
 
     it('user defined aliases', () => {
-      let query = CQL`SELECT from bookshop.Books as Foo { ID as identifier, dedication.sub.foo as foo, Foo.dedication.sub as sub }`
+      let query = cds.ql`SELECT from bookshop.Books as Foo { ID as identifier, dedication.sub.foo as foo, Foo.dedication.sub as sub }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -138,7 +138,7 @@ describe('infer elements', () => {
       })
     })
     it('query alias shadows an element name', () => {
-      let query = CQL`SELECT from bookshop.Books as dedication { ID, dedication, dedication.title, dedication.dedication.text }`
+      let query = cds.ql`SELECT from bookshop.Books as dedication { ID, dedication, dedication.title, dedication.dedication.text }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -149,7 +149,7 @@ describe('infer elements', () => {
       })
     })
     it('element has the same name as the query alias and is still addressable', () => {
-      let query = CQL`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
+      let query = cds.ql`SELECT from bookshop.Books as dedication { ID, dedication.dedication.text }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.elements).to.deep.equal({
@@ -162,7 +162,7 @@ describe('infer elements', () => {
   describe('$self', () => {
     // REVISIT: we don't need to handle annotations at runtime
     it('$self addresses an element of the select list', () => {
-      let query = CQL`SELECT from bookshop.Books {
+      let query = cds.ql`SELECT from bookshop.Books {
       $self.ID as BeforeItWasOverwritten,
       key 1 + 1 as ID @foo,
       $self.ID as AfterItWasOverwritten,
@@ -229,7 +229,7 @@ describe('infer elements', () => {
   })
   describe('multiple sources', () => {
     it('supports queries based on multiple sources without projections', () => {
-      let query = CQL`SELECT from bookshop.Books, bookshop.Receipt`
+      let query = cds.ql`SELECT from bookshop.Books, bookshop.Receipt`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
@@ -240,7 +240,7 @@ describe('infer elements', () => {
     })
 
     it('supports queries based on multiple sources with a *', () => {
-      let query = CQL`SELECT from bookshop.Books, bookshop.Receipt { * }`
+      let query = cds.ql`SELECT from bookshop.Books, bookshop.Receipt { * }`
       let inferred = _inferred(query)
       let { Books, Receipt } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
@@ -252,12 +252,12 @@ describe('infer elements', () => {
   })
   describe('scoped queries', () => {
     it('use table alias of scoped query', () => {
-      let inferred = _inferred(CQL`SELECT from bookshop.Books:genre.foo {
+      let inferred = _inferred(cds.ql`SELECT from bookshop.Books:genre.foo {
       foo.ID as fooID
       }`)
       let { Books, Genres } = model.entities
 
-      expect(inferred.target)
+      expect(inferred._target)
         .equals(Books.elements.genre._target.elements.foo._target)
         .equals(Genres.elements.foo._target)
 
@@ -267,12 +267,12 @@ describe('infer elements', () => {
     })
 
     it('use table alias of scoped query (assoc defined via type reference)', () => {
-      let inferred = _inferred(CQL`SELECT from bookshop.Books:coAuthor {
+      let inferred = _inferred(cds.ql`SELECT from bookshop.Books:coAuthor {
       coAuthor.name as name
     }`)
       let { Books, Authors } = model.entities
 
-      expect(inferred.target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
+      expect(inferred._target).to.deep.equal(Books.elements.coAuthor._target).to.deep.equal(Authors)
       expect(inferred.elements).to.deep.equal({
         name: Authors.elements.name,
       })
@@ -280,7 +280,7 @@ describe('infer elements', () => {
   })
   describe('subqueries', () => {
     it('supports expressions and subqueries in the select list', () => {
-      let query = CQL`
+      let query = cds.ql`
     SELECT from bookshop.Books {
       1 + 1 as Two,
       (select from (select from bookshop.Authors) as A) as subquery
@@ -298,7 +298,7 @@ describe('infer elements', () => {
   })
   describe('expressions', () => {
     it('supports expressions and subqueries in the select list', () => {
-      let query = CQL`
+      let query = cds.ql`
     SELECT from bookshop.Books {
       1 + 1 as Two,
       (select from (select from bookshop.Authors) as A) as subquery
@@ -315,13 +315,13 @@ describe('infer elements', () => {
     })
 
     it('anonymous functions are inferred by their func property name', () => {
-      let functionWithoutAlias = CQL`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
+      let functionWithoutAlias = cds.ql`SELECT from bookshop.Books { sum(1 + 1), count(*) }`
       const inferred = _inferred(functionWithoutAlias)
       expect(inferred.elements).to.have.keys(['sum', 'count'])
     })
 
     it('infers functions results as query element', () => {
-      let query = CQL`
+      let query = cds.ql`
     SELECT from bookshop.Books {
       func(stock*price) as net,
     }`
@@ -336,7 +336,7 @@ describe('infer elements', () => {
     })
 
     it('supports an expression with fields in the select list', () => {
-      let query = CQL`SELECT from bookshop.Books { title + descr as noType }`
+      let query = cds.ql`SELECT from bookshop.Books { title + descr as noType }`
       let inferred = _inferred(query)
 
       let { Books } = model.entities
@@ -412,7 +412,7 @@ describe('infer elements', () => {
     })
 
     it('supports a cast expression in the select list', () => {
-      let query = CQL`SELECT from bookshop.Books { cast(cast(ID as Integer) as String) as IDS, cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType }`
+      let query = cds.ql`SELECT from bookshop.Books { cast(cast(ID as Integer) as String) as IDS, cast(ID as bookshop.DerivedFromDerivedString) as IDCustomType }`
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
@@ -429,7 +429,7 @@ describe('infer elements', () => {
 
     it('supports a cdl-style cast in the select list', () => {
       // Revisit: clarify what the cast should mean
-      let query = CQL`
+      let query = cds.ql`
         SELECT from bookshop.Books {
           dedication.sub.foo: Integer,
           ID as IDS: String,
@@ -453,7 +453,7 @@ describe('infer elements', () => {
 
   describe('wildcards', () => {
     it('* in the column list', () => {
-      let query = CQL`SELECT from bookshop.Books { * }`
+      let query = cds.ql`SELECT from bookshop.Books { * }`
       let inferred = _inferred(query)
 
       let { Books } = model.entities
@@ -465,7 +465,7 @@ describe('infer elements', () => {
     })
 
     it('query without projections', () => {
-      let query = CQL`SELECT from bookshop.Books`
+      let query = cds.ql`SELECT from bookshop.Books`
       let inferred = _inferred(query)
       let { Books } = model.entities
       // blobs are not part of the query elements
@@ -475,7 +475,7 @@ describe('infer elements', () => {
     })
 
     it('respects "excluding" when inferring elements from a *', () => {
-      let query = CQL`SELECT from bookshop.Bar { *, ID, note } excluding { ID, stock }`
+      let query = cds.ql`SELECT from bookshop.Bar { *, ID, note } excluding { ID, stock }`
       let inferred = _inferred(query)
       let { Bar } = model.entities
       const expectedElements = { ...Bar.elements }
@@ -486,7 +486,7 @@ describe('infer elements', () => {
     })
 
     it('excluding only acts on "*" - not on explicit select items', () => {
-      let query = CQL`SELECT from bookshop.Bar { ID, note } excluding { ID }`
+      let query = cds.ql`SELECT from bookshop.Bar { ID, note } excluding { ID }`
       let inferred = _inferred(query)
       let { Bar } = model.entities
       const expectedElements = { ID: Bar.elements.ID, note: Bar.elements.note }
@@ -496,7 +496,7 @@ describe('infer elements', () => {
     // some more excluding tests
 
     it('replaces a select item coming from wildcard if it is overridden', () => {
-      let query = CQL`SELECT from bookshop.Books { 5 * 5 as price, *, 1 + 1 as ID, author.name as author }` // TODO: take care of order
+      let query = cds.ql`SELECT from bookshop.Books { 5 * 5 as price, *, 1 + 1 as ID, author.name as author }` // TODO: take care of order
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
@@ -530,7 +530,7 @@ describe('infer elements', () => {
           $tenant: { type: 'cds.String' },
         },
       }
-      let query = CQL`SELECT from bookshop.Bar {
+      let query = cds.ql`SELECT from bookshop.Bar {
       $user,
       $user.id,
       $user.locale,
@@ -562,9 +562,9 @@ describe('infer elements', () => {
     })
 
     it('$variables in where do not matter for infer', () => {
-      let query = CQL`SELECT from bookshop.Bar where createdAt < $now`
-      // let query2 = CQL`SELECT from bookshop.Orders where buyer = $user`
-      // let query3 = CQL`SELECT from bookshop.Orders where buyer = $user.id`
+      let query = cds.ql`SELECT from bookshop.Bar where createdAt < $now`
+      // let query2 = cds.ql`SELECT from bookshop.Orders where buyer = $user`
+      // let query3 = cds.ql`SELECT from bookshop.Orders where buyer = $user.id`
 
       let inferred = _inferred(query)
       let { Bar } = model.entities

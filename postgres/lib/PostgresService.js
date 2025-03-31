@@ -344,14 +344,15 @@ GROUP BY k
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
     _orderBy(orderBy, localized, locale) {
-      return orderBy.map(
-        localized
-          ? c =>
-            this.expr(c) +
+      return orderBy.map(c => {
+        const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
+        const o = localized
+          ? this.expr(c) +
             (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC NULLS LAST' : ' ASC NULLS FIRST')
-          : c => this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC NULLS LAST' : ' ASC NULLS FIRST'),
-      )
+            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+      })
     }
 
     orderBy(orderBy) {
@@ -465,9 +466,11 @@ GROUP BY k
     // Postgres does not support locking columns only tables which makes of unapplicable
     // Postgres does not support "wait n" it only supports "nowait"
     forUpdate(update) {
-      const { wait } = update
-      if (wait === 0) return 'FOR UPDATE NOWAIT'
-      return 'FOR UPDATE'
+      const { wait, ignoreLocked } = update
+      let sql = 'FOR UPDATE'
+      if (wait === 0) sql += ' NOWAIT'
+      if (ignoreLocked) sql += ' SKIP LOCKED'
+      return sql
     }
 
     forShareLock(lock) {
