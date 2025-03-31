@@ -946,7 +946,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   val({ val, param, operator }) {
-    if(typeof val === 'boolean' && operator.toLowerCase() === 'then') return `${val}`
+    if(typeof val === 'boolean' && operator?.toLowerCase() === 'then') return `${val}`
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
