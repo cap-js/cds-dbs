@@ -857,7 +857,10 @@ class CQN2SQLRenderer {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
         if (x.xpr) return `(${this.xpr(x)})`
-        else return this.expr(x)
+        else {
+          x.operator = xpr[i - 1]
+          return this.expr(x)
+        }
       })
       .join(' ')
   }
@@ -943,7 +946,7 @@ class CQN2SQLRenderer {
    * @returns {string} SQL
    */
   val({ val, param, operator }) {
-    if(typeof val === 'boolean' && operator === 'THEN') return `${val}`
+    if(typeof val === 'boolean' && operator.toLowerCase() === 'then') return `${val}`
     switch (typeof val) {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
