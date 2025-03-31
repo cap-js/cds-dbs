@@ -947,7 +947,6 @@ class CQN2SQLRenderer {
       case 'function': throw new Error('Function values not supported.')
       case 'undefined': val = null
         break
-      case 'boolean': return `${val}`
       case 'object':
         if (val !== null) {
           if (val instanceof Date) val = val.toJSON() // returns null if invalid
