@@ -14,7 +14,7 @@ describe('assign element onto columns', () => {
 
   it('attaches the `element` to simple / structured columns', () => {
     let query = cqn4sql(cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         author,
         dedication.addressee,
@@ -73,7 +73,7 @@ describe('assign element onto columns with flat model', () => {
 
   it('foreign key is adjacent to its association in flat model', () => {
     let query = cqn4sql(cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         author
       }
@@ -91,7 +91,7 @@ describe('assign element onto columns with flat model', () => {
   })
   it('within expand, the key in the target is attached, not the foreign key', () => {
     let query = cqn4sql(cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         author {
           ID
@@ -100,9 +100,9 @@ describe('assign element onto columns with flat model', () => {
     `, model)
     const expected = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
-        (SELECT from bookshop.Authors as author {
-          author.ID
-        } where Books.author_ID = author.ID) as author
+        (SELECT from bookshop.Authors as $a {
+          $a.ID
+        } where Books.author_ID = $a.ID) as author
     }
     `
     const { Authors } = model.entities
@@ -113,7 +113,7 @@ describe('assign element onto columns with flat model', () => {
 
   it('foreign key is adjacent to its association in flat model with multiple foreign keys', () => {
     let query = cqn4sql(cds.ql`
-      SELECT from bookshop.AssocWithStructuredKey {
+      SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey {
         ID,
         toStructuredKey
       }
@@ -144,7 +144,7 @@ describe('assign element onto columns with flat model', () => {
 
   it('foreign key is adjacent to its association in flat model and is renamed', () => {
     let query = cqn4sql(cds.ql`
-      SELECT from bookshop.TestPublisher {
+      SELECT from bookshop.TestPublisher as TestPublisher {
         ID,
         publisherRenamedKey
       }

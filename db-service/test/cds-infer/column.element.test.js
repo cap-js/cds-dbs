@@ -90,7 +90,7 @@ describe('assign element onto columns', () => {
 
   describe('scoped queries', () => {
     it('use table alias of scoped query (assoc defined via type reference)', () => {
-      let inferred = _inferred(cds.ql`SELECT from bookshop.Books:coAuthor {
+      let inferred = _inferred(cds.ql`SELECT from bookshop.Books:coAuthor as coAuthor {
       coAuthor.name as name
     }`)
       let { Authors } = model.entities

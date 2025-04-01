@@ -32,7 +32,9 @@ jobs:
           cache: 'npm'
 
       - run: npm ci
-      - run: npm install -g @sap/cds-dk
+      # REMOVE ONCE hdi-deploy 5.4.2 is released
+      # see cap/issues#18158
+      - run: npm install -g @sap/cds-dk@8.8.2
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe
