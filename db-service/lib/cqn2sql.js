@@ -416,7 +416,7 @@ class CQN2SQLRenderer {
     const tableCols = []
 
     // Only match key columns when possible
-    const elements = q.target.keys || q.target.elements
+    const elements = q._target.keys || q._target.elements
     for (const c in elements) {
       if (
         c in elements
@@ -541,6 +541,7 @@ class CQN2SQLRenderer {
     if (!elements && !INSERT.entries?.length) {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
     const columns = elements
       ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
         && c in transitions.target.elements
@@ -554,7 +555,7 @@ class CQN2SQLRenderer {
     this.columns = columns
 
     const alias = INSERT.into.as
-    const entity = this.name(q._target?.name || INSERT.into.ref[0], q)
+    const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
@@ -682,7 +683,7 @@ class CQN2SQLRenderer {
    */
   INSERT_rows(q) {
     const { INSERT } = q
-    const entity = this.name(q._target?.name || INSERT.into.ref[0], q)
+    const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements
     const columns = this.columns = INSERT.columns || cds.error`Cannot insert rows without columns or elements`
@@ -729,15 +730,25 @@ class CQN2SQLRenderer {
    */
   INSERT_select(q) {
     const { INSERT } = q
-    const entity = this.name(q._target.name, q)
+    const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     const alias = INSERT.into.as
+    const src = this.cqn4sql(INSERT.as)
     const elements = q.elements || q._target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
-      c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
-    ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
-      this.cqn4sql(INSERT.as),
-    )}`
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
+    let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
+      .filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+        && c in transitions.target.elements
+        && !transitions.target.elements[c].virtual
+        && !transitions.target.elements[c].value
+        && !transitions.target.elements[c].isAssociation
+      ))
+
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
+    const sql = extractions.length > columns.length
+      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      : this.SELECT(src)
+    if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`
     this.entries = [this.values]
     return this.sql
   }
@@ -797,7 +808,7 @@ class CQN2SQLRenderer {
       .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
-    const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
+    const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     sql = `SELECT ${managed.map(c => c.upsert
       .replace(/value->/g, '"$$$$value$$$$"->')
       .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
@@ -827,8 +838,9 @@ class CQN2SQLRenderer {
    */
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
-    const elements = q._target?.elements
-    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity, q))}`
+    const transitions = cds.ql.resolve.transitions4db(q, this.srv)
+    const elements = q._target?.elements    
+    let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
@@ -1088,7 +1100,7 @@ class CQN2SQLRenderer {
    * @returns {string} Database table name
    */
   table_name(q) {
-    const table = cds.ql.resolve.table(q.target)
+    const table = cds.ql.resolve.table(q._target)
     return this.name(table.name, q)
   }
 
