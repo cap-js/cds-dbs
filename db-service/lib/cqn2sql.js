@@ -259,7 +259,7 @@ class CQN2SQLRenderer {
   }
 
   SELECT_recurse() {
-    cds.error`Feature "recurse" queries not supported.`
+    // cds.error`Feature "recurse" queries not supported.`
   }
 
   /**
