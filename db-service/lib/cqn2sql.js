@@ -229,6 +229,8 @@ class CQN2SQLRenderer {
     let { from, expand, where, groupBy, having, orderBy, limit, one, distinct, localized, forUpdate, forShareLock, recurse } =
       q.SELECT
 
+    if (recurse && !this._supports_recurse) recurse = undefined // expects the rest to work
+
     if (from?.join && !q.SELECT.columns) {
       throw new Error('CQN query using joins must specify the selected columns.')
     }
@@ -258,9 +260,9 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  SELECT_recurse(q) {
-    // cds.error`Feature "recurse" queries not supported.`
-    return this.from(q.SELECT.from, q)
+  get _supports_recurse() { return false }
+  SELECT_recurse() {
+    cds.error`Feature "recurse" queries not supported.`
   }
 
   /**
