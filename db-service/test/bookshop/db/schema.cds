@@ -442,3 +442,28 @@ entity ![$] {
   name: String;
   ![$] : Association to ![$];
 }
+
+entity First {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  second: Association to Second;
+}
+
+entity Second {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  first: Association to many First on $self = first.second;
+}
+
+entity FirstRedirected {
+  key BUBU: Integer;
+  name: String;
+  text: localized String;
+}
+
+entity Third as projection on Second {
+  *,
+  first: redirected to FirstRedirected on $self.ID = first.BUBU
+};
