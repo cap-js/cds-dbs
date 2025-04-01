@@ -4,13 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.19.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.0...db-service-v1.19.1) (2025-04-01)
-
-
-### Fixed
-
-* **scoped queries:** wrap filter in `xpr` if needed ([#1105](https://github.com/cap-js/cds-dbs/issues/1105)) ([8f44df3](https://github.com/cap-js/cds-dbs/commit/8f44df37db7bc283933023dab92b348cf92e12bf))
-
 ## [1.19.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.18.0...db-service-v1.19.0) (2025-03-31)
 
 
