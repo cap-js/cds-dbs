@@ -148,9 +148,6 @@ function attachConstraints(_results, req) {
   function wrapInCaseWhen(xpr) {
     return ['case', 'when', 'not', { xpr }, 'then', { val: false }, 'else', { val: true }, 'end']
   }
-  function coalesce(xpr) {
-    return { func: 'coalesce', args: [{ xpr }, { val: true }] }
-  }
 }
 
 async function checkConstraints(req) {
