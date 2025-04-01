@@ -202,7 +202,7 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors:books[contains(title, 'Gravity') or contains(title, 'Dark')] { ID }`,
         model,
       )
-      let queryEquivalent = cqn4sql(
+      let otherWayOfWritingFilter = cqn4sql(
         cds.ql`SELECT from bookshop.Authors:books { ID } where contains(title, 'Gravity') or contains(title, 'Dark')`,
         model,
       )
@@ -214,7 +214,7 @@ describe('EXISTS predicate in where', () => {
            contains($b.title, 'Gravity') or contains($b.title, 'Dark')
         )
       `
-      expect(query).to.deep.equal(queryEquivalent).to.deep.equal(expected)
+      expect(query).to.deep.equal(otherWayOfWritingFilter).to.deep.equal(expected)
     })
     it('where exists to-one association with additional filter with xpr', () => {
       // note: now all source side elements are addressed with their table alias
