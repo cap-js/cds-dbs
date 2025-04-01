@@ -454,8 +454,10 @@ GROUP BY k
     }
 
     val(val) {
-      const ret = super.val(val)
-      return ret === '?' ? `$${this.values.length}` : ret
+      let ret = super.val(val)
+      if(ret === '?') ret = `$${this.values.length}`
+      if(typeof val.val === 'boolean') ret = `cast( ${ret} as boolean)` 
+      return ret
     }
 
     operator(x, i, xpr) {
