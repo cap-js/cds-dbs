@@ -1,0 +1,26 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "Node.js & TypeScript",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bullseye",
+	"features": {
+		// comes with unix-odbc and unixodbc-dev
+		"ghcr.io/itsmechlark/features/snowflake-odbc:1": {}
+	},
+	// make sure binaries are loaded from default location
+	"runArgs": [
+		"--env",
+		"LD_LIBRARY_PATH=/workspaces/cds-dbs/abap/bin:$LD_LIBRARY_PATH"
+	],
+	// ensures the variable is set in every new shell.
+	"remoteEnv": {
+		"LD_LIBRARY_PATH": "/workspaces/cds-dbs/abap/bin:${LD_LIBRARY_PATH}"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"sapse.vscode-cds"
+			]
+		}
+	}
+}
