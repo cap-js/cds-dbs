@@ -187,6 +187,35 @@ describe('EXISTS predicate in where', () => {
           SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'Sanderson'
         )`)
     })
+    it('additional condition needs to be wrapped in brackets', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors { ID } where exists books[contains(title, 'Gravity') or contains(title, 'Dark')]`,
+        model,
+      )
+      const expected = cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID and ( contains($b.title, 'Gravity') or contains($b.title, 'Dark') )
+        )`
+      expect(query).to.deep.equal(expected)
+    })
+    it('additional condition needs to be wrapped in brackets (scoped)', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors:books[contains(title, 'Gravity') or contains(title, 'Dark')] { ID }`,
+        model,
+      )
+      let otherWayOfWritingFilter = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors:books { ID } where contains(title, 'Gravity') or contains(title, 'Dark')`,
+        model,
+      )
+      const expected = cds.ql`
+      SELECT from bookshop.Books as $b { $b.ID }
+        where exists (
+          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
+        ) and (
+           contains($b.title, 'Gravity') or contains($b.title, 'Dark')
+        )
+      `
+      expect(query).to.deep.equal(otherWayOfWritingFilter).to.deep.equal(expected)
+    })
     it('where exists to-one association with additional filter with xpr', () => {
       // note: now all source side elements are addressed with their table alias
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[not (name = 'Sanderson')]`, model)
