@@ -27,7 +27,9 @@ jobs:
       ## debug info
       - run: echo '${{ toJSON(steps.release.outputs) }} '
       # Run tests
-      - run: npm install -g @sap/cds-dk
+      # REMOVE ONCE hdi-deploy 5.4.2 is released
+      # see cap/issues#18158
+      - run: npm install -g @sap/cds-dk@8.8.2
       # Run tests
       - run: npm ci
         if: ${{ steps.release.outputs.releases_created }}

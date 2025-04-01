@@ -1766,7 +1766,7 @@ function cqn4sql(originalQuery, model) {
         filterConditions.forEach(f => {
           transformedWhere.push('and')
           if (filterConditions.length > 1) transformedWhere.push(asXpr(f))
-          else if (f.length > 3) transformedWhere.push(asXpr(f))
+          else if (f.length > 3 || f.includes('or') || f.includes('and')) transformedWhere.push(asXpr(f))
           else transformedWhere.push(...f)
         })
       } else {
