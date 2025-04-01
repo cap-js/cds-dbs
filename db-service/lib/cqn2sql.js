@@ -258,8 +258,9 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  SELECT_recurse() {
+  SELECT_recurse(q) {
     // cds.error`Feature "recurse" queries not supported.`
+    return this.from(q.SELECT.from, q)
   }
 
   /**
