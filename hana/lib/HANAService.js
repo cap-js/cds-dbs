@@ -1160,7 +1160,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return orderBy.map(c => {
         const o = localized
           ? this.expr(c) +
-          (c.element?.[this.class._localized]
+          (c.element?.[this.class._localized] && this.context.locale
             ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
             : '') +
           (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
