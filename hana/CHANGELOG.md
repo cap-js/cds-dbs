@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.8.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.0...hana-v1.8.1) (2025-04-02)
+
+
+### Fixed
+
+* forUpdate on complex queries (joins) ([#1115](https://github.com/cap-js/cds-dbs/issues/1115)) ([016543e](https://github.com/cap-js/cds-dbs/commit/016543e69d0d34ccafc35ba4bfd6941bcf9f45da))
+
 ## [1.8.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.7.0...hana-v1.8.0) (2025-03-31)
 
 
