@@ -802,7 +802,7 @@ function cqn4sql(originalQuery, model) {
     } else {
       outerAlias = transformedQuery.SELECT.from.as
       subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ transformedQuery.SELECT.from.SELECT.from.ref),
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ transformedQuery.SELECT.from.SELECT.from.ref || []),
         ...ref,
       ]
     }
@@ -1739,7 +1739,7 @@ function cqn4sql(originalQuery, model) {
            * with the main query alias. see @function expandColumn()
            * There is one exception:
            * - if current and next have the same alias, we need to assign a new alias to the next
-           *                          
+           *
            */
           if (!(inferred.SELECT?.expand === true && current.alias.toLowerCase() !== as.toLowerCase())) {
             as = getNextAvailableTableAlias(as)
