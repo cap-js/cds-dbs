@@ -1246,13 +1246,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
               const compare = [left, x, right]
 
               const expression = {
-                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true, cast: { type: 'cds.Boolean' } }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false }],
+                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true, cast: { type: 'cds.Boolean' } }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false, cast: { type: 'cds.Boolean' } }],
                 _internal: true,
               }
 
               if (ifNull != null) {
                 // If at least one of the sides is NULL it will go into ELSE
                 // This case checks if both sides are NULL and return their result
+                const val = (v) => (typeof v === 'boolean' ? { val: v, cast: { type: 'cds.Boolean' } } : { val: v })
                 expression.xpr.push('ELSE', {
                   xpr: [
                     'CASE',
@@ -1260,9 +1261,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
                     // coalesce is used to match the left and right hand types in case one is a placeholder
                     ...[{ func: 'COALESCE', args: [left, right] }, 'IS', 'NULL'],
                     'THEN',
-                    { val: ifNull },
+                    val(ifNull),
                     'ELSE',
-                    { val: !ifNull },
+                    val(!ifNull),
                     'END',
                   ],
                   _internal: true,
