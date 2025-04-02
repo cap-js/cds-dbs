@@ -574,7 +574,6 @@ GROUP BY k
 
       // Convert ST types back to WKT format
       'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
-      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
     }
   }
 
