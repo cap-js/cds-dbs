@@ -41,3 +41,9 @@ entity ChildP          as
   }
 
 entity ChildPWithWhere as projection on Child where fooChild = 'bar'
+
+entity mp {
+  key ID: Integer;
+  mp: Map;
+  recurse: Association to mp;
+}
