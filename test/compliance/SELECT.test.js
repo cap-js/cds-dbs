@@ -901,6 +901,20 @@ describe('SELECT', () => {
     )
   })
 
+  describe('forUpdate ignore locked with ignored wait', () => {
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forShareLock({
+        of: ['bool'],
+        ignoreLocked: true,
+        wait: 0, // ignored, happens if global defaults are set
+      })
+
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }]),
+      { ignoreLocked: true }
+    )
+  })
+
   describe('search', () => {
     // Make sure that the queries work, but never check their behavior as it is undefined
 

@@ -468,8 +468,8 @@ GROUP BY k
     forUpdate(update) {
       const { wait, ignoreLocked } = update
       let sql = 'FOR UPDATE'
-      if (wait === 0) sql += ' NOWAIT'
       if (ignoreLocked) sql += ' SKIP LOCKED'
+      else if (wait === 0) sql += ' NOWAIT' // SKIP LOCKED wins
       return sql
     }
 
