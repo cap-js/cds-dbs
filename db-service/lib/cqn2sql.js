@@ -82,6 +82,24 @@ class CQN2SQLRenderer {
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
+    if (this._with?.length) {
+      const sql = this.sql
+      let recursive = false
+      const values = this.values
+      const prefix = this._with.map(q => {
+        const values = this.values = []
+        let sql
+        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        else if ('SET' in q) {
+          recursive = true
+          const { SET } = q
+          sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
+        }
+        return { sql, values }
+      })
+      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
+    }
     if (vars?.length && !this.values?.length) this.values = vars
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
@@ -258,8 +276,236 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  SELECT_recurse() {
-    cds.error`Feature "recurse" queries not supported.`
+  SELECT_recurse(q) {
+    let { from, columns, where, recurse, _internal } = q.SELECT
+
+    const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
+    if (!_internal) requiredComputedColumns.RANK = true
+    const addComputedColumn = (name) => {
+      if (requiredComputedColumns[name]) return
+      requiredComputedColumns[name] = true
+    }
+
+    const recurseWhereRefZero = recurse.where?.[0]?.xpr ? recurse.where?.[0]?.xpr?.[0] : recurse.where?.[0]
+    const distanceType = recurseWhereRefZero?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurseWhereRefZero.ref[0]
+    // Determine direction based upon whether the distance is negative or positive
+    const direction = !distanceType || recurse.where[1] in { '<': 1, '<=': 1 }
+      ? where?.length ? 'ANCESTORS' : 'DESCENDANTS' // If no where clause is provided it has to be toplevel
+      : recurse.where[1] in { '=': 1, 'between': 1 } // First val of between is the lowest number according to SQL specification
+        ? recurse.where[2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
+        : recurse.where[1] in { '>': 1, '>=': 1 }
+          ? 'DESCENDANTS'
+          : cds.error`Invalid recurse.where: ${JSON.stringify(recurse.where)}`
+    // Ensure that the distance value is being computed
+    if (distanceType) addComputedColumn(distanceType)
+
+    // TODO: convert computed columns to cqn for better SQL generation
+    const availableComputedColumns = {
+      // Input computed columns
+      PARENT_ID: false,
+      NODE_ID: false,
+
+      // Output computed columns
+      RANK: { xpr: [{ ref: ['HIERARCHY_RANK'] }, '-', { val: 1, param: false }], as: 'RANK' },
+      Distance: { ref: ['HIERARCHY_DISTANCE'], as: 'Distance' },
+      DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
+      DrillState: false,
+      LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
+    }
+
+    const columnsFiltered = columns
+      .filter(x => {
+        if (x.element?.isAssociation) return false
+        const name = this.column_name(x)
+        if (name === '$$RN$$') return false
+        // REVISIT: ensure that the selected column is one of the hierarchy computed columns by unifying their common definition
+        if (x.element?.['@Core.Computed'] && name in availableComputedColumns) {
+          addComputedColumn(name)
+          return false
+        }
+        return true
+      })
+    const columnsIn = columnsFiltered
+      .map(x => {
+        const name = this.column_name(x)
+        if (name.toUpperCase() in requiredComputedColumns) {
+          x = { __proto__: x, as: `$$${name}$$` }
+        }
+        return x
+      })
+
+    const nodeKeys = []
+    const parentKeys = []
+    const association = q.target.elements[recurse.ref[0]]
+    association._foreignKeys.forEach(fk => {
+      nodeKeys.push(this.quote(fk.childElement.name))
+      parentKeys.push(this.quote(fk.parentElement.name))
+    })
+
+    columnsIn.push(
+      nodeKeys.length === 1
+        ? { ref: nodeKeys, as: 'NODE_ID' }
+        : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ ref: [n] })), as: 'NODE_ID' },
+      parentKeys.length === 1
+        ? { ref: parentKeys, as: 'PARENT_ID' }
+        : { func: 'HIERARCHY_COMPOSITE_ID', args: parentKeys.map(n => ({ ref: [n] })), as: 'PARENT_ID' },
+    )
+
+    const alias = q.SELECT.from.as
+    const source = () => ({
+      func: 'HIERARCHY',
+      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from, } }] }],
+      as: alias
+    })
+
+    const expandedByNr = { list: [] }
+    const expandedByOne = { list: [] }
+    const expandedByZero = { list: [] }
+    let expandedFilter = []
+
+    if (recurse.where && !distanceType || distanceType === 'DistanceFromRoot') {
+      if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
+      expandedFilter = [...recurse.where]
+      collectDistanceTo(expandedFilter)
+    }
+
+    availableComputedColumns.DrillState = {
+      xpr: [
+        'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
+        ...(where?.length // When there is a where filter the final node will always be a leaf
+          ? ['WHEN', { ref: ['HIERARCHY_DISTANCE'] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
+          : []
+        ),
+        ...(expandedByZero.list.length
+          ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', expandedByZero, 'THEN', { val: 'collapsed', param: false }]
+          : []
+        ),
+        ...(expandedByNr.list.length || expandedByOne.list.length
+          ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', { list: [...expandedByNr.list, ...expandedByOne.list] }, 'THEN', { val: 'expanded', param: false }]
+          : []
+        ),
+        ...(expandedByOne.list.length
+          ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
+          : []
+        ),
+        ...(distanceType
+          ? ['WHEN', ...(distanceType === 'DistanceFromRoot'
+            ? [{ ref: ['HIERARCHY_LEVEL'] }, '<>', { val: recurse.where[2].val + 1 }]
+            : [{ ref: ['HIERARCHY_DISTANCE'] }, recurse.where[1], { val: recurse.where[2].val - 1 }]
+          ), 'THEN', { val: 'expanded', param: false },
+          ]
+          : []
+        ),
+
+        'ELSE', { val: recurse.where && distanceType ? 'collapsed' : 'expanded', param: false },
+        'END',
+      ],
+      as: 'DrillState'
+    }
+
+    const columnsOut = [
+      ...columnsFiltered
+        .map(x => {
+          const name = this.column_name(x)
+          if (name.toUpperCase() in requiredComputedColumns) {
+            return { ref: [`$$${name}$$`], as: name }
+          }
+          return { ref: [name] }
+        }),
+    ]
+
+    for (const name in requiredComputedColumns) {
+      const def = availableComputedColumns[name]
+      if (def) columnsOut.push(def)
+    }
+    if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
+
+    const graph = distanceType === 'DistanceFromRoot' && !where
+      ? { SELECT: { columns: columnsOut, from: source(), where: expandedFilter } }
+      : {
+        SELECT: {
+          columns: columnsOut,
+          from: {
+            func: `HIERARCHY_${direction}`,
+            args: [{
+              xpr: [
+                'SOURCE', source(), 'AS', this.quote(alias),
+                'START', 'WHERE', {
+                  xpr: where // Requires special where logic before being put into the args
+                    ? this.is_comparator?.({ xpr: where }) ?? true ? where : [...where, '=', { val: true, param: false }]
+                    : [{ ref: ['PARENT_ID'] }, '=', { val: null }]
+                },
+                ...(distanceType === 'Distance'
+                  ? ['DISTANCE', ...(
+                    recurse.where[1] === '='
+                      ? []
+                      : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
+                        ? ['FROM']
+                        : ['TO']
+                  ), recurse.where[2], ...(
+                    recurse.where[1] === 'betweem'
+                      ? ['TO', recurse.where[4]]
+                      : []
+                  )]
+                  : []
+                )
+              ]
+            }]
+          },
+          where: expandedFilter.length ? expandedFilter : undefined
+        }
+      }
+
+    return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+
+    function collectDistanceTo(where, innot = false) {
+      for (let i = 0; i < where.length; i++) {
+        const c = where[i]
+        if (c === 'not') innot = true
+        if (c.xpr) {
+          where[i] = { xpr: [...c.xpr] }
+          collectDistanceTo(c.xpr, innot)
+        }
+        else if (c.func === 'DistanceTo') {
+          const expr = c.args[0]
+          // { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
+          const to = c.args[1].val
+          const list = to === 1
+            ? expandedByOne
+            : innot
+              ? expandedByZero
+              : expandedByNr
+
+          if (!list.list.length) {
+            where.splice(i, 1,
+              ...(to === 1
+                ? [{ ref: ['PARENT_ID'] }, 'IN', list]
+                : [{ ref: ['NODE_ID'] }, 'IN', {
+                  SELECT: {
+                    _internal: true,
+                    columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+                    from: q.SELECT.from,
+                    where: [{ ref: ['NODE_ID'] }, 'IN', list],
+                    recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+                  },
+                  target: q.target,
+                }])
+            )
+            i += 2
+          } else {
+            // Remove current entry from where
+            where.splice(i - 1, 2)
+            i -= 2
+          }
+          list.list.push(expr)
+        }
+        else if (c.ref?.[0] === 'DistanceFromRoot') {
+          where[i] = { ref: ['HIERARCHY_LEVEL'] }
+          i += 2
+          where[i] = { val: where[i].val + 1 }
+        }
+      }
+    }
   }
 
   /**
@@ -376,6 +622,17 @@ class CQN2SQLRenderer {
   }
 
   /**
+   * Renders a FROM clause into generic SQL
+   * @param {import('./infer/cqn').source} from
+   * @returns {string} SQL
+   */
+  with(query) {
+    this._with ??= []
+    this._with.push(query)
+    return { ref: [query.as] }
+  }
+
+  /**
    * Renders a FROM clause for when the query does not have a target
    * @returns {string} SQL
    */
@@ -430,8 +687,8 @@ class CQN2SQLRenderer {
     return orderBy.map(c => {
       const o = localized
         ? this.expr(c) +
-          (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
-          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
+        (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
       if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
       return o
@@ -999,7 +1256,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, args) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }

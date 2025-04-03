@@ -184,6 +184,147 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
+
+  /**
+   * Generates SQL statement for the hierarchy function
+   * @param {string} [p] - 
+   * @returns {string} - SQL statement
+   */
+  HIERARCHY: function (args) {
+    let src = args.xpr[1]
+    const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
+    src.SELECT.columns.push({ func: 'row_number', args: [], xpr: ['OVER', { xpr: [] }], as: 'rowid' })
+    src.as = 'HierarchySource'
+    src = this.expr(this.with(src))
+
+    const cqn = cds.ql(`
+SELECT
+  1 as HIERARCHY_LEVEL,
+  0 as HIERARCHY_PARENT_RANK,
+  rowid as HIERARCHY_RANK,
+  rowid as HIERARCHY_ROOT_RANK,
+  (SELECT COUNT(*) + 1 FROM ${src} as children WHERE children.PARENT_ID=Source.NODE_ID) as HIERARCHY_TREE_SIZE
+ FROM ${src} AS Source
+WHERE parent_ID IS NULL
+UNION ALL
+SELECT
+  Parent.HIERARCHY_LEVEL + 1,
+  Parent.HIERARCHY_RANK,
+  Source.rowid,
+  Parent.HIERARCHY_ROOT_RANK,
+  (SELECT COUNT(*) + 1 FROM ${src} as children WHERE children.PARENT_ID=Source.NODE_ID)
+ FROM ${src} AS Source
+JOIN Hierarchy AS Parent ON Source.PARENT_ID=Parent.NODE_ID
+ORDER BY HIERARCHY_LEVEL DESC`)
+    cqn.as = 'Hierarchy'
+    cqn.SET.args[0].SELECT.columns = [...cqn.SET.args[0].SELECT.columns, ...passThroughColumns]
+    cqn.SET.args[1].SELECT.columns = [...cqn.SET.args[1].SELECT.columns, ...passThroughColumns]
+
+    this.with(cqn)
+    return this.ref({ ref: ['Hierarchy'] })
+  },
+
+  /**
+   * Generates SQL statement for the hierarchy_descendants function
+   * @param {string} [p] - 
+   * @returns {string} - SQL statement
+   */
+  HIERARCHY_DESCENDANTS: function (args) {
+    // Find Hierarchy function call source query
+    const passThroughColumns = args.xpr[1].args[0].xpr[1].SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
+    // REVISIT: currently only supports func: HIERARCHY as source
+    const src = this.expr(args.xpr[1])
+
+    const alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
+    const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
+
+    const cqn = cds.ql(`
+SELECT
+  HIERARCHY_LEVEL,
+  HIERARCHY_PARENT_RANK,
+  HIERARCHY_RANK,
+  HIERARCHY_ROOT_RANK,
+  HIERARCHY_TREE_SIZE,
+  0 as HIERARCHY_DISTANCE
+ FROM ${src} AS ![${alias}]
+UNION ALL
+SELECT
+  Source.HIERARCHY_LEVEL,
+  Source.HIERARCHY_PARENT_RANK,
+  Source.HIERARCHY_RANK,
+  Source.HIERARCHY_ROOT_RANK,
+  Source.HIERARCHY_TREE_SIZE,
+  Child.HIERARCHY_DISTANCE + 1
+ FROM ${src} AS Source
+JOIN HierarchyDescendants AS Child ON Source.PARENT_ID=Child.NODE_ID`)
+    cqn.as = 'HierarchyDescendants'
+    cqn.SET.args[0].SELECT.where = where.xpr
+    cqn.SET.args[0].SELECT.columns = [...cqn.SET.args[0].SELECT.columns, ...passThroughColumns.map(r => ({ ref: [alias, r.ref[1]] }))]
+    cqn.SET.args[1].SELECT.columns = [...cqn.SET.args[1].SELECT.columns, ...passThroughColumns]
+
+    this.with(cqn)
+    return this.expr({
+      SELECT: {
+        columns: ['*'],
+        from: {
+          join: 'inner',
+          args: [{ ref: ['Hierarchy'] }, { ref: ['HierarchyDescendants'] }],
+          on: [{ ref: ['Hierarchy', 'HIERARCHY_RANK'] }, '=', { ref: ['HierarchyDescendants', 'HIERARCHY_RANK'] }]
+        },
+      }
+    })
+  },
+
+  /**
+   * Generates SQL statement for the hierarchy_ancestors function
+   * @param {string} [p] - 
+   * @returns {string} - SQL statement
+   */
+  HIERARCHY_ANCESTORS: function (args) {
+    // Find Hierarchy function call source query
+    const passThroughColumns = args.xpr[1].args[0].xpr[1].SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
+    // REVISIT: currently only supports func: HIERARCHY as source
+    const src = this.expr(args.xpr[1])
+
+    const alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
+    const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
+
+    const cqn = cds.ql(`
+SELECT
+  HIERARCHY_LEVEL,
+  HIERARCHY_PARENT_RANK,
+  HIERARCHY_RANK,
+  HIERARCHY_ROOT_RANK,
+  HIERARCHY_TREE_SIZE,
+  0 as HIERARCHY_DISTANCE
+ FROM ${src} AS ![${alias}]
+UNION ALL
+SELECT
+  Source.HIERARCHY_LEVEL,
+  Source.HIERARCHY_PARENT_RANK,
+  Source.HIERARCHY_RANK,
+  Source.HIERARCHY_ROOT_RANK,
+  Source.HIERARCHY_TREE_SIZE,
+  Child.HIERARCHY_DISTANCE - 1
+ FROM ${src} AS Source
+JOIN HierarchyAncestor AS Child ON Source.NODE_ID=Child.PARENT_ID`)
+    cqn.as = 'HierarchyAncestor'
+    cqn.SET.args[0].SELECT.where = where.xpr
+    cqn.SET.args[0].SELECT.columns = [...cqn.SET.args[0].SELECT.columns, ...passThroughColumns.map(r => ({ ref: [alias, r.ref[1]] }))]
+    cqn.SET.args[1].SELECT.columns = [...cqn.SET.args[1].SELECT.columns, ...passThroughColumns]
+
+    this.with(cqn)
+    return this.expr({
+      SELECT: {
+        columns: ['*'],
+        from: {
+          join: 'inner',
+          args: [{ ref: ['Hierarchy'] }, { ref: ['HierarchyAncestor'] }],
+          on: [{ ref: ['Hierarchy', 'HIERARCHY_RANK'] }, '=', { ref: ['HierarchyAncestor', 'HIERARCHY_RANK'] }]
+        },
+      }
+    })
+  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
