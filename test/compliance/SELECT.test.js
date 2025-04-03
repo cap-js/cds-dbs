@@ -890,7 +890,7 @@ describe('SELECT', () => {
 
   describe('forUpdate ignore locked', () => {
     const boolLock = SELECT.from('basic.projection.globals')
-      .forShareLock({
+      .forUpdate({
         of: ['bool'],
         ignoreLocked: true
       })
@@ -903,7 +903,7 @@ describe('SELECT', () => {
 
   describe('forUpdate ignore locked with ignored wait', () => {
     const boolLock = SELECT.from('basic.projection.globals')
-      .forShareLock({
+      .forUpdate({
         of: ['bool'],
         ignoreLocked: true,
         wait: 0, // ignored, happens if global defaults are set
