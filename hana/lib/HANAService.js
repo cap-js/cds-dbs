@@ -1246,7 +1246,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
               const compare = [left, x, right]
 
               const expression = {
-                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true,  param: false }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false,  param: false }],
+                xpr: ['CASE', 'WHEN', ...compare, 'THEN', { val: true, param: false }, 'WHEN', 'NOT', ...compare, 'THEN', { val: false, param: false }],
                 _internal: true,
               }
 
