@@ -10,6 +10,7 @@
     "hana"
   ],
   "devDependencies": {
+    "@cap-js/cds-test": ">=0.2.0",
     "axios": "^1"
   },
   "scripts": {
