@@ -286,19 +286,6 @@ class CQN2SQLRenderer {
       requiredComputedColumns[name] = true
     }
 
-    const recurseWhereRefZero = recurse.where?.[0]?.xpr ? recurse.where?.[0]?.xpr?.[0] : recurse.where?.[0]
-    const distanceType = recurseWhereRefZero?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurseWhereRefZero.ref[0]
-    // Determine direction based upon whether the distance is negative or positive
-    const direction = !distanceType || recurse.where[1] in { '<': 1, '<=': 1 }
-      ? where?.length ? 'ANCESTORS' : 'DESCENDANTS' // If no where clause is provided it has to be toplevel
-      : recurse.where[1] in { '=': 1, 'between': 1 } // First val of between is the lowest number according to SQL specification
-        ? recurse.where[2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
-        : recurse.where[1] in { '>': 1, '>=': 1 }
-          ? 'DESCENDANTS'
-          : cds.error`Invalid recurse.where: ${JSON.stringify(recurse.where)}`
-    // Ensure that the distance value is being computed
-    if (distanceType) addComputedColumn(distanceType)
-
     // TODO: convert computed columns to cqn for better SQL generation
     const availableComputedColumns = {
       // Input computed columns
@@ -358,15 +345,34 @@ class CQN2SQLRenderer {
       as: alias
     })
 
-    const expandedByNr = { list: [] }
-    const expandedByOne = { list: [] }
-    const expandedByZero = { list: [] }
+    const expandedByNr = { list: [] } // DistanceTo(...,null)
+    const expandedByOne = { list: [] } // DistanceTo(...,1)
+    const expandedByZero = { list: [] } // not DistanceTo(...,null)
     let expandedFilter = []
+    let distanceType = 'DistanceFromRoot'
+    let distanceVal
 
-    if (recurse.where && !distanceType || distanceType === 'DistanceFromRoot') {
+    if (recurse.where) {
+      distanceType = 'Distance'
       if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
       expandedFilter = [...recurse.where]
       collectDistanceTo(expandedFilter)
+    }
+
+    const direction = where?.length ? 'ANCESTORS' : 'DESCENDANTS'
+    // Ensure that the distance value is being computed
+    if (distanceType) addComputedColumn(distanceType)
+
+    let distanceClause = []
+    if (distanceType === 'Distance') {
+      const isOne = expandedByOne.list.length
+      distanceClause = ['DISTANCE', ...(
+        isOne
+          ? [{ val: 1 }]
+          : ['FROM', { val: 1 }]
+      )]
+      where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      expandedFilter = []
     }
 
     availableComputedColumns.DrillState = {
@@ -388,15 +394,13 @@ class CQN2SQLRenderer {
           ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
           : []
         ),
-        ...(distanceType
-          ? ['WHEN', ...(distanceType === 'DistanceFromRoot'
-            ? [{ ref: ['HIERARCHY_LEVEL'] }, '<>', { val: recurse.where[2].val + 1 }]
-            : [{ ref: ['HIERARCHY_DISTANCE'] }, recurse.where[1], { val: recurse.where[2].val - 1 }]
-          ), 'THEN', { val: 'expanded', param: false },
+        ...(distanceType === 'DistanceFromRoot' && distanceVal
+          ? [
+            'WHEN', { ref: ['HIERARCHY_LEVEL'] }, '<>', { val: distanceVal.val + 1 },
+            'THEN', { val: 'expanded', param: false },
           ]
           : []
         ),
-
         'ELSE', { val: recurse.where && distanceType ? 'collapsed' : 'expanded', param: false },
         'END',
       ],
@@ -435,20 +439,7 @@ class CQN2SQLRenderer {
                     ? this.is_comparator?.({ xpr: where }) ?? true ? where : [...where, '=', { val: true, param: false }]
                     : [{ ref: ['PARENT_ID'] }, '=', { val: null }]
                 },
-                ...(distanceType === 'Distance'
-                  ? ['DISTANCE', ...(
-                    recurse.where[1] === '='
-                      ? []
-                      : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
-                        ? ['FROM']
-                        : ['TO']
-                  ), recurse.where[2], ...(
-                    recurse.where[1] === 'betweem'
-                      ? ['TO', recurse.where[4]]
-                      : []
-                  )]
-                  : []
-                )
+                ...distanceClause
               ]
             }]
           },
@@ -461,10 +452,9 @@ class CQN2SQLRenderer {
     function collectDistanceTo(where, innot = false) {
       for (let i = 0; i < where.length; i++) {
         const c = where[i]
-        if (c === 'not') innot = true
-        if (c.xpr) {
-          where[i] = { xpr: [...c.xpr] }
-          collectDistanceTo(c.xpr, innot)
+        if (c === 'not') {
+          distanceType = 'DistanceFromRoot'
+          innot = true
         }
         else if (c.func === 'DistanceTo') {
           const expr = c.args[0]
@@ -476,7 +466,8 @@ class CQN2SQLRenderer {
               ? expandedByZero
               : expandedByNr
 
-          if (!list.list.length) {
+          if (!list._where) {
+            list._where = []
             where.splice(i, 1,
               ...(to === 1
                 ? [{ ref: ['PARENT_ID'] }, 'IN', list]
@@ -485,8 +476,10 @@ class CQN2SQLRenderer {
                     _internal: true,
                     columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
                     from: q.SELECT.from,
-                    where: [{ ref: ['NODE_ID'] }, 'IN', list],
-                    recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+                    recurse: {
+                      ref: recurse.ref,
+                      where: list._where,
+                    },
                   },
                   target: q.target,
                 }])
@@ -494,14 +487,22 @@ class CQN2SQLRenderer {
             i += 2
           } else {
             // Remove current entry from where
-            where.splice(i - 1, 2)
-            i -= 2
+            if (where[i - 1] === 'not') {
+              where.splice(i - 2, 3)
+              i -= 3
+            } else {
+              where.splice(i - 1, 2)
+              i -= 2
+            }
           }
           list.list.push(expr)
+          list._where.push(c)
         }
         else if (c.ref?.[0] === 'DistanceFromRoot') {
+          distanceType = 'DistanceFromRoot'
           where[i] = { ref: ['HIERARCHY_LEVEL'] }
           i += 2
+          distanceVal = where[i]
           where[i] = { val: where[i].val + 1 }
         }
       }
