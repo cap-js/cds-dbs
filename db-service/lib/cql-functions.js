@@ -146,7 +146,7 @@ const StandardFunctions = {
    * @returns {string} - SQL statement
    */
   now: function () {
-    return this.session_context({ val: '$now' })
+    return this.expr({ func: 'session_context', args: [{ val: '$now' }] })
   },
 
   /**
