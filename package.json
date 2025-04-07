@@ -10,7 +10,7 @@
     "hana"
   ],
   "devDependencies": {
-    "axios": "^1"
+    "@cap-js/cds-test": "*"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
