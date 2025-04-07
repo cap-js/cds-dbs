@@ -277,7 +277,7 @@ class CQN2SQLRenderer {
   }
 
   SELECT_recurse(q) {
-    let { from, columns, where, recurse, _internal } = q.SELECT
+    let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
     if (!_internal) requiredComputedColumns.RANK = true
@@ -338,10 +338,20 @@ class CQN2SQLRenderer {
         : { func: 'HIERARCHY_COMPOSITE_ID', args: parentKeys.map(n => ({ ref: [n] })), as: 'PARENT_ID' },
     )
 
+    if (orderBy) {
+      orderBy = orderBy.map(r => {
+        const col = r.ref.at(-1)
+        if (!columnsIn.find(c => this.column_name(c) === col)) {
+          columnsIn.push({ ref: [col] })
+        }
+        return { ...r, ref: [col] }
+      })
+    }
+
     const alias = q.SELECT.from.as
     const source = () => ({
       func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from, } }] }],
+      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
       as: alias
     })
 

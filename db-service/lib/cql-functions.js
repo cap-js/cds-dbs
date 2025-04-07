@@ -198,8 +198,11 @@ const HANAFunctions = {
   HIERARCHY: function (args) {
     let uniqueCounter = this._with?.length ?? 0
     let src = args.xpr[1]
+
+    // Ensure that the orderBy column are exposed by the source for hierarchy sorting
+    const orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
+
     const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
-    // src.SELECT.columns.push({ func: 'row_number', args: [], xpr: ['OVER', { xpr: [] }], as: 'rowid' })
     src.as = 'H' + (uniqueCounter++)
     src = this.expr(this.with(src))
 
@@ -215,7 +218,7 @@ SELECT
   Parent.HIERARCHY_ROOT_ID
  FROM ${src} AS Source
 JOIN H${uniqueCounter} AS Parent ON Source.PARENT_ID=Parent.NODE_ID
-ORDER BY HIERARCHY_LEVEL DESC`)
+ORDER BY HIERARCHY_LEVEL DESC${orderBy ? `,${orderBy}` : ''}`)
     recursive.as = 'H' + (uniqueCounter++)
     recursive.SET.args[0].SELECT.columns = [...recursive.SET.args[0].SELECT.columns, ...passThroughColumns]
     recursive.SET.args[1].SELECT.columns = [...recursive.SET.args[1].SELECT.columns, ...passThroughColumns]
