@@ -36,6 +36,7 @@
     }
   },
   "devDependencies": {
+    "@cap-js/cds-test": "^0",
     "@sap/hana-client": ">=2"
   },
   "cds": {

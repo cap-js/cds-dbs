@@ -30,6 +30,9 @@
     "@cap-js/db-service": "^1.19.0",
     "pg": "^8"
   },
+  "devDependencies": {
+    "@cap-js/cds-test": "^0"
+  },
   "peerDependencies": {
     "@sap/cds": ">=7.6",
     "@sap/cds-dk": ">=7.5"

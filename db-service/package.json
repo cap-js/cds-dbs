@@ -26,6 +26,9 @@
   "dependencies": {
     "generic-pool": "^3.9.0"
   },
+  "devDependencies": {
+    "@cap-js/cds-test": "^0"
+  },
   "peerDependencies": {
     "@sap/cds": ">=7.9"
   },

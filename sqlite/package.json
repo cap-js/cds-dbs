@@ -29,6 +29,9 @@
     "@cap-js/db-service": "^1.19.0",
     "better-sqlite3": "^11.0.0"
   },
+  "devDependencies": {
+    "@cap-js/cds-test": "^0"
+  },
   "peerDependencies": {
     "@sap/cds": ">=7.6"
   },
