@@ -356,10 +356,11 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
     }
 
     let blobPosition = 0
+    const getData = prom(rs, 'getData')
 
     while (true) {
       const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)
-      const read = await rs.getDataAsync(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
+      const read = await getData(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
       blobPosition += read
       if (read < buffer.byteLength) {
         yield buffer.subarray(0, read)
