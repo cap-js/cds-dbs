@@ -204,8 +204,8 @@ describe('CREATE', () => {
 
       await db.run({ DROP: { entity: globals.name } }).catch(() => { })
       await db.run({ DROP: { entity: entityName } }).catch(() => { })
-      // await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
-      // await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
+      await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
+      await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
     })
 
     test('definition provided', async () => {
@@ -218,7 +218,7 @@ describe('CREATE', () => {
         name: entityName,
         elements: globals.elements
       })
-      await db.run(CREATE(entity))
+      await db.run(cds.ql.CREATE(entity))
       // REVISIT: reading from entities not in the model requires additional hanlding in infer
       // await SELECT.from(entity)
     })
@@ -239,8 +239,8 @@ describe('CREATE', () => {
       })
       */
 
-      await db.run(DROP(globals))
-      await db.run(CREATE(globals))
+      await db.run(cds.ql.DROP(globals))
+      await db.run(cds.ql.CREATE(globals))
       await db.run({ CREATE: { entity: entityName, as: query } })
       // await SELECT.from(entity)
     })
@@ -258,22 +258,22 @@ describe('CREATE', () => {
       let deploy
 
       beforeAll(async () => {
-        await DROP(table)
-        if (entity.projection) await DROP(entity.projection.from.ref[0])
+        await cds.ql.DROP(table)
+        if (entity.projection) await cds.ql.DROP(entity.projection.from.ref[0])
 
         deploy = Promise.resolve()
         // Create parent entity
         if (entity.projection) {
-          deploy = deploy.then(() => CREATE(entity.projection.from.ref[0]))
+          deploy = deploy.then(() => cds.ql.CREATE(entity.projection.from.ref[0]))
         }
         // actually CREATE test
-        deploy = deploy.then(() => CREATE(table))
+        deploy = deploy.then(() => cds.ql.CREATE(table))
         await deploy.catch(() => { })
       })
 
       afterAll(async () => {
-        await DROP(table)
-        if (entity.projection) await DROP(entity.projection.from.ref[0])
+        await cds.ql.DROP(table)
+        if (entity.projection) await cds.ql.DROP(entity.projection.from.ref[0])
       })
 
       test('CREATE', async () => {

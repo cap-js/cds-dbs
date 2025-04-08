@@ -6,6 +6,12 @@ describe('Versioned table', () => {
     cds.requires.toggles = true
   })
 
+  afterAll(async () => {
+    const { history } = cds.entities('edge.hana.versioning.versioned')
+    // REVISIT: Remove history data as it is not tracked by database isolation
+    await cds.ql.DELETE.from(history).where({ val: true })
+  })
+
   const { expect } = cds.test(
     __dirname + '/../../test/compliance/resources',
     // Additional model definition is required, because feature flags don't work correctly without mtx
@@ -44,7 +50,7 @@ describe('Versioned table', () => {
     // Validate that every history entry has millisecond unique timestamps
     const timestamps = {}
     for (const h of his) {
-       // When the history table has duplicate `validTo` columns time travel won't work correctly
+      // When the history table has duplicate `validTo` columns time travel won't work correctly
       if (timestamps[h.validTo]) return
       timestamps[h.validTo] = 1
     }

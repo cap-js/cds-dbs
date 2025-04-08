@@ -32,11 +32,24 @@ async function beforeWrite(dbs, isolate) {
   ten.before(['*'], async (req) => {
     if (
       !req.query ||
+      (typeof req.query === 'string' && /^(BEGIN|COMMIT|ROLLBACK)/i.test(req.query))
+    ) return // Ignore event requests
+
+    if (
       req.query?.SELECT ||
-      (typeof req.query === 'string' && /^(BEGIN|COMMIT|ROLLBACK|SELECT)/i.test(req.query))
-    ) return // Ignore reading requests
+      (typeof req.query === 'string' && /^\W*SELECT/i.test(req.query))
+    ) {
+      // Delay read requests while the tenant is in the process of isolating
+      if (ten._isolating) return req.tx.rollback()
+        .then(() => ten._isolating)
+        .then(() => req.tx.begin())
+      return // Stay in read only isolation for read requests
+    }
+
     if (req.target) modified[req.target.name] = true
-    if (req.tx._isolating) return req.tx._isolating
+    if (ten._isolating) return req.tx.rollback()
+      .then(() => ten._isolating)
+      .then(() => req.tx.begin())
     if (ten._writeable) return
 
     // Add modification tracking for deep-queries internal calls
@@ -49,7 +62,7 @@ async function beforeWrite(dbs, isolate) {
     }
 
     ten._writeable = true
-    return (req.tx._isolating = req.tx.commit()
+    return (ten._isolating = req.tx.commit()
       .then(() => getWriteTenant(dbs, isolate))
       .then(() => req.tx.begin()))
   })
@@ -118,7 +131,7 @@ async function getReadTenant(dbs, isolate) {
 }
 
 async function getWriteTenant(dbs, isolate) {
-  const { ten, dat } = dbs
+  const { ten, dat, sys } = dbs
   const { schemas } = dat.entities()
   // await this.database(isolate)
 
@@ -139,6 +152,7 @@ async function getWriteTenant(dbs, isolate) {
 
   await ten.database(isolate)
   await ten.tenant(isolate)
+  ten._isolating = undefined
 
   if (isnew) await deploy(dbs, isolate)
 
@@ -163,6 +177,10 @@ async function getWriteTenant(dbs, isolate) {
         await ten.tenant(isolate, true)
         // Remove cleaned up schema
         await dat.run(DELETE(schemas).where`tenant=${isolate.tenant}`)
+      } finally {
+        await ten.disconnect()
+        await dat.disconnect()
+        await sys.disconnect()
       }
     } catch (err) {
       // if an shutdown handler throws an error it goes into an infinite loop
@@ -184,6 +202,18 @@ module.exports = async function (db) {
       model: await cds.load(cds.utils.path.join(__dirname, 'database'))
     }),
   }
+
+  cds.on('shutdown', async () => {
+    try {
+      const { ten, dat, sys } = dbs
+
+      await Promise.all([
+        ten.disconnect(),
+        dat.disconnect(),
+        sys.disconnect(),
+      ])
+    } catch { }
+  })
 
   await dbs.dat.database(isolate)
 
