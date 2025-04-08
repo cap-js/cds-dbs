@@ -13,13 +13,13 @@ describe('inline', () => {
   })
 
   it('simple structural inline expansion', () => {
-    let inlineQuery = cds.ql`select from Employee {
+    let inlineQuery = cds.ql`select from Employee as Employee {
       office.{
         floor,
         room
       }
     }`
-    let longVersion = cds.ql`select from Employee {
+    let longVersion = cds.ql`select from Employee as Employee {
       office.floor,
       office.room
     }`
@@ -30,13 +30,13 @@ describe('inline', () => {
     expect(cqn4sql(inlineQuery, model)).to.eql(cqn4sql(longVersion, model)).to.eql(expected)
   })
   it('structural inline expansion with path expression', () => {
-    let inlineQuery = cds.ql`select from Employee {
+    let inlineQuery = cds.ql`select from Employee as Employee {
       office.{
         floor,
         building.name
       }
     }`
-    let longVersion = cds.ql`select from Employee {
+    let longVersion = cds.ql`select from Employee as Employee {
       office.floor,
       office.building.name
     }`
@@ -50,7 +50,7 @@ describe('inline', () => {
     expect(cqn4sql(inlineQuery, model)).to.eql(longResult).to.eql(expected)
   })
   it('inline expansion with path expression', () => {
-    let inlineQuery = cds.ql`select from Employee {
+    let inlineQuery = cds.ql`select from Employee as Employee {
       department.{
         name
       }
@@ -63,7 +63,7 @@ describe('inline', () => {
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
   it('structural inline expansion with path expression and infix filter', () => {
-    let inlineQuery = cds.ql`select from Department {
+    let inlineQuery = cds.ql`select from Department as Department {
       head[job = 'boss'].office.{
         floor
       }
@@ -77,7 +77,7 @@ describe('inline', () => {
     expect(cqn4sql(inlineQuery, model)).to.eql(expected)
   })
   it('structural inline expansion with path expression and infix filter at leaf', () => {
-    let inlineQuery = cds.ql`select from Department {
+    let inlineQuery = cds.ql`select from Department as Department {
       head[job = 'boss'].{
         name
       }
@@ -92,7 +92,7 @@ describe('inline', () => {
   })
 
   it('structural inline expansion back and forth', () => {
-    let inlineQuery = cds.ql`select from Department {
+    let inlineQuery = cds.ql`select from Department as Department {
       head.department.{
         costCenter
       }
@@ -108,7 +108,7 @@ describe('inline', () => {
   })
 
   it('structural inline expansion back and forth', () => {
-    let inlineQuery = cds.ql`select from Department {
+    let inlineQuery = cds.ql`select from Department as Department {
       head.department.{
         costCenter
       }
@@ -124,7 +124,7 @@ describe('inline', () => {
   })
 
   it('mixed with expand', () => {
-    let queryInlineNotation = cds.ql`select from Employee {
+    let queryInlineNotation = cds.ql`select from Employee as Employee {
           office {
             floor,
             address.{
@@ -133,7 +133,7 @@ describe('inline', () => {
             }
           }
     }`
-    let variantWithoutInline = cds.ql`select from Employee {
+    let variantWithoutInline = cds.ql`select from Employee as Employee {
       office {
         floor,
         address.city,
@@ -150,7 +150,7 @@ describe('inline', () => {
   })
 
   it('deep inline', () => {
-    let queryInlineNotation = cds.ql`select from Employee {
+    let queryInlineNotation = cds.ql`select from Employee as Employee {
       office.{
         floor,
         address.{
@@ -160,7 +160,7 @@ describe('inline', () => {
         }
       }
     }`
-    let variantWithoutInline = cds.ql`select from Employee {
+    let variantWithoutInline = cds.ql`select from Employee as Employee {
       office.floor,
       office.address.city,
       office.address.street,
@@ -175,7 +175,7 @@ describe('inline', () => {
     expect(cqn4sql(queryInlineNotation, model)).to.eql(cqn4sql(variantWithoutInline, model)).to.eql(expected)
   })
   it('deep expand in inline', () => {
-    let queryInlineNotation = cds.ql`select from Employee {
+    let queryInlineNotation = cds.ql`select from Employee as Employee {
       office.{
         floor,
         address {
@@ -184,14 +184,14 @@ describe('inline', () => {
         }
       }
     }`
-    let variantWithoutInline = cds.ql`select from Employee {
+    let variantWithoutInline = cds.ql`select from Employee as Employee {
       office.floor,
       office.address {
           city,
           street
       }
     }`
-    let expected = cds.ql`select from Employee as Employee{
+    let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       Employee.office_address_city,
       Employee.office_address_street,
@@ -199,7 +199,7 @@ describe('inline', () => {
     expect(cqn4sql(queryInlineNotation, model)).to.eql(cqn4sql(variantWithoutInline, model)).to.eql(expected)
   })
   it('deep expand on assoc in inline', () => {
-    let queryInlineNotation = cds.ql`select from Employee {
+    let queryInlineNotation = cds.ql`select from Employee as Employee {
       office.{
         floor,
         building {
@@ -207,7 +207,7 @@ describe('inline', () => {
         }
       }
     }`
-    let variantWithoutInline = cds.ql`select from Employee {
+    let variantWithoutInline = cds.ql`select from Employee as Employee {
       office.floor,
       office.building {
           id
@@ -216,8 +216,8 @@ describe('inline', () => {
     let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       (
-        select office_building.id from Building as office_building
-        where Employee.office_building_id = office_building.id
+        select $o.id from Building as $o
+        where Employee.office_building_id = $o.id
       ) as office_building
     }`
     // expand subqueries have special non-enumerable props -> ignore them
@@ -227,10 +227,10 @@ describe('inline', () => {
   })
 
   it('wildcard inline toplevel', () => {
-    let inlineWildcard = cds.ql`select from EmployeeNoUnmanaged {
+    let inlineWildcard = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ * }
     }`
-    let inlineExplicit = cds.ql`select from EmployeeNoUnmanaged {
+    let inlineExplicit = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{
         floor,
         room,
@@ -239,7 +239,7 @@ describe('inline', () => {
         furniture
       }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.floor,
       office.room,
       office.building,
@@ -263,10 +263,10 @@ describe('inline', () => {
     expect(wildcard).to.eql(explicit).to.eql(absolute).to.eql(expected)
   })
   it('wildcard inline deep w/o brackets', () => {
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ address.* }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.address.city,
       office.address.street,
       office.address.country,
@@ -282,10 +282,10 @@ describe('inline', () => {
 
   it('smart wildcard - assoc overwrite after *', () => {
     // office.address.city replaces office.floor
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ *, furniture as building, address.city as floor, building.id as room }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.address.city as office_floor,
       office.building.id as office_room,
       office.furniture as office_building,
@@ -310,10 +310,10 @@ describe('inline', () => {
 
   it('smart wildcard - structure overwritten by assoc before *', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ building as furniture, * }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.building as office_furniture,
       office.floor,
       office.room,
@@ -334,10 +334,10 @@ describe('inline', () => {
   })
   it('smart wildcard - structure overwritten by join relevant assoc before *', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ building[name='mega tower'].name as furniture, * }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.building[name='mega tower'].name as office_furniture,
       office.floor,
       office.room,
@@ -361,10 +361,10 @@ describe('inline', () => {
   })
   it('wildcard - no overwrite but additional cols', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ *, 'foo' as last }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.floor,
       office.room,
       office.building,
@@ -390,7 +390,7 @@ describe('inline', () => {
   })
   it('assigning alias within inline only influences name of element, prefix still appended', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ floor as x }
     }`
     let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
@@ -401,10 +401,10 @@ describe('inline', () => {
   })
   it('smart wildcard - structured overwrite before *', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ 'first' as furniture, 'second' as building, * }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      'first' as office_furniture,
      'second' as office_building,
       office.floor,
@@ -425,10 +425,10 @@ describe('inline', () => {
   })
   it('smart wildcard - structured overwrite after *', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{*, 'third' as building, 'fourth' as address }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.floor,
       office.room,
       'third' as office_building,
@@ -449,10 +449,10 @@ describe('inline', () => {
 
   it('wildcard expansion - exclude association', () => {
     // intermediate structures are overwritten
-    let inline = cds.ql`select from EmployeeNoUnmanaged {
+    let inline = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged  {
       office.{*} excluding { building, address }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged  {
       office.floor,
       office.room,
       office.furniture

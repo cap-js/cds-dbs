@@ -2,8 +2,7 @@ const assert = require('assert')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('from', () => {
     test('table', async () => {
@@ -1531,13 +1530,12 @@ describe('SELECT', () => {
     })
 
     const os = require('os')
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list', ...(minimal ? [] : ['SELECT'])]) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
           const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
           const batches = new Array(batchCount).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
-
           const { [targetName]: target } = cds.entities
           await Promise.all(batches.map(() => cds.tx(async (tx) => {
             for (const t of iterator) {
