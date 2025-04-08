@@ -295,14 +295,13 @@ describe('SELECT', () => {
 
     test('compare with DateTime column', async () => {
       const { dateTime: entity } = cds.entities('basic.literals')
-      const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0, -1) + '.000Z'
-      await DELETE.from(entity)
-      await INSERT({ dateTime }).into(entity)
-      const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
-      assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
-      const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
-      assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+      const sel = SELECT('dateTime').from(entity)
+      const [{ dateTime }] = await sel.clone()
+      const timestamp = new Date(dateTime)
+
+      expect(await sel.clone().where(`dateTime = `, dateTime)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp.toISOString())).length(1)
     })
 
     test('combine expr with nested functions and other compare', async () => {
@@ -579,21 +578,21 @@ describe('SELECT', () => {
 
     test('not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('and beetwen CASE statements with not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr]}} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
@@ -616,7 +615,7 @@ describe('SELECT', () => {
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${1}`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${'1'}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
@@ -755,31 +754,39 @@ describe('SELECT', () => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
-      let oldMax
+      let oldMax, oldTimeout
       beforeAll(async () => {
-        if (isSQLite()) return
+        const options = cds.db.pools._factory.options
+        oldMax = options.max
+        oldTimeout = options.acquireTimeoutMillis
+
+        if (isSQLite()) {
+          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+          cds.db.pools.undefined._config.acquireTimeoutMillis =
+            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          return
+        }
         await cds.db.disconnect()
-        oldMax = cds.db.pools._factory.options.max
-        cds.db.pools._factory.options.max = max
+
+        options.max = max
+        options.acquireTimeoutMillis = 1000
       })
 
       afterAll(async () => {
-        if (isSQLite()) return
-        cds.db.pools._factory.options.max = oldMax
+        const options = cds.db.pools._factory.options
+
+        if (isSQLite()) {
+          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
+          cds.db.pools.undefined._config.acquireTimeoutMillis =
+            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          return
+        }
+        await cds.db.disconnect()
+
+        options.max = oldMax
+        options.acquireTimeoutMillis = oldTimeout
       })
     }
-
-    let oldTimeout
-    beforeAll(async () => {
-      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = isSQLite() ? 11: 1000
-    })
-
-    afterAll(() => {
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
-    })
 
     describe('pool max = 1', () => {
       setMax(1)
@@ -979,6 +986,84 @@ describe('SELECT', () => {
       cqn.SELECT.distinct = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+    })
+  })
+
+  describe('foreach', () => {
+    const process = function (row) {
+      for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
+    }
+
+    test('aggregate', async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cqn.clone().foreach(process.bind(aggregate))
+      expect(aggregate).deep.eq(expected)
+    })
+
+    // REVISIT: unskip when merged into @sap/cds
+    test.skip('async iterator', async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      for await (const row of cqn.clone()) process.call(aggregate, row)
+      expect(aggregate).deep.eq(expected)
+    })
+  })
+
+  // REVISIT: unskip when merged into @sap/cds
+  describe.skip('pipe', () => {
+    test('json stream', async () => {
+      const { json } = require('stream/consumers')
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+      const expected = await cqn.clone()
+
+      let result
+      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      expect(result).deep.eq(expected)
+    })
+
+    test('req.res stream', async () => {
+      const http = require('http')
+      const { json } = require('stream/consumers')
+      const { promisify } = require('util')
+
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      // Start simple http server
+      const srv = http.createServer((_, res) => cqn.pipe(res))
+      await promisify(srv.listen.bind(srv))()
+      cds.once('shutdown', () => { srv.close() })
+
+      const expected = await cqn.clone()
+
+      const result = await new Promise((resolve, reject) => {
+        const { port } = srv.address()
+        const req = http.get(`http://localhost:${port}/`)
+        req.on('error', reject)
+        req.on('response', res => {
+          expect(res.headers).to.have.property('content-type').eq('application/json')
+          expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
+          json(res).then(resolve, reject)
+        })
+      })
+
+      expect(result).deep.eq(expected)
     })
   })
 
@@ -1444,14 +1529,26 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list',
-      'SELECT' // REVISIT: this is horribly expensive, blocking a single worker for 11+ seconds -> do we really need this, that way?
-    ]) {
-      test(`${type}: ${unified[type].length}`, async() => {
-        // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-        const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
-        const { [targetName]: target } = cds.entities
-        await cds.run ([...iterator].map(t => SELECT([t]).from(target).limit(0)))
+    const os = require('os')
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list', ...(minimal ? [] : ['SELECT'])]) {
+      describe(`${type}: ${unified[type].length}`, () => {
+        test('execute', async () => {
+          const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
+          const batches = new Array(batchCount).fill('')
+          const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
+          const { [targetName]: target } = cds.entities
+          await Promise.all(batches.map(() => cds.tx(async (tx) => {
+            for (const t of iterator) {
+              // limit(0) still validates that the query is valid, but improves test execution time
+              await tx.run(SELECT([t]).from(target).limit(0))
+            }
+          })
+            .catch(err => {
+              if (err.name === 'TimeoutError') return
+              throw err
+            }))
+          )
+        })
       })
     }
   })

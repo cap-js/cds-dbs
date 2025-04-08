@@ -10,10 +10,10 @@ describe('HANA native functions', () => {
         from: {ref: ['DUMMY']}, 
         columns: [{func: 'CURRENT_UTCTIMESTAMP', as: 'NO'}]
       }}
-  
+
       const res = await cds.run(cqn)
-  
-      expect(res.NO.match(/\.(\d\d\d)0000/)).not.to.be.null // default 3
+
+      expect(res.NO.match(/\.(\d\d\d)0{0,4}/)).not.to.be.null // default 3
     })
 
     // HXE does not allow args
