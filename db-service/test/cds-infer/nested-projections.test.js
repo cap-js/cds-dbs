@@ -178,7 +178,7 @@ describe('nested projections', () => {
           })
       })
       it('wildcard expand with explicit table alias', () => {
-        const q = cds.ql`SELECT from bookshop.Books {
+        const q = cds.ql`SELECT from bookshop.Books as Books {
           Books { *, 'overwrite ID' as ID }
         }`
         let { Books } = model.entities

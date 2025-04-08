@@ -16,8 +16,8 @@ describe('EXISTS predicate in where', () => {
   describe('access association after `exists` predicate', () => {
     it('exists predicate for to-many assoc w/o alias', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID
         )`)
     })
     it('exists predicate after having', () => {
@@ -25,10 +25,10 @@ describe('EXISTS predicate in where', () => {
       // having only works on aggregated queries, hence the "group by" to make
       // the example more "real life"
       expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID }
-         GROUP BY Books.ID
+        cds.ql`SELECT from bookshop.Books as $B { $B.ID }
+         GROUP BY $B.ID
          HAVING EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID
          )`,
       )
     })
@@ -37,10 +37,10 @@ describe('EXISTS predicate in where', () => {
       // having only works on aggregated queries, hence the "group by" to make
       // the example more "real life"
       expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID }
-         GROUP BY Books.ID
+        cds.ql`SELECT from bookshop.Books as $B { $B.ID }
+         GROUP BY $B.ID
          HAVING EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 42
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.ID = 42
          )`,
       )
     })
@@ -49,14 +49,14 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Books { ID } where exists genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID }
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID }
       WHERE EXISTS (
-        SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
-          and EXISTS ( SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID and children.code = 'ABC' )
+        SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID
+          and EXISTS ( SELECT 1 from bookshop.Genres as $c where $c.parent_ID = $g.ID and $c.code = 'ABC' )
       )
       or  EXISTS (
-        SELECT 1 from bookshop.Genres as genre2 where genre2.ID = Books.genre_ID
-        and EXISTS ( SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre2.ID and children2.code = 'DEF' )
+        SELECT 1 from bookshop.Genres as $g2 where $g2.ID = $B.genre_ID
+        and EXISTS ( SELECT 1 from bookshop.Genres as $c2 where $c2.parent_ID = $g2.ID and $c2.code = 'DEF' )
       )`)
     })
     it('exists predicate for assoc combined with path expression in xpr', () => {
@@ -65,27 +65,27 @@ describe('EXISTS predicate in where', () => {
         model,
       )
       expect(query).to.deep.equal(cds.ql`
-      SELECT from bookshop.Books as Books
-        left join bookshop.Authors as author on author.ID = Books.author_ID
+      SELECT from bookshop.Books as $B
+        left join bookshop.Authors as author on author.ID = $B.author_ID
         {
-          Books.ID
+          $B.ID
         }
       WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as author2 where author2.ID = Books.author_ID
+        SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID
         ) and ((author.name + 's') = 'Schillers')`)
     })
 
     it('handles simple where exists with implicit table alias', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists Books.author`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } where exists Books.author`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID
+          SELECT 1 from bookshop.Authors as $a where $a.ID = Books.author_ID
         )`)
     })
 
     it('handles simple where exists with explicit table alias', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS Authors.books`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors { ID } WHERE EXISTS Authors.books`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = Authors.ID
         )`)
     })
     //
@@ -94,44 +94,44 @@ describe('EXISTS predicate in where', () => {
     //
     it('exists predicate for to-many assoc', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
         )`)
     })
 
     it('FROM clause has explicit table alias', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors as A { ID } WHERE EXISTS books`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as A { A.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = A.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = A.ID
         )`)
     })
 
     it('using explicit table alias of FROM clause', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors as A { ID } WHERE EXISTS A.books`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as A { A.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = A.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = A.ID
         )`)
     })
 
     it('FROM clause has table alias with the same name as the assoc', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors as books { ID } WHERE EXISTS books`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as books { books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books2 where books2.author_ID = books.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = books.ID
         )`)
     })
 
     it('using the mean table alias of the FROM clause to access the association', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors as books { ID } WHERE EXISTS books.books`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as books { books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books2 where books2.author_ID = books.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = books.ID
         )`)
     })
 
     it('exists predicate has additional condition', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE exists books and name = 'Horst'`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
-          WHERE exists ( select 1 from bookshop.Books as books where books.author_ID = Authors.ID )
-           AND Authors.name = 'Horst'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID }
+          WHERE exists ( select 1 from bookshop.Books as $b where $b.author_ID = $A.ID )
+           AND $A.name = 'Horst'
         `)
     })
     it('exists predicate is followed by association-like calculated element', () => {
@@ -139,9 +139,9 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE exists booksWithALotInStock and name = 'Horst'`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
-          WHERE exists ( select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) )
-           AND Authors.name = 'Horst'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID }
+          WHERE exists ( select 1 from bookshop.Books as $b where ( $b.author_ID = $A.ID ) and ( $b.stock > 100 ) )
+           AND $A.name = 'Horst'
         `)
     })
   })
@@ -151,10 +151,10 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Books { ID } where ( ( exists author[name = 'Schiller'] ) + 2 ) = 'foo'`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID }
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID }
         WHERE (
           (
-            EXISTS ( SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.name = 'Schiller' )
+            EXISTS ( SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'Schiller' )
           ) + 2
         ) = 'foo'`)
     })
@@ -165,10 +165,10 @@ describe('EXISTS predicate in where', () => {
       query.SELECT.where[1].ref[0].where = [{ xpr: [...query.SELECT.where[1].ref[0].where] }]
       const res = cqn4sql(query, model)
       const expected = cds.ql`
-      SELECT from bookshop.Authors as Authors { Authors.ID } where exists (
-        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
+      SELECT from bookshop.Authors as $A { $A.ID } where exists (
+        SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
           and exists (
-            SELECT 1 from bookshop.Genres as genre where genre.ID = books.genre_ID and genre.parent_ID = 1
+            SELECT 1 from bookshop.Genres as $g where $g.ID = $b.genre_ID and $g.parent_ID = 1
           )
       )`
       // cannot be expressed with the template string cds.ql`` builder
@@ -183,22 +183,51 @@ describe('EXISTS predicate in where', () => {
     it('where exists to-one association with additional filter', () => {
       // note: now all source side elements are addressed with their table alias
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[name = 'Sanderson']`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.name = 'Sanderson'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'Sanderson'
         )`)
+    })
+    it('additional condition needs to be wrapped in brackets', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors { ID } where exists books[contains(title, 'Gravity') or contains(title, 'Dark')]`,
+        model,
+      )
+      const expected = cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID and ( contains($b.title, 'Gravity') or contains($b.title, 'Dark') )
+        )`
+      expect(query).to.deep.equal(expected)
+    })
+    it('additional condition needs to be wrapped in brackets (scoped)', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors:books[contains(title, 'Gravity') or contains(title, 'Dark')] { ID }`,
+        model,
+      )
+      let otherWayOfWritingFilter = cqn4sql(
+        cds.ql`SELECT from bookshop.Authors:books { ID } where contains(title, 'Gravity') or contains(title, 'Dark')`,
+        model,
+      )
+      const expected = cds.ql`
+      SELECT from bookshop.Books as $b { $b.ID }
+        where exists (
+          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
+        ) and (
+           contains($b.title, 'Gravity') or contains($b.title, 'Dark')
+        )
+      `
+      expect(query).to.deep.equal(otherWayOfWritingFilter).to.deep.equal(expected)
     })
     it('where exists to-one association with additional filter with xpr', () => {
       // note: now all source side elements are addressed with their table alias
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[not (name = 'Sanderson')]`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and not (author.name = 'Sanderson')
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and not ($a.name = 'Sanderson')
         )`)
     })
 
     it('MUST ... with simple filter', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[title = 'ABAP Objects']`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.title = 'ABAP Objects'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.title = 'ABAP Objects'
         )`)
     })
 
@@ -223,8 +252,8 @@ describe('EXISTS predicate in where', () => {
         model,
       )
       // TODO original test had no before `dedication_text`
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.dedication_text = 'For Hasso'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.dedication_text = 'For Hasso'
         )`)
     })
 
@@ -234,8 +263,8 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.ID = 29]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.dedication_addressee_ID = 29
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.dedication_addressee_ID = 29
         )`)
     })
 
@@ -261,17 +290,17 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Books { ID } where exists author.books[title = 'Harry Potter']`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and EXISTS (
-            SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID and books2.title = 'Harry Potter'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and EXISTS (
+            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
           )
         )`)
     })
 
     it('MUST handle simple where exists with additional filter, shortcut notation', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[17]`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.ID = 17
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.ID = 17
         )`)
     })
   })
@@ -282,9 +311,9 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Books { ID } where exists author[exists books[title = 'Harry Potter']]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and EXISTS (
-            SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID and books2.title = 'Harry Potter'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and EXISTS (
+            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
             )
           )`)
     })
@@ -301,15 +330,15 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity']`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE
       EXISTS
         (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND
           (
             EXISTS
               (
-                SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
-              ) or books.title = 'Gravity'
+                SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID
+              ) or $b.title = 'Gravity'
           )
         )`)
     })
@@ -318,18 +347,18 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS coAuthorUnmanaged[EXISTS books]]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE
       EXISTS
         (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND
             EXISTS
               (
-                SELECT 1 from bookshop.Authors as coAuthorUnmanaged
-                  where coAuthorUnmanaged.ID = books.coAuthor_ID_unmanaged AND
+                SELECT 1 from bookshop.Authors as $c
+                  where $c.ID = $b.coAuthor_ID_unmanaged AND
                    EXISTS
                    (
-                    SELECT 1 from bookshop.Books as books2 where
-                      books2.author_ID = coAuthorUnmanaged.ID
+                    SELECT 1 from bookshop.Books as $b2 where
+                      $b2.author_ID = $c.ID
                    )
               )
         )`)
@@ -337,9 +366,9 @@ describe('EXISTS predicate in where', () => {
     it('MUST ... EXISTS with nested assoc', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE EXISTS dedication.addressee`, model)
       expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID }
+        cds.ql`SELECT from bookshop.Books as $B { $B.ID }
               WHERE EXISTS (
-                SELECT 1 from bookshop.Person as addressee where addressee.ID = Books.dedication_addressee_ID
+                SELECT 1 from bookshop.Person as $a where $a.ID = $B.dedication_addressee_ID
               )`,
       )
     })
@@ -349,13 +378,13 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[title = 'Gravity' or EXISTS author]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-            SELECT 1 from bookshop.Books as books where
-            books.author_ID = Authors.ID AND
-            ( books.title = 'Gravity' or
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+            SELECT 1 from bookshop.Books as $b where
+            $b.author_ID = $A.ID AND
+            ( $b.title = 'Gravity' or
               EXISTS
                 (
-                  SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
+                  SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID
                 )
             )
           )`)
@@ -366,10 +395,10 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[NOT EXISTS author[EXISTS books]]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND NOT EXISTS (
-            SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID AND EXISTS (
-              SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND NOT EXISTS (
+            SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID AND EXISTS (
+              SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a2.ID
             )
           )
         )`)
@@ -383,11 +412,11 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction']`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND ( EXISTS (
-            SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
-          ) or books.title = 'Gravity' ) AND  EXISTS (
-            SELECT 1 from bookshop.Genres as genre where genre.ID = books.genre_ID and genre.name = 'Fiction'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND ( EXISTS (
+            SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID
+          ) or $b.title = 'Gravity' ) AND  EXISTS (
+            SELECT 1 from bookshop.Genres as $g where $g.ID = $b.genre_ID and $g.name = 'Fiction'
           )
         )`)
     })
@@ -400,12 +429,12 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction' and exists children[name = 'Foo']]`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND ( EXISTS (
-            SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
-          ) or books.title = 'Gravity') AND EXISTS (
-            SELECT 1 from bookshop.Genres as genre where genre.ID = books.genre_ID AND genre.name = 'Fiction' AND EXISTS (
-              SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID AND children.name = 'Foo'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND ( EXISTS (
+            SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID
+          ) or $b.title = 'Gravity') AND EXISTS (
+            SELECT 1 from bookshop.Genres as $g where $g.ID = $b.genre_ID AND $g.name = 'Fiction' AND EXISTS (
+              SELECT 1 from bookshop.Genres as $c where $c.parent_ID = $g.ID AND $c.name = 'Foo'
             )
           )
         )`)
@@ -418,20 +447,20 @@ describe('EXISTS predicate in where', () => {
     //
     it('MUST ... with 2 assocs', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND EXISTS (
+          SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID
         )
       )`)
     })
 
     it('MUST ... with 4 assocs', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author.books.author`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID AND EXISTS (
-            SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID AND EXISTS (
-              SELECT 1 from bookshop.Authors as author2 where author2.ID = books2.author_ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND EXISTS (
+          SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID AND EXISTS (
+            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a2.ID AND EXISTS (
+              SELECT 1 from bookshop.Authors as $a3 where $a3.ID = $b2.author_ID
             )
           )
         )
@@ -443,19 +472,19 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author.books.author AND EXISTS books.author.books.author`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID AND EXISTS (
-            SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID AND EXISTS (
-              SELECT 1 from bookshop.Authors as author2 where author2.ID = books2.author_ID
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND EXISTS (
+          SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID AND EXISTS (
+            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a2.ID AND EXISTS (
+              SELECT 1 from bookshop.Authors as $a3 where $a3.ID = $b2.author_ID
             )
           )
         )
       ) AND EXISTS (
-        SELECT 1 from bookshop.Books as books3 where books3.author_ID = Authors.ID AND EXISTS (
-          SELECT 1 from bookshop.Authors as author3 where author3.ID = books3.author_ID AND EXISTS (
-            SELECT 1 from bookshop.Books as books4 where books4.author_ID = author3.ID AND EXISTS (
-              SELECT 1 from bookshop.Authors as author4 where author4.ID = books4.author_ID
+        SELECT 1 from bookshop.Books as $b3 where $b3.author_ID = $A.ID AND EXISTS (
+          SELECT 1 from bookshop.Authors as $a4 where $a4.ID = $b3.author_ID AND EXISTS (
+            SELECT 1 from bookshop.Books as $b4 where $b4.author_ID = $a4.ID AND EXISTS (
+              SELECT 1 from bookshop.Authors as $a5 where $a5.ID = $b4.author_ID
             )
           )
         )
@@ -490,11 +519,11 @@ describe('EXISTS predicate in where', () => {
         cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[stock > 11].author[name = 'Horst'].books[price < 9.99].author[placeOfBirth = 'Rom']`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID AND books.stock > 11 AND EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID AND author.name = 'Horst' AND EXISTS (
-            SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID AND books2.price < 9.99 AND EXISTS (
-              SELECT 1 from bookshop.Authors as author2 where author2.ID = books2.author_ID AND author2.placeOfBirth = 'Rom'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.stock > 11 AND EXISTS (
+          SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $b.author_ID AND $a2.name = 'Horst' AND EXISTS (
+            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a2.ID AND $b2.price < 9.99 AND EXISTS (
+              SELECT 1 from bookshop.Authors as $a3 where $a3.ID = $b2.author_ID AND $a3.placeOfBirth = 'Rom'
             )
           )
         )
@@ -520,9 +549,9 @@ describe('EXISTS predicate in where', () => {
        }`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID,
-        case when exists (SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID) then 'yes'
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B {
+        $B.ID,
+        case when exists (SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID) then 'yes'
              else 'no'
         end as x
       }`)
@@ -538,11 +567,11 @@ describe('EXISTS predicate in where', () => {
        }`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID,
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B {
+        $B.ID,
         case when exists
           (
-            SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and author.name = 'Sanderson'
+            SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'Sanderson'
           ) then 'yes'
              else 'no'
         end as x
@@ -559,16 +588,16 @@ describe('EXISTS predicate in where', () => {
        }`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors
-        { Authors.ID,
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A
+        { $A.ID,
           case when exists
           (
-            select 1 from bookshop.Books as books where books.author_ID = Authors.ID and books.price > 10
+            select 1 from bookshop.Books as $b where $b.author_ID = $A.ID and $b.price > 10
           )
           then 1
                when exists
                (
-                  select 1 from bookshop.Books as books2 where books2.author_ID = Authors.ID and books2.price > 100
+                  select 1 from bookshop.Books as $b2 where $b2.author_ID = $A.ID and $b2.price > 100
                )
                then 2
           end as descr
@@ -585,16 +614,16 @@ describe('EXISTS predicate in where', () => {
        }`,
         model,
       )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors
-        { Authors.ID,
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A
+        { $A.ID,
           case 
           when exists
           (
-            select 1 from bookshop.Books as booksWithALotInStock where ( booksWithALotInStock.author_ID = Authors.ID ) and ( booksWithALotInStock.stock > 100 ) and ( booksWithALotInStock.price > 10 or booksWithALotInStock.price < 20 )
+            select 1 from bookshop.Books as $b where ( $b.author_ID = $A.ID ) and ( $b.stock > 100 ) and ( $b.price > 10 or $b.price < 20 )
           ) then 1
           when exists
           (
-            select 1 from bookshop.Books as booksWithALotInStock2 where ( booksWithALotInStock2.author_ID = Authors.ID ) and ( booksWithALotInStock2.stock > 100 ) and ( booksWithALotInStock2.price > 100 or booksWithALotInStock2.price < 120 )
+            select 1 from bookshop.Books as $b2 where ( $b2.author_ID = $A.ID ) and ( $b2.stock > 100 ) and ( $b2.price > 100 or $b2.price < 120 )
           ) then 2
           end as descr
         }
@@ -613,73 +642,73 @@ describe('EXISTS predicate in where', () => {
     it('... managed association with structured FK', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_struc`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_struc where a_struc.ID_1_a = AM.a_struc_ID_1_a and a_struc.ID_1_b = AM.a_struc_ID_1_b
-                                                       and a_struc.ID_2_a = AM.a_struc_ID_2_a and a_struc.ID_2_b = AM.a_struc_ID_2_b
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.ID_1_a = AM.a_struc_ID_1_a and $a.ID_1_b = AM.a_struc_ID_1_b
+                                                       and $a.ID_2_a = AM.a_struc_ID_2_a and $a.ID_2_b = AM.a_struc_ID_2_b
       )`)
     })
 
     it('... managed association with explicit simple FKs', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_strucX`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_strucX where a_strucX.a = AM.a_strucX_a and a_strucX.b = AM.a_strucX_b
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.a = AM.a_strucX_a and $a.b = AM.a_strucX_b
       )`)
     })
 
     it('... managed association with explicit structured FKs', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_strucY`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_strucY where a_strucY.S_1_a = AM.a_strucY_S_1_a and a_strucY.S_1_b = AM.a_strucY_S_1_b
-                                                        and a_strucY.S_2_a = AM.a_strucY_S_2_a and a_strucY.S_2_b = AM.a_strucY_S_2_b
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.S_1_a = AM.a_strucY_S_1_a and $a.S_1_b = AM.a_strucY_S_1_b
+                                                        and $a.S_2_a = AM.a_strucY_S_2_a and $a.S_2_b = AM.a_strucY_S_2_b
       )`)
     })
 
     it('... managed association with explicit structured aliased FKs', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_strucXA`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_strucXA where a_strucXA.S_1_a = AM.a_strucXA_T_1_a and a_strucXA.S_1_b = AM.a_strucXA_T_1_b
-                                                         and a_strucXA.S_2_a = AM.a_strucXA_T_2_a and a_strucXA.S_2_b = AM.a_strucXA_T_2_b
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.S_1_a = AM.a_strucXA_T_1_a and $a.S_1_b = AM.a_strucXA_T_1_b
+                                                         and $a.S_2_a = AM.a_strucXA_T_2_a and $a.S_2_b = AM.a_strucXA_T_2_b
       )`)
     })
 
     it('... managed associations with FKs being managed associations', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_assoc`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze3 as a_assoc where a_assoc.assoc1_ID_1_a = AM.a_assoc_assoc1_ID_1_a and a_assoc.assoc1_ID_1_b = AM.a_assoc_assoc1_ID_1_b
-                                                       and a_assoc.assoc1_ID_2_a = AM.a_assoc_assoc1_ID_2_a and a_assoc.assoc1_ID_2_b = AM.a_assoc_assoc1_ID_2_b
-                                                       and a_assoc.assoc2_ID_1_a = AM.a_assoc_assoc2_ID_1_a and a_assoc.assoc2_ID_1_b = AM.a_assoc_assoc2_ID_1_b
-                                                       and a_assoc.assoc2_ID_2_a = AM.a_assoc_assoc2_ID_2_a and a_assoc.assoc2_ID_2_b = AM.a_assoc_assoc2_ID_2_b
+        SELECT 1 from bookshop.AssocMaze3 as $a where $a.assoc1_ID_1_a = AM.a_assoc_assoc1_ID_1_a and $a.assoc1_ID_1_b = AM.a_assoc_assoc1_ID_1_b
+                                                       and $a.assoc1_ID_2_a = AM.a_assoc_assoc1_ID_2_a and $a.assoc1_ID_2_b = AM.a_assoc_assoc1_ID_2_b
+                                                       and $a.assoc2_ID_1_a = AM.a_assoc_assoc2_ID_1_a and $a.assoc2_ID_1_b = AM.a_assoc_assoc2_ID_1_b
+                                                       and $a.assoc2_ID_2_a = AM.a_assoc_assoc2_ID_2_a and $a.assoc2_ID_2_b = AM.a_assoc_assoc2_ID_2_b
       )`)
     })
 
     it('... managed association with explicit FKs being managed associations', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_assocY`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_assocY where a_assocY.A_1_a = AM.a_assocY_A_1_a and a_assocY.A_1_b_ID = AM.a_assocY_A_1_b_ID
-                                                        and a_assocY.A_2_a = AM.a_assocY_A_2_a and a_assocY.A_2_b_ID = AM.a_assocY_A_2_b_ID
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.A_1_a = AM.a_assocY_A_1_a and $a.A_1_b_ID = AM.a_assocY_A_1_b_ID
+                                                        and $a.A_2_a = AM.a_assocY_A_2_a and $a.A_2_b_ID = AM.a_assocY_A_2_b_ID
       )`)
     })
 
     it('... managed association with explicit aliased FKs being managed associations', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_assocYA`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_assocYA where a_assocYA.A_1_a = AM.a_assocYA_B_1_a and a_assocYA.A_1_b_ID = AM.a_assocYA_B_1_b_ID
-                                                         and a_assocYA.A_2_a = AM.a_assocYA_B_2_a and a_assocYA.A_2_b_ID = AM.a_assocYA_B_2_b_ID
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.A_1_a = AM.a_assocYA_B_1_a and $a.A_1_b_ID = AM.a_assocYA_B_1_b_ID
+                                                         and $a.A_2_a = AM.a_assocYA_B_2_a and $a.A_2_b_ID = AM.a_assocYA_B_2_b_ID
       )`)
     })
 
     it('... managed associations with FKs being mix of struc and managed assoc', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_strass`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze4 as a_strass where a_strass.A_1_a= AM.a_strass_A_1_a
-                                                        and a_strass.A_1_b_assoc1_ID_1_a = AM.a_strass_A_1_b_assoc1_ID_1_a and a_strass.A_1_b_assoc1_ID_1_b = AM.a_strass_A_1_b_assoc1_ID_1_b
-                                                        and a_strass.A_1_b_assoc1_ID_2_a = AM.a_strass_A_1_b_assoc1_ID_2_a and a_strass.A_1_b_assoc1_ID_2_b = AM.a_strass_A_1_b_assoc1_ID_2_b
-                                                        and a_strass.A_1_b_assoc2_ID_1_a = AM.a_strass_A_1_b_assoc2_ID_1_a and a_strass.A_1_b_assoc2_ID_1_b = AM.a_strass_A_1_b_assoc2_ID_1_b
-                                                        and a_strass.A_1_b_assoc2_ID_2_a = AM.a_strass_A_1_b_assoc2_ID_2_a and a_strass.A_1_b_assoc2_ID_2_b = AM.a_strass_A_1_b_assoc2_ID_2_b
-                                                        and a_strass.A_2_a = AM.a_strass_A_2_a
-                                                        and a_strass.A_2_b_assoc1_ID_1_a = AM.a_strass_A_2_b_assoc1_ID_1_a and  a_strass.A_2_b_assoc1_ID_1_b = AM.a_strass_A_2_b_assoc1_ID_1_b
-                                                        and a_strass.A_2_b_assoc1_ID_2_a = AM.a_strass_A_2_b_assoc1_ID_2_a and  a_strass.A_2_b_assoc1_ID_2_b = AM.a_strass_A_2_b_assoc1_ID_2_b
-                                                        and a_strass.A_2_b_assoc2_ID_1_a = AM.a_strass_A_2_b_assoc2_ID_1_a and  a_strass.A_2_b_assoc2_ID_1_b = AM.a_strass_A_2_b_assoc2_ID_1_b
-                                                        and a_strass.A_2_b_assoc2_ID_2_a = AM.a_strass_A_2_b_assoc2_ID_2_a and  a_strass.A_2_b_assoc2_ID_2_b = AM.a_strass_A_2_b_assoc2_ID_2_b
+        SELECT 1 from bookshop.AssocMaze4 as $a where $a.A_1_a= AM.a_strass_A_1_a
+                                                        and $a.A_1_b_assoc1_ID_1_a = AM.a_strass_A_1_b_assoc1_ID_1_a and $a.A_1_b_assoc1_ID_1_b = AM.a_strass_A_1_b_assoc1_ID_1_b
+                                                        and $a.A_1_b_assoc1_ID_2_a = AM.a_strass_A_1_b_assoc1_ID_2_a and $a.A_1_b_assoc1_ID_2_b = AM.a_strass_A_1_b_assoc1_ID_2_b
+                                                        and $a.A_1_b_assoc2_ID_1_a = AM.a_strass_A_1_b_assoc2_ID_1_a and $a.A_1_b_assoc2_ID_1_b = AM.a_strass_A_1_b_assoc2_ID_1_b
+                                                        and $a.A_1_b_assoc2_ID_2_a = AM.a_strass_A_1_b_assoc2_ID_2_a and $a.A_1_b_assoc2_ID_2_b = AM.a_strass_A_1_b_assoc2_ID_2_b
+                                                        and $a.A_2_a = AM.a_strass_A_2_a
+                                                        and $a.A_2_b_assoc1_ID_1_a = AM.a_strass_A_2_b_assoc1_ID_1_a and  $a.A_2_b_assoc1_ID_1_b = AM.a_strass_A_2_b_assoc1_ID_1_b
+                                                        and $a.A_2_b_assoc1_ID_2_a = AM.a_strass_A_2_b_assoc1_ID_2_a and  $a.A_2_b_assoc1_ID_2_b = AM.a_strass_A_2_b_assoc1_ID_2_b
+                                                        and $a.A_2_b_assoc2_ID_1_a = AM.a_strass_A_2_b_assoc2_ID_1_a and  $a.A_2_b_assoc2_ID_1_b = AM.a_strass_A_2_b_assoc2_ID_1_b
+                                                        and $a.A_2_b_assoc2_ID_2_a = AM.a_strass_A_2_b_assoc2_ID_2_a and  $a.A_2_b_assoc2_ID_2_b = AM.a_strass_A_2_b_assoc2_ID_2_b
       )`)
     })
 
@@ -689,7 +718,7 @@ describe('EXISTS predicate in where', () => {
     it('... managed association with explicit FKs being path into a struc', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_part`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as a_part where a_part.A_1_a = AM.a_part_a and a_part.S_2_b = AM.a_part_b
+        SELECT 1 from bookshop.AssocMaze2 as $a where $a.A_1_a = AM.a_part_a and $a.S_2_b = AM.a_part_b
       )`)
     })
   })
@@ -704,27 +733,27 @@ describe('EXISTS predicate in infix filter', () => {
   it('... in select', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books {ID, genre[exists children].descr }`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books
-        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = Books.genre_ID
+      cds.ql`SELECT from bookshop.Books as $B
+        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = $B.genre_ID
           and EXISTS (
-            SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID
+            SELECT 1 from bookshop.Genres as $c where $c.parent_ID = genre.ID
           )
-        { Books.ID, genre.descr as genre_descr }`,
+        { $B.ID, genre.descr as genre_descr }`,
     )
   })
 
   it('... in select, nested', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books {ID, genre[exists children[exists children]].descr }`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books
-        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = Books.genre_ID
+      cds.ql`SELECT from bookshop.Books as $B
+        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = $B.genre_ID
           and EXISTS (
-            SELECT 1 from bookshop.Genres as children where children.parent_ID = genre.ID
+            SELECT 1 from bookshop.Genres as $c where $c.parent_ID = genre.ID
             and EXISTS (
-              SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = children.ID
+              SELECT 1 from bookshop.Genres as $c2 where $c2.parent_ID = $c.ID
             )
           )
-        { Books.ID, genre.descr as genre_descr }`,
+        { $B.ID, genre.descr as genre_descr }`,
     )
   })
 
@@ -734,18 +763,18 @@ describe('EXISTS predicate in infix filter', () => {
       model,
     )
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books
-        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = Books.genre_ID
+      cds.ql`SELECT from bookshop.Books as $B
+        LEFT OUTER JOIN bookshop.Genres as genre ON genre.ID = $B.genre_ID
           and EXISTS (
-            SELECT 1 from bookshop.Genres as children2 where children2.parent_ID = genre.ID
-            and children2.code = 2
+            SELECT 1 from bookshop.Genres as $c where $c.parent_ID = genre.ID
+            and $c.code = 2
           )
         LEFT OUTER JOIN bookshop.Genres as children ON children.parent_ID = genre.ID
           and EXISTS (
-            SELECT 1 from bookshop.Genres as children3 where children3.parent_ID = children.ID
-            and children3.code = 3
+            SELECT 1 from bookshop.Genres as $c2 where $c2.parent_ID = children.ID
+            and $c2.code = 3
           )
-      { Books.ID, children.descr as genre_children_descr }`,
+      { $B.ID, children.descr as genre_children_descr }`,
     )
   })
   it('reject non foreign key access in infix filter', async () => {
@@ -795,16 +824,16 @@ describe('Scoped queries', () => {
     delete originalQuery.SELECT.expand
 
     expect(query).to.deep.equal(cds.ql`
-      SELECT from bookshop.Genres as parent { parent.ID }
+      SELECT from bookshop.Genres as $p { $p.ID }
       where exists (
-        SELECT 1 from bookshop.Genres as parent2
-          where parent2.parent_ID = parent.ID and
+        SELECT 1 from bookshop.Genres as $p2
+          where $p2.parent_ID = $p.ID and
           exists (
-            SELECT 1 from bookshop.Genres as parent3
-              where parent3.parent_ID = parent2.ID  and
+            SELECT 1 from bookshop.Genres as $p3
+              where $p3.parent_ID = $p2.ID  and
               exists (
-                SELECT 1 from bookshop.Genres as Genres
-                where Genres.parent_ID = parent3.ID
+                SELECT 1 from bookshop.Genres as $G
+                where $G.parent_ID = $p3.ID
               )
           )
       )
@@ -816,7 +845,7 @@ describe('Scoped queries', () => {
   //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
   // which, by the way, is the case in tests below where we have a path in FROM -> ???
   it('handles infix filter at entity and WHERE clause', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[price < 12.13]{Books.ID} where stock < 11`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[price < 12.13] as Books {Books.ID} where stock < 11`, model)
     expect(query).to.deep.equal(
       cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (Books.price < 12.13)`,
     )
@@ -824,8 +853,8 @@ describe('Scoped queries', () => {
   it('handles multiple assoc steps', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.TestPublisher:texts {ID}`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.TestPublisher.texts as texts {texts.ID} WHERE exists (
-        SELECT 1 from bookshop.TestPublisher as TestPublisher where texts.publisher_structuredKey_ID = TestPublisher.publisher_structuredKey_ID
+      cds.ql`SELECT from bookshop.TestPublisher.texts as $t {$t.ID} WHERE exists (
+        SELECT 1 from bookshop.TestPublisher as $T2 where $t.publisher_structuredKey_ID = $T2.publisher_structuredKey_ID
       )`,
     )
   })
@@ -841,7 +870,7 @@ describe('Scoped queries', () => {
   it('handles infix filter with nested xpr at entity and WHERE clause', () => {
     let query = cqn4sql(
       cds.ql`
-      SELECT from bookshop.Books[not (price < 12.13)] { Books.ID } where stock < 11
+      SELECT from bookshop.Books[not (price < 12.13)] as Books { Books.ID } where stock < 11
       `,
       model,
     )
@@ -854,7 +883,7 @@ describe('Scoped queries', () => {
   // which, by the way, is the case in tests below where we have a path in FROM -> ???
   it('gets precedence right for infix filter at entity and WHERE clause', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books[price < 12.13 or stock > 77] {Books.ID} where stock < 11 or price > 17.89`,
+      cds.ql`SELECT from bookshop.Books[price < 12.13 or stock > 77] as Books {Books.ID} where stock < 11 or price > 17.89`,
       model,
     )
     expect(query).to.deep.equal(
@@ -865,93 +894,93 @@ describe('Scoped queries', () => {
 
   it('FROM path ends on to-one association', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author { name }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author { author.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $a { $a.name }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
       )`)
   })
   it('unmanaged to one with (multiple) $self in on-condition', () => {
     // $self in refs of length > 1 can just be ignored semantically
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:coAuthorUnmanaged { name }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as coAuthorUnmanaged { coAuthorUnmanaged.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $c { $c.name }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $c.ID = $B.coAuthor_ID_unmanaged
       )`)
   })
   it('handles FROM path with association with explicit table alias', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author as author { author.name }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author { author.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
       )`)
   })
 
   it('handles FROM path with association with mean explicit table alias', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author as Books { name, Books.dateOfBirth }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Books { Books.name, Books.dateOfBirth}
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = Books.ID
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author as $B { name, $B.dateOfBirth }`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $B { $B.name, $B.dateOfBirth}
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B2 where $B2.author_ID = $B.ID
       )`)
   })
 
   it('handles FROM path with backlink association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books {books.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books as books {books.ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as books {books.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        SELECT 1 from bookshop.Authors as $A where $A.ID = books.author_ID
       )`)
   })
   it('handles FROM path with backlink association for association-like calculated element', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock {booksWithALotInStock.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock as booksWithALotInStock {booksWithALotInStock.ID}`, model)
     expect(query).to.deep
       .equal(cds.ql`SELECT from bookshop.Books as booksWithALotInStock {booksWithALotInStock.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
+        SELECT 1 from bookshop.Authors as $A where ( $A.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
       )`)
   })
 
   it('handles FROM path with unmanaged composition and prepends source side alias', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:texts { locale }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books.texts as texts {texts.locale} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as Books where texts.ID = Books.ID
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books.texts as $t {$t.locale} WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $B where $t.ID = $B.ID
       )`)
   })
 
   it('handles FROM path with struct and association', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:dedication.addressee { dateOfBirth }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Person as addressee { addressee.dateOfBirth }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.dedication_addressee_ID = addressee.ID
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Person as $a { $a.dateOfBirth }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.dedication_addressee_ID = $a.ID
       )`)
   })
 
   it('handles FROM path with struct and association (2)', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.DeepRecursiveAssoc:one.two.three.toSelf { ID }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.DeepRecursiveAssoc as toSelf { toSelf.ID }
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.DeepRecursiveAssoc as $t { $t.ID }
         WHERE EXISTS (
-          SELECT 1 from bookshop.DeepRecursiveAssoc as DeepRecursiveAssoc where DeepRecursiveAssoc.one_two_three_toSelf_ID = toSelf.ID
+          SELECT 1 from bookshop.DeepRecursiveAssoc as $D where $D.one_two_three_toSelf_ID = $t.ID
       )`)
   })
   it('handles FROM path with filter at entity plus association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[ID=201]:author {author.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[ID=201]:author as author {author.ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author {author.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and Books.ID=201
+        SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID and $B.ID=201
       )`)
   })
 
   // (SMW) here the explicit WHERE comes at the end (as it should be)
   it('handles FROM path with association and filters and WHERE', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books[ID=201 or ID=202]:author[ID=4711 or ID=4712]{author.ID} where author.name='foo' or name='bar'`,
+      cds.ql`SELECT from bookshop.Books[ID=201 or ID=202]:author[ID=4711 or ID=4712] as author {author.ID} where author.name='foo' or name='bar'`,
       model,
     )
     expect(query).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and (Books.ID=201 or Books.ID=202)
+          SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID and ($B.ID=201 or $B.ID=202)
         ) and (author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar')`,
     )
   })
 
   it('handles FROM path with association with one infix filter at leaf step', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author[ID=4711] {author.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author[ID=4711] as author {author.ID}`, model)
     expect(query).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as author {author.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
         ) and author.ID=4711`,
     )
   })
@@ -965,9 +994,9 @@ describe('Scoped queries', () => {
   // (PB) modified -> additional where condition e.g. infix filter in result are wrapped in `xpr`
   it('MUST ... in from clauses with infix filters, ODATA variant w/o mentioning key', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books[201]:author[150] {ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author {author.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID and Books.ID=201
-      ) AND author.ID = 150`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $a {$a.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID and $B.ID=201
+      ) AND $a.ID = 150`)
   })
 
   // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
@@ -982,9 +1011,9 @@ describe('Scoped queries', () => {
   // (SMW) TODO: check
   it('MUST ... in from clauses with infix filters ODATA variant w/o mentioning key ORDERS/ITEMS', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Orders[201]:items[2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
-        SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID and Orders.ID = 201
-      ) AND items.pos = 2`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
+        SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID and $O.ID = 201
+      ) AND $i.pos = 2`)
   })
 
   // usually, "Filters can only be applied to managed associations which result in a single foreign key"
@@ -992,16 +1021,16 @@ describe('Scoped queries', () => {
   // `where` condition of the exists subquery. Hence we enable this shortcut notation.
   it('MUST ... contain foreign keys of backlink association in on-condition?', () => {
     const query = cqn4sql(cds.ql`SELECT from bookshop.Orders:items[2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
-      SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID
-    ) and items.pos = 2`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
+      SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID
+    ) and $i.pos = 2`)
   })
 
   it('same as above but mention key', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Orders:items[pos=2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as items {items.pos} WHERE EXISTS (
-        SELECT 1 from bookshop.Orders as Orders where Orders.ID = items.up__ID
-      ) and items.pos = 2`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
+        SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID
+      ) and $i.pos = 2`)
   })
 
   // TODO
@@ -1013,22 +1042,22 @@ describe('Scoped queries', () => {
 
   it('MUST ... be possible to address fully qualified, partial key in infix filter', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Orders.items[pos=2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as items {items.pos} where items.pos = 2`)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} where $i.pos = 2`)
   })
 
   it('handles paths with two associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre {genre.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre as genre {genre.ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        SELECT 1 from bookshop.Books as $b where $b.genre_ID = genre.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
         )
       )`)
   })
   it('handles paths with two associations, first is association-like calculated element', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock.genre {genre.ID}`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock.genre as genre {genre.ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as booksWithALotInStock where booksWithALotInStock.genre_ID = genre.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as Authors where ( Authors.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
+        SELECT 1 from bookshop.Books as $b where $b.genre_ID = genre.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as $A where ( $A.ID = $b.author_ID ) and ( $b.stock > 100 )
         )
       )`)
   })
@@ -1036,32 +1065,32 @@ describe('Scoped queries', () => {
   it('handles paths with two associations (mean alias)', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre as books {books.ID}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as books {books.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books2 where books2.genre_ID = books.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books2.author_ID
+        SELECT 1 from bookshop.Books as $b where $b.genre_ID = books.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
         )
       )`)
   })
 
   it('handles paths with three associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent {parent.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as parent {parent.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Genres as genre where genre.parent_ID = parent.ID and EXISTS (
-          SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
-            SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent as $p {$p.ID}`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $p {$p.ID} WHERE EXISTS (
+        SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p.ID and EXISTS (
+          SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
+            SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
           )
         )
       )`)
   })
 
   it('handles paths with recursive associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent.parent.parent {parent.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as parent {parent.ID}
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent.parent.parent as $p {$p.ID}`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $p {$p.ID}
       WHERE EXISTS (
-        SELECT 1 from bookshop.Genres as parent2 where parent2.parent_ID = parent.ID and EXISTS (
-          SELECT 1 from bookshop.Genres as parent3 where parent3.parent_ID = parent2.ID and EXISTS (
-            SELECT 1 from bookshop.Genres as genre where genre.parent_ID = parent3.ID and EXISTS (
-              SELECT 1 from bookshop.Books as books where books.genre_ID = genre.ID and EXISTS (
-                SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID
+        SELECT 1 from bookshop.Genres as $p2 where $p2.parent_ID = $p.ID and EXISTS (
+          SELECT 1 from bookshop.Genres as $p3 where $p3.parent_ID = $p2.ID and EXISTS (
+            SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p3.ID and EXISTS (
+              SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
+                SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
               )
             )
           )
@@ -1071,31 +1100,31 @@ describe('Scoped queries', () => {
 
   it('handles paths with unmanaged association', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent {id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as parent {parent.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as Baz where parent.id = Baz.parent_id or parent.id > 17
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as $p {$p.id} WHERE EXISTS (
+        SELECT 1 from bookshop.Baz as $B where $p.id = $B.parent_id or $p.id > 17
       )`)
   })
 
   it('handles paths with unmanaged association with alias', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent as A {id}`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as A {A.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as Baz where A.id = Baz.parent_id or A.id > 17
+        SELECT 1 from bookshop.Baz as $B where A.id = $B.parent_id or A.id > 17
       )`)
   })
 
   // (SMW) need more tests with unmanaged ON conds using all sorts of stuff -> e.g. struc access in ON, FK of mgd assoc in FROM ...
 
   it('transforms unmanaged association to where exists subquery and infix filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20] {parent.id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as parent {parent.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as Baz where parent.id = Baz.parent_id or parent.id > 17
-      ) AND parent.id < 20`)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20] as my {my.id}`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as my {my.id} WHERE EXISTS (
+        SELECT 1 from bookshop.Baz as $B where my.id = $B.parent_id or my.id > 17
+      ) AND my.id < 20`)
   })
   it('transforms unmanaged association to where exists subquery with multiple infix filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20 or id > 12] {parent.id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as parent {parent.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as Baz where parent.id = Baz.parent_id or parent.id > 17
-      ) AND (parent.id < 20 or parent.id > 12)`)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20 or id > 12] as my { my.id }`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as my {my.id} WHERE EXISTS (
+        SELECT 1 from bookshop.Baz as $B where my.id = $B.parent_id or my.id > 17
+      ) AND (my.id < 20 or my.id > 12)`)
   })
 
   //
@@ -1105,9 +1134,9 @@ describe('Scoped queries', () => {
   it('exists predicate in infix filter in FROM', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Authors[exists books] {ID}`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors {Authors.ID}
+      cds.ql`SELECT from bookshop.Authors as $A {$A.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as books where books.author_ID = Authors.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
         )`,
     )
   })
@@ -1115,11 +1144,11 @@ describe('Scoped queries', () => {
   it('exists predicate in infix filter at ssoc path step in FROM', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author[exists books] {ID}`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
+      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
         ) and EXISTS (
-          SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
         )`,
     )
   })
@@ -1130,16 +1159,16 @@ describe('Scoped queries', () => {
       model,
     )
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
+      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
             where exists (
-              SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+              SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
             ) and exists (
-              SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
+              SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
               and
               (
                 exists (
-                SELECT 1 from bookshop.Authors as coAuthorUnmanaged where coAuthorUnmanaged.ID = books2.coAuthor_ID_unmanaged
-                )  or books2.title = 'Sturmhöhe'
+                SELECT 1 from bookshop.Authors as $c where $c.ID = $b2.coAuthor_ID_unmanaged
+                )  or $b2.title = 'Sturmhöhe'
               )
             )
       `,
@@ -1149,11 +1178,11 @@ describe('Scoped queries', () => {
   it('exists predicate in infix filter followed by assoc in FROM', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books[exists genre]:author {ID}`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
+      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
             and EXISTS (
-              SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
+              SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID
             )
         )`,
     )
@@ -1162,14 +1191,14 @@ describe('Scoped queries', () => {
   it('exists predicate in infix filters in FROM', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books[exists genre]:author[exists books] {ID}`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
+      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
           and EXISTS (
-            SELECT 1 from bookshop.Genres as genre where genre.ID = Books.genre_ID
+            SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID
           )
         ) and EXISTS (
-          SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
+          SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
         )`,
     )
   })
@@ -1181,95 +1210,95 @@ describe('Scoped queries', () => {
       model,
     )
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as books {books.ID}
+      cds.ql`SELECT from bookshop.Books as $b {$b.ID}
         WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as author where author.ID = books.author_ID
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $b.author_ID
             and EXISTS (
-              SELECT 1 from bookshop.Books as books2 where books2.author_ID = author.ID
+              SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
             )
             and EXISTS (
-              SELECT 1 from bookshop.Books as Books3 where Books3.author_ID = author.ID
+              SELECT 1 from bookshop.Books as $B3 where $B3.author_ID = $a.ID
                 and EXISTS (
-                  SELECT 1 from bookshop.Genres as genre where genre.ID = Books3.genre_ID
+                  SELECT 1 from bookshop.Genres as $g where $g.ID = $B3.genre_ID
                 )
           )
         ) and EXISTS (
-          SELECT 1 from bookshop.Genres as genre2 where genre2.ID = books.genre_ID
+          SELECT 1 from bookshop.Genres as $g2 where $g2.ID = $b.genre_ID
         )`,
     )
   })
 
   it('... managed association with structured FK', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_struc { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_struc as a_struc { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_struc { a_struc.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_struc_ID_1_a = a_struc.ID_1_a and AssocMaze1.a_struc_ID_1_b = a_struc.ID_1_b
-                                                          and AssocMaze1.a_struc_ID_2_a = a_struc.ID_2_a and AssocMaze1.a_struc_ID_2_b =  a_struc.ID_2_b
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_struc_ID_1_a = a_struc.ID_1_a and $A.a_struc_ID_1_b = a_struc.ID_1_b
+                                                          and $A.a_struc_ID_2_a = a_struc.ID_2_a and $A.a_struc_ID_2_b =  a_struc.ID_2_b
       )`)
   })
 
   it('... managed association with explicit simple FKs', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucX { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucX as a_strucX { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_strucX { a_strucX.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_strucX_a = a_strucX.a and AssocMaze1.a_strucX_b = a_strucX.b
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_strucX_a = a_strucX.a and $A.a_strucX_b = a_strucX.b
       )`)
   })
 
   it('... managed association with explicit structured FKs', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucY { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucY as a_strucY { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_strucY { a_strucY.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_strucY_S_1_a = a_strucY.S_1_a and AssocMaze1.a_strucY_S_1_b = a_strucY.S_1_b
-                                                          and AssocMaze1.a_strucY_S_2_a = a_strucY.S_2_a and AssocMaze1.a_strucY_S_2_b = a_strucY.S_2_b
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_strucY_S_1_a = a_strucY.S_1_a and $A.a_strucY_S_1_b = a_strucY.S_1_b
+                                                          and $A.a_strucY_S_2_a = a_strucY.S_2_a and $A.a_strucY_S_2_b = a_strucY.S_2_b
       )`)
   })
 
   it('... managed association with explicit structured aliased FKs', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucXA { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strucXA as a_strucXA { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_strucXA { a_strucXA.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_strucXA_T_1_a = a_strucXA.S_1_a and AssocMaze1.a_strucXA_T_1_b = a_strucXA.S_1_b
-                                                          and AssocMaze1.a_strucXA_T_2_a = a_strucXA.S_2_a and AssocMaze1.a_strucXA_T_2_b = a_strucXA.S_2_b
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_strucXA_T_1_a = a_strucXA.S_1_a and $A.a_strucXA_T_1_b = a_strucXA.S_1_b
+                                                          and $A.a_strucXA_T_2_a = a_strucXA.S_2_a and $A.a_strucXA_T_2_b = a_strucXA.S_2_b
       )`)
   })
 
   it('... managed associations with FKs being managed associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assoc { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assoc as a_assoc { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze3 as a_assoc { a_assoc.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_assoc_assoc1_ID_1_a = a_assoc.assoc1_ID_1_a and AssocMaze1.a_assoc_assoc1_ID_1_b = a_assoc.assoc1_ID_1_b
-                                                          and AssocMaze1.a_assoc_assoc1_ID_2_a = a_assoc.assoc1_ID_2_a and AssocMaze1.a_assoc_assoc1_ID_2_b = a_assoc.assoc1_ID_2_b
-                                                          and AssocMaze1.a_assoc_assoc2_ID_1_a = a_assoc.assoc2_ID_1_a and AssocMaze1.a_assoc_assoc2_ID_1_b = a_assoc.assoc2_ID_1_b
-                                                          and AssocMaze1.a_assoc_assoc2_ID_2_a = a_assoc.assoc2_ID_2_a and AssocMaze1.a_assoc_assoc2_ID_2_b = a_assoc.assoc2_ID_2_b
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_assoc_assoc1_ID_1_a = a_assoc.assoc1_ID_1_a and $A.a_assoc_assoc1_ID_1_b = a_assoc.assoc1_ID_1_b
+                                                          and $A.a_assoc_assoc1_ID_2_a = a_assoc.assoc1_ID_2_a and $A.a_assoc_assoc1_ID_2_b = a_assoc.assoc1_ID_2_b
+                                                          and $A.a_assoc_assoc2_ID_1_a = a_assoc.assoc2_ID_1_a and $A.a_assoc_assoc2_ID_1_b = a_assoc.assoc2_ID_1_b
+                                                          and $A.a_assoc_assoc2_ID_2_a = a_assoc.assoc2_ID_2_a and $A.a_assoc_assoc2_ID_2_b = a_assoc.assoc2_ID_2_b
       )`)
   })
 
   it('... managed association with explicit FKs being managed associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assocY { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assocY as a_assocY { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_assocY { a_assocY.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_assocY_A_1_a = a_assocY.A_1_a and AssocMaze1.a_assocY_A_1_b_ID = a_assocY.A_1_b_ID
-                                                          and AssocMaze1.a_assocY_A_2_a = a_assocY.A_2_a and AssocMaze1.a_assocY_A_2_b_ID = a_assocY.A_2_b_ID
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_assocY_A_1_a = a_assocY.A_1_a and $A.a_assocY_A_1_b_ID = a_assocY.A_1_b_ID
+                                                          and $A.a_assocY_A_2_a = a_assocY.A_2_a and $A.a_assocY_A_2_b_ID = a_assocY.A_2_b_ID
       )`)
   })
 
   it('... managed association with explicit aliased FKs being managed associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assocYA { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_assocYA as a_assocYA { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze2 as a_assocYA { a_assocYA.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1 where AssocMaze1.a_assocYA_B_1_a = a_assocYA.A_1_a and AssocMaze1.a_assocYA_B_1_b_ID = a_assocYA.A_1_b_ID
-                                                          and AssocMaze1.a_assocYA_B_2_a = a_assocYA.A_2_a and AssocMaze1.a_assocYA_B_2_b_ID = a_assocYA.A_2_b_ID
+        SELECT 1 from bookshop.AssocMaze1 as $A where $A.a_assocYA_B_1_a = a_assocYA.A_1_a and $A.a_assocYA_B_1_b_ID = a_assocYA.A_1_b_ID
+                                                          and $A.a_assocYA_B_2_a = a_assocYA.A_2_a and $A.a_assocYA_B_2_b_ID = a_assocYA.A_2_b_ID
       )`)
   })
 
   it('... managed associations with FKs being mix of struc and managed assoc', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strass { val }`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1:a_strass as a_strass { val }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze4 as a_strass { a_strass.val } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze1 as AssocMaze1
-          where AssocMaze1.a_strass_A_1_a = a_strass.A_1_a
-            and AssocMaze1.a_strass_A_1_b_assoc1_ID_1_a = a_strass.A_1_b_assoc1_ID_1_a and AssocMaze1.a_strass_A_1_b_assoc1_ID_1_b = a_strass.A_1_b_assoc1_ID_1_b
-            and AssocMaze1.a_strass_A_1_b_assoc1_ID_2_a = a_strass.A_1_b_assoc1_ID_2_a and AssocMaze1.a_strass_A_1_b_assoc1_ID_2_b = a_strass.A_1_b_assoc1_ID_2_b
-            and AssocMaze1.a_strass_A_1_b_assoc2_ID_1_a = a_strass.A_1_b_assoc2_ID_1_a and AssocMaze1.a_strass_A_1_b_assoc2_ID_1_b = a_strass.A_1_b_assoc2_ID_1_b
-            and AssocMaze1.a_strass_A_1_b_assoc2_ID_2_a = a_strass.A_1_b_assoc2_ID_2_a and AssocMaze1.a_strass_A_1_b_assoc2_ID_2_b = a_strass.A_1_b_assoc2_ID_2_b
-            and AssocMaze1.a_strass_A_2_a = a_strass.A_2_a
-            and AssocMaze1.a_strass_A_2_b_assoc1_ID_1_a = a_strass.A_2_b_assoc1_ID_1_a and AssocMaze1.a_strass_A_2_b_assoc1_ID_1_b = a_strass.A_2_b_assoc1_ID_1_b
-            and AssocMaze1.a_strass_A_2_b_assoc1_ID_2_a = a_strass.A_2_b_assoc1_ID_2_a and AssocMaze1.a_strass_A_2_b_assoc1_ID_2_b = a_strass.A_2_b_assoc1_ID_2_b
-            and AssocMaze1.a_strass_A_2_b_assoc2_ID_1_a = a_strass.A_2_b_assoc2_ID_1_a and AssocMaze1.a_strass_A_2_b_assoc2_ID_1_b = a_strass.A_2_b_assoc2_ID_1_b
-            and AssocMaze1.a_strass_A_2_b_assoc2_ID_2_a = a_strass.A_2_b_assoc2_ID_2_a and AssocMaze1.a_strass_A_2_b_assoc2_ID_2_b = a_strass.A_2_b_assoc2_ID_2_b
+        SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_strass_A_1_a = a_strass.A_1_a
+            and $A.a_strass_A_1_b_assoc1_ID_1_a = a_strass.A_1_b_assoc1_ID_1_a and $A.a_strass_A_1_b_assoc1_ID_1_b = a_strass.A_1_b_assoc1_ID_1_b
+            and $A.a_strass_A_1_b_assoc1_ID_2_a = a_strass.A_1_b_assoc1_ID_2_a and $A.a_strass_A_1_b_assoc1_ID_2_b = a_strass.A_1_b_assoc1_ID_2_b
+            and $A.a_strass_A_1_b_assoc2_ID_1_a = a_strass.A_1_b_assoc2_ID_1_a and $A.a_strass_A_1_b_assoc2_ID_1_b = a_strass.A_1_b_assoc2_ID_1_b
+            and $A.a_strass_A_1_b_assoc2_ID_2_a = a_strass.A_1_b_assoc2_ID_2_a and $A.a_strass_A_1_b_assoc2_ID_2_b = a_strass.A_1_b_assoc2_ID_2_b
+            and $A.a_strass_A_2_a = a_strass.A_2_a
+            and $A.a_strass_A_2_b_assoc1_ID_1_a = a_strass.A_2_b_assoc1_ID_1_a and $A.a_strass_A_2_b_assoc1_ID_1_b = a_strass.A_2_b_assoc1_ID_1_b
+            and $A.a_strass_A_2_b_assoc1_ID_2_a = a_strass.A_2_b_assoc1_ID_2_a and $A.a_strass_A_2_b_assoc1_ID_2_b = a_strass.A_2_b_assoc1_ID_2_b
+            and $A.a_strass_A_2_b_assoc2_ID_1_a = a_strass.A_2_b_assoc2_ID_1_a and $A.a_strass_A_2_b_assoc2_ID_1_b = a_strass.A_2_b_assoc2_ID_1_b
+            and $A.a_strass_A_2_b_assoc2_ID_2_a = a_strass.A_2_b_assoc2_ID_2_a and $A.a_strass_A_2_b_assoc2_ID_2_b = a_strass.A_2_b_assoc2_ID_2_b
       )`)
   })
 
@@ -1278,22 +1307,22 @@ describe('Scoped queries', () => {
       SELECT from bookshop.WorklistItems[ID = 1 and snapshotHash = 0]:releaseChecks[ID = 1 and snapshotHash = 0].detailsDeviations
     `
     const expected = cds.ql`
-      SELECT from bookshop.QualityDeviations as detailsDeviations {
-        detailsDeviations.snapshotHash,
-        detailsDeviations.ID,
-        detailsDeviations.batch_ID,
-        detailsDeviations.material_ID,
+      SELECT from bookshop.QualityDeviations as $d {
+        $d.snapshotHash,
+        $d.ID,
+        $d.batch_ID,
+        $d.material_ID,
       } where exists (
-        SELECT 1 from bookshop.WorklistItem_ReleaseChecks as releaseChecks
-        where detailsDeviations.material_ID = releaseChecks.parent_releaseDecisionTrigger_batch_material_ID
-              and ( detailsDeviations.batch_ID = '*' or detailsDeviations.batch_ID = releaseChecks.parent_releaseDecisionTrigger_batch_ID )
-              and detailsDeviations.snapshotHash = releaseChecks.snapshotHash
-              and releaseChecks.ID = 1 and releaseChecks.snapshotHash = 0
+        SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
+        where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+              and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
+              and $d.snapshotHash = $r.snapshotHash
+              and $r.ID = 1 and $r.snapshotHash = 0
               and exists (
-                SELECT 1 from bookshop.WorklistItems as WorklistItems
-                where releaseChecks.parent_ID = WorklistItems.ID
-                  and releaseChecks.parent_snapshotHash = WorklistItems.snapshotHash
-                  and WorklistItems.ID = 1 and WorklistItems.snapshotHash = 0
+                SELECT 1 from bookshop.WorklistItems as $W
+                where $r.parent_ID = $W.ID
+                  and $r.parent_snapshotHash = $W.snapshotHash
+                  and $W.ID = 1 and $W.snapshotHash = 0
               )
       )
     `
@@ -1306,29 +1335,29 @@ describe('Scoped queries', () => {
       .detailsDeviations[ID='0' and snapshotHash='0'and batch_ID='*' and material_ID='1']
     `
     const expected = cds.ql`
-      SELECT from bookshop.QualityDeviations as detailsDeviations {
-        detailsDeviations.snapshotHash,
-        detailsDeviations.ID,
-        detailsDeviations.batch_ID,
-        detailsDeviations.material_ID,
+      SELECT from bookshop.QualityDeviations as $d {
+        $d.snapshotHash,
+        $d.ID,
+        $d.batch_ID,
+        $d.material_ID,
       } where exists (
-        SELECT 1 from bookshop.WorklistItem_ReleaseChecks as releaseChecks
-        where detailsDeviations.material_ID = releaseChecks.parent_releaseDecisionTrigger_batch_material_ID
-              and ( detailsDeviations.batch_ID = '*' or detailsDeviations.batch_ID = releaseChecks.parent_releaseDecisionTrigger_batch_ID )
-              and detailsDeviations.snapshotHash = releaseChecks.snapshotHash
-              and releaseChecks.ID = 1 and releaseChecks.snapshotHash = 0
+        SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
+        where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+              and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
+              and $d.snapshotHash = $r.snapshotHash
+              and $r.ID = 1 and $r.snapshotHash = 0
               and exists (
-                SELECT 1 from bookshop.WorklistItems as WorklistItems
-                where releaseChecks.parent_ID = WorklistItems.ID
-                  and releaseChecks.parent_snapshotHash = WorklistItems.snapshotHash
-                  and WorklistItems.ID = 1 and WorklistItems.snapshotHash = 0
+                SELECT 1 from bookshop.WorklistItems as $W
+                where $r.parent_ID = $W.ID
+                  and $r.parent_snapshotHash = $W.snapshotHash
+                  and $W.ID = 1 and $W.snapshotHash = 0
               )
       )
       and (
-              detailsDeviations.ID = '0'
-          and detailsDeviations.snapshotHash = '0'
-          and detailsDeviations.batch_ID = '*'
-          and detailsDeviations.material_ID = '1'
+              $d.ID = '0'
+          and $d.snapshotHash = '0'
+          and $d.batch_ID = '*'
+          and $d.material_ID = '1'
         )
     `
     expect(cqn4sql(q, model)).to.deep.equal(expected)
@@ -1352,19 +1381,19 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   // SMW -> move that in a seperate "describe" ?
   //
   it('MUST ... mixed with path in FROM clause', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:genre { ID } where exists parent`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:genre as genre { ID } where exists parent`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre { genre.ID }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.genre_ID = genre.ID )
-          AND EXISTS ( SELECT 1 from bookshop.Genres as parent where parent.ID = genre.parent_ID )
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.genre_ID = genre.ID )
+          AND EXISTS ( SELECT 1 from bookshop.Genres as $p where $p.ID = genre.parent_ID )
       `)
   })
 
   // semantically same as above
   it('MUST ... EXISTS in filter in FROM', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books:genre[exists parent] { ID }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre { genre.ID }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as Books where Books.genre_ID = genre.ID )
-          AND EXISTS ( SELECT 1 from bookshop.Genres as parent where parent.ID = genre.parent_ID )
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $g { $g.ID }
+        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.genre_ID = $g.ID )
+          AND EXISTS ( SELECT 1 from bookshop.Genres as $p where $p.ID = $g.parent_ID )
       `)
   })
 })
@@ -1376,37 +1405,37 @@ describe('comparisons of associations in on condition of elements needs to be ex
   })
 
   it('OData lambda where exists comparing managed assocs', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo { ID } where exists buz`, model)
+    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buz`, model)
     const expected = cds.ql`
       SELECT from a2j.Foo as Foo {
         Foo.ID
       } where exists (
-        SELECT 1 FROM a2j.Buz as buz
-          where (buz.bar_ID = Foo.bar_ID AND buz.bar_foo_ID = Foo.bar_foo_ID) and buz.foo_ID = Foo.ID
+        SELECT 1 FROM a2j.Buz as $b
+          where ($b.bar_ID = Foo.bar_ID AND $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
       )
     `
     expect(query).to.eql(expected)
   })
   it('OData lambda where exists comparing managed assocs with renamed keys', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo { ID } where exists buzRenamed`, model)
+    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzRenamed`, model)
     const expected = cds.ql`
       SELECT from a2j.Foo as Foo {
         Foo.ID
       } where exists (
-        SELECT 1 FROM a2j.Buz as buzRenamed
-          where (buzRenamed.barRenamed_renameID = Foo.barRenamed_renameID AND buzRenamed.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and buzRenamed.foo_ID = Foo.ID
+        SELECT 1 FROM a2j.Buz as $b
+          where ($b.barRenamed_renameID = Foo.barRenamed_renameID AND $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
       )
     `
     expect(query).to.eql(expected)
   })
   it('OData lambda where exists with unmanaged assoc', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo { ID } where exists buzUnmanaged`, model)
+    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`, model)
     const expected = cds.ql`
       SELECT from a2j.Foo as Foo {
         Foo.ID
       } where exists (
-        SELECT 1 FROM a2j.Buz as buzUnmanaged
-          where buzUnmanaged.bar_foo_ID = Foo.bar_foo_ID AND buzUnmanaged.bar_ID = Foo.bar_ID and buzUnmanaged.foo_ID = Foo.ID
+        SELECT 1 FROM a2j.Buz as $b
+          where $b.bar_foo_ID = Foo.bar_foo_ID AND $b.bar_ID = Foo.bar_ID and $b.foo_ID = Foo.ID
       )
     `
     expect(query).to.eql(expected)
@@ -1458,33 +1487,33 @@ describe('path expression within infix filter following exists predicate', () =>
   })
 
   it('via managed association', () => {
-    let query = cds.ql`SELECT from bookshop.Authors { ID } where exists books[genre.name = 'Thriller']`
+    let query = cds.ql`SELECT from bookshop.Authors as Authors { ID } where exists books[genre.name = 'Thriller']`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
-        inner join bookshop.Genres as genre on genre.ID = books.genre_ID
-        where books.author_ID = Authors.ID and genre.name = 'Thriller'
+        SELECT 1 from bookshop.Books as $b
+        inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+        where $b.author_ID = Authors.ID and genre.name = 'Thriller'
       )`,
     )
   })
   it('via managed association multiple assocs', () => {
-    let query = cds.ql`SELECT from bookshop.Authors { ID } where exists books.author.books[genre.parent.name = 'Thriller']`
+    let query = cds.ql`SELECT from bookshop.Authors as Authors { ID } where exists books.author.books[genre.parent.name = 'Thriller']`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
-        where books.author_ID = Authors.ID and EXISTS (
+        SELECT 1 from bookshop.Books as $b
+        where $b.author_ID = Authors.ID and EXISTS (
 
-          SELECT 1 from bookshop.Authors as author
-          where author.ID = books.author_ID and EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          where $a.ID = $b.author_ID and EXISTS (
 
-            SELECT 1 from bookshop.Books as books2
-            inner join bookshop.Genres as genre on genre.ID = books2.genre_ID
+            SELECT 1 from bookshop.Books as $b2
+            inner join bookshop.Genres as genre on genre.ID = $b2.genre_ID
             inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
-            where books2.author_ID = author.ID and parent.name = 'Thriller'
+            where $b2.author_ID = $a.ID and parent.name = 'Thriller'
 
           )
 
@@ -1493,62 +1522,62 @@ describe('path expression within infix filter following exists predicate', () =>
     )
   })
   it('via managed association, hidden in a function', () => {
-    let query = cds.ql`SELECT from bookshop.Authors { ID } where exists books[toLower(genre.name) = 'thriller']`
+    let query = cds.ql`SELECT from bookshop.Authors as Authors { ID } where exists books[toLower(genre.name) = 'thriller']`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
-        inner join bookshop.Genres as genre on genre.ID = books.genre_ID
-        where books.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
+        SELECT 1 from bookshop.Books as $b
+        inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+        where $b.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
       )`,
     )
   })
   it('via unmanaged association', () => {
     // match all authors which have co-authored at least one book with King
-    let query = cds.ql`SELECT from bookshop.Authors { ID } where exists books[coAuthorUnmanaged.name = 'King']`
+    let query = cds.ql`SELECT from bookshop.Authors as Authors { ID } where exists books[coAuthorUnmanaged.name = 'King']`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
-        inner join bookshop.Authors as coAuthorUnmanaged on coAuthorUnmanaged.ID = books.coAuthor_ID_unmanaged
-        where books.author_ID = Authors.ID and coAuthorUnmanaged.name = 'King'
+        SELECT 1 from bookshop.Books as $b
+        inner join bookshop.Authors as coAuthorUnmanaged on coAuthorUnmanaged.ID = $b.coAuthor_ID_unmanaged
+        where $b.author_ID = Authors.ID and coAuthorUnmanaged.name = 'King'
       )`,
     )
   })
 
   it('nested exists', () => {
-    let query = cds.ql`SELECT from bookshop.Authors { ID } where exists books[toLower(genre.name) = 'thriller' and exists genre[parent.name = 'Fiction']]`
+    let query = cds.ql`SELECT from bookshop.Authors as Authors { ID } where exists books[toLower(genre.name) = 'thriller' and exists genre[parent.name = 'Fiction']]`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
-        inner join bookshop.Genres as genre on genre.ID = books.genre_ID
-        where books.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
+        SELECT 1 from bookshop.Books as $b
+        inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+        where $b.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
         and EXISTS (
-          SELECT 1 from bookshop.Genres as genre2
-          inner join bookshop.Genres as parent on parent.ID = genre2.parent_ID
-          where genre2.ID = books.genre_ID and parent.name = 'Fiction'
+          SELECT 1 from bookshop.Genres as $g
+          inner join bookshop.Genres as parent on parent.ID = $g.parent_ID
+          where $g.ID = $b.genre_ID and parent.name = 'Fiction'
         )
       )`,
     )
   })
 
   it('scoped query with nested exists', () => {
-    let query = cds.ql`SELECT from bookshop.Authors[exists books[genre.name LIKE '%Fiction']]:books { ID }`
+    let query = cds.ql`SELECT from bookshop.Authors[exists books[genre.name LIKE '%Fiction']]:books as books { ID }`
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
       cds.ql`SELECT from bookshop.Books as books
       { books.ID }
         WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as Authors where Authors.ID = books.author_ID and
+          SELECT 1 from bookshop.Authors as $A where $A.ID = books.author_ID and
             EXISTS (
-              SELECT 1 from bookshop.Books as books2
-              inner join bookshop.Genres as genre on genre.ID = books2.genre_ID
-              where books2.author_ID = Authors.ID and genre.name LIKE '%Fiction'
+              SELECT 1 from bookshop.Books as $b
+              inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+              where $b.author_ID = $A.ID and genre.name LIKE '%Fiction'
             )
         )`,
     )
@@ -1571,7 +1600,7 @@ describe('path expression within infix filter following exists predicate', () =>
   it('in case statements', () => {
     // TODO: Aliases for genre could be improved
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors
+      cds.ql`SELECT from bookshop.Authors as Authors
      { ID,
        case when exists books[toLower(genre.name) = 'Thriller' and price>10]  then 1
             when exists books[toLower(genre.name) = 'Thriller' and price>100 and exists genre] then 2
@@ -1584,17 +1613,17 @@ describe('path expression within infix filter following exists predicate', () =>
       { Authors.ID,
         case 
           when exists (
-            select 1 from bookshop.Books as books
-            inner join bookshop.Genres as genre on genre.ID = books.genre_ID
-            where books.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and books.price > 10
+            select 1 from bookshop.Books as $b
+            inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
+            where $b.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and $b.price > 10
           )
           then 1
           when exists (
-            select 1 from bookshop.Books as books2
-            inner join bookshop.Genres as genre on genre.ID = books2.genre_ID
-            where books2.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and books2.price > 100
+            select 1 from bookshop.Books as $b2
+            inner join bookshop.Genres as genre on genre.ID = $b2.genre_ID
+            where $b2.author_ID = Authors.ID and toLower(genre.name) = 'Thriller' and $b2.price > 100
                   and exists (
-                    select 1 from bookshop.Genres as genre2 where genre2.ID = books2.genre_ID
+                    select 1 from bookshop.Genres as $g where $g.ID = $b2.genre_ID
                   )
           )
           then 2
@@ -1606,16 +1635,16 @@ describe('path expression within infix filter following exists predicate', () =>
   it('assoc is defined within a structure', () => {
     expect(
       cqn4sql(
-        cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[toLower(toUpper(dedication.addressee.name)) = 'Hasso']`,
+        cds.ql`SELECT from bookshop.Authors as Authors { ID } WHERE EXISTS books[toLower(toUpper(dedication.addressee.name)) = 'Hasso']`,
         model,
       ),
     ).to.eql(
       cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
       WHERE EXISTS (
-        SELECT 1 from bookshop.Books as books
+        SELECT 1 from bookshop.Books as $b
           inner join bookshop.Person as addressee
-          on addressee.ID = books.dedication_addressee_ID
-        where books.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
+          on addressee.ID = $b.dedication_addressee_ID
+        where $b.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
       )`,
     )
   })

@@ -1,15 +1,15 @@
 entity Root {
     key ID          : Integer;
         toOneChild  : Composition of one Child;
-        toManyChild : Composition of many Child;
+        toManyChild : Composition of many Child {};
 }
 
 entity Child {
     key ID             : Integer;
         toOneSubChild  : Composition of one SubChild;
-        toManySubChild : Composition of many SubChild;
+        toManySubChild : Composition of many SubChild {};
         toOneChild     : Composition of one Child;
-        toManyChild    : Composition of many Child;
+        toManyChild    : Composition of many Child {};
         text           : String;
 }
 
