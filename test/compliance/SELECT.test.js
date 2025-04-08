@@ -1447,13 +1447,11 @@ describe('SELECT', () => {
     for (let type of ['ref', 'val', 'func', 'xpr', 'list',
       'SELECT' // REVISIT: this is horribly expensive, blocking a single worker for 11+ seconds -> do we really need this, that way?
     ]) {
-      describe(`${type}: ${unified[type].length}`, () => {
-        test('execute', async () => {
-          // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
-          const { [targetName]: target } = cds.entities
-          await cds.run ([...iterator].map(t => SELECT([t]).from(target).limit(0)))
-        })
+      test(`${type}: ${unified[type].length}`, async() => {
+        // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
+        const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
+        const { [targetName]: target } = cds.entities
+        await cds.run ([...iterator].map(t => SELECT([t]).from(target).limit(0)))
       })
     }
   })
