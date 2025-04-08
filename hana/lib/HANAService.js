@@ -16,6 +16,7 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
+const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
  * @implements SQLService
@@ -62,7 +63,7 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const dbc = new driver({...credentials, ...clientOptions})
+          const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           HANAVERSION = dbc.server.major
           return dbc
@@ -112,6 +113,9 @@ class HANAService extends SQLService {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$valid.to'] || variables['$valid.from']) variables['TEMPORAL_SYSTEM_TIME_AS_OF'] = variables['$valid.to'] < variables['$valid.from']
+      ? variables['$valid.to']
+      : variables['$valid.from']
     if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
     if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
 
@@ -119,12 +123,12 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data } = req
+    const { query, data, iterator, objectMode } = req
 
-    if (!query.target || query.target._unresolved) {
+    if (!query._target || query._target._unresolved) {
       try { this.infer(query) } catch { /**/ }
     }
-    if (!query.target || query.target._unresolved) {
+    if (!query._target || query._target._unresolved) {
       return super.onSELECT(req)
     }
 
@@ -139,15 +143,17 @@ class HANAService extends SQLService {
     delete query.SELECT.expand
 
     const isSimple = temporary.length + blobs.length + withclause.length === 0
+    const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
+    const isStream = iterator && !isLockQuery
 
     // REVISIT: add prepare options when param:true is used
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
-    if (values?.length || blobs.length > 0) {
+    if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps.all(values || [])
+      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
       rows = await this.exec(sqlScript)
     }
@@ -157,7 +163,7 @@ class HANAService extends SQLService {
       const resultQuery = query.clone()
       resultQuery.SELECT.forUpdate = undefined
       resultQuery.SELECT.forShareLock = undefined
-      const keys = Object.keys(req.target.keys || {})
+      const keys = Object.keys(req.target?.keys || {})
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
         // REVISIT: No support for count
         // where [keys] in [values]   
@@ -176,7 +182,7 @@ class HANAService extends SQLService {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return isOne && !isStream ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -262,7 +268,7 @@ class HANAService extends SQLService {
       while (levels.length) {
         const level = levels[levels.length - 1]
         // Check if the current row is a child of the current level
-        if (row._path_.indexOf(level.path) === 0) {
+        if (row._path_.indexOf(level.path) === 0 && row._path_ != level.path) {
           // Check if the current row is an expand of the current level
           const property = row._path_.slice(level.path.length + 2, -7)
           if (property in level.expands) {
@@ -351,7 +357,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent } = q.SELECT
+      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -383,8 +389,12 @@ class HANAService extends SQLService {
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
         }
 
+        if (recurse) {
+          columns.push({ xpr: [{ ref: ['RANK'] }], as: '$$RN$$' })
+        }
+
         let orderByHasOutputColumnRef = false
-        if (orderBy) {
+        if (!recurse && orderBy) {
           if (distinct) orderByHasOutputColumnRef = true
           // Ensure that all columns used in the orderBy clause are exposed
           orderBy = orderBy.map((c, i) => {
@@ -428,7 +438,7 @@ class HANAService extends SQLService {
           || (!isSimpleQuery && (orderBy || from.SELECT)) // If using JSON functions the _path_ is used for top level sorting
           || hasExpands // Expands depend on parent $$RN$$
 
-        if (rowNumberRequired) {
+        if (!recurse && rowNumberRequired) {
           // Insert row number column for reducing or sorting the final result
           const over = { xpr: [] }
           // TODO: replace with full path partitioning
@@ -450,7 +460,7 @@ class HANAService extends SQLService {
           Object.defineProperty(q, 'element', { value: element })
         }
 
-        if (rowNumberRequired && !q.SELECT.columns.find(c => c.as === '_path_')) {
+        if ((recurse || rowNumberRequired) && !q.SELECT.columns.find(c => c.as === '_path_')) {
           q.SELECT.columns.push({
             xpr: [
               {
@@ -521,6 +531,242 @@ class HANAService extends SQLService {
       return this.sql
     }
 
+    SELECT_recurse(q) {
+      let { from, columns, where, recurse, _internal } = q.SELECT
+
+      const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
+      if (!_internal) requiredComputedColumns.RANK = true
+      const addComputedColumn = (name) => {
+        if (requiredComputedColumns[name]) return
+        requiredComputedColumns[name] = true
+      }
+
+      const distanceType = recurse.where?.[0]?.ref?.[0] in { 'Distance': 1, 'DistanceFromRoot': 1 } && recurse.where?.[0]?.ref?.[0]
+      // Determine direction based upon whether the distance is negative or positive
+      const direction = !distanceType || recurse.where[1] in { '<': 1, '<=': 1 }
+        ? where?.length ? 'ANCESTORS' : 'DESCENDANTS' // If no where clause is provided it has to be toplevel
+        : recurse.where[1] in { '=': 1, 'between': 1 } // First val of between is the lowest number according to SQL specification
+          ? recurse.where[2]?.val < 0 ? 'ANCESTORS' : 'DESCENDANTS'
+          : recurse.where[1] in { '>': 1, '>=': 1 }
+            ? 'DESCENDANTS'
+            : cds.error`Invalid recurse.where: ${JSON.stringify(recurse.where)}`
+      // Ensure that the distance value is being computed
+      if (distanceType) addComputedColumn(distanceType)
+
+      // TODO: convert computed columns to cqn for better SQL generation
+      const availableComputedColumns = {
+        // Input computed columns
+        PARENT_ID: false,
+        NODE_ID: false,
+
+        // Output computed columns
+        RANK: { xpr: [{ ref: ['HIERARCHY_RANK'] }, '-', { val: 1, param: false }], as: 'RANK' },
+        Distance: { ref: ['HIERARCHY_DISTANCE'], as: 'Distance' },
+        DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
+        DrillState: false,
+        LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
+      }
+
+      const columnsFiltered = columns
+        .filter(x => {
+          if (x.element?.isAssociation) return false
+          const name = this.column_name(x)
+          if (name === '$$RN$$') return false
+          // REVISIT: ensure that the selected column is one of the hierarchy computed columns by unifying their common definition
+          if (x.element?.['@Core.Computed'] && name in availableComputedColumns) {
+            addComputedColumn(name)
+            return false
+          }
+          return true
+        })
+      const columnsIn = columnsFiltered
+        .map(x => {
+          const name = this.column_name(x)
+          if (name.toUpperCase() in requiredComputedColumns) {
+            x = { __proto__: x, as: `$$${name}$$` }
+          }
+          return x
+        })
+
+      const nodeKeys = []
+      const parentKeys = []
+      const association = q.target.elements[recurse.ref[0]]
+      association._foreignKeys.forEach(fk => {
+        nodeKeys.push(this.quote(fk.childElement.name))
+        parentKeys.push(this.quote(fk.parentElement.name))
+      })
+
+      columnsIn.push(
+        nodeKeys.length === 1
+          ? { ref: nodeKeys, as: 'NODE_ID' }
+          : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ ref: [n] })), as: 'NODE_ID' },
+        parentKeys.length === 1
+          ? { ref: parentKeys, as: 'PARENT_ID' }
+          : { func: 'HIERARCHY_COMPOSITE_ID', args: parentKeys.map(n => ({ ref: [n] })), as: 'PARENT_ID' },
+      )
+
+      const alias = q.SELECT.from.as
+      const source = () => `HIERARCHY(SOURCE(SELECT ${columnsIn.map(c => this.column_expr(c, q))} FROM ${this.from(from, q)})) AS ${this.quote(alias)}`
+
+      const expandedByNr = { list: [] }
+      const expandedByOne = { list: [] }
+      const expandedByZero = { list: [] }
+      let expandedFilter = []
+      if (recurse.where) for (let i = 0; i < recurse.where.length; i++) {
+        let cur = {}
+        let keys = false
+        let distance = null
+        for (; i < recurse.where.length + 1; i++) {
+          const c = recurse.where[i]
+          if (c === 'or' || i === recurse.where.length) {
+            if (keys) { // TODO: when distance is above 1 a join for all children has to be added
+              const expr = nodeKeys.length === 1
+                ? { val: cur[nodeKeys[0]] }
+                : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
+              switch (distance) {
+                case 1: expandedByOne.list.push(expr)
+                  break;
+                case 0: expandedByZero.list.push(expr)
+                  break;
+                default: expandedByNr.list.push(expr)
+              }
+            }
+            break
+          }
+          if (c.ref) {
+            // Collect keys
+            if (nodeKeys.includes(c.ref[0])) {
+              keys = true
+              i += 2
+              cur[c.ref[0]] = recurse.where[i].val
+              continue
+            }
+            // Collect Distance
+            if (c.ref[0] === 'Distance') {
+              if (recurse.where[i + 1] === 'between') i += 2
+              i += 2
+              distance = recurse.where[i].val
+            }
+            // Include DistanceFromRoot
+            if (c.ref[0] === 'DistanceFromRoot') {
+              if (expandedFilter.length) cds.error`recurse.where is only allowed to have a single "DistanceFromRoot" ref`
+              expandedFilter.push({ ref: ['HIERARCHY_LEVEL'] }, recurse.where[i + 1], { val: recurse.where[i + 2].val + 1 })
+              i += 2
+            }
+          }
+        }
+      }
+      availableComputedColumns.DrillState = {
+        xpr: [
+          'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
+          ...(where?.length // When there is a where filter the final node will always be a leaf
+            ? ['WHEN', { ref: ['HIERARCHY_DISTANCE'] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
+            : []
+          ),
+          ...(expandedByZero.list.length
+            ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', expandedByZero, 'THEN', { val: 'collapsed', param: false }]
+            : []
+          ),
+          ...(expandedByNr.list.length || expandedByOne.list.length
+            ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', { list: [...expandedByNr.list, ...expandedByOne.list] }, 'THEN', { val: 'expanded', param: false }]
+            : []
+          ),
+          ...(expandedByOne.list.length
+            ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
+            : []
+          ),
+          ...(distanceType
+            ? ['WHEN', ...(distanceType === 'DistanceFromRoot'
+              ? [{ ref: ['HIERARCHY_LEVEL'] }, '!=', { val: recurse.where[2].val + 1 }]
+              : [{ ref: ['HIERARCHY_DISTANCE'] }, recurse.where[1], { val: recurse.where[2].val - 1 }]
+            ), 'THEN', { val: 'expanded', param: false },
+            ]
+            : []
+          ),
+
+          'ELSE', { val: recurse.where && distanceType ? 'collapsed' : 'expanded', param: false },
+          'END',
+        ],
+        as: 'DrillState'
+      }
+      if (expandedByOne.list.length) {
+        if (expandedFilter.length) expandedFilter.push('OR')
+        expandedFilter.push({ ref: ['PARENT_ID'] }, 'IN', expandedByOne)
+      }
+
+      if (expandedByNr.list.length) {
+        if (expandedFilter.length) expandedFilter.push('OR')
+        expandedFilter.push({ ref: ['NODE_ID'] }, 'IN', {
+          SELECT: {
+            _internal: true,
+            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+            from: q.SELECT.from,
+            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByNr],
+            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+          },
+          target: q.target,
+        })
+      }
+
+      if (expandedByZero.list.length) {
+        expandedFilter = [...(expandedFilter.length
+          ? [{ xpr: expandedFilter }, 'AND']
+          : []
+        ), { ref: ['NODE_ID'] }, 'NOT IN', {
+          SELECT: {
+            _internal: true,
+            columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+            from: q.SELECT.from,
+            where: [{ ref: ['NODE_ID'] }, 'IN', expandedByZero],
+            recurse: { ref: recurse.ref, where: [{ ref: ['Distance'] }, '>=', { val: 1 }] },
+          },
+          target: q.target,
+        }]
+      }
+
+      const columnsOut = [
+        ...columnsFiltered
+          .map(x => {
+            const name = this.column_name(x)
+            if (name.toUpperCase() in requiredComputedColumns) {
+              return { ref: [`$$${name}$$`], as: name }
+            }
+            return { ref: [name] }
+          }),
+      ]
+
+      for (const name in requiredComputedColumns) {
+        const def = availableComputedColumns[name]
+        if (def) columnsOut.push(def)
+      }
+      if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
+
+      const subGraph = distanceType === 'DistanceFromRoot' && !where
+        ? `SELECT ${columnsOut.map(c => this.column_expr(c, q))} FROM ${source()} WHERE ${this.where(expandedFilter)}`
+        : `SELECT ${columnsOut.map(c => this.column_expr(c, q))
+        } FROM HIERARCHY_${direction} (SOURCE ${source()} START ${where
+          ? `WHERE ${this.where(where)}`
+          : `WHERE ${this.where([{ ref: ['PARENT_ID'] }, '=', { val: null }])}`
+        }${distanceType === 'Distance'
+          ? ` DISTANCE ${recurse.where[1] === '='
+            ? ''
+            : recurse.where[1] in { 'between': 1, '>=': 1, '>': 1 }
+              ? 'FROM '
+              : 'TO '
+          }${this.expr(recurse.where[2])
+          }${recurse.where[1] in { 'between': 1 }
+            ? ` TO ${recurse.where[4]}`
+            : ''
+          }`
+          : ''
+        })${expandedFilter.length
+          ? ` WHERE ${this.where(expandedFilter)}`
+          : ''
+        }`
+
+      return `(${subGraph})${alias ? ` AS ${this.quote(alias)}` : ''} `
+    }
+
     SELECT_columns(q) {
       const { SELECT, src } = q
       if (!SELECT.columns) return '*'
@@ -585,7 +831,7 @@ class HANAService extends SQLService {
                   }
 
                   // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')}$$`
+                  const as = `$$${col.ref.join('.')} $$`
                   let rename = col.ref[0] !== parent.as
                   let curPar = parent
                   while (curPar) {
@@ -624,7 +870,7 @@ class HANAService extends SQLService {
                         }
 
                         // Inject foreign columns into parent selects (recursively)
-                        const as = `$$${col.ref.join('.')}$$`
+                        const as = `$$${col.ref.join('.')} $$`
                         let rename = col.ref[0] !== parent.as
                         let curPar = parent
                         while (curPar) {
@@ -729,7 +975,7 @@ class HANAService extends SQLService {
 
       // Calculate final output columns once
       let outputColumns = ''
-      outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
       if (blobColumns.length)
         outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
       this._outputColumns = outputColumns
@@ -777,15 +1023,15 @@ class HANAService extends SQLService {
       this.values = undefined
       const { INSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || INSERT.into.ref[0], q)
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || INSERT.into.ref[0], q)
 
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_entries(q)
       }
 
       const columns = elements
-        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
+        ? ObjectKeys(elements).filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation && !elements[c][SYSTEM_VERSIONED])
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
@@ -796,6 +1042,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
+        entries = entries[0] instanceof Iterator || entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
@@ -806,12 +1053,12 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable
+        this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
       } else {
         this.entries = [[
-          INSERT.entries[0] instanceof Readable
+          INSERT.entries[0] instanceof Readable && !INSERT.entries[0].readableObjectMode
             ? INSERT.entries[0]
             : _stream(INSERT.entries)
         ]]
@@ -845,7 +1092,7 @@ class HANAService extends SQLService {
       // - Object JSON INSERT (1x)
       // The problem with Simple INSERT is the type mismatch from csv files
       // Recommendation is to always use entries
-      const elements = q.elements || q.target?.elements
+      const elements = q.elements || q._target?.elements
       if (!elements) {
         return super.INSERT_rows(q)
       }
@@ -874,16 +1121,16 @@ class HANAService extends SQLService {
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
-      const entity = q.target?.['@cds.persistence.name'] || this.name(q.target?.name || UPSERT.into.ref[0], q)
-      const elements = q.target?.elements || {}
+      const entity = q._target?.['@cds.persistence.name'] || this.name(q._target?.name || UPSERT.into.ref[0], q)
+      const elements = q._target?.elements || {}
       const insert = this.INSERT({ __proto__: q, INSERT: UPSERT })
 
-      let keys = q.target?.keys
+      let keys = q._target?.keys
       if (!keys) return insert
       keys = Object.keys(keys).filter(k => !keys[k].isAssociation && !keys[k].virtual)
 
       // temporal data
-      keys.push(...ObjectKeys(q.target.elements).filter(e => q.target.elements[e]['@cds.valid.from']))
+      keys.push(...ObjectKeys(q._target.elements).filter(e => q._target.elements[e]['@cds.valid.from']))
 
       const managed = this.managed(
         this.columns.map(c => ({ name: c })),
@@ -899,7 +1146,7 @@ class HANAService extends SQLService {
       const extraction = managed.map(c => c.extract)
 
       const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
@@ -916,10 +1163,10 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LE
       return orderBy.map(c => {
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized]
-              ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
-              : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          (c.element?.[this.class._localized] && this.context.locale
+            ? ` COLLATE ${collations[this.context.locale] || collations[this.context.locale.split('_')[0]] || collations['']}`
+            : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
         return o

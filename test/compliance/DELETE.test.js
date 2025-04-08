@@ -75,7 +75,7 @@ describe('DELETE', () => {
 
     test('ref', async () => {
       const { Authors } = cds.entities('complex.associations')
-      await INSERT.into(Authors).entries(new Array(9).fill().map((e,i) => ({ ID: 100+i, name: 'name'+i})))
+      await INSERT.into(Authors).entries(new Array(9).fill().map((e, i) => ({ ID: 100 + i, name: 'name' + i })))
       const changes = await cds.run(DELETE.from(Authors))
       expect(changes | 0).to.be.eq(10, 'Ensure that all rows are affected') // 1 from csv, 9 newly added
     })
@@ -85,5 +85,10 @@ describe('DELETE', () => {
     test.skip('missing', () => {
       throw new Error('not supported')
     })
+  })
+
+  test('affected rows', async () => {
+    const affectedRows = await DELETE.from('complex.associations.Books').where('ID = 4712')
+    expect(affectedRows).to.be.eq(0)
   })
 })
