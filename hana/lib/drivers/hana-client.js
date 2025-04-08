@@ -240,7 +240,7 @@ async function rsIterator(rs, one, objectMode) {
   rs._rowPosition = -1
   rs.nextAsync = prom(rs, 'next')
   rs.getValueAsync = prom(rs, 'getValue')
-  rs.getValueAsync = prom(rs, 'getData')
+  rs.getDataAsync = prom(rs, 'getData')
 
   const blobs = rs.getColumnInfo().slice(4).map(b => b.columnName)
   const levels = [
@@ -305,8 +305,7 @@ async function rsIterator(rs, one, objectMode) {
     }
     state.readBlob = function readBlob() {
       const index = this.columnIndex++
-      if (rs.isNull(index)) return null
-      return rs.isNull(i)
+      return rs.isNull(index)
         ? null
         : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
           ? this.rs.getValue(index)
@@ -356,13 +355,11 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
       }
     }
 
-    const getData = prom(rs, 'getData')
-
     let blobPosition = 0
 
     while (true) {
       const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)
-      const read = await getData(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
+      const read = await rs.getDataAsync(columnIndex, blobPosition, buffer, 0, buffer.byteLength)
       blobPosition += read
       if (read < buffer.byteLength) {
         yield buffer.subarray(0, read)
