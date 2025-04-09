@@ -93,7 +93,7 @@ describe('Bookshop - assertions', () => {
       expect(book).to.not.exist
     })
 
-    test.skip('deep insert should not be fulfilled after constraint violation in child', async () => {
+    test.only('deep insert should not be fulfilled after constraint violation in child', async () => {
       const genresBeforeInsert = await SELECT.from(Genres)
       await expect(
         POST(
@@ -107,9 +107,13 @@ describe('Bookshop - assertions', () => {
                 name: 'Fable',
                 children: [
                   {
-                    ID: 57,
+                    ID: 58,
                     name: 'We forbid genre names with more than 20 characters', // how to check violations in deep operations?
                   }]
+              },
+              {
+                ID: 57,
+                name: 'Sibling Fable',
               }
             ]
           },

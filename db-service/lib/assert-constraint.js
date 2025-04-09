@@ -4,31 +4,14 @@ const cds = require('@sap/cds')
 
 function attachConstraints(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
-  const constraints = collectConstraints(req.target) // collect constraints from annotations
+  const { data } = req
+  if (Array.isArray(data[0])) return // REVISIT: what about csv inserts?
+  const constraints = collectConstraints(req.target, req.data)
   if (Object.keys(constraints).length === 0) return
 
   // which entry shall be checked? We need the IDs / condition of the current req
   let whereClauses = []
-  if (req.event === 'INSERT' || req.event === 'CREATE') {
-    const primaryKeys = Object.keys(req.target.keys)
-    const dataEntries = Array.isArray(req.data) ? req.data : [req.data] // Ensure batch handling
-
-    // construct {key:value} pairs holding information about the entry to check
-    whereClauses = dataEntries
-      .map(entry =>
-        primaryKeys.reduce((identifier, key) => {
-          const value = entry[key]
-          if (value === undefined) {
-            // Skip keys with undefined values, e.g. csv import
-            return
-          }
-          if (identifier.length > 0) identifier.push('and')
-          identifier.push({ ref: [key] }, '=', { val: value })
-          return identifier
-        }, []),
-      )
-      .filter(Boolean)
-  } else if (req.event === 'UPDATE' || req.event === 'UPSERT') {
+  if (req.event === 'UPDATE' || req.event === 'UPSERT') {
     const prop = req.event
 
     if (req.query[prop]?.where) {
@@ -38,17 +21,10 @@ function attachConstraints(_results, req) {
     }
   }
 
-  // REVISIT: Ensure whereClauses is defined for other cases
-  if (whereClauses.length === 0) {
-    // Handle scenarios where no `where` clause is defined
-    // E.g., aggregation assertions
-    return
-  }
-
-  // each entry identifies a row to check
-  // --> calculate the validation query for each entry
-  //     attach information about the identity of the entry for messages
-  //     validation queries are executed just before commit
+  // there could be multiple validation queries for a deep operation
+  // because there can be multiple entities involved
+  // TODO: continue here, we need to get a list of constraints per entity
+  // and then create a validation query for each of them
   const validationQuery = _getValidationQuery(req, constraints)
   for (const where of whereClauses) {
     if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', ...where)
@@ -66,22 +42,21 @@ function attachConstraints(_results, req) {
       const { condition, parameters } = constraint
       const xpr = []
       xpr.push({ xpr: condition.xpr })
-      const colsForConstraint = [{
-        xpr: wrapInCaseWhen(xpr),
-        // avoid naming ambiguities for anonymous constraints,
-        // where the element itself is part of the msg params
-        as: name + '_constraint',
-        cast: {
-          type: 'cds.Boolean',
+      const colsForConstraint = [
+        {
+          xpr: wrapInCaseWhen(xpr),
+          // avoid naming ambiguities for anonymous constraints,
+          // where the element itself is part of the msg params
+          as: name + '_constraint',
+          cast: {
+            type: 'cds.Boolean',
+          },
         },
-      }]
-      if(parameters) {
-        if(parameters.list)
-          parameters.list.forEach(p => colsForConstraint.push(p))
-        else if (parameters.ref)
-          colsForConstraint.push(parameters.ref)
-        else if (parameters.length)
-          parameters.forEach(p => colsForConstraint.push({ref: [p['=']]}))
+      ]
+      if (parameters) {
+        if (parameters.list) parameters.list.forEach(p => colsForConstraint.push(p))
+        else if (parameters.ref) colsForConstraint.push(parameters.ref)
+        else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
       }
       return colsForConstraint
     })
@@ -91,17 +66,69 @@ function attachConstraints(_results, req) {
     return validationQuery
   }
 
-  function collectConstraints(entity) {
+  /**
+   * Collects constraints for a request target and
+   *
+   * @param {CSN.entity} entity the target of the request (or a recursive child)
+   * @param {object} data the payload
+   * @returns
+   */
+  function collectConstraints(entity, data) {
     let constraints = getConstraintsFrom(entity)
     for (const elementKey in entity.elements) {
       const element = entity.elements[elementKey]
       // Extract constraints from the current element
-      const elementConstraints = getConstraintsFrom(element)
+      const elementConstraints = getConstraintsFrom(element, entity)
       constraints = { ...constraints, ...elementConstraints }
+    }
+    // attach IDs derived from the payload
+    const matchKeyConditions = matchKeys(entity, data)
+    // add the where clause to the constraints
+    for (const key in constraints) {
+      const constraint = constraints[key]
+      if (constraint.matchKeys) {
+        // add the where clause to the constraint
+        constraint.matchKeys.push(...matchKeyConditions)
+      } else {
+        constraint.matchKeys = matchKeyConditions
+      }
+    }
+    const compositions = entity.compositions || {}
+    for (const k of Object.keys(compositions)) {
+      if (k in data) {
+        const c = compositions[k]
+        const compositionTarget = cds.model.definitions[c.target]
+        const childrenData = data[k]
+        let childConstraints
+        if (!Array.isArray(childrenData)) {
+          childConstraints = collectConstraints(compositionTarget, data[k])
+        } else {
+          for (const childData of childrenData) {
+            constraints = mergeConstraints(constraints, collectConstraints(compositionTarget, childData))
+          }
+        }
+        // merge all constraints
+        constraints = mergeConstraints(constraints, childConstraints)
+      }
     }
     return constraints
 
-    function getConstraintsFrom(object) {
+    function mergeConstraints(constraints, childConstraints) {
+      // merge all constraints
+      for (const key in childConstraints) {
+        const childConstraint = childConstraints[key]
+        if (constraints[key]?.element === childConstraint.element) {
+          // merge the primary key conditions
+          constraints[key].matchKeys.push(...childConstraint.matchKeys)
+        } else {
+          // add the child constraint
+          constraints[key] = childConstraint
+        }
+      }
+      return constraints
+    }
+
+    function getConstraintsFrom(object, target = null) {
       const elmConstraints = {}
 
       for (const key in object) {
@@ -140,9 +167,40 @@ function attachConstraints(_results, req) {
       }
       Object.keys(elmConstraints).forEach(name => {
         elmConstraints[name].element = object
+        // the constraint target is always an entity
+        // if the constraint has been collected from an entity the `target` is null
+        elmConstraints[name].target = target || object
       })
       return elmConstraints
     }
+  }
+
+  /**
+   * Constructs a condition which matches the primary keys of the entity for the given data.
+   *
+   * @param {CSN.entity} entity
+   * @param {object} data
+   * @returns {Array} conditions
+   */
+  function matchKeys(entity, data) {
+    const primaryKeys = Object.keys(entity.keys)
+    const dataEntries = Array.isArray(data) ? data : [data] // Ensure batch handling
+
+    // construct {key:value} pairs holding information about the entry to check
+    return dataEntries
+      .map(entry =>
+        primaryKeys.reduce((identifier, key) => {
+          const value = entry[key]
+          if (value === undefined) {
+            // Skip keys with undefined values, e.g. csv import
+            return
+          }
+          if (identifier.length > 0) identifier.push('and')
+          identifier.push({ ref: [key] }, '=', { val: value })
+          return identifier
+        }, []),
+      )
+      .filter(Boolean)
   }
 
   function wrapInCaseWhen(xpr) {
@@ -163,9 +221,13 @@ async function checkConstraints(req) {
             const { message, parameters } = constraints[key]
             const msgParams = {}
             if (parameters) {
-              Object.keys(row).filter(alias => alias !== constraintCol).forEach(alias => msgParams[alias] = row[alias])
+              Object.keys(row)
+                .filter(alias => alias !== constraintCol)
+                .forEach(alias => (msgParams[alias] = row[alias]))
             }
-            const constraintValidationMessage = message ? (cds.i18n.messages.for(message, msgParams) || message) : `@assert.constraint ”${key}” failed`
+            const constraintValidationMessage = message
+              ? cds.i18n.messages.for(message, msgParams) || message
+              : `@assert.constraint ”${key}” failed`
             req.error(400, constraintValidationMessage)
           }
         }
