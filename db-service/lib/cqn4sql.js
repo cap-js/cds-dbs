@@ -801,9 +801,8 @@ function cqn4sql(originalQuery, model) {
         })
     } else {
       outerAlias = transformedQuery.SELECT.from.as
-      const getInnermostTarget = q => q._target ? getInnermostTarget(q._target) : q
       subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [getInnermostTarget(transformedQuery).name]),
+        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery._target.name]),
         ...ref,
       ]
     }
