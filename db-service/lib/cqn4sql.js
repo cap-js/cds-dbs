@@ -225,7 +225,7 @@ function cqn4sql(originalQuery, model) {
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
-    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     transformedQuery[kind].into = { ref: [target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
@@ -801,10 +801,7 @@ function cqn4sql(originalQuery, model) {
         })
     } else {
       outerAlias = transformedQuery.SELECT.from.as
-      subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [transformedQuery._target.name]),
-        ...ref,
-      ]
+      subqueryFromRef = [transformedQuery._target.name, ...ref]
     }
 
     // this is the alias of the column which holds the correlated subquery
@@ -1070,7 +1067,7 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       Object.defineProperty(q, 'outerQueries', { value: outerQueries })
     }
-    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     return cqn4sql(q, model)
@@ -1739,7 +1736,7 @@ function cqn4sql(originalQuery, model) {
            * with the main query alias. see @function expandColumn()
            * There is one exception:
            * - if current and next have the same alias, we need to assign a new alias to the next
-           *                          
+           *
            */
           if (!(inferred.SELECT?.expand === true && current.alias.toLowerCase() !== as.toLowerCase())) {
             as = getNextAvailableTableAlias(as)
@@ -1994,9 +1991,7 @@ function cqn4sql(originalQuery, model) {
             }
             // assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
-            else if (
-              lhsFirstDef === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
-            )
+            else if (lhsFirstDef === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name])
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(lhs.ref[0] === '$self' ? 2 : 1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
