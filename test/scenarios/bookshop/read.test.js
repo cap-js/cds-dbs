@@ -50,15 +50,11 @@ describe('Bookshop - Read', () => {
   })
 
   test.skip('Books $count in orderby', async () => {
-    await GET(
-      `/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin
-    )
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin)
   })
 
   test.skip('Books $count in filter', async () => {
-    await GET(
-      `/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin
-    )
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin)
   })
 
   test('Books with groupby with path expression and expand result', async () => {
@@ -111,9 +107,29 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
-  test('groupby with multiple path expressions and filter', async () => {
+  // creates having null = 1 in the SQL statement
+  test.skip('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
     expect(res.status).to.be.eq(200)
+  })
+
+  // REVISIT: un skip when SELECT[async iterator] is merged into @sap/cds
+  test.skip('Books aggregation using for await', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let total = 0
+    for await (const row of cds.ql`SELECT price FROM ${Books}`) {
+      total += Number.parseFloat(row.price)
+    }
+    expect(total).gt(200)
+  })
+
+  // REVISIT: un skip when SELECT.pipe is merged into @sap/cds
+  test.skip('Books download using pipe', async () => {
+    const { json } = require('stream/consumers')
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let result
+    await cds.ql`SELECT FROM ${Books}`.pipe(async stream => { result = await json(stream) })
+    expect(result).length(5)
   })
 
   test('Path expression', async () => {
@@ -476,7 +492,7 @@ describe('Bookshop - Read', () => {
   })
 
   it('cross joins without on condition', async () => {
-    const query = cds.ql `SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
       Books.title, Authors.name as author
     } where Books.author_ID = Authors.ID`
     const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')

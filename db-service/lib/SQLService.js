@@ -1,6 +1,7 @@
 const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
-const { Readable } = require('stream')
+const { Readable, Transform } = require('stream')
+const { pipeline } = require('stream/promises')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
@@ -120,7 +121,7 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
+  async onSELECT({ query, data, iterator, objectMode }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
     if (!(query._target instanceof cds.entity)) {
@@ -134,35 +135,56 @@ class SQLService extends DatabaseService {
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
     delete query.SELECT.expand
+    const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await ps.all(values)
-    if (rows.length)
-      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+    let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
+    try {
+      if (rows.length)
+        if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
-    if (cds.env.features.stream_compat) {
-      if (query._streaming) {
-        this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-        if (!rows.length) return
+      if (!iterator) {
+        // REVISIT: remove after removing stream_compat feature flag
+        if (cds.env.features.stream_compat) {
+          if (query._streaming) {
+            if (!rows.length) return
+            this._changeToStreams(cqn.SELECT.columns, rows, true, true)
+            const result = rows[0]
 
-        const result = rows[0]
-        // stream is always on position 0. Further properties like etag are inserted later.
-        let [key, val] = Object.entries(result)[0]
-        result.value = val
-        delete result[key]
+            // stream is always on position 0. Further properties like etag are inserted later.
+            let [key, val] = Object.entries(result)[0]
+            result.value = val
+            delete result[key]
 
-        return result
+            return result
+          }
+        } else {
+          this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
+        }
+      } else if (objectMode) {
+        const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
+        const changeToStreams = new Transform({
+          objectMode: true,
+          transform(row, enc, cb) {
+            converter(row)
+            cb(null, row)
+          }
+        })
+        pipeline(rows, changeToStreams)
+        rows = changeToStreams
       }
-    } else {
-      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
-    }
 
-    if (cqn.SELECT.count) {
-      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-      return SQLService._arrayWithCount(rows, await this.count(query, rows))
-    }
+      if (cqn.SELECT.count) {
+        // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+        return SQLService._arrayWithCount(rows, await this.count(query, rows))
+      }
 
-    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+      return iterator !== false && isOne ? rows[0] : rows
+    } catch (err) {
+      // Ensure that iterators receive pre stream errors
+      if (iterator) rows.emit('error', err)
+      throw err
+    }
   }
 
   /**
@@ -317,7 +339,7 @@ class SQLService extends DatabaseService {
    * @returns {Promise<number>}
    */
   async count(query, ret) {
-    if (ret) {
+    if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
@@ -358,6 +380,7 @@ class SQLService extends DatabaseService {
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
+
     const map = function (..._) {
       return SQLService._arrayWithCount(_map.call(a, ..._), count)
     }

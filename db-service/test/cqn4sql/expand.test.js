@@ -1092,6 +1092,93 @@ describe('Unfold expands on associations to special subselects', () => {
     }`
     expect(JSON.parse(JSON.stringify(cqn4sql(q, model)))).to.eql(expected)
   })
+
+  it('expand via subquery with path expressions', () => {
+    const q = cds.ql`SELECT from (SELECT from bookshop.Books as inner { author, ID } where author.name = 'King') as Outer {
+      ID,
+      author { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+        SELECT from bookshop.Books as inner
+          left join bookshop.Authors as author on author.ID = inner.author_ID {
+            inner.author_ID,
+            inner.ID
+          } where author.name = 'King'
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Authors as $a {
+            $a.name
+          }
+          where Outer.author_ID = $a.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+  it('expand via subquery with path expressions nested', () => {
+    const q = cds.ql`SELECT from (SELECT from (SELECT from bookshop.Books as inner { author, ID } where author.name = 'King') as Mid { * }) as Outer {
+      ID,
+      author { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+         SELECT from (
+          SELECT from bookshop.Books as inner
+          left join bookshop.Authors as author on author.ID = inner.author_ID {
+            inner.author_ID,
+            inner.ID
+          } where author.name = 'King'
+         ) as Mid {
+          Mid.author_ID,
+          Mid.ID 
+         }
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Authors as $a {
+            $a.name
+          }
+          where Outer.author_ID = $a.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+  it('expand via subquery with path expressions and scoped query', () => {
+    const q = cds.ql`SELECT from (SELECT from bookshop.Books:genre as inner { parent, ID } where parent.name = 'Drama') as Outer {
+      ID,
+      parent { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+        SELECT from bookshop.Genres as inner
+          left join bookshop.Genres as parent on parent.ID = inner.parent_ID {
+            inner.parent_ID,
+            inner.ID
+          } where
+          exists (
+            SELECT 1 from bookshop.Books as $B
+            where $B.genre_ID = inner.ID
+          )
+          and parent.name = 'Drama'
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Genres as $p {
+            $p.name
+          }
+          where Outer.parent_ID = $p.ID
+        ) as parent
+      }
+    `
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
 })
 
 describe('Expands with aggregations are special', () => {
