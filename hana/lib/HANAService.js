@@ -1042,7 +1042,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
-        entries = entries[0] instanceof Iterator || entries[0] instanceof Readable ? entries[0] : entries
+        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator]|| entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
