@@ -528,7 +528,7 @@ class CQN2SQLRenderer {
       INSERT.entries[0].type = 'json'
       this.entries = [[...this.values, INSERT.entries[0]]]
     } else {
-      const entries = INSERT.entries[0] instanceof Iterator || INSERT.entries[0] instanceof Readable ? INSERT.entries[0] : INSERT.entries
+      const entries = INSERT.entries[0]?.[Symbol.iterator] || INSERT.entries[0]?.[Symbol.asyncIterator] || INSERT.entries[0] instanceof Readable ? INSERT.entries[0] : INSERT.entries
       const stream = Readable.from(this.INSERT_entries_stream(entries), { objectMode: false })
       stream.type = 'json'
       stream._raw = entries
