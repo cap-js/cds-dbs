@@ -8,6 +8,9 @@
     "cds": {
         "features": {
             "ieee754compatible": true
+        },
+        "fiori": {
+            "draft_deletion_timeout": false
         }
     }
 }

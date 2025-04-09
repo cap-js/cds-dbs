@@ -23,7 +23,7 @@ class PostgresService extends SQLService {
       options: {
         min: 0,
         testOnBorrow: true,
-        acquireTimeoutMillis: 1000,
+        acquireTimeoutMillis: 10000,
         destroyTimeoutMillis: 1000,
         ...this.options.pool,
       },
@@ -661,7 +661,7 @@ GROUP BY k
       if (clean) await this.tx(tx => tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`))
       else await this.tx(tx => tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
         .catch(err => {
-          if (err.code == '42P06') return
+          if (err.code == '42P06' || err.code === '23505') return
           throw err
         }))
     } finally {

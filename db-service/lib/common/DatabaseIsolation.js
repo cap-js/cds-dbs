@@ -35,21 +35,14 @@ async function beforeWrite(dbs, isolate) {
       (typeof req.query === 'string' && /^(BEGIN|COMMIT|ROLLBACK)/i.test(req.query))
     ) return // Ignore event requests
 
+    const d = delay()
     if (
       req.query?.SELECT ||
       (typeof req.query === 'string' && /^\W*SELECT/i.test(req.query))
-    ) {
-      // Delay read requests while the tenant is in the process of isolating
-      if (ten._isolating) return req.tx.rollback()
-        .then(() => ten._isolating)
-        .then(() => req.tx.begin())
-      return // Stay in read only isolation for read requests
-    }
+    ) return d // Stay in read only isolation for read requests
 
     if (req.target) modified[req.target.name] = true
-    if (ten._isolating) return req.tx.rollback()
-      .then(() => ten._isolating)
-      .then(() => req.tx.begin())
+    if (d) return d
     if (ten._writeable) return
 
     // Add modification tracking for deep-queries internal calls
@@ -62,9 +55,18 @@ async function beforeWrite(dbs, isolate) {
     }
 
     ten._writeable = true
-    return (ten._isolating = req.tx.commit()
-      .then(() => getWriteTenant(dbs, isolate))
-      .then(() => req.tx.begin()))
+    ten._isolating = getWriteTenant(dbs, isolate).then(() => { ten._isolating = undefined })
+    return delay()
+
+    function delay() {
+      if (req.context._isolating) return req.context._isolating
+      if (ten._isolating) return (req.context._isolating = req.tx.commit()
+        .then(() => ten._isolating)
+        .then(() => {
+          req.context._isolating = undefined
+          return req.tx.begin()
+        }))
+    }
   })
 }
 
@@ -107,8 +109,9 @@ async function getReadTenant(dbs, isolate) {
     // If the schema already exists wait for the row to be updated with available=true
     await dat.tx(async tx => {
       let available = 0
-      let progress = 0
+      let progress = 1
       while (progress && !available) [{ progress, available }] = await tx.run(query)
+      if (!available) cds.error`Failed to acquire database isolation external deployment failed.`
     })
   }
 
@@ -133,7 +136,6 @@ async function getReadTenant(dbs, isolate) {
 async function getWriteTenant(dbs, isolate) {
   const { ten, dat, sys } = dbs
   const { schemas } = dat.entities()
-  // await this.database(isolate)
 
   let isnew = false
   await dat.tx(async tx => {
@@ -150,11 +152,11 @@ async function getWriteTenant(dbs, isolate) {
 
   console.log('USING:', isolate.tenant)
 
-  await ten.database(isolate)
-  await ten.tenant(isolate)
-  ten._isolating = undefined
-
-  if (isnew) await deploy(dbs, isolate)
+  await dat.tenant(isolate)
+  if (isnew) await deploy({ ten: dat }, isolate)
+  await ten.disconnect()
+  ten.options.credentials = dat.options.credentials
+  await dat.database(isolate)
 
   // Release schema for follow up test runs
   cds.on('shutdown', async () => {
