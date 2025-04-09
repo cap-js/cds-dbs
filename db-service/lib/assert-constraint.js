@@ -92,19 +92,19 @@ function attachConstraints(_results, req) {
   }
 
   function collectConstraints(entity) {
-    let constraints = {}
+    let constraints = getConstraintsFrom(entity)
     for (const elementKey in entity.elements) {
       const element = entity.elements[elementKey]
       // Extract constraints from the current element
-      const elementConstraints = extractConstraintsFromElement(element)
+      const elementConstraints = getConstraintsFrom(element)
       constraints = { ...constraints, ...elementConstraints }
     }
     return constraints
 
-    function extractConstraintsFromElement(element) {
+    function getConstraintsFrom(object) {
       const elmConstraints = {}
 
-      for (const key in element) {
+      for (const key in object) {
         if (key.startsWith('@assert.constraint')) {
           // Remove the fixed prefix
           let remainder = key.substring('@assert.constraint'.length)
@@ -118,10 +118,10 @@ function attachConstraints(_results, req) {
           let constraintName, propertyName
           if (parts.length === 1) {
             // No explicit name: use the element's name as constraint name
-            constraintName = element.name
+            constraintName = object.name
             if (remainder.length === 0) {
               // no xpr => no constraint
-              if (!element['@assert.constraint'].xpr) continue
+              if (!object['@assert.constraint'].xpr) continue
 
               // shorthand has no condition prop, e.g. `@assert.constraint: ( children.name in ( … ) )`
               propertyName = 'condition'
@@ -135,11 +135,11 @@ function attachConstraints(_results, req) {
           if (!elmConstraints[constraintName]) {
             elmConstraints[constraintName] = {}
           }
-          elmConstraints[constraintName][propertyName] = element[key]
+          elmConstraints[constraintName][propertyName] = object[key]
         }
       }
       Object.keys(elmConstraints).forEach(name => {
-        elmConstraints[name].element = element
+        elmConstraints[name].element = object
       })
       return elmConstraints
     }
@@ -165,7 +165,8 @@ async function checkConstraints(req) {
             if (parameters) {
               Object.keys(row).filter(alias => alias !== constraintCol).forEach(alias => msgParams[alias] = row[alias])
             }
-            req.error(400, message ? (cds.i18n.messages.at(message, msgParams) || message) : `@assert.constraint ”${key}” failed`)
+            const constraintValidationMessage = message ? (cds.i18n.messages.for(message, msgParams) || message) : `@assert.constraint ”${key}” failed`
+            req.error(400, constraintValidationMessage)
           }
         }
       }

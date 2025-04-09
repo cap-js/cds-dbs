@@ -26,15 +26,15 @@ entity Books : managed {
       authorsAddress : String = author.address;
 }
 
+@assert.constraint.dates : {
+  condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
+  message: 'LIFE_BEFORE_DEATH',
+  parameters: [name, dateOfBirth, dateOfDeath]
+}
 entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
       dateOfBirth  : Date;
-      @assert.constraint : {
-        condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
-        message: 'LIFE_BEFORE_DEATH',
-        parameters: [name, dateOfBirth, dateOfDeath]
-      }
       dateOfDeath  : Date;
       placeOfBirth : String;
       placeOfDeath : String;

@@ -94,6 +94,7 @@ describe('Bookshop - assertions', () => {
     })
 
     test.skip('deep insert should not be fulfilled after constraint violation in child', async () => {
+      const genresBeforeInsert = await SELECT.from(Genres)
       await expect(
         POST(
           '/admin/Genres',
@@ -115,8 +116,8 @@ describe('Bookshop - assertions', () => {
           { auth: { username: 'alice' } },
         ),
       ).to.be.fulfilled
-      const genres = await SELECT.from(Genres)
-      expect(genres.length).to.equal(0)
+      const genresAfterInsert = await SELECT.from(Genres)
+      expect(genresAfterInsert.length).to.equal(genresBeforeInsert.length)
     })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
