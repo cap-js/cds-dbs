@@ -20,7 +20,7 @@ describe('Pseudo Variables', () => {
 
   it('stay untouched in SELECT', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books {
+      cds.ql`SELECT from bookshop.Books as Books {
       ID,
       $user,
       $user.id,
@@ -57,7 +57,7 @@ describe('Pseudo Variables', () => {
 
   it('stay untouched in WHERE/GROUP BY/ORDER BY', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books {
+      cds.ql`SELECT from bookshop.Books as Books {
       ID
     } WHERE $user = 'karl' and $user.locale = 'DE' and $user.unknown.foo.bar = 'foo'
       GROUP BY $user.id, $to
@@ -76,7 +76,7 @@ describe('Pseudo Variables', () => {
 
   it('stay untouched in filter', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books {
+      cds.ql`SELECT from bookshop.Books as Books {
       ID,
       author[name = $user.name or dateOfDeath < $now].dateOfBirth
     }`,
@@ -93,7 +93,7 @@ describe('Pseudo Variables', () => {
 
   it('stay untouched in generated join', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.SimpleBook {
+      cds.ql`SELECT from bookshop.SimpleBook as SimpleBook {
       ID
     } where activeAuthors.name = $user.name`,
       model,
@@ -115,16 +115,17 @@ describe('Pseudo Variables', () => {
       model,
     )
 
-    const expected = cds.ql`SELECT from bookshop.Books as Books
-      { Books.ID } where exists (
-          SELECT 1 from bookshop.Authors as author where author.ID = Books.author_ID and $user.name = 'towald'
-        )
+    const expected = cds.ql`SELECT from bookshop.Books as $B
+      { $B.ID }
+       where exists (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $user.name = 'towald'
+       )
     `
     expect(query).to.deep.equal(expected)
   })
 
   it('must not be prefixed by table alias', () => {
-    expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID, Books.$now }`, model)).to.throw(
+    expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, Books.$now }`, model)).to.throw(
       '"$now" not found in "bookshop.Books"',
     )
   })

@@ -16,7 +16,7 @@ describe('Structured Access', () => {
     // see "±" there we must address the flat name
     // of the column in the order by clause
     it('resolves struct path to flat field', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { dedication.text }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { dedication.text }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.dedication_text }`)
     })
 
@@ -32,26 +32,26 @@ describe('Structured Access', () => {
       )
     })
     it('resolves first path step as element of data source if it cannot be resolved as table alias', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { dedication.text }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { dedication.text }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.dedication_text }`)
     })
     it('cannot access flat names of structure elements', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { dedication_text }`, model)).to.throw(
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books as Books { dedication_text }`, model)).to.throw(
         /"dedication_text" not found in the elements of "bookshop.Books"/,
       )
     })
     it('cannot access flat names of FKs', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { author_ID }`, model)).to.throw(
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author_ID }`, model)).to.throw(
         /"author_ID" not found in the elements of "bookshop.Books"/,
       )
     })
     it('deeply structured access', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID, dedication.sub.foo }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, dedication.sub.foo }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_sub_foo }`)
     })
     // mess around with table alias
     it('using implicit table alias', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { Books.dedication.text }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { Books.dedication.text }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.dedication_text }`)
     })
 
@@ -82,7 +82,7 @@ describe('Structured Access', () => {
     })
     it('unfolds all leafs of sub structure', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             ID,
             dedication.text,
             Books.dedication.sub,
@@ -121,7 +121,7 @@ describe('Structured Access', () => {
   describe('in Where', () => {
     it('simple access of sub element', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID }
+        cds.ql`SELECT from bookshop.Books as Books { ID }
             WHERE dedication.text = 'For Mummy'`,
         model,
       )
@@ -137,7 +137,7 @@ describe('Structured Access', () => {
     // flat, implicit alias of column must be used
     it('±', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { dedication.sub }
+        cds.ql`SELECT from bookshop.Books as Books { dedication.sub }
             ORDER BY dedication_sub.foo, Books.dedication.text, dedication.text`,
         model,
       )
@@ -195,7 +195,7 @@ describe('Structured Access', () => {
   describe('in expressions', () => {
     it('access leaf of structured function argument in column', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             power(Books.dedication.text, 2*dedication.sub.foo) as path
           }`,
         model,
@@ -206,7 +206,7 @@ describe('Structured Access', () => {
     })
     it('functions in WHERE', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID }
+        cds.ql`SELECT from bookshop.Books as Books { ID }
             WHERE power(Books.dedication.text, 2*dedication.sub.foo) > dedication.dedication+2`,
         model,
       )
@@ -215,7 +215,7 @@ describe('Structured Access', () => {
     })
     it('functions in GROUP BY/HAVING', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID }
+        cds.ql`SELECT from bookshop.Books as Books { ID }
             GROUP BY power(Books.dedication.text, 2*dedication.sub.foo), dedication.dedication+2
             HAVING power(Books.dedication.text, 2*dedication.sub.foo) > dedication.dedication+2`,
         model,
@@ -226,7 +226,7 @@ describe('Structured Access', () => {
     })
     it('functions in ORDER BY', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID }
+        cds.ql`SELECT from bookshop.Books as Books { ID }
             ORDER BY power(dedication.text, 2*dedication.sub.foo), dedication.dedication+2`,
         model,
       )
@@ -244,7 +244,7 @@ describe('Structured Access', () => {
   describe('in subqueries', () => {
     it('subquery in from with alias', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from (select from bookshop.Books {
+        cds.ql`SELECT from (select from bookshop.Books as Books {
             ID,
             dedication.sub.foo as foo
           }) as Bar { ID, foo }`,
@@ -279,13 +279,13 @@ describe('Structured Access', () => {
     //   a path along a managed association to a target field that is used as FK of the association
     //   is not translated into a join (or subquery), but as struct access to the local FK element
     it('access fk in column', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID, Books.currency.code }`, model)
+      let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, Books.currency.code }`, model)
       expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID, Books.currency_code }`)
     })
 
     it('structured fk', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID, Books.dedication.addressee.ID as dedicationAddressee }`,
+        cds.ql`SELECT from bookshop.Books  as Books { ID, Books.dedication.addressee.ID as dedicationAddressee }`,
         model,
       )
       expect(query).to.deep.equal(
@@ -323,7 +323,7 @@ describe('Structured Access', () => {
 
     it('optimizes assoc.fk path in expression', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books {
+        cds.ql`SELECT from bookshop.Books as Books {
             power(author.ID, 2*dedication.addressee.ID) as path
           }`,
         model,
@@ -334,7 +334,7 @@ describe('Structured Access', () => {
     })
     it('resolves struct paths into FROM subquery mix with assoc FK access', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from (select from bookshop.Books {Books.ID, Books.dedication as dedi}) as Bar { ID, dedi.addressee.ID}`,
+        cds.ql`SELECT from (select from bookshop.Books as Books {Books.ID, Books.dedication as dedi}) as Bar { ID, dedi.addressee.ID}`,
         model,
       )
       expect(query).to.deep.equal(
@@ -352,7 +352,7 @@ describe('Structured Access', () => {
   describe('in GROUP BY/HAVING', () => {
     it('uses query source elements and not column alias', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { dedication.text }
+        cds.ql`SELECT from bookshop.Books as Books { dedication.text }
           GROUP BY dedication.text HAVING dedication.text = 'For Mummy'`,
         model,
       )
@@ -362,7 +362,7 @@ describe('Structured Access', () => {
 
     it('resolves and unfolds struct paths ending on struct', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { dedication.sub }
+        cds.ql`SELECT from bookshop.Books as Books { dedication.sub }
           GROUP BY dedication.sub`,
         model,
       )

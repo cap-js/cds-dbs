@@ -33,7 +33,7 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('multiple string elements', () => {
-    let query = cds.ql`SELECT from bookshop.Genres { ID }`
+    let query = cds.ql`SELECT from bookshop.Genres as Genres { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -43,7 +43,7 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('with existing WHERE clause', () => {
-    let query = cds.ql`SELECT from bookshop.Genres { ID } where ID < 4 or ID > 5`
+    let query = cds.ql`SELECT from bookshop.Genres as Genres { ID } where ID < 4 or ID > 5`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -54,7 +54,7 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('with filter on data source', () => {
-    let query = cds.ql`SELECT from bookshop.Genres[ID < 4 or ID > 5] { ID }`
+    let query = cds.ql`SELECT from bookshop.Genres[ID < 4 or ID > 5] as Genres { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -67,7 +67,7 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('string fields inside struct', () => {
-    let query = cds.ql`SELECT from bookshop.Person { ID }`
+    let query = cds.ql`SELECT from bookshop.Person as Person { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -77,7 +77,7 @@ describe('Replace attribute search by search predicate', () => {
   })
 
   it('ignores virtual string elements', () => {
-    let query = cds.ql`SELECT from bookshop.Foo { ID }`
+    let query = cds.ql`SELECT from bookshop.Foo as Foo { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -86,7 +86,7 @@ describe('Replace attribute search by search predicate', () => {
     }`)
   })
   it('Uses primary query source in case of joins', () => {
-    let query = cds.ql`SELECT from bookshop.Books { ID, author.books.title as authorsBook }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, author.books.title as authorsBook }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -103,7 +103,7 @@ describe('Replace attribute search by search predicate', () => {
   })
   it('Search columns if result is grouped', () => {
     // in this case, we actually search the "title" which comes from the join
-    let query = cds.ql`SELECT from bookshop.Books { ID, author.books.title as authorsBook } group by title`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, author.books.title as authorsBook } group by title`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -119,7 +119,7 @@ describe('Replace attribute search by search predicate', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('Search on navigation', () => {
-    let query = cds.ql`SELECT from bookshop.Authors:books { ID }`
+    let query = cds.ql`SELECT from bookshop.Authors:books as books { ID }`
     query.SELECT.search = [{ val: 'x' }, 'or', { val: 'y' }]
 
     let res = cqn4sql(query, model)
@@ -129,8 +129,8 @@ describe('Replace attribute search by search predicate', () => {
         books.ID,
       } where
         exists (
-          SELECT 1 from bookshop.Authors as Authors
-          where Authors.ID = books.author_ID
+          SELECT 1 from bookshop.Authors as $A
+          where $A.ID = books.author_ID
         )
       and
       search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y')) `
@@ -142,6 +142,7 @@ describe('Replace attribute search by search predicate', () => {
     // if we search on aggregated results, the search must be put into the having clause
     const { Books } = cds.entities
     let query = SELECT.from(Books)
+      .alias('Books')
       .columns({ args: [{ ref: ['title'] }], as: 'firstInAlphabet', func: 'MIN' })
       .groupBy('title')
       .search('Cat')
@@ -155,7 +156,7 @@ describe('Replace attribute search by search predicate', () => {
 
   it('Ignore non string aggregates from being searched', () => {
     const query = cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         title,
         AVG(Books.stock) as searchRelevant,
       } group by title
@@ -172,7 +173,7 @@ describe('Replace attribute search by search predicate', () => {
   })
   it('aggregations which are not of type string are not searched', () => {
     const query = cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         SUM(Books.stock) as notSearchRelevant,
       } group by title
@@ -190,7 +191,7 @@ describe('Replace attribute search by search predicate', () => {
     // this aggregation is not relevant for search per default
     // but due to the cast to string, we search
     const query = cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         substring(Books.stock) as searchRelevantViaCast: cds.String,
       } group by title
@@ -212,7 +213,7 @@ describe('Replace attribute search by search predicate', () => {
     // this aggregation is not relevant for search per default
     // but due to the cast to string, we search
     const query = cds.ql`
-      SELECT from bookshop.Books {
+      SELECT from bookshop.Books as Books {
         ID,
         ('very' + 'useful' + 'string') as searchRelevantViaCast: cds.String,
         ('1' + '2' + '3') as notSearchRelevant: cds.Integer,
@@ -245,7 +246,7 @@ describe('search w/ path expressions', () => {
   })
 
   it('one string element with one search element', () => {
-    let query = cds.ql`SELECT from search.BooksSearchAuthorName { ID, title }`
+    let query = cds.ql`SELECT from search.BooksSearchAuthorName as BooksSearchAuthorName { ID, title }`
     query.SELECT.search = [{ val: 'x' }]
 
     let res = cqn4sql(query, model)
@@ -290,7 +291,7 @@ describe('search w/ path expressions', () => {
   })
 
   it('dont dump for non existing search paths, but ignore the path', () => {
-    let query = cds.ql`SELECT from search.BookShelf { ID, genre }`
+    let query = cds.ql`SELECT from search.BookShelf as BookShelf { ID, genre }`
     query.SELECT.search = [{ val: 'Harry Plotter' }]
 
     let res = cqn4sql(query, model)

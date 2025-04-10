@@ -13,7 +13,7 @@ describe('query clauses', () => {
   })
 
   it('limit + offset', () => {
-    const original = cds.ql`SELECT from bookshop.Books { ID } limit 50 offset 25`
+    const original = cds.ql`SELECT from bookshop.Books as Books { ID } limit 50 offset 25`
     expect(cqn4sql(original, model)).to.deep.equal(
       cds.ql`
       SELECT from bookshop.Books as Books { Books.ID } limit 50 offset 25
@@ -23,7 +23,7 @@ describe('query clauses', () => {
 
   it('`sort` and `nulls` are passed along in order by', () => {
     const original = cds.ql`
-        SELECT from bookshop.Books { ID }
+        SELECT from bookshop.Books as Books { ID }
             order by Books.ID asc nulls first,
                      1 + 1 desc nulls last,
                      func() desc nulls first
@@ -38,7 +38,7 @@ describe('query clauses', () => {
     )
   })
   it('`sort` and `nulls` are passed along also to flat field in order by', () => {
-    const original = cds.ql`SELECT from bookshop.Books { ID } order by Books.dedication.sub asc nulls first`
+    const original = cds.ql`SELECT from bookshop.Books as Books { ID } order by Books.dedication.sub asc nulls first`
     expect(cqn4sql(original, model)).to.deep.equal(
       cds.ql`
       SELECT from bookshop.Books as Books { Books.ID }
@@ -48,7 +48,7 @@ describe('query clauses', () => {
   })
   it('preserves cast property on column', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Bar {
+      cds.ql`SELECT from bookshop.Bar as Bar {
             ID as castedID: cds.String
           }`,
       model,
@@ -62,7 +62,7 @@ describe('query clauses', () => {
   //     hence we should make the alias explicit for the cds style cast
   it('adds explicit alias for cast property on column', () => {
     let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Bar {
+      cds.ql`SELECT from bookshop.Bar as Bar {
             ID: cds.String
           }`,
       model,

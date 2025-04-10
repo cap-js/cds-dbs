@@ -178,9 +178,9 @@ GROUP BY k
           throw enhanceError(e, sql)
         }
       },
-      stream: async (values, one) => {
+      stream: async (values, one, objectMode) => {
         try {
-          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
+          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one, objectMode)
           return await this.dbc.query(streamQuery)
         } catch (e) {
           throw enhanceError(e, sql)
@@ -305,7 +305,8 @@ GROUP BY k
     }
   }
 
-  async onSELECT({ query, data }) {
+  async onSELECT(req) {
+    const { query, data } = req
     // workaround for chunking odata streaming
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
@@ -323,7 +324,7 @@ GROUP BY k
       res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
       return res
     }
-    return super.onSELECT({ query, data })
+    return super.onSELECT(req)
   }
 
   async onINSERT(req) {
@@ -348,7 +349,7 @@ GROUP BY k
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
+            (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
@@ -667,7 +668,7 @@ GROUP BY k
 }
 
 class QueryStream extends Query {
-  constructor(config, one) {
+  constructor(config, one, objectMode) {
     // REVISIT: currently when setting the row chunk size
     // it results in an inconsistent connection state
     // if (!one) config.rows = 1000
@@ -676,6 +677,7 @@ class QueryStream extends Query {
     this._one = one || config.one
 
     this.stream = new Readable({
+      objectMode,
       read: this.rows
         ? () => {
           this.stream.pause()
@@ -693,7 +695,7 @@ class QueryStream extends Query {
     this._prom = new Promise((resolve, reject) => {
       this.once('error', reject)
       this.once('end', () => {
-        if (!this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) this.push(this.constructor.close)
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
         resolve(null)
@@ -736,10 +738,15 @@ class QueryStream extends Query {
     } else {
       this.handleDataRow = msg => {
         const val = msg.fields[0]
-        if (!this._one && val !== null) this.push(this.constructor.open)
+        const objectMode = this.stream.readableObjectMode
+        if (!objectMode && !this._one && val !== null) this.push(this.constructor.open)
         this.emit('row', val)
-        this.push(val)
+        this.push(objectMode ? JSON.parse(val) : val)
+
         delete this.handleDataRow
+        if (objectMode) {
+          this.handleDataRow = this.handleDataRowObjectMode
+        }
       }
     }
     return super.handleRowDescription(msg)
@@ -749,6 +756,11 @@ class QueryStream extends Query {
   handleDataRow(msg) {
     this.push(this.constructor.sep)
     this.push(msg.fields[0])
+  }
+
+  // Called when a new row is received
+  handleDataRowObjectMode(msg) {
+    this.push(JSON.parse(msg.fields[0]))
   }
 
   // Called when a new binary row is received
