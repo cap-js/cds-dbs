@@ -36,10 +36,6 @@ function attachConstraints(_results, req) {
     }
     validationQueries.push(validationQuery)
   }
-  // for (const where of whereClauses) {
-  //   if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', ...where)
-  //   else validationQuery.SELECT.where.push(...where)
-  // }
 
   if (this.tx.assert_constraints) this.tx.assert_constraints.push(validationQueries)
   else this.tx.assert_constraints = [validationQueries]
@@ -118,8 +114,6 @@ function collectConstraints(entity, data) {
       const composition = compositions[compKey];
       const compositionTarget = cds.model.definitions[composition.target];
       const childrenData = data[compKey];
-
-      // Process array children separately.
       if (Array.isArray(childrenData)) {
         for (const childData of childrenData) {
           const childConstraints = collectConstraints(compositionTarget, childData);
