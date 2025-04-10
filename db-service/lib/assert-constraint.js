@@ -6,8 +6,16 @@ function attachConstraints(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   const { data } = req
   if (Array.isArray(data[0])) return // REVISIT: what about csv inserts?
-  const constraints = collectConstraints(req.target, req.data)
-  if (Object.keys(constraints).length === 0) return
+  const constraintsPerTarget = {}
+  for(const [cName, c] of Object.entries(collectConstraints(req.target, req.data))) {
+    if(c.target.name in constraintsPerTarget) {
+      constraintsPerTarget[c.target.name][cName] = c
+    }
+    else {
+      constraintsPerTarget[c.target.name] = { [cName]: c }
+    }
+  }
+  if (Object.keys(constraintsPerTarget).length === 0) return
 
   // which entry shall be checked? We need the IDs / condition of the current req
   let whereClauses = []
@@ -21,21 +29,21 @@ function attachConstraints(_results, req) {
     }
   }
 
-  // there could be multiple validation queries for a deep operation
-  // because there can be multiple entities involved
-  // TODO: continue here, we need to get a list of constraints per entity
-  // and then create a validation query for each of them
-  const validationQuery = _getValidationQuery(req, constraints)
-  for (const where of whereClauses) {
-    if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', ...where)
-    else validationQuery.SELECT.where.push(...where)
+  const validationQueries = []
+  for(const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
+    const validationQuery = _getValidationQuery(targetName, constraints)
+    validationQueries.push(validationQuery)
   }
+  // for (const where of whereClauses) {
+  //   if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', ...where)
+  //   else validationQuery.SELECT.where.push(...where)
+  // }
 
-  if (this.tx.assert_constraints) this.tx.assert_constraints.push({ validationQuery, constraints })
-  else this.tx.assert_constraints = [{ validationQuery, constraints }]
+  if (this.tx.assert_constraints) this.tx.assert_constraints.push(validationQueries)
+  else this.tx.assert_constraints = [validationQueries]
   return
-  function _getValidationQuery(req, constraints) {
-    const validationQuery = SELECT.from(req.target)
+  function _getValidationQuery(target, constraints) {
+    const validationQuery = SELECT.from(target)
     // each column represents a constraint
     const columns = Object.keys(constraints).flatMap(name => {
       const constraint = constraints[name]
@@ -62,7 +70,11 @@ function attachConstraints(_results, req) {
     })
 
     validationQuery.SELECT.columns = columns
-    validationQuery.SELECT.where = []
+    // REVISIT: matchKeys for one entity should be the same for all constraints
+    //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
+    const keyMatchingConditions = Object.values(constraints)[0].matchKeys
+    validationQuery.SELECT.where = keyMatchingConditions.flatMap((matchKey, i) => i>0 ? ['or', ...matchKey] : matchKey)
+    Object.defineProperty(validationQuery, '$constraints', { value: constraints }) 
     return validationQuery
   }
 
@@ -117,7 +129,7 @@ function attachConstraints(_results, req) {
       // merge all constraints
       for (const key in childConstraints) {
         const childConstraint = childConstraints[key]
-        if (constraints[key]?.element === childConstraint.element) {
+        if (constraints[key]?.element === childConstraint.element) { // element may be an entity
           // merge the primary key conditions
           constraints[key].matchKeys.push(...childConstraint.matchKeys)
         } else {
@@ -211,26 +223,30 @@ function attachConstraints(_results, req) {
 async function checkConstraints(req) {
   if (this.tx.assert_constraints) {
     for (const check of this.tx.assert_constraints) {
-      const { validationQuery, constraints } = check
-      const result = await this.run(validationQuery)
-      if (!result) continue
-      for (const key in constraints) {
-        const constraintCol = key + '_constraint'
-        for (const row of result) {
-          if (!row[constraintCol]) {
-            const { message, parameters } = constraints[key]
-            const msgParams = {}
-            if (parameters) {
-              Object.keys(row)
-                .filter(alias => alias !== constraintCol)
-                .forEach(alias => (msgParams[alias] = row[alias]))
+      const validationQueries = check
+      for(const q of validationQueries) {
+        const constraints = q.$constraints
+        const result = await this.run(q)
+        if (!result) continue
+        for (const key in constraints) {
+          const constraintCol = key + '_constraint'
+          for (const row of result) {
+            if (!row[constraintCol]) {
+              const { message, parameters } = constraints[key]
+              const msgParams = {}
+              if (parameters) {
+                Object.keys(row)
+                  .filter(alias => alias !== constraintCol)
+                  .forEach(alias => (msgParams[alias] = row[alias]))
+              }
+              const constraintValidationMessage = message
+                ? cds.i18n.messages.for(message, msgParams) || message
+                : `@assert.constraint ”${key}” failed`
+              req.error(400, constraintValidationMessage)
             }
-            const constraintValidationMessage = message
-              ? cds.i18n.messages.for(message, msgParams) || message
-              : `@assert.constraint ”${key}” failed`
-            req.error(400, constraintValidationMessage)
           }
         }
+        
       }
     }
     // REVISIT: we can probably get rid of this

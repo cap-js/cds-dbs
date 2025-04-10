@@ -93,8 +93,7 @@ describe('Bookshop - assertions', () => {
       expect(book).to.not.exist
     })
 
-    test.only('deep insert should not be fulfilled after constraint violation in child', async () => {
-      const genresBeforeInsert = await SELECT.from(Genres)
+    test('deep insert should not be fulfilled after constraint violation in child', async () => {
       await expect(
         POST(
           '/admin/Genres',
@@ -119,9 +118,7 @@ describe('Bookshop - assertions', () => {
           },
           { auth: { username: 'alice' } },
         ),
-      ).to.be.fulfilled
-      const genresAfterInsert = await SELECT.from(Genres)
-      expect(genresAfterInsert.length).to.equal(genresBeforeInsert.length)
+      ).to.be.rejectedWith('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
     })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
