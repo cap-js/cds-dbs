@@ -66,6 +66,10 @@ entity A : managed {
               on toC.ID = $self.C;
 }
 
+@assert.constraint.foreign: {
+  condition: (A != 42),
+  message: 'A must not be 42',
+}
 entity B : managed {
   key ID  : Integer;
       A   : Integer;

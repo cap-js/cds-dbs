@@ -166,6 +166,24 @@ describe('Bookshop - assertions', () => {
       ).to.be.rejectedWith('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
     })
 
+    test('deep insert via different entities', async () => {
+      await expect(
+        POST(
+          '/admin/A',
+          {
+            ID: 1,
+            toB: [
+              {
+                ID: 2,
+                A: 42
+              },
+            ],
+          },
+          { auth: { username: 'alice' } },
+        ),
+      ).to.be.rejectedWith('A must not be 42')
+    })
+
     test('assertion in batch (make sure there is only one query in the end)', async () => {
       await expect(
         INSERT.into(Books).entries([
