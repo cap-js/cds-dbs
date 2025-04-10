@@ -107,12 +107,10 @@ async function getReadTenant(dbs, isolate) {
       (SELECT count(1) FROM ${schemas} WHERE tenant=${isolate.tenant} and available=${true}) as available,
     }`
     // If the schema already exists wait for the row to be updated with available=true
-    await dat.tx(async tx => {
-      let available = 0
-      let progress = 1
-      while (progress && !available) [{ progress, available }] = await tx.run(query)
-      if (!available) cds.error`Failed to acquire database isolation external deployment failed.`
-    })
+    let available = 0
+    let progress = 1
+    while (progress && !available) [{ progress, available }] = await query.clone()
+    if (!available) cds.error`Failed to acquire database isolation external deployment failed.`
   }
 
   await ten.database(isolate)
