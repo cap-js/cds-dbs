@@ -509,3 +509,4 @@ const readBlob = function (state, encoding) {
 }
 
 module.exports.driver = HDBDriver
+module.exports.driver._driver = hdb
