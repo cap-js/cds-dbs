@@ -386,32 +386,32 @@ class CQN2SQLRenderer {
     }
 
     availableComputedColumns.DrillState = {
-      xpr: [
+      xpr: [ // When the node doesn't have children make it a leaf
         'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
         ...(where?.length // When there is a where filter the final node will always be a leaf
           ? ['WHEN', { ref: ['HIERARCHY_DISTANCE'] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
           : []
-        ),
+        ), // When having expanded by 0 level nodes make sure they are collapsed
         ...(expandedByZero.list.length
           ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', expandedByZero, 'THEN', { val: 'collapsed', param: false }]
           : []
-        ),
+        ), // When having expanded by null or one nodes compute them as expanded
         ...(expandedByNr.list.length || expandedByOne.list.length
           ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', { list: [...expandedByNr.list, ...expandedByOne.list] }, 'THEN', { val: 'expanded', param: false }]
           : []
-        ),
+        ), // When having expanded by one level node make its children collapsed
         ...(expandedByOne.list.length
           ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
           : []
-        ),
+        ), // When using DistanceFromRoot compute all entries within the levels as expanded
         ...(distanceType === 'DistanceFromRoot' && distanceVal
           ? [
             'WHEN', { ref: ['HIERARCHY_LEVEL'] }, '<>', { val: distanceVal.val + 1 },
             'THEN', { val: 'expanded', param: false },
           ]
           : []
-        ),
-        'ELSE', { val: recurse.where && distanceType ? 'collapsed' : 'expanded', param: false },
+        ), // Default to expanded when default filter behavior is truthy
+        'ELSE', { val: (recurse.where && !expandedByZero.list.length) && distanceType ? 'collapsed' : 'expanded', param: false },
         'END',
       ],
       as: 'DrillState'
