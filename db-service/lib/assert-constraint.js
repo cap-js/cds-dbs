@@ -223,11 +223,12 @@ function collectConstraints(entity, data) {
 
 async function checkConstraints(req) {
   if (this.tx.assert_constraints) {
-    for (const check of this.tx.assert_constraints) {
-      const validationQueries = check
-      for (const q of validationQueries) {
-        const constraints = q.$constraints
-        const result = await this.run(q)
+    for (const validationQueries of this.tx.assert_constraints) {
+      // REVISIT: cds.run fails for some tests
+      const results = await this.run(validationQueries)
+      let i = 0
+      for (const result of results) {
+        const constraints = validationQueries[i].$constraints
         if (!result?.length) continue
         for (const key in constraints) {
           const constraintCol = key + '_constraint'
@@ -247,6 +248,7 @@ async function checkConstraints(req) {
             }
           }
         }
+        i+=1
       }
     }
     // REVISIT: we can probably get rid of this
