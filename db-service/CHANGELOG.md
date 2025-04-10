@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.19.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.0...db-service-v1.19.1) (2025-04-01)
+
+
+### Fixed
+
+* **scoped queries:** wrap filter in `xpr` if needed ([#1105](https://github.com/cap-js/cds-dbs/issues/1105)) ([8f44df3](https://github.com/cap-js/cds-dbs/commit/8f44df37db7bc283933023dab92b348cf92e12bf))
+
+## [1.19.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.18.0...db-service-v1.19.0) (2025-03-31)
+
+
+### Added
+
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+* support recursive cqn queries ([#1089](https://github.com/cap-js/cds-dbs/issues/1089)) ([f09b0f8](https://github.com/cap-js/cds-dbs/commit/f09b0f815c3788349f3d39419990cd1c00963b7d))
+
+
+### Fixed
+
+* assign more technical, implicit table aliases ([#1082](https://github.com/cap-js/cds-dbs/issues/1082)) ([1f8925a](https://github.com/cap-js/cds-dbs/commit/1f8925a5d4bcc0123f3abbee2c65ed77877da591))
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+
 ## [1.18.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.2...db-service-v1.18.0) (2025-03-04)
 
 
