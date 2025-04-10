@@ -1025,8 +1025,8 @@ describe('SELECT', () => {
   })
 
   // REVISIT: unskip when merged into @sap/cds
-  describe.skip('pipe', () => cds.tx(async () => {
-    test('json stream', async () => {
+  describe.skip('pipe', () => {
+    test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1035,7 +1035,7 @@ describe('SELECT', () => {
       let result
       await cqn.clone().pipe(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
-    })
+    }))
 
     test('req.res stream', async () => {
       const http = require('http')
@@ -1065,7 +1065,7 @@ describe('SELECT', () => {
 
       expect(result).deep.eq(expected)
     })
-  }))
+  })
 
   describe('expr', () => {
     const minimal = true
