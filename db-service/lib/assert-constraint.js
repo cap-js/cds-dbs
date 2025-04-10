@@ -7,11 +7,10 @@ function attachConstraints(_results, req) {
   const { data } = req
   if (Array.isArray(data[0])) return // REVISIT: what about csv inserts?
   const constraintsPerTarget = {}
-  for(const [cName, c] of Object.entries(collectConstraints(req.target, req.data))) {
-    if(c.target.name in constraintsPerTarget) {
+  for (const [cName, c] of Object.entries(collectConstraints(req.target, req.data))) {
+    if (c.target.name in constraintsPerTarget) {
       constraintsPerTarget[c.target.name][cName] = c
-    }
-    else {
+    } else {
       constraintsPerTarget[c.target.name] = { [cName]: c }
     }
   }
@@ -29,10 +28,10 @@ function attachConstraints(_results, req) {
   }
 
   const validationQueries = []
-  for(const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
+  for (const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
     const validationQuery = _getValidationQuery(targetName, constraints)
-    if(where.length > 0) {
-      if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', {xpr: where})
+    if (where.length > 0) {
+      if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', { xpr: where })
       else validationQuery.SELECT.where.push(...where)
     }
     validationQueries.push(validationQuery)
@@ -76,8 +75,10 @@ function attachConstraints(_results, req) {
     // REVISIT: matchKeys for one entity should be the same for all constraints
     //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
     const keyMatchingConditions = Object.values(constraints)[0].matchKeys
-    validationQuery.SELECT.where = keyMatchingConditions.flatMap((matchKey, i) => i>0 ? ['or', ...matchKey] : matchKey)
-    Object.defineProperty(validationQuery, '$constraints', { value: constraints }) 
+    validationQuery.SELECT.where = keyMatchingConditions.flatMap((matchKey, i) =>
+      i > 0 ? ['or', ...matchKey] : matchKey,
+    )
+    Object.defineProperty(validationQuery, '$constraints', { value: constraints })
     return validationQuery
   }
 
@@ -132,7 +133,8 @@ function attachConstraints(_results, req) {
       // merge all constraints
       for (const key in childConstraints) {
         const childConstraint = childConstraints[key]
-        if (constraints[key]?.element === childConstraint.element) { // element may be an entity
+        if (constraints[key]?.element === childConstraint.element) {
+          // element may be an entity
           // merge the primary key conditions
           constraints[key].matchKeys.push(...childConstraint.matchKeys)
         } else {
@@ -204,14 +206,10 @@ function attachConstraints(_results, req) {
     // construct {key:value} pairs holding information about the entry to check
     return dataEntries
       .map(entry =>
-        primaryKeys.reduce((identifier, key) => {
+        primaryKeys.reduce((identifier, key, i) => {
           const value = entry[key]
-          if (value === undefined) {
-            // Skip keys with undefined values, e.g. csv import
-            return
-          }
           if (identifier.length > 0) identifier.push('and')
-          identifier.push({ ref: [key] }, '=', { val: value })
+          else if (value !== undefined) identifier.push({ ref: [key] }, '=', { val: value })
           return identifier
         }, []),
       )
@@ -227,7 +225,7 @@ async function checkConstraints(req) {
   if (this.tx.assert_constraints) {
     for (const check of this.tx.assert_constraints) {
       const validationQueries = check
-      for(const q of validationQueries) {
+      for (const q of validationQueries) {
         const constraints = q.$constraints
         const result = await this.run(q)
         if (!result?.length) continue
@@ -249,7 +247,6 @@ async function checkConstraints(req) {
             }
           }
         }
-        
       }
     }
     // REVISIT: we can probably get rid of this
