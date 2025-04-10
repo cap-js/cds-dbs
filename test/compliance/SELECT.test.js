@@ -241,6 +241,32 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].static.length, 1)
     })
 
+    test('expand with maps', async () => {
+      const { mp } = cds.entities('complex')
+      await INSERT.into(mp).entries([
+        { ID: 2, recurse: [{ ID: 1, mp: {x: 1, output: [{z: 12}]} }],mp: {y: 2, output: [{z: 13}]}}
+      ])
+      const cqn = cds.ql`SELECT *,recurse{*} FROM ${mp} WHERE ID = 2`
+      const res = await cds.run(cqn)
+      // ensure that all values are returned in json format
+      assert.deepEqual(res, [{
+        ID: 2,
+        parent_ID: null,
+        mp: {
+          y: 2,
+          output: [{z: 13}]
+        }, 
+        recurse: [{
+          ID: 1, 
+          parent_ID: 2,
+          mp: {
+            x: 1,
+            output: [{z: 12}]
+          }
+          }]
+      }])
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
