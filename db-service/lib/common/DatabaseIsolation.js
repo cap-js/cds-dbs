@@ -90,7 +90,7 @@ async function deploy(dbs, isolate) {
 async function getReadTenant(dbs, isolate) {
   const { dat, ten } = dbs
   const { schemas } = dat.entities()
-  const deployTimeout = 120 // seconds
+  const deployTimeout = 360 // seconds
 
   let isnew = false
   try {
