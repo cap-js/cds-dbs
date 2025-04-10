@@ -200,7 +200,7 @@ function collectConstraints(entity, data) {
    * @returns {Array} conditions
    */
   function matchKeys(entity, data) {
-    const primaryKeys = Object.keys(entity.keys)
+    const primaryKeys = Object.keys(entity.keys || {})
     const dataEntries = Array.isArray(data) ? data : [data] // Ensure batch handling
 
     // construct {key:value} pairs holding information about the entry to check
