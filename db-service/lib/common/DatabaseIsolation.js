@@ -109,7 +109,7 @@ async function getReadTenant(dbs, isolate) {
     // If the schema already exists wait for the row to be updated with available=true
     let available = 0
     let progress = 1
-    while (progress && !available) [{ progress, available }] = await query.clone()
+    while (progress && !available) [{ progress, available }] = await dat.run(query)
     if (!available) cds.error`Failed to acquire database isolation external deployment failed.`
   }
 
