@@ -41,6 +41,51 @@ describe('Bookshop - assertions', () => {
       const book = await SELECT.one.from(Books).where({ ID: 42 })
       expect(book.stock).to.equal(15)
     })
+
+    test('update fails because deeply nested child violates constraint', async () => {
+      await expect(
+        UPDATE(Genres).with({
+          name: 'Non-Fiction Updated',
+          children: [
+            {
+              ID: 21,
+              name: 'SUPER BIOGRAPHY',
+              children: [
+                {
+                  ID: 22,
+                  name: 'We forbid genre names with more than 20 characters',
+                },
+              ],
+            }
+          ],
+        }).where(`name = 'Non-Fiction' and ID = 20`),
+      ).to.be.rejectedWith('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
+    })
+
+    test('update fails because parent AND deeply nested child violates constraint', async () => {
+      try {
+        await UPDATE(Genres).with({
+          name: 'Non-Fiction Updated with a waaaaaay to long name',
+          children: [
+            {
+              ID: 21,
+              name: 'SUPER BIOGRAPHY',
+              children: [
+                {
+                  ID: 22,
+                  name: 'We forbid genre names with more than 20 characters',
+                },
+              ],
+            }
+          ],
+        }).where(`name = 'Non-Fiction' and ID = 20`)
+      } catch (err) {
+        const { details } = err
+        expect(details).to.have.length(2)
+        expect(details[0].message).to.equal('Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters')
+        expect(details[1].message).to.equal('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
+      }
+    })
   })
 
   describe('INSERT', () => {

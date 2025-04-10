@@ -18,20 +18,23 @@ function attachConstraints(_results, req) {
   if (Object.keys(constraintsPerTarget).length === 0) return
 
   // which entry shall be checked? We need the IDs / condition of the current req
-  let whereClauses = []
+  let where = []
   if (req.event === 'UPDATE' || req.event === 'UPSERT') {
     const prop = req.event
-
     if (req.query[prop]?.where) {
-      whereClauses.push(req.query[prop].where)
+      where = req.query[prop].where
     } else if (req.query[prop]?.entity?.ref[0]?.where) {
-      whereClauses.push(req.query[prop].entity.ref[0].where)
+      where = req.query[prop].entity.ref[0].where
     }
   }
 
   const validationQueries = []
   for(const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
     const validationQuery = _getValidationQuery(targetName, constraints)
+    if(where.length > 0) {
+      if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', {xpr: where})
+      else validationQuery.SELECT.where.push(...where)
+    }
     validationQueries.push(validationQuery)
   }
   // for (const where of whereClauses) {
@@ -227,7 +230,7 @@ async function checkConstraints(req) {
       for(const q of validationQueries) {
         const constraints = q.$constraints
         const result = await this.run(q)
-        if (!result) continue
+        if (!result?.length) continue
         for (const key in constraints) {
           const constraintCol = key + '_constraint'
           for (const row of result) {
