@@ -12,7 +12,7 @@ describe('Bookshop - assertions', () => {
   })
 
   describe('UPDATE', () => {
-    test.only('simple assertion', async () => {
+    test('simple assertion', async () => {
       await expect(UPDATE(Books, '42').with({ stock: -1 })).to.be.rejectedWith(
         'Stock for book "Harry Potter and the Chamber of Secrets" (42) must not be a negative number',
       )
