@@ -1037,7 +1037,7 @@ describe('SELECT', () => {
       expect(result).deep.eq(expected)
     }))
 
-    test('req.res stream', async () => {
+    test('req.res stream', () => cds.tx(async () => {
       const http = require('http')
       const { json } = require('stream/consumers')
       const { promisify } = require('util')
@@ -1064,7 +1064,7 @@ describe('SELECT', () => {
       })
 
       expect(result).deep.eq(expected)
-    })
+    }))
   })
 
   describe('expr', () => {
