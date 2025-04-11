@@ -992,6 +992,8 @@ class HANAService extends SQLService {
 
     SELECT_count(q) {
       const countQuery = super.SELECT_count(q)
+      countQuery.SELECT.from = countQuery.SELECT.from // es-lint-disable-line no-self-assign
+      countQuery.SELECT.where = countQuery.SELECT.where // es-lint-disable-line no-self-assign
       // Ensure that the query is not considered an expand query
       countQuery.SELECT.parent = undefined
       return countQuery
