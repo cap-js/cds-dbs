@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-11)
+
+
+### Added
+
+* Result set streaming ([#702](https://github.com/cap-js/cds-dbs/issues/702)) ([2fe02ea](https://github.com/cap-js/cds-dbs/commit/2fe02eafd02993e5697efbdab90ad997fb2c9e00))
+
+
+### Fixed
+
+* replace another occurrence of Node 22 Iterator ([#1133](https://github.com/cap-js/cds-dbs/issues/1133)) ([fcab43c](https://github.com/cap-js/cds-dbs/commit/fcab43cd6d2017720f3f8c9848708f9b3c26f5e1))
+* revert getDataAsync ([#1130](https://github.com/cap-js/cds-dbs/issues/1130)) ([33ae470](https://github.com/cap-js/cds-dbs/commit/33ae470b636dbddf0762d2e2c0ea0da67607911c))
+
 ## [1.8.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.0...hana-v1.8.1) (2025-04-02)
 
 

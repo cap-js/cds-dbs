@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.20.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.1...db-service-v1.20.0) (2025-04-11)
+
+
+### Added
+
+* Result set streaming ([#702](https://github.com/cap-js/cds-dbs/issues/702)) ([2fe02ea](https://github.com/cap-js/cds-dbs/commit/2fe02eafd02993e5697efbdab90ad997fb2c9e00))
+
+
+### Fixed
+
+* **`expand`:** proper subquery `from` construction ([#1126](https://github.com/cap-js/cds-dbs/issues/1126)) ([e343e79](https://github.com/cap-js/cds-dbs/commit/e343e7978acc0c181a012f61b6181b7c558aa178)), closes [#1114](https://github.com/cap-js/cds-dbs/issues/1114) [#1112](https://github.com/cap-js/cds-dbs/issues/1112)
+* remove `Iterator` references ([#1131](https://github.com/cap-js/cds-dbs/issues/1131)) ([dcb5ab6](https://github.com/cap-js/cds-dbs/commit/dcb5ab685c5f74b8b70bf9e8c49e48a9ec268f41))
+
 ## [1.19.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.0...db-service-v1.19.1) (2025-04-01)
 
 
