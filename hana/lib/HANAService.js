@@ -1444,7 +1444,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     managed_extract(name, element, converter) {
       // TODO: test property names with single and double quotes
       return {
-        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$["${name}"]', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$["${name}"]'`,
+        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$."${name}"', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$."${name}"'`,
         sql: converter(`NEW.${this.quote(name)}`),
       }
     }
