@@ -265,10 +265,12 @@ SELECT
 
     let uniqueCounter = this._with?.length ?? 0
 
-    const alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
+    let alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
     const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
     const distance = args.xpr.find((a, i, arr) => typeof a.val === 'number' && (/DISTANCE/i.test(arr[i - 1]) || /DISTANCE/i.test(arr[i - 2])))
     const distanceFrom = args.xpr.find((a, i, arr) => /FROM/.test(a) && /DISTANCE/i.test(arr[i - 1]))
+
+    if (alias.startsWith('"') && alias.endsWith('"')) alias = alias.slice(1, -1).replace(/""/g, '"')
 
     let HierarchyDescendants = cds.ql(`
 SELECT
@@ -344,8 +346,10 @@ JOIN H${uniqueCounter} AS Child ON Source.PARENT_ID=Child.NODE_ID`)
 
     let uniqueCounter = this._with?.length ?? 0
 
-    const alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
+    let alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
     const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
+
+    if (alias.startsWith('"') && alias.endsWith('"')) alias = alias.slice(1, -1).replace(/""/g, '"')
 
     let HierarchyAncestors = cds.ql(`
 SELECT
