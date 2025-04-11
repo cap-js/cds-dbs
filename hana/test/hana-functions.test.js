@@ -4,7 +4,8 @@ describe('HANA native functions', () => {
   const { expect } = cds.test(__dirname, 'fuzzy.cds')
 
   describe('current_timestamp', () => {
-    test('no arguments', async () => {
+    // TODO: resolve `hdb` driver behavior of rounding decimal numbers in timestamps
+    test.skip('no arguments', async () => {
       const cqn = { SELECT: {
         one: true,
         from: {ref: ['DUMMY']}, 
