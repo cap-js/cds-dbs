@@ -83,22 +83,7 @@ class CQN2SQLRenderer {
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
     if (this._with?.length) {
-      const sql = this.sql
-      let recursive = false
-      const values = this.values
-      const prefix = this._with.map(q => {
-        const values = this.values = []
-        let sql
-        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
-        else if ('SET' in q) {
-          recursive = true
-          const { SET } = q
-          sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
-        }
-        return { sql, values }
-      })
-      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-      this.values = [...prefix.map(p => p.values).flat(), ...values]
+      this.render_with()
     }
     if (vars?.length && !this.values?.length) this.values = vars
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
@@ -113,8 +98,26 @@ class CQN2SQLRenderer {
       DEBUG(this.sql, values)
     }
 
-
     return this
+  }
+
+  render_with() {
+    const sql = this.sql
+    let recursive = false
+    const values = this.values
+    const prefix = this._with.map(q => {
+      const values = this.values = []
+      let sql
+      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+      else if ('SET' in q) {
+        recursive = true
+        const { SET } = q
+        sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
+      }
+      return { sql, values }
+    })
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    this.values = [...prefix.map(p => p.values).flat(), ...values]
   }
 
   /**
