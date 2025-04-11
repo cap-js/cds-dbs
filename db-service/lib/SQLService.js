@@ -66,9 +66,9 @@ class SQLService extends DatabaseService {
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
-        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name])
+        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false)
         else
-          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name]))
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false))
       } else if (col.element?.type === 'cds.LargeBinary') {
         changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
@@ -137,7 +137,7 @@ class SQLService extends DatabaseService {
       if (!iterator) {
          this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
       } else if (objectMode) {
-        const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row)
+        const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
         const changeToStreams = new Transform({
           objectMode: true,
           transform(row, enc, cb) {
