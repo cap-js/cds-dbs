@@ -38,7 +38,7 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
+    const driver = this._driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
     const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
