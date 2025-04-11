@@ -207,10 +207,14 @@ function _collectConstraints(entity, data) {
     // construct {key:value} pairs holding information about the entry to check
     return dataEntries
       .map(entry =>
-        primaryKeys.reduce((identifier, key, i) => {
+        primaryKeys.reduce((identifier, key) => {
           const value = entry?.[key]
-          if (identifier.length > 0) identifier.push('and')
-          else if (value !== undefined) identifier.push({ ref: [key] }, '=', { val: value })
+          if (value !== undefined) {
+            if (identifier.length > 0) {
+              identifier.push('and')
+            }
+            identifier.push({ ref: [key] }, '=', { val: value })
+          }
           return identifier
         }, []),
       )
