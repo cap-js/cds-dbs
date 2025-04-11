@@ -806,7 +806,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
-        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator]|| entries[0] instanceof Readable ? entries[0] : entries
+        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator] || entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
@@ -1208,7 +1208,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     managed_extract(name, element, converter) {
       // TODO: test property names with single and double quotes
       return {
-        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
+        extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${HANAVERSION <= 2 ? `'$.${name}'` : `'$["${name}"]'`}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${HANAVERSION <= 2 ? `'$.${name}'` : `'$["${name}"]'`}`,
         sql: converter(`NEW.${this.quote(name)}`),
       }
     }
