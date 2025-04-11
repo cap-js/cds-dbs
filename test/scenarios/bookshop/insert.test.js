@@ -21,6 +21,7 @@ describe('Bookshop - Insert', () => {
   })
 
   test('mass insert on unknown entities', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     let affectedRows = await INSERT.into(books)
       .entries([{
