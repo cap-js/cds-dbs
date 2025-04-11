@@ -34,7 +34,7 @@ module.exports = class InsertResult {
       })
     }
 
-    const { target } = this.query
+    const target = this.query._target
     if (!target?.keys) return (super[iterator] = this.results[iterator])
     const keys = Object.keys(target.keys),
       [k1] = keys

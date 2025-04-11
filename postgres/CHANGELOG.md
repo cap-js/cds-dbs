@@ -4,6 +4,51 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.12.0...postgres-v1.13.0) (2025-03-31)
+
+
+### Added
+
+* **collate:** only collate if locale is provided ([#1060](https://github.com/cap-js/cds-dbs/issues/1060)) ([dedd768](https://github.com/cap-js/cds-dbs/commit/dedd768c085aa29be0e38db11f11678ff55d5b7b))
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+
+
+### Fixed
+
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+* Persist assert_integrity feature ([#1032](https://github.com/cap-js/cds-dbs/issues/1032)) ([2956279](https://github.com/cap-js/cds-dbs/commit/2956279777ac94330c98373d8bca32cf0f8e967e))
+
+## [1.12.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.1...postgres-v1.12.0) (2025-03-04)
+
+
+### Added
+
+* pass through of  arbitrary client options ([#1024](https://github.com/cap-js/cds-dbs/issues/1024)) ([b090ccd](https://github.com/cap-js/cds-dbs/commit/b090ccda2dfd4fa535aa0fd5be9d2fc27531db05))
+
+
+### Fixed
+
+* `expand@odata.count` queries ([#966](https://github.com/cap-js/cds-dbs/issues/966)) ([6607a84](https://github.com/cap-js/cds-dbs/commit/6607a8404aa70f2f3f7c6c65c7e9b1c324a5230b))
+
+## [1.11.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.11.0...postgres-v1.11.1) (2025-02-09)
+
+
+### Fixed
+
+* postgres build plugin w `--production` ([#1018](https://github.com/cap-js/cds-dbs/issues/1018)) ([aafffc9](https://github.com/cap-js/cds-dbs/commit/aafffc99cb509380e5ae7738376e4d30ce5d66f2))
+
+## [1.11.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.5...postgres-v1.11.0) (2025-01-28)
+
+
+### Added
+
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+
+### Fixed
+
+* starts endswith for null values ([#975](https://github.com/cap-js/cds-dbs/issues/975)) ([f0330bc](https://github.com/cap-js/cds-dbs/commit/f0330bc334fd3a8ed5377afcdd04b731baa8c753))
+
 ## [1.10.5](https://github.com/cap-js/cds-dbs/compare/postgres-v1.10.4...postgres-v1.10.5) (2024-12-16)
 
 

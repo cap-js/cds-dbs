@@ -1,9 +1,12 @@
 const { Readable, Stream } = require('stream')
+const { pipeline } = require('stream/promises')
 
 const cds = require('@sap/cds')
 const hdb = require('@sap/hana-client')
 const { driver, prom, handleLevel } = require('./base')
-const { isDynatraceEnabled: dt_sdk_is_present, dynatraceClient: wrap_client } = require('./dynatrace')
+const { resultSetStream } = require('./stream')
+
+const { wrap_client } = require('./dynatrace')
 const LOG = cds.log('@sap/hana-client')
 if (process.env.NODE_ENV === 'production' && !process.env.HDB_NODEJS_THREADPOOL_SIZE && !process.env.UV_THREADPOOL_SIZE) LOG.warn("When using @sap/hana-client, it's strongly recommended to adjust its thread pool size with environment variable `HDB_NODEJS_THREADPOOL_SIZE`, otherwise it might lead to performance issues.\nLearn more: https://help.sap.com/docs/SAP_HANA_CLIENT/f1b440ded6144a54ada97ff95dac7adf/31a8c93a574b4f8fb6a8366d2c758f21.html")
 
@@ -22,7 +25,7 @@ class HANAClientDriver extends driver {
    */
   constructor(creds) {
     // Enable native @sap/hana-client connection pooling
-    creds = Object.assign({}, creds, {
+    creds = Object.assign({
       // REVISIT: add pooling related credentials when switching to native pools
       // Enables the @sap/hana-client native connection pool implementation
       // pooling: true,
@@ -35,7 +38,7 @@ class HANAClientDriver extends driver {
       // compress: true, // TODO: test whether having compression enabled makes things faster
       // statement caches come with a side effect when the database structure changes which does not apply to CAP
       // statementCacheSize: 100, // TODO: test whether statementCaches make things faster
-    })
+    }, creds)
 
     // Retain node-hdb credential mappings to @sap/hana-client credential mapping
     for (const m of credentialMappings) {
@@ -44,14 +47,13 @@ class HANAClientDriver extends driver {
 
     super(creds)
     this._native = hdb.createConnection(creds)
-    if (dt_sdk_is_present()) this._native = wrap_client(this._native, creds, creds.tenant)
-    this._native.setAutoCommit(false)
-  }
-
-  set(variables) {
-    for (const key in variables) {
-      this._native.setClientInfo(key, variables[key])
+    this._native = wrap_client(this._native, creds, creds.tenant)
+    this._native.set = function (variables) {
+      for (const key in variables) {
+        this.setClientInfo(key, variables[key])
+      }
     }
+    this._native.setAutoCommit(false)
   }
 
   async prepare(sql, hasBlobs) {
@@ -136,7 +138,7 @@ class HANAClientDriver extends driver {
       return this._getResultForProcedure(rows, outParameters, stmt)
     }
 
-    ret.stream = async (values, one) => {
+    ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
       values = Array.isArray(values) ? values : []
       // Uses the native exec method instead of executeQuery to initialize a full stream
@@ -161,7 +163,7 @@ class HANAClientDriver extends driver {
         if (rs.isNull(0)) return null
         return Readable.from(streamBlob(rs, undefined, 0), { objectMode: false })
       }
-      return Readable.from(rsIterator(rs, one), { objectMode: false })
+      return rsIterator(rs, one, objectMode)
     }
     return ret
   }
@@ -234,10 +236,13 @@ class HANAClientDriver extends driver {
 
 HANAClientDriver.pool = true
 
-async function* rsIterator(rs, one) {
-  const next = prom(rs, 'next') // () => rs.next()
-  const getValue = prom(rs, 'getValue') // nr => rs.getValue(nr)
-  const getData = prom(rs, 'getData') // (nr, pos, buf, zero, bufSize) => rs.getData(nr, pos, buf, zero, bufSize) //
+async function rsIterator(rs, one, objectMode) {
+  rs._rowPosition = -1
+  rs.nextAsync = prom(rs, 'next')
+  rs.getValueAsync = prom(rs, 'getValue')
+  rs.getDataAsync = prom(rs, 'getData')
+
+  const blobs = rs.getColumnInfo().slice(4).map(b => b.columnName)
   const levels = [
     {
       index: 0,
@@ -246,83 +251,69 @@ async function* rsIterator(rs, one) {
       expands: {},
     },
   ]
-
-  const binaryBuffer = new Buffer.alloc(1 << 16)
-
-  const blobColumns = {}
-  rs.getColumnInfo()
-    .slice(4)
-    .forEach((c, i) => {
-      blobColumns[c.columnName] = i + 4
-    })
-
-  if (!one) {
-    yield '['
-  }
-
-  let buffer = ''
-  // Load next row of the result set (starts before the first row)
-  while (await next()) {
-    const values = await Promise.all([getValue(0), getValue(1), getValue(2)])
-
-    const [path, _blobs, _expands] = values
-    const expands = JSON.parse(_expands)
-    const blobs = JSON.parse(_blobs)
-
-    yield handleLevel(levels, path, expands)
-
-    let hasProperties = false
-    let jsonPosition = 0
-    while (true) {
-      const read = await getData(3, jsonPosition, binaryBuffer, 0, binaryBuffer.byteLength)
-      if (read < binaryBuffer.byteLength) {
-        if (read > 2) hasProperties = true
-        // Pipe json stream.slice(0,-1) removing the } to keep the object open
-        yield binaryBuffer.slice(0, read - 1).toString('utf-8')
-        break
+  const state = {
+    rs,
+    levels,
+    blobs,
+    columnIndex: 0,
+    binaryBuffer: new Buffer.alloc(1 << 16),
+    done() {
+      this.columnIndex = 0
+      this.rs._rowPosition++
+      return this.rs.nextCanBlock()
+        ? this.rs.nextAsync().then(a => !a)
+        : !this.rs.next()
+    },
+    inject(str) {
+      if (str == null) return
+      this.stream.push(str)
+    },
+    read() {
+      this.columnIndex++
+    },
+    readString() {
+      const index = this.columnIndex++
+      if (index === 3) {
+        const _inject = str => {
+          this.inject(str.slice(0, -1))
+          return str.length
+        }
+        return this.rs.getValuesCanBlock()
+          ? this.rs.getValueAsync(index).then(_inject)
+          : _inject(this.rs.getValue(index))
       }
-      jsonPosition += read
-      yield binaryBuffer.toString('utf-8')
-    }
-
-    for (const key of Object.keys(blobs)) {
-      if (hasProperties) buffer += ','
-      hasProperties = true
-      buffer += `${JSON.stringify(key)}:`
-
-      const columnIndex = blobColumns[key]
-      if (rs.isNull(columnIndex)) {
-        buffer += 'null'
-        continue
-      }
-
-      buffer += '"'
-      yield buffer
-      buffer = ''
-
-      const stream = Readable.from(streamBlob(rs, undefined, columnIndex, binaryBuffer), { objectMode: false })
+      return this.rs.getValuesCanBlock()
+        ? this.rs.getValueAsync(index)
+        : this.rs.getValue(index)
+    },
+    readBlob() {
+      const index = this.columnIndex++
+      const stream = Readable.from(streamBlob(this.rs, undefined, index, this.binaryBuffer), { objectMode: false })
       stream.setEncoding('base64')
-      for await (const chunk of stream) {
-        yield chunk
-      }
-      buffer += '"'
+      this.stream.push('"')
+      return pipeline(stream, this.stream, { end: false }).then(() => { this.stream.push('"') })
     }
-
-    if (buffer) {
-      yield buffer
-      buffer = ''
-    }
-
-    const level = levels[levels.length - 1]
-    level.hasProperties = hasProperties
   }
 
-  // Close all left over levels
-  buffer += levels
-    .reverse()
-    .map(l => l.suffix)
-    .join('')
-  yield buffer
+  if (objectMode) {
+    state.inject = function inject() { }
+    state.readString = function readString() {
+      const index = this.columnIndex++
+      return this.rs.getValuesCanBlock()
+        ? this.rs.getValueAsync(index)
+        : this.rs.getValue(index)
+    }
+    state.readBlob = function readBlob() {
+      const index = this.columnIndex++
+      return rs.isNull(index)
+        ? null
+        : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
+          ? this.rs.getValue(index)
+          : Readable.from(streamBlob(this.rs, rs._rowPosition, index), { objectMode: false })
+    }
+  }
+
+  return resultSetStream(state, one, objectMode)
 }
 
 async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
@@ -364,9 +355,8 @@ async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
       }
     }
 
-    const getData = prom(rs, 'getData')
-
     let blobPosition = 0
+    const getData = prom(rs, 'getData')
 
     while (true) {
       const buffer = binaryBuffer || Buffer.allocUnsafe(1 << 16)

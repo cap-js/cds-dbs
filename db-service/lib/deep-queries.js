@@ -39,9 +39,9 @@ async function onDeep(req, next) {
   // const target = query.sources[Object.keys(query.sources)[0]]
   if (!this.model?.definitions[_target_name4(req.query)]) return next()
 
-  const { target } = this.infer(query)
-  if (!hasDeep(query, target)) return next()
+  if (!hasDeep(query)) return next()
 
+  const target = this.infer(query)._target
   const beforeData = query.INSERT ? [] : await this.run(getExpandForDeep(query, target, true))
   if (query.UPDATE && !beforeData.length) return 0
 
@@ -51,7 +51,7 @@ async function onDeep(req, next) {
   // - deletes never trigger unique constraints, but can prevent them -> execute first
   // - updates can trigger and prevent unique constraints -> execute second
   // - inserts can only trigger unique constraints -> execute last
-  await Promise.all(Array.from(queries.deletes.values()).map(query => this.onSIMPLE({ query })))
+  await Promise.all(Array.from(queries.deletes.values()).map(query => this.onDELETE({ query, target: query._target })))
   await Promise.all(queries.updates.map(query => this.onUPDATE({ query })))
 
   const rootQuery = queries.inserts.get(ROOT)
@@ -64,10 +64,10 @@ async function onDeep(req, next) {
   return rootResult ?? beforeData.length
 }
 
-const hasDeep = (q, target) => {
+const hasDeep = (q) => {
   const data = q.INSERT?.entries || (q.UPDATE?.data && [q.UPDATE.data]) || (q.UPDATE?.with && [q.UPDATE.with])
   if (data)
-    for (const c in target.compositions) {
+    for (const c in q._target.compositions) {
       for (const row of data) if (row[c] !== undefined) return true
     }
 }

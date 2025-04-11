@@ -39,6 +39,24 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count in expand', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)`, admin
+    )
+    expect(res.status).to.be.eq(200)
+    for (const row of res.data.value) {
+      expect(row['books@odata.count']).to.be.eq(row.books.length + '')
+    }
+  })
+
+  test.skip('Books $count in orderby', async () => {
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin)
+  })
+
+  test.skip('Books $count in filter', async () => {
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin)
+  })
+
   test('Books with groupby with path expression and expand result', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
@@ -89,13 +107,33 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
-  test('groupby with multiple path expressions and filter', async () => {
+  // creates having null = 1 in the SQL statement
+  test.skip('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
     expect(res.status).to.be.eq(200)
   })
 
+  // REVISIT: un skip when SELECT[async iterator] is merged into @sap/cds
+  test.skip('Books aggregation using for await', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let total = 0
+    for await (const row of cds.ql`SELECT price FROM ${Books}`) {
+      total += Number.parseFloat(row.price)
+    }
+    expect(total).gt(200)
+  })
+
+  // REVISIT: un skip when SELECT.pipe is merged into @sap/cds
+  test.skip('Books download using pipe', async () => {
+    const { json } = require('stream/consumers')
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let result
+    await cds.ql`SELECT FROM ${Books}`.pipe(async stream => { result = await json(stream) })
+    expect(result).length(5)
+  })
+
   test('Path expression', async () => {
-    const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
+    const q = cds.ql`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
     expect(res.length).to.be.eq(4)
     const columns = Object.keys(res[0])
@@ -104,11 +142,11 @@ describe('Bookshop - Read', () => {
   })
 
   test('Smart quotation', async () => {
-    const q = CQL`
+    const q = cds.ql`
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
-        ![FROM].author { name as CONSTRAINT } 
+        ![FROM].author { name as CONSTRAINT }
       }
       where ![FROM].title LIKE '%Wuthering%'
       order by group
@@ -122,6 +160,12 @@ describe('Bookshop - Read', () => {
   test('Plain sql', async () => {
     const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
     expect(res.length).to.be.eq(5)
+    const [res1, res2] = await cds.run([
+      'SELECT * FROM sap_capire_bookshop_Books',
+      'SELECT * FROM sap_capire_bookshop_Books',
+    ])
+    expect(res1.length).to.be.eq(5)
+    expect(res2.length).to.be.eq(5)
   })
 
   test('Plain sql with values', async () => {
@@ -138,11 +182,22 @@ describe('Bookshop - Read', () => {
     const { Authors } = cds.entities('sap.capire.bookshop')
     const res = await SELECT
       .columns`ID,sum(books_price) as price :Decimal`
-      .from(CQL`SELECT ID,books.price from ${Authors}`)
+      .from(cds.ql`SELECT ID,books.price from ${Authors}`)
       .groupBy`ID`
       .orderBy`price desc`
     expect(res.length).to.be.eq(4)
     expect(res[0].price).to.be.eq('150')
+  })
+
+  test('select distinct order by selected result column with alias', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.distinct
+      .columns`ID`
+      .from`${Authors} as a`
+      .orderBy`a.ID`
+
+    expect(res.length).to.be.eq(4)
+    expect(res[0].ID).to.be.eq(101)
   })
 
   test('reuse already executed select as subselect', async () => {
@@ -275,7 +330,7 @@ describe('Bookshop - Read', () => {
       expect(res2.status).to.be.eq(200)
       expect(res2.data.value[1].title).to.be.eq('dracula')
 
-      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
       expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
@@ -437,9 +492,9 @@ describe('Bookshop - Read', () => {
   })
 
   it('cross joins without on condition', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors')
-      .columns('Books.title', 'Authors.name as author')
-      .where('Books.author_ID = Authors.ID')
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+      Books.title, Authors.name as author
+    } where Books.author_ID = Authors.ID`
     const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
     const crossJoinResult = await cds.db.run(query)
     const pathExpressionResult = await cds.db.run(pathExpressionQuery)

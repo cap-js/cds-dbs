@@ -4,6 +4,75 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.19.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.0...db-service-v1.19.1) (2025-04-01)
+
+
+### Fixed
+
+* **scoped queries:** wrap filter in `xpr` if needed ([#1105](https://github.com/cap-js/cds-dbs/issues/1105)) ([8f44df3](https://github.com/cap-js/cds-dbs/commit/8f44df37db7bc283933023dab92b348cf92e12bf))
+
+## [1.19.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.18.0...db-service-v1.19.0) (2025-03-31)
+
+
+### Added
+
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+* support recursive cqn queries ([#1089](https://github.com/cap-js/cds-dbs/issues/1089)) ([f09b0f8](https://github.com/cap-js/cds-dbs/commit/f09b0f815c3788349f3d39419990cd1c00963b7d))
+
+
+### Fixed
+
+* assign more technical, implicit table aliases ([#1082](https://github.com/cap-js/cds-dbs/issues/1082)) ([1f8925a](https://github.com/cap-js/cds-dbs/commit/1f8925a5d4bcc0123f3abbee2c65ed77877da591))
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+
+## [1.18.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.2...db-service-v1.18.0) (2025-03-04)
+
+
+### Added
+
+* query modifiers on expand `ref` are propagated to subquery ([#1049](https://github.com/cap-js/cds-dbs/issues/1049)) ([39fbadf](https://github.com/cap-js/cds-dbs/commit/39fbadf25a874f810ac2795f2e6b0a46c3678058))
+* support query modifiers at leaf of from ref ([#1050](https://github.com/cap-js/cds-dbs/issues/1050)) ([500a666](https://github.com/cap-js/cds-dbs/commit/500a666a9a054dd72d6ec8ccba0c6a6ddc263cd3))
+
+
+### Fixed
+
+* `<expand>[@odata](https://github.com/odata).count` queries ([#966](https://github.com/cap-js/cds-dbs/issues/966)) ([6607a84](https://github.com/cap-js/cds-dbs/commit/6607a8404aa70f2f3f7c6c65c7e9b1c324a5230b))
+* align debug log format of stmt values ([#1052](https://github.com/cap-js/cds-dbs/issues/1052)) ([93af0fe](https://github.com/cap-js/cds-dbs/commit/93af0fe5f93a0c1b91f592417b31fdb6266fdd79))
+* expand + groupby may return null, dont attach `.element` ([#1042](https://github.com/cap-js/cds-dbs/issues/1042)) ([cf2e0a2](https://github.com/cap-js/cds-dbs/commit/cf2e0a215e89f9055e28d9f0984adf292e220aee))
+
+## [1.17.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.1...db-service-v1.17.2) (2025-02-09)
+
+
+### Fixed
+
+* replace polynomial regex with simple string op ([#1015](https://github.com/cap-js/cds-dbs/issues/1015)) ([3fe6e6b](https://github.com/cap-js/cds-dbs/commit/3fe6e6b7f7aaf5aafb811acf2838cd1da30052a8))
+
+## [1.17.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.17.0...db-service-v1.17.1) (2025-02-04)
+
+
+### Fixed
+
+* deep update resulting in deep delete of sub-element ([#1006](https://github.com/cap-js/cds-dbs/issues/1006)) ([ef2f817](https://github.com/cap-js/cds-dbs/commit/ef2f8175df6fc7076fa8a9290e1863f44d267d8d))
+* nested $self reference to other column ([#1009](https://github.com/cap-js/cds-dbs/issues/1009)) ([41a76d8](https://github.com/cap-js/cds-dbs/commit/41a76d89a884ac8266ccbd2d087af435e8f26ccb))
+
+## [1.17.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.2...db-service-v1.17.0) (2025-01-28)
+
+
+### Added
+
+* support for cds.Map ([#889](https://github.com/cap-js/cds-dbs/issues/889)) ([cde7514](https://github.com/cap-js/cds-dbs/commit/cde7514df20396383e0179ffce838596e3706bb2))
+
+
+### Fixed
+
+* **`UPDATE`:** no assocs in list which matches subquery results ([4bcb88a](https://github.com/cap-js/cds-dbs/commit/4bcb88a1f40540e26cebd4907bdd33e90d08bb9d))
+* **`UPDATE`:** only perform subselect matching if necessary ([#989](https://github.com/cap-js/cds-dbs/issues/989)) ([4bcb88a](https://github.com/cap-js/cds-dbs/commit/4bcb88a1f40540e26cebd4907bdd33e90d08bb9d))
+* contains not evaluting to bool ([#980](https://github.com/cap-js/cds-dbs/issues/980)) ([760484b](https://github.com/cap-js/cds-dbs/commit/760484be4cf3d0c755254e90f7740ba0b34b9249))
+* nested ternary in calculated element ([#981](https://github.com/cap-js/cds-dbs/issues/981)) ([5f4a1fe](https://github.com/cap-js/cds-dbs/commit/5f4a1feed7b74bb1736f6140527e70b1e261f368))
+* reject virtual elements in all expressions ([#972](https://github.com/cap-js/cds-dbs/issues/972)) ([d0c949d](https://github.com/cap-js/cds-dbs/commit/d0c949d8a3a9851ccd70b3f998caec0b5f01ce0e))
+* starts endswith for null values ([#975](https://github.com/cap-js/cds-dbs/issues/975)) ([f0330bc](https://github.com/cap-js/cds-dbs/commit/f0330bc334fd3a8ed5377afcdd04b731baa8c753))
+* use "$$value$$" as internal column name for UPSERT ([#976](https://github.com/cap-js/cds-dbs/issues/976)) ([8c86b86](https://github.com/cap-js/cds-dbs/commit/8c86b863a69833d50cff91483150bf0314bb7258))
+
 ## [1.16.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.16.1...db-service-v1.16.2) (2024-12-18)
 
 
