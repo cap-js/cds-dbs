@@ -994,7 +994,7 @@ describe('SELECT', () => {
       for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
     }
 
-    test('aggregate', async () => {
+    test('aggregate', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1006,10 +1006,10 @@ describe('SELECT', () => {
       const aggregate = {}
       await cqn.clone().foreach(process.bind(aggregate))
       expect(aggregate).deep.eq(expected)
-    })
+    }))
 
     // REVISIT: unskip when merged into @sap/cds
-    test.skip('async iterator', async () => {
+    test.skip('async iterator', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1021,12 +1021,12 @@ describe('SELECT', () => {
       const aggregate = {}
       for await (const row of cqn.clone()) process.call(aggregate, row)
       expect(aggregate).deep.eq(expected)
-    })
+    }))
   })
 
   // REVISIT: unskip when merged into @sap/cds
   describe.skip('pipe', () => {
-    test('json stream', async () => {
+    test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1035,9 +1035,9 @@ describe('SELECT', () => {
       let result
       await cqn.clone().pipe(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
-    })
+    }))
 
-    test('req.res stream', async () => {
+    test('req.res stream', () => cds.tx(async () => {
       const http = require('http')
       const { json } = require('stream/consumers')
       const { promisify } = require('util')
@@ -1064,7 +1064,7 @@ describe('SELECT', () => {
       })
 
       expect(result).deep.eq(expected)
-    })
+    }))
   })
 
   describe('expr', () => {
