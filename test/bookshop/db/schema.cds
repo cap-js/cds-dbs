@@ -15,7 +15,7 @@ entity Books : managed {
       @assert.constraint.stockNotEmpty : {
         condition: ( stock >= 0 ),
         message: 'STOCK_NOT_EMPTY',
-        parameters: [title, ID]     // to be inserted into the message
+        parameters: [(title), (ID)]     // to be inserted into the message
       }
       stock          : Integer;
       price          : Decimal;

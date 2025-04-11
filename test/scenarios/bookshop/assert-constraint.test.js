@@ -20,6 +20,7 @@ describe('Bookshop - assertions', () => {
 
     test('at the end, everything is alright so dont complain right away', async () => {
       adminService = await cds.connect.to('AdminService')
+      // TODO: add expect
       await adminService.tx({ user: 'alice' }, async () => {
         // first invalid
         await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)
@@ -35,7 +36,9 @@ describe('Bookshop - assertions', () => {
         catService.tx({ user: 'alice' }, async () => {
           await catService.send('submitOrder', { book: 42, quantity: 16 })
         }),
-      ).to.be.rejectedWith('Stock for book "Harry Potter and the Chamber of Secrets" (42) must not be a negative number')
+      ).to.be.rejectedWith(
+        'Stock for book "Harry Potter and the Chamber of Secrets" (42) must not be a negative number',
+      )
 
       // stock for harry potter should still be 15
       const book = await SELECT.one.from(Books).where({ ID: 42 })
@@ -44,52 +47,61 @@ describe('Bookshop - assertions', () => {
 
     test('update fails because deeply nested child violates constraint', async () => {
       await expect(
-        UPDATE(Genres).with({
-          name: 'Non-Fiction Updated',
-          children: [
-            {
-              ID: 21,
-              name: 'SUPER BIOGRAPHY',
-              children: [
-                {
-                  ID: 22,
-                  name: 'We forbid genre names with more than 20 characters',
-                },
-              ],
-            }
-          ],
-        }).where(`name = 'Non-Fiction' and ID = 20`),
-      ).to.be.rejectedWith('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
+        UPDATE(Genres)
+          .with({
+            name: 'Non-Fiction Updated',
+            children: [
+              {
+                ID: 21,
+                name: 'SUPER BIOGRAPHY',
+                children: [
+                  {
+                    ID: 22,
+                    name: 'We forbid genre names with more than 20 characters',
+                  },
+                ],
+              },
+            ],
+          })
+          .where(`name = 'Non-Fiction' and ID = 20`),
+      ).to.be.rejectedWith(
+        'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
+      )
     })
 
     test('update fails because parent AND deeply nested child violates constraint', async () => {
       try {
-        await UPDATE(Genres).with({
-          name: 'Non-Fiction Updated with a waaaaaay to long name',
-          children: [
-            {
-              ID: 21,
-              name: 'SUPER BIOGRAPHY',
-              children: [
-                {
-                  ID: 22,
-                  name: 'We forbid genre names with more than 20 characters',
-                },
-              ],
-            }
-          ],
-        }).where(`name = 'Non-Fiction' and ID = 20`)
+        await UPDATE(Genres)
+          .with({
+            name: 'Non-Fiction Updated with a waaaaaay to long name',
+            children: [
+              {
+                ID: 21,
+                name: 'SUPER BIOGRAPHY',
+                children: [
+                  {
+                    ID: 22,
+                    name: 'We forbid genre names with more than 20 characters',
+                  },
+                ],
+              },
+            ],
+          })
+          .where(`name = 'Non-Fiction' and ID = 20`)
       } catch (err) {
         const { details } = err
         expect(details).to.have.length(2)
-        expect(details[0].message).to.equal('Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters')
-        expect(details[1].message).to.equal('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
+        expect(details[0].message).to.equal(
+          'Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters',
+        )
+        expect(details[1].message).to.equal(
+          'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
+        )
       }
     })
   })
 
   describe('INSERT', () => {
-
     test('simple assertion, no negative stocks', async () => {
       await expect(
         INSERT({ ID: 43, title: 'Harry Potter and Prisoner of Azkaban', stock: -1 }).into(Books),
@@ -102,7 +114,9 @@ describe('Bookshop - assertions', () => {
           { ID: 44, title: 'Harry Potter and the Goblet of Fire', stock: 10 },
           { ID: 45, title: 'Harry Potter and the Order of the Phoenix', stock: -1 },
         ]),
-      ).to.be.rejectedWith('Stock for book "Harry Potter and the Order of the Phoenix" (45) must not be a negative number')
+      ).to.be.rejectedWith(
+        'Stock for book "Harry Potter and the Order of the Phoenix" (45) must not be a negative number',
+      )
     })
 
     test('no stock is okay', async () => {
@@ -132,7 +146,9 @@ describe('Bookshop - assertions', () => {
           },
           { auth: { username: 'alice' } },
         ),
-      ).to.be.rejectedWith('The Birthday "2025-01-01" of author "Brandon Sanderson" must not be after the Deathday "1975-12-19"')
+      ).to.be.rejectedWith(
+        'The Birthday "2025-01-01" of author "Brandon Sanderson" must not be after the Deathday "1975-12-19"',
+      )
       // book should not have been created
       const book = await SELECT.one.from(Books).where({ ID: 55 })
       expect(book).to.not.exist
@@ -153,17 +169,20 @@ describe('Bookshop - assertions', () => {
                   {
                     ID: 58,
                     name: 'We forbid genre names with more than 20 characters', // how to check violations in deep operations?
-                  }]
+                  },
+                ],
               },
               {
                 ID: 57,
                 name: 'Sibling Fable',
-              }
-            ]
+              },
+            ],
           },
           { auth: { username: 'alice' } },
         ),
-      ).to.be.rejectedWith('Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters')
+      ).to.be.rejectedWith(
+        'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
+      )
     })
 
     test('deep insert via different entities', async () => {
@@ -175,7 +194,7 @@ describe('Bookshop - assertions', () => {
             toB: [
               {
                 ID: 2,
-                A: 42
+                A: 42,
               },
             ],
           },
@@ -192,9 +211,18 @@ describe('Bookshop - assertions', () => {
           { ID: 502, title: 'Oathbringer', stock: 10 },
           { ID: 503, title: 'Edgedancer', stock: 10 },
           { ID: 504, title: 'Dawnshard', stock: 10 },
-
         ]),
       ).to.be.rejectedWith('Stock for book "Words of Radiance" (501) must not be a negative number')
+    })
+  })
+
+  describe('via service entity', () => {
+    // TODO: parameters are not linked to i18n definition anymore after compiler renaming
+    test.skip('via service entity, parameter used in validation message of original entity is renamed', async () => {
+      const { RenameKeys: Renamed } = cds.entities('AdminService')
+      await expect(UPDATE.entity(Renamed).where(`author.name LIKE 'Richard%'`).set('stock = -1')).to.be.rejectedWith(
+        'Stock for book "Catweazle" (271) must not be a negative number',
+      )
     })
   })
 })

@@ -7,7 +7,7 @@ function attachConstraints(_results, req) {
   const { data } = req
   if (Array.isArray(data[0])) return // REVISIT: what about csv inserts?
   const constraintsPerTarget = {}
-  for (const [cName, c] of Object.entries(collectConstraints(req.target, req.data))) {
+  for (const [cName, c] of Object.entries(_collectConstraints(req.target, req.data))) {
     if (c.target.name in constraintsPerTarget) {
       constraintsPerTarget[c.target.name][cName] = c
     } else {
@@ -40,6 +40,7 @@ function attachConstraints(_results, req) {
   if (this.tx.assert_constraints) this.tx.assert_constraints.push(validationQueries)
   else this.tx.assert_constraints = [validationQueries]
   return
+
   function _getValidationQuery(target, constraints) {
     const validationQuery = SELECT.from(target)
     // each column represents a constraint
@@ -50,7 +51,7 @@ function attachConstraints(_results, req) {
       xpr.push({ xpr: condition.xpr })
       const colsForConstraint = [
         {
-          xpr: wrapInCaseWhen(xpr),
+          xpr: _wrapInCaseWhen(xpr),
           // avoid naming ambiguities for anonymous constraints,
           // where the element itself is part of the msg params
           as: name + '_constraint',
@@ -86,7 +87,7 @@ function attachConstraints(_results, req) {
  * @param {object} data the payload
  * @returns {object} constraints
  */
-function collectConstraints(entity, data) {
+function _collectConstraints(entity, data) {
   // Collect constraints defined on the entity itself.
   let constraints = { ...getConstraintsFrom(entity) };
 
@@ -97,7 +98,7 @@ function collectConstraints(entity, data) {
   }
 
   // attach IDs derived from the payload.
-  const matchKeyConditions = matchKeys(entity, data);
+  const matchKeyConditions = _matchKeys(entity, data);
   for (const constraint of Object.values(constraints)) {
     if (constraint.matchKeys) {
       constraint.matchKeys.push(...matchKeyConditions);
@@ -116,11 +117,11 @@ function collectConstraints(entity, data) {
       const childrenData = data[compKey];
       if (Array.isArray(childrenData)) {
         for (const childData of childrenData) {
-          const childConstraints = collectConstraints(compositionTarget, childData);
+          const childConstraints = _collectConstraints(compositionTarget, childData);
           mergeConstraints(constraints, childConstraints);
         }
       } else {
-        const childConstraints = collectConstraints(compositionTarget, childrenData);
+        const childConstraints = _collectConstraints(compositionTarget, childrenData);
         mergeConstraints(constraints, childConstraints);
       }
     }
@@ -199,7 +200,7 @@ function collectConstraints(entity, data) {
    * @param {object} data
    * @returns {Array} conditions
    */
-  function matchKeys(entity, data) {
+  function _matchKeys(entity, data) {
     const primaryKeys = Object.keys(entity.keys || {})
     const dataEntries = Array.isArray(data) ? data : [data] // Ensure batch handling
 
@@ -216,7 +217,7 @@ function collectConstraints(entity, data) {
       .filter(Boolean)
   }
 
-  function wrapInCaseWhen(xpr) {
+  function _wrapInCaseWhen(xpr) {
     return ['case', 'when', 'not', { xpr }, 'then', { val: false }, 'else', { val: true }, 'end']
   }
 }
