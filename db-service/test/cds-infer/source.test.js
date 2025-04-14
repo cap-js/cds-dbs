@@ -174,4 +174,11 @@ describe('localized', () => {
     let localizedBooks = model.definitions['localized.bookshop.Books']
     expect(query).to.have.property('_target').that.equals(localizedBooks)
   })
+
+  it('_target of non localized query is the non localized version of the entity', () => {
+    const q = SELECT`from bookshop.Books as Books {ID, title}`
+    let query = inferred(q, model)
+    let Books = model.definitions['bookshop.Books']
+    expect(query).to.have.property('_target').that.equals(Books)
+  })
 })
