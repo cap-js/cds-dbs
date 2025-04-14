@@ -91,10 +91,11 @@ describe('Bookshop - assertions', () => {
       } catch (err) {
         const { details } = err
         expect(details).to.have.length(2)
-        expect(details[0].message).to.equal(
+        const messages = details.map(detail => detail.message)
+        expect(messages).to.include(
           'Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters',
         )
-        expect(details[1].message).to.equal(
+        expect(messages).to.include(
           'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
         )
       }
