@@ -67,15 +67,6 @@ entity binaries {
   largebinary : LargeBinary;
 }
 
-entity defaults {
-    key ID      : Integer;
-        string  : String default '';
-        boolean : Boolean default false;
-        integer : Integer default 0;
-        nulls   : String default null;
-}
-
-
 /* Excluded from the tests until fully supported
 entity vectors {
     vector : Vector;
