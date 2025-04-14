@@ -43,13 +43,13 @@ entity ![1234567890] {
   ![21] : LargeString;
   ![22] : Binary;
   ![23] : LargeBinary;
-  ![24] : Vector;
+  ![24] : Boolean; // Vector;
 }
 
 entity ![~`!@#$%^&*()_+-='"\/.,[]]] {
   ![~]  : Boolean;
   ![`]  : UUID;
-  ![!!]  : UInt8;
+  ![!!] : UInt8;
   ![@]  : Int16;
   ![#]  : Int32;
   ![$]  : Int64;
@@ -65,10 +65,10 @@ entity ![~`!@#$%^&*()_+-='"\/.,[]]] {
   ![=]  : Date;
   ![']  : Time;
   !["]  : DateTime;
-  ![\1]  : Timestamp;
+  ![\1] : Timestamp;
   ![/]  : LargeString;
   ![,]  : LargeString;
   ![[]  : Binary;
-  ![]]]  : LargeBinary;
-  ![💾] : Vector;
+  ![]]] : LargeBinary;
+  ![💾] : Boolean; // Vector;
 }
