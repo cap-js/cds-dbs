@@ -962,7 +962,7 @@ function infer(originalQuery, model) {
     if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
       const { elements } = getDefinitionFromSources(sources, aliases[0])
       // only one query source and no overwritten columns
-      for (const k of Object.keys(elements)) {
+      for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
           if (element.type !== 'cds.LargeBinary') {
