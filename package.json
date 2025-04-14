@@ -1,5 +1,5 @@
 {
-  "name": "cds-dbs",
+  "name": "@cap-js/db-services",
   "version": "1.3.1",
   "description": "This is a monorepo for our SQL Database Services.",
   "author": "SAP SE (https://www.sap.com)",
@@ -10,6 +10,7 @@
     "hana"
   ],
   "devDependencies": {
+    "@cap-js/cds-test": ">=0.2.0",
     "axios": "^1"
   },
   "scripts": {
