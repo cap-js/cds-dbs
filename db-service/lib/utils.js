@@ -62,10 +62,61 @@ function getImplicitAlias(str, useTechnicalAlias = true) {
   return index != -1 ? str.substring(index + 1) : str
 }
 
+/**
+ * Shared utility functions which operate dynamically on the model / query.
+ * 
+ * @param {CSN.model} model 
+ * @param {CQL} query 
+ */
+function getModelUtils(model, query) {
+    /**
+   * If the query is `localized`, return the name of the `localized` entity for the `definition`.
+   * If there is no `localized` entity for the `definition`, return the name of the `definition`
+   *
+   * @param {CSN.definition} definition
+   * @returns the name of the localized entity for the given `definition` or `definition.name`
+   */
+    function localized(definition) {
+      if (!isLocalized(definition)) return definition.name
+      const view = getDefinition(`localized.${definition.name}`)
+      return view?.name || definition.name
+    }
+  
+    /**
+     * If a given query is required to be translated, the query has
+     * the `.localized` property set to `true`. If that is the case,
+     * and the definition has not set the `@cds.localized` annotation
+     * to `false`, the given definition must be translated.
+     *
+     * @returns true if the given definition shall be localized
+     */
+    function isLocalized(definition) {
+      return (
+        query.SELECT?.localized &&
+        definition['@cds.localized'] !== false &&
+        !query.SELECT.forUpdate &&
+        !query.SELECT.forShareLock
+      )
+    }
+  
+    /** returns the CSN definition for the given name from the model */
+    function getDefinition(name) {
+      if (!name) return null
+      return model.definitions[name]
+    }
+
+    return {
+      localized,
+      isLocalized,
+      getDefinition,
+    }
+}
+
 // export the function to be used in other modules
 module.exports = {
   prettyPrintRef,
   isCalculatedOnRead,
   isCalculatedElement,
   getImplicitAlias,
+  getModelUtils
 }
