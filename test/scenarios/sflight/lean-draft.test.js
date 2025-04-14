@@ -542,15 +542,10 @@ describe('draft tests', () => {
   })
 
   test('direct access active with DraftAdministrativeData navigation', async () => {
-    try {
-      await GET(
-        "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/DraftAdministrativeData",
-        { auth: { username: 'user1', password: 'user1' } },
-      )
-      expect('should not be found').to.be.eq(true)
-    } catch (e) {
-      expect(e.message).to.be.eq('404 - Not Found')
-    }
+    await expect (GET(
+      "/processor/Travel(TravelUUID='76757221A8E4645C17002DF03754AB66',IsActiveEntity=true)/DraftAdministrativeData",
+      { auth: { username: 'user1', password: 'user1' } },
+    )).to.be.rejectedWith(/404/)
   })
 
   test('nested direct access', async () => {
@@ -964,15 +959,10 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(201)
-    try {
-      res = await POST(
-        `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
-        { PreserveChanges: true },
-        { auth: { username: 'user1', password: 'user1' } },
-      )
-      expect(1).to.be.eq('Editing an active entity with an existing draft must fail')
-    } catch (e) {
-      expect(e.message).to.be.eq('409 - A draft for this entity already exists')
-    }
+    await expect (POST(
+      `/processor/Travel(TravelUUID='${EDIT_DRAFT_TRAVELUUID}',IsActiveEntity=true)/TravelService.draftEdit?$select=BeginDate,BookingFee,CurrencyCode_code,Description,EndDate,HasActiveEntity,HasDraftEntity,IsActiveEntity,TotalPrice,TravelID,TravelStatus_code,TravelUUID,to_Agency_AgencyID,to_Customer_CustomerID&$expand=DraftAdministrativeData($select=DraftIsCreatedByMe,DraftUUID,InProcessByUser),TravelStatus($select=code,createDeleteHidden,fieldControl,name),to_Agency($select=AgencyID,Name),to_Customer($select=CustomerID,LastName)`,
+      { PreserveChanges: true },
+      { auth: { username: 'user1', password: 'user1' } },
+    )).to.be.rejectedWith(/409|DRAFT_ALREADY_EXISTS/)
   })
 })
