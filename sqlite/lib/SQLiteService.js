@@ -74,7 +74,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._allStream(stmt, ..._),
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -95,7 +95,8 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iteratorRaw(rs, one) {
+    const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -106,21 +107,44 @@ class SQLiteService extends SQLService {
       return
     }
 
-    yield '['
+    let buffer = '[' + first.value[0]
     // Print first value as stand alone to prevent comma check inside the loop
-    yield first.value[0]
     for (const row of rs) {
-      yield `,${row[0]}`
+      buffer += `,${row[0]}`
+      if (buffer.length > pageSize) {
+        yield buffer
+        buffer = ''
+      }
     }
-    yield ']'
+    buffer += ']'
+    yield buffer
   }
 
-  pragma (pragma, options) {
-    if (!this.dbc) return this.begin('pragma') .then (tx => {
-      try { return tx.pragma (pragma, options) }
+  async *_iteratorObjectMode(rs) {
+    for (const row of rs) {
+      yield JSON.parse(row[0])
+    }
+  }
+
+  async _allStream(stmt, binding_params, one, objectMode) {
+    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
+    stmt.raw(true)
+    const get = stmt.get(binding_params)
+    if (!get) return []
+    const rs = stmt.iterate(binding_params)
+    const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
+    const close = () => rs.return() // finish result set when closed early
+    stream.on('error', close)
+    stream.on('close', close)
+    return stream
+  }
+
+  pragma(pragma, options) {
+    if (!this.dbc) return this.begin('pragma').then(tx => {
+      try { return tx.pragma(pragma, options) }
       finally { tx.release() }
     })
-    return this.dbc.pragma (pragma, options)
+    return this.dbc.pragma(pragma, options)
   }
 
 

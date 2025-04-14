@@ -123,7 +123,7 @@ class HANAService extends SQLService {
   }
 
   async onSELECT(req) {
-    const { query, data } = req
+    const { query, data, iterator, objectMode } = req
 
     if (!query._target || query._target._unresolved) {
       try { this.infer(query) } catch { /**/ }
@@ -143,15 +143,17 @@ class HANAService extends SQLService {
     delete query.SELECT.expand
 
     const isSimple = temporary.length + blobs.length + withclause.length === 0
+    const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
+    const isStream = iterator && !isLockQuery
 
     // REVISIT: add prepare options when param:true is used
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
-    if (values?.length || blobs.length > 0) {
+    if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps.all(values || [])
+      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
     } else {
       rows = await this.exec(sqlScript)
     }
@@ -180,7 +182,7 @@ class HANAService extends SQLService {
       // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
       return HANAService._arrayWithCount(rows, await this.count(query, rows))
     }
-    return cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+    return isOne && !isStream ? rows[0] : rows
   }
 
   async onINSERT({ query, data }) {
@@ -266,7 +268,7 @@ class HANAService extends SQLService {
       while (levels.length) {
         const level = levels[levels.length - 1]
         // Check if the current row is a child of the current level
-        if (row._path_.indexOf(level.path) === 0) {
+        if (row._path_.indexOf(level.path) === 0 && row._path_ != level.path) {
           // Check if the current row is an expand of the current level
           const property = row._path_.slice(level.path.length + 2, -7)
           if (property in level.expands) {
@@ -973,7 +975,7 @@ class HANAService extends SQLService {
 
       // Calculate final output columns once
       let outputColumns = ''
-      outputColumns = `${path ? this.quote('_path_') : `'$['`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
+      outputColumns = `${path ? this.quote('_path_') : `'$[0'`} as "_path_",${blobs} as "_blobs_",${expands} as "_expands_",${jsonColumn} as "_json_"`
       if (blobColumns.length)
         outputColumns = `${outputColumns},${blobColumns.map(b => `${this.quote(b)} as "${b.replace(/"/g, '""')}"`)}`
       this._outputColumns = outputColumns
@@ -992,8 +994,8 @@ class HANAService extends SQLService {
 
     SELECT_count(q) {
       const countQuery = super.SELECT_count(q)
-      countQuery.SELECT.from = countQuery.SELECT.from
-      countQuery.SELECT.where = countQuery.SELECT.where
+      countQuery.SELECT.from = countQuery.SELECT.from // eslint-disable-line no-self-assign
+      countQuery.SELECT.where = countQuery.SELECT.where // eslint-disable-line no-self-assign
       // Ensure that the query is not considered an expand query
       countQuery.SELECT.parent = undefined
       return countQuery
@@ -1040,6 +1042,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
+        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator]|| entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
@@ -1050,12 +1053,12 @@ class HANAService extends SQLService {
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
       if (HANAVERSION <= 2) {
-        this.entries = INSERT.entries.map(e => (e instanceof Readable
+        this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
       } else {
         this.entries = [[
-          INSERT.entries[0] instanceof Readable
+          INSERT.entries[0] instanceof Readable && !INSERT.entries[0].readableObjectMode
             ? INSERT.entries[0]
             : _stream(INSERT.entries)
         ]]
@@ -1143,7 +1146,7 @@ class HANAService extends SQLService {
       const extraction = managed.map(c => c.extract)
 
       const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
-SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction})) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
