@@ -78,7 +78,7 @@ function cqn4sql(originalQuery, model) {
     }
   }
   inferred = infer(inferred, model)
-  const { localized, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
+  const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
   //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
@@ -282,7 +282,7 @@ function cqn4sql(originalQuery, model) {
       const args = []
       if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
       else {
-        const id = localized(r.queryArtifact)
+        const id = getLocalizedName(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
       from = { join: r.join || 'left', args, on: [] }
@@ -1788,7 +1788,7 @@ function cqn4sql(originalQuery, model) {
       const subquerySource =
         getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
       if (subquerySource.params && !args) args = {}
-      const id = localized(subquerySource)
+      const id = getLocalizedName(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
@@ -2165,7 +2165,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
-    const id = localized(subquerySource)
+    const id = getLocalizedName(subquerySource)
     if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {

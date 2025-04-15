@@ -78,7 +78,7 @@ function getModelUtils(model, query) {
    * @param {CSN.definition} definition
    * @returns the name of the localized entity for the given `definition` or `definition.name`
    */
-  function localized(definition) {
+  function getLocalizedName(definition) {
     if (!isLocalized(definition)) return definition.name
     const view = getDefinition(`localized.${definition.name}`)
     return view?.name || definition.name
@@ -117,7 +117,7 @@ function getModelUtils(model, query) {
   }
 
   return {
-    localized,
+    getLocalizedName,
     isLocalized,
     getDefinition,
   }
