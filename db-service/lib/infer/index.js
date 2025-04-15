@@ -813,7 +813,7 @@ function infer(originalQuery, model) {
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr } = calcElement.value
     if (ref || xpr) {
-      baseLink = { definition: getDefinition(calcElement.parent.name), target:  getDefinition(calcElement.parent.name) }
+      baseLink = { definition: getDefinition(calcElement.parent.name), target: getDefinition(calcElement.parent.name) }
       inferArg(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
@@ -828,7 +828,12 @@ function infer(originalQuery, model) {
 
     if (calcElement.value.args) {
       const processArgument = (arg, calcElement, column) => {
-        inferArg(arg, null, { definition:  getDefinition(calcElement.parent.name), target:  getDefinition(calcElement.parent.name) }, { inCalcElement: true })
+        inferArg(
+          arg,
+          null,
+          { definition: getDefinition(calcElement.parent.name), target: getDefinition(calcElement.parent.name) },
+          { inCalcElement: true },
+        )
         const basePath =
           column.$refLinks?.length > 1
             ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
