@@ -27,7 +27,7 @@ function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
 
-  const { localized, getDefinition } = getModelUtils(model, originalQuery)
+  const { getDefinition } = getModelUtils(model, originalQuery)
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
