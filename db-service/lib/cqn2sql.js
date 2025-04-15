@@ -289,7 +289,11 @@ class CQN2SQLRenderer {
       requiredComputedColumns[name] = true
     }
 
-    // TODO: convert computed columns to cqn for better SQL generation
+    // The hierarchy functions will output the following columns. Which might clash with the entity columns
+    const reservedColumnNames = {
+      PARENT_ID: 1, NODE_ID: 1,
+      HIERARCHY_RANK: 1, HIERARCHY_DISTANCE: 1, HIERARCHY_LEVEL: 1, HIERARCHY_TREE_SIZE: 1
+    }
     const availableComputedColumns = {
       // Input computed columns
       PARENT_ID: false,
@@ -315,14 +319,15 @@ class CQN2SQLRenderer {
         }
         return true
       })
-    const columnsIn = columnsFiltered
-      .map(x => {
-        const name = this.column_name(x)
-        if (name.toUpperCase() in requiredComputedColumns) {
-          x = { __proto__: x, as: `$$${name}$$` }
-        }
-        return x
-      })
+    const columnsIn = []
+    for (const name in q.target.elements) {
+      const ref = { ref: [name] }
+      const element = q.target.elements[name]
+      if (element.virtual || element.value || element.isAssociation) continue
+      if (element['@Core.Computed'] && name in availableComputedColumns) continue
+      if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
+      columnsIn.push(ref)
+    }
 
     const nodeKeys = []
     const parentKeys = []
