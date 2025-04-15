@@ -119,7 +119,7 @@ function infer(originalQuery, model) {
           ? getImplicitAlias(first, useTechnicalAlias)
           : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias))
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
-      querySources[alias] = { definition: getDefinition(localized(target)), args }
+      querySources[alias] = { definition: getDefinition(target.name), args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
@@ -813,7 +813,7 @@ function infer(originalQuery, model) {
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr } = calcElement.value
     if (ref || xpr) {
-      baseLink = { definition: getDefinition(localized(calcElement.parent)), target:  getDefinition(localized(calcElement.parent)) }
+      baseLink = { definition: getDefinition(calcElement.parent.name), target:  getDefinition(calcElement.parent.name) }
       inferArg(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
@@ -828,7 +828,7 @@ function infer(originalQuery, model) {
 
     if (calcElement.value.args) {
       const processArgument = (arg, calcElement, column) => {
-        inferArg(arg, null, { definition:  getDefinition(localized(calcElement.parent)), target:  getDefinition(localized(calcElement.parent)) }, { inCalcElement: true })
+        inferArg(arg, null, { definition:  getDefinition(calcElement.parent.name), target:  getDefinition(calcElement.parent.name) }, { inCalcElement: true })
         const basePath =
           column.$refLinks?.length > 1
             ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }

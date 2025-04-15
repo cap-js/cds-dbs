@@ -309,7 +309,7 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = localized(getDefinition(nextAssoc.$refLink.definition.target))
+      const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -2077,7 +2077,7 @@ function cqn4sql(originalQuery, model) {
         // pseudo element
         return element
       if (element.kind === 'entity') return element
-      else return getDefinition(localized(getParentEntity(element.parent)))
+      else return getDefinition(getParentEntity(element.parent).name)
     }
   }
 
@@ -2164,7 +2164,7 @@ function cqn4sql(originalQuery, model) {
       on.push(...(customWhere && hasLogicalOr(unmanagedOn) ? [asXpr(unmanagedOn)] : unmanagedOn))
     }
 
-    const subquerySource = assocTarget(nextDefinition) || nextDefinition
+    const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
     const id = localized(subquerySource)
     if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
@@ -2201,16 +2201,6 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
     return SELECT
-  }
-
-  /**
-   * Get the csn definition of the target of a given association
-   *
-   * @param assoc
-   * @returns the csn definition of the association target or null if it is not an association
-   */
-  function assocTarget(assoc) {
-    return getDefinition(assoc.target) || null
   }
 
   /**

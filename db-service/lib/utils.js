@@ -93,16 +93,23 @@ function getModelUtils(model, query) {
     function isLocalized(definition) {
       return (
         query.SELECT?.localized &&
-        definition['@cds.localized'] !== false &&
+        definition?.['@cds.localized'] !== false &&
         !query.SELECT.forUpdate &&
         !query.SELECT.forShareLock
       )
     }
   
-    /** returns the CSN definition for the given name from the model */
+    /**
+     * Returns the (potentially localized) CSN definition for the given name from the model.
+     *
+     * @param {string} name - The name of the definition to retrieve.
+     * @returns {Object|null} The CSN definition or null if not found. The definition may be localized.
+     */
     function getDefinition(name) {
       if (!name) return null
-      return model.definitions[name]
+      const def = model.definitions[name]
+      if (!def || !isLocalized(def)) return def
+      return model.definitions[`localized.${def.name}`] || def
     }
 
     return {
