@@ -459,6 +459,7 @@ class CQN2SQLRenderer {
             }]
           },
           where: expandedFilter.length ? expandedFilter : undefined,
+          orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
           groupBy: [{ ref: ['NODE_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
