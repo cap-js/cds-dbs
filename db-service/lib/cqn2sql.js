@@ -319,6 +319,7 @@ class CQN2SQLRenderer {
         }
         return true
       })
+    const columnsOut = []
     const columnsIn = []
     for (const name in q.target.elements) {
       const ref = { ref: [name] }
@@ -327,6 +328,9 @@ class CQN2SQLRenderer {
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       columnsIn.push(ref)
+      if (from.args || columnsFiltered.find(c => this.column_name(c) === name)) {
+        columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
+      }
     }
 
     const nodeKeys = []
@@ -356,10 +360,12 @@ class CQN2SQLRenderer {
       })
     }
 
-    const alias = q.SELECT.from.as
+    // In the case of join operations make sure to compute the hierarchy from the source table only
+    const stableFrom = getStableFrom(from)
+    const alias = stableFrom.as
     const source = () => ({
       func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
       as: alias
     })
 
@@ -425,17 +431,6 @@ class CQN2SQLRenderer {
       as: 'DrillState'
     }
 
-    const columnsOut = [
-      ...columnsFiltered
-        .map(x => {
-          const name = this.column_name(x)
-          if (name.toUpperCase() in requiredComputedColumns) {
-            return { ref: [`$$${name}$$`], as: name }
-          }
-          return { ref: [name] }
-        }),
-    ]
-
     for (const name in requiredComputedColumns) {
       const def = availableComputedColumns[name]
       if (def) columnsOut.push(def)
@@ -454,7 +449,9 @@ class CQN2SQLRenderer {
                 'SOURCE', source(), 'AS', this.quote(alias),
                 'START', 'WHERE', {
                   xpr: where // Requires special where logic before being put into the args
-                    ? this.is_comparator?.({ xpr: where }) ?? true ? where : [...where, '=', { val: true, param: false }]
+                    ? from.args
+                      ? [{ ref: ['NODE_ID'] }, 'IN', { SELECT: { columns: [columnsIn.find(c => c.as === 'NODE_ID')], from, where: where } }]
+                      : this.is_comparator?.({ xpr: where }) ?? true ? where : [...where, '=', { val: true, param: false }]
                     : [{ ref: ['PARENT_ID'] }, '=', { val: null }]
                 },
                 ...distanceClause
@@ -464,6 +461,11 @@ class CQN2SQLRenderer {
           where: expandedFilter.length ? expandedFilter : undefined
         }
       }
+
+    if (from.args) {
+      graph.as = alias
+      return this.from(setStableFrom(from, graph))
+    }
 
     return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
 
@@ -524,6 +526,21 @@ class CQN2SQLRenderer {
           where[i] = { val: where[i].val + 1 }
         }
       }
+    }
+
+    function getStableFrom(from) {
+      if (from.args) return getStableFrom(from.args[0])
+      return from
+    }
+
+    function setStableFrom(from, src) {
+      if (from.args) {
+        const ret = { ...from }
+        ret.args = [...ret.args]
+        ret.args[0] = setStableFrom(ret.args[0], src)
+        return ret
+      }
+      return src
     }
   }
 
