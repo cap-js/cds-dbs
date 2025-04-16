@@ -23,7 +23,7 @@ class CQN2SQLRenderer {
     this.model = srv?.model
     // Overwrite smart quoting
     if (cds.env.sql.names === 'quoted') {
-      this.class.prototype.name = (name) => {
+      this.class.prototype.name = (name, query) => {
         const e = name.id || name
         return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
       }
