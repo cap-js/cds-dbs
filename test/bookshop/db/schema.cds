@@ -15,7 +15,7 @@ entity Books : managed {
       @assert.constraint.stockNotEmpty : {
         condition: ( stock >= 0 ),
         message: 'STOCK_NOT_EMPTY',
-        parameters: [(title), (ID)]     // to be inserted into the message
+        parameters: {title: (title), ID: (ID)}     // to be inserted into the message
       }
       stock          : Integer;
       price          : Decimal;
@@ -29,7 +29,7 @@ entity Books : managed {
 @assert.constraint.dates : {
   condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
   message: 'LIFE_BEFORE_DEATH',
-  parameters: [name, dateOfBirth, dateOfDeath]
+  parameters: [(dateOfBirth), (name), (dateOfDeath)]
 }
 entity Authors : managed {
   key ID           : Integer;
@@ -54,7 +54,7 @@ entity Genres : sap.common.CodeList {
                    on children.parent = $self;
 }
 
-annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [name], message: 'GENRE_NAME_TOO_LONG'};
+annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [(name)], message: 'GENRE_NAME_TOO_LONG'};
 
 entity A : managed {
   key ID  : Integer;

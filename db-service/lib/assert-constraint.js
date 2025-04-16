@@ -61,9 +61,17 @@ function attachConstraints(_results, req) {
         },
       ]
       if (parameters) {
-        if (parameters.list) parameters.list.forEach(p => colsForConstraint.push(p))
-        else if (parameters.ref) colsForConstraint.push(parameters.ref)
-        else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
+        // if (parameters.list) parameters.list.forEach(p => colsForConstraint.push(p))
+        // else if (parameters.ref) colsForConstraint.push(parameters.ref)
+        // else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
+        parameters.forEach(p => {
+          const {ref, val} = p
+          if (ref) {
+            colsForConstraint.push({ ref })
+          } else if (val) {
+            colsForConstraint.push({ val })
+          }
+        })
       }
       return colsForConstraint
     })
@@ -79,119 +87,131 @@ function attachConstraints(_results, req) {
     return validationQuery
   }
 
-/**
- * Collects constraints for a request target and its elements.
- * 
- *
- * @param {CSN.entity} entity the target of the request (or a recursive child)
- * @param {object} data the payload
- * @returns {object} constraints
- */
-function _collectConstraints(entity, data) {
-  // Collect constraints defined on the entity itself.
-  let constraints = { ...getConstraintsFrom(entity) };
+  /**
+   * Collects constraints for a request target and its elements.
+   *
+   *
+   * @param {CSN.entity} entity the target of the request (or a recursive child)
+   * @param {object} data the payload
+   * @returns {object} constraints
+   */
+  function _collectConstraints(entity, data) {
+    // Collect constraints defined on the entity itself.
+    let constraints = { ...getConstraintsFrom(entity) }
 
-  // Merge constraints from each element of the entity.
-  for (const element of Object.values(entity.elements)) {
-    const elementConstraints = getConstraintsFrom(element, entity);
-    Object.assign(constraints, elementConstraints);
-  }
-
-  // attach IDs derived from the payload.
-  const matchKeyConditions = _matchKeys(entity, data);
-  for (const constraint of Object.values(constraints)) {
-    if (constraint.matchKeys) {
-      constraint.matchKeys.push(...matchKeyConditions);
-    } else {
-      // copying the array to avoid potential mutation issues.
-      constraint.matchKeys = [...matchKeyConditions];
+    // Merge constraints from each element of the entity.
+    for (const element of Object.values(entity.elements)) {
+      const elementConstraints = getConstraintsFrom(element, entity)
+      Object.assign(constraints, elementConstraints)
     }
-  }
 
-  // process compositions defined in the entity, if they are part of the payload.
-  const compositions = entity.compositions || {};
-  for (const compKey of Object.keys(compositions)) {
-    if (data[compKey]) {
-      const composition = compositions[compKey];
-      const compositionTarget = cds.model.definitions[composition.target];
-      const childrenData = data[compKey];
-      if (Array.isArray(childrenData)) {
-        for (const childData of childrenData) {
-          const childConstraints = _collectConstraints(compositionTarget, childData);
-          mergeConstraints(constraints, childConstraints);
-        }
+    // attach IDs derived from the payload.
+    const matchKeyConditions = _matchKeys(entity, data)
+    for (const constraint of Object.values(constraints)) {
+      if (constraint.matchKeys) {
+        constraint.matchKeys.push(...matchKeyConditions)
       } else {
-        const childConstraints = _collectConstraints(compositionTarget, childrenData);
-        mergeConstraints(constraints, childConstraints);
+        // copying the array to avoid potential mutation issues.
+        constraint.matchKeys = [...matchKeyConditions]
       }
     }
-  }
-  return constraints;
 
-  function mergeConstraints(baseConstraints, newConstraints) {
-    if (!newConstraints) return baseConstraints;
-    for (const key in newConstraints) {
-      const newConstraint = newConstraints[key];
-      // if the same element has constrains already, merge the match keys.
-      if (baseConstraints[key]?.element === newConstraint.element) {
-        baseConstraints[key].matchKeys.push(...newConstraint.matchKeys);
-      } else {
-        baseConstraints[key] = newConstraint;
-      }
-    }
-    return baseConstraints;
-  }
-
-  // Retrieve constraints from an entity or element.
-  function getConstraintsFrom(obj, target = null) {
-    const elmConstraints = {};
-
-    for (const key in obj) {
-      if (key.startsWith('@assert.constraint')) {
-        // Remove the fixed prefix.
-        let remainder = key.slice('@assert.constraint'.length);
-        // Remove a leading dot, if any.
-        if (remainder.startsWith('.')) {
-          remainder = remainder.slice(1);
-        }
-
-        // Split into constraint name and property parts.
-        const parts = remainder.split('.');
-        let constraintName, propertyName;
-        if (parts.length === 1) {
-          // No explicit name: use the object's name as the constraint name.
-          constraintName = obj.name;
-          if (!remainder.length) {
-            // When no extra information is given, check if an 'xpr' exists.
-            if (!obj['@assert.constraint'].xpr) continue;
-            // Otherwise, use the shorthand property 'condition'.
-            propertyName = 'condition';
-          } else {
-            propertyName = parts[0];
+    // process compositions defined in the entity, if they are part of the payload.
+    const compositions = entity.compositions || {}
+    for (const compKey of Object.keys(compositions)) {
+      if (data[compKey]) {
+        const composition = compositions[compKey]
+        const compositionTarget = cds.model.definitions[composition.target]
+        const childrenData = data[compKey]
+        if (Array.isArray(childrenData)) {
+          for (const childData of childrenData) {
+            const childConstraints = _collectConstraints(compositionTarget, childData)
+            mergeConstraints(constraints, childConstraints)
           }
         } else {
-          // First part is the constraint name; the rest form the property name.
-          constraintName = parts[0];
-          propertyName = parts.slice(1).join('.');
+          const childConstraints = _collectConstraints(compositionTarget, childrenData)
+          mergeConstraints(constraints, childConstraints)
         }
-
-        // Create or extend the constraint entry.
-        if (!elmConstraints[constraintName]) {
-          elmConstraints[constraintName] = {};
-        }
-        elmConstraints[constraintName][propertyName] = obj[key];
       }
     }
+    return constraints
 
-    // Attach additional metadata to each constraint.
-    Object.keys(elmConstraints).forEach(name => {
-      elmConstraints[name].element = obj;
-      // The constraint target defaults to the current object unless overridden.
-      elmConstraints[name].target = target || obj;
-    });
-    return elmConstraints;
+    function mergeConstraints(baseConstraints, newConstraints) {
+      if (!newConstraints) return baseConstraints
+      for (const key in newConstraints) {
+        const newConstraint = newConstraints[key]
+        // if the same element has constrains already, merge the match keys.
+        if (baseConstraints[key]?.element === newConstraint.element) {
+          baseConstraints[key].matchKeys.push(...newConstraint.matchKeys)
+        } else {
+          baseConstraints[key] = newConstraint
+        }
+      }
+      return baseConstraints
+    }
+
+    // Retrieve constraints from an entity or element.
+    function getConstraintsFrom(obj, target = null) {
+      const elmConstraints = {}
+
+      for (const key in obj) {
+        if (key.startsWith('@assert.constraint')) {
+          // Remove the fixed prefix.
+          let remainder = key.slice('@assert.constraint'.length)
+          // Remove a leading dot, if any.
+          if (remainder.startsWith('.')) {
+            remainder = remainder.slice(1)
+          }
+
+          // Split into constraint name and property parts.
+          const parts = remainder.split('.');
+          let constraintName, propertyName;
+          if (parts.length === 1) {
+            // No explicit name: use the object's name as the constraint name.
+            constraintName = obj.name;
+            if (!remainder.length) {
+              // When no extra information is given, check if an 'xpr' exists.
+              if (!obj['@assert.constraint'].xpr) continue;
+              // Otherwise, use the shorthand property 'condition'.
+              propertyName = 'condition';
+            } else {
+              propertyName = parts[0];
+            }
+          } else {
+            // First part is the constraint name; the rest form the property name.
+            constraintName = parts[0];
+            propertyName = parts.slice(1).join('.');
+          }
+          // Create or extend the constraint entry.
+          if (!elmConstraints[constraintName]) {
+            elmConstraints[constraintName] = {}
+          }
+
+          // normalize named parameters
+          if(parts.length > 2 && propertyName.startsWith('parameters.')) {
+            const paramName = propertyName.slice('parameters.'.length)
+            const param = obj[key]
+            param.name = paramName
+            if (!elmConstraints[constraintName].parameters) {
+              elmConstraints[constraintName].parameters = []
+            }
+            elmConstraints[constraintName].parameters.push(param)
+          } else {
+            elmConstraints[constraintName][propertyName] = obj[key]
+          }
+
+        }
+      }
+
+      // Attach additional metadata to each constraint.
+      Object.keys(elmConstraints).forEach(name => {
+        elmConstraints[name].element = obj
+        // The constraint target defaults to the current object unless overridden.
+        elmConstraints[name].target = target || obj
+      })
+      return elmConstraints
+    }
   }
-}
 
   /**
    * Constructs a condition which matches the primary keys of the entity for the given data.
@@ -242,9 +262,12 @@ async function checkConstraints(req) {
               const { message, parameters } = constraints[key]
               const msgParams = {}
               if (parameters) {
-                Object.keys(row)
-                  .filter(alias => alias !== constraintCol)
-                  .forEach(alias => (msgParams[alias] = row[alias]))
+                parameters.forEach((p,i) => {
+                  const { name } = p
+                  // this should also handle cases where parameters where renamed
+                  const paramReturnValue = row[p['=']]
+                  if (paramReturnValue) msgParams[name || i] = paramReturnValue
+                })
               }
               const constraintValidationMessage = message
                 ? cds.i18n.messages.for(message, msgParams) || message
@@ -253,7 +276,7 @@ async function checkConstraints(req) {
             }
           }
         }
-        i+=1
+        i += 1
       }
     }
     // REVISIT: we can probably get rid of this

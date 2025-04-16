@@ -219,7 +219,7 @@ describe('Bookshop - assertions', () => {
 
   describe('via service entity', () => {
     // TODO: parameters are not linked to i18n definition anymore after compiler renaming
-    test.skip('via service entity, parameter used in validation message of original entity is renamed', async () => {
+    test('via service entity, parameter used in validation message of original entity is renamed', async () => {
       const { RenameKeys: Renamed } = cds.entities('AdminService')
       await expect(UPDATE.entity(Renamed).where(`author.name LIKE 'Richard%'`).set('stock = -1')).to.be.rejectedWith(
         'Stock for book "Catweazle" (271) must not be a negative number',
