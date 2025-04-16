@@ -126,7 +126,7 @@ class CQN2SQLRenderer {
       target = typeof entity === 'string' ? { name: entity } : q.CREATE.entity
     }
 
-    const name = this.name(target.name)
+    const name = this.name(target.name, q)
     // Don't allow place holders inside views
     delete this.values
     this.sql =
@@ -216,7 +216,7 @@ class CQN2SQLRenderer {
     const { _target: target } = q
     const isView = target?.query || target?.projection || q.DROP.view
     const name = target?.name || q.DROP.table?.ref?.[0] || q.DROP.view?.ref?.[0]
-    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name))}`)
+    return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name, q))}`)
   }
 
   // SELECT Statements ------------------------------------------------
@@ -365,9 +365,9 @@ class CQN2SQLRenderer {
     if (ref) {
       let z = ref[0]
       if (z.args) {
-        return _aliased(`${this.quote(this.name(z))}${this.from_args(z.args)}`)
+        return _aliased(`${this.quote(this.name(z, q))}${this.from_args(z.args)}`)
       }
-      return _aliased(this.quote(this.name(z)))
+      return _aliased(this.quote(this.name(z, q)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
@@ -513,7 +513,7 @@ class CQN2SQLRenderer {
     this.columns = columns
 
     const alias = INSERT.into.as
-    const entity = this.name(q._target?.name || INSERT.into.ref[0])
+    const entity = this.name(q._target?.name || INSERT.into.ref[0], q)
     if (!elements) {
       this.entries = INSERT.entries.map(e => columns.map(c => e[c]))
       const param = this.param.bind(this, { ref: ['?'] })
@@ -642,7 +642,7 @@ class CQN2SQLRenderer {
    */
   INSERT_rows(q) {
     const { INSERT } = q
-    const entity = this.name(q._target?.name || INSERT.into.ref[0])
+    const entity = this.name(q._target?.name || INSERT.into.ref[0], q)
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements
     const columns = this.columns = INSERT.columns || cds.error`Cannot insert rows without columns or elements`
@@ -688,7 +688,7 @@ class CQN2SQLRenderer {
    */
   INSERT_select(q) {
     const { INSERT } = q
-    const entity = this.name(q._target.name)
+    const entity = this.name(q._target.name, q)
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements || {}
     const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
@@ -756,7 +756,7 @@ class CQN2SQLRenderer {
       .filter(c => keys.includes(c.name))
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
-    const entity = this.name(q._target?.name || UPSERT.into.ref[0])
+    const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
     sql = `SELECT ${managed.map(c => c.upsert
       .replace(/value->/g, '"$$$$value$$$$"->')
       .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
@@ -786,7 +786,7 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const elements = q._target?.elements
-    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity))}`
+    let sql = `UPDATE ${this.quote(this.name(entity.ref?.[0] || entity, q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
     let columns = []
