@@ -498,7 +498,6 @@ SQLService.prototype.PreparedStatement = PreparedStatement
 const _target_name4 = q => {
   const target =
     q._target_ref ||
-    q.from_into_ntt ||
     q.SELECT?.from ||
     q.INSERT?.into ||
     q.UPSERT?.into ||
