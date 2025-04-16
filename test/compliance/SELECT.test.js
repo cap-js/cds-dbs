@@ -1004,7 +1004,7 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cqn.clone().foreach(process.bind(aggregate))
+      await cqn.clone().then (rows => rows.map(process.bind(aggregate)))
       expect(aggregate).deep.eq(expected)
     }))
 
