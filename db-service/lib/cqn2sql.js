@@ -462,7 +462,8 @@ class CQN2SQLRenderer {
         }
       }
 
-    if (from.args) {
+    // Only apply result join if the columns contain a references which doesn't start with the source alias
+    if (from.args && columns.find(c => c.ref?.[0] === alias)) {
       graph.as = alias
       return this.from(setStableFrom(from, graph))
     }
