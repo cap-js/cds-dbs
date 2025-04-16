@@ -301,7 +301,7 @@ class CQN2SQLRenderer {
 
       // Output computed columns
       RANK: { xpr: [{ ref: ['HIERARCHY_RANK'] }, '-', { val: 1, param: false }], as: 'RANK' },
-      Distance: { ref: ['HIERARCHY_DISTANCE'], as: 'Distance' },
+      Distance: { func: where?.length ? 'min' : 'max', args: [{ ref: ['HIERARCHY_DISTANCE'] }], as: 'Distance' },
       DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
       DrillState: false,
       LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
@@ -403,7 +403,7 @@ class CQN2SQLRenderer {
       xpr: [ // When the node doesn't have children make it a leaf
         'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
         ...(where?.length // When there is a where filter the final node will always be a leaf
-          ? ['WHEN', { ref: ['HIERARCHY_DISTANCE'] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
+          ? ['WHEN', { func: where?.length ? 'min' : 'max', args: [{ ref: ['HIERARCHY_DISTANCE'] }] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
           : []
         ), // When having expanded by 0 level nodes make sure they are collapsed
         ...(expandedByZero.list.length
@@ -458,7 +458,8 @@ class CQN2SQLRenderer {
               ]
             }]
           },
-          where: expandedFilter.length ? expandedFilter : undefined
+          where: expandedFilter.length ? expandedFilter : undefined,
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
 
