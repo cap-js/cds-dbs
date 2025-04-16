@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -26,6 +26,8 @@ for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
 function infer(originalQuery, model) {
   if (!model) throw new Error('Please specify a model')
   const inferred = originalQuery
+
+  const { getDefinition } = getModelUtils(model, originalQuery)
 
   // REVISIT: The more edge use cases we support, thes less optimized are we for the 90+% use cases
   // e.g. there's a lot of overhead for infer( SELECT.from(Books) )
@@ -111,13 +113,13 @@ function infer(originalQuery, model) {
 
       inferArg(from, null, null, { inFrom: true })
       const alias =
-      from.uniqueSubqueryAlias ||
-      from.as ||
-      (ref.length === 1
-        ? getImplicitAlias(first, useTechnicalAlias)
-        : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias));    
+        from.uniqueSubqueryAlias ||
+        from.as ||
+        (ref.length === 1
+          ? getImplicitAlias(first, useTechnicalAlias)
+          : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias))
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
-      querySources[alias] = { definition: target, args }
+      querySources[alias] = { definition: getDefinition(target.name), args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
@@ -209,7 +211,7 @@ function infer(originalQuery, model) {
           if (col.func) {
             if (col.args) {
               // {func}.args are optional
-              applyToFunctionArgs(col.args, inferArg, [false, null, {dollarSelfRefs}])
+              applyToFunctionArgs(col.args, inferArg, [false, null, { dollarSelfRefs }])
             }
             queryElements[as] = getElementForCast(col)
           }
@@ -350,7 +352,7 @@ function infer(originalQuery, model) {
     }
 
     function handleRef(col, inXpr) {
-      inferArg(col, queryElements, null,  { inXpr })
+      inferArg(col, queryElements, null, { inXpr })
       const { definition } = col.$refLinks[col.$refLinks.length - 1]
       if (col.cast)
         // final type overwritten -> element not visible anymore
@@ -399,7 +401,8 @@ function infer(originalQuery, model) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs } = context
+    const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs } =
+      context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
@@ -424,7 +427,7 @@ function infer(originalQuery, model) {
       firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
       expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
     }
-    if(dollarSelfRefs && firstStepIsSelf) {
+    if (dollarSelfRefs && firstStepIsSelf) {
       Object.defineProperty(arg, 'inXpr', { value: true, writable: true })
       dollarSelfRefs.push(arg)
       return
@@ -810,7 +813,8 @@ function infer(originalQuery, model) {
     else alreadySeenCalcElements.add(calcElement)
     const { ref, xpr } = calcElement.value
     if (ref || xpr) {
-      baseLink = { definition: calcElement.parent, target: calcElement.parent }
+      const parentElementDefinition = getDefinition(calcElement.parent.name)
+      baseLink = { definition: parentElementDefinition, target: parentElementDefinition }
       inferArg(calcElement.value, null, baseLink, { inCalcElement: true, ...context })
       const basePath =
         column.$refLinks?.length > 1
@@ -825,7 +829,13 @@ function infer(originalQuery, model) {
 
     if (calcElement.value.args) {
       const processArgument = (arg, calcElement, column) => {
-        inferArg(arg, null, { definition: calcElement.parent, target: calcElement.parent }, { inCalcElement: true })
+        const parentElementDefinition = getDefinition(calcElement.parent.name)
+        inferArg(
+          arg,
+          null,
+          { definition: parentElementDefinition, target: parentElementDefinition },
+          { inCalcElement: true },
+        )
         const basePath =
           column.$refLinks?.length > 1
             ? { $refLinks: column.$refLinks.slice(0, -1), ref: column.ref.slice(0, -1) }
@@ -879,8 +889,7 @@ function infer(originalQuery, model) {
             step[nestedProp].forEach(a => {
               // reset sub path for each nested argument
               // e.g. case when <path> then <otherPath> else <anotherPath> end
-              if(!a.ref)
-                subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
+              if (!a.ref) subPath = { $refLinks: [...basePath.$refLinks], ref: [...basePath.ref] }
               mergePathsIntoJoinTree(a, subPath)
             })
           }
@@ -891,7 +900,7 @@ function infer(originalQuery, model) {
         const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
         if (calcElementIsJoinRelevant) {
           if (!calcElement.value.isJoinRelevant)
-            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true,  })
+            Object.defineProperty(step, 'isJoinRelevant', { value: true, writable: true })
           joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,
@@ -960,7 +969,7 @@ function infer(originalQuery, model) {
     if (Object.keys(queryElements).length === 0 && aliases.length === 1) {
       const { elements } = getDefinitionFromSources(sources, aliases[0])
       // only one query source and no overwritten columns
-      for (const k of Object.keys(elements)) {
+      for (const k in elements) {
         if (!exclude(k)) {
           const element = elements[k]
           if (element.type !== 'cds.LargeBinary') {
@@ -1081,12 +1090,6 @@ function infer(originalQuery, model) {
       default:
         return {}
     }
-  }
-
-  /** returns the CSN definition for the given name from the model */
-  function getDefinition(name) {
-    if (!name) return null
-    return model.definitions[name]
   }
 
   function getDefinitionFromSources(sources, id) {
