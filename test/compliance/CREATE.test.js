@@ -53,7 +53,7 @@ const dataTest = async function (entity, table, type, obj) {
       throws = obj[k]
       return
     }
-    if (k[0] === '=') {
+    if (k.length > 1 && k[0] === '=') {
       assign(transforms, k.substring(1), cur)
     } else {
       assign(data, k, cur)
@@ -166,7 +166,7 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe.skip('CREATE', () => {
+describe('CREATE', () => {
   // TODO: reference to ./definitions.test.js
 
   // Set cds.root before requiring cds.Service as it resolves and caches package.json
@@ -201,8 +201,8 @@ describe.skip('CREATE', () => {
 
       await db.run({ DROP: { entity: globals.name } }).catch(() => { })
       await db.run({ DROP: { entity: entityName } }).catch(() => { })
-      // await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
-      // await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
+      await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
+      await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
     })
 
     test('definition provided', async () => {
@@ -330,7 +330,7 @@ describe.skip('CREATE', () => {
       try {
         if (entity.projection) return
         const file = entity.$location.file
-        const data = require(fspath.resolve(cds.root, file.substring(0, file.length - 4), table + '.js'))
+        const data = require(fspath.resolve(cds.root, file.substring(0, file.length - 4), encodeURIComponent(table) + '.js'))
         const noData = data.length === 0
 
         describe('INSERT', () => {
