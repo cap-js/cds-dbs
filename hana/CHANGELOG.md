@@ -16,8 +16,6 @@
 ### Fixed
 
 * Improved support for special characters in column names ([#1141](https://github.com/cap-js/cds-dbs/issues/1141)) ([ba04697](https://github.com/cap-js/cds-dbs/commit/ba046971921d645e8571a80c27ef07988c8c01ad))
-* replace another occurrence of Node 22 Iterator ([#1133](https://github.com/cap-js/cds-dbs/issues/1133)) ([fcab43c](https://github.com/cap-js/cds-dbs/commit/fcab43cd6d2017720f3f8c9848708f9b3c26f5e1))
-* revert getDataAsync ([#1130](https://github.com/cap-js/cds-dbs/issues/1130)) ([33ae470](https://github.com/cap-js/cds-dbs/commit/33ae470b636dbddf0762d2e2c0ea0da67607911c))
 
 ## [1.8.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.0...hana-v1.8.1) (2025-04-02)
 
