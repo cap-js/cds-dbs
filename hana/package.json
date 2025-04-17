@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && npm run test:plain && npm run test:bookshop:quoted",
-    "test:bookshop:quoted":"cds_sql_names=quoted cds-test bookshop",
+    "test:bookshop:quoted": "cds_sql_names=quoted cds-test bookshop",
     "test:plain": "cds-test",
     "test:remote": "cds-test",
     "start": "npm run start:hce || npm run start:hxe",
@@ -25,7 +25,7 @@
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.19.0",
+    "@cap-js/db-service": "^1.20.0",
     "hdb": "^0.19.5"
   },
   "peerDependencies": {
