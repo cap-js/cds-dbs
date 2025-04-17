@@ -424,3 +424,4 @@ async function* rowsIterator(rows, cols) {
 }
 
 module.exports.driver = HANAClientDriver
+module.exports.driver._driver = hdb
