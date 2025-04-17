@@ -69,7 +69,10 @@ class HANAClientDriver extends driver {
         const stmt = await ret._prep
         // Create result set
         const reset = async function () {
-          if (this) await prom(this, 'close')()
+          if (this) {
+            await prom(this, 'close')()
+            return
+          }
           const rs = await prom(stmt, 'executeQuery')(values)
           rs.reset = reset
           return rs
