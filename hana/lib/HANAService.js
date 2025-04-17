@@ -68,7 +68,7 @@ class HANAService extends SQLService {
           HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
-          if (err.code !== 10) throw err
+          if (!isMultitenant && err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
           return this.create(tenant)
         }
