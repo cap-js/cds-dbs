@@ -1,13 +1,14 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const dedup = arr => [...new Set(arr)]
 
 function attachConstraints(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
   const { data } = req
   if (Array.isArray(data[0])) return // REVISIT: what about csv inserts?
   const constraintsPerTarget = {}
-  for (const [cName, c] of Object.entries(_collectConstraints(req.target, req.data))) {
+  for (const [cName, c] of Object.entries(collectConstraints(req.target, req.data))) {
     if (c.target.name in constraintsPerTarget) {
       constraintsPerTarget[c.target.name][cName] = c
     } else {
@@ -65,7 +66,7 @@ function attachConstraints(_results, req) {
         // else if (parameters.ref) colsForConstraint.push(parameters.ref)
         // else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
         parameters.forEach(p => {
-          const {ref, val} = p
+          const { ref, val } = p
           if (ref) {
             colsForConstraint.push({ ref })
           } else if (val) {
@@ -88,129 +89,78 @@ function attachConstraints(_results, req) {
   }
 
   /**
-   * Collects constraints for a request target and its elements.
-   *
-   *
-   * @param {CSN.entity} entity the target of the request (or a recursive child)
-   * @param {object} data the payload
-   * @returns {object} constraints
+   * Collect every @assert.constraint defined on an entity, its elements and any
+   * compositions that appear in the current payload.
    */
-  function _collectConstraints(entity, data) {
-    // Collect constraints defined on the entity itself.
-    let constraints = { ...getConstraintsFrom(entity) }
+  function collectConstraints(entity, data, model = cds.model) {
+    /** All constraints discovered so far, keyed by constraint name */
+    const constraints = { ...extractConstraints(entity) }
+    /** Remove duplicates while preserving order. */
 
-    // Merge constraints from each element of the entity.
-    for (const element of Object.values(entity.elements)) {
-      const elementConstraints = getConstraintsFrom(element, entity)
-      Object.assign(constraints, elementConstraints)
+    // ────────── 1. scan elements ──────────
+    for (const el of Object.values(entity.elements ?? {})) {
+      Object.assign(constraints, extractConstraints(el, entity))
     }
 
-    // attach IDs derived from the payload.
-    const matchKeyConditions = _matchKeys(entity, data)
-    for (const constraint of Object.values(constraints)) {
-      if (constraint.matchKeys) {
-        constraint.matchKeys.push(...matchKeyConditions)
-      } else {
-        // copying the array to avoid potential mutation issues.
-        constraint.matchKeys = [...matchKeyConditions]
-      }
+    // ────────── 2. attach match keys ──────
+    const mk = _matchKeys(entity, data)
+    for (const c of Object.values(constraints)) {
+      c.matchKeys = dedup([...(c.matchKeys ?? []), ...mk])
     }
 
-    // process compositions defined in the entity, if they are part of the payload.
-    const compositions = entity.compositions || {}
-    for (const compKey of Object.keys(compositions)) {
-      if (data[compKey]) {
-        const composition = compositions[compKey]
-        const compositionTarget = cds.model.definitions[composition.target]
-        const childrenData = data[compKey]
-        if (Array.isArray(childrenData)) {
-          for (const childData of childrenData) {
-            const childConstraints = _collectConstraints(compositionTarget, childData)
-            mergeConstraints(constraints, childConstraints)
-          }
-        } else {
-          const childConstraints = _collectConstraints(compositionTarget, childrenData)
-          mergeConstraints(constraints, childConstraints)
-        }
-      }
+    // ────────── 3. recurse into compositions present in the payload ──────────
+    for (const [compKey, composition] of Object.entries(entity.compositions ?? {})) {
+      const payload = data?.[compKey]
+      if (!payload) continue // nothing sent for this comp
+
+      const target = model.definitions[composition.target]
+      const recurse = child => mergeConstraintSets(constraints, collectConstraints(target, child, model))
+
+      Array.isArray(payload) ? payload.forEach(recurse) : recurse(payload)
     }
+
     return constraints
+  }
 
-    function mergeConstraints(baseConstraints, newConstraints) {
-      if (!newConstraints) return baseConstraints
-      for (const key in newConstraints) {
-        const newConstraint = newConstraints[key]
-        // if the same element has constrains already, merge the match keys.
-        if (baseConstraints[key]?.element === newConstraint.element) {
-          baseConstraints[key].matchKeys.push(...newConstraint.matchKeys)
-        } else {
-          baseConstraints[key] = newConstraint
-        }
+  /** Merge two constraint maps in‑place, concatenating any duplicate matchKeys. */
+  function mergeConstraintSets(base, incoming) {
+    for (const [name, inc] of Object.entries(incoming)) {
+      const existing = base[name]
+      if (existing && existing.element === inc.element) {
+        existing.matchKeys = dedup([...existing.matchKeys, ...inc.matchKeys])
+      } else {
+        base[name] = inc
       }
-      return baseConstraints
     }
+    return base
+  }
 
-    // Retrieve constraints from an entity or element.
-    function getConstraintsFrom(obj, target = null) {
-      const elmConstraints = {}
+  /** Collect @assert.constraint annotations from an entity or element. */
+  function extractConstraints(obj, target = obj) {
+    const collected = {}
 
-      for (const key in obj) {
-        if (key.startsWith('@assert.constraint')) {
-          // Remove the fixed prefix.
-          let remainder = key.slice('@assert.constraint'.length)
-          // Remove a leading dot, if any.
-          if (remainder.startsWith('.')) {
-            remainder = remainder.slice(1)
-          }
+    for (const [key, val] of Object.entries(obj)) {
+      if (!key.startsWith('@assert.constraint')) continue
 
-          // Split into constraint name and property parts.
-          const parts = remainder.split('.');
-          let constraintName, propertyName;
-          if (parts.length === 1) {
-            // No explicit name: use the object's name as the constraint name.
-            constraintName = obj.name;
-            if (!remainder.length) {
-              // When no extra information is given, check if an 'xpr' exists.
-              if (!obj['@assert.constraint'].xpr) continue;
-              // Otherwise, use the shorthand property 'condition'.
-              propertyName = 'condition';
-            } else {
-              propertyName = parts[0];
-            }
-          } else {
-            // First part is the constraint name; the rest form the property name.
-            constraintName = parts[0];
-            propertyName = parts.slice(1).join('.');
-          }
-          // Create or extend the constraint entry.
-          if (!elmConstraints[constraintName]) {
-            elmConstraints[constraintName] = {}
-          }
+      // strip prefix and leading dot
+      let [, remainder] = key.match(/^@assert\.constraint\.?(.*)$/)
+      const parts = remainder.split('.')
+      const constraintName = parts.length === 1 ? obj.name || parts[0] : parts[0]
+      const propertyName =
+        parts.length === 1 ? parts[0] || (val.xpr ? 'condition' : undefined) : parts.slice(1).join('.')
 
-          // normalize named parameters
-          if(parts.length > 2 && propertyName.startsWith('parameters.')) {
-            const paramName = propertyName.slice('parameters.'.length)
-            const param = obj[key]
-            param.name = paramName
-            if (!elmConstraints[constraintName].parameters) {
-              elmConstraints[constraintName].parameters = []
-            }
-            elmConstraints[constraintName].parameters.push(param)
-          } else {
-            elmConstraints[constraintName][propertyName] = obj[key]
-          }
+      if (!propertyName) continue // nothing useful to store
 
-        }
+      const entry = (collected[constraintName] ??= { element: obj, target })
+      if (propertyName.startsWith('parameters.')) {
+        const pname = propertyName.slice('parameters.'.length)
+        const param = { ...val, name: pname }
+        entry.parameters = [...(entry.parameters ?? []), param]
+      } else {
+        entry[propertyName] = val
       }
-
-      // Attach additional metadata to each constraint.
-      Object.keys(elmConstraints).forEach(name => {
-        elmConstraints[name].element = obj
-        // The constraint target defaults to the current object unless overridden.
-        elmConstraints[name].target = target || obj
-      })
-      return elmConstraints
     }
+    return collected
   }
 
   /**
@@ -262,7 +212,7 @@ async function checkConstraints(req) {
               const { message, parameters } = constraints[key]
               const msgParams = {}
               if (parameters) {
-                parameters.forEach((p,i) => {
+                parameters.forEach((p, i) => {
                   const { name } = p
                   // this should also handle cases where parameters where renamed
                   const paramReturnValue = row[p['=']]
