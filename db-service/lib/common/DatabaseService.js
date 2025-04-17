@@ -62,7 +62,7 @@ class DatabaseService extends cds.Service {
     // Setting this.pool as used in this.acquire() and this.release()
     this.pool = this.pools[tenant] ??= new ConnectionPool(this.pools._factory, tenant)
         .on('factoryCreateError', e => {
-          if (cds.requires.multitenancy) if (e.status == 404 || e.status == 429) {
+          if (isMultitenant) if (e.status == 404 || e.status == 429) {
             this.pool._waitingClientsQueue?.dequeue?.()?.reject(e)
           }
         })
