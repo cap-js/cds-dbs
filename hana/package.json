@@ -26,16 +26,16 @@
     "@cap-js/db-service": "^1.19.0",
     "hdb": "^0.19.5"
   },
-  "_peerDependencies": {
+  "peerDependencies": {
     "@sap/hana-client": "2",
     "@sap/cds": ">=8.2"
   },
-  "_peerDependenciesMeta": {
+  "peerDependenciesMeta": {
     "@sap/hana-client": {
       "optional": true
     }
   },
-  "_devDependencies": {
+  "devDependencies": {
     "@sap/hana-client": ">=2"
   },
   "cds": {
