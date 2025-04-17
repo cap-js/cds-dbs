@@ -196,42 +196,56 @@ function attachConstraints(_results, req) {
   }
 }
 
+/**
+ * Validate the constraint‑check queries collected in the current transaction.
+ *
+ * – runs every query batch in order,
+ * – raises `req.error(400, …)` for each violated constraint,
+ * – resets `this.tx.assert_constraints` when done.
+ */
 async function checkConstraints(req) {
-  if (this.tx.assert_constraints) {
-    for (const validationQueries of this.tx.assert_constraints) {
-      // REVISIT: cds.run fails for some tests
-      const results = await this.run(validationQueries)
-      let i = 0
-      for (const result of results) {
-        const constraints = validationQueries[i].$constraints
-        if (!result?.length) continue
-        for (const key in constraints) {
-          const constraintCol = key + '_constraint'
-          for (const row of result) {
-            if (!row[constraintCol]) {
-              const { message, parameters } = constraints[key]
-              const msgParams = {}
-              if (parameters) {
-                parameters.forEach((p, i) => {
-                  const { name } = p
-                  // this should also handle cases where parameters where renamed
-                  const paramReturnValue = row[p['=']]
-                  if (paramReturnValue) msgParams[name || i] = paramReturnValue
-                })
-              }
-              const constraintValidationMessage = message
-                ? cds.i18n.messages.for(message, msgParams) || message
-                : `@assert.constraint ”${key}” failed`
-              req.error(400, constraintValidationMessage)
-            }
-          }
-        }
-        i += 1
-      }
-    }
-    // REVISIT: we can probably get rid of this
-    this.tx.assert_constraints = []
+  const pending = this.tx?.assert_constraints
+  if (!pending?.length) return // nothing to validate
+
+  for (const queryBatch of pending) {
+    const results = await this.run(queryBatch)
+
+    results.forEach((rows, idx) => {
+      if (!rows?.length) return // no rows ⇒ nothing failed
+
+      const constraints = queryBatch[idx].$constraints
+
+      Object.entries(constraints).forEach(([name, meta]) => {
+        const col = `${name}_constraint`
+
+        rows.forEach(row => {
+          if (row[col]) return // constraint passed
+
+          req.error(400, buildMessage(name, meta, row)) // raise validation error
+        })
+      })
+    })
   }
+
+  this.tx.assert_constraints = [] // clean up
+}
+
+/**
+ * Compose the final error text, including i18n look‑up + parameter injection.
+ */
+function buildMessage(name, { message, parameters = [] }, row) {
+  const msgParams = Object.fromEntries(
+    parameters
+      .map((p, i) => {
+        const val = row[p['=']]
+        return val === undefined ? null : [p.name ?? i, val]
+      })
+      .filter(Boolean),
+  )
+
+  return message
+    ? cds.i18n.messages.for(message, msgParams) || message // translated or fallback
+    : `@assert.constraint “${name}” failed`
 }
 
 module.exports = {
