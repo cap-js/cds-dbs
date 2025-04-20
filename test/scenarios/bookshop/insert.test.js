@@ -14,6 +14,20 @@ describe('Bookshop - Insert', () => {
     expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
   })
 
+  // REVISIT: enable this test when auto incrementing keys have been implemented for all databases
+  test('insert with database generated keys', async () => {
+    const { Authors, Books } = cds.entities;
+    const [Emily, Charlotte] = await INSERT.into(Authors, [{ name: 'Emily Brontëe' }, { name: 'Charlotte Brontëe' }])
+    const [Wuthering, Jane] = await INSERT.into(Books, [
+      { title: 'Wuthering Heights', author: Emily },
+      { title: 'Jane Eyre', author: Charlotte },
+    ])
+    const authors = await SELECT.from(Authors).where({ ID: { in: [Emily.ID, Charlotte.ID] } })
+    const books = await SELECT.from(Books).where({ ID: { in: [Wuthering.ID, Jane.ID] } })
+    expect(authors.length).to.eq(2)
+    expect(books.length).to.eq(2)
+  })
+
   test('insert with undefined value works', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const resp = await cds.run(INSERT({ stock: undefined, ID: 223, title: 'Harry Potter' }).into(Books))
