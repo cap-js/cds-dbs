@@ -9,7 +9,7 @@ describe('insert as select', () => {
     await cds.run(INSERT({ ID: 42, name: 'Foo2' }).into('Foo2'))
     const insert = INSERT.into('Foo')
       .columns(['ID', 'a'])
-      .as(
+      .from(
         SELECT.from('Foo2')
           .columns(['ID', 'name'])
           .where({ ref: ['name'] }, '=', { val: 'Foo2' }),

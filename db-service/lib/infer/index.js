@@ -46,7 +46,7 @@ function infer(originalQuery, model) {
 
   let $combinedElements
 
-  const sources = inferTarget(_.from || _.into || _.entity, {})
+  const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
   const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
