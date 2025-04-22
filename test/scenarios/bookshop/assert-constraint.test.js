@@ -21,12 +21,12 @@ describe('Bookshop - assertions', () => {
     test('at the end, everything is alright so dont complain right away', async () => {
       adminService = await cds.connect.to('AdminService')
       // TODO: add expect
-      await adminService.tx({ user: 'alice' }, async () => {
+      await expect(adminService.tx({ user: 'alice' }, async () => {
         // first invalid
         await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)
         // now we make it valid
         await UPDATE(Books, '49').with({ stock: 10 })
-      })
+      })).to.be.fulfilled
     })
 
     test('assertion via action', async () => {

@@ -210,7 +210,7 @@ function getConstraintsByTarget(target, data) {
   return map
 }
 
-function patchWhere(req) {
+function getWhereOfPatch(req) {
   if (!['UPDATE', 'UPSERT'].includes(req.event)) return null
 
   const q = req.query[req.event]
@@ -222,7 +222,7 @@ module.exports = {
   getConstraintsByTarget,
   collectConstraints,
   buildMessage,
-  patchWhere,
+  getWhereOfPatch,
   /**
    *
    * Helper that keeps validation queries in RAM per
@@ -233,9 +233,9 @@ module.exports = {
    * Values → Array<cds.Query>
    */
   constraintStorage: {
-    add(tx, batch) {
+    add(tx, queries) {
       const list = CONSTRAINTS.get(tx) ?? []
-      list.push(batch)
+      list.push(...queries)
       CONSTRAINTS.set(tx, list)
     },
     get(tx) {

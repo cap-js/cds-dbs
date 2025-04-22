@@ -1,12 +1,6 @@
 'use strict'
 
-const {
-  getValidationQuery,
-  buildMessage,
-  constraintStorage,
-  patchWhere,
-  getConstraintsByTarget,
-} = require('./utils')
+const { getValidationQuery, buildMessage, constraintStorage, getWhereOfPatch, getConstraintsByTarget } = require('./utils')
 
 function attachConstraints(_res, req) {
   // TODO: validate csv imports?
@@ -16,11 +10,12 @@ function attachConstraints(_res, req) {
   const byTarget = getConstraintsByTarget(req.target, req.data)
   if (!byTarget.size) return
 
-  const extraWhere = patchWhere(req)
+  // will be added as condition to queries against req.target
+  const patchWhere = getWhereOfPatch(req)
   const queries = []
 
   for (const [target, constraints] of byTarget) {
-    queries.push(getValidationQuery(target, constraints, extraWhere, req.target))
+    queries.push(getValidationQuery(target, constraints, patchWhere, req.target.name))
   }
 
   if (queries.length) constraintStorage.add(this.tx, queries)
@@ -29,31 +24,27 @@ function attachConstraints(_res, req) {
 /**
  * Validate the constraint‑check queries collected in the current transaction.
  *
- * – runs every query batch in order,
+ * – runs all assertion queries of the current transaction,
  * – raises `req.error(400, …)` for each violated constraint,
  * – resets the constraint storage for the current transaction.
  */
 async function checkConstraints(req) {
-  const pending = constraintStorage.get(this.tx)
-  if (!pending?.length) return // nothing to validate
+  const queries = constraintStorage.get(this.tx)
 
-  for (const queryBatch of pending) {
-    const results = await this.run(queryBatch)
+  const results = await this.run(queries)
+  results.forEach((rows, i) => {
+    const constraints = queries[i].$constraints
 
-    results.forEach((rows, idx) => {
-      const constraints = queryBatch[idx].$constraints
+    Object.entries(constraints).forEach(([name, meta]) => {
+      const col = `${name}_constraint`
 
-      Object.entries(constraints).forEach(([name, meta]) => {
-        const col = `${name}_constraint`
+      rows.forEach(row => {
+        if (row[col]) return // constraint passed
 
-        rows.forEach(row => {
-          if (row[col]) return // constraint passed
-
-          req.error(400, buildMessage(name, meta, row)) // raise validation error
-        })
+        req.error(400, buildMessage(name, meta, row)) // raise validation error
       })
     })
-  }
+  })
 
   constraintStorage.clear(this.tx) // clean up
 }
