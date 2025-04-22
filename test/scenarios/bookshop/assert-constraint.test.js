@@ -18,9 +18,9 @@ describe('Bookshop - assertions', () => {
       )
     })
 
+    // TODO: there should be only one query against books in the end.
     test('at the end, everything is alright so dont complain right away', async () => {
       adminService = await cds.connect.to('AdminService')
-      // TODO: add expect
       await expect(adminService.tx({ user: 'alice' }, async () => {
         // first invalid
         await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)

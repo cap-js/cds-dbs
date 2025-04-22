@@ -30,7 +30,7 @@ function attachConstraints(_res, req) {
  */
 async function checkConstraints(req) {
   const queries = constraintStorage.get(this.tx)
-
+  if (!queries.length) return // nothing to check
   const results = await this.run(queries)
   results.forEach((rows, i) => {
     const constraints = queries[i].$constraints
