@@ -31,7 +31,7 @@ function attachConstraints(_results, req) {
   const validationQueries = []
   for (const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
     const validationQuery = _getValidationQuery(targetName, constraints)
-    if (where.length > 0) {
+    if (where.length > 0 && targetName === req.target.name) {
       if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', { xpr: where })
       else validationQuery.SELECT.where.push(...where)
     }

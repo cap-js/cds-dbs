@@ -1,8 +1,8 @@
 const cds = require('../../cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../bookshopWithConstraints')
 
 describe('Bookshop - assertions', () => {
-  const { expect, POST } = cds.test(bookshop)
+  const { expect, POST, PATCH } = cds.test(bookshop)
   let adminService, catService, Books, Genres
 
   before('bootstrap the database', async () => {
@@ -169,7 +169,7 @@ describe('Bookshop - assertions', () => {
                 children: [
                   {
                     ID: 58,
-                    name: 'We forbid genre names with more than 20 characters', // how to check violations in deep operations?
+                    name: 'We forbid genre names with more than 20 characters',
                   },
                 ],
               },
@@ -202,6 +202,21 @@ describe('Bookshop - assertions', () => {
           { auth: { username: 'alice' } },
         ),
       ).to.be.rejectedWith('A must not be 42')
+    })
+    test.skip('navigation in condition', async () => {
+      await INSERT.into(Books).entries([{ ID: 17, title: 'The Way of Kings', stock: 10 }])
+      await expect(
+        UPDATE(Books, 17).with({
+          title: 'The Way of Kings',
+          stock: 10,
+          pages: [
+            {
+              number: 11,
+              text: 'Lorem ipsum dolor sit amet',
+            },
+          ],
+        }),
+      ).to.be.rejectedWith('The page number (11) must be greater than the stock (10) of book "{book}" ({ID})')
     })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
