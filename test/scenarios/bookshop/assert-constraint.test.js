@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshopWithConstraints')
 
 describe('Bookshop - assertions', () => {
-  const { expect, POST, PATCH } = cds.test(bookshop)
+  const { expect, POST } = cds.test(bookshop)
   let adminService, catService, Books, Genres
 
   before('bootstrap the database', async () => {

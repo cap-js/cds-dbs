@@ -62,24 +62,7 @@ function attachConstraints(_results, req) {
         },
       ]
       if (parameters) {
-        // if (parameters.list) parameters.list.forEach(p => colsForConstraint.push(p))
-        // else if (parameters.ref) colsForConstraint.push(parameters.ref)
-        // else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
-        parameters.forEach( (p, i) => {
-          const { ref, val, args, xpr, func } = p
-          const paramCol = { as: p.name || `${i}` }
-          if (ref) {
-            paramCol.ref = ref
-          } else if (val) {
-            paramCol.val = val
-          } else if (func) {
-            paramCol.func = func
-            paramCol.args = args
-          } else if (xpr) {
-            paramCol.xpr = xpr
-          }
-          colsForConstraint.push(paramCol)
-        })
+        colsForConstraint.push(...parameters)
       }
       return colsForConstraint
     })
@@ -159,10 +142,15 @@ function attachConstraints(_results, req) {
       if (!propertyName) continue // nothing useful to store
 
       const entry = (collected[constraintName] ??= { element: obj, target })
-      if (propertyName.startsWith('parameters.')) {
-        const pname = propertyName.slice('parameters.'.length)
-        const param = { ...val, name: pname }
-        entry.parameters = [...(entry.parameters ?? []), param]
+      if (propertyName.startsWith('parameters')) {
+        const paramName = propertyName.slice('parameters.'.length)
+        if(paramName === '') {
+          // anonymous parameters, attach index as name
+          entry[propertyName] = val.map((p, i) => ({ ...p, as: `${i}` }))
+        } else {
+          const param = { ...val, as: paramName }
+          entry.parameters = [...(entry.parameters ?? []), param]
+        }
       } else {
         entry[propertyName] = val
       }
@@ -244,8 +232,8 @@ function buildMessage(name, { message, parameters = [] }, row) {
   const msgParams = Object.fromEntries(
     parameters
       .map((p, i) => {
-        const val = row[p.name || i]
-        return val === undefined ? null : [p.name ?? i, val]
+        const val = row[p.as]
+        return val === undefined ? null : [p.as, val]
       })
       .filter(Boolean),
   )
