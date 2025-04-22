@@ -43,7 +43,7 @@ function attachConstraints(_results, req) {
   }
 
   if (validationQueries.length) {
-    constraintStorage.add(this.tx, validationQueries)    //  ← no mutation of tx
+    constraintStorage.add(this.tx, validationQueries)    // store for evaluation before commit
   }
   return
 
