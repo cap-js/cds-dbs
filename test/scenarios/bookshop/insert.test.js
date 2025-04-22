@@ -52,15 +52,15 @@ describe('Bookshop - Insert', () => {
 
   test('big decimals', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
-    
-    const entry = { ID: 2348, title: 'Moby Dick', dummyDecimal: '12345678901234567890.12345' }
+
+    const entry = { ID: 2348, title: 'Moby Dick', price: '12345678901234567890.12345' }
     await INSERT(entry).into(Books)
 
-    const written = await SELECT('dummyDecimal').from(Books, { ID: 2348 })
-    if (written.dummyDecimal.indexOf('e+') > -1) {
-      expect(written.dummyDecimal).to.be.eq('1.23456789012346e+19')
+    const written = await SELECT('price').from(Books, { ID: 2348 })
+    if (written.price.indexOf('e+') > -1) {
+      expect(written.price).to.be.eq('1.23456789012346e+19')
     } else {
-      expect(written.dummyDecimal).to.be.eq(entry.dummyDecimal)
+      expect(written.price).to.be.eq(entry.price)
     }
   })
 })
