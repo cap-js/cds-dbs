@@ -1,6 +1,17 @@
 'use strict'
 
-const CONSTRAINTS = new WeakMap()          // ↩︎ GC when tx is gone
+/**
+ * constraint‑storage.js
+ *
+ * Tiny helper that keeps validation queries in RAM per
+ * transaction.  Internally uses a `WeakMap`, so data is released
+ * automatically when the transaction object is garbage‑collected.  
+ *
+ * Keys   → {cds.Transaction}  
+ * Values → Array<cds.Query>
+ */
+
+const CONSTRAINTS = new WeakMap()
 module.exports = {
   add (tx, batch) {
     const list = CONSTRAINTS.get(tx) ?? []
