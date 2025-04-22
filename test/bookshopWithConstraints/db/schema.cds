@@ -27,15 +27,24 @@ entity Books : managed {
       pages: Composition of many Pages on pages.book = $self;
 }
 
-@assert.constraint : {
-  condition: ( book.stock >= number ),
-  parameters: {book: (book.title), number: (number), stock: (book.stock)},
-  message: 'STOCK_GREATER_THAN_PAGES',
+@assert.constraint.editingConstraint : {
+  condition: ( length(footnotes.text) < length(text) ),
+  parameters: {
+    footnoteLength: (length(footnotes.text)),
+    pageLength: (length(/* $self. */text)),
+    pageNumber: (number),
+    bookTitle: (book.title),
+  },
+  message: 'FOOTNOTE_TEXT_TOO_LONG',
 }
 entity Pages : managed {
   key number    : Integer;
   key book  : Association to Books;
       text  : String(1111);
+      footnotes: Composition of many {
+        key number : Integer;
+        text       : String(1111);
+      }
 }
 
 @assert.constraint.dates : {
@@ -73,9 +82,6 @@ entity A : managed {
       B   : Integer;
       toB : Composition of many B
               on toB.ID = $self.B;
-      C   : Integer;
-      toC : Composition of many C
-              on toC.ID = $self.C;
 }
 
 @assert.constraint.foreign: {
@@ -87,25 +93,6 @@ entity B : managed {
       A   : Integer;
       toA : Composition of many A
               on toA.ID = $self.A;
-
-      C   : Integer;
-      toC : Composition of many C
-              on toC.ID = $self.C;
-}
-
-entity C : managed {
-  key ID  : Integer;
-      A   : Integer;
-      toA : Composition of many A
-              on toA.ID = $self.A;
-      B   : Integer;
-      toB : Composition of many B
-              on toB.ID = $self.B;
-}
-
-entity Values {
-  key ID    : Integer;
-      value : String;
 }
 
 entity BooksAnnotated as projection on Books;

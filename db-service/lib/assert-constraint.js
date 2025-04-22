@@ -66,11 +66,15 @@ function attachConstraints(_results, req) {
         // else if (parameters.ref) colsForConstraint.push(parameters.ref)
         // else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
         parameters.forEach(p => {
-          const { ref, val } = p
+          const { ref, val, args, xpr, func } = p
           if (ref) {
-            colsForConstraint.push({ ref })
+            colsForConstraint.push({ ref, as: p.name })
           } else if (val) {
-            colsForConstraint.push({ val })
+            colsForConstraint.push({ val, as: p.name })
+          } else if (args) {
+            colsForConstraint.push({ args, func, as: p.name })
+          } else if (xpr) {
+            colsForConstraint.push({ xpr, as: p.name })
           }
         })
       }
@@ -237,7 +241,7 @@ function buildMessage(name, { message, parameters = [] }, row) {
   const msgParams = Object.fromEntries(
     parameters
       .map((p, i) => {
-        const val = row[p['=']]
+        const val = row[p.name || p['=']]
         return val === undefined ? null : [p.name ?? i, val]
       })
       .filter(Boolean),

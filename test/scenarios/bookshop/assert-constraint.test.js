@@ -203,7 +203,7 @@ describe('Bookshop - assertions', () => {
         ),
       ).to.be.rejectedWith('A must not be 42')
     })
-    test.skip('navigation in condition', async () => {
+    test('navigation in condition and in parameters', async () => {
       await INSERT.into(Books).entries([{ ID: 17, title: 'The Way of Kings', stock: 10 }])
       await expect(
         UPDATE(Books, 17).with({
@@ -212,11 +212,17 @@ describe('Bookshop - assertions', () => {
           pages: [
             {
               number: 11,
-              text: 'Lorem ipsum dolor sit amet',
+              text: 'a short page text',
+              footnotes: [
+                {
+                  number: 1,
+                  text: 'The footnote text length exceeds the length of the text of the page',
+                },
+              ],
             },
           ],
         }),
-      ).to.be.rejectedWith('The page number (11) must be greater than the stock (10) of book "{book}" ({ID})')
+      ).to.be.rejectedWith('Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)')
     })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
