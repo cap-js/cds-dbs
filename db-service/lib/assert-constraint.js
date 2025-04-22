@@ -1,7 +1,11 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const dedup = arr => [...new Set(arr)]
+const constraintStorage = require('./assert-constraint-storage')
+const dedup = a => {
+  const seen = new Set()
+  return a.filter(x => !seen.has(x) && seen.add(x))
+}
 
 function attachConstraints(_results, req) {
   if (!req.target || !this.model || req.target._unresolved) return
@@ -32,23 +36,22 @@ function attachConstraints(_results, req) {
   for (const [targetName, constraints] of Object.entries(constraintsPerTarget)) {
     const validationQuery = _getValidationQuery(targetName, constraints)
     if (where.length > 0 && targetName === req.target.name) {
-      if (validationQuery.SELECT.where.length > 0) validationQuery.SELECT.where.push('or', { xpr: where })
-      else validationQuery.SELECT.where.push(...where)
+      if (validationQuery.SELECT.where?.length > 0) validationQuery.SELECT.where.push('or', { xpr: where })
+      else validationQuery.SELECT.where = where
     }
     validationQueries.push(validationQuery)
   }
 
-  if (this.tx.assert_constraints) this.tx.assert_constraints.push(validationQueries)
-  else this.tx.assert_constraints = [validationQueries]
+  if (validationQueries.length) {
+    constraintStorage.add(this.tx, validationQueries)    //  ← no mutation of tx
+  }
   return
 
   function _getValidationQuery(target, constraints) {
-    const validationQuery = SELECT.from(target)
-
     const columns = []
     const parameterAliases = new Set() // tracks every alias already added
 
-    for (const [name, { condition, parameters }] of Object.entries(constraints)) {
+    for (const [name, { condition, parameters, target }] of Object.entries(constraints)) {
       // 1. first add text parameters of the constraint, if any
       if (parameters?.length) {
         for (const p of parameters) {
@@ -67,7 +70,7 @@ function attachConstraints(_results, req) {
       const constraintAlias = `${name}_constraint`
       // should not happen, but just in case
       if (parameterAliases.has(constraintAlias))
-        throw new Error(`Can't evaluate constraint "${name}" because it's name collides with a parameter name`)
+        throw new Error(`Can't evaluate constraint "${name}" in entity “${target.name}” because it's name collides with a parameter name`)
 
       // 2. The actual constraint condition as another column
       columns.push({
@@ -77,13 +80,12 @@ function attachConstraints(_results, req) {
       })
     }
 
-    validationQuery.SELECT.columns = columns
     // REVISIT: matchKeys for one entity should be the same for all constraints
     //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
-    const keyMatchingConditions = Object.values(constraints)[0].matchKeys
-    validationQuery.SELECT.where = keyMatchingConditions.flatMap((matchKey, i) =>
+    const keyMatchingCondition = Object.values(constraints)[0].matchKeys.flatMap((matchKey, i) =>
       i > 0 ? ['or', ...matchKey] : matchKey,
     )
+    const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
     Object.defineProperty(validationQuery, '$constraints', { value: constraints })
     return validationQuery
   }
@@ -209,7 +211,7 @@ function attachConstraints(_results, req) {
  * – resets `this.tx.assert_constraints` when done.
  */
 async function checkConstraints(req) {
-  const pending = this.tx?.assert_constraints
+  const pending = constraintStorage.get(this.tx)
   if (!pending?.length) return // nothing to validate
 
   for (const queryBatch of pending) {
@@ -232,7 +234,7 @@ async function checkConstraints(req) {
     })
   }
 
-  this.tx.assert_constraints = [] // clean up
+  constraintStorage.clear(this.tx) // clean up
 }
 
 /**
