@@ -38,7 +38,7 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
+    const driver = this._driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
     const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
@@ -994,8 +994,8 @@ class HANAService extends SQLService {
 
     SELECT_count(q) {
       const countQuery = super.SELECT_count(q)
-      countQuery.SELECT.from = countQuery.SELECT.from
-      countQuery.SELECT.where = countQuery.SELECT.where
+      countQuery.SELECT.from = countQuery.SELECT.from // eslint-disable-line no-self-assign
+      countQuery.SELECT.where = countQuery.SELECT.where // eslint-disable-line no-self-assign
       // Ensure that the query is not considered an expand query
       countQuery.SELECT.parent = undefined
       return countQuery
@@ -1042,7 +1042,7 @@ class HANAService extends SQLService {
       const converter = extractions.map(c => c.insert)
 
       const _stream = entries => {
-        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator]|| entries[0] instanceof Readable ? entries[0] : entries
+        entries = entries[0]?.[Symbol.iterator] || entries[0]?.[Symbol.asyncIterator] || entries[0] instanceof Readable ? entries[0] : entries
         const stream = Readable.from(this.INSERT_entries_stream(entries, 'hex'), { objectMode: false })
         stream.setEncoding('utf-8')
         stream.type = 'json'
@@ -1442,9 +1442,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      // TODO: test property names with single and double quotes
+      const path = this.string(HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
-        extract: `${this.quote(name)} ${this.insertType4(element)} PATH '$.${name}', ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH '$.${name}'`,
+        extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
       }
     }
@@ -1460,6 +1460,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     static TypeMap = {
       ...super.TypeMap,
+      Vector: () => 'REAL_VECTOR',
     }
 
     // TypeMap used for the JSON_TABLE column definition

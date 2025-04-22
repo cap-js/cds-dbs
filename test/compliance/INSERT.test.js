@@ -146,6 +146,21 @@ describe('INSERT', () => {
       const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where exists alter`)
       expect(select[0]).to.deep.eql(data)
     })
+
+    test('smart quoting entries select', async () => {
+      const { Alter, ASC } = cds.entities('complex.keywords')
+      // fill other table first
+      await cds.run(INSERT({ ID: 1, alias: 42 }).into(ASC))
+      await INSERT.into(Alter)
+        .columns(['ID', 'number'])
+        .entries(
+          SELECT.from(ASC)
+            .columns(['ID', 'alias'])
+            .where({ ref: ['alias'] }, '=', { val: 42 }),
+        )
+      const select = await SELECT.from(Alter).where('number = 42')
+      expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
+    })
   })
 
   describe('columns', () => {
@@ -159,23 +174,6 @@ describe('INSERT', () => {
       test.skip('missing', () => {
         throw new Error('not supported')
       })
-    })
-  })
-
-  describe('as', () => {
-    test('smart quoting', async () => {
-      const { Alter, ASC } = cds.entities('complex.keywords')
-      // fill other table first
-      await cds.run(INSERT({ ID: 1, alias: 42 }).into(ASC))
-      await INSERT.into(Alter)
-        .columns(['ID', 'number'])
-        .as(
-          SELECT.from(ASC)
-            .columns(['ID', 'alias'])
-            .where({ ref: ['alias'] }, '=', { val: 42 }),
-        )
-      const select = await SELECT.from(Alter).where('number = 42')
-      expect(select[0]).to.eql({ ID: 1, number: 42, order_ID: null })
     })
   })
 

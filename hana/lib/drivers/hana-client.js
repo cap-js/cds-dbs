@@ -305,7 +305,8 @@ async function rsIterator(rs, one, objectMode) {
     }
     state.readBlob = function readBlob() {
       const index = this.columnIndex++
-      return rs.isNull(index)
+      const col = this.rs.getColumnInfo()[index]
+      return this.rs.isNull(index)
         ? null
         : col.nativeType === 12 || col.nativeType === 13 // return binary type as simple buffer
           ? this.rs.getValue(index)
@@ -423,3 +424,4 @@ async function* rowsIterator(rows, cols) {
 }
 
 module.exports.driver = HANAClientDriver
+module.exports.driver._driver = hdb

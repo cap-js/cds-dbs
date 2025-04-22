@@ -119,7 +119,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').CREATE} q
    */
   CREATE(q) {
-    let { target } = q
+    let { _target: target } = q
     let query = target?.query || q.CREATE.as
     if (!target || target._unresolved) {
       const entity = q.CREATE.entity
@@ -213,7 +213,7 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').DROP} q
    */
   DROP(q) {
-    const { target } = q
+    const { _target: target } = q
     const isView = target?.query || target?.projection || q.DROP.view
     const name = target?.name || q.DROP.table?.ref?.[0] || q.DROP.view?.ref?.[0]
     return (this.sql = `DROP ${isView ? 'VIEW' : 'TABLE'} IF EXISTS ${this.quote(this.name(name, q))}`)
@@ -307,8 +307,7 @@ class CQN2SQLRenderer {
       }
       : x => {
         const name = this.column_name(x)
-        const escaped = `${name.replace(/"/g, '""')}`
-        return `'$."${escaped}"',${this.output_converter4(x.element, this.quote(name))}`
+        return `${this.string(`$.${JSON.stringify(name)}`)},${this.output_converter4(x.element, this.quote(name))}`
       }).flat()
 
     if (isSimple) return `SELECT ${cols} FROM (${sql})`
@@ -429,8 +428,8 @@ class CQN2SQLRenderer {
     return orderBy.map(c => {
       const o = localized
         ? this.expr(c) +
-          (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
-          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
+        (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
       if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
       return o
@@ -1144,8 +1143,8 @@ class CQN2SQLRenderer {
   managed_extract(name, element, converter) {
     const { UPSERT, INSERT } = this.cqn
     const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
-      ? `value->>'$[${this.columns.indexOf(name)}]'`
-      : `value->>'$."${name.replace(/"/g, '""')}"'`
+      ? `value->>${this.string(`$[${this.columns.indexOf(name)}]`)}`
+      : `value->>${this.string(`$.${JSON.stringify(name)}`)}`
     const sql = converter?.(extract) || extract
     return { extract, sql }
   }
