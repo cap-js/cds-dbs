@@ -162,7 +162,7 @@ describe('INSERT', () => {
     })
   })
 
-  describe('as', () => {
+  describe('from', () => {
     test('smart quoting', async () => {
       const { Alter, ASC } = cds.entities('complex.keywords')
       // fill other table first

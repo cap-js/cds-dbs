@@ -1,7 +1,7 @@
 const cds = require('../../../test/cds.js')
 const assert = require('assert')
 
-describe('insert as select', () => {
+describe('insert from select', () => {
   cds.test(__dirname, 'testModel.cds')
 
   test('make sure that the placeholder values of the prepared statement are passed to the database', async () => {
@@ -14,7 +14,7 @@ describe('insert as select', () => {
           .columns(['ID', 'name'])
           .where({ ref: ['name'] }, '=', { val: 'Foo2' }),
       )
-    // insert as select
+    // insert from select
     const insertRes = await cds.run(insert)
     assert.strictEqual(insertRes.affectedRows, 1, 'One row should have been inserted')
     // select the inserted column
