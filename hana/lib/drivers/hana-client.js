@@ -69,10 +69,8 @@ class HANAClientDriver extends driver {
         const stmt = await ret._prep
         // Create result set
         const reset = async function () {
-          if (this) {
-            await prom(this, 'close')()
-            return
-          }
+          if (this) await prom(this, 'close')()
+          if (!stmt.isValid()) cds.error`Stream source has been invalidated. Make sure to keep your transaction open until all streams are consumed.`
           const rs = await prom(stmt, 'executeQuery')(values)
           rs.reset = reset
           return rs
