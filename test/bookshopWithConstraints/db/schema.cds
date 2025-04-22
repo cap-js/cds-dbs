@@ -27,7 +27,7 @@ entity Books : managed {
       pages: Composition of many Pages on pages.book = $self;
 }
 
-@assert.constraint.editingConstraint : {
+@assert.constraint.firstEditingConstraint : {
   condition: ( length(footnotes.text) < length(text) ),
   parameters: {
     footnoteLength: (length(footnotes.text)),
@@ -36,6 +36,15 @@ entity Books : managed {
     bookTitle: (book.title),
   },
   message: 'FOOTNOTE_TEXT_TOO_LONG',
+}
+@assert.constraint.secondEditingConstraint : {
+  condition: (  length(text) > 0 ),
+  parameters: {
+    pageLength: (length(/* $self. */text)),
+    pageNumber: (number),
+    bookTitle: (book.title),
+  },
+  message: 'PAGE_TEXT_TOO_SHORT',
 }
 entity Pages : managed {
   key number    : Integer;

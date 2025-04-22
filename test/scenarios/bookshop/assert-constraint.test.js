@@ -224,6 +224,20 @@ describe('Bookshop - assertions', () => {
         }),
       ).to.be.rejectedWith('Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)')
     })
+    test('multiple constraints on one entity', async () => {
+      await INSERT.into(Books).entries([{ ID: 18, title: 'Elantris', stock: 0 }])
+      await expect(
+        UPDATE(Books, 18).with({
+          stock: 1000,
+          pages: [
+            {
+              number: 1,
+              text: '',
+            },
+          ],
+        }),
+      ).to.be.rejectedWith('Text of page 1 for book "Elantris" must not be an empty string')
+    })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
       await expect(

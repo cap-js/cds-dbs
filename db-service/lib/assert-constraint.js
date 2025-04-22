@@ -44,28 +44,38 @@ function attachConstraints(_results, req) {
 
   function _getValidationQuery(target, constraints) {
     const validationQuery = SELECT.from(target)
-    // each column represents a constraint
-    const columns = Object.keys(constraints).flatMap(name => {
-      const constraint = constraints[name]
-      const { condition, parameters } = constraint
-      const xpr = []
-      xpr.push({ xpr: condition.xpr })
-      const colsForConstraint = [
-        {
-          xpr: _wrapInCaseWhen(xpr),
-          // avoid naming ambiguities for anonymous constraints,
-          // where the element itself is part of the msg params
-          as: name + '_constraint',
-          cast: {
-            type: 'cds.Boolean',
-          },
-        },
-      ]
-      if (parameters) {
-        colsForConstraint.push(...parameters)
+
+    const columns = []
+    const parameterAliases = new Set() // tracks every alias already added
+
+    for (const [name, { condition, parameters }] of Object.entries(constraints)) {
+      // 1. first add text parameters of the constraint, if any
+      if (parameters?.length) {
+        for (const p of parameters) {
+          if (parameterAliases.has(p.as)) {
+            // one constraints parameters may shadow another constraints parameters
+            // in that case, the last one wins
+            const idx = columns.findIndex(c => c.as === p.as)
+            columns[idx] = p
+          } else {
+            parameterAliases.add(p.as)
+            columns.push(p)
+          }
+        }
       }
-      return colsForConstraint
-    })
+
+      const constraintAlias = `${name}_constraint`
+      // should not happen, but just in case
+      if (parameterAliases.has(constraintAlias))
+        throw new Error(`Can't evaluate constraint "${name}" because it's name collides with a parameter name`)
+
+      // 2. The actual constraint condition as another column
+      columns.push({
+        xpr: _wrapInCaseWhen([{ xpr: condition.xpr }]),
+        as: constraintAlias,
+        cast: { type: 'cds.Boolean' },
+      })
+    }
 
     validationQuery.SELECT.columns = columns
     // REVISIT: matchKeys for one entity should be the same for all constraints
@@ -144,7 +154,7 @@ function attachConstraints(_results, req) {
       const entry = (collected[constraintName] ??= { element: obj, target })
       if (propertyName.startsWith('parameters')) {
         const paramName = propertyName.slice('parameters.'.length)
-        if(paramName === '') {
+        if (paramName === '') {
           // anonymous parameters, attach index as name
           entry[propertyName] = val.map((p, i) => ({ ...p, as: `${i}` }))
         } else {
