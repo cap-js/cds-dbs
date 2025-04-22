@@ -93,10 +93,10 @@ describe('Bookshop - assertions', () => {
         expect(details).to.have.length(2)
         const messages = details.map(detail => detail.message)
         expect(messages).to.include(
-          'Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters',
+          'Genre name "Non-Fiction Updated with a waaaaaay to long name" exceeds maximum length of 20 characters (48)',
         )
         expect(messages).to.include(
-          'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
+          'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters (50)',
         )
       }
     })
@@ -182,7 +182,7 @@ describe('Bookshop - assertions', () => {
           { auth: { username: 'alice' } },
         ),
       ).to.be.rejectedWith(
-        'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters',
+        'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters (50)',
       )
     })
 

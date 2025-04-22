@@ -75,7 +75,7 @@ entity Genres : sap.common.CodeList {
                    on children.parent = $self;
 }
 
-annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [(name)], message: 'GENRE_NAME_TOO_LONG'};
+annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [(name), (length(name))], message: 'GENRE_NAME_TOO_LONG'};
 
 entity A : managed {
   key ID  : Integer;

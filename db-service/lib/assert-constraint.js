@@ -65,17 +65,20 @@ function attachConstraints(_results, req) {
         // if (parameters.list) parameters.list.forEach(p => colsForConstraint.push(p))
         // else if (parameters.ref) colsForConstraint.push(parameters.ref)
         // else if (parameters.length) parameters.forEach(p => colsForConstraint.push({ ref: [p['=']] }))
-        parameters.forEach(p => {
+        parameters.forEach( (p, i) => {
           const { ref, val, args, xpr, func } = p
+          const paramCol = { as: p.name || `${i}` }
           if (ref) {
-            colsForConstraint.push({ ref, as: p.name })
+            paramCol.ref = ref
           } else if (val) {
-            colsForConstraint.push({ val, as: p.name })
-          } else if (args) {
-            colsForConstraint.push({ args, func, as: p.name })
+            paramCol.val = val
+          } else if (func) {
+            paramCol.func = func
+            paramCol.args = args
           } else if (xpr) {
-            colsForConstraint.push({ xpr, as: p.name })
+            paramCol.xpr = xpr
           }
+          colsForConstraint.push(paramCol)
         })
       }
       return colsForConstraint
@@ -241,7 +244,7 @@ function buildMessage(name, { message, parameters = [] }, row) {
   const msgParams = Object.fromEntries(
     parameters
       .map((p, i) => {
-        const val = row[p.name || p['=']]
+        const val = row[p.name || i]
         return val === undefined ? null : [p.name ?? i, val]
       })
       .filter(Boolean),
