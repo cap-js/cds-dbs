@@ -494,6 +494,15 @@ function infer(originalQuery, model) {
             definition: getDefinitionFromSources(sources, id),
             target: getDefinitionFromSources(sources, id),
           })
+        } else if (ref.length === 1 && inferred.outerQueries?.find(outer => id in outer.$combinedElements)) {
+          // outer query accessed without alias
+          const outerAlias = inferred.outerQueries?.find(outer => id in outer.$combinedElements)
+
+          if (outerAlias.$combinedElements[id].length > 1) stepIsAmbiguous(id) // exit
+          const definition = outerAlias.$combinedElements[id][0].tableAlias.elements[id]
+          const $refLink = { definition, target: outerAlias.$combinedElements[id][0].tableAlias }
+          arg.$refLinks.push($refLink)
+          nameSegments.push(id)
         } else {
           stepNotFoundInCombinedElements(id) // REVISIT: fails with {__proto__:elements)
         }
