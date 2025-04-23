@@ -1037,6 +1037,7 @@ class HANAService extends SQLService {
           && !transitions.target.elements[c].virtual
           && !transitions.target.elements[c].value
           && !transitions.target.elements[c].isAssociation
+          && !elements[c][SYSTEM_VERSIONED]
         )
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
