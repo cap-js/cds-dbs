@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-17)
+
+
+### Added
+
+* enable skip hana wrapping ([#1137](https://github.com/cap-js/cds-dbs/issues/1137)) ([5e6d61f](https://github.com/cap-js/cds-dbs/commit/5e6d61f9342a91349d4d88a93dedaf0a311b995b))
+* Result set streaming ([#702](https://github.com/cap-js/cds-dbs/issues/702)) ([2fe02ea](https://github.com/cap-js/cds-dbs/commit/2fe02eafd02993e5697efbdab90ad997fb2c9e00))
+
+
+### Fixed
+
+* Improved support for special characters in column names ([#1141](https://github.com/cap-js/cds-dbs/issues/1141)) ([ba04697](https://github.com/cap-js/cds-dbs/commit/ba046971921d645e8571a80c27ef07988c8c01ad))
+
 ## [1.8.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.0...hana-v1.8.1) (2025-04-02)
 
 
