@@ -494,7 +494,7 @@ function infer(originalQuery, model) {
             definition: getDefinitionFromSources(sources, id),
             target: getDefinitionFromSources(sources, id),
           })
-        } else if (ref.length === 1 && inferred.outerQueries?.find(outer => id in outer.$combinedElements)) {
+        } else if (/* arg.ref.length === 1 && */ inferred.outerQueries?.find(outer => id in outer.$combinedElements)) {
           // outer query accessed without alias
           const outerAlias = inferred.outerQueries?.find(outer => id in outer.$combinedElements)
 
