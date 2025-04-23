@@ -1,22 +1,8 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const CONSTRAINTS = new WeakMap()
 
-function dedup(a) {
-  const seen = new Set()
-  return a.filter(x => !seen.has(x) && seen.add(x))
-}
-
-function getValidationQuery(targetName, constraints, extraWhere, reqTarget) {
-  const q = buildValidationQuery(targetName, constraints)
-  if (extraWhere && targetName === reqTarget) {
-    q.SELECT.where = q.SELECT.where?.length ? [...q.SELECT.where, 'or', { xpr: extraWhere }] : extraWhere
-  }
-  return q
-}
-
-function buildValidationQuery(target, constraints) {
+function getValidationQuery(target, constraints) {
   const columns = []
   const parameterAliases = new Set() // tracks every alias already added
 
@@ -53,7 +39,7 @@ function buildValidationQuery(target, constraints) {
 
   // REVISIT: matchKeys for one entity should be the same for all constraints
   //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
-  const keyMatchingCondition = Object.values(constraints)[0].matchKeys.flatMap((matchKey, i) =>
+  const keyMatchingCondition = Object.values(constraints)[0].where.flatMap((matchKey, i) =>
     i > 0 ? ['or', ...matchKey] : matchKey,
   )
   const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
@@ -78,7 +64,7 @@ function collectConstraints(entity, data, model = cds.model) {
   // ────────── 2. attach match keys ──────
   const mk = matchKeys(entity, data)
   for (const c of Object.values(constraints)) {
-    c.matchKeys = dedup([...(c.matchKeys ?? []), ...mk])
+    c.where = [...(c.matchKeys ?? []), ...mk]
   }
 
   // ────────── 3. recurse into compositions present in the payload ──────────
@@ -95,12 +81,12 @@ function collectConstraints(entity, data, model = cds.model) {
   return constraints
 }
 
-/** Merge two constraint maps in‑place, concatenating any duplicate matchKeys. */
+/** Merge two constraint maps in‑place, concatenating any duplicate matchKeys (they are deduped later). */
 function mergeConstraintSets(base, incoming) {
   for (const [name, inc] of Object.entries(incoming)) {
     const existing = base[name]
     if (existing && existing.element === inc.element) {
-      existing.matchKeys = dedup([...existing.matchKeys, ...inc.matchKeys])
+      existing.where = [...existing.where, ...inc.where]
     } else {
       base[name] = inc
     }
@@ -165,7 +151,7 @@ function matchKeys(entity, data) {
         return identifier
       }, []),
     )
-    .filter(Boolean)
+    .filter(e => e.length > 0) // remove empty entries
 }
 
 function wrapInCaseWhen(xpr) {
@@ -223,26 +209,4 @@ module.exports = {
   collectConstraints,
   buildMessage,
   getWhereOfPatch,
-  /**
-   *
-   * Helper that keeps validation queries in RAM per
-   * transaction.  Internally uses a `WeakMap`, so data is released
-   * automatically when the transaction object is garbage‑collected.
-   *
-   * Keys   → {cds.Transaction}
-   * Values → Array<cds.Query>
-   */
-  constraintStorage: {
-    add(tx, queries) {
-      const list = CONSTRAINTS.get(tx) ?? []
-      list.push(...queries)
-      CONSTRAINTS.set(tx, list)
-    },
-    get(tx) {
-      return CONSTRAINTS.get(tx) ?? []
-    },
-    clear(tx) {
-      CONSTRAINTS.delete(tx)
-    },
-  },
 }

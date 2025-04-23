@@ -3,11 +3,12 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshopWithConstraint
 
 describe('Bookshop - assertions', () => {
   const { expect, POST } = cds.test(bookshop)
-  let adminService, catService, Books, Genres
+  let adminService, catService, Books, Genres, Authors
 
   before('bootstrap the database', async () => {
     Books = cds.entities.Books
     Genres = cds.entities.Genres
+    Authors = cds.entities.Authors
     await INSERT({ ID: 42, title: 'Harry Potter and the Chamber of Secrets', stock: 15, price: 15 }).into(Books)
   })
 
@@ -18,15 +19,40 @@ describe('Bookshop - assertions', () => {
       )
     })
 
-    // TODO: there should be only one query against books in the end.
     test('at the end, everything is alright so dont complain right away', async () => {
       adminService = await cds.connect.to('AdminService')
-      await expect(adminService.tx({ user: 'alice' }, async () => {
-        // first invalid
-        await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)
-        // now we make it valid
-        await UPDATE(Books, '49').with({ stock: 10 })
-      })).to.be.fulfilled
+      await expect(
+        adminService.tx({ user: 'alice' }, async () => {
+          // first invalid
+          await INSERT({ ID: 49, title: 'Harry Potter and the Deathly Hallows II', stock: -1 }).into(Books)
+          // now we make it valid
+          await UPDATE(Books, '49').with({ stock: 10 })
+        }),
+      ).to.be.fulfilled
+      await DELETE.from(Books).where({ ID: 49 })
+    })
+
+    // Note: there will be only one query against books and one against authors in the end.
+    test('multiple requests against the same entity should always result in exactly one query in the end', async () => {
+      adminService = await cds.connect.to('AdminService')
+      await expect(
+        adminService.tx({ user: 'alice' }, async () => {
+          // first invalid
+          await INSERT({ ID: 55, title: 'Dawnshard', stock: -1 }).into(Books)
+          await INSERT({ ID: 77, title: 'Edgedancer', stock: -1 }).into(Books)
+          await INSERT({ ID: 99, title: 'Horneater', stock: -1 }).into(Books)
+
+          await INSERT({ ID: 100, name: 'Brandon Sanderdaughter', dateOfBirth: '1975-12-19' }).into(Authors)
+
+          // the following entries have been touched before in the same transaction
+          await UPDATE(Books, 55).with({ stock: 10 })
+          await UPDATE(Books, 77).with({ stock: 10 })
+          await UPDATE(Books, 99).with({ stock: 10 })
+          await UPDATE(Authors, 100).with({ name: 'Brandon Sanderson' })
+        }),
+      ).to.be.fulfilled
+      await DELETE.from(Books).where({ ID: [55, 77, 99] })
+      await DELETE.from(Authors).where({ ID: 100 })
     })
 
     test('assertion via action', async () => {
@@ -99,6 +125,12 @@ describe('Bookshop - assertions', () => {
           'Genre name "We forbid genre names with more than 20 characters" exceeds maximum length of 20 characters (50)',
         )
       }
+    })
+    test('via service entity, parameter used in validation message of original entity is renamed', async () => {
+      const { RenameKeys: Renamed } = cds.entities('AdminService')
+      await expect(UPDATE.entity(Renamed).where(`author.name LIKE 'Richard%'`).set('stock = -1')).to.be.rejectedWith(
+        'Stock for book "Catweazle" (271) must not be a negative number',
+      )
     })
   })
 
@@ -222,7 +254,9 @@ describe('Bookshop - assertions', () => {
             },
           ],
         }),
-      ).to.be.rejectedWith('Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)')
+      ).to.be.rejectedWith(
+        'Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)',
+      )
     })
     test('multiple constraints on one entity', async () => {
       await INSERT.into(Books).entries([{ ID: 18, title: 'Elantris', stock: 0 }])
@@ -252,13 +286,4 @@ describe('Bookshop - assertions', () => {
     })
   })
 
-  describe('via service entity', () => {
-    // TODO: parameters are not linked to i18n definition anymore after compiler renaming
-    test('via service entity, parameter used in validation message of original entity is renamed', async () => {
-      const { RenameKeys: Renamed } = cds.entities('AdminService')
-      await expect(UPDATE.entity(Renamed).where(`author.name LIKE 'Richard%'`).set('stock = -1')).to.be.rejectedWith(
-        'Stock for book "Catweazle" (271) must not be a negative number',
-      )
-    })
-  })
 })
