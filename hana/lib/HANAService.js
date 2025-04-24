@@ -38,7 +38,7 @@ class HANAService extends SQLService {
 
   // REVISIT: Add multi tenant factory when clarified
   get factory() {
-    const driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
+    const driver = this._driver = drivers[this.options.driver || this.options.credentials?.driver]?.driver || drivers.default.driver
     const service = this
     const { credentials, kind, client: clientOptions = {} } = service.options
     if (!credentials) {
@@ -1206,9 +1206,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      // TODO: test property names with single and double quotes
+      const path = this.string(HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
-        extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${HANAVERSION <= 2 ? `'$.${name}'` : `'$["${name}"]'`}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${HANAVERSION <= 2 ? `'$.${name}'` : `'$["${name}"]'`}`,
+        extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
       }
     }
@@ -1224,6 +1224,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     static TypeMap = {
       ...super.TypeMap,
+      Vector: () => 'REAL_VECTOR',
     }
 
     // TypeMap used for the JSON_TABLE column definition

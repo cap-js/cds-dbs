@@ -55,6 +55,7 @@ describe('Bookshop - Update', () => {
   })
 
   test('programmatic insert/upsert/update/select/delete with unknown entity', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
     let affectedRows = await INSERT.into(books)

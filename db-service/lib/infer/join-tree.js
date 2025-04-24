@@ -170,7 +170,7 @@ class JoinTree {
         // find the correct query source
         if (
           r.queryArtifact === head.target ||
-          r.queryArtifact === head.target.target /** might as well be a query for order by */
+          r.queryArtifact === head.target._target /** might as well be a query for order by */
         )
           node = r
       })

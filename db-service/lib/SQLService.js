@@ -495,17 +495,16 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
+/** @param {import('@sap/cds').ql.Query} q */
 const _target_name4 = q => {
-  const target =
-    q._target_ref ||
-    q.from_into_ntt ||
-    q.SELECT?.from ||
-    q.INSERT?.into ||
-    q.UPSERT?.into ||
-    q.UPDATE?.entity ||
-    q.DELETE?.from ||
-    q.CREATE?.entity ||
-    q.DROP?.entity
+  const target = q._subject
+    || q.SELECT?.from
+    || q.INSERT?.into
+    || q.UPSERT?.into
+    || q.UPDATE?.entity
+    || q.DELETE?.from
+    || q.CREATE?.entity
+    || q.DROP?.entity
   if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
