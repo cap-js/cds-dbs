@@ -6,9 +6,9 @@ describe('Bookshop - assertions', () => {
   let adminService, catService, Books, Genres, Authors
 
   before('bootstrap the database', async () => {
-    Books = cds.entities.Books
-    Genres = cds.entities.Genres
-    Authors = cds.entities.Authors
+    Books = cds.entities('AdminService').Books
+    Genres = cds.entities('AdminService').Genres
+    Authors = cds.entities('AdminService').Authors
     await INSERT({ ID: 42, title: 'Harry Potter and the Chamber of Secrets', stock: 15, price: 15 }).into(Books)
   })
 
@@ -132,6 +132,44 @@ describe('Bookshop - assertions', () => {
         'Stock for book "Catweazle" (271) must not be a negative number',
       )
     })
+    test('navigation in condition and in parameters', async () => {
+      await INSERT.into(Books).entries([{ ID: 17, title: 'The Way of Kings', stock: 10 }])
+      await expect(
+        UPDATE(Books, 17).with({
+          title: 'The Way of Kings',
+          stock: 10,
+          pages: [
+            {
+              number: 11,
+              text: 'a short page text',
+              footnotes: [
+                {
+                  number: 1,
+                  text: 'The footnote text length exceeds the length of the text of the page',
+                },
+              ],
+            },
+          ],
+        }),
+      ).to.be.rejectedWith(
+        'Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)',
+      )
+    })
+
+    test('multiple constraints on one entity', async () => {
+      await INSERT.into(Books).entries([{ ID: 18, title: 'Elantris', stock: 0 }])
+      await expect(
+        UPDATE(Books, 18).with({
+          stock: 1000,
+          pages: [
+            {
+              number: 1,
+              text: '',
+            },
+          ],
+        }),
+      ).to.be.rejectedWith('Text of page 1 for book "Elantris" must not be an empty string')
+    })
   })
 
   describe('INSERT', () => {
@@ -235,42 +273,32 @@ describe('Bookshop - assertions', () => {
         ),
       ).to.be.rejectedWith('A must not be 42')
     })
-    test('navigation in condition and in parameters', async () => {
-      await INSERT.into(Books).entries([{ ID: 17, title: 'The Way of Kings', stock: 10 }])
+
+    // skip due to gap in infer
+    test.skip('constraint with exists subquery', async () => {
       await expect(
-        UPDATE(Books, 17).with({
-          title: 'The Way of Kings',
-          stock: 10,
-          pages: [
-            {
-              number: 11,
-              text: 'a short page text',
-              footnotes: [
-                {
-                  number: 1,
-                  text: 'The footnote text length exceeds the length of the text of the page',
-                },
-              ],
-            },
-          ],
-        }),
-      ).to.be.rejectedWith(
-        'Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)',
-      )
-    })
-    test('multiple constraints on one entity', async () => {
-      await INSERT.into(Books).entries([{ ID: 18, title: 'Elantris', stock: 0 }])
-      await expect(
-        UPDATE(Books, 18).with({
-          stock: 1000,
-          pages: [
-            {
-              number: 1,
-              text: '',
-            },
-          ],
-        }),
-      ).to.be.rejectedWith('Text of page 1 for book "Elantris" must not be an empty string')
+        INSERT.into(Books).entries([
+          {
+            ID: 240,
+            title: 'Elantris',
+            stock: 10,
+            pages: [
+              { number: 1, text: 'The first page of this Book is filled with adventures' },
+              {
+                number: 2,
+                text: 'The second page is also absolutely amazing and makes you want to read more',
+                footnotes: [
+                  // if there would n footnotes, the error would be raised n times due to the `exists` used in the constraint
+                  {
+                    number: 3,
+                    text: 'This footnote contains a "FORBIDDEN PHRASE" and should be rejected',
+                  },
+                ],
+              },
+            ],
+          },
+        ]),
+      ).to.be.rejectedWith('The phrase "FORBIDDEN PHRASE" is not allowed in footnotes')
     })
 
     test('assertion in batch (make sure there is only one query in the end)', async () => {
@@ -285,5 +313,4 @@ describe('Bookshop - assertions', () => {
       ).to.be.rejectedWith('Stock for book "Words of Radiance" (501) must not be a negative number')
     })
   })
-
 })

@@ -31,7 +31,7 @@ function getValidationQuery(target, constraints) {
 
     // 2. The actual constraint condition as another column
     columns.push({
-      xpr: wrapInCaseWhen([{ xpr: condition.xpr }]),
+      xpr: wrapInNegatedCaseWhen([{ xpr: condition.xpr }]),
       as: constraintAlias,
       cast: { type: 'cds.Boolean' },
     })
@@ -154,7 +154,7 @@ function matchKeys(entity, data) {
     .filter(e => e.length > 0) // remove empty entries
 }
 
-function wrapInCaseWhen(xpr) {
+function wrapInNegatedCaseWhen(xpr) {
   return ['case', 'when', 'not', { xpr }, 'then', { val: false }, 'else', { val: true }, 'end']
 }
 

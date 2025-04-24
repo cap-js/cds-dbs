@@ -12,11 +12,6 @@ entity Books : managed {
       descr          : localized String(1111);
       author         : Association to Authors;
       genre          : Association to Genres default 10;
-      @assert.constraint.stockNotEmpty : {
-        condition: ( stock >= 0 ),
-        message: 'STOCK_NOT_EMPTY',
-        parameters: {title: (title), ID: (ID)}     // to be inserted into the message
-      }
       stock          : Integer;
       price          : Decimal;
       dummyDecimal   : Decimal;
@@ -27,25 +22,6 @@ entity Books : managed {
       pages: Composition of many Pages on pages.book = $self;
 }
 
-@assert.constraint.firstEditingConstraint : {
-  condition: ( length(footnotes.text) < length(text) ),
-  parameters: {
-    footnoteLength: (length(footnotes.text)),
-    pageLength: (length(/* $self. */text)),
-    pageNumber: (number),
-    bookTitle: (book.title),
-  },
-  message: 'FOOTNOTE_TEXT_TOO_LONG',
-}
-@assert.constraint.secondEditingConstraint : {
-  condition: (  length(text) > 0 ),
-  parameters: {
-    pageLength: (length(/* $self. */text)),
-    pageNumber: (number),
-    bookTitle: (book.title),
-  },
-  message: 'PAGE_TEXT_TOO_SHORT',
-}
 entity Pages : managed {
   key number    : Integer;
   key book  : Association to Books;
@@ -56,11 +32,6 @@ entity Pages : managed {
       }
 }
 
-@assert.constraint.dates : {
-  condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
-  message: 'LIFE_BEFORE_DEATH',
-  parameters: [(dateOfBirth), (name), (dateOfDeath)]
-}
 entity Authors : managed {
   key ID           : Integer;
       name         : String(111);
@@ -84,7 +55,6 @@ entity Genres : sap.common.CodeList {
                    on children.parent = $self;
 }
 
-annotate Genres:name with @assert.constraint: {condition: (length(name) <= 25), parameters: [(name), (length(name))], message: 'GENRE_NAME_TOO_LONG'};
 
 entity A : managed {
   key ID  : Integer;
@@ -93,10 +63,6 @@ entity A : managed {
               on toB.ID = $self.B;
 }
 
-@assert.constraint.foreign: {
-  condition: (A != 42),
-  message: 'A must not be 42',
-}
 entity B : managed {
   key ID  : Integer;
       A   : Integer;
