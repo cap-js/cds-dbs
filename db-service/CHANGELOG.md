@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.20.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.1...db-service-v1.20.0) (2025-04-17)
+
+
+### Added
+
+* Result set streaming ([#702](https://github.com/cap-js/cds-dbs/issues/702)) ([2fe02ea](https://github.com/cap-js/cds-dbs/commit/2fe02eafd02993e5697efbdab90ad997fb2c9e00))
+
+
+### Fixed
+
+* **`expand`:** proper subquery `from` construction ([#1126](https://github.com/cap-js/cds-dbs/issues/1126)) ([e343e79](https://github.com/cap-js/cds-dbs/commit/e343e7978acc0c181a012f61b6181b7c558aa178)), closes [#1114](https://github.com/cap-js/cds-dbs/issues/1114) [#1112](https://github.com/cap-js/cds-dbs/issues/1112)
+* Improved support for special characters in column names ([#1141](https://github.com/cap-js/cds-dbs/issues/1141)) ([ba04697](https://github.com/cap-js/cds-dbs/commit/ba046971921d645e8571a80c27ef07988c8c01ad))
+* **infer:** for localized queries, use `localized.<entity>` as `_target` ([#1140](https://github.com/cap-js/cds-dbs/issues/1140)) ([b08707b](https://github.com/cap-js/cds-dbs/commit/b08707b76a53c74f1c4388a8be4d0818506388c5))
+
 ## [1.19.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.0...db-service-v1.19.1) (2025-04-01)
 
 
