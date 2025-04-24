@@ -489,7 +489,7 @@ class CQN2SQLRenderer {
         ? this.INSERT_rows(q)
         : INSERT.values
           ? this.INSERT_values(q)
-          : INSERT.as
+          : INSERT.from || INSERT.as
             ? this.INSERT_select(q)
             : cds.error`Missing .entries, .rows, or .values in ${q}`
   }
@@ -695,7 +695,7 @@ class CQN2SQLRenderer {
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
     this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
-      this.cqn4sql(INSERT.as),
+      this.cqn4sql(INSERT.from || INSERT.as),
     )}`
     this.entries = [this.values]
     return this.sql
