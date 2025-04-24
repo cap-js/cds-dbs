@@ -6,7 +6,7 @@ const constraintStorage = require('./storage')
 
 /**
  *
- * “Before-hook” that gathers every `@assert.constraint` touched by the current
+ * Hook that gathers every `@assert.constraint` touched by the current
  * request, optionally augments them with an extra filter (the
  * `where` of an UPDATE/UPSERT), and merges the result into
  * {@link constraintStorage} so it can be validated once per transaction in
@@ -23,12 +23,11 @@ const constraintStorage = require('./storage')
  *
  * Notes
  * ─────────────────────────────────────────────────────────────────
- * • No validation queries are built here; we only stash **metadata**.
+ * • No validation queries are built here; we only collect and store constraint metadata.
  * • The function is idempotent within the same transaction because
  *   `constraintStorage.merge` deduplicates constraints and WHEREs.
  *
- * @this {import('@sap/cds').Service}  CAP service or transaction object
- * @param {*}                        _res   (ignored — payload from previous hook)
+ * @param {*}                        _res   (ignored)
  * @param {import('@sap/cds').Request} req   Current request being processed
  */
 
@@ -78,7 +77,7 @@ async function checkConstraints(req) {
   const constraintsPerTarget = constraintStorage.get(this.tx)
   if (!constraintsPerTarget.size) return
 
-  // build exactly one query per bucket
+  // build exactly one query per entity
   const queries = []
   for (const [targetName, constraints] of constraintsPerTarget) {
     queries.push(getValidationQuery(targetName, constraints))
