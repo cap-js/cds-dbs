@@ -66,7 +66,7 @@ function attachConstraints(_res, req) {
  *
  * @this   {import('@sap/cds').Service}  CAP service or transactional context
  * @param  {import('@sap/cds').Request}  req
- *         The *root* request that triggered the commit.  Used only to emit
+ *         The root request that triggered the commit.  Used only to emit
  *         `req.error(...)` messages.
  *
  * @returns {Promise<void>}  Resolves when all validations are finished.
@@ -75,12 +75,12 @@ function attachConstraints(_res, req) {
  *
  */
 async function checkConstraints(req) {
-  const buckets = constraintStorage.get(this.tx)
-  if (!buckets.size) return
+  const constraintsPerTarget = constraintStorage.get(this.tx)
+  if (!constraintsPerTarget.size) return
 
   // build exactly one query per bucket
   const queries = []
-  for (const [targetName, constraints] of buckets) {
+  for (const [targetName, constraints] of constraintsPerTarget) {
     queries.push(getValidationQuery(targetName, constraints))
   }
 
