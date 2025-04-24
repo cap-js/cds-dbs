@@ -20,11 +20,10 @@ annotate my.Pages with @(
         },
         message   : 'PAGE_TEXT_TOO_SHORT',
     },
-    // enable once https://github.com/cap-js/cds-dbs/pull/1156 is merged
-    // assert.constraint.thirdEditingConstraint : {
-    //     condition : (not exists footnotes[contains(text, 'FORBIDDEN PHRASE')]),
-    //     message   : 'The phrase "FORBIDDEN PHRASE" is not allowed in footnotes',
-    // }
+    assert.constraint.thirdEditingConstraint : {
+        condition : (not exists footnotes[contains(text, 'FORBIDDEN PHRASE')]),
+        message   : 'The phrase "FORBIDDEN PHRASE" is not allowed in footnotes',
+    }
 
 );
 

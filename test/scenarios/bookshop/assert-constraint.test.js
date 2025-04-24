@@ -274,8 +274,7 @@ describe('Bookshop - assertions', () => {
       ).to.be.rejectedWith('A must not be 42')
     })
 
-    // skip due to gap in infer
-    test.skip('constraint with exists subquery', async () => {
+    test('constraint with exists subquery', async () => {
       await expect(
         INSERT.into(Books).entries([
           {
