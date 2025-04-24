@@ -406,7 +406,10 @@ function infer(originalQuery, model) {
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
-    if (arg.xpr) arg.xpr.forEach(token => inferArg(token, queryElements, $baseLink, { ...context, inXpr: true })) // e.g. function in expression
+    if (arg.xpr)
+      arg.xpr.forEach((token, i) =>
+        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: arg.xpr[i - 1] === 'exists' }),
+      ) // e.g. function in expression
 
     if (!arg.ref) {
       if (arg.expand && queryElements) queryElements[arg.as] = resolveExpand(arg)
