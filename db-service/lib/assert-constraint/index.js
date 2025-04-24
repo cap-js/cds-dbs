@@ -74,12 +74,12 @@ function attachConstraints(_res, req) {
  *
  */
 async function checkConstraints(req) {
-  const constraintsPerTarget = constraintStorage.get(this.tx)
-  if (!constraintsPerTarget.size) return
+  const constraintsPerEntity = constraintStorage.get(this.tx)
+  if (!constraintsPerEntity.size) return
 
   // build exactly one query per entity
   const queries = []
-  for (const [targetName, constraints] of constraintsPerTarget) {
+  for (const [targetName, constraints] of constraintsPerEntity) {
     queries.push(getValidationQuery(targetName, constraints))
   }
 
