@@ -30,9 +30,12 @@ entity ![default] : _cuid {
   // default value cannot be created on column of data type NCLOB: BLOB
   // blob        : LargeString default 'default';
   date      : Date default '1970-01-01';
+  date_lit  : Date default date'2021-05-05';
   time      : Time default '01:02:03';
   dateTime  : DateTime default '1970-01-01T01:02:03Z';
   timestamp : Timestamp default '1970-01-01T01:02:03.123456789Z';
+  // HANA Does not support default functions in general
+  func      : Date default current_utctimestamp();
 // Binary default values don't make sense. while technically possible
 // binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
 // largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
