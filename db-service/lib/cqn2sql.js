@@ -321,9 +321,10 @@ class CQN2SQLRenderer {
       })
     const columnsOut = []
     const columnsIn = []
-    for (const name in q.target.elements) {
+    const target = q._target || q.target
+    for (const name in target.elements) {
       const ref = { ref: [name] }
-      const element = q.target.elements[name]
+      const element = target.elements[name]
       if (element.virtual || element.value || element.isAssociation) continue
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
@@ -335,7 +336,7 @@ class CQN2SQLRenderer {
 
     const nodeKeys = []
     const parentKeys = []
-    const association = q.target.elements[recurse.ref[0]]
+    const association = target.elements[recurse.ref[0]]
     association._foreignKeys.forEach(fk => {
       nodeKeys.push(this.quote(fk.childElement.name))
       parentKeys.push(this.quote(fk.parentElement.name))
@@ -504,7 +505,7 @@ class CQN2SQLRenderer {
                       where: list._where,
                     },
                   },
-                  target: q.target,
+                  target,
                 }])
             )
             i += 2
