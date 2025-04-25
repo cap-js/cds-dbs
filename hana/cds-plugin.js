@@ -7,3 +7,8 @@ if (!cds.env.fiori.lean_draft) {
 if (cds.requires.db?.impl === '@cap-js/hana') {
   cds.env.sql.dialect = 'hana'
 }
+
+// register compile add-ons
+cds.extend (cds.compile.to.constructor) .with (class {
+  get hdbtabledata(){ return super.hdbtabledata = require('./lib/compile/hdbtabledata') }
+})
