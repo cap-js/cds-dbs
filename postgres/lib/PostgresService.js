@@ -50,7 +50,11 @@ class PostgresService extends SQLService {
             }),
         }
         const dbc = new Client({...credentials, ...clientOptions})
+
+        dbc.on('end', () => dbc.open = false);
+
         await dbc.connect()
+        dbc.open = true
         return dbc
       },
       destroy: dbc => dbc.end(),
