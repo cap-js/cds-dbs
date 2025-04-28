@@ -21,7 +21,7 @@ const SYSTEM_VERSIONED = '@hana.systemversioned'
  * @implements SQLService
  */
 class HANAService extends SQLService {
-   HANAVERSION = 0
+   static HANAVERSION = 0
   
   init() {
     // When hdi is enabled it defines the deploy function
@@ -66,7 +66,7 @@ class HANAService extends SQLService {
             : service.options
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
-          service.HANAVERSION = dbc.server.major
+          HANAService.HANAVERSION = dbc.server.major
           return dbc
         } catch (err) {
           if (isMultitenant) {
@@ -193,7 +193,7 @@ class HANAService extends SQLService {
       const ps = await this.prepare(sql)
       // HANA driver supports batch execution
       const results = await (entries
-        ? this.HANAVERSION <= 2
+        ? HANAService.HANAVERSION <= 2
           ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
           : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
         : this.ensureDBC() && ps.run())
@@ -1053,7 +1053,7 @@ class HANAService extends SQLService {
 
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
-      if (this.HANAVERSION <= 2) {
+      if (HANAService.HANAVERSION <= 2) {
         this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
@@ -1443,7 +1443,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      const path = this.string(this.HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
+      const path = this.string(HANAService.HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
