@@ -5,7 +5,7 @@
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cap-js/cds-dbs"
+    "url": "git+https://github.com/cap-js/cds-dbs.git"
   },
   "bugs": {
     "url": "https://github.com/cap-js/cds-dbs/issues"
