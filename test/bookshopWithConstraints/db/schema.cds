@@ -14,7 +14,7 @@ entity Books : managed {
       genre          : Association to Genres default 10;
       stock          : Integer;
       price          : Decimal;
-      dummyDecimal   : Decimal;
+      potentialRevenue: Decimal = price * stock;
       currency       : Currency;
       image          : LargeBinary @Core.MediaType: 'image/png';
       footnotes      : array of String;

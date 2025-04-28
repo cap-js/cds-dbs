@@ -27,14 +27,25 @@ annotate my.Pages with @(
 
 );
 
-annotate my.Books : stock with @(assert.constraint.stockNotEmpty: {
-    condition : (stock >= 0),
-    message   : 'STOCK_NOT_EMPTY',
-    parameters: {
-        title: (title),
-        ID   : (ID)
+annotate my.Books : stock with @(
+    assert.constraint.stockNotEmpty: {
+        condition : (stock >= 0),
+        message   : 'STOCK_NOT_EMPTY',
+        parameters: {
+            title: (title),
+            ID   : (ID)
+        }
+    },
+    assert.constraint.withCalculatedElement: {
+        condition : (potentialRevenue <= 10000),
+        message   : 'POTENTIAL_REVENUE_TOO_HIGH',
+        parameters: {
+            title: (title),
+            ID   : (ID),
+            value: (potentialRevenue)
+        }
     }
-});
+);
 
 annotate my.Authors with @(
     assert.constraint.dates : {

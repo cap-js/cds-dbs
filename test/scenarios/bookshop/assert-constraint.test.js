@@ -311,5 +311,12 @@ describe('Bookshop - assertions', () => {
         ]),
       ).to.be.rejectedWith('Stock for book "Words of Radiance" (501) must not be a negative number')
     })
+    test.only('calculated element in condition and in paramaters', async () => {
+      await expect(
+        INSERT.into(Books).entries([{ ID: 500, title: 'The Way of Kings', stock: 1000, price: 15}])
+      ).to.be.rejectedWith(
+        'Potential revenue of book "The Way of Kings" (500) must not exceed 10.000$, but is 15000$',
+      )
+    })
   })
 })
