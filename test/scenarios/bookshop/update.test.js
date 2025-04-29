@@ -130,7 +130,7 @@ describe('Bookshop - Update', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.match(/UNIQUE.CONSTRAINT/i)
+    expect(err.message).to.match(/UNIQUE.constraint/i)
   })
 
 
