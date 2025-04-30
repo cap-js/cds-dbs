@@ -1400,7 +1400,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default?.val !== undefined && { val: element.default.val, param: false })
+        || (element.default && { __proto__:  element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)
