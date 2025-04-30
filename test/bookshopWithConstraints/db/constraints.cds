@@ -4,6 +4,7 @@ annotate my.Pages with @(
     assert.constraint.firstEditingConstraint : {
         condition : (length(footnotes.text) < length(text)),
         parameters: {
+            id: (footnotes.number),
             footnoteLength: (length(footnotes.text)),
             pageLength    : (length( /* $self. */ text)),
             pageNumber    : (number),

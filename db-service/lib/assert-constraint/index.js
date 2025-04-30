@@ -97,7 +97,7 @@ async function checkConstraints(req) {
     })
   })
   // deduplicate messages first
-  for (const message of messages) {
+  for (const message of [...new Set(messages)]) {
     req.error(400, message)
   }
 

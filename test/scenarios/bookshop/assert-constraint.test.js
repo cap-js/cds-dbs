@@ -152,7 +152,7 @@ describe('Bookshop - assertions', () => {
           ],
         }),
       ).to.be.rejectedWith(
-        'Footnote text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)',
+        'Footnote (1) text length (67) on page 11 of book "The Way of Kings" exceeds the length of its page (17)',
       )
     })
 
@@ -320,7 +320,7 @@ describe('Bookshop - assertions', () => {
       )
     })
 
-    test.only('deduplicate messages if multiple constraints in child are violated but only one in header', async () => {
+    test('deduplicate messages if multiple constraints in child are violated but only one in header', async () => {
       /**
        * given this example from sflight:
        *
