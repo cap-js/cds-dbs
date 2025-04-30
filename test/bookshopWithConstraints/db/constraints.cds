@@ -1,17 +1,6 @@
 using {sap.capire.bookshop as my} from './schema';
 
 annotate my.Pages with @(
-    assert.constraint.firstEditingConstraint : {
-        condition : (length(footnotes.text) < length(text)),
-        parameters: {
-            id: (footnotes.number),
-            footnoteLength: (length(footnotes.text)),
-            pageLength    : (length( /* $self. */ text)),
-            pageNumber    : (number),
-            bookTitle     : (book.title),
-        },
-        message   : 'FOOTNOTE_TEXT_TOO_LONG',
-    },
     assert.constraint.secondEditingConstraint: {
         condition : (length(text) > 0),
         parameters: {
@@ -27,6 +16,21 @@ annotate my.Pages with @(
     }
 
 );
+
+annotate my.Pages.footnotes with @(
+    assert.constraint.firstEditingConstraint : {
+        condition : (length(text) < length(up_.text)),
+        parameters: {
+            id: (number),
+            footnoteLength: (length(text)),
+            pageLength    : (length( /* $self. */ up_.text)),
+            pageNumber    : (up_.number),
+            bookTitle     : (up_.book.title),
+        },
+        message   : 'FOOTNOTE_TEXT_TOO_LONG',
+    },
+);
+
 
 annotate my.Books with @(
     assert.constraint.stockNotEmpty: {
