@@ -322,7 +322,7 @@ describe('Bookshop - assertions', () => {
 
     test('deduplicate messages if multiple constraints in child are violated but only one in header', async () => {
       /**
-       * given this example from sflight:
+       * given this example:
        *
        *   @assert.constraint.firstEditingConstraint : {
        *      condition: ( length(text) > 0 )
@@ -337,7 +337,7 @@ describe('Bookshop - assertions', () => {
        * 
        * We need to issue the error for the footnotes `n` times, because each footnote has in fact violated it's constraint.
        * However, the first constraint should only be issued once,
-       * because it is a constraint on the page itself (which is the same for it's footnotes).
+       * because it is a constraint on the page itself (which is the same for all `n` rows).
        */
 
       try {
@@ -359,7 +359,7 @@ describe('Bookshop - assertions', () => {
         ])
       } catch(e) {
         // 1 error for the page because it has no text
-        // 4 errors for the footnotes because they are all longer than the text of its page
+        // 4 errors for the footnotes because they are all longer than the text of their page
         expect(e.details).to.have.length(5)
       }
     })
