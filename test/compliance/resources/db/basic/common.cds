@@ -34,13 +34,13 @@ entity ![default] : _cuid {
   time      : Time default '01:02:03';
   dateTime  : DateTime default '1970-01-01T01:02:03Z';
   timestamp : Timestamp default '1970-01-01T01:02:03.123456789Z';
-  // HANA Does not support default functions in general
-  func      : Date default current_utctimestamp();
-// Binary default values don't make sense. while technically possible
-// binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
-// largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
-// Vector default values probably also don't make sense
-// vector : Vector default '[1.0,0.5,0.0,...]';
+  // Comment out, when HANA supports default functions or compiler generates them not as defaults 
+  // func      : String(100) default tolower('DEfAUlT');
+  // Binary default values don't make sense. while technically possible
+  // binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
+  // largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
+  // Vector default values probably also don't make sense
+  // vector : Vector default '[1.0,0.5,0.0,...]';
 }
 
 entity keys {

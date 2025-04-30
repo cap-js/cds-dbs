@@ -1,8 +1,4 @@
 const dstring = size => ({ d: 'default'.slice(0, size), o: 'not default'.slice(0, size) })
-const currentDate = date => {
-  const date_utc = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  return { d: new Date(date_utc).toJSON().slice(0, 10), o: '2000-01-01' } 
-}
 
 const columns = {
   uuidDflt: { d: '00000000-0000-0000-4000-000000000000', o: '11111111-1111-1111-4111-111111111111'},
@@ -25,7 +21,7 @@ const columns = {
   time: { d: '01:02:03', o: '21:02:03' },
   dateTime: { d: '1970-01-01T01:02:03Z', o: '2000-01-01T21:02:03Z' },
   timestamp: { d: '1970-01-01T01:02:03.123Z', o: '2000-01-01T21:02:03.123Z' },
-  func: currentDate(new Date()),
+  // func: { d: 'default', o: 'DefaULT' },
   // Binary default values don't make sense. while technically possible
   // binary: { d: Buffer.from('binary'), o: Buffer.from('...') },
   // largebinary: { d: Buffer.from('binary'), o: Buffer.from('...') },
