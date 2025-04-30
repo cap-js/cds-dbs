@@ -5,7 +5,7 @@ const { pipeline } = require('stream/promises')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
-const {attachConstraints, checkConstraints} = require('./assert-constraint')
+const { attachConstraints, checkConstraints } = require('./assert-constraint')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,

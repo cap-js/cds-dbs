@@ -27,7 +27,7 @@ annotate my.Pages with @(
 
 );
 
-annotate my.Books : stock with @(
+annotate my.Books with @(
     assert.constraint.stockNotEmpty: {
         condition : (stock >= 0),
         message   : 'STOCK_NOT_EMPTY',

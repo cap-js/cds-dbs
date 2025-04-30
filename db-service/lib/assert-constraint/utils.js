@@ -6,7 +6,7 @@ function getValidationQuery(target, constraints) {
   const columns = []
   const parameterAliases = new Set() // tracks every alias already added
 
-  for (const [name, { condition, parameters, target }] of Object.entries(constraints)) {
+  for (const [name, { condition, parameters, target, primaryKeyRefs }] of Object.entries(constraints)) {
     // 1. first add text parameters of the constraint, if any
     if (parameters?.length) {
       for (const p of parameters) {
@@ -39,9 +39,20 @@ function getValidationQuery(target, constraints) {
 
   // REVISIT: matchKeys for one entity should be the same for all constraints
   //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
-  const keyMatchingCondition = Object.values(constraints)[0].where.flatMap((matchKey, i) =>
+  const first = Object.values(constraints)[0]
+  const keyMatchingCondition = first.where.flatMap((matchKey, i) =>
     i > 0 ? ['or', ...matchKey] : matchKey,
   )
+
+  // also add primary keys to the query for deduplication of messages later
+  for (const [i, { ref }] of first.primaryKeyRefs.entries()) {
+    const alias = `__primaryKey${i}__`
+    columns.push({
+      ref,
+      as: alias,
+    })
+  }
+
   const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
   Object.defineProperty(validationQuery, '$constraints', { value: constraints })
   return validationQuery
@@ -62,9 +73,10 @@ function collectConstraints(entity, data, model = cds.model) {
   }
 
   // ────────── 2. attach match keys ──────
-  const mk = matchKeys(entity, data)
+  const { where, refs } = matchKeys(entity, data)
   for (const c of Object.values(constraints)) {
-    c.where = [...(c.matchKeys ?? []), ...mk]
+    c.where = [...(c.matchKeys ?? []), ...where]
+    c.primaryKeyRefs = refs
   }
 
   // ────────── 3. recurse into compositions present in the payload ──────────
@@ -98,8 +110,9 @@ function mergeConstraintSets(base, incoming) {
 function extractConstraints(obj, target = obj) {
   const collected = {}
 
-  for (const [key, val] of Object.entries(obj)) {
+  for (const key in obj) {
     if (!key.startsWith('@assert.constraint')) continue
+    const val = obj[key]
 
     // strip prefix and leading dot
     let [, remainder] = key.match(/^@assert\.constraint\.?(.*)$/)
@@ -138,20 +151,23 @@ function matchKeys(entity, data) {
   const dataEntries = Array.isArray(data) ? data : [data] // Ensure batch handling
 
   // construct {key:value} pairs holding information about the entry to check
-  return dataEntries
-    .map(entry =>
-      primaryKeys.reduce((identifier, key) => {
-        const value = entry?.[key]
-        if (value !== undefined) {
-          if (identifier.length > 0) {
-            identifier.push('and')
+  return {
+    where: dataEntries
+      .map(entry =>
+        primaryKeys.reduce((identifier, key) => {
+          const value = entry?.[key]
+          if (value !== undefined) {
+            if (identifier.length > 0) {
+              identifier.push('and')
+            }
+            identifier.push({ ref: [key] }, '=', { val: value })
           }
-          identifier.push({ ref: [key] }, '=', { val: value })
-        }
-        return identifier
-      }, []),
-    )
-    .filter(e => e.length > 0) // remove empty entries
+          return identifier
+        }, []),
+      )
+      .filter(e => e.length > 0), // remove empty entries
+    refs: primaryKeys.map(key => ({ ref: [key] })),
+  }
 }
 
 function wrapInNegatedCaseWhen(xpr) {

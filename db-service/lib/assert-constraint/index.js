@@ -6,7 +6,7 @@ const constraintStorage = require('./storage')
 
 /**
  *
- * Hook that gathers every `@assert.constraint` touched by the current
+ * “Before-hook” that gathers every `@assert.constraint` touched by the current
  * request, optionally augments them with an extra filter (the
  * `where` of an UPDATE/UPSERT), and merges the result into
  * {@link constraintStorage} so it can be validated once per transaction in
@@ -23,11 +23,12 @@ const constraintStorage = require('./storage')
  *
  * Notes
  * ─────────────────────────────────────────────────────────────────
- * • No validation queries are built here; we only collect and store constraint metadata.
+ * • No validation queries are built here; we only stash **metadata**.
  * • The function is idempotent within the same transaction because
  *   `constraintStorage.merge` deduplicates constraints and WHEREs.
  *
- * @param {*}                        _res   (ignored)
+ * @this {import('@sap/cds').Service}  CAP service or transaction object
+ * @param {*}                        _res   (ignored — payload from previous hook)
  * @param {import('@sap/cds').Request} req   Current request being processed
  */
 
@@ -74,27 +75,31 @@ function attachConstraints(_res, req) {
  *
  */
 async function checkConstraints(req) {
-  const constraintsPerEntity = constraintStorage.get(this.tx)
-  if (!constraintsPerEntity.size) return
+  const constraintsPerTarget = constraintStorage.get(this.tx)
+  if (!constraintsPerTarget.size) return
 
-  // build exactly one query per entity
+  // build exactly one query per bucket
   const queries = []
-  for (const [targetName, constraints] of constraintsPerEntity) {
+  for (const [targetName, constraints] of constraintsPerTarget) {
     queries.push(getValidationQuery(targetName, constraints))
   }
 
   const results = await this.run(queries)
-
+  const messages = []
   results.forEach((rows, i) => {
     const constraints = queries[i].$constraints
     Object.entries(constraints).forEach(([name, meta]) => {
       const col = `${name}_constraint`
       rows.forEach(row => {
         if (row[col]) return
-        req.error(400, buildMessage(name, meta, row))
+        messages.push(buildMessage(name, meta, row))
       })
     })
   })
+  // deduplicate messages first
+  for (const message of messages) {
+    req.error(400, message)
+  }
 
   constraintStorage.clear(this.tx)
 }
