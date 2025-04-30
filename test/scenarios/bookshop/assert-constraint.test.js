@@ -324,20 +324,20 @@ describe('Bookshop - assertions', () => {
       /**
        * given this example from sflight:
        *
-       *   @assert.constraint.ToBookingFlightDate : {
-       *      condition: ( BeginDate <= to_Booking.FlightDate and to_Booking.FlightDate <= EndDate ),
+       *   @assert.constraint.firstEditingConstraint : {
+       *      condition: ( length(text) > 0 )
        *    }
-       *    @assert.constraint.StartBeforeEnd : {
-       *      condition: ( BeginDate <= EndDate ),
+       *    @assert.constraint.secondEditingConstraint : {
+       *      condition : ( length(footnotes.text) < length(text) ),
        *    }
        * 
-       * Now, we set the start date of the travel to after the end date of the travel.
-       * This will violate the first constraint, but will also violate the second constraint.
-       * The second constraint will be violated `n` times where `n` is the number of bookings.
+       * Now, we set the text length to 0 for a page.
+       * This will violate the first constraint, but will also violate the second constraint (if the footnote has any text).
+       * The second constraint will be violated `n` times where `n` is the number of footnotes.
        * 
-       * We need to issue the error for the bookings `n` times, because each booking has in fact violated it's constraint.
+       * We need to issue the error for the footnotes `n` times, because each footnote has in fact violated it's constraint.
        * However, the first constraint should only be issued once,
-       * because it is a constraint on the travel itself (which is the same for every booking).
+       * because it is a constraint on the page itself (which is the same for it's footnotes).
        */
 
       try {
@@ -362,7 +362,6 @@ describe('Bookshop - assertions', () => {
         // 4 errors for the footnotes because they are all longer than the text of its page
         expect(e.details).to.have.length(5)
       }
-
     })
   })
 })
