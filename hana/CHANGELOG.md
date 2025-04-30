@@ -4,6 +4,18 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.10.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v1.10.0) (2025-04-30)
+
+
+### Added
+
+* move `compile.to.hdbtabledata` from `@sap/cds` ([#1150](https://github.com/cap-js/cds-dbs/issues/1150)) ([c78a0d3](https://github.com/cap-js/cds-dbs/commit/c78a0d3801b1344baf2b99d32f7a8ce7821b372e))
+
+
+### Fixed
+
+* Adopt to recurse `DistanceTo` cqn format ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-17)
 
 
