@@ -27,7 +27,7 @@
     "generic-pool": "^3.9.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.9"
+    "@sap/cds": ">=9"
   },
   "license": "SEE LICENSE"
 }
