@@ -17,5 +17,5 @@
     "test": "npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }
