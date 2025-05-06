@@ -182,12 +182,14 @@ describe('Bookshop - Read', () => {
   })
 
   test('Plain sql with quoted alias before question mark placeholder', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const res = await cds.run('SELECT descr as "description" FROM sap_capire_bookshop_Books where ID = ?', [201])
     expect(res.length).to.be.eq(1)
     expect(res[0].description).to.match(/Wuthering Heights, Emily Brontë's only novel/)
   })
 
   test('Plain sql with quoted alias before multiple question mark placeholders', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const res = await cds.run(
       'SELECT descr FROM sap_capire_bookshop_Books where title = ? and price = ?',
       ['Wuthering Heights', 11.11],
@@ -197,6 +199,7 @@ describe('Bookshop - Read', () => {
   })
 
   test('Plain sql with quoted condition value before question mark placeholder', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const res = await cds.run(
       'SELECT descr FROM sap_capire_bookshop_Books where title = \'Wuthering Heights\' and ID = ?',
       [201],
@@ -206,6 +209,7 @@ describe('Bookshop - Read', () => {
   })
 
   test('Plain sql with quoted condition value after question mark placeholder', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const res = await cds.run(
       "SELECT descr FROM sap_capire_bookshop_Books where ID = ? and title = 'Wuthering Heights'",
       [201],
