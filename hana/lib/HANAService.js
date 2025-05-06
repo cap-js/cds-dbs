@@ -184,6 +184,19 @@ class HANAService extends SQLService {
     return isOne && !isStream ? rows[0] : rows
   }
 
+  async onINSERT({ query, data }) {
+      const { sql, entries, cqn } = this.cqn2sql(query, data)
+      if (!sql) return // Do nothing when there is nothing to be done
+      const ps = await this.prepare(sql)
+      // HANA driver supports batch execution
+      const results = await (entries
+        ? HANAVERSION <= 2
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
+      return new this.class.InsertResults(cqn, results)
+  }
+
   async onNOTFOUND(req, next) {
     try {
       return await next()
