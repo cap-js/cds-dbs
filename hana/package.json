@@ -53,13 +53,6 @@
         }
       },
       "db": "sql"
-    },
-    "hana": {
-      "table_data": {
-        "column_mapping": {
-          "LargeBinary": "decodeBase64"
-        }
-      }
     }
   },
   "license": "Apache-2.0"
