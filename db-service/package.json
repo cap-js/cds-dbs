@@ -29,5 +29,5 @@
   "peerDependencies": {
     "@sap/cds": ">=7.9"
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }
