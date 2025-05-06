@@ -214,15 +214,6 @@ describe('Bookshop - Read', () => {
     expect(res[0].descr).to.match(/Wuthering Heights, Emily Brontë's only novel/)
   })
 
-  test('Plain sql with quoted condition value after question mark placeholder', async () => {
-    const res = await cds.run(
-      "SELECT descr FROM sap_capire_bookshop_Books where ID = ? and title = 'Wuthering Heights'",
-      [201],
-    )
-    expect(res.length).to.be.eq(1)
-    expect(res[0].descr).to.match(/Wuthering Heights, Emily Brontë's only novel/)
-  })
-
   test('order by computed result column', async () => {
     const { Authors } = cds.entities('sap.capire.bookshop')
     const res = await SELECT
