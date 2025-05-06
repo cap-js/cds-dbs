@@ -240,7 +240,7 @@ GROUP BY k
           text: 'CREATE TEMP TABLE IF NOT EXISTS "$$PARAMETER_BUFFER$$" (PARAM TEXT, NAME TEXT, ID INT) ON COMMIT DROP',
         })
         const proms = []
-        for (const stream of streams) {
+        for (const stream of streams.filter(s => s && s.constructor.name === 'ParameterStream')) {
           proms.push(this.dbc.query(stream))
         }
         await Promise.all(proms)
