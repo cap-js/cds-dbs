@@ -27,12 +27,12 @@
     "start": "docker compose -f pg-stack.yml up -d"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.20.0",
+    "@cap-js/db-service": "^2",
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.6",
-    "@sap/cds-dk": ">=7.5"
+    "@sap/cds": ">=9",
+    "@sap/cds-dk": ">=9"
   },
   "peerDependenciesMeta": {
     "@sap/cds-dk": {
