@@ -9,7 +9,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* update peer dependency to cds9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
 
 ### Fixed
 
@@ -21,7 +21,7 @@
 
 ### Changed
 
-* update peer dependency to cds9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
 
 ## [1.20.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.1...db-service-v1.20.0) (2025-04-17)
 
