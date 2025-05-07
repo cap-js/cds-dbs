@@ -389,7 +389,7 @@ class CQN2SQLRenderer {
     if (distanceType) addComputedColumn(distanceType)
 
     let distanceClause = []
-    if (distanceType === 'Distance') {
+    if (distanceType === 'Distance' && !where) {
       const isOne = expandedByOne.list.length
       distanceClause = ['DISTANCE', ...(
         isOne
