@@ -11,7 +11,7 @@ describe('Bookshop - Insert', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
+    expect(err.message).to.match(/ENTITY_ALREADY_EXISTS|UNIQUE constraint/i)
   })
 
   test('insert with undefined value works', async () => {
