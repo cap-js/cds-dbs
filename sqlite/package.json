@@ -26,11 +26,11 @@
     "test": "cds-test"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.20.0",
+    "@cap-js/db-service": "^2",
     "better-sqlite3": "^11.0.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.6"
+    "@sap/cds": ">=9"
   },
   "cds": {
     "requires": {
