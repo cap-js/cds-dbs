@@ -461,7 +461,7 @@ class CQN2SQLRenderer {
           },
           where: expandedFilter.length ? expandedFilter : undefined,
           orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
-          groupBy: [{ ref: ['NODE_ID'] },{ ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
 
@@ -1402,7 +1402,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default && { __proto__:  element.default, param: false })
+        || (element.default && { __proto__: element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)
