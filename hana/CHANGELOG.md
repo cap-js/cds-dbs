@@ -4,6 +4,34 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v2.0.0) (2025-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peer dependency to cds9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165))
+
+### refactor
+
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165)) ([ff39e22](https://github.com/cap-js/cds-dbs/commit/ff39e22ac6cd3f20c98bc31c1a6bb828aa009796))
+
+
+### Added
+
+* move `compile.to.hdbtabledata` from `@sap/cds` ([#1150](https://github.com/cap-js/cds-dbs/issues/1150)) ([c78a0d3](https://github.com/cap-js/cds-dbs/commit/c78a0d3801b1344baf2b99d32f7a8ce7821b372e))
+
+
+### Fixed
+
+* Adopt to recurse `DistanceTo` cqn format ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+* revert "move `compile.to.hdbtabledata`" ([#1174](https://github.com/cap-js/cds-dbs/issues/1174)) ([8e1398c](https://github.com/cap-js/cds-dbs/commit/8e1398c4b28bc10218698fe7ffe368d7be4ce6ec))
+
+
+### Changed
+
+* update peer dependency to cds9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-17)
 
 
