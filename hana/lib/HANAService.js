@@ -15,7 +15,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
-const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -166,7 +165,7 @@ class HANAService extends SQLService {
       const keys = Object.keys(req.target?.keys || {})
       if (keys.length && query.SELECT.forUpdate?.ignoreLocked) {
         // REVISIT: No support for count
-        // where [keys] in [values]   
+        // where [keys] in [values]
         const left = { list: keys.map(k => ({ ref: [k] })) }
         const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
         resultQuery.SELECT.limit = undefined
@@ -186,7 +185,6 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-    try {
       const { sql, entries, cqn } = this.cqn2sql(query, data)
       if (!sql) return // Do nothing when there is nothing to be done
       const ps = await this.prepare(sql)
@@ -197,17 +195,6 @@ class HANAService extends SQLService {
           : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
         : this.ensureDBC() && ps.run())
       return new this.class.InsertResults(cqn, results)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', data)
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION') || err
-    }
   }
 
   async onNOTFOUND(req, next) {
@@ -1491,16 +1478,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 const createContainerDatabase = fs.readFileSync(path.resolve(__dirname, 'scripts/container-database.sql'), 'utf-8')
 const createContainerTenant = fs.readFileSync(path.resolve(__dirname, 'scripts/container-tenant.sql'), 'utf-8')
 
-function _not_unique(err, code, data) {
-  if (err.code === 301)
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
-  return err
-}
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
