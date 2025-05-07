@@ -31,16 +31,16 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: 'npm'
 
-      # - run: npm ci
-      # - run: npm install -g @sap/cds-dk
-      # - run: npm run lint
-      # - id: hxe
-      #   uses: ./.github/actions/hxe
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # # testing
-      # - run: npm test -ws
-      #   env:
-      #     FORCE_COLOR: true
-      #     TAG: ${{ steps.hxe.outputs.TAG }}
-      #     IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+      - run: npm ci
+      - run: npm install -g @sap/cds-dk
+      - run: npm run lint
+      - id: hxe
+        uses: ./.github/actions/hxe
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # testing
+      - run: npm test -ws
+        env:
+          FORCE_COLOR: true
+          TAG: ${{ steps.hxe.outputs.TAG }}
+          IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
