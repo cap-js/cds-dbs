@@ -1149,8 +1149,9 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').xpr} param0
    * @returns {string} SQL
    */
-  xpr({ xpr }) {
-    return xpr
+  xpr({ xpr, cast }) {
+    const wrap = cast ? sql => `cast(${sql} as ${this.type4(cast)})` : sql => sql
+    return wrap(xpr
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
@@ -1158,6 +1159,7 @@ class CQN2SQLRenderer {
         else return this.expr(x)
       })
       .join(' ')
+    )
   }
 
   /**
