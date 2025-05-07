@@ -283,12 +283,7 @@ GROUP BY k
         return target && this.run(cds.ql.CREATE(target))
       }
     }
-    // Look for ? placeholders outside of string and replace them with $n
-    if (/('|")(\1|[^\1]*?\1)|(\?)/.exec(query)?.[3]) {
-      let i = 1
-      // eslint-disable-next-line no-unused-vars
-      req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
-    }
+    
     try {
       return await super.onPlainSQL(req, next)
     }
