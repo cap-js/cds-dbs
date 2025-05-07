@@ -62,6 +62,14 @@ function getImplicitAlias(str, useTechnicalAlias = true) {
   return index != -1 ? str.substring(index + 1) : str
 }
 
+function defineProperty(obj, prop, value) {
+  return Object.defineProperty(obj, prop, {
+    value,
+    writable: true,
+    configurable: true,
+  })
+}
+
 /**
  * Shared utility functions which operate dynamically on the model / query.
  *
@@ -129,5 +137,6 @@ module.exports = {
   isCalculatedOnRead,
   isCalculatedElement,
   getImplicitAlias,
+  defineProperty,
   getModelUtils,
 }
