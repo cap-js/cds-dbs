@@ -1,0 +1,1 @@
+throw new Error('This application uses @sap/cds version >= 7, which is not compatible with the installed @sap/cds-dk version 6. Either update @sap/cds-dk to version 7 or downgrade @sap/cds to version 6 instead.')

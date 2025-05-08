@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{package}}</title>
+        <meta name="color-scheme" content="dark light">
+        <style>
+{{style}}
+        </style>
+    </head>
+    <body>
+        <div id="welcome">
+            <h1> Welcome to <i>@sap/cds</i> Server </h1>
+            <p class="subtitle"> Serving {{package}} </p>
+
+            <p> These are the paths currently served:</p>
+
+            <h2> Web Applications: </h2>
+            <ul>
+                {{apps}}
+            </ul>
+
+            <h2> Service Endpoints: </h2>
+            {{services}}
+
+            <footer>
+                This is an automatically generated page. <br>
+                You can replace it with a custom <code>./{{app}}/index.html</code>.
+            </footer>
+        </div>
+
+    </body>
+</html>

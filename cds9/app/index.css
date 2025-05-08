@@ -1,0 +1,132 @@
+body {
+  font-family: Avenir Next, sans-serif;
+  background: #f8fbff;
+}
+
+body #welcome {
+  margin: 30px auto 50px;
+  padding: 0 30px;
+  max-width: 900px;
+}
+
+body #welcome h1, #welcome h3, #welcome h2, #welcome p {
+  margin: 20px 0;
+  color: #47637d;
+  font-weight: 400;
+}
+
+body #welcome h3.header {
+  margin: 20px 0 0 0;
+  background-color: #537492;
+  color: white;
+}
+
+body #welcome h3 a {
+  color: inherit;
+  font-weight: 500;
+}
+
+body #welcome h3 a span {
+  padding: 5px 15px;
+  font-weight: 300;
+  transition: all 0.2s ease-in;
+}
+
+body #welcome h3 a:first-child span {
+  display: inline-block;
+  padding: 5px 15px;
+}
+
+body #welcome h3 a span:hover {
+  color: #92b2d0;
+}
+
+body #welcome ul {
+  margin: 0;
+  background: #91adc5;
+  list-style-type: none;
+  padding-inline-start: 20px;
+}
+
+body #welcome li {
+  display: inline-grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  width: 100%;
+  margin-bottom: 1px;
+  background-color: #d0e9ff;
+  padding: 0;
+  /*
+  -moz-transition: background color 0.2s ease-in;
+  -webkit-transition: background 0.2s ease-in;
+  -o-transition: background 0.2s ease-in;
+  /* Standard */
+  transition: all 0.1s ease-in;
+}
+
+body #welcome ul li div:not(:first-child) a {
+  font-weight: 300;
+}
+
+body #welcome a {
+  text-decoration: none;
+}
+
+body #welcome li a, body #welcome li > span {
+  padding: 4px 10px;
+  font-weight: 500;
+  color: #1d5985;
+  transition: all 0.1s ease-in;
+}
+body #welcome li.operation span {
+  font-style: italic;
+}
+
+body #welcome li a span:hover {
+  color: #f0faff;
+  background-color: #a7c8e1;
+}
+
+body #welcome .preview {
+  font-size: small;
+}
+
+footer {
+  border-top: .5px solid;
+  margin-top: 44px;
+  padding-top: 22px;
+  width: 400px;
+  font-size: 90%;
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #0a2138; }
+
+  body #welcome h1, #welcome h3, #welcome h2, #welcome p {
+      color: #a6c1d9;
+  }
+  body #welcome h3 a {
+      color: #e2efff;
+  }
+  body #welcome ul {
+      background: #7894ad;
+  }
+  body #welcome li {
+      background-color: #506d88;
+  }
+  body #welcome li a, body #welcome li:hover div:not(:first-child) a, body #welcome li > span {
+      color: #d0e4f2;
+  }
+  body #welcome li a:hover {
+      color: white;
+      background-color: #7894ad;
+  }
+
+  body #welcome h3.header {
+      background-color: #304c65;
+  }
+
+  footer {
+      border-top: .5px solid #456;
+      color: #567;
+  }
+}

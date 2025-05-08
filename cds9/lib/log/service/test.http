@@ -1,0 +1,16 @@
+http://localhost:4004/-/cds/log/ui
+
+###
+GET http://localhost:4004/-/cds/log/Loggers
+
+###
+PUT http://localhost:4004/-/cds/log/Loggers/sqlite
+Content-Type: application/json
+
+{ "level": "debug" }
+
+###
+POST http://localhost:4004/-/cds/log/debug(module=sqlite)
+
+###
+POST http://localhost:4004/-/cds/log/reset(module=sqlite)

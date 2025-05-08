@@ -1,0 +1,92 @@
+{
+  "name": "@sap/cds",
+  "version": "9.0.1",
+  "description": "SAP Cloud Application Programming Model - CDS for Node.js",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "license": "SEE LICENSE IN LICENSE",
+  "main": "lib/index.js",
+  "bin": {
+    "cds-deploy": "lib/dbs/cds-deploy.js",
+    "cds-serve": "bin/serve.js"
+  },
+  "files": [
+    "_i18n/",
+    "apis/",
+    "app/",
+    "bin/",
+    "lib/",
+    "libx/",
+    "srv/",
+    "tasks/",
+    "common.cds",
+    "server.js",
+    "eslint.config.mjs",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@sap/cds-compiler": "^6",
+    "@sap/cds-fiori": "^2",
+    "js-yaml": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@eslint/js": "^9",
+    "express": "^4",
+    "tar": "^7"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "tar": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@cap-js/cds-test": "^0",
+    "@cap-js/sqlite": ">=2",
+    "@cap-js/hana": ">=2",
+    "@eslint/js": "^9.2.0",
+    "@sap-cloud-sdk/http-client": "^4",
+    "@sap-cloud-sdk/resilience": "^4",
+    "@sap-cloud-sdk/util": "^4",
+    "@sap/cds-mtxs": ">=2",
+    "@sap/xb-msg-amqp-v100": "^0.9.48",
+    "@sap/xssec": "^4",
+    "@types/jest": "^29",
+    "eslint": "^9",
+    "express": "^4.17.1",
+    "jest": "^29",
+    "jest-junit": "^16.0.0",
+    "jsonschema": "^1.4.1",
+    "jsonwebtoken": "^9.0.0",
+    "redis": "^5",
+    "semver": "^7.3.5",
+    "supertest": "^7.0.0",
+    "terser": "^5.9.0",
+    "tar": "^7"
+  },
+  "scripts": {
+    "peggy:odata2cqn": "npx peggy < libx/odata/parse/grammar.peggy | npx terser -cm > libx/odata/parse/parser.js && echo",
+    "peggy:odata2cqn:noTerser": "npx peggy < libx/odata/parse/grammar.peggy > libx/odata/parse/parser.js && echo",
+    "prettier": "npx prettier --write libx/_runtime libx/odata tests/_runtime tests/odata",
+    "prettier:check": "npx prettier --check libx/_runtime libx/odata tests/_runtime tests/odata",
+    "lint": "npx eslint . --max-warnings=0",
+    "test": "jest --silent --colors",
+    "test:runtime": "jest tests/_runtime --silent",
+    "test:hana": "jest --silent --config=tests/_runtime/jest.hana.js",
+    "test:hana-client": "npm i @sap/hana-client && rm -rf node_modules/hdb && npm run test:hana",
+    "test:pg": "CDS_RUN_PG=Y jest --silent deploy-to-postgres",
+    "test:external": "jest --silent --config=tests/_runtime/jest.external.js",
+    "test:reporting": "jest --silent --config=tests/jest.coverage.config.js --ci",
+    "xmake:after-install": "npm i --no-save --force file:.",
+    "xmake:before-publish": "npx -p @sap/cap-pipeline-helper cleanup-package"
+  }
+}
