@@ -29,7 +29,7 @@
     "hdb": "^0.19.5"
   },
   "peerDependencies": {
-    "@sap/hana-client": "2",
+    "@sap/hana-client": "^2",
     "@sap/cds": ">=9"
   },
   "peerDependenciesMeta": {
