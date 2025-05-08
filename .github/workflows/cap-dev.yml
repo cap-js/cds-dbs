@@ -1,0 +1,39 @@
+name: CAP dev integration
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout cds-dbs
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Inject the GH_TOKEN_TOOLS credential for all calls to github.tools.sap
+      - name: Configure Git credentials for SAP GitHub Enterprise
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GH_TOKEN_TOOLS }}@github.tools.sap/".insteadOf "https://github.tools.sap/"
+
+      # Clone cap/dev monorepo from the Enterprise instance
+      - name: Clone cap/dev
+        run: git clone https://github.tools.sap/cap/dev.git cap-dev
+
+      # Bootstrap cap/dev (updates submodules, checks out latest and PR (or latest main) of cds-dbs)
+      - name: Install & bootstrap cap/dev
+        working-directory: cap-dev
+        run: npm run setup
+
+      # Run the full test suite
+      - name: Run tests
+        working-directory: cap-dev
+        run: npm test
