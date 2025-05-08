@@ -1,0 +1,5022 @@
+{
+  "terms": {
+    "Aggregation.Aggregatable": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`ApplySupported/AggregatableProperties`](#ApplySupported)",
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Aggregation.ApplySupported": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection",
+        "EntityType"
+      ],
+      "Type": "Aggregation.ApplySupportedType"
+    },
+    "Aggregation.ApplySupportedDefaults": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Aggregation.ApplySupportedBase"
+    },
+    "Aggregation.AvailableOnAggregates": {
+      "AppliesTo": [
+        "Function"
+      ],
+      "Type": "Aggregation.AvailableOnAggregatesType"
+    },
+    "Aggregation.ContextDefiningProperties": {
+      "AppliesTo": [
+        "Property",
+        "Annotation"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Aggregation.CustomAggregate": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection",
+        "EntityContainer",
+        "EntityType"
+      ],
+      "Type": "Edm.String"
+    },
+    "Aggregation.Groupable": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`ApplySupported/GroupableProperties`](#ApplySupported)",
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Aggregation.LeveledHierarchy": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Aggregation.RecursiveHierarchy": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Aggregation.RecursiveHierarchyType"
+    },
+    "Aggregation.UpPath": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Analytics.AccumulativeMeasure": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`AnalyticalContext/AccumulativeMeasure`](#AnalyticalContext)",
+      "Type": "Core.Tag"
+    },
+    "Analytics.AggregatedProperties": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`AggregatedProperty`](#AggregatedProperty)",
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Analytics.AggregatedPropertyType)"
+    },
+    "Analytics.AggregatedProperty": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Analytics.AggregatedPropertyType"
+    },
+    "Analytics.AnalyticalContext": {
+      "AppliesTo": [
+        "Collection"
+      ],
+      "Type": "Collection(Analytics.AnalyticalContextType)"
+    },
+    "Analytics.Dimension": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`AnalyticalContext/Dimension`](#AnalyticalContext)",
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Analytics.DrillURL": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.String"
+    },
+    "Analytics.LevelInformation": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Hierarchy.HierarchyType"
+    },
+    "Analytics.Measure": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated in favor of [`AnalyticalContext/Measure`](#AnalyticalContext)",
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Analytics.PlanningAction": {
+      "$experimental": true,
+      "AppliesTo": [
+        "ActionImport"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Analytics.RolledUpPropertyCount": {
+      "$experimental": true,
+      "Type": "Edm.Int16"
+    },
+    "Authorization.Authorizations": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Authorization.Authorization)"
+    },
+    "Authorization.SecuritySchemes": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Authorization.SecurityScheme)"
+    },
+    "Capabilities.AcceptableEncodings": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Capabilities.AnnotationValuesInQuerySupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.AsynchronousRequestsSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.BatchContinueOnErrorSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.BatchSupport": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Capabilities.BatchSupportType"
+    },
+    "Capabilities.BatchSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.CallbackSupported": {
+      "AppliesTo": [
+        "EntityContainer",
+        "EntitySet"
+      ],
+      "Type": "Capabilities.CallbackType"
+    },
+    "Capabilities.ChangeTracking": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Function",
+        "FunctionImport",
+        "NavigationProperty"
+      ],
+      "Type": "Capabilities.ChangeTrackingType"
+    },
+    "Capabilities.CollectionPropertyRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton"
+      ],
+      "Type": "Collection(Capabilities.CollectionPropertyRestrictionsType)"
+    },
+    "Capabilities.ComputeSupported": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.ConformanceLevel": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Capabilities.ConformanceLevelType"
+    },
+    "Capabilities.CountRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.CountRestrictionsType"
+    },
+    "Capabilities.CrossJoinSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.CustomHeaders": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Capabilities.CustomParameter)"
+    },
+    "Capabilities.CustomQueryOptions": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Capabilities.CustomParameter)"
+    },
+    "Capabilities.DeepInsertSupport": {
+      "AppliesTo": [
+        "EntityContainer",
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.DeepInsertSupportType"
+    },
+    "Capabilities.DeepUpdateSupport": {
+      "AppliesTo": [
+        "EntityContainer",
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.DeepUpdateSupportType"
+    },
+    "Capabilities.DefaultCapabilities": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Capabilities.DefaultCapabilitiesType"
+    },
+    "Capabilities.DeleteRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.DeleteRestrictionsType"
+    },
+    "Capabilities.ExpandRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.ExpandRestrictionsType"
+    },
+    "Capabilities.FilterFunctions": {
+      "AppliesTo": [
+        "EntityContainer",
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Capabilities.FilterRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.FilterRestrictionsType"
+    },
+    "Capabilities.IndexableByKey": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.InsertRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.InsertRestrictionsType"
+    },
+    "Capabilities.IsolationSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Capabilities.IsolationLevel"
+    },
+    "Capabilities.KeyAsSegmentSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.MediaLocationUpdateSupported": {
+      "AppliesTo": [
+        "EntityType",
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.ModificationQueryOptions": {
+      "AppliesTo": [
+        "EntityContainer",
+        "Action",
+        "ActionImport"
+      ],
+      "Type": "Capabilities.ModificationQueryOptionsType"
+    },
+    "Capabilities.NavigationRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.NavigationRestrictionsType"
+    },
+    "Capabilities.OperationRestrictions": {
+      "AppliesTo": [
+        "Action",
+        "Function"
+      ],
+      "Type": "Capabilities.OperationRestrictionsType"
+    },
+    "Capabilities.QuerySegmentSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.ReadRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.ReadRestrictionsType"
+    },
+    "Capabilities.SearchRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.SearchRestrictionsType"
+    },
+    "Capabilities.SelectSupport": {
+      "AppliesTo": [
+        "EntityContainer",
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.SelectSupportType"
+    },
+    "Capabilities.SkipSupported": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.SortRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Capabilities.SortRestrictionsType"
+    },
+    "Capabilities.SupportedFormats": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Capabilities.SupportedMetadataFormats": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Capabilities.TopSupported": {
+      "AppliesTo": [
+        "EntitySet",
+        "Collection"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Capabilities.UpdateRestrictions": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "Collection"
+      ],
+      "Type": "Capabilities.UpdateRestrictionsType"
+    },
+    "CodeList.CurrencyCodes": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "CodeList.CodeListSource"
+    },
+    "CodeList.ExternalCode": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "CodeList.IsConfigurationDeprecationCode": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "CodeList.StandardCode": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "CodeList.UnitsOfMeasure": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "CodeList.CodeListSource"
+    },
+    "Common.AddressViaNavigationPath": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.Application": {
+      "$experimental": true,
+      "Type": "Common.ApplicationType"
+    },
+    "Common.ApplyMultiUnitBehaviorForSortingAndFiltering": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.AssociationEntity": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.NavigationPropertyPath)"
+    },
+    "Common.Attributes": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Common.ChangedAt": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.DateTimeOffset"
+    },
+    "Common.ChangedBy": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Common.UserID"
+    },
+    "Common.Composition": {
+      "$experimental": true,
+      "AppliesTo": [
+        "NavigationProperty"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.CreatedAt": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.DateTimeOffset"
+    },
+    "Common.CreatedBy": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Common.UserID"
+    },
+    "Common.DefaultValuesFunction": {
+      "AppliesTo": [
+        "EntitySet",
+        "NavigationProperty",
+        "Action",
+        "Function"
+      ],
+      "Type": "Common.QualifiedName"
+    },
+    "Common.DerivedDefaultValue": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.DerivedFilterDefaultValue": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.DerivedNavigation": {
+      "AppliesTo": [
+        "NavigationProperty"
+      ],
+      "Type": "Edm.NavigationPropertyPath"
+    },
+    "Common.DocumentationRef": {
+      "$experimental": true,
+      "Type": "Edm.String"
+    },
+    "Common.DraftActivationVia": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Collection(Core.SimpleIdentifier)"
+    },
+    "Common.DraftNode": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Common.DraftNodeType"
+    },
+    "Common.DraftRoot": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Common.DraftRootType"
+    },
+    "Common.EditableFieldFor": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "Common.ErrorResolution": {
+      "$experimental": true,
+      "Type": "Common.ErrorResolutionType"
+    },
+    "Common.ExceptionCategory": {
+      "$experimental": true,
+      "Type": "Edm.String"
+    },
+    "Common.Experimental": {
+      "Type": "Edm.String"
+    },
+    "Common.ExternalID": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.FieldControl": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "Record",
+        "EntityType"
+      ],
+      "Type": "Common.FieldControlType"
+    },
+    "Common.FilterDefaultValue": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Common.FilterDefaultValueHigh": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Common.FilterExpressionRestrictions": {
+      "$deprecated": true,
+      "$deprecationText": "Use term Capabilities.FilterRestrictions instead",
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Collection(Common.FilterExpressionRestrictionType)"
+    },
+    "Common.Heading": {
+      "Type": "Edm.String"
+    },
+    "Common.Interval": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Common.IntervalType"
+    },
+    "Common.IsActionCritical": {
+      "AppliesTo": [
+        "Action",
+        "Function",
+        "ActionImport",
+        "FunctionImport"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "Common.IsCalendarDate": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarHalfyear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarMonth": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarQuarter": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarWeek": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarYear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarYearHalfyear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarYearMonth": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarYearQuarter": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCalendarYearWeek": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsCurrency": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsDayOfCalendarMonth": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsDayOfCalendarYear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsDayOfFiscalYear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsDigitSequence": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalPeriod": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalQuarter": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalWeek": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalYear": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalYearPeriod": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalYearQuarter": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalYearVariant": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsFiscalYearWeek": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsInstanceAnnotation": {
+      "AppliesTo": [
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsLanguageIdentifier": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsNaturalPerson": {
+      "AppliesTo": [
+        "EntityType",
+        "Annotation"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsTimezone": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsUnit": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.IsUpperCase": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.Label": {
+      "Type": "Edm.String"
+    },
+    "Common.Masked": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.MaskedValue": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.MaxOccurs": {
+      "AppliesTo": [
+        "NavigationProperty",
+        "Property",
+        "EntitySet",
+        "Term",
+        "Parameter"
+      ],
+      "Type": "Edm.Int64"
+    },
+    "Common.MaximumNumericMessageSeverity": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Common.NumericMessageSeverityType"
+    },
+    "Common.Messages": {
+      "Type": "Collection(Edm.ComplexType)"
+    },
+    "Common.MinOccurs": {
+      "AppliesTo": [
+        "NavigationProperty",
+        "Property",
+        "EntitySet",
+        "Term",
+        "Parameter"
+      ],
+      "Type": "Edm.Int64"
+    },
+    "Common.MutuallyExclusiveTerm": {
+      "AppliesTo": [
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.OriginalProtocolVersion": {
+      "AppliesTo": [
+        "Schema"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.PrimitivePropertyPath": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Term",
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.QuickInfo": {
+      "Type": "Edm.String"
+    },
+    "Common.RecursiveHierarchy": {
+      "$deprecated": true,
+      "$deprecationText": "Use terms [Aggregation.RecursiveHierarchy](https://github.com/oasis-tcs/odata-vocabularies/blob/main/vocabularies/Org.OData.Aggregation.V1.md#RecursiveHierarchy) and [Hierarchy.RecursiveHierarchy](https://github.com/SAP/odata-vocabularies/blob/main/vocabularies/Hierarchy.md#RecursiveHierarchy) instead",
+      "Type": "Common.RecursiveHierarchyType"
+    },
+    "Common.RelatedRecursiveHierarchy": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.AnnotationPath"
+    },
+    "Common.ResultContext": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.RevealOnDemand": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "Common.SAPObjectNodeType": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Common.SAPObjectNodeTypeType"
+    },
+    "Common.SAPObjectNodeTypeReference": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.SecondaryKey": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Common.SemanticKey": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Common.SemanticObject": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType",
+        "Property",
+        "NavigationProperty"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.SemanticObjectMapping": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType",
+        "Property"
+      ],
+      "Type": "Collection(Common.SemanticObjectMappingAbstract)"
+    },
+    "Common.SemanticObjectUnavailableActions": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType",
+        "Property"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Common.ServiceSchemaVersion": {
+      "AppliesTo": [
+        "Schema"
+      ],
+      "Type": "Edm.Int32"
+    },
+    "Common.ServiceVersion": {
+      "AppliesTo": [
+        "Schema"
+      ],
+      "Type": "Edm.Int32"
+    },
+    "Common.SideEffects": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType",
+        "ComplexType",
+        "Action"
+      ],
+      "Type": "Common.SideEffectsType"
+    },
+    "Common.SortOrder": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "Collection(Common.SortOrderType)"
+    },
+    "Common.Text": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.TextFor": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "Common.TextFormat": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "ReturnType"
+      ],
+      "Type": "Common.TextFormatType"
+    },
+    "Common.Timestamp": {
+      "$experimental": true,
+      "Type": "Edm.DateTimeOffset"
+    },
+    "Common.Timezone": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.TransactionId": {
+      "$experimental": true,
+      "Type": "Edm.String"
+    },
+    "Common.UnitSpecificPrecision": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Common.UnitSpecificScale": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Common.ValueList": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Common.ValueListType"
+    },
+    "Common.ValueListForValidation": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.ValueListMapping": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Common.ValueListMappingType"
+    },
+    "Common.ValueListReferences": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Common.ValueListRelevantQualifiers": {
+      "Type": "Collection(Core.SimpleIdentifier)"
+    },
+    "Common.ValueListShowValuesImmediately": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Annotation"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.ValueListWithFixedValues": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Common.WebSocketBaseURL": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.WebSocketChannel": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.additionalTargets": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Common.longtextUrl": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.mediaUploadLink": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "EntityType"
+      ],
+      "Type": "Edm.String"
+    },
+    "Common.numericSeverity": {
+      "Type": "Common.NumericMessageSeverityType"
+    },
+    "Communication.Address": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Communication.AddressType"
+    },
+    "Communication.Contact": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Communication.ContactType"
+    },
+    "Communication.Event": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Communication.EventData"
+    },
+    "Communication.IsEmailAddress": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Communication.IsPhoneNumber": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Communication.Message": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Communication.MessageData"
+    },
+    "Communication.Task": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Communication.TaskData"
+    },
+    "Core.AcceptableMediaTypes": {
+      "AppliesTo": [
+        "EntityType",
+        "Property",
+        "Term",
+        "TypeDefinition",
+        "Parameter",
+        "ReturnType"
+      ],
+      "Type": "Collection(Edm.String)"
+    },
+    "Core.AdditionalProperties": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.AlternateKeys": {
+      "AppliesTo": [
+        "EntityType",
+        "EntitySet",
+        "NavigationProperty"
+      ],
+      "Type": "Collection(Core.AlternateKey)"
+    },
+    "Core.AnyStructure": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.AppliesViaContainer": {
+      "AppliesTo": [
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.AutoExpand": {
+      "AppliesTo": [
+        "EntityType",
+        "NavigationProperty",
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.AutoExpandReferences": {
+      "AppliesTo": [
+        "NavigationProperty"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.Computed": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.ComputedDefaultValue": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.ContentDisposition": {
+      "AppliesTo": [
+        "EntityType",
+        "Property",
+        "Term"
+      ],
+      "Type": "Core.ContentDispositionType"
+    },
+    "Core.ContentID": {
+      "Type": "Edm.String"
+    },
+    "Core.ConventionalIDs": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.DataModificationException": {
+      "Type": "Core.DataModificationExceptionType"
+    },
+    "Core.DefaultNamespace": {
+      "AppliesTo": [
+        "Schema",
+        "Include"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.DereferenceableIDs": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.Description": {
+      "Type": "Edm.String"
+    },
+    "Core.Example": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType",
+        "TypeDefinition",
+        "Term",
+        "Property",
+        "NavigationProperty",
+        "Parameter",
+        "ReturnType"
+      ],
+      "Type": "Core.ExampleValue"
+    },
+    "Core.ExplicitOperationBindings": {
+      "Type": "Collection(Core.QualifiedBoundOperationName)"
+    },
+    "Core.GeometryFeature": {
+      "Type": "Core.GeometryFeatureType"
+    },
+    "Core.Immutable": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.IsDelta": {
+      "AppliesTo": [
+        "ReturnType",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.IsLanguageDependent": {
+      "AppliesTo": [
+        "Term",
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.IsMediaType": {
+      "AppliesTo": [
+        "Property",
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.IsURL": {
+      "AppliesTo": [
+        "Property",
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.Links": {
+      "Type": "Collection(Core.Link)"
+    },
+    "Core.LongDescription": {
+      "Type": "Edm.String"
+    },
+    "Core.MayImplement": {
+      "Type": "Collection(Core.QualifiedTypeName)"
+    },
+    "Core.MediaType": {
+      "AppliesTo": [
+        "EntityType",
+        "Property",
+        "Term",
+        "TypeDefinition",
+        "Parameter",
+        "ReturnType"
+      ],
+      "Type": "Edm.String"
+    },
+    "Core.Messages": {
+      "Type": "Collection(Core.MessageType)"
+    },
+    "Core.ODataVersions": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Edm.String"
+    },
+    "Core.OperationAvailable": {
+      "AppliesTo": [
+        "Action",
+        "Function"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "Core.OptimisticConcurrency": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "Core.OptionalParameter": {
+      "AppliesTo": [
+        "Parameter"
+      ],
+      "Type": "Core.OptionalParameterType"
+    },
+    "Core.Ordered": {
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty",
+        "EntitySet",
+        "ReturnType",
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.Permissions": {
+      "AppliesTo": [
+        "Property",
+        "ComplexType",
+        "TypeDefinition",
+        "EntityType",
+        "EntitySet",
+        "NavigationProperty",
+        "Action",
+        "Function"
+      ],
+      "Type": "Core.Permission"
+    },
+    "Core.PositionalInsert": {
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty",
+        "EntitySet"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.RequiresExplicitBinding": {
+      "AppliesTo": [
+        "Action",
+        "Function"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Core.RequiresType": {
+      "AppliesTo": [
+        "Term"
+      ],
+      "Type": "Edm.String"
+    },
+    "Core.ResourceException": {
+      "Type": "Core.ResourceExceptionType"
+    },
+    "Core.ResourcePath": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "ActionImport",
+        "FunctionImport"
+      ],
+      "Type": "Edm.String"
+    },
+    "Core.Revisions": {
+      "Type": "Collection(Core.RevisionType)"
+    },
+    "Core.SchemaVersion": {
+      "AppliesTo": [
+        "Schema",
+        "Reference"
+      ],
+      "Type": "Edm.String"
+    },
+    "Core.SymbolicName": {
+      "Type": "Core.SimpleIdentifier"
+    },
+    "Core.ValueException": {
+      "Type": "Core.ValueExceptionType"
+    },
+    "DataIntegration.ConversionExit": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "DataIntegration.DeltaMethod": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "DataIntegration.DeltaMethodType"
+    },
+    "DataIntegration.Extractable": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "DataIntegration.OriginalDataType": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "DataIntegration.OriginalName": {
+      "Type": "Edm.String"
+    },
+    "DataIntegration.SourceSystem": {
+      "AppliesTo": [
+        "Container"
+      ],
+      "Type": "Edm.String"
+    },
+    "EntityRelationship.compositeReferences": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(EntityRelationship.compositeReference)"
+    },
+    "EntityRelationship.entityIds": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(EntityRelationship.entityId)"
+    },
+    "EntityRelationship.entityType": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.String"
+    },
+    "EntityRelationship.propertyType": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "EntityRelationship.reference": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "EntityRelationship.singleReference"
+    },
+    "EntityRelationship.referencesWithConstantIds": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(EntityRelationship.referenceWithConstantId)"
+    },
+    "EntityRelationship.temporalIds": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(EntityRelationship.temporalId)"
+    },
+    "EntityRelationship.temporalReferences": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(EntityRelationship.temporalReference)"
+    },
+    "Graph.CompositionRoot": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Graph.Details": {
+      "$experimental": true,
+      "Type": "Graph.DetailsType"
+    },
+    "Graph.traceId": {
+      "$experimental": true,
+      "Type": "Edm.String"
+    },
+    "HTML5.CssDefaults": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "HTML5.CssDefaultsType"
+    },
+    "HTML5.LinkTarget": {
+      "Type": "HTML5.LinkTargetType"
+    },
+    "HTML5.RowSpanForDuplicateValues": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Hierarchy.MatchCount": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Collection"
+      ],
+      "Type": "Edm.Int64"
+    },
+    "Hierarchy.RecursiveHierarchy": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Hierarchy.RecursiveHierarchyType"
+    },
+    "Hierarchy.RecursiveHierarchyActions": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Hierarchy.RecursiveHierarchyActionsType"
+    },
+    "Hierarchy.RecursiveHierarchySupported": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Collection"
+      ],
+      "Type": "Core.Tag"
+    },
+    "JSON.Schema": {
+      "AppliesTo": [
+        "EntityType",
+        "Parameter",
+        "Property",
+        "ReturnType",
+        "Term",
+        "TypeDefinition"
+      ],
+      "Type": "JSON.JSON"
+    },
+    "Measures.DurationGranularity": {
+      "AppliesTo": [
+        "Parameter",
+        "Property"
+      ],
+      "Type": "Measures.DurationGranularityType"
+    },
+    "Measures.ISOCurrency": {
+      "AppliesTo": [
+        "Parameter",
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Measures.Scale": {
+      "AppliesTo": [
+        "Parameter",
+        "Property"
+      ],
+      "Type": "Edm.Byte"
+    },
+    "Measures.UNECEUnit": {
+      "AppliesTo": [
+        "Parameter",
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "Measures.Unit": {
+      "AppliesTo": [
+        "Parameter",
+        "Property"
+      ],
+      "Type": "Edm.String"
+    },
+    "ODM.codeList": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType",
+        "EntitySet"
+      ],
+      "Type": "Core.Tag"
+    },
+    "ODM.entityName": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.String"
+    },
+    "ODM.oid": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "ODM.oidReference": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "ODM.oidReferenceType"
+    },
+    "ODM.root": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Offline.ClientOnly": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType",
+        "EntitySet",
+        "EnumType",
+        "ComplexType",
+        "TypeDefinition"
+      ],
+      "Type": "Offline.ClientOnlyType"
+    },
+    "PDF.Features": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "PDF.FeaturesType"
+    },
+    "PersonalData.DataSubjectRole": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Edm.String"
+    },
+    "PersonalData.DataSubjectRoleDescription": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Edm.String"
+    },
+    "PersonalData.EntitySemantics": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "PersonalData.EntitySemanticsType"
+    },
+    "PersonalData.FieldSemantics": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "PersonalData.FieldSemanticsType"
+    },
+    "PersonalData.IsPotentiallyPersonal": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "PersonalData.IsPotentiallySensitive": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Repeatability.DeleteWithClientIDSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Repeatability.DeleteWithRequestIDSupported": {
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Repeatability.Supported": {
+      "AppliesTo": [
+        "EntityContainer",
+        "Action",
+        "ActionImport",
+        "EntitySet"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Session.StickySessionSupported": {
+      "AppliesTo": [
+        "EntitySet"
+      ],
+      "Type": "Session.StickySessionSupportedType"
+    },
+    "UI.AdaptationHidden": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Badge": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.BadgeType"
+    },
+    "UI.Chart": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.ChartDefinitionType"
+    },
+    "UI.ConnectedFields": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.ConnectedFieldsType"
+    },
+    "UI.Contacts": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.AnnotationPath)"
+    },
+    "UI.CreateHidden": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Criticality": {
+      "AppliesTo": [
+        "Annotation"
+      ],
+      "Type": "UI.CriticalityType"
+    },
+    "UI.CriticalityCalculation": {
+      "AppliesTo": [
+        "Annotation"
+      ],
+      "Type": "UI.CriticalityCalculationType"
+    },
+    "UI.CriticalityLabels": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "EntityType",
+        "TypeDefinition"
+      ],
+      "Type": "Collection(UI.CriticalityLabelType)"
+    },
+    "UI.DataFieldDefault": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "UI.DataFieldAbstract"
+    },
+    "UI.DataPoint": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.DataPointType"
+    },
+    "UI.DateTimeStyle": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "full": {
+            "Type": "String",
+            "Value": "full"
+          },
+          "long": {
+            "Type": "String",
+            "Value": "long"
+          },
+          "medium": {
+            "Type": "String",
+            "Value": "medium"
+          },
+          "short": {
+            "Type": "String",
+            "Value": "short"
+          }
+        }
+      },
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Edm.String"
+    },
+    "UI.DeleteHidden": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.DoNotCheckScaleOfMeasuredQuantity": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "TypeDefinition"
+      ],
+      "Type": "Edm.Boolean"
+    },
+    "UI.Emphasized": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.ExcludeFromNavigationContext": {
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Facets": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.Facet)"
+    },
+    "UI.FieldGroup": {
+      "AppliesTo": [
+        "EntityType",
+        "Action",
+        "Function",
+        "ActionImport",
+        "FunctionImport"
+      ],
+      "Type": "UI.FieldGroupType"
+    },
+    "UI.FilterFacets": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.ReferenceFacet)"
+    },
+    "UI.Gallery": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.GeoLocation": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.GeoLocationType"
+    },
+    "UI.GeoLocations": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.GeoLocationType)"
+    },
+    "UI.HeaderFacets": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.Facet)"
+    },
+    "UI.HeaderInfo": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.HeaderInfoType"
+    },
+    "UI.Hidden": {
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty",
+        "Record",
+        "Parameter"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.HiddenFilter": {
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Identification": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.DataFieldAbstract)"
+    },
+    "UI.Importance": {
+      "AppliesTo": [
+        "Annotation",
+        "Record"
+      ],
+      "Type": "UI.ImportanceType"
+    },
+    "UI.InputMask": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "UI.InputMaskType"
+    },
+    "UI.IsAIOperation": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Action",
+        "Function",
+        "ActionImport",
+        "FunctionImport"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.IsCopyAction": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.IsImage": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "EntityType",
+        "TypeDefinition"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.IsImageURL": {
+      "AppliesTo": [
+        "Property",
+        "Term",
+        "TypeDefinition"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.IsSummary": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.KPI": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "UI.KPIType"
+    },
+    "UI.LeadingEntitySet": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityContainer"
+      ],
+      "Type": "Edm.String"
+    },
+    "UI.LineItem": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.DataFieldAbstract)"
+    },
+    "UI.Map": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.MediaResource": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.MediaResourceType"
+    },
+    "UI.MultiLineText": {
+      "AppliesTo": [
+        "Property",
+        "PropertyValue",
+        "Parameter",
+        "TypeDefinition"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Note": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "UI.NoteType"
+    },
+    "UI.OperationParameterFacets": {
+      "AppliesTo": [
+        "Action",
+        "Function",
+        "ActionImport",
+        "FunctionImport"
+      ],
+      "Type": "Collection(UI.ReferenceFacet)"
+    },
+    "UI.OrderBy": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property"
+      ],
+      "Type": "Edm.PropertyPath"
+    },
+    "UI.ParameterDefaultValue": {
+      "AppliesTo": [
+        "Parameter"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "UI.PartOfPreview": {
+      "AppliesTo": [
+        "Record"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.Placeholder": {
+      "AppliesTo": [
+        "Property",
+        "Parameter"
+      ],
+      "Type": "Edm.String"
+    },
+    "UI.PresentationVariant": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "UI.PresentationVariantType"
+    },
+    "UI.QuickCreateFacets": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.Facet)"
+    },
+    "UI.QuickViewFacets": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.Facet)"
+    },
+    "UI.RecommendationList": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "TypeDefinition"
+      ],
+      "Type": "UI.RecommendationListType"
+    },
+    "UI.RecommendationState": {
+      "Type": "UI.RecommendationStateType"
+    },
+    "UI.Recommendations": {
+      "$experimental": true,
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Edm.ComplexType"
+    },
+    "UI.SelectionFields": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(Edm.PropertyPath)"
+    },
+    "UI.SelectionPresentationVariant": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "UI.SelectionPresentationVariantType"
+    },
+    "UI.SelectionVariant": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "UI.SelectionVariantType"
+    },
+    "UI.StatusInfo": {
+      "AppliesTo": [
+        "EntityType"
+      ],
+      "Type": "Collection(UI.DataFieldAbstract)"
+    },
+    "UI.TextArrangement": {
+      "AppliesTo": [
+        "Annotation",
+        "EntityType"
+      ],
+      "Type": "UI.TextArrangementType"
+    },
+    "UI.ThingPerspective": {
+      "AppliesTo": [
+        "Term"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.UpdateHidden": {
+      "AppliesTo": [
+        "EntitySet",
+        "EntityType"
+      ],
+      "Type": "Core.Tag"
+    },
+    "UI.ValueCriticality": {
+      "$experimental": true,
+      "AppliesTo": [
+        "Property",
+        "TypeDefinition"
+      ],
+      "Type": "Collection(UI.ValueCriticalityType)"
+    },
+    "Validation.AllowedTerms": {
+      "AppliesTo": [
+        "Term",
+        "Property"
+      ],
+      "Type": "Collection(Core.QualifiedTermName)"
+    },
+    "Validation.AllowedValues": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "TypeDefinition"
+      ],
+      "Type": "Collection(Validation.AllowedValue)"
+    },
+    "Validation.ApplicableTerms": {
+      "Type": "Collection(Core.QualifiedTermName)"
+    },
+    "Validation.Constraint": {
+      "AppliesTo": [
+        "Property",
+        "NavigationProperty",
+        "Parameter",
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Validation.ConstraintType"
+    },
+    "Validation.DerivedTypeConstraint": {
+      "AppliesTo": [
+        "EntitySet",
+        "Singleton",
+        "NavigationProperty",
+        "Property",
+        "TypeDefinition",
+        "Parameter",
+        "ReturnType"
+      ],
+      "Type": "Collection(Validation.SingleOrCollectionType)"
+    },
+    "Validation.Exclusive": {
+      "AppliesTo": [
+        "Annotation"
+      ],
+      "Type": "Core.Tag"
+    },
+    "Validation.ItemsOf": {
+      "AppliesTo": [
+        "EntityType",
+        "ComplexType"
+      ],
+      "Type": "Collection(Validation.ItemsOfType)"
+    },
+    "Validation.MaxItems": {
+      "AppliesTo": [
+        "Collection"
+      ],
+      "Type": "Edm.Int64"
+    },
+    "Validation.Maximum": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "Term"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Validation.MinItems": {
+      "AppliesTo": [
+        "Collection"
+      ],
+      "Type": "Edm.Int64"
+    },
+    "Validation.Minimum": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "Term"
+      ],
+      "Type": "Edm.PrimitiveType"
+    },
+    "Validation.MultipleOf": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "Term"
+      ],
+      "Type": "Edm.Decimal"
+    },
+    "Validation.OpenPropertyTypeConstraint": {
+      "AppliesTo": [
+        "ComplexType",
+        "EntityType"
+      ],
+      "Type": "Collection(Validation.SingleOrCollectionType)"
+    },
+    "Validation.Pattern": {
+      "AppliesTo": [
+        "Property",
+        "Parameter",
+        "Term"
+      ],
+      "Type": "Edm.String"
+    }
+  },
+  "types": {
+    "Aggregation.AggregatablePropertyType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Property": "Edm.PropertyPath",
+        "RecommendedAggregationMethod": "Aggregation.AggregationMethod",
+        "SupportedAggregationMethods": "Collection(Aggregation.AggregationMethod)"
+      }
+    },
+    "Aggregation.AggregationMethod": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "average": {
+            "Type": "String",
+            "Value": "average"
+          },
+          "countdistinct": {
+            "Type": "String",
+            "Value": "countdistinct"
+          },
+          "max": {
+            "Type": "String",
+            "Value": "max"
+          },
+          "min": {
+            "Type": "String",
+            "Value": "min"
+          },
+          "sum": {
+            "Type": "String",
+            "Value": "sum"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Aggregation.ApplySupportedBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CustomAggregationMethods": "Collection(Edm.String)",
+        "From": "Edm.Boolean",
+        "Rollup": "Aggregation.RollupType",
+        "Transformations": "Collection(Aggregation.Transformation)"
+      }
+    },
+    "Aggregation.ApplySupportedType": {
+      "$kind": "ComplexType",
+      "BaseType": "Aggregation.ApplySupportedBase",
+      "Properties": {
+        "AggregatableProperties": "Collection(Aggregation.AggregatablePropertyType)",
+        "CustomAggregationMethods": "Collection(Edm.String)",
+        "From": "Edm.Boolean",
+        "GroupableProperties": "Collection(Edm.AnyPropertyPath)",
+        "PropertyRestrictions": "Edm.Boolean",
+        "Rollup": "Aggregation.RollupType",
+        "Transformations": "Collection(Aggregation.Transformation)"
+      }
+    },
+    "Aggregation.AvailableOnAggregatesType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "RequiredProperties": "Collection(Edm.PropertyPath)"
+      }
+    },
+    "Aggregation.CustomAggregateType": {
+      "$deprecated": true,
+      "$deprecationText": "Deprecated since [`NavigationPropertyAggregationCapabilities`](#NavigationPropertyAggregationCapabilities) is also deprecated",
+      "$kind": "ComplexType",
+      "Properties": {
+        "Name": "Edm.String",
+        "Type": "Edm.String"
+      }
+    },
+    "Aggregation.HierarchyQualifier": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Aggregation.NavigationPropertyAggregationCapabilities": {
+      "$deprecated": true,
+      "$deprecationText": "[`Capabilities.NavigationRestrictions`](Org.OData.Capabilities.V1.md#NavigationRestrictions) that make use of the additional properties in this subtype are deprecated in favor of [`ApplySupported`](#ApplySupported) and [`CustomAggregate`](#CustomAggregate)",
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.NavigationPropertyRestriction",
+      "Properties": {
+        "ApplySupported": "Aggregation.ApplySupportedType",
+        "CustomAggregates": "Collection(Aggregation.CustomAggregateType)",
+        "DeepInsertSupport": "Capabilities.DeepInsertSupportType",
+        "DeepUpdateSupport": "Capabilities.DeepUpdateSupportType",
+        "DeleteRestrictions": "Capabilities.DeleteRestrictionsType",
+        "FilterFunctions": "Collection(Edm.String)",
+        "FilterRestrictions": "Capabilities.FilterRestrictionsType",
+        "IndexableByKey": "Edm.Boolean",
+        "InsertRestrictions": "Capabilities.InsertRestrictionsType",
+        "Navigability": "Capabilities.NavigationType",
+        "NavigationProperty": "Edm.NavigationPropertyPath",
+        "OptimisticConcurrencyControl": "Edm.Boolean",
+        "ReadRestrictions": "Capabilities.ReadRestrictionsType",
+        "SearchRestrictions": "Capabilities.SearchRestrictionsType",
+        "SelectSupport": "Capabilities.SelectSupportType",
+        "SkipSupported": "Edm.Boolean",
+        "SortRestrictions": "Capabilities.SortRestrictionsType",
+        "TopSupported": "Edm.Boolean",
+        "UpdateRestrictions": "Capabilities.UpdateRestrictionsType"
+      }
+    },
+    "Aggregation.RecursiveHierarchyType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "NodeProperty": "Edm.PropertyPath",
+        "ParentNavigationProperty": "Edm.NavigationPropertyPath"
+      }
+    },
+    "Aggregation.RollupType": {
+      "$kind": "EnumType",
+      "Members": [
+        "None",
+        "SingleHierarchy",
+        "MultipleHierarchies"
+      ]
+    },
+    "Aggregation.Transformation": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "addnested": {
+            "Type": "String",
+            "Value": "addnested"
+          },
+          "aggregate": {
+            "Type": "String",
+            "Value": "aggregate"
+          },
+          "ancestors": {
+            "Type": "String",
+            "Value": "ancestors"
+          },
+          "bottomcount": {
+            "Type": "String",
+            "Value": "bottomcount"
+          },
+          "bottompercent": {
+            "Type": "String",
+            "Value": "bottompercent"
+          },
+          "bottomsum": {
+            "Type": "String",
+            "Value": "bottomsum"
+          },
+          "compute": {
+            "Type": "String",
+            "Value": "compute"
+          },
+          "concat": {
+            "Type": "String",
+            "Value": "concat"
+          },
+          "descendants": {
+            "Type": "String",
+            "Value": "descendants"
+          },
+          "filter": {
+            "Type": "String",
+            "Value": "filter"
+          },
+          "groupby": {
+            "Type": "String",
+            "Value": "groupby"
+          },
+          "identity": {
+            "Type": "String",
+            "Value": "identity"
+          },
+          "join": {
+            "Type": "String",
+            "Value": "join"
+          },
+          "nest": {
+            "Type": "String",
+            "Value": "nest"
+          },
+          "orderby": {
+            "Type": "String",
+            "Value": "orderby"
+          },
+          "outerjoin": {
+            "Type": "String",
+            "Value": "outerjoin"
+          },
+          "search": {
+            "Type": "String",
+            "Value": "search"
+          },
+          "skip": {
+            "Type": "String",
+            "Value": "skip"
+          },
+          "top": {
+            "Type": "String",
+            "Value": "top"
+          },
+          "topcount": {
+            "Type": "String",
+            "Value": "topcount"
+          },
+          "toppercent": {
+            "Type": "String",
+            "Value": "toppercent"
+          },
+          "topsum": {
+            "Type": "String",
+            "Value": "topsum"
+          },
+          "traverse": {
+            "Type": "String",
+            "Value": "traverse"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Analytics.AggregatedPropertyType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AggregatableProperty": "Edm.PropertyPath",
+        "AggregationMethod": "Aggregation.AggregationMethod",
+        "Name": "Core.SimpleIdentifier"
+      }
+    },
+    "Analytics.AnalyticalContextType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AccumulativeMeasure": "Core.Tag",
+        "Dimension": "Core.Tag",
+        "DynamicProperty": "Edm.AnnotationPath",
+        "Measure": "Core.Tag",
+        "Property": "Edm.PropertyPath"
+      }
+    },
+    "Analytics.MultiLevelExpandEntry": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Entry": "Collection(Edm.String)",
+        "Levels": "Edm.Int64"
+      }
+    },
+    "Analytics.MultiLevelExpandLevel": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "AdditionalProperties": "Collection(Edm.String)",
+        "DimensionProperties": "Collection(Edm.String)"
+      }
+    },
+    "Analytics.MultiLevelExpandSiblingOrder": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Descending": "Edm.Boolean",
+        "Property": "Edm.String"
+      }
+    },
+    "Authorization.ApiKey": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.Authorization",
+      "Properties": {
+        "Description": "Edm.String",
+        "KeyName": "Edm.String",
+        "Location": "Authorization.KeyLocation",
+        "Name": "Edm.String"
+      }
+    },
+    "Authorization.Authorization": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "Description": "Edm.String",
+        "Name": "Edm.String"
+      }
+    },
+    "Authorization.AuthorizationScope": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String",
+        "Grant": "Edm.String",
+        "Scope": "Edm.String"
+      }
+    },
+    "Authorization.Http": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.Authorization",
+      "Properties": {
+        "BearerFormat": "Edm.String",
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "Scheme": "Edm.String"
+      }
+    },
+    "Authorization.KeyLocation": {
+      "$kind": "EnumType",
+      "Members": [
+        "Header",
+        "QueryOption",
+        "Cookie"
+      ]
+    },
+    "Authorization.OAuth2AuthCode": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.OAuthAuthorization",
+      "Properties": {
+        "AuthorizationUrl": "Edm.String",
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "RefreshUrl": "Edm.String",
+        "Scopes": "Collection(Authorization.AuthorizationScope)",
+        "TokenUrl": "Edm.String"
+      }
+    },
+    "Authorization.OAuth2ClientCredentials": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.OAuthAuthorization",
+      "Properties": {
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "RefreshUrl": "Edm.String",
+        "Scopes": "Collection(Authorization.AuthorizationScope)",
+        "TokenUrl": "Edm.String"
+      }
+    },
+    "Authorization.OAuth2Implicit": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.OAuthAuthorization",
+      "Properties": {
+        "AuthorizationUrl": "Edm.String",
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "RefreshUrl": "Edm.String",
+        "Scopes": "Collection(Authorization.AuthorizationScope)"
+      }
+    },
+    "Authorization.OAuth2Password": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.OAuthAuthorization",
+      "Properties": {
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "RefreshUrl": "Edm.String",
+        "Scopes": "Collection(Authorization.AuthorizationScope)",
+        "TokenUrl": "Edm.String"
+      }
+    },
+    "Authorization.OAuthAuthorization": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "BaseType": "Authorization.Authorization",
+      "Properties": {
+        "Description": "Edm.String",
+        "Name": "Edm.String",
+        "RefreshUrl": "Edm.String",
+        "Scopes": "Collection(Authorization.AuthorizationScope)"
+      }
+    },
+    "Authorization.OpenIDConnect": {
+      "$kind": "ComplexType",
+      "BaseType": "Authorization.Authorization",
+      "Properties": {
+        "Description": "Edm.String",
+        "IssuerUrl": "Edm.String",
+        "Name": "Edm.String"
+      }
+    },
+    "Authorization.SchemeName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Authorization.SecurityScheme": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Authorization": "Authorization.SchemeName",
+        "RequiredScopes": "Collection(Edm.String)"
+      }
+    },
+    "Capabilities.BatchSupportType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ContinueOnErrorSupported": "Edm.Boolean",
+        "EtagReferencesSupported": "Edm.Boolean",
+        "ReferencesAcrossChangeSetsSupported": "Edm.Boolean",
+        "ReferencesInRequestBodiesSupported": "Edm.Boolean",
+        "RequestDependencyConditionsSupported": "Edm.Boolean",
+        "Supported": "Edm.Boolean",
+        "SupportedFormats": "Collection(Edm.String)"
+      }
+    },
+    "Capabilities.CallbackProtocol": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DocumentationUrl": "Edm.String",
+        "Id": "Edm.String",
+        "UrlTemplate": "Edm.String"
+      }
+    },
+    "Capabilities.CallbackType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CallbackProtocols": "Collection(Capabilities.CallbackProtocol)"
+      }
+    },
+    "Capabilities.ChangeTrackingBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Supported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ChangeTrackingType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.ChangeTrackingBase",
+      "Properties": {
+        "ExpandableProperties": "Collection(Edm.NavigationPropertyPath)",
+        "FilterableProperties": "Collection(Edm.PropertyPath)",
+        "Supported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.CollectionPropertyRestrictionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CollectionProperty": "Edm.PropertyPath",
+        "Deletable": "Edm.Boolean",
+        "FilterFunctions": "Collection(Edm.String)",
+        "FilterRestrictions": "Capabilities.FilterRestrictionsType",
+        "Insertable": "Edm.Boolean",
+        "SearchRestrictions": "Capabilities.SearchRestrictionsType",
+        "SelectSupport": "Capabilities.SelectSupportType",
+        "SkipSupported": "Edm.Boolean",
+        "SortRestrictions": "Capabilities.SortRestrictionsType",
+        "TopSupported": "Edm.Boolean",
+        "Updatable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ConformanceLevelType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Minimal",
+        "Intermediate",
+        "Advanced"
+      ]
+    },
+    "Capabilities.CountRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Countable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.CountRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.CountRestrictionsBase",
+      "Properties": {
+        "Countable": "Edm.Boolean",
+        "NonCountableNavigationProperties": "Collection(Edm.NavigationPropertyPath)",
+        "NonCountableProperties": "Collection(Edm.PropertyPath)"
+      }
+    },
+    "Capabilities.CustomParameter": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String",
+        "DocumentationURL": "Edm.String",
+        "ExampleValues": "Collection(Core.PrimitiveExampleValue)",
+        "Name": "Edm.String",
+        "Required": "Edm.Boolean"
+      }
+    },
+    "Capabilities.DeepInsertSupportType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ContentIDSupported": "Edm.Boolean",
+        "Supported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.DeepUpdateSupportType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ContentIDSupported": "Edm.Boolean",
+        "Supported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.DefaultCapabilitiesType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ChangeTracking": "Capabilities.ChangeTrackingBase",
+        "ComputeSupported": "Core.Tag",
+        "CountRestrictions": "Capabilities.CountRestrictionsBase",
+        "DeleteRestrictions": "Capabilities.DeleteRestrictionsBase",
+        "ExpandRestrictions": "Capabilities.ExpandRestrictionsBase",
+        "FilterRestrictions": "Capabilities.FilterRestrictionsBase",
+        "IndexableByKey": "Core.Tag",
+        "InsertRestrictions": "Capabilities.InsertRestrictionsBase",
+        "OperationRestrictions": "Capabilities.OperationRestrictionsType",
+        "ReadRestrictions": "Capabilities.ReadRestrictionsType",
+        "SearchRestrictions": "Capabilities.SearchRestrictionsType",
+        "SelectSupport": "Capabilities.SelectSupportType",
+        "SkipSupported": "Core.Tag",
+        "SortRestrictions": "Capabilities.SortRestrictionsBase",
+        "TopSupported": "Core.Tag",
+        "UpdateRestrictions": "Capabilities.UpdateRestrictionsBase"
+      }
+    },
+    "Capabilities.DeleteRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Deletable": "Edm.Boolean",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "FilterSegmentSupported": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "TypecastSegmentSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.DeleteRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.DeleteRestrictionsBase",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Deletable": "Edm.Boolean",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "FilterSegmentSupported": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "NonDeletableNavigationProperties": "Collection(Edm.NavigationPropertyPath)",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "TypecastSegmentSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ExpandRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Expandable": "Edm.Boolean",
+        "MaxLevels": "Edm.Int32",
+        "StreamsExpandable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ExpandRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.ExpandRestrictionsBase",
+      "Properties": {
+        "Expandable": "Edm.Boolean",
+        "MaxLevels": "Edm.Int32",
+        "NonExpandableProperties": "Collection(Edm.NavigationPropertyPath)",
+        "NonExpandableStreamProperties": "Collection(Edm.PropertyPath)",
+        "StreamsExpandable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.FilterExpressionRestrictionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AllowedExpressions": "Capabilities.FilterExpressionType",
+        "Property": "Edm.PropertyPath"
+      }
+    },
+    "Capabilities.FilterExpressionType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "MultiRange": {
+            "Type": "String",
+            "Value": "MultiRange"
+          },
+          "MultiRangeOrSearchExpression": {
+            "Type": "String",
+            "Value": "MultiRangeOrSearchExpression"
+          },
+          "MultiValue": {
+            "Type": "String",
+            "Value": "MultiValue"
+          },
+          "SearchExpression": {
+            "Type": "String",
+            "Value": "SearchExpression"
+          },
+          "SingleRange": {
+            "Type": "String",
+            "Value": "SingleRange"
+          },
+          "SingleValue": {
+            "Type": "String",
+            "Value": "SingleValue"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Capabilities.FilterRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Filterable": "Edm.Boolean",
+        "MaxLevels": "Edm.Int32",
+        "RequiresFilter": "Edm.Boolean"
+      }
+    },
+    "Capabilities.FilterRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.FilterRestrictionsBase",
+      "Properties": {
+        "FilterExpressionRestrictions": "Collection(Capabilities.FilterExpressionRestrictionType)",
+        "Filterable": "Edm.Boolean",
+        "MaxLevels": "Edm.Int32",
+        "NonFilterableProperties": "Collection(Edm.PropertyPath)",
+        "RequiredProperties": "Collection(Edm.PropertyPath)",
+        "RequiresFilter": "Edm.Boolean"
+      }
+    },
+    "Capabilities.HttpMethod": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "GET",
+        "PATCH",
+        "PUT",
+        "POST",
+        "DELETE",
+        "OPTIONS",
+        "HEAD"
+      ]
+    },
+    "Capabilities.HttpResponse": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String",
+        "StatusCode": "Edm.String"
+      }
+    },
+    "Capabilities.InsertRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "Insertable": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "QueryOptions": "Capabilities.ModificationQueryOptionsType",
+        "TypecastSegmentSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.InsertRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.InsertRestrictionsBase",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "Insertable": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "NonInsertableNavigationProperties": "Collection(Edm.NavigationPropertyPath)",
+        "NonInsertableProperties": "Collection(Edm.PropertyPath)",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "QueryOptions": "Capabilities.ModificationQueryOptionsType",
+        "RequiredProperties": "Collection(Edm.PropertyPath)",
+        "TypecastSegmentSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.IsolationLevel": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "Snapshot"
+      ]
+    },
+    "Capabilities.ModificationQueryOptionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ComputeSupported": "Edm.Boolean",
+        "ExpandSupported": "Edm.Boolean",
+        "FilterSupported": "Edm.Boolean",
+        "SearchSupported": "Edm.Boolean",
+        "SelectSupported": "Edm.Boolean",
+        "SortSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.NavigationPropertyRestriction": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DeepInsertSupport": "Capabilities.DeepInsertSupportType",
+        "DeepUpdateSupport": "Capabilities.DeepUpdateSupportType",
+        "DeleteRestrictions": "Capabilities.DeleteRestrictionsType",
+        "FilterFunctions": "Collection(Edm.String)",
+        "FilterRestrictions": "Capabilities.FilterRestrictionsType",
+        "IndexableByKey": "Edm.Boolean",
+        "InsertRestrictions": "Capabilities.InsertRestrictionsType",
+        "Navigability": "Capabilities.NavigationType",
+        "NavigationProperty": "Edm.NavigationPropertyPath",
+        "OptimisticConcurrencyControl": "Edm.Boolean",
+        "ReadRestrictions": "Capabilities.ReadRestrictionsType",
+        "SearchRestrictions": "Capabilities.SearchRestrictionsType",
+        "SelectSupport": "Capabilities.SelectSupportType",
+        "SkipSupported": "Edm.Boolean",
+        "SortRestrictions": "Capabilities.SortRestrictionsType",
+        "TopSupported": "Edm.Boolean",
+        "UpdateRestrictions": "Capabilities.UpdateRestrictionsType"
+      }
+    },
+    "Capabilities.NavigationRestrictionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Navigability": "Capabilities.NavigationType",
+        "RestrictedProperties": "Collection(Capabilities.NavigationPropertyRestriction)"
+      }
+    },
+    "Capabilities.NavigationType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Recursive",
+        "Single",
+        "None"
+      ]
+    },
+    "Capabilities.OperationRestrictionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "FilterSegmentSupported": "Edm.Boolean",
+        "Permissions": "Collection(Capabilities.PermissionType)"
+      }
+    },
+    "Capabilities.PermissionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "SchemeName": "Authorization.SchemeName",
+        "Scopes": "Collection(Capabilities.ScopeType)"
+      }
+    },
+    "Capabilities.ReadByKeyRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.ReadRestrictionsBase",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "LongDescription": "Edm.String",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "Readable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ReadRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "LongDescription": "Edm.String",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "Readable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ReadRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.ReadRestrictionsBase",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "LongDescription": "Edm.String",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "ReadByKeyRestrictions": "Capabilities.ReadByKeyRestrictionsType",
+        "Readable": "Edm.Boolean",
+        "TypecastSegmentSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.ScopeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "RestrictedProperties": "Edm.String",
+        "Scope": "Edm.String"
+      }
+    },
+    "Capabilities.SearchExpressions": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "none",
+        "AND",
+        "OR",
+        "NOT",
+        "phrase",
+        "group"
+      ]
+    },
+    "Capabilities.SearchRestrictionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Searchable": "Edm.Boolean",
+        "UnsupportedExpressions": "Capabilities.SearchExpressions"
+      }
+    },
+    "Capabilities.SelectSupportType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ComputeSupported": "Edm.Boolean",
+        "Countable": "Edm.Boolean",
+        "Expandable": "Edm.Boolean",
+        "Filterable": "Edm.Boolean",
+        "InstanceAnnotationsSupported": "Edm.Boolean",
+        "Searchable": "Edm.Boolean",
+        "SkipSupported": "Edm.Boolean",
+        "Sortable": "Edm.Boolean",
+        "Supported": "Edm.Boolean",
+        "TopSupported": "Edm.Boolean"
+      }
+    },
+    "Capabilities.SortRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Sortable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.SortRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.SortRestrictionsBase",
+      "Properties": {
+        "AscendingOnlyProperties": "Collection(Edm.PropertyPath)",
+        "DescendingOnlyProperties": "Collection(Edm.PropertyPath)",
+        "NonSortableProperties": "Collection(Edm.PropertyPath)",
+        "Sortable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.UpdateRestrictionsBase": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "DeltaUpdateSupported": "Edm.Boolean",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "FilterSegmentSupported": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "QueryOptions": "Capabilities.ModificationQueryOptionsType",
+        "TypecastSegmentSupported": "Edm.Boolean",
+        "Updatable": "Edm.Boolean",
+        "UpdateMethod": "Capabilities.HttpMethod",
+        "Upsertable": "Edm.Boolean"
+      }
+    },
+    "Capabilities.UpdateRestrictionsType": {
+      "$kind": "ComplexType",
+      "BaseType": "Capabilities.UpdateRestrictionsBase",
+      "Properties": {
+        "CustomHeaders": "Collection(Capabilities.CustomParameter)",
+        "CustomQueryOptions": "Collection(Capabilities.CustomParameter)",
+        "DeltaUpdateSupported": "Edm.Boolean",
+        "Description": "Edm.String",
+        "ErrorResponses": "Collection(Capabilities.HttpResponse)",
+        "FilterSegmentSupported": "Edm.Boolean",
+        "LongDescription": "Edm.String",
+        "MaxLevels": "Edm.Int32",
+        "NonUpdatableNavigationProperties": "Collection(Edm.NavigationPropertyPath)",
+        "NonUpdatableProperties": "Collection(Edm.PropertyPath)",
+        "Permissions": "Collection(Capabilities.PermissionType)",
+        "QueryOptions": "Capabilities.ModificationQueryOptionsType",
+        "RequiredProperties": "Collection(Edm.PropertyPath)",
+        "TypecastSegmentSupported": "Edm.Boolean",
+        "Updatable": "Edm.Boolean",
+        "UpdateMethod": "Capabilities.HttpMethod",
+        "Upsertable": "Edm.Boolean"
+      }
+    },
+    "CodeList.CodeListSource": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CollectionPath": "Edm.String",
+        "Url": "Edm.String"
+      }
+    },
+    "Common.ActionOverload": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Common.ApplicationType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Component": "Edm.String",
+        "ServiceId": "Edm.String",
+        "ServiceRepository": "Edm.String",
+        "ServiceVersion": "Edm.String"
+      }
+    },
+    "Common.DraftNodeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "PreparationAction": "Common.QualifiedName",
+        "ValidationFunction": "Common.QualifiedName"
+      }
+    },
+    "Common.DraftRootType": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.DraftNodeType",
+      "Properties": {
+        "ActivationAction": "Common.QualifiedName",
+        "AdditionalNewActions": "Collection(Common.QualifiedName)",
+        "DiscardAction": "Common.QualifiedName",
+        "EditAction": "Common.QualifiedName",
+        "NewAction": "Common.QualifiedName",
+        "PreparationAction": "Common.QualifiedName",
+        "ShareAction": "Common.QualifiedName",
+        "ValidationFunction": "Common.QualifiedName"
+      }
+    },
+    "Common.EffectType": {
+      "$deprecated": true,
+      "$deprecationText": "All side effects are essentially value changes, differentiation not needed.",
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "ValidationMessage",
+        "ValueChange",
+        "FieldControlChange"
+      ]
+    },
+    "Common.ErrorResolutionType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "AdditionalNote": "Edm.String",
+        "Analysis": "Edm.String",
+        "Note": "Edm.String"
+      }
+    },
+    "Common.FetchValuesType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "1": {
+            "Type": "Int",
+            "Value": "1"
+          },
+          "2": {
+            "Type": "Int",
+            "Value": "2"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.Byte"
+    },
+    "Common.FieldControlType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Mandatory",
+        "Optional",
+        "ReadOnly",
+        "Inapplicable",
+        "Hidden"
+      ],
+      "UnderlyingType": "Edm.Byte"
+    },
+    "Common.FilterExpressionRestrictionType": {
+      "$deprecated": true,
+      "$deprecationText": "Use term Capabilities.FilterRestrictions instead",
+      "$kind": "ComplexType",
+      "Properties": {
+        "AllowedExpressions": "Common.FilterExpressionType",
+        "Property": "Edm.PropertyPath"
+      }
+    },
+    "Common.FilterExpressionType": {
+      "$deprecated": true,
+      "$deprecationText": "Use term Capabilities.FilterRestrictions instead",
+      "$kind": "EnumType",
+      "Members": [
+        "SingleValue",
+        "MultiValue",
+        "SingleInterval"
+      ]
+    },
+    "Common.IntervalType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Label": "Edm.String",
+        "LowerBoundary": "Edm.PropertyPath",
+        "LowerBoundaryIncluded": "Edm.Boolean",
+        "UpperBoundary": "Edm.PropertyPath",
+        "UpperBoundaryIncluded": "Edm.Boolean"
+      }
+    },
+    "Common.NumericMessageSeverityType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "1": {
+            "Type": "Int",
+            "Value": "1"
+          },
+          "2": {
+            "Type": "Int",
+            "Value": "2"
+          },
+          "3": {
+            "Type": "Int",
+            "Value": "3"
+          },
+          "4": {
+            "Type": "Int",
+            "Value": "4"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.Byte"
+    },
+    "Common.QualifiedName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Common.RecursiveHierarchyType": {
+      "$deprecated": true,
+      "$deprecationText": "Use terms [Aggregation.RecursiveHierarchy](https://github.com/oasis-tcs/odata-vocabularies/blob/main/vocabularies/Org.OData.Aggregation.V1.md#RecursiveHierarchy) and [Hierarchy.RecursiveHierarchy](https://github.com/SAP/odata-vocabularies/blob/main/vocabularies/Hierarchy.md#RecursiveHierarchy) instead",
+      "$kind": "ComplexType",
+      "Properties": {
+        "ExternalNodeKeyProperty": "Edm.PropertyPath",
+        "NodeDescendantCountProperty": "Edm.PropertyPath",
+        "NodeDrillStateProperty": "Edm.PropertyPath"
+      }
+    },
+    "Common.SAPObjectNodeTypeType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Name": "Edm.String"
+      }
+    },
+    "Common.SemanticObjectMappingAbstract": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "SemanticObjectProperty": "Edm.String"
+      }
+    },
+    "Common.SemanticObjectMappingConstant": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "Common.SemanticObjectMappingAbstract",
+      "Properties": {
+        "Constant": "Edm.PrimitiveType",
+        "SemanticObjectProperty": "Edm.String"
+      }
+    },
+    "Common.SemanticObjectMappingType": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.SemanticObjectMappingAbstract",
+      "Properties": {
+        "LocalProperty": "Edm.PropertyPath",
+        "SemanticObjectProperty": "Edm.String"
+      }
+    },
+    "Common.SideEffectsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Discretionary": "Edm.Boolean",
+        "EffectTypes": "Common.EffectType",
+        "SourceEntities": "Collection(Edm.NavigationPropertyPath)",
+        "SourceEvents": "Collection(Edm.String)",
+        "SourceProperties": "Collection(Edm.PropertyPath)",
+        "TargetEntities": "Collection(Edm.NavigationPropertyPath)",
+        "TargetProperties": "Collection(Edm.String)",
+        "TriggerAction": "Common.QualifiedName"
+      }
+    },
+    "Common.SimpleIdentifier": {
+      "$deprecated": true,
+      "$deprecationText": "Use type [Core.SimpleIdentifier](https://github.com/oasis-tcs/odata-vocabularies/blob/main/vocabularies/Org.OData.Core.V1.md#SimpleIdentifier) instead",
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Common.SortOrderType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Descending": "Edm.Boolean",
+        "DynamicProperty": "Edm.AnnotationPath",
+        "Expression": "Edm.PrimitiveType",
+        "Property": "Edm.PropertyPath"
+      }
+    },
+    "Common.TextFormatType": {
+      "$kind": "EnumType",
+      "Members": [
+        "plain",
+        "html"
+      ]
+    },
+    "Common.UserID": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Common.ValueListMappingType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CollectionPath": "Edm.String",
+        "DistinctValuesSupported": "Edm.Boolean",
+        "FetchValues": "Common.FetchValuesType",
+        "Label": "Edm.String",
+        "Parameters": "Collection(Common.ValueListParameter)",
+        "PresentationVariantQualifier": "Core.SimpleIdentifier",
+        "SelectionVariantQualifier": "Core.SimpleIdentifier"
+      }
+    },
+    "Common.ValueListParameter": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterConstant": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "Constant": "Edm.PrimitiveType",
+        "InitialValueIsSignificant": "Edm.Boolean",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterConstants": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "Constants": "Collection(Edm.PrimitiveType)",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterDisplayOnly": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterFilterOnly": {
+      "$deprecated": true,
+      "$deprecationText": "All filterable properties of the value list can be used to filter",
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterIn": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "InitialValueIsSignificant": "Edm.Boolean",
+        "LocalDataProperty": "Edm.PropertyPath",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterInOut": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "InitialValueIsSignificant": "Edm.Boolean",
+        "LocalDataProperty": "Edm.PropertyPath",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListParameterOut": {
+      "$kind": "ComplexType",
+      "BaseType": "Common.ValueListParameter",
+      "Properties": {
+        "LocalDataProperty": "Edm.PropertyPath",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "Common.ValueListType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "CollectionPath": "Edm.String",
+        "CollectionRoot": "Edm.String",
+        "DistinctValuesSupported": "Edm.Boolean",
+        "FetchValues": "Common.FetchValuesType",
+        "Label": "Edm.String",
+        "Parameters": "Collection(Common.ValueListParameter)",
+        "PresentationVariantQualifier": "Core.SimpleIdentifier",
+        "SearchSupported": "Edm.Boolean",
+        "SelectionVariantQualifier": "Core.SimpleIdentifier"
+      }
+    },
+    "Communication.AddressType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "building": "Edm.String",
+        "careof": "Edm.String",
+        "code": "Edm.String",
+        "country": "Edm.String",
+        "district": "Edm.String",
+        "ext": "Edm.String",
+        "label": "Edm.String",
+        "locality": "Edm.String",
+        "pobox": "Edm.String",
+        "region": "Edm.String",
+        "street": "Edm.String",
+        "type": "Communication.ContactInformationType"
+      }
+    },
+    "Communication.ContactInformationType": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "work",
+        "home",
+        "preferred"
+      ]
+    },
+    "Communication.ContactType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "adr": "Collection(Communication.AddressType)",
+        "anniversary": "Edm.Date",
+        "bday": "Edm.Date",
+        "email": "Collection(Communication.EmailAddressType)",
+        "fn": "Edm.String",
+        "gender": "Communication.GenderType",
+        "geo": "Collection(Communication.GeoDataType)",
+        "kind": "Communication.KindType",
+        "n": "Communication.NameType",
+        "nickname": "Edm.String",
+        "note": "Edm.String",
+        "org": "Edm.String",
+        "orgunit": "Edm.String",
+        "photo": "Edm.String",
+        "role": "Edm.String",
+        "tel": "Collection(Communication.PhoneNumberType)",
+        "title": "Edm.String",
+        "url": "Collection(Communication.UrlType)"
+      }
+    },
+    "Communication.EmailAddressType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "address": "Edm.String",
+        "type": "Communication.ContactInformationType"
+      }
+    },
+    "Communication.EventData": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "categories": "Collection(Edm.String)",
+        "class": "Edm.String",
+        "description": "Edm.String",
+        "dtend": "Edm.DateTimeOffset",
+        "dtstart": "Edm.DateTimeOffset",
+        "duration": "Edm.Duration",
+        "fbtype": "Edm.String",
+        "location": "Edm.String",
+        "status": "Edm.String",
+        "summary": "Edm.String",
+        "transp": "Edm.Boolean",
+        "wholeday": "Edm.Boolean"
+      }
+    },
+    "Communication.GenderType": {
+      "$kind": "EnumType",
+      "Members": [
+        "M",
+        "F",
+        "O",
+        "N",
+        "U"
+      ]
+    },
+    "Communication.GeoDataType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "type": "Communication.ContactInformationType",
+        "uri": "Edm.String"
+      }
+    },
+    "Communication.KindType": {
+      "$kind": "EnumType",
+      "Members": [
+        "individual",
+        "group",
+        "org",
+        "location"
+      ]
+    },
+    "Communication.MessageData": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "bcc": "Collection(Edm.String)",
+        "body": "Edm.String",
+        "cc": "Collection(Edm.String)",
+        "from": "Edm.String",
+        "keywords": "Collection(Edm.String)",
+        "received": "Edm.DateTimeOffset",
+        "sender": "Edm.String",
+        "subject": "Edm.String",
+        "to": "Collection(Edm.String)"
+      }
+    },
+    "Communication.NameType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "additional": "Edm.String",
+        "given": "Edm.String",
+        "prefix": "Edm.String",
+        "suffix": "Edm.String",
+        "surname": "Edm.String"
+      }
+    },
+    "Communication.PhoneNumberType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "type": "Communication.PhoneType",
+        "uri": "Edm.String"
+      }
+    },
+    "Communication.PhoneType": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "work",
+        "home",
+        "preferred",
+        "voice",
+        "cell",
+        "fax",
+        "video"
+      ]
+    },
+    "Communication.TaskData": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "completed": "Edm.DateTimeOffset",
+        "description": "Edm.String",
+        "due": "Edm.DateTimeOffset",
+        "percentcomplete": "Edm.Byte",
+        "priority": "Edm.Byte",
+        "summary": "Edm.String"
+      }
+    },
+    "Communication.UrlType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "type": "Communication.ContactInformationType",
+        "uri": "Edm.String"
+      }
+    },
+    "Core.AlternateKey": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Key": "Collection(Core.PropertyRef)"
+      }
+    },
+    "Core.ComplexExampleValue": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExampleValue",
+      "Properties": {
+        "Description": "Edm.String",
+        "Value": "Edm.ComplexType"
+      }
+    },
+    "Core.ContentDispositionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Filename": "Edm.String",
+        "Type": "Edm.String"
+      }
+    },
+    "Core.DataModificationExceptionType": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExceptionType",
+      "Properties": {
+        "failedOperation": "Core.DataModificationOperationKind",
+        "info": "Core.MessageType",
+        "responseCode": "Edm.Int16"
+      }
+    },
+    "Core.DataModificationOperationKind": {
+      "$kind": "EnumType",
+      "Members": [
+        "insert",
+        "update",
+        "upsert",
+        "delete",
+        "invoke",
+        "link",
+        "unlink"
+      ],
+      "UnderlyingType": "Edm.Int32"
+    },
+    "Core.Dictionary": {
+      "$kind": "ComplexType",
+      "OpenType": "true",
+      "Properties": {}
+    },
+    "Core.EntityExampleValue": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExampleValue",
+      "Properties": {
+        "Description": "Edm.String",
+        "Value": "Edm.EntityType"
+      }
+    },
+    "Core.ExampleValue": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String"
+      }
+    },
+    "Core.ExceptionType": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "info": "Core.MessageType"
+      }
+    },
+    "Core.ExternalExampleValue": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExampleValue",
+      "Properties": {
+        "Description": "Edm.String",
+        "ExternalValue": "Edm.String"
+      }
+    },
+    "Core.GeometryFeatureType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "geometry": "Edm.Geometry",
+        "id": "Edm.String",
+        "properties": "Core.Dictionary"
+      }
+    },
+    "Core.Link": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "href": "Edm.String",
+        "rel": "Edm.String"
+      }
+    },
+    "Core.LocalDateTime": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.MessageSeverity": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "error": {
+            "Type": "String",
+            "Value": "error"
+          },
+          "info": {
+            "Type": "String",
+            "Value": "info"
+          },
+          "success": {
+            "Type": "String",
+            "Value": "success"
+          },
+          "warning": {
+            "Type": "String",
+            "Value": "warning"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.MessageType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "code": "Edm.String",
+        "details": "Collection(Core.MessageType)",
+        "message": "Edm.String",
+        "severity": "Core.MessageSeverity",
+        "target": "Edm.String"
+      }
+    },
+    "Core.OptionalParameterType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DefaultValue": "Edm.String"
+      }
+    },
+    "Core.Permission": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "None",
+        "Read",
+        "Write",
+        "ReadWrite",
+        "Invoke"
+      ]
+    },
+    "Core.PrimitiveExampleValue": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExampleValue",
+      "Properties": {
+        "Description": "Edm.String",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "Core.PropertyRef": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Alias": "Edm.String",
+        "Name": "Edm.PropertyPath"
+      }
+    },
+    "Core.QualifiedActionName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.QualifiedBoundOperationName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.QualifiedTermName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.QualifiedTypeName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.ResourceExceptionType": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExceptionType",
+      "Properties": {
+        "info": "Core.MessageType",
+        "retryLink": "Edm.String"
+      }
+    },
+    "Core.RevisionKind": {
+      "$kind": "EnumType",
+      "Members": [
+        "Added",
+        "Modified",
+        "Deprecated"
+      ]
+    },
+    "Core.RevisionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String",
+        "Kind": "Core.RevisionKind",
+        "Version": "Edm.String"
+      }
+    },
+    "Core.SimpleIdentifier": {
+      "$kind": "TypeDefinition",
+      "MaxLength": "128",
+      "UnderlyingType": "Edm.String"
+    },
+    "Core.Tag": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.Boolean"
+    },
+    "Core.ValueExceptionType": {
+      "$kind": "ComplexType",
+      "BaseType": "Core.ExceptionType",
+      "Properties": {
+        "info": "Core.MessageType",
+        "value": "Edm.String"
+      }
+    },
+    "DataIntegration.DeltaMethodType": {
+      "$kind": "EnumType",
+      "IsFlags": "true",
+      "Members": [
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    "EntityRelationship.compositeReference": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "name": "Edm.String",
+        "referencedEntityType": "EntityRelationship.entityTypeID",
+        "referencedPropertyType": "Collection(EntityRelationship.referencedPropertyType)"
+      }
+    },
+    "EntityRelationship.entityId": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "description": "Edm.String",
+        "name": "Edm.String",
+        "propertyTypes": "Collection(EntityRelationship.propertyTypeID)"
+      }
+    },
+    "EntityRelationship.entityTypeID": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "EntityRelationship.propertyTypeID": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "EntityRelationship.referenceWithConstantId": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "name": "Edm.String",
+        "referencedEntityType": "EntityRelationship.entityTypeID",
+        "referencedPropertyType": "Collection(EntityRelationship.referencedPropertyTypeWithConstantId)"
+      }
+    },
+    "EntityRelationship.referencedPropertyType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "localPropertyName": "Edm.PropertyPath",
+        "referencedPropertyType": "EntityRelationship.propertyTypeID"
+      }
+    },
+    "EntityRelationship.referencedPropertyTypeWithConstantId": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "constantValue": "Edm.String",
+        "localPropertyName": "Edm.PropertyPath",
+        "referencedPropertyType": "EntityRelationship.propertyTypeID"
+      }
+    },
+    "EntityRelationship.singleReference": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "name": "Edm.String",
+        "referencedEntityType": "EntityRelationship.entityTypeID",
+        "referencedPropertyType": "EntityRelationship.propertyTypeID"
+      }
+    },
+    "EntityRelationship.temporalCategoryEnum": {
+      "$kind": "EnumType",
+      "Members": [
+        "TEMPORAL_DATE"
+      ]
+    },
+    "EntityRelationship.temporalId": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "description": "Edm.String",
+        "name": "Edm.String",
+        "propertyTypes": "Collection(EntityRelationship.propertyTypeID)",
+        "temporalIntervalEndProperty": "Edm.PropertyPath",
+        "temporalIntervalStartProperty": "Edm.PropertyPath",
+        "temporalIntervalType": "EntityRelationship.temporalIntervalTypeEnum",
+        "temporalType": "EntityRelationship.temporalTypeEnum"
+      }
+    },
+    "EntityRelationship.temporalIntervalTypeEnum": {
+      "$kind": "EnumType",
+      "Members": [
+        "CLOSED_CLOSED",
+        "OPEN_OPEN",
+        "OPEN_CLOSED",
+        "CLOSED_OPEN"
+      ]
+    },
+    "EntityRelationship.temporalReference": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "category": "EntityRelationship.temporalCategoryEnum",
+        "name": "Edm.String",
+        "referencedEntityType": "EntityRelationship.entityTypeID",
+        "referencedPropertyType": "Collection(EntityRelationship.referencedPropertyType)",
+        "selectionDateProperty": "Edm.PropertyPath"
+      }
+    },
+    "EntityRelationship.temporalTypeEnum": {
+      "$kind": "EnumType",
+      "Members": [
+        "DATE",
+        "DATETIME"
+      ]
+    },
+    "Graph.DetailsType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "body": "JSON.JSON",
+        "url": "Edm.String"
+      }
+    },
+    "HTML5.CssDefaultsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "width": "Edm.String"
+      }
+    },
+    "HTML5.LinkTargetType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "_blank": {
+            "Type": "String",
+            "Value": "_blank"
+          },
+          "_parent": {
+            "Type": "String",
+            "Value": "_parent"
+          },
+          "_self": {
+            "Type": "String",
+            "Value": "_self"
+          },
+          "_top": {
+            "Type": "String",
+            "Value": "_top"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Hierarchy.HierarchyType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DistanceFromRoot": "Edm.Int64",
+        "DrillState": "Edm.String",
+        "LimitedDescendantCount": "Edm.Int64"
+      }
+    },
+    "Hierarchy.RecursiveHierarchyActionsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ChangeNextSiblingAction": "Common.QualifiedName",
+        "ChangeSiblingForRootsSupported": "Edm.Boolean",
+        "CopyAction": "Common.QualifiedName"
+      }
+    },
+    "Hierarchy.RecursiveHierarchyType": {
+      "$kind": "ComplexType",
+      "BaseType": "Hierarchy.HierarchyType",
+      "Properties": {
+        "ChildCount": "Edm.Int64",
+        "DescendantCount": "Edm.Int64",
+        "DistanceFromRoot": "Edm.Int64",
+        "DrillState": "Edm.String",
+        "ExternalKey": "Edm.String",
+        "LimitedDescendantCount": "Edm.Int64",
+        "LimitedRank": "Edm.Int64",
+        "Matched": "Edm.Boolean",
+        "MatchedDescendantCount": "Edm.Int64",
+        "NodeType": "Edm.String",
+        "SiblingRank": "Edm.Int64"
+      }
+    },
+    "Hierarchy.TopLevelsExpandType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Levels": "Edm.Int64",
+        "NodeID": "Edm.String"
+      }
+    },
+    "JSON.JSON": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.Stream"
+    },
+    "Measures.DurationGranularityType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "days": {
+            "Type": "String",
+            "Value": "days"
+          },
+          "hours": {
+            "Type": "String",
+            "Value": "hours"
+          },
+          "minutes": {
+            "Type": "String",
+            "Value": "minutes"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "ODM.oidReferenceType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "entityName": "Edm.String"
+      }
+    },
+    "Offline.ClientOnlyType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {}
+    },
+    "Offline.LocalDraft": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "Offline.ClientOnlyType",
+      "Properties": {
+        "ActiveEntitySet": "Core.SimpleIdentifier"
+      }
+    },
+    "PDF.FeaturesType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ArchiveFormat": "Edm.Boolean",
+        "Border": "Edm.Boolean",
+        "CoverPage": "Edm.Boolean",
+        "DocumentDescriptionCollection": "Edm.String",
+        "DocumentDescriptionReference": "Edm.String",
+        "FitToPage": "Edm.Boolean",
+        "FontName": "Edm.Boolean",
+        "FontSize": "Edm.Boolean",
+        "HeaderFooter": "Edm.Boolean",
+        "IANATimezoneFormat": "Edm.Boolean",
+        "Margin": "Edm.Boolean",
+        "Padding": "Edm.Boolean",
+        "ResultSizeDefault": "Edm.Int32",
+        "ResultSizeMaximum": "Edm.Int32",
+        "Signature": "Edm.Boolean",
+        "TextDirectionLayout": "Edm.Boolean",
+        "Treeview": "Edm.Boolean",
+        "UploadToFileShare": "Edm.Boolean"
+      }
+    },
+    "PersonalData.EntitySemanticsType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "DataSubject": {
+            "Type": "String",
+            "Value": "DataSubject"
+          },
+          "DataSubjectDetails": {
+            "Type": "String",
+            "Value": "DataSubjectDetails"
+          },
+          "Other": {
+            "Type": "String",
+            "Value": "Other"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "PersonalData.FieldSemanticsType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "BlockingDate": {
+            "Type": "String",
+            "Value": "BlockingDate"
+          },
+          "ConsentID": {
+            "Type": "String",
+            "Value": "ConsentID"
+          },
+          "ContractRelatedID": {
+            "Type": "String",
+            "Value": "ContractRelatedID"
+          },
+          "DataControllerID": {
+            "Type": "String",
+            "Value": "DataControllerID"
+          },
+          "DataSubjectID": {
+            "Type": "String",
+            "Value": "DataSubjectID"
+          },
+          "DataSubjectIDType": {
+            "Type": "String",
+            "Value": "DataSubjectIDType"
+          },
+          "EndOfBusinessDate": {
+            "Type": "String",
+            "Value": "EndOfBusinessDate"
+          },
+          "EndOfRetentionDate": {
+            "Type": "String",
+            "Value": "EndOfRetentionDate"
+          },
+          "LegalEntityID": {
+            "Type": "String",
+            "Value": "LegalEntityID"
+          },
+          "PurposeID": {
+            "Type": "String",
+            "Value": "PurposeID"
+          },
+          "UserID": {
+            "Type": "String",
+            "Value": "UserID"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "Session.StickySessionSupportedType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AdditionalNewActions": "Collection(Common.QualifiedName)",
+        "DiscardAction": "Core.SimpleIdentifier",
+        "EditAction": "Common.QualifiedName",
+        "NewAction": "Common.QualifiedName",
+        "SaveAction": "Common.QualifiedName"
+      }
+    },
+    "UI.ActionName": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    },
+    "UI.BadgeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "HeadLine": "UI.DataField",
+        "ImageUrl": "Edm.String",
+        "MainInfo": "UI.DataField",
+        "SecondaryInfo": "UI.DataField",
+        "Title": "UI.DataField",
+        "TypeImageUrl": "Edm.String"
+      }
+    },
+    "UI.ChartAxisAutoScaleBehaviorType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DataScope": "UI.ChartAxisAutoScaleDataScopeType",
+        "ZeroAlwaysVisible": "Edm.Boolean"
+      }
+    },
+    "UI.ChartAxisAutoScaleDataScopeType": {
+      "$kind": "EnumType",
+      "Members": [
+        "DataSet",
+        "VisibleData"
+      ]
+    },
+    "UI.ChartAxisScaleBehaviorType": {
+      "$kind": "EnumType",
+      "Members": [
+        "AutoScale",
+        "FixedScale"
+      ]
+    },
+    "UI.ChartAxisScalingType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AutoScaleBehavior": "UI.ChartAxisAutoScaleBehaviorType",
+        "FixedScaleMultipleStackedMeasuresBoundaryValues": "UI.FixedScaleMultipleStackedMeasuresBoundaryValuesType",
+        "ScaleBehavior": "UI.ChartAxisScaleBehaviorType"
+      }
+    },
+    "UI.ChartDefinitionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Actions": "Collection(UI.DataFieldAbstract)",
+        "AxisScaling": "UI.ChartAxisScalingType",
+        "ChartType": "UI.ChartType",
+        "Description": "Edm.String",
+        "DimensionAttributes": "Collection(UI.ChartDimensionAttributeType)",
+        "Dimensions": "Collection(Edm.PropertyPath)",
+        "DynamicMeasures": "Collection(Edm.AnnotationPath)",
+        "MeasureAttributes": "Collection(UI.ChartMeasureAttributeType)",
+        "Measures": "Collection(Edm.PropertyPath)",
+        "Title": "Edm.String"
+      }
+    },
+    "UI.ChartDimensionAttributeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Dimension": "Edm.PropertyPath",
+        "EmphasisLabels": "UI.EmphasisLabelType",
+        "EmphasizedValues": "Collection(Edm.String)",
+        "HierarchyLevel": "Edm.Int32",
+        "Role": "UI.ChartDimensionRoleType",
+        "ValuesForSequentialColorLevels": "Collection(Edm.String)"
+      }
+    },
+    "UI.ChartDimensionRoleType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Category",
+        "Series",
+        "Category2"
+      ]
+    },
+    "UI.ChartMeasureAttributeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DataPoint": "Edm.AnnotationPath",
+        "DynamicMeasure": "Edm.AnnotationPath",
+        "Measure": "Edm.PropertyPath",
+        "Role": "UI.ChartMeasureRoleType",
+        "UseSequentialColorLevels": "Edm.Boolean"
+      }
+    },
+    "UI.ChartMeasureRoleType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Axis1",
+        "Axis2",
+        "Axis3"
+      ]
+    },
+    "UI.ChartType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Column",
+        "ColumnStacked",
+        "ColumnDual",
+        "ColumnStackedDual",
+        "ColumnStacked100",
+        "ColumnStackedDual100",
+        "Bar",
+        "BarStacked",
+        "BarDual",
+        "BarStackedDual",
+        "BarStacked100",
+        "BarStackedDual100",
+        "Area",
+        "AreaStacked",
+        "AreaStacked100",
+        "HorizontalArea",
+        "HorizontalAreaStacked",
+        "HorizontalAreaStacked100",
+        "Line",
+        "LineDual",
+        "Combination",
+        "CombinationStacked",
+        "CombinationDual",
+        "CombinationStackedDual",
+        "HorizontalCombinationStacked",
+        "Pie",
+        "Donut",
+        "Scatter",
+        "Bubble",
+        "Radar",
+        "HeatMap",
+        "TreeMap",
+        "Waterfall",
+        "Bullet",
+        "VerticalBullet",
+        "HorizontalWaterfall",
+        "HorizontalCombinationDual",
+        "HorizontalCombinationStackedDual",
+        "Donut100"
+      ]
+    },
+    "UI.CollectionFacet": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.Facet",
+      "Properties": {
+        "Facets": "Collection(UI.Facet)",
+        "ID": "Edm.String",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.ConnectedFieldsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Data": "Core.Dictionary",
+        "Label": "Edm.String",
+        "Template": "Edm.String"
+      }
+    },
+    "UI.CriticalityCalculationType": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.CriticalityThresholdsType",
+      "Properties": {
+        "AcceptanceRangeHighValue": "Edm.PrimitiveType",
+        "AcceptanceRangeLowValue": "Edm.PrimitiveType",
+        "ConstantThresholds": "Collection(UI.LevelThresholdsType)",
+        "DeviationRangeHighValue": "Edm.PrimitiveType",
+        "DeviationRangeLowValue": "Edm.PrimitiveType",
+        "ImprovementDirection": "UI.ImprovementDirectionType",
+        "IsRelativeDifference": "Edm.Boolean",
+        "ReferenceValue": "Edm.PrimitiveType",
+        "ToleranceRangeHighValue": "Edm.PrimitiveType",
+        "ToleranceRangeLowValue": "Edm.PrimitiveType"
+      }
+    },
+    "UI.CriticalityLabelType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.CriticalityRepresentationType": {
+      "$kind": "EnumType",
+      "Members": [
+        "WithIcon",
+        "WithoutIcon",
+        "OnlyIcon"
+      ]
+    },
+    "UI.CriticalityThresholdsType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AcceptanceRangeHighValue": "Edm.PrimitiveType",
+        "AcceptanceRangeLowValue": "Edm.PrimitiveType",
+        "DeviationRangeHighValue": "Edm.PrimitiveType",
+        "DeviationRangeLowValue": "Edm.PrimitiveType",
+        "ToleranceRangeHighValue": "Edm.PrimitiveType",
+        "ToleranceRangeLowValue": "Edm.PrimitiveType"
+      }
+    },
+    "UI.CriticalityType": {
+      "$kind": "EnumType",
+      "Members": [
+        "VeryNegative",
+        "Neutral",
+        "Negative",
+        "Critical",
+        "Positive",
+        "VeryPositive",
+        "Information"
+      ]
+    },
+    "UI.DataField": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataFieldAbstract",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Value": "Edm.Untyped"
+      }
+    },
+    "UI.DataFieldAbstract": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.DataFieldForAction": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataFieldForActionAbstract",
+      "Properties": {
+        "Action": "UI.ActionName",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "Determining": "Edm.Boolean",
+        "IconUrl": "Edm.String",
+        "Inline": "Edm.Boolean",
+        "InvocationGrouping": "UI.OperationGroupingType",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.DataFieldForActionAbstract": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "BaseType": "UI.DataFieldAbstract",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "Determining": "Edm.Boolean",
+        "IconUrl": "Edm.String",
+        "Inline": "Edm.Boolean",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.DataFieldForActionGroup": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataFieldAbstract",
+      "Properties": {
+        "Actions": "Collection(UI.DataFieldForActionAbstract)",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "ID": "Edm.String",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.DataFieldForAnnotation": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataFieldAbstract",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Target": "Edm.AnnotationPath"
+      }
+    },
+    "UI.DataFieldForIntentBasedNavigation": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataFieldForActionAbstract",
+      "Properties": {
+        "Action": "Edm.String",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "Determining": "Edm.Boolean",
+        "IconUrl": "Edm.String",
+        "Inline": "Edm.Boolean",
+        "Label": "Edm.String",
+        "Mapping": "Collection(Common.SemanticObjectMappingType)",
+        "NavigationAvailable": "Edm.Boolean",
+        "RequiresContext": "Edm.Boolean",
+        "SemanticObject": "Edm.String"
+      }
+    },
+    "UI.DataFieldWithAction": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataField",
+      "Properties": {
+        "Action": "UI.ActionName",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.DataFieldWithActionGroup": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataField",
+      "Properties": {
+        "Actions": "Collection(UI.DataField)",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.DataFieldWithIntentBasedNavigation": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataField",
+      "Properties": {
+        "Action": "Edm.String",
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Mapping": "Collection(Common.SemanticObjectMappingType)",
+        "SemanticObject": "Edm.String",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.DataFieldWithNavigationPath": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataField",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Target": "Edm.NavigationPropertyPath",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.DataFieldWithUrl": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.DataField",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "IconUrl": "Edm.String",
+        "Label": "Edm.String",
+        "Url": "Edm.String",
+        "UrlContentType": "Edm.String",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.DataPointType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "CriticalityCalculation": "UI.CriticalityCalculationType",
+        "CriticalityLabels": "Edm.AnnotationPath",
+        "CriticalityRepresentation": "UI.CriticalityRepresentationType",
+        "Description": "Edm.String",
+        "ForecastValue": "Edm.PrimitiveType",
+        "LongDescription": "Edm.String",
+        "MaximumValue": "Edm.Decimal",
+        "MinimumValue": "Edm.Decimal",
+        "ReferencePeriod": "UI.ReferencePeriod",
+        "Responsible": "Communication.ContactType",
+        "SampleSize": "Edm.PrimitiveType",
+        "TargetValue": "Edm.PrimitiveType",
+        "Title": "Edm.String",
+        "Trend": "UI.TrendType",
+        "TrendCalculation": "UI.TrendCalculationType",
+        "Value": "Edm.PrimitiveType",
+        "ValueFormat": "UI.NumberFormat",
+        "Visualization": "UI.VisualizationType"
+      }
+    },
+    "UI.EmphasisLabelType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "EmphasizedValuesLabel": "Edm.String",
+        "NonEmphasizedValuesLabel": "Edm.String"
+      }
+    },
+    "UI.Facet": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "ID": "Edm.String",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.FieldGroupType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Data": "Collection(UI.DataFieldAbstract)",
+        "Label": "Edm.String"
+      }
+    },
+    "UI.FixedScaleMultipleStackedMeasuresBoundaryValuesType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "MaximumValue": "Edm.Decimal",
+        "MinimumValue": "Edm.Decimal"
+      }
+    },
+    "UI.GeoLocationType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Address": "Communication.AddressType",
+        "Latitude": "Edm.Double",
+        "Location": "Edm.GeographyPoint",
+        "Longitude": "Edm.Double"
+      }
+    },
+    "UI.HeaderInfoType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "UI.DataFieldAbstract",
+        "Image": "Edm.Stream",
+        "ImageUrl": "Edm.String",
+        "Initials": "Edm.String",
+        "Title": "UI.DataFieldAbstract",
+        "TypeImageUrl": "Edm.String",
+        "TypeName": "Edm.String",
+        "TypeNamePlural": "Edm.String"
+      }
+    },
+    "UI.ImageType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Height": "Edm.String",
+        "Stream": "Edm.Stream",
+        "Url": "Edm.String",
+        "Width": "Edm.String"
+      }
+    },
+    "UI.ImportanceType": {
+      "$kind": "EnumType",
+      "Members": [
+        "High",
+        "Medium",
+        "Low"
+      ]
+    },
+    "UI.ImprovementDirectionType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Minimize",
+        "Target",
+        "Maximize"
+      ]
+    },
+    "UI.InputMaskRuleType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "MaskSymbol": "Edm.String",
+        "RegExp": "Edm.String"
+      }
+    },
+    "UI.InputMaskType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Mask": "Edm.String",
+        "PlaceholderSymbol": "Edm.String",
+        "Rules": "Collection(UI.InputMaskRuleType)"
+      }
+    },
+    "UI.IntervalParameter": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.ParameterAbstract",
+      "Properties": {
+        "PropertyNameFrom": "Edm.PropertyPath",
+        "PropertyNameTo": "Edm.PropertyPath",
+        "PropertyValueFrom": "Edm.PrimitiveType",
+        "PropertyValueTo": "Edm.PrimitiveType"
+      }
+    },
+    "UI.KPIDetailType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Action": "Edm.String",
+        "AlternativePresentationVariants": "Collection(UI.PresentationVariantType)",
+        "DefaultPresentationVariant": "UI.PresentationVariantType",
+        "SemanticObject": "Edm.String"
+      }
+    },
+    "UI.KPIType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "AdditionalDataPoints": "Collection(UI.DataPointType)",
+        "DataPoint": "UI.DataPointType",
+        "Detail": "UI.KPIDetailType",
+        "ID": "Edm.String",
+        "SelectionVariant": "UI.SelectionVariantType",
+        "ShortDescription": "Edm.String"
+      }
+    },
+    "UI.LevelThresholdsType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "BaseType": "UI.CriticalityThresholdsType",
+      "Properties": {
+        "AcceptanceRangeHighValue": "Edm.PrimitiveType",
+        "AcceptanceRangeLowValue": "Edm.PrimitiveType",
+        "AggregationLevel": "Collection(Edm.PropertyPath)",
+        "DeviationRangeHighValue": "Edm.PrimitiveType",
+        "DeviationRangeLowValue": "Edm.PrimitiveType",
+        "ToleranceRangeHighValue": "Edm.PrimitiveType",
+        "ToleranceRangeLowValue": "Edm.PrimitiveType"
+      }
+    },
+    "UI.MediaResourceType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ByteSize": "Edm.Int64",
+        "ChangedAt": "Edm.DateTimeOffset",
+        "ContentType": "Edm.String",
+        "Description": "UI.DataField",
+        "Stream": "Edm.Stream",
+        "Thumbnail": "UI.ImageType",
+        "Title": "UI.DataField",
+        "Url": "Edm.String"
+      }
+    },
+    "UI.NoteType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Content": "Edm.String",
+        "MaximalLength": "Edm.Int32",
+        "MultipleNotes": "Edm.Boolean",
+        "Title": "Edm.String",
+        "Type": "Edm.String"
+      }
+    },
+    "UI.NumberFormat": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "NumberOfFractionalDigits": "Edm.Byte",
+        "ScaleFactor": "Edm.Decimal"
+      }
+    },
+    "UI.OperationGroupingType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Isolated",
+        "ChangeSet"
+      ]
+    },
+    "UI.Parameter": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.ParameterAbstract",
+      "Properties": {
+        "PropertyName": "Edm.PropertyPath",
+        "PropertyValue": "Edm.PrimitiveType"
+      }
+    },
+    "UI.ParameterAbstract": {
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {}
+    },
+    "UI.PresentationVariantType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DynamicTotal": "Collection(Edm.AnnotationPath)",
+        "GroupBy": "Collection(Edm.PropertyPath)",
+        "ID": "Edm.String",
+        "IncludeGrandTotal": "Edm.Boolean",
+        "InitialExpansionLevel": "Edm.Int32",
+        "MaxItems": "Edm.Int32",
+        "RecursiveHierarchyQualifier": "Aggregation.HierarchyQualifier",
+        "RequestAtLeast": "Collection(Edm.PropertyPath)",
+        "SelectionFields": "Collection(Edm.PropertyPath)",
+        "SortOrder": "Collection(Common.SortOrderType)",
+        "Text": "Edm.String",
+        "Total": "Collection(Edm.PropertyPath)",
+        "TotalBy": "Collection(Edm.PropertyPath)",
+        "Visualizations": "Collection(Edm.AnnotationPath)"
+      }
+    },
+    "UI.PropertyRecommendationType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Abstract": "true",
+      "Properties": {
+        "RecommendedFieldDescription": "Edm.String",
+        "RecommendedFieldIsSuggestion": "Edm.Boolean",
+        "RecommendedFieldScoreValue": "Edm.Decimal",
+        "RecommendedFieldValue": "Edm.PrimitiveType"
+      }
+    },
+    "UI.RecommendationBinding": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "LocalDataProperty": "Edm.PropertyPath",
+        "ValueListProperty": "Edm.String"
+      }
+    },
+    "UI.RecommendationListType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Binding": "Collection(UI.RecommendationBinding)",
+        "CollectionPath": "Edm.String",
+        "RankProperty": "Edm.String"
+      }
+    },
+    "UI.RecommendationStateType": {
+      "$Allowed": {
+        "Symbols": {},
+        "Values": {
+          "0": {
+            "Type": "Int",
+            "Value": "0"
+          },
+          "1": {
+            "Type": "Int",
+            "Value": "1"
+          },
+          "2": {
+            "Type": "Int",
+            "Value": "2"
+          }
+        }
+      },
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.Byte"
+    },
+    "UI.ReferenceFacet": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.Facet",
+      "Properties": {
+        "ID": "Edm.String",
+        "Label": "Edm.String",
+        "Target": "Edm.AnnotationPath"
+      }
+    },
+    "UI.ReferencePeriod": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Description": "Edm.String",
+        "End": "Edm.DateTimeOffset",
+        "Start": "Edm.DateTimeOffset"
+      }
+    },
+    "UI.ReferenceURLFacet": {
+      "$kind": "ComplexType",
+      "BaseType": "UI.Facet",
+      "Properties": {
+        "ID": "Edm.String",
+        "Label": "Edm.String",
+        "Url": "Edm.String",
+        "UrlContentType": "Edm.String"
+      }
+    },
+    "UI.SelectOptionType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DynamicPropertyName": "Edm.AnnotationPath",
+        "PropertyName": "Edm.PropertyPath",
+        "Ranges": "Collection(UI.SelectionRangeType)"
+      }
+    },
+    "UI.SelectionPresentationVariantType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "ID": "Edm.String",
+        "PresentationVariant": "UI.PresentationVariantType",
+        "SelectionVariant": "UI.SelectionVariantType",
+        "Text": "Edm.String"
+      }
+    },
+    "UI.SelectionRangeOptionType": {
+      "$kind": "EnumType",
+      "Members": [
+        "EQ",
+        "BT",
+        "CP",
+        "LE",
+        "GE",
+        "NE",
+        "NB",
+        "NP",
+        "GT",
+        "LT"
+      ]
+    },
+    "UI.SelectionRangeSignType": {
+      "$kind": "EnumType",
+      "Members": [
+        "I",
+        "E"
+      ]
+    },
+    "UI.SelectionRangeType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "High": "Edm.PrimitiveType",
+        "Low": "Edm.PrimitiveType",
+        "Option": "UI.SelectionRangeOptionType",
+        "Sign": "UI.SelectionRangeSignType"
+      }
+    },
+    "UI.SelectionVariantType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "FilterExpression": "Edm.String",
+        "ID": "Edm.String",
+        "Parameters": "Collection(UI.ParameterAbstract)",
+        "SelectOptions": "Collection(UI.SelectOptionType)",
+        "Text": "Edm.String"
+      }
+    },
+    "UI.TextArrangementType": {
+      "$kind": "EnumType",
+      "Members": [
+        "TextFirst",
+        "TextLast",
+        "TextSeparate",
+        "TextOnly"
+      ]
+    },
+    "UI.TrendCalculationType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "DownDifference": "Edm.Decimal",
+        "IsRelativeDifference": "Edm.Boolean",
+        "ReferenceValue": "Edm.PrimitiveType",
+        "StrongDownDifference": "Edm.Decimal",
+        "StrongUpDifference": "Edm.Decimal",
+        "UpDifference": "Edm.Decimal"
+      }
+    },
+    "UI.TrendType": {
+      "$kind": "EnumType",
+      "Members": [
+        "StrongUp",
+        "Up",
+        "Sideways",
+        "Down",
+        "StrongDown"
+      ]
+    },
+    "UI.ValueCriticalityType": {
+      "$experimental": true,
+      "$kind": "ComplexType",
+      "Properties": {
+        "Criticality": "UI.CriticalityType",
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "UI.VisualizationType": {
+      "$kind": "EnumType",
+      "Members": [
+        "Number",
+        "BulletChart",
+        "Progress",
+        "Rating",
+        "Donut",
+        "DeltaBulletChart"
+      ]
+    },
+    "Validation.AllowedValue": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Value": "Edm.PrimitiveType"
+      }
+    },
+    "Validation.ConstraintType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "Condition": "Edm.Boolean",
+        "FailureMessage": "Edm.String"
+      }
+    },
+    "Validation.ItemsOfType": {
+      "$kind": "ComplexType",
+      "Properties": {
+        "path": "Edm.NavigationPropertyPath",
+        "target": "Edm.NavigationPropertyPath"
+      }
+    },
+    "Validation.SingleOrCollectionType": {
+      "$kind": "TypeDefinition",
+      "UnderlyingType": "Edm.String"
+    }
+  }
+}
