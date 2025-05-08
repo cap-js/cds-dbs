@@ -1,0 +1,14 @@
+{
+  "env": {
+    "node": true,
+    "jest": true
+  },
+  // "extends": ["prettier-standard"],
+  "ignorePatterns": [],
+  "rules": {
+    "no-console": ["error"],
+    "complexity": ["error"], // > default threshold: 20
+    "accessor-pairs": "off",
+    "array-callback-return": "off"
+  }
+}
