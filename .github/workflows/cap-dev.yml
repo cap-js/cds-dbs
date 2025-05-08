@@ -36,7 +36,14 @@ jobs:
         working-directory: cap-dev
         run: npm run setup
 
-      # Run the full test suite
-      - name: Run tests
+      # PR voter – only cds-dbs tests
+      - name: Run cds-dbs tests only (PR)
+        if: github.event_name == 'pull_request'
+        working-directory: cap-dev
+        run: npm test cap/cds-dbs
+
+      # Post-merge – full integration test suite
+      - name: Run full test suite (main)
+        if: github.event_name == 'push'
         working-directory: cap-dev
         run: npm test
