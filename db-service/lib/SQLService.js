@@ -404,8 +404,6 @@ class SQLService extends DatabaseService {
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q._target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
