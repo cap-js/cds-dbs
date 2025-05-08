@@ -27,7 +27,7 @@ jobs:
         run: |
           git config --global url."https://x-access-token:${{ secrets.GH_TOKEN_TOOLS }}@github.tools.sap/".insteadOf "https://github.tools.sap/"
 
-      # Clone cap/dev monorepo from the Enterprise instance
+      # Clone cap/dev monorepo from the GHE instance
       - name: Clone cap/dev
         run: git clone https://github.tools.sap/cap/dev.git cap-dev
 
@@ -36,13 +36,13 @@ jobs:
         working-directory: cap-dev
         run: npm run setup
 
-      # PR voter – only cds-dbs tests
+      # PR voter – run only cds-dbs tests
       - name: Run cds-dbs tests only (PR)
         if: github.event_name == 'pull_request'
         working-directory: cap-dev
-        run: npm test cap/cds-dbs
+        run: npm test cds-dbs
 
-      # Post-merge – full integration test suite
+      # main – run full integration test suite
       - name: Run full test suite (main)
         if: github.event_name == 'push'
         working-directory: cap-dev
