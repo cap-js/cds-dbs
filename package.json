@@ -9,7 +9,8 @@
     "postgres",
     "hana",
     "cds9",
-    "compiler6"
+    "compiler6",
+    "cds-fiori2"
   ],
   "devDependencies": {
     "@cap-js/cds-test": ">=0.2.0",
