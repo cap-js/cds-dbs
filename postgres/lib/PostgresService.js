@@ -4,7 +4,6 @@ const cds = require('@sap/cds')
 const crypto = require('crypto')
 const { Writable, Readable } = require('stream')
 const sessionVariableMap = require('./session.json')
-const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 
 class PostgresService extends SQLService {
   init() {
@@ -178,9 +177,9 @@ GROUP BY k
           throw enhanceError(e, sql)
         }
       },
-      stream: async (values, one) => {
+      stream: async (values, one, objectMode) => {
         try {
-          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
+          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one, objectMode)
           return await this.dbc.query(streamQuery)
         } catch (e) {
           throw enhanceError(e, sql)
@@ -305,7 +304,8 @@ GROUP BY k
     }
   }
 
-  async onSELECT({ query, data }) {
+  async onSELECT(req) {
+    const { query, data } = req
     // workaround for chunking odata streaming
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
@@ -323,32 +323,56 @@ GROUP BY k
       res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
       return res
     }
-    return super.onSELECT({ query, data })
+    return super.onSELECT(req)
   }
 
-  async onINSERT(req) {
-    try {
-      return await super.onINSERT(req)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
-    }
-  }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
+
+    render_with() {
+      const sql = this.sql
+      let recursive = false
+      const prefix = this._with.map(q => {
+        let sql
+        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        else if ('SET' in q) {
+          recursive = true
+          const { SET } = q
+          const isDepthFirst = SET.orderBy?.length && (SET.orderBy[0].sort?.toLowerCase() === 'desc' || SET.orderBy[0].sort === -1)
+          let alias = q.as
+          if (isDepthFirst) {
+            alias = alias + '_depth_first'
+            SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === q.as) r.ref[0] = alias })
+          }
+
+          sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${
+            // Root select
+            this.SELECT(SET.args[0])} ${
+            // Union clause
+            SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${
+            // Repeated join query
+            this.SELECT(SET.args[1])
+            })${
+            // Leverage Postgres specific depth first syntax
+            SET.orderBy?.length
+              ? ` SEARCH DEPTH FIRST BY ${SET.orderBy.map(r => this.ref(r))} SET "$DEPTH$"`
+              : ''
+            }`
+
+          // Enforce depth sorting for consuming queries
+          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
+        }
+        return { sql }
+      })
+      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    }
+
     _orderBy(orderBy, localized, locale) {
       return orderBy.map(c => {
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
+            (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
             (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
@@ -574,7 +598,6 @@ GROUP BY k
 
       // Convert ST types back to WKT format
       'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
-      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
     }
   }
 
@@ -667,7 +690,7 @@ GROUP BY k
 }
 
 class QueryStream extends Query {
-  constructor(config, one) {
+  constructor(config, one, objectMode) {
     // REVISIT: currently when setting the row chunk size
     // it results in an inconsistent connection state
     // if (!one) config.rows = 1000
@@ -676,6 +699,7 @@ class QueryStream extends Query {
     this._one = one || config.one
 
     this.stream = new Readable({
+      objectMode,
       read: this.rows
         ? () => {
           this.stream.pause()
@@ -693,7 +717,7 @@ class QueryStream extends Query {
     this._prom = new Promise((resolve, reject) => {
       this.once('error', reject)
       this.once('end', () => {
-        if (!this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) this.push(this.constructor.close)
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
         resolve(null)
@@ -736,10 +760,15 @@ class QueryStream extends Query {
     } else {
       this.handleDataRow = msg => {
         const val = msg.fields[0]
-        if (!this._one && val !== null) this.push(this.constructor.open)
+        const objectMode = this.stream.readableObjectMode
+        if (!objectMode && !this._one && val !== null) this.push(this.constructor.open)
         this.emit('row', val)
-        this.push(val)
+        this.push(objectMode ? JSON.parse(val) : val)
+
         delete this.handleDataRow
+        if (objectMode) {
+          this.handleDataRow = this.handleDataRowObjectMode
+        }
       }
     }
     return super.handleRowDescription(msg)
@@ -749,6 +778,11 @@ class QueryStream extends Query {
   handleDataRow(msg) {
     this.push(this.constructor.sep)
     this.push(msg.fields[0])
+  }
+
+  // Called when a new row is received
+  handleDataRowObjectMode(msg) {
+    this.push(JSON.parse(msg.fields[0]))
   }
 
   // Called when a new binary row is received
@@ -864,17 +898,6 @@ class ParameterStream extends Writable {
     this._finish()
     this.connection = null
   }
-}
-
-function _not_unique(err, code, data) {
-  if (err.code === '23505')
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
-  return err
 }
 
 module.exports = PostgresService

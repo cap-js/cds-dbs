@@ -5,7 +5,6 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
-const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
@@ -74,7 +73,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._allStream(stmt, ..._),
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -95,7 +94,8 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iteratorRaw(rs, one) {
+    const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -106,21 +106,44 @@ class SQLiteService extends SQLService {
       return
     }
 
-    yield '['
+    let buffer = '[' + first.value[0]
     // Print first value as stand alone to prevent comma check inside the loop
-    yield first.value[0]
     for (const row of rs) {
-      yield `,${row[0]}`
+      buffer += `,${row[0]}`
+      if (buffer.length > pageSize) {
+        yield buffer
+        buffer = ''
+      }
     }
-    yield ']'
+    buffer += ']'
+    yield buffer
   }
 
-  pragma (pragma, options) {
-    if (!this.dbc) return this.begin('pragma') .then (tx => {
-      try { return tx.pragma (pragma, options) }
+  async *_iteratorObjectMode(rs) {
+    for (const row of rs) {
+      yield JSON.parse(row[0])
+    }
+  }
+
+  async _allStream(stmt, binding_params, one, objectMode) {
+    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
+    stmt.raw(true)
+    const get = stmt.get(binding_params)
+    if (!get) return []
+    const rs = stmt.iterate(binding_params)
+    const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
+    const close = () => rs.return() // finish result set when closed early
+    stream.on('error', close)
+    stream.on('close', close)
+    return stream
+  }
+
+  pragma(pragma, options) {
+    if (!this.dbc) return this.begin('pragma').then(tx => {
+      try { return tx.pragma(pragma, options) }
       finally { tx.release() }
     })
-    return this.dbc.pragma (pragma, options)
+    return this.dbc.pragma(pragma, options)
   }
 
 
@@ -260,45 +283,6 @@ class SQLiteService extends SQLService {
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
   }
-
-  // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
-  // And worst of all, we handed out this as APIs without documenting it, so stakeholder tests rely
-  // on that? -> we urgently need to review these stakeholder tests.
-  // And we'd also need this to be implemented by each db service, and therefore documented, correct?
-  async onINSERT(req) {
-    try {
-      return await super.onINSERT(req)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
-    }
-  }
-}
-
-// function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
-//     code: 'MUST_NOT_BE_NULL',
-//     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
-//     message: 'Value is required',
-//   })
-// }
-
-function _not_unique(err, code, data) {
-  if (err.message.match(/unique constraint/i))
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
-  return err
 }
 
 module.exports = SQLiteService

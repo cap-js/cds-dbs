@@ -4,6 +4,63 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v2.0.0) (2025-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165))
+
+
+### Fixed
+
+* Adopt to recurse `DistanceTo` cqn format ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+
+
+### Changed
+
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165)) ([ff39e22](https://github.com/cap-js/cds-dbs/commit/ff39e22ac6cd3f20c98bc31c1a6bb828aa009796))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+
+## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-17)
+
+
+### Added
+
+* enable skip hana wrapping ([#1137](https://github.com/cap-js/cds-dbs/issues/1137)) ([5e6d61f](https://github.com/cap-js/cds-dbs/commit/5e6d61f9342a91349d4d88a93dedaf0a311b995b))
+* Result set streaming ([#702](https://github.com/cap-js/cds-dbs/issues/702)) ([2fe02ea](https://github.com/cap-js/cds-dbs/commit/2fe02eafd02993e5697efbdab90ad997fb2c9e00))
+
+
+### Fixed
+
+* Improved support for special characters in column names ([#1141](https://github.com/cap-js/cds-dbs/issues/1141)) ([ba04697](https://github.com/cap-js/cds-dbs/commit/ba046971921d645e8571a80c27ef07988c8c01ad))
+
+## [1.8.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.0...hana-v1.8.1) (2025-04-02)
+
+
+### Fixed
+
+* forUpdate on complex queries (joins) ([#1115](https://github.com/cap-js/cds-dbs/issues/1115)) ([016543e](https://github.com/cap-js/cds-dbs/commit/016543e69d0d34ccafc35ba4bfd6941bcf9f45da))
+
+## [1.8.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.7.0...hana-v1.8.0) (2025-03-31)
+
+
+### Added
+
+* **collate:** only collate if locale is provided ([#1060](https://github.com/cap-js/cds-dbs/issues/1060)) ([dedd768](https://github.com/cap-js/cds-dbs/commit/dedd768c085aa29be0e38db11f11678ff55d5b7b))
+* **forUpdate:** ignore locked ([#1074](https://github.com/cap-js/cds-dbs/issues/1074)) ([163480b](https://github.com/cap-js/cds-dbs/commit/163480b245b18a2829cd871c2f053c82bcc1abef))
+* support for HANA history tables ([#1091](https://github.com/cap-js/cds-dbs/issues/1091)) ([cc649b9](https://github.com/cap-js/cds-dbs/commit/cc649b908c422811ae98f41673212d8618a148aa))
+* support recursive cqn queries ([#1089](https://github.com/cap-js/cds-dbs/issues/1089)) ([f09b0f8](https://github.com/cap-js/cds-dbs/commit/f09b0f815c3788349f3d39419990cd1c00963b7d))
+
+
+### Fixed
+
+* consider `nulls first | last` on `orderBy` ([#1064](https://github.com/cap-js/cds-dbs/issues/1064)) ([c6bed60](https://github.com/cap-js/cds-dbs/commit/c6bed60f0d93b9f4a73c976727f30172707c60d9)), closes [#1062](https://github.com/cap-js/cds-dbs/issues/1062)
+* **forUpdate:** forUpdate optional ([#1079](https://github.com/cap-js/cds-dbs/issues/1079)) ([1175b6e](https://github.com/cap-js/cds-dbs/commit/1175b6e52a70814c1967387ae80e628944f5b71f))
+
 ## [1.7.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.6.1...hana-v1.7.0) (2025-03-04)
 
 
