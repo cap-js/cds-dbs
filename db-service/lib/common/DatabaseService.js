@@ -61,6 +61,11 @@ class DatabaseService extends cds.Service {
 
     // Setting this.pool as used in this.acquire() and this.release()
     this.pool = this.pools[tenant] ??= new ConnectionPool(this.pools._factory, tenant)
+        .on('factoryCreateError', e => {
+          if (isMultitenant && e.status === 404) {
+            this.pool._waitingClientsQueue?.dequeue?.()?.reject(e)
+          }
+        })
 
     // Acquire a pooled connection
     this.dbc = await this.acquire()
