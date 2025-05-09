@@ -5,7 +5,6 @@ const $session = Symbol('dbc.session')
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
-const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
@@ -284,45 +283,6 @@ class SQLiteService extends SQLService {
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
   }
-
-  // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
-  // And worst of all, we handed out this as APIs without documenting it, so stakeholder tests rely
-  // on that? -> we urgently need to review these stakeholder tests.
-  // And we'd also need this to be implemented by each db service, and therefore documented, correct?
-  async onINSERT(req) {
-    try {
-      return await super.onINSERT(req)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS', req.data)
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION', req.data)
-    }
-  }
-}
-
-// function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
-//     code: 'MUST_NOT_BE_NULL',
-//     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
-//     message: 'Value is required',
-//   })
-// }
-
-function _not_unique(err, code, data) {
-  if (err.message.match(/unique constraint/i))
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  if (data) err.values = SANITIZE_VALUES ? ['***'] : data
-  return err
 }
 
 module.exports = SQLiteService
