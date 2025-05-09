@@ -42,3 +42,10 @@ entity ChildP          as
   }
 
 entity ChildPWithWhere as projection on Child where fooChild = 'bar'
+
+entity mp {
+  key ID: Integer;
+  mp: Map;
+  parent: Association to mp;
+  recurse: Composition of many mp on recurse.parent = $self;
+}
