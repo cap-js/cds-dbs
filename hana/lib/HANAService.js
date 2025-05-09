@@ -14,7 +14,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 }, {})
 
 const DEBUG = cds.debug('sql|db')
-const SANITIZE_VALUES = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
