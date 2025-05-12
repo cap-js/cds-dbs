@@ -36,8 +36,7 @@ jobs:
             Please follow these steps to run your changes against all tests in our pipeline:
             1. Go to [our matrix tests](https://github.tools.sap/cap/.github/actions/workflows/matrix.yml).
             2. Click **“Run workflow”**.
-            3. For **“specific branches for the cds packages”** insert  
-               `cds-dbs:${{ github.event.pull_request.head.ref }}` and execute the workflow.  
+            3. For **“specific branches for the cds packages”** insert `cds-dbs:${{ github.event.pull_request.head.ref }}` and execute the workflow.  
 
             Once the matrix tests are **green**, confirm it here.  
             An admin will then merge your PR. 😊
