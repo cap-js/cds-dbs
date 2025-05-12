@@ -71,7 +71,7 @@ class HANAService extends SQLService {
           if (isMultitenant) {
             // Stop trying when the tenant does not exist or is rate limited
             if (err.status == 404 || err.status == 429) {
-              if (cds.requires.db.pool?.builtin) throw err
+              if (cds.requires.db?.pool?.builtin) throw err
               else return new Promise(function (_, reject) { // break retry loop for generic-pool
                 setTimeout(() => reject(err), acquireTimeoutMillis)
               })
