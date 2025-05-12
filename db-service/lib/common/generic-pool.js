@@ -6,7 +6,7 @@ const createPool = (factory, config) => {
 }
 
 function ConnectionPool (factory, tenant) {
-  let bound_factory = { __proto__: factory, create: factory.create.bind(factory, tenant) }
+  let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
   return createPool(bound_factory, factory.options)
 }
 
