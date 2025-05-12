@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
-    "lint": "npx eslint ."
+    "lint": "npx eslint db-service sqlite postgres hana"
   },
   "license": "Apache-2.0"
 }
