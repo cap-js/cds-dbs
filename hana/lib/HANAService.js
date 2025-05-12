@@ -16,7 +16,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 const DEBUG = cds.debug('sql|db')
 let HANAVERSION = 0
 const SYSTEM_VERSIONED = '@hana.systemversioned'
-const _vis = (eve, ...args) => cds.requires.multitenancy?.diagnostics ? cds.emit(`hana:${eve}`, ...args) : null
 
 /**
  * @implements SQLService
@@ -64,8 +63,6 @@ class HANAService extends SQLService {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
-          const { database_id, schema } = credentials ?? {}
-          _vis?.('create', { op: 'create', data: { hana: { tenant, schema, database_id }}})
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           HANAVERSION = dbc.server.major
@@ -79,7 +76,6 @@ class HANAService extends SQLService {
         }
       },
       error: (err, tenant) => {
-        _vis?.('error', { op: 'error', data: { hana: { tenant, error: err }}})
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
@@ -92,16 +88,8 @@ class HANAService extends SQLService {
           cds.exit(1)
         }
       },
-      destroy: async dbc => {
-        const { schema, database_id, tenant } = dbc._creds
-        _vis?.('destroy', { op: 'destroy', data: { hana: { tenant, schema, database_id }}})
-        return dbc.disconnect()
-      },
-      validate: dbc => {
-        const { schema, database_id, tenant } = dbc._creds
-        _vis?.('validate', { op: 'validate', data: { hana: { tenant, schema, database_id }}})
-        return dbc.validate()
-      }
+      destroy: dbc => dbc.disconnect(),
+      validate: (dbc) => dbc.validate(),
     }
   }
 
