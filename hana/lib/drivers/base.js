@@ -17,7 +17,7 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = prom(
+    const prep = module.exports.prom(
       this._native,
       'prepare',
     )(sql).then(stmt => {
@@ -29,22 +29,22 @@ class HANADriver {
       run: async params => {
         const { values, streams } = this._extractStreams(params)
         const stmt = await prep
-        let changes = await prom(stmt, 'exec')(values)
+        let changes = await module.exports.prom(stmt, 'exec')(values)
         await this._sendStreams(stmt, streams)
         return { changes }
       },
       runBatch: async params => {
         const stmt = await prep
-        const changes = await prom(stmt, 'exec')(params)
+        const changes = await module.exports.prom(stmt, 'exec')(params)
         return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
       },
       get: async params => {
         const stmt = await prep
-        return (await prom(stmt, 'exec')(params))[0]
+        return (await module.exports.prom(stmt, 'exec')(params))[0]
       },
       all: async params => {
         const stmt = await prep
-        return prom(stmt, 'exec')(params)
+        return module.exports.prom(stmt, 'exec')(params)
       },
       drop: async () => {
         const stmt = await prep
@@ -85,12 +85,11 @@ class HANADriver {
    */
   async exec(sql) {
     await this.connected
-    return prom(this._native, 'exec')(sql)
+    return module.exports.prom(this._native, 'exec')(sql)
   }
 
   set(variables) {
-    variables
-    throw new Error('Implementation missing "set"')
+    this._native.set(variables)
   }
 
   /**
@@ -105,7 +104,7 @@ class HANADriver {
    */
   async commit() {
     await this.connected
-    return prom(this._native, 'commit')()
+    return module.exports.prom(this._native, 'commit')()
   }
 
   /**
@@ -113,7 +112,7 @@ class HANADriver {
    */
   async rollback() {
     await this.connected
-    return prom(this._native, 'rollback')()
+    return module.exports.prom(this._native, 'rollback')()
   }
 
   /**
@@ -121,9 +120,9 @@ class HANADriver {
    * @returns {Promise<any>}
    */
   async connect() {
-    this.connected = prom(this._native, 'connect')(this._creds)
+    this.connected = module.exports.prom(this._native, 'connect')(this._creds)
     return this.connected.then(async () => {
-      const version = await prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
+      const version = await module.exports.prom(this._native, 'exec')('SELECT VERSION FROM "SYS"."M_DATABASE"')
       const split = version[0].VERSION.split('.')
       this.server = {
         major: split[0],
@@ -141,7 +140,7 @@ class HANADriver {
     if (this.connected) {
       await this.connected
       this.connected = false
-      return prom(this._native, 'disconnect')()
+      return module.exports.prom(this._native, 'disconnect')()
     }
   }
 
@@ -212,13 +211,14 @@ const enhanceError = function (err, stack, query, message) {
 
 const handleLevel = function (levels, path, expands) {
   let buffer = ''
+  path = `${path}`
   // Find correct level for the current row
   while (levels.length) {
     const level = levels[levels.length - 1]
     // Check if the current row is a child of the current level
-    if (path.indexOf(level.path) === 0) {
+    if (path.indexOf(level.path) === 0 && path != level.path) {
       // Check if the current row is an expand of the current level
-      const property = path.slice(level.path.length + 2, -7)
+      const property = `${path.slice(level.path.length + 2, -7)}`
       if (property && property in level.expands) {
         const is2Many = level.expands[property]
         delete level.expands[property]
@@ -236,6 +236,7 @@ const handleLevel = function (levels, path, expands) {
           index: 1,
           suffix: is2Many ? ']' : '',
           path: path.slice(0, -6),
+          result: level.expands[property],
           expands,
         })
       } else {
@@ -247,6 +248,7 @@ const handleLevel = function (levels, path, expands) {
         index: 0,
         suffix: '}',
         path: path,
+        result: levels.at(-1).result,
         expands,
       })
       break
@@ -261,6 +263,11 @@ const handleLevel = function (levels, path, expands) {
         }
       }
       if (level.suffix) buffer += level.suffix
+      if (level.expands) {
+        for (const expand in level.expands) {
+          if (level.expands[expand]?.push) level.expands[expand]?.push(null)
+        }
+      }
     }
   }
   return buffer

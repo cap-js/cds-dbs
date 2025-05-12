@@ -26,15 +26,15 @@ module.exports = class InsertResult {
    * Lazy access to auto-generated keys.
    */
   get [iterator]() {
-    // For INSERT.as(SELECT.from(...)) return a dummy iterator with correct length
+    // For INSERT.from(SELECT.from(...)) return a dummy iterator with correct length
     const { INSERT } = this.query
-    if (INSERT.as) {
+    if (INSERT.from || INSERT.as) {
       return (super[iterator] = function* () {
         for (let i = 0; i < this.affectedRows; i++) yield {}
       })
     }
 
-    const { target } = this.query
+    const target = this.query._target
     if (!target?.keys) return (super[iterator] = this.results[iterator])
     const keys = Object.keys(target.keys),
       [k1] = keys
@@ -81,7 +81,7 @@ module.exports = class InsertResult {
    */
   get affectedRows() {
     const { INSERT: _ } = this.query
-    if (_.as) return (super.affectedRows = this.affectedRows4(this.results[0] || this.results))
+    if (_.from || _.as) return (super.affectedRows = this.affectedRows4(this.results[0] || this.results))
     else return (super.affectedRows = _.entries?.length || _.rows?.length || this.results.length || 1)
   }
 

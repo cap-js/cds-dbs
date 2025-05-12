@@ -9,23 +9,18 @@ describe('Bookshop - Order By', () => {
     // the resulting query has two query sources in the end --> Authors and Books
     // even though both Tables have the element "createdBy", the DB should be able to resolve the
     // order by reference to the column unambiguously
-    const query = CQL(`SELECT from sap.capire.bookshop.Books {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books {
       createdBy,
       author.name as author
     } order by createdBy, author
-      limit 1`)
+      limit 1`
     const res = await cds.run(query)
     expect(res.length).to.be.eq(1)
     expect(res[0].author).to.eq('Charlotte Brontë')
   })
   test('collations for aggregating queries with subselect', async () => {
     const subquery = SELECT.localized.from('sap.capire.bookshop.Books').orderBy('title')
-    const query = SELECT.localized
-      .from(subquery)
-      .columns('title', 'sum(price) as pri')
-      .limit(1)
-      .groupBy('title')
-      .orderBy('title')
+    const query = SELECT.localized.from(subquery).columns('title', 'sum(price) as pri').limit(1).groupBy('title').orderBy('title')
 
     query.SELECT.count = true
 
@@ -66,4 +61,13 @@ describe('Bookshop - Order By', () => {
     expect(res.length).to.be.eq(1)
     expect(res[0].author).to.eq('Charlotte Brontë')
   })
+
+  test('nulls first | last', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    await INSERT.into(Authors).entries({ ID: 42, name: 'Brandon Sanderson' }) // dateOfDeath => null
+    const nullsFirst = await cds.ql`SELECT from ${Authors} { name } order by dateOfDeath asc nulls first`
+    expect(nullsFirst[0].name).to.eq('Brandon Sanderson')
+    const nullsLast = await cds.ql`SELECT from ${Authors} { name } order by dateOfDeath asc nulls last`
+    expect(nullsLast.at(-1).name).to.eq('Brandon Sanderson')
+  });
 })

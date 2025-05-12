@@ -12,7 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm
     steps:
-      - uses: googleapis/release-please-action@v4
+      # v4.1.3
+      - uses: googleapis/release-please-action@1155c2c8dcbd6b15e85bae6bc6d1fed9552663cb
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
@@ -23,44 +24,30 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
-      # Run tests
-      - run: npm ci
-        if: ${{ steps.release.outputs.releases_created }}
-      # hana express setup
-      - id: hxe
-        if: ${{ steps.release.outputs.releases_created }}
-        uses: ./.github/actions/hxe
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # testing hana/sqlite/postgres/db-service
-      - run: npm test -ws
-        if: ${{ steps.release.outputs.releases_created }}
-        env:
-          FORCE_COLOR: true
-          TAG: ${{ steps.hxe.outputs.TAG }}
-          IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+      ## debug info
+      - run: echo '${{ toJSON(steps.release.outputs) }} '
 
       # Publish packages
       - name: Publish db-service
         if: ${{ steps.release.outputs.db-service--release_created }}
-        run: npm publish --workspace db-service --access public
+        run: npm publish --workspace db-service --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish sqlite
         if: ${{ steps.release.outputs.sqlite--release_created }}
-        run: npm publish --workspace sqlite --access public
+        run: npm publish --workspace sqlite --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish postgres
         if: ${{ steps.release.outputs.postgres--release_created }}
-        run: npm publish --workspace postgres --access public
+        run: npm publish --workspace postgres --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
 
       - name: Publish SAP HANA
         if: ${{ steps.release.outputs.hana--release_created }}
-        run: npm publish --workspace hana --access public
+        run: npm publish --workspace hana --access public --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}

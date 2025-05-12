@@ -55,6 +55,7 @@ describe('Bookshop - Update', () => {
   })
 
   test('programmatic insert/upsert/update/select/delete with unknown entity', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
     let affectedRows = await INSERT.into(books)
@@ -129,7 +130,7 @@ describe('Bookshop - Update', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+    expect(err.message).to.match(/UNIQUE.constraint/i)
   })
 
 
@@ -138,7 +139,7 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
       .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
@@ -191,8 +192,8 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(MoreDraftEnabledBooks)
     .where(`author.name = 'Richard Carpenter'`)
     .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
-    
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
+
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('ID').that.equals(42)
