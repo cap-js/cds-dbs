@@ -1,0 +1,55 @@
+{
+  "name": "@sap/cds-fiori",
+  "version": "2.0.0",
+  "description": "SAP Cloud Application Programming Model - Services for SAP Fiori Elements",
+  "homepage": "https://cap.cloud.sap/",
+  "keywords": [
+    "CAP",
+    "CDS",
+    "SAP Fiori Elements"
+  ],
+  "author": "SAP SE (https://www.sap.com)",
+  "license": "SEE LICENSE IN LICENSE",
+  "main": "cds-plugin.js",
+  "scripts": {
+    "pretest": "npm i --prefix test/preview",
+    "test": "node --test",
+    "xmake:after-install": "rm -rf node_modules/@sap/cds-fiori && ln -s ../.. node_modules/@sap/cds-fiori",
+    "xmake:before-publish": "npx -p @sap/cap-pipeline-helper cleanup-package"
+  },
+  "files": [
+    "app/",
+    "cds-plugin.js",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@sap/cds": ">=8",
+    "express": ">=4"
+  },
+  "devDependencies": {
+    "@cap-js-community/odata-v2-adapter": "^1",
+    "@cap-js/cds-test": "^0",
+    "@cap-js/sqlite": ">=1",
+    "express": "^4"
+  },
+  "cds": {
+    "fiori": {
+      "preview": {
+        "ui5": {
+          "version": "1.135.0",
+          "theme": {
+            "light": "sap_horizon",
+            "dark": "sap_horizon_dark",
+            "switch": true
+          }
+        }
+      },
+      "routes": true,
+      "[production]": {
+        "preview": false,
+        "routes": false
+      }
+    }
+  }
+}

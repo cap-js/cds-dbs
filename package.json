@@ -7,7 +7,8 @@
     "db-service",
     "sqlite",
     "postgres",
-    "hana"
+    "hana",
+    "sap/*"
   ],
   "devDependencies": {
     "@cap-js/cds-test": ">=0.2.0",
