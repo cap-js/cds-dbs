@@ -217,14 +217,17 @@ class Pool extends EventEmitter {
           resource.updateState(ResourceState.VALIDATION)
           try {
             const isValid = await this.factory.validate(resource.obj)
-            if (!isValid) {
-              resource.updateState(ResourceState.INVALID)
-              await this.#destroy(resource)
+            if (isValid) {
+              return dispense(resource)
             }
-            return dispense(resource)
+            resource.updateState(ResourceState.INVALID)
+            await this.#destroy(resource)
+            this.#dispense()
+            return false
           } catch {
             resource.updateState(ResourceState.INVALID)
             await this.#destroy(resource)
+            this.#dispense()
             return false
           }
         })()
