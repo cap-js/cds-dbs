@@ -32,8 +32,8 @@ jobs:
           cache: 'npm'
 
       - run: npm install
-      # - run: npm install -g @sap/cds-dk
-      # - run: npm run lint
+      - run: npm install -g ./sap/sap-cds-dk-9.0.3.tgz
+      - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe
         with:
