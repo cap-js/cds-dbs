@@ -75,7 +75,7 @@ class HANAService extends SQLService {
           } else if (err.code !== 10) throw err
         }
       },
-      error: (err, /*tenant*/) => {
+      error: (err/*, tenant*/) => {
         // Check whether the connection error was an authentication error
         if (err.code === 10) {
           // REVISIT: Refresh the credentials when possible
