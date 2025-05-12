@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  issues: write        # PR comments use the Issues API
+  issues: write
   pull-requests: write
 
 jobs:
@@ -14,21 +14,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Drop the instructional comment on the PR
-      - name: Post guidance comment
+      - name: Create or update guidance comment
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.pull_request.number }}
+          comment-tag: cap-dev-guidance           # ← ensures only one comment
+          edit-mode: replace                      # replace body on subsequent runs
           body: |
             ❗️Until cds9 is released, we need to ensure code integrity by local testing.  
 
             Please follow these steps to run your changes against all tests in our pipeline:
-            - Go to [our matrix tests](https://github.tools.sap/cap/.github/actions/workflows/matrix.yml)
-            - click **“run workflow”**
-            - for **“specific branches for the cds packages”** insert `cds-dbs:${{ github.event.pull_request.head.ref }}` and execute the workflow.  
-            Once the matrix tests are green, confirm it here. An admin will then merge your PR.
+            1. Go to [our matrix tests](https://github.tools.sap/cap/.github/actions/workflows/matrix.yml).
+            2. Click **“Run workflow”**.
+            3. For **“specific branches for the cds packages”** insert  
+               `cds-dbs:${{ github.event.pull_request.head.ref }}` and execute the workflow.  
 
-      # 2. Fail the workflow on purpose
+            Once the matrix tests are **green**, confirm it here.  
+            An admin will then merge your PR. 😊
+
       - name: Fail immediately
         run: |
           echo "Failing intentionally until cds9 release."
