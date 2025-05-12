@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  issues: write # to create comments in PRs the issues API is used
   pull-requests: write
 
 jobs:
@@ -14,12 +14,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 0. Locate an existing guidance comment (if any)
+      - name: Find guidance comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Until cds9 is released'
+
+      # 1. Create the comment if it doesn't exist, or update it if it does
       - name: Create or update guidance comment
         uses: peter-evans/create-or-update-comment@v4
         with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}   # empty on first run → create; otherwise update
           issue-number: ${{ github.event.pull_request.number }}
-          comment-tag: cap-dev-guidance           # ← ensures only one comment
-          edit-mode: replace                      # replace body on subsequent runs
+          edit-mode: replace                               # overwrite the previous body
           body: |
             ❗️Until cds9 is released, we need to ensure code integrity by local testing.  
 
@@ -32,6 +42,7 @@ jobs:
             Once the matrix tests are **green**, confirm it here.  
             An admin will then merge your PR. 😊
 
+      # 2. Fail the workflow on purpose so the PR stays blocked
       - name: Fail immediately
         run: |
           echo "Failing intentionally until cds9 release."
