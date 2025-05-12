@@ -69,10 +69,15 @@ class HANAService extends SQLService {
           return dbc
         } catch (err) {
           if (isMultitenant) {
-            if (err.status == 404 || err.status == 429) throw err
-            await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-            return this.create(tenant)
+            // Stop trying when the tenant does not exist or is rate limited
+            if (err.status == 404 || err.status == 429) {
+              if (cds.requires.db.pool?.builtin) throw err
+              else return new Promise(function (_, reject) { // break retry loop for generic-pool
+                setTimeout(() => reject(err), acquireTimeoutMillis)
+              })
           } else if (err.code !== 10) throw err
+          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+          return this.create(tenant)
         }
       },
       error: (err /*, tenant*/) => {
