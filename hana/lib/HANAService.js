@@ -1420,7 +1420,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
     try {
-      this.options.credentials.tenant ??= tenant
       const con = await this.factory.create(this.options.credentials)
       this.dbc = con
 
