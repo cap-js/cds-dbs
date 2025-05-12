@@ -65,6 +65,13 @@ describe.skip('Bookshop - Search', () => {
       }
     })
 
+    test('Search books and author.name', async () => {
+      const res = await GET('/admin/Books?$search="Emily"', admin)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+      expect(res.data.value[0].title).to.be.eq('Wuthering Heights')
+    })
+
     test('Search authors via books', async () => {
       const { Books } = cds.entities
       // ad-hoc search expression
