@@ -75,6 +75,7 @@ class HANAService extends SQLService {
               else return new Promise(function (_, reject) { // break retry loop for generic-pool
                 setTimeout(() => reject(err), acquireTimeoutMillis)
               })
+            }
           } else if (err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
           return this.create(tenant)
