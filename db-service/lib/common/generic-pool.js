@@ -36,7 +36,7 @@ function TrackedConnectionPool (factory, tenant) {
 const DEBUG = /\bpool\b/.test(process.env.DEBUG)
 module.exports = DEBUG ? TrackedConnectionPool : ConnectionPool
 
-// Fork of/drop-in replacement for https://github.com/coopernurse/node-pool
+// Drop-in replacement for https://github.com/coopernurse/node-pool
 // TODO: Test min > 0
 // TODO: fifo: true? relevant for our use case?
 // TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access? Needs queue max size though.
