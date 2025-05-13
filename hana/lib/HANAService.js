@@ -45,19 +45,18 @@ class HANAService extends SQLService {
     }
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
-    const options = cds.requires.db.pool = {
-      min: 0,
-      max: 10,
-      acquireTimeoutMillis,
-      idleTimeoutMillis: 60000,
-      evictionRunIntervalMillis: 100000,
-      numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-      ...(this.options.pool || {}),
-      testOnBorrow: true,
-      fifo: false
-    }
     return {
-      options,
+      options: {
+        min: 0,
+        max: 10,
+        acquireTimeoutMillis,
+        idleTimeoutMillis: 60000,
+        evictionRunIntervalMillis: 100000,
+        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
+        ...(this.options.pool || {}),
+        testOnBorrow: true,
+        fifo: false
+      },
       create: async function (tenant) {
         try {
           const { credentials } = isMultitenant
