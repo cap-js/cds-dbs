@@ -10,6 +10,7 @@ entity Books : managed {
   key ID             : Integer;
       title          : localized String(111);
       descr          : localized String(1111);
+      @Common.Text   : author.name
       author         : Association to Authors;
       genre          : Association to Genres default 10;
       stock          : Integer;
