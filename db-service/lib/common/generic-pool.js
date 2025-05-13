@@ -55,13 +55,15 @@ class PooledResource {
   constructor(resource) {
     this.obj = resource
     this.creationTime = Date.now()
-    this.lastIdleTime = null
-    this.state = ResourceState.IDLE
+    this.idle()
   }
 
   updateState(newState) {
-    if (newState === ResourceState.IDLE) this.lastIdleTime = Date.now()
     this.state = newState
+  }
+  idle() {
+    this.state = ResourceState.IDLE
+    this.lastIdleTime = Date.now()
   }
 }
 
@@ -121,7 +123,7 @@ class Pool extends EventEmitter {
     if (!loan) throw new Error('Resource not currently part of this pool')
     this._loans.delete(resource)
     const pooledResource = loan.pooledResource
-    pooledResource.updateState(ResourceState.IDLE)
+    pooledResource.idle()
     this._available.add(pooledResource)
     this.#dispense()
   }
@@ -137,7 +139,7 @@ class Pool extends EventEmitter {
 
   async drain() {
     this._draining = true
-    if (this._queue.length > 0) await this._queue[this._queue.length - 1].promise
+    if (this._queue.length > 0) await this._queue.at(-1).promise
     await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
   }
@@ -152,7 +154,6 @@ class Pool extends EventEmitter {
       const resource = await this.factory.create()
       const pooledResource = new PooledResource(resource)
       this._all.add(pooledResource)
-      pooledResource.updateState(ResourceState.IDLE)
       this._available.add(pooledResource)
     } catch (error) {
       const request = this._queue.shift()
@@ -181,7 +182,7 @@ class Pool extends EventEmitter {
     const dispense = async resource => {
       const request = this._queue.shift()
       if (!request) {
-        resource.updateState(ResourceState.IDLE)
+        resource.idle()
         this._available.add(resource)
         return false
       }
@@ -204,19 +205,12 @@ class Pool extends EventEmitter {
           resource.updateState(ResourceState.VALIDATION)
           try {
             const isValid = await this.factory.validate(resource.obj)
-            if (isValid) {
-              return dispense(resource)
-            }
-            resource.updateState(ResourceState.INVALID)
-            await this.#destroy(resource)
-            this.#dispense()
-            return false
-          } catch {
-            resource.updateState(ResourceState.INVALID)
-            await this.#destroy(resource)
-            this.#dispense()
-            return false
-          }
+            if (isValid) return dispense(resource)
+          } catch {/* marked as invalid below */}
+          resource.updateState(ResourceState.INVALID)
+          await this.#destroy(resource)
+          this.#dispense()
+          return false
         })()
         _dispenses.push(validationPromise)
       } else {
