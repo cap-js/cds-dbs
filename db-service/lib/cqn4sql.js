@@ -5,7 +5,7 @@ cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._ta
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, getModelUtils } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -845,10 +845,7 @@ function cqn4sql(originalQuery, model) {
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', {
-      value: expanded.elements,
-      writable: true,
-    })
+    defineProperty(correlated, 'elements', expanded.elements)
     return correlated
 
     function _correlate(subq, outer) {
@@ -1070,7 +1067,7 @@ function cqn4sql(originalQuery, model) {
     else {
       const outerQueries = inferred.outerQueries || []
       outerQueries.push(inferred)
-      Object.defineProperty(q, 'outerQueries', { value: outerQueries })
+      defineProperty(q, 'outerQueries', outerQueries)
     }
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
@@ -1084,7 +1081,7 @@ function cqn4sql(originalQuery, model) {
         getImplicitAlias(last.id || last),
         inferred.outerQueries,
       )
-      Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+      defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', uniqueSubqueryAlias)
     }
   }
 
@@ -1311,7 +1308,7 @@ function cqn4sql(originalQuery, model) {
             const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
             setElementOnColumns(flatColumn, flatForeignKey || fkElement)
-            Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
+            defineProperty(flatColumn, '_csnPath', csnPath)
             flatColumns.push(flatColumn)
           }
         }
@@ -1343,7 +1340,7 @@ function cqn4sql(originalQuery, model) {
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
     setElementOnColumns(flatRef, element)
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
+    defineProperty(flatRef, '_csnPath', csnPath)
     return [flatRef]
 
     function getReplacement(from) {
@@ -1676,7 +1673,7 @@ function cqn4sql(originalQuery, model) {
     const transformedWhere = []
     let transformedFrom = copy(from) // REVISIT: too expensive!
     if (from.$refLinks)
-      Object.defineProperty(transformedFrom, '$refLinks', { value: [...from.$refLinks], writable: true })
+      defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
       from.args.forEach(arg => {
@@ -1924,10 +1921,7 @@ function cqn4sql(originalQuery, model) {
           const refLinkFaker = thing => {
             const { ref } = thing
             const assocHost = getParentEntity(assocRefLink.definition)
-            Object.defineProperty(thing, '$refLinks', {
-              value: [],
-              writable: true,
-            })
+            defineProperty(thing, '$refLinks', [])
             let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self') {
@@ -2370,10 +2364,7 @@ function getParentEntity(element) {
  * @param {csn.Element} element
  */
 function setElementOnColumns(col, element) {
-  Object.defineProperty(col, 'element', {
-    value: element,
-    writable: true,
-  })
+  defineProperty(col, 'element', element)
 }
 
 const getName = col => col.as || col.ref?.at(-1)

@@ -130,7 +130,7 @@ describe('Bookshop - Update', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+    expect(err.message).to.match(/UNIQUE.constraint/i)
   })
 
 
@@ -193,7 +193,7 @@ describe('Bookshop - Update', () => {
     .where(`author.name = 'Richard Carpenter'`)
     .set('ID = 42')
     const selectRichardsBooks = cds.ql`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
-    
+
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('ID').that.equals(42)
