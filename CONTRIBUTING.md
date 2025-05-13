@@ -56,9 +56,8 @@ The prefix is used to calculate the semver release level, and the section of the
 | **type**   | When to Use                          | Release Level | Release Note Section  |
 | ---------- | ----------------------------------- | ------------- | --------------------   |
 | feat       | A feature has been added            | `minor`       | **Added**           |
-| changed     | Changes to the dependencies     | `minor`       | **Changed**          |
 | fix        | A bug has been patched              | `patch`       | **Fixed**          |
-| deps        | Changes to the dependencies        | `patch`       | **Changed**          |
+| deps        | Changes to the dependencies          | `patch`       | **Changed**          |
 | perf       | Performance improvements            | none          | **Performance Improvements**   |
 | chore      | Any changes that aren't user-facing | none          | none                   |
 | docs       | Documentation updates               | none          | none                   |

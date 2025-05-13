@@ -25,11 +25,6 @@
       "type": "perf",
       "section": "Performance Improvements",
       "hidden": false
-    },
-    {
-      "type": "changed",
-      "section": "Changed",
-      "hidden": false
     }
   ]
 }
