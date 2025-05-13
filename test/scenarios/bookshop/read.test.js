@@ -335,12 +335,11 @@ describe('Bookshop - Read', () => {
 
       const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
-      expect(res3.at(-1).title).to.be.eq('dracula')
+      expect(res3[res3.length - 1].title).to.be.eq('dracula')
 
-      // If no locale is set, we do not sort by default locale, standard sorting applies
       q.SELECT.localized = true
       const res4 = await cds.run(q)
-      expect(res4.at(-1).title).to.be.eq('dracula')
+      expect(res4[1].title).to.be.eq('dracula')
     } finally {
       await DELETE('/admin/Books(280)', admin)
     }
