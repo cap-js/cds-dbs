@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 
 const createPool = (factory, config) => {
-  if (cds.requires.db.pool?.builtin) return new Pool(factory, config)
+  if (cds.requires.db?.pool?.builtin) return new Pool(factory, config)
   return require('generic-pool').createPool(factory, config)
 }
 
