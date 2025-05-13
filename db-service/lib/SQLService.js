@@ -382,8 +382,6 @@ class SQLService extends DatabaseService {
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q._target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
@@ -473,16 +471,16 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
+/** @param {import('@sap/cds').ql.Query} q */
 const _target_name4 = q => {
-  const target =
-    q._target_ref ||
-    q.SELECT?.from ||
-    q.INSERT?.into ||
-    q.UPSERT?.into ||
-    q.UPDATE?.entity ||
-    q.DELETE?.from ||
-    q.CREATE?.entity ||
-    q.DROP?.entity
+  const target = q._subject
+    || q.SELECT?.from
+    || q.INSERT?.into
+    || q.UPSERT?.into
+    || q.UPDATE?.entity
+    || q.DELETE?.from
+    || q.CREATE?.entity
+    || q.DROP?.entity
   if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
