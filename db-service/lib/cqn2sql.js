@@ -724,7 +724,7 @@ class CQN2SQLRenderer {
    */
   orderBy(orderBy, localized) {
     return orderBy.map(c => {
-      const o = localized
+      const o = (localized && this.context.locale)
         ? this.expr(c) +
         (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
         (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
