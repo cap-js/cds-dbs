@@ -384,7 +384,7 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      const locale = this.context.locale  ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
       return this._orderBy(orderBy, localized, locale)
     }
 

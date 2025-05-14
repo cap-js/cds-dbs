@@ -338,8 +338,8 @@ class CQN2SQLRenderer {
     const parentKeys = []
     const association = target.elements[recurse.ref[0]]
     association._foreignKeys.forEach(fk => {
-      nodeKeys.push(this.quote(fk.childElement.name))
-      parentKeys.push(this.quote(fk.parentElement.name))
+      nodeKeys.push(fk.childElement.name)
+      parentKeys.push(fk.parentElement.name)
     })
 
     columnsIn.push(
@@ -364,11 +364,13 @@ class CQN2SQLRenderer {
     // In the case of join operations make sure to compute the hierarchy from the source table only
     const stableFrom = getStableFrom(from)
     const alias = stableFrom.as
-    const source = () => ({
+    const source = () => {
+      return ({
       func: 'HIERARCHY',
       args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
       as: alias
     })
+  }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
     const expandedByOne = { list: [] } // DistanceTo(...,1)
@@ -724,7 +726,7 @@ class CQN2SQLRenderer {
    */
   orderBy(orderBy, localized) {
     return orderBy.map(c => {
-      const o = localized
+      const o = (localized && this.context.locale)
         ? this.expr(c) +
         (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
         (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
