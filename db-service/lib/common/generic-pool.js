@@ -165,7 +165,7 @@ class Pool extends EventEmitter {
 
   async #dispense() {
     const waiting = this._queue.length
-    if (waiting < 1) return
+    if (waiting === 0) return
     const capacity = this._available.size + this._creates.size
     const shortfall = waiting - capacity
     if (shortfall > 0 && this.size < this.options.max) {
