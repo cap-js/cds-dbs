@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.0...db-service-v2.0.1) (2025-05-13)
+
+
+### Fixed
+
+* hierarchies in quoted mode ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+* only sort by locale if locale is set ([#1193](https://github.com/cap-js/cds-dbs/issues/1193)) ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+
+
+### Changed
+
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.20.0...db-service-v2.0.0) (2025-05-07)
 
 
