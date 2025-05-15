@@ -57,7 +57,7 @@ class HANAService extends SQLService {
         testOnBorrow: true,
         fifo: false
       },
-      create: async function (tenant) {
+      create: async function create (tenant) {
         try {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
@@ -77,7 +77,7 @@ class HANAService extends SQLService {
             }
           } else if (err.code !== 10) throw err
           await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-          return this.create(tenant)
+          return create(tenant)
         }
       },
       error: (err /*, tenant*/) => {

@@ -1,4 +1,5 @@
 const cds = require('@sap/cds')
+const LOG = cds.log('db')
 
 const createPool = (factory, config) => {
   if (cds.requires.db?.pool?.builtin) return new Pool(factory, config)
@@ -6,7 +7,7 @@ const createPool = (factory, config) => {
 }
 
 function ConnectionPool (factory, tenant) {
-  let bound_factory = { __proto__: factory, create: factory.create.bind(factory, tenant) }
+  let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
   return createPool(bound_factory, factory.options)
 }
 
@@ -37,10 +38,7 @@ const DEBUG = /\bpool\b/.test(process.env.DEBUG)
 module.exports = DEBUG && !cds.requires.db?.pool?.builtin ? TrackedConnectionPool : ConnectionPool
 
 // Drop-in replacement for https://github.com/coopernurse/node-pool
-// TODO: Test min > 0
 // TODO: fifo: true? relevant for our use case?
-// TODO: Queue from cds-mtxs for O(1) insert + delete + O(1) random access? Needs queue max size though.
-// TODO: Perf tests
 
 const { EventEmitter } = require('events')
 
@@ -142,7 +140,6 @@ class Pool extends EventEmitter {
   async drain() {
     this._draining = true
     if (this._queue.length > 0) await this._queue.at(-1).promise
-    await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
   }
 
@@ -228,7 +225,8 @@ class Pool extends EventEmitter {
     this._loans.delete(resource.obj)
     try {
       await this.factory.destroy(resource.obj)
-    } catch {
+    } catch (e) {
+       LOG.error(e)
        /* FIXME: We have to ignore errors here due to a TypeError in hdb */
        /* This was also a problem with the old (generic-pool) implementation */
        /* Root cause in hdb needs to be fixed */
