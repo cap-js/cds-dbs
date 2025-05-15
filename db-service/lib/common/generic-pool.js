@@ -142,7 +142,6 @@ class Pool extends EventEmitter {
   async drain() {
     this._draining = true
     if (this._queue.length > 0) await this._queue.at(-1).promise
-    await Promise.all(Array.from(this._loans.values()).map(loan => loan.pooledResource.promise))
     clearTimeout(this._scheduledEviction)
   }
 
