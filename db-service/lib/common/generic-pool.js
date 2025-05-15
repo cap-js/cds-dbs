@@ -34,7 +34,7 @@ function TrackedConnectionPool (factory, tenant) {
 }
 
 const DEBUG = /\bpool\b/.test(process.env.DEBUG)
-module.exports = DEBUG ? TrackedConnectionPool : ConnectionPool
+module.exports = DEBUG && !cds.requires.db?.pool?.builtin ? TrackedConnectionPool : ConnectionPool
 
 // Drop-in replacement for https://github.com/coopernurse/node-pool
 // TODO: Test min > 0
