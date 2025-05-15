@@ -58,7 +58,7 @@ class PooledResource {
     this.idle()
   }
 
-  updateState(newState) {
+  update(newState) {
     this.state = newState
   }
   idle() {
@@ -151,13 +151,12 @@ class Pool extends EventEmitter {
 
   async #createResource() {
     try {
-      const resource = await this.factory.create()
-      const pooledResource = new PooledResource(resource)
-      this._all.add(pooledResource)
-      this._available.add(pooledResource)
+      const resource = new PooledResource(await this.factory.create())
+      this._all.add(resource)
+      this._available.add(resource)
     } catch (error) {
       const request = this._queue.shift()
-      request.reject(error)
+      request?.reject(error)
     } finally {
       this.#dispense()
     }
@@ -191,7 +190,7 @@ class Pool extends EventEmitter {
         return false
       }
       this._loans.set(resource.obj, { pooledResource: resource })
-      resource.updateState(ResourceState.ALLOCATED)
+      resource.update(ResourceState.ALLOCATED)
       request.resolve(resource.obj)
       return true
     }
@@ -202,12 +201,12 @@ class Pool extends EventEmitter {
       this._available.delete(resource)
       if (this.options.testOnBorrow) {
         const validationPromise = (async () => {
-          resource.updateState(ResourceState.VALIDATION)
+          resource.update(ResourceState.VALIDATION)
           try {
             const isValid = await this.factory.validate(resource.obj)
             if (isValid) return dispense(resource)
           } catch {/* marked as invalid below */}
-          resource.updateState(ResourceState.INVALID)
+          resource.update(ResourceState.INVALID)
           await this.#destroy(resource)
           this.#dispense()
           return false
@@ -221,7 +220,7 @@ class Pool extends EventEmitter {
   }
 
   async #destroy(resource) {
-    resource.updateState(ResourceState.INVALID)
+    resource.update(ResourceState.INVALID)
     this._all.delete(resource)
     this._available.delete(resource)
     this._loans.delete(resource.obj)
