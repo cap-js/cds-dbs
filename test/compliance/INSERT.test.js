@@ -187,4 +187,19 @@ describe('INSERT', () => {
     // InsertResult
     expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
   })
+
+  test('default $now adds current tx timestamp in correct format', async () => {
+    await cds.tx(async tx => {
+      // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 5 }))
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 6 }))
+    })
+
+    const result = await SELECT.from('basic.common.dollar_now_default')
+
+    expect(result.length).to.eq(2)
+    ;['date ', 'time', 'dateTime', 'timestamp'].forEach(prop => {
+      expect(result[0][prop]).to.eq(result[1][prop])
+    })
+  })
 })
