@@ -6,7 +6,7 @@ function getValidationQuery(target, constraints) {
   const columns = []
   const parameterAliases = new Set() // tracks every alias already added
 
-  for (const [name, { condition, parameters, target, primaryKeyRefs }] of Object.entries(constraints)) {
+  for (const [name, { condition, parameters, target }] of Object.entries(constraints)) {
     // 1. first add text parameters of the constraint, if any
     if (parameters?.length) {
       for (const p of parameters) {
