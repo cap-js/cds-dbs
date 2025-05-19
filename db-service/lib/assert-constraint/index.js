@@ -85,20 +85,35 @@ async function checkConstraints(req) {
   }
 
   const results = await this.run(queries)
-  const messages = []
+
+  // key = message text        value = array of targets
+  // this way messages are deduplicated
+  const messages = new Map()
+
   results.forEach((rows, i) => {
     const constraints = queries[i].$constraints
+
     Object.entries(constraints).forEach(([name, meta]) => {
       const col = `${name}_constraint`
+
       rows.forEach(row => {
-        if (row[col]) return
-        messages.push(buildMessage(name, meta, row))
+        if (row[col]) return // row satisfied the constraint → no error
+
+        const text = buildMessage(name, meta, row)
+        const targets = meta.targets || []
+        const messageTargets = messages.get(text) || []
+        messageTargets.push(...targets) // just append, no dedupe
+        messages.set(text, messageTargets) // write back in case it was new
       })
     })
   })
-  // deduplicate messages first
-  for (const message of [...new Set(messages)]) {
-    req.error(400, message)
+
+  for (const [text, targetList] of messages) {
+    req.error(400, {
+      message: text,
+      target: targetList[0].ref.join('/'),
+      '@Common.additionalTargets': targetList.map(t => t.ref.join('/')),
+    })
   }
 
   constraintStorage.clear(this.tx)
