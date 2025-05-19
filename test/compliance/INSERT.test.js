@@ -162,14 +162,14 @@ describe('INSERT', () => {
     })
   })
 
-  describe('as', () => {
+  describe('from', () => {
     test('smart quoting', async () => {
       const { Alter, ASC } = cds.entities('complex.keywords')
       // fill other table first
       await cds.run(INSERT({ ID: 1, alias: 42 }).into(ASC))
       await INSERT.into(Alter)
         .columns(['ID', 'number'])
-        .as(
+        .from(
           SELECT.from(ASC)
             .columns(['ID', 'alias'])
             .where({ ref: ['alias'] }, '=', { val: 42 }),

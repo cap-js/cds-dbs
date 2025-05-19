@@ -10,8 +10,8 @@
     "index.js"
   ],
   "dependencies": {
-    "@cap-js/sqlite": "latest",
-    "@sap/cds": ">=5.9",
+    "@cap-js/sqlite": "*",
+    "@sap/cds": "*",
     "express": "^4.17.1"
   },
   "scripts": {

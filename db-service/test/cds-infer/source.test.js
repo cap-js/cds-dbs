@@ -151,11 +151,34 @@ describe('multiple sources', () => {
 
     // same base entity, addressable via both aliases
     expect(inferred._target).to.deep.equal(inferred)
-    expect(inferred.sources['firstBook'].definition).to.deep.equal(inferred.sources['secondBook'].definition).to.deep.equal(Books)
+    expect(inferred.sources['firstBook'].definition)
+      .to.deep.equal(inferred.sources['secondBook'].definition)
+      .to.deep.equal(Books)
 
     expect(inferred.elements).to.deep.equal({
       firstBookID: Books.elements.ID,
       secondBookID: Books.elements.ID,
     })
+  })
+})
+
+describe('localized', () => {
+  let model
+  beforeAll(async () => {
+    model = await cds.load(__dirname + '/../bookshop/db/schema').then(m => cds.compile.for.nodejs(m))
+  })
+
+  it('_target of localized query is the localized version of the entity', () => {
+    const q = SELECT.localized`from bookshop.Books as Books {ID, title}`
+    let query = inferred(q, model)
+    let localizedBooks = model.definitions['localized.bookshop.Books']
+    expect(query).to.have.property('_target').that.equals(localizedBooks)
+  })
+
+  it('_target of non localized query is the non localized version of the entity', () => {
+    const q = SELECT`from bookshop.Books as Books {ID, title}`
+    let query = inferred(q, model)
+    let Books = model.definitions['bookshop.Books']
+    expect(query).to.have.property('_target').that.equals(Books)
   })
 })
