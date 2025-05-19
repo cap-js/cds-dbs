@@ -255,8 +255,33 @@ describe('search w/ path expressions', () => {
     {
       BooksSearchAuthorName.ID,
       BooksSearchAuthorName.title
-  }`
+    }`
     expected.SELECT.where = [ {func: 'search', args: [{ list: [{ref: ['author', 'lastName']}]}, {val: 'x'}]}]
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('deep search candidate of base entity not projected', () => {
+    let query = cds.ql`SELECT from search.PathInSearchNotProjected as PathInSearchNotProjected { title }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.PathInSearchNotProjected as PathInSearchNotProjected {
+      PathInSearchNotProjected.title
+    }`
+    expected.SELECT.where = [ {func: 'search', args: [{ list: [{ref: ['PathInSearchNotProjected', 'title']}]}, {val: 'x'}]}]
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('no search candidate of base entity projected', () => {
+    let query = cds.ql`SELECT from search.NoSearchCandidateProjected as NoSearchCandidateProjected { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.NoSearchCandidateProjected as NoSearchCandidateProjected {
+      NoSearchCandidateProjected.ID
+    }`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
