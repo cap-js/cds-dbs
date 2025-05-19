@@ -86,7 +86,6 @@ async function checkConstraints(req) {
     queries.push(getValidationQuery(targetName, constraints))
   }
 
-  constraintStorage.clear(this.tx)
   const results = await this.run(queries)
 
   // key = message text        value = array of targets (order preserved)
@@ -94,45 +93,32 @@ async function checkConstraints(req) {
   const messages = new Map()
 
   for (const [i, rows] of results.entries()) {
-    const constraints = queries[i].$constraints;
-    const paramQuery = queries[i].$paramQuery;
+    const constraints = queries[i].$constraints
+    const paramQuery = queries[i].$paramQuery
     let params
-      
-  
+
     for (const [name, meta] of Object.entries(constraints)) {
-      const col = `${name}_constraint`;
-      if(paramQuery && rows.some(r => r[col] === false)) {
+      const col = `${name}_constraint`
+
+      // request params in separate query, because constraint has failed
+      if (paramQuery && rows.some(r => r[col] === false)) {
         const db = cds.tx(this) // use the same transaction as the query (or it would re-trigger the handler endlessly)
         params = await db.run(paramQuery)
       }
-  
-      let j = 0
-      for (let row of rows) {
-        if (row[col]) {
-          j+=1
-          continue; // row satisfied the constraint → no error
-        }
 
-        if(params) {
-          row = {...row, ...params[j]}
-        }
-  
-        const text    = buildMessage(name, meta, row);
-        const targets = meta.targets || [];
-  
-        // element-level constraint without explicit target
-        if (targets.length === 0 && meta.element.kind === 'element') {
-          targets.push({ ref: [meta.element.name] });
-        }
-  
-        const list = messages.get(text) || [];
-        list.push(...targets);        // just append, no dedupe
-        messages.set(text, list);     // write back in case it was new
-        j+=1
+      for (const [j, r] of rows.entries()) {
+        if (r[col]) continue // row satisfied the constraint → no error
+
+        const row = params ? { ...r, ...params[j] } : r // merge only if needed
+
+        const text = buildMessage(name, meta, row)
+        const targets = meta.targets?.length ? meta.targets : [{ ref: [meta.element.name] }]
+
+        ;(messages.get(text) ?? []).push(...targets)
+        messages.set(text, targets)
       }
     }
   }
-  
 
   for (const [text, targetList] of messages) {
     req.error(400, {
@@ -141,6 +127,8 @@ async function checkConstraints(req) {
       '@Common.additionalTargets': targetList.map(t => t.ref.join('/')),
     })
   }
+
+  constraintStorage.clear(this.tx)
 }
 module.exports = {
   attachConstraints,
