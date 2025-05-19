@@ -90,29 +90,30 @@ async function checkConstraints(req) {
   // this way messages are deduplicated
   const messages = new Map()
 
-  results.forEach((rows, i) => {
-    const constraints = queries[i].$constraints
-
-    Object.entries(constraints).forEach(([name, meta]) => {
-      const col = `${name}_constraint`
-
-      rows.forEach(row => {
-        if (row[col]) return // row satisfied the constraint → no error
-
-        const text = buildMessage(name, meta, row)
-        const targets = meta.targets || []
-
-        // element level constraint without explicit target
+  for (const [i, rows] of results.entries()) {
+    const constraints = queries[i].$constraints;
+  
+    for (const [name, meta] of Object.entries(constraints)) {
+      const col = `${name}_constraint`;
+  
+      for (const row of rows) {
+        if (row[col]) continue; // row satisfied the constraint → no error
+  
+        const text    = buildMessage(name, meta, row);
+        const targets = meta.targets || [];
+  
+        // element-level constraint without explicit target
         if (targets.length === 0 && meta.element.kind === 'element') {
-          targets.push({ ref: [meta.element.name] })
+          targets.push({ ref: [meta.element.name] });
         }
-
-        const list = messages.get(text) || []
-        list.push(...targets) // just append, no dedupe
-        messages.set(text, list) // write back in case it was new
-      })
-    })
-  })
+  
+        const list = messages.get(text) || [];
+        list.push(...targets);        // just append, no dedupe
+        messages.set(text, list);     // write back in case it was new
+      }
+    }
+  }
+  
 
   for (const [text, targetList] of messages) {
     req.error(400, {
