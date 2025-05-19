@@ -112,13 +112,12 @@ const _getSearchableColumns = entity => {
 
   if (deepSearchCandidates.length) {
     deepSearchCandidates.forEach(c => {
-      let element = entity // running “cursor”
+      let element = entity
       for (let i = 0; i < c.ref.length; ++i) {
         const curr = c.ref[i]
         const next = element.elements?.[curr] ?? element._target?.elements?.[curr]
 
-        if (!next) {
-          // nothing found → bail out
+        if (!next) { // e.g. if a search element is not part of a projection
           element = undefined
           break
         }
