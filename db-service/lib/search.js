@@ -94,12 +94,17 @@ const _getSearchableColumns = entity => {
     if (annotatedColumnValue) return true
 
     // calculated elements are only searchable if requested through `@cds.search` 
-    if(column.value) return false
+    if (column.value) return false
 
     // if at least one element is explicitly annotated as searchable, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
     // and it is not the current column name, then it must be excluded from the search
     if (atLeastOneColumnIsSearchable) return false
+
+    if (element?.['@Common.Text']?.['='] && element?.isAssociation) {
+      deepSearchCandidates.push({ ref: element['@Common.Text']['='].split('.') })
+      return false
+    } 
 
     // the element is considered searchable if it is explicitly annotated as such or
     // if it is not annotated and the column is typed as a string (excluding elements/elements expressions)
