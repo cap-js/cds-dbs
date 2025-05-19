@@ -314,10 +314,8 @@ describe('Bookshop - assertions', () => {
 
     test('calculated element in condition and in paramaters', async () => {
       await expect(
-        INSERT.into(Books).entries([{ ID: 500, title: 'The Way of Kings', stock: 1000, price: 15}])
-      ).to.be.rejectedWith(
-        'Potential revenue of book "The Way of Kings" (500) must not exceed 10.000$, but is 15000$',
-      )
+        INSERT.into(Books).entries([{ ID: 500, title: 'The Way of Kings', stock: 1000, price: 15 }]),
+      ).to.be.rejectedWith('Potential revenue of book "The Way of Kings" (500) must not exceed 10.000$, but is 15000$')
     })
 
     test('deduplicate messages if multiple constraints in child are violated but only one in header', async () => {
@@ -330,11 +328,11 @@ describe('Bookshop - assertions', () => {
        *    @assert.constraint.secondEditingConstraint : {
        *      condition : ( length(footnotes.text) < length(text) ),
        *    }
-       * 
+       *
        * Now, we set the text length to 0 for a page.
        * This will violate the first constraint, but will also violate the second constraint (if the footnote has any text).
        * The second constraint will be violated `n` times where `n` is the number of footnotes.
-       * 
+       *
        * We need to issue the error for the footnotes `n` times, because each footnote has in fact violated it's constraint.
        * However, the first constraint should only be issued once,
        * because it is a constraint on the page itself (which is the same for all `n` rows).
@@ -348,16 +346,20 @@ describe('Bookshop - assertions', () => {
             stock: 10,
             pages: [
               // page with empty text not allowed
-              { number: 1, text: '', footnotes: [
-                { number: 1, text: 'The footnote text must not be longer than the text of its page' },
-                { number: 2, text: 'The footnote text must not be longer than the text of its page' },
-                { number: 3, text: 'The footnote text must not be longer than the text of its page' },
-                { number: 4, text: 'The footnote text must not be longer than the text of its page' },
-              ] },
+              {
+                number: 1,
+                text: '',
+                footnotes: [
+                  { number: 1, text: 'The footnote text must not be longer than the text of its page' },
+                  { number: 2, text: 'The footnote text must not be longer than the text of its page' },
+                  { number: 3, text: 'The footnote text must not be longer than the text of its page' },
+                  { number: 4, text: 'The footnote text must not be longer than the text of its page' },
+                ],
+              },
             ],
           },
         ])
-      } catch(e) {
+      } catch (e) {
         // 1 error for the page because it has no text
         // 4 errors for the footnotes because they are all longer than the text of their page
         expect(e.details).to.have.length(5)

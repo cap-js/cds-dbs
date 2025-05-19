@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 
 function getValidationQuery(target, constraints) {
   const columns = []
+  const paramColumns = []
   const parameterAliases = new Set() // tracks every alias already added
 
   for (const [name, { condition, parameters, target }] of Object.entries(constraints)) {
@@ -13,11 +14,11 @@ function getValidationQuery(target, constraints) {
         if (parameterAliases.has(p.as)) {
           // one constraints parameters may shadow another constraints parameters
           // in that case, the last one wins
-          const idx = columns.findIndex(c => c.as === p.as)
-          columns[idx] = p
+          const idx = paramColumns.findIndex(c => c.as === p.as)
+          paramColumns[idx] = p
         } else {
           parameterAliases.add(p.as)
-          columns.push(p)
+          paramColumns.push(p)
         }
       }
     }
@@ -43,6 +44,17 @@ function getValidationQuery(target, constraints) {
   const keyMatchingCondition = first.where.flatMap((matchKey, i) => (i > 0 ? ['or', ...matchKey] : matchKey))
 
   const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
+
+  // there will be a separate query for the params which will only
+  // be fired if the validation query returns any violated constraints
+  if (paramColumns.length) {
+    const paramQuery = SELECT.from(target)
+    .columns(paramColumns)
+    .where([...keyMatchingCondition])
+    
+    Object.defineProperty(validationQuery, '$paramQuery', { value: paramQuery })
+  }
+
   Object.defineProperty(validationQuery, '$constraints', { value: constraints })
   return validationQuery
 }

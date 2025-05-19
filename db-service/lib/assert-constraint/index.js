@@ -4,6 +4,8 @@ const { getValidationQuery, buildMessage, getWhereOfPatch, getConstraintsByTarge
 
 const constraintStorage = require('./storage')
 
+const cds = require('@sap/cds')
+
 /**
  *
  * “Before-hook” that gathers every `@assert.constraint` touched by the current
@@ -84,6 +86,7 @@ async function checkConstraints(req) {
     queries.push(getValidationQuery(targetName, constraints))
   }
 
+  constraintStorage.clear(this.tx)
   const results = await this.run(queries)
 
   // key = message text        value = array of targets (order preserved)
@@ -92,12 +95,27 @@ async function checkConstraints(req) {
 
   for (const [i, rows] of results.entries()) {
     const constraints = queries[i].$constraints;
+    const paramQuery = queries[i].$paramQuery;
+    let params
+      
   
     for (const [name, meta] of Object.entries(constraints)) {
       const col = `${name}_constraint`;
+      if(paramQuery && rows.some(r => r[col] === false)) {
+        const db = cds.tx(this) // use the same transaction as the query (or it would re-trigger the handler endlessly)
+        params = await db.run(paramQuery)
+      }
   
-      for (const row of rows) {
-        if (row[col]) continue; // row satisfied the constraint → no error
+      let j = 0
+      for (let row of rows) {
+        if (row[col]) {
+          j+=1
+          continue; // row satisfied the constraint → no error
+        }
+
+        if(params) {
+          row = {...row, ...params[j]}
+        }
   
         const text    = buildMessage(name, meta, row);
         const targets = meta.targets || [];
@@ -110,6 +128,7 @@ async function checkConstraints(req) {
         const list = messages.get(text) || [];
         list.push(...targets);        // just append, no dedupe
         messages.set(text, list);     // write back in case it was new
+        j+=1
       }
     }
   }
@@ -122,8 +141,6 @@ async function checkConstraints(req) {
       '@Common.additionalTargets': targetList.map(t => t.ref.join('/')),
     })
   }
-
-  constraintStorage.clear(this.tx)
 }
 module.exports = {
   attachConstraints,
