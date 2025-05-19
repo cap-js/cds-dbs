@@ -44,15 +44,6 @@ function getValidationQuery(target, constraints) {
     i > 0 ? ['or', ...matchKey] : matchKey,
   )
 
-  // also add primary keys to the query for deduplication of messages later
-  for (const [i, { ref }] of first.primaryKeyRefs.entries()) {
-    const alias = `__primaryKey${i}__`
-    columns.push({
-      ref,
-      as: alias,
-    })
-  }
-
   const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
   Object.defineProperty(validationQuery, '$constraints', { value: constraints })
   return validationQuery
@@ -65,7 +56,6 @@ function getValidationQuery(target, constraints) {
 function collectConstraints(entity, data, model = cds.model) {
   /** All constraints discovered so far, keyed by constraint name */
   const constraints = { ...extractConstraints(entity) }
-  /** Remove duplicates while preserving order. */
 
   // ────────── 1. scan elements ──────────
   for (const el of Object.values(entity.elements ?? {})) {
@@ -73,10 +63,9 @@ function collectConstraints(entity, data, model = cds.model) {
   }
 
   // ────────── 2. attach match keys ──────
-  const { where, refs } = matchKeys(entity, data)
+  const { where } = matchKeys(entity, data)
   for (const c of Object.values(constraints)) {
     c.where = [...(c.matchKeys ?? []), ...where]
-    c.primaryKeyRefs = refs
   }
 
   // ────────── 3. recurse into compositions present in the payload ──────────
