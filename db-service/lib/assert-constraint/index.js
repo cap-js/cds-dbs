@@ -33,7 +33,6 @@ const cds = require('@sap/cds')
  * @param {*}                        _res   (ignored — payload from previous hook)
  * @param {import('@sap/cds').Request} req   Current request being processed
  */
-
 function attachConstraints(_res, req) {
   if (Array.isArray(req.data?.[0])) return // ignore CSV / multipart
 
@@ -54,27 +53,17 @@ function attachConstraints(_res, req) {
 }
 
 /**
+ * Validate all pending constraints for the current transaction.
  *
- * Execute and evaluate all @assert-constraint validations that were
- * accumulated in `constraintStorage` for the current transaction.
+ * 1. Collect constraints from `constraintStorage`.
+ * 2. Build **one** SQL query per target and run them in the current tx.
+ * 3. For each failed row:
+ *    - Lazily fetch the message params **only when** the constraint is violated.  
+ *    - Build a message, and register it with `req.error(...)`,
+ *      including all affected targets for the UI (`@Common.additionalTargets`).
+ * 4. Clear the constraint cache for this transaction.
  *
- * 1.  Fetch the bucket of constraints per target for `this.tx` → `Map<targetName, ConstraintDict>`
- * 2.  For every bucket build **one** SELECT statement via `getValidationQuery`
- *     (→ at most one query per entity, no matter how many CUD events occurred).
- * 3.  `this.run(queries)` – execute the statements in parallel.
- * 4.  Inspect every result set; if a row fails a constraint, raise
- *     `req.error(400, …)` with a translated / formatted message.
- * 5.  Always calls `constraintStorage.clear(this.tx)` at the end to free memory.
- *
- * @this   {import('@sap/cds').Service}  CAP service or transactional context
- * @param  {import('@sap/cds').Request}  req
- *         The root request that triggered the commit.  Used only to emit
- *         `req.error(...)` messages.
- *
- * @returns {Promise<void>}  Resolves when all validations are finished.
- *
- * @throws  {req.error(400)} One or more errors per violated constraint.
- *
+ * @param {import('@sap/cds').Request} req – CDS request that will hold any validation errors.
  */
 async function checkConstraints(req) {
   const constraintsPerTarget = constraintStorage.get(this.tx)
@@ -130,6 +119,7 @@ async function checkConstraints(req) {
 
   constraintStorage.clear(this.tx)
 }
+
 module.exports = {
   attachConstraints,
   checkConstraints,
