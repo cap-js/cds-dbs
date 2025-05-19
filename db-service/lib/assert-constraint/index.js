@@ -86,7 +86,7 @@ async function checkConstraints(req) {
 
   const results = await this.run(queries)
 
-  // key = message text        value = array of targets
+  // key = message text        value = array of targets (order preserved)
   // this way messages are deduplicated
   const messages = new Map()
 
@@ -101,9 +101,15 @@ async function checkConstraints(req) {
 
         const text = buildMessage(name, meta, row)
         const targets = meta.targets || []
-        const messageTargets = messages.get(text) || []
-        messageTargets.push(...targets) // just append, no dedupe
-        messages.set(text, messageTargets) // write back in case it was new
+
+        // element level constraint without explicit target
+        if (targets.length === 0 && meta.element.kind === 'element') {
+          targets.push({ ref: [meta.element.name] })
+        }
+
+        const list = messages.get(text) || []
+        list.push(...targets) // just append, no dedupe
+        messages.set(text, list) // write back in case it was new
       })
     })
   })
@@ -111,7 +117,7 @@ async function checkConstraints(req) {
   for (const [text, targetList] of messages) {
     req.error(400, {
       message: text,
-      target: targetList[0].ref.join('/'),
+      target: targetList[0]?.ref.join('/'),
       '@Common.additionalTargets': targetList.map(t => t.ref.join('/')),
     })
   }

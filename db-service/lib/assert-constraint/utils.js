@@ -40,9 +40,7 @@ function getValidationQuery(target, constraints) {
   // REVISIT: matchKeys for one entity should be the same for all constraints
   //          it should be more like { 'bookshop.Books' : { c1 : { ... }, c2: { ... } }, …, $matchKeys: [ ... ] }
   const first = Object.values(constraints)[0]
-  const keyMatchingCondition = first.where.flatMap((matchKey, i) =>
-    i > 0 ? ['or', ...matchKey] : matchKey,
-  )
+  const keyMatchingCondition = first.where.flatMap((matchKey, i) => (i > 0 ? ['or', ...matchKey] : matchKey))
 
   const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
   Object.defineProperty(validationQuery, '$constraints', { value: constraints })
@@ -101,7 +99,7 @@ function extractConstraints(obj, target = obj) {
 
   for (const key in obj) {
     if (!key.startsWith('@assert.constraint')) continue
-    const val = obj[key]
+    const val = obj[key] ?? /* draft elements do not get annos propagated */ obj.__proto__[key]
 
     // strip prefix and leading dot
     let [, remainder] = key.match(/^@assert\.constraint\.?(.*)$/)
