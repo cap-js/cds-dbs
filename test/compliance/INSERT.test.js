@@ -196,10 +196,16 @@ describe('INSERT', () => {
     })
 
     const result = await SELECT.from('basic.common.dollar_now_default')
-
+    
     expect(result.length).to.eq(2)
-    ;['date ', 'time', 'dateTime', 'timestamp'].forEach(prop => {
-      expect(result[0][prop]).to.eq(result[1][prop])
-    })
+    console.log(result)
+    expect(result[0].date).to.match(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result[0].date).to.eq(result[1].date)
+    expect(result[0].time).to.match(/^\d{2}:\d{2}:\d{2}$/)
+    expect(result[0].time).to.eq(result[1].time)
+    expect(result[0].dateTime).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
+    expect(result[0].dateTime).to.eq(result[1].dateTime)
+    expect(result[0].timestamp).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    expect(result[0].timestamp).to.eq(result[1].timestamp)
   })
 })
