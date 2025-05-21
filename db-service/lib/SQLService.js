@@ -11,6 +11,20 @@ const BINARY_TYPES = {
   'cds.hana.BINARY': 1
 }
 
+/**
+ * Checks if parameter is an object that at least contains one property.
+ *
+ * @param {*} obj 
+ * @returns Boolean
+ */
+const _hasProps = (obj) => { 
+  if (!obj) return false
+  for (const p in obj) {
+    return true
+  }
+  return false
+}
+
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
@@ -194,8 +208,8 @@ class SQLService extends DatabaseService {
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
-      !(req.query.UPDATE.data && Object.keys(req.query.UPDATE.data).length) &&
-      !(req.query.UPDATE.with && Object.keys(req.query.UPDATE.with).length) &&
+      !_hasProps(req.query.UPDATE.data) &&
+      !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
