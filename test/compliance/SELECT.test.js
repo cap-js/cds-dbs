@@ -248,7 +248,8 @@ describe('SELECT', () => {
         .rejected
     })
 
-    test('$now in view refers to tx timestamp', async () => {
+    // TODO: enable after next compiler release
+    test.skip('$now in view refers to tx timestamp', async () => {
       let ts, res1,res2
       await cds.tx(async tx => {
         ts = tx.context.timestamp
