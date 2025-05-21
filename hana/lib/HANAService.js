@@ -117,6 +117,7 @@ class HANAService extends SQLService {
       : variables['$valid.from']
     if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
     if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
+    if (variables['$now']) variables['NOW'] = variables['$now']
 
     this.ensureDBC().set(variables)
   }
