@@ -91,8 +91,8 @@ async function checkConstraints(req) {
 
       // request params in separate query, because constraint has failed
       if (paramQuery && rows.some(r => r[col] === false)) {
-        const db = cds.tx(this) // use the same transaction as the query (or it would re-trigger the handler endlessly)
-        params = await db.run(paramQuery)
+        // use the same transaction as the query (or it would re-trigger the handler endlessly)
+        params = await this.tx().run(paramQuery)
       }
 
       for (const [j, r] of rows.entries()) {
