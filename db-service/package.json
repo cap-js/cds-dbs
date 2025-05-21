@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "CDS base database service",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
   "repository": {
