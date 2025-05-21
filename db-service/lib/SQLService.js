@@ -194,8 +194,8 @@ class SQLService extends DatabaseService {
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
-      !req.query.UPDATE.data &&
-      !req.query.UPDATE.with &&
+      !(req.query.UPDATE.data && Object.keys(req.query.UPDATE.data).length) &&
+      !(req.query.UPDATE.with && Object.keys(req.query.UPDATE.with).length) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
