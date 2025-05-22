@@ -391,7 +391,7 @@ class CQN2SQLRenderer {
     if (distanceType) addComputedColumn(distanceType)
 
     let distanceClause = []
-    if (distanceType === 'Distance') {
+    if (distanceType === 'Distance' && !where) {
       const isOne = expandedByOne.list.length
       distanceClause = ['DISTANCE', ...(
         isOne
@@ -463,7 +463,7 @@ class CQN2SQLRenderer {
           },
           where: expandedFilter.length ? expandedFilter : undefined,
           orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
-          groupBy: [{ ref: ['NODE_ID'] },{ ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
 
@@ -1151,8 +1151,9 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').xpr} param0
    * @returns {string} SQL
    */
-  xpr({ xpr }) {
-    return xpr
+  xpr({ xpr, cast }) {
+    const wrap = cast ? sql => `cast(${sql} as ${this.type4(cast)})` : sql => sql
+    return wrap(xpr
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
@@ -1160,6 +1161,7 @@ class CQN2SQLRenderer {
         else return this.expr(x)
       })
       .join(' ')
+    )
   }
 
   /**
@@ -1402,7 +1404,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default && { __proto__:  element.default, param: false })
+        || (element.default && { __proto__: element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)
