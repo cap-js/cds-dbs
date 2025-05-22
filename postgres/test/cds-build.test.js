@@ -36,4 +36,13 @@ describe('cds build plugin', () => {
     const ddl = String(execSync('npx cds deploy --dry', { cwd: workDir }))
     expect(ddl).to.contain('REFERENCES')
   })
+
+  test('should retain cdsc settings', () => {
+    execSync('npx cds build --production', { cwd: workDir })
+    const packageJson = JSON.parse(fs.readFileSync(path.join(pgDest, 'package.json'), 'utf8'))
+    expect(packageJson.cds?.cdsc?.defaultStringLength).to.equal(1000)
+    expect(packageJson.cds?.cdsc?.standardDatabaseFunctions).to.be.true
+    // this is excluded from being copied over
+    expect(packageJson.cds?.cdsc?.moduleLookupDirectories).to.be.undefined
+  })
 })
