@@ -60,7 +60,6 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
       promises.push(this.write(packageJson).to('package.json'))
     }
 
-    // write CSN
     promises.push(this.write(cds.compile.to.json(model)).to(path.join('db', 'csn.json')))
 
     let data
