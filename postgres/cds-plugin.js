@@ -6,10 +6,10 @@ if (!cds.env.fiori.lean_draft) {
 }
 
 // copy over build relevant cds options to the package.json of the deployer app
-const CDS_BUILD_OPTIONS = ['assert_integrity' /* , 'audit_log', … */]
+const CDS_BUILD_OPTIONS = ['assert_integrity']
 
 // cdsc options are build relevant too, but we need to filter out some
-const CDSC_DISALLOW   = ['moduleLookupDirectories' /* , 'anotherProp' */]
+const CDSC_DISALLOW   = ['moduleLookupDirectories']
 
 // requires @sap/cds-dk version >= 7.5.0
 cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Plugin {
