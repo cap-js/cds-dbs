@@ -4,8 +4,6 @@ const { getValidationQuery, buildMessage, getWhereOfPatch, getConstraintsByTarge
 
 const constraintStorage = require('./storage')
 
-const cds = require('@sap/cds')
-
 /**
  *
  * “Before-hook” that gathers every `@assert.constraint` touched by the current
