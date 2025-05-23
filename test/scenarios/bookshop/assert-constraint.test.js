@@ -170,6 +170,32 @@ describe('Bookshop - assertions', () => {
         }),
       ).to.be.rejectedWith('Text of page 1 for book "Elantris" must not be an empty string')
     })
+
+    test('only execute constraint if some element of condition is part of payload', async () => {
+      // plain insert lets us avoid constraint violation
+      await cds.db.run('INSERT INTO sap_capire_bookshop_Books ("ID", "title", "stock") VALUES (952, \'Elantris\', -1)')
+      const elantris = await SELECT.one.from(Books).where({ ID: 952 })
+      expect(elantris).to.exist.and.to.have.property('stock', -1)
+      // if we would check the constraint, we would get an error, but stock is not part of payload
+      await expect(
+        UPDATE(Books, 952).with({
+          title: 'Elantris',
+          price: 10,
+        }),
+      ).to.be.fulfilled
+      // now we update stock to a positive number
+      await expect(
+        UPDATE(Books, 952).with({
+          stock: 10,
+        }),
+      ).to.be.fulfilled
+      // now we update stock to a negative number
+      await expect(
+        UPDATE(Books, 952).with({
+          stock: -1,
+        }),
+      ).to.be.rejectedWith('Stock for book "Elantris" (952) must not be a negative number')
+    })
   })
 
   describe('INSERT', () => {
