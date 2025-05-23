@@ -49,9 +49,9 @@ function getValidationQuery(target, constraints) {
   // be fired if the validation query returns any violated constraints
   if (paramColumns.length) {
     const paramQuery = SELECT.from(target)
-    .columns(paramColumns)
-    .where([...keyMatchingCondition])
-    
+      .columns(paramColumns)
+      .where([...keyMatchingCondition])
+
     Object.defineProperty(validationQuery, '$paramQuery', { value: paramQuery })
   }
 
@@ -72,10 +72,11 @@ function collectConstraints(entity, data, model = cds.model) {
     Object.assign(constraints, extractConstraints(el, entity))
   }
 
-  // ────────── 2. attach match keys ──────
+  // ────────── 2. attach match keys and payload ──────
   const { where } = matchKeys(entity, data)
   for (const c of Object.values(constraints)) {
     c.where = [...(c.matchKeys ?? []), ...where]
+    c.data = data // to check if constraint is relevant for the current payload
   }
 
   // ────────── 3. recurse into compositions present in the payload ──────────
@@ -203,6 +204,8 @@ function getConstraintsByTarget(target, data) {
   const flatConstraints = collectConstraints(target, data)
   const map = new Map()
   for (const [name, c] of Object.entries(flatConstraints)) {
+    // only consider constraints that are relevant for the current payload
+    if (!isConstraintExecutionNeeded(c)) continue
     const tgt = c.target.name
     const bucket = map.get(tgt) ?? {}
     bucket[name] = c
@@ -216,6 +219,67 @@ function getWhereOfPatch(req) {
 
   const q = req.query[req.event]
   return q?.where ?? q?.entity?.ref?.[0]?.where ?? null
+}
+
+/**
+ * Decides whether the constraint must be executed for the given data payload.
+ *
+ * @param {obj} constraint - constraint as extracted by `extractConstraints`
+ * @param {Record<string, any>} data - payload to check (insert/update data)
+ * @returns {boolean} true if at least one referenced element occurs in data
+ */
+function isConstraintExecutionNeeded(constraint) {
+  const refs = collectRefsFromXpr(constraint.condition.xpr)
+  if (refs.size === 0) return false
+
+  const matchesAnyRef = obj => {
+    if (!obj || typeof obj !== 'object') return false
+    for (const ref of refs) {
+      if (Object.prototype.hasOwnProperty.call(obj, ref)) return true
+      // calculated elements always lead to constraint execution
+      const element = constraint.target.query?._target.elements[ref] || constraint.target.elements[ref]
+      if (element.value) return true
+    }
+    return false
+  }
+
+  const { data } = constraint
+  if (Array.isArray(data)) {
+    // Batch
+    return data.some(matchesAnyRef)
+  }
+
+  // Single row
+  return matchesAnyRef(data)
+}
+
+/**
+ * Recursively collect the first segment (ref[0]) of all references
+ * found in the constraint condition expression.
+ *
+ * @param {Array} xpr - CDS expression as produced by the compiler (Array‑based AST)
+ * @param {Set<string>} [seenRefs] - internal accumulator
+ * @returns {Set<string>} the set of unique element names referenced
+ */
+function collectRefsFromXpr(xpr, seenRefs = new Set()) {
+  for (const token of xpr) {
+    if (token.ref) {
+      // Only consider the top‑level element name (ref[0])
+      const id = token.ref[0].id || token.ref[0]
+      seenRefs.add(id)
+      if (token.ref[0].where) collectRefsFromXpr(token.ref[0].where, seenRefs)
+    } else if (token.xpr) {
+      collectRefsFromXpr(token.xpr, seenRefs)
+    } else if (token.args) {
+      collectRefsFromXpr(token.args, seenRefs)
+    } else if (token.list) {
+      token.list.forEach(item => {
+        collectRefsFromXpr(item, seenRefs)
+      })
+    }
+    // literals, queries, operators etc. are ignored
+  }
+  return seenRefs
 }
 
 module.exports = {
