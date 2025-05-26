@@ -46,7 +46,7 @@ entity ![1234567890] {
   ![24] : Boolean; // Vector;
 }
 
-entity special_chars {
+entity ![~`!@#$%^&()_+-='"\/.,[]]] {
   ![~]  : Boolean;
   ![`]  : UUID;
   ![!!] : UInt8;
