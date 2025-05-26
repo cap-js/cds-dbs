@@ -11,6 +11,20 @@ const BINARY_TYPES = {
   'cds.hana.BINARY': 1
 }
 
+/**
+ * Checks if parameter is an object that at least contains one property.
+ *
+ * @param {*} obj 
+ * @returns Boolean
+ */
+const _hasProps = (obj) => { 
+  if (!obj) return false
+  for (const p in obj) {
+    return true
+  }
+  return false
+}
+
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
@@ -57,24 +71,18 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  _changeToStreams(columns, rows, one, compat) {
+  _changeToStreams(columns, rows, one) {
     if (!rows || !columns) return
     if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return
-
-    // REVISIT: remove after removing stream_compat feature flag
-    if (compat) {
-      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
-      return
-    }
+    if (!rows.length || !Object.keys(rows[0]).length) return   
 
     let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
-        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
+        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false)
         else
-          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false))
       } else if (col.element?.type === 'cds.LargeBinary') {
         changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
@@ -141,23 +149,7 @@ class SQLService extends DatabaseService {
         if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
       if (!iterator) {
-        // REVISIT: remove after removing stream_compat feature flag
-        if (cds.env.features.stream_compat) {
-          if (query._streaming) {
-            if (!rows.length) return
-            this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-            const result = rows[0]
-
-            // stream is always on position 0. Further properties like etag are inserted later.
-            let [key, val] = Object.entries(result)[0]
-            result.value = val
-            delete result[key]
-
-            return result
-          }
-        } else {
-          this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
-        }
+         this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
       } else if (objectMode) {
         const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
         const changeToStreams = new Transform({
@@ -216,8 +208,8 @@ class SQLService extends DatabaseService {
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
-      !req.query.UPDATE.data &&
-      !req.query.UPDATE.with &&
+      !_hasProps(req.query.UPDATE.data) &&
+      !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
@@ -404,8 +396,6 @@ class SQLService extends DatabaseService {
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q._target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)

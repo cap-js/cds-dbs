@@ -27,7 +27,7 @@ jobs:
         uses: martinbeentjes/npm-get-version-action@3cf273023a0dda27efcd3164bdfb51908dd46a5b
       - name: Create a GitHub release
         # v1.15.0
-        uses: ncipollo/release-action@36e78ab6296394ce36f72f6488e68c2353b50514
+        uses: ncipollo/release-action@6996c1bc95523d963d41deede8e4a8c7d3f45744
         with:
           tag: 'v${{ steps.package-version.outputs.current-version}}'
           name: 'Release v${{ steps.package-version.outputs.current-version}}'
