@@ -33,12 +33,12 @@ jobs:
           name: 'Release v${{ steps.package-version.outputs.current-version}}'
           # prerelease: true
           # body: changelog...
-      - run: npm publish --workspace db-service --access public
+      - run: npm publish --workspace db-service --access public --tag v1
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-      - run: npm publish --workspace sqlite --access public
+      - run: npm publish --workspace sqlite --access public --tag v1
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-      - run: npm publish --workspace postgres --access public
+      - run: npm publish --workspace postgres --access public --tag v1
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
