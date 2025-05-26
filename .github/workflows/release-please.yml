@@ -17,6 +17,7 @@ jobs:
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
+          target-branch: release-please--branches--release/v1
       # The logic below handles the npm publication:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

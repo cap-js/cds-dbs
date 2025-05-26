@@ -1,4 +1,5 @@
 {
+  "pull-request-title-pattern": "chore(v1): release downport",
   "packages": {
     "db-service": {},
     "sqlite": {},
