@@ -173,7 +173,7 @@ describe('Bookshop - assertions', () => {
 
     test('only execute constraint if some element of condition is part of payload', async () => {
       // plain insert lets us avoid constraint violation
-      await cds.db.run('INSERT INTO sap_capire_bookshop_Books ("ID", "title", "stock") VALUES (952, \'Elantris\', -1)')
+      await cds.db.run('INSERT INTO sap_capire_bookshop_Books (ID, TITLE, STOCK) VALUES (952, \'Elantris\', -1)')
       const elantris = await SELECT.one.from(Books).where({ ID: 952 })
       expect(elantris).to.exist.and.to.have.property('stock', -1)
       // if we would check the constraint, we would get an error, but stock is not part of payload
