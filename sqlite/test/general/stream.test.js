@@ -16,7 +16,7 @@ describe('streaming', () => {
   describe('Streaming API', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-      await cds.run('INSERT INTO test_Images values(?,?,?)', [
+      await INSERT.into('test.Images').columns('ID', 'data', 'data2').rows([
         [1, data, data],
         [2, null, data],
         [3, data, null],
