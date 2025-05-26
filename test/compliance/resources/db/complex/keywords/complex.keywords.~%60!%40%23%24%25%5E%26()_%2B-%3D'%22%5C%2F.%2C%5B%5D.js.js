@@ -1,4 +1,5 @@
 const isHana = /hana/.test(process.argv[1])
+process.stdout.write(process.argv)
 module.exports = isHana ? [] : [
   {
     "~": null,
