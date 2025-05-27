@@ -344,45 +344,6 @@ GROUP BY k
   }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
-
-    render_with() {
-      const sql = this.sql
-      let recursive = false
-      const prefix = this._with.map(q => {
-        let sql
-        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
-        else if ('SET' in q) {
-          recursive = true
-          const { SET } = q
-          const isDepthFirst = SET.orderBy?.length && (SET.orderBy[0].sort?.toLowerCase() === 'desc' || SET.orderBy[0].sort === -1)
-          let alias = q.as
-          if (isDepthFirst) {
-            alias = alias + '_depth_first'
-            SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === q.as) r.ref[0] = alias })
-          }
-
-          sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${
-            // Root select
-            this.SELECT(SET.args[0])} ${
-            // Union clause
-            SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${
-            // Repeated join query
-            this.SELECT(SET.args[1])
-            })${
-            // Leverage Postgres specific depth first syntax
-            SET.orderBy?.length
-              ? ` SEARCH DEPTH FIRST BY ${SET.orderBy.map(r => this.ref(r))} SET "$DEPTH$"`
-              : ''
-            }`
-
-          // Enforce depth sorting for consuming queries
-          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
-        }
-        return { sql }
-      })
-      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-    }
-
     _orderBy(orderBy, localized, locale) {
       return orderBy.map(c => {
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')

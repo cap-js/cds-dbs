@@ -1,7 +1,5 @@
 'use strict'
 
-const cds = require('@sap/cds')
-
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 const StandardFunctions = {
   /**
@@ -20,15 +18,10 @@ const StandardFunctions = {
     } catch {
       val = sub[2] || sub[3] || ''
     }
-    arg.val = val
+    arg.val = arg.__proto__.val = val
     const refs = ref.list
-    return `(${refs.map(ref => this.expr({
-      func: 'contains',
-      args: [
-        { func: 'tolower', args: [ref] },
-        { func: 'tolower', args: [arg] },
-      ]
-    })).join(' or ')})`
+    const { toString } = ref
+    return '(' + refs.map(ref2 => this.contains(this.tolower(toString(ref2)), this.tolower(arg))).join(' or ') + ')'
   },
 
   // ==============================
@@ -148,7 +141,7 @@ const StandardFunctions = {
    * @returns {string} - SQL statement
    */
   now: function () {
-    return this.expr({ func: 'session_context', args: [{ val: '$now' }] })
+    return this.session_context({ val: '$now' })
   },
 
   /**
@@ -191,226 +184,6 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   current_timestamp: p => (p ? `current_timestamp(${p})` : 'current_timestamp'),
-
-  /**
-   * Generates SQL statement for the hierarchy function
-   * @param {string} [p] - 
-   * @returns {string} - SQL statement
-   */
-  HIERARCHY: function (args) {
-    let uniqueCounter = this._with?.length ?? 0
-    let src = args.xpr[1]
-
-    // Ensure that the orderBy column are exposed by the source for hierarchy sorting
-    const orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
-
-    const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
-    src.as = 'H' + (uniqueCounter++)
-    src = this.expr(this.with(src))
-
-    let recursive = cds.ql(`
-SELECT
-  1 as HIERARCHY_LEVEL,
-  NODE_ID as HIERARCHY_ROOT_ID
- FROM ${src} AS Source
-WHERE parent_ID IS NULL
-UNION ALL
-SELECT
-  Parent.HIERARCHY_LEVEL + 1,
-  Parent.HIERARCHY_ROOT_ID
- FROM ${src} AS Source
-JOIN H${uniqueCounter} AS Parent ON Source.PARENT_ID=Parent.NODE_ID
-ORDER BY HIERARCHY_LEVEL DESC${orderBy ? `,${orderBy}` : ''}`)
-    recursive.as = 'H' + (uniqueCounter++)
-    recursive.SET.args[0].SELECT.columns = [...recursive.SET.args[0].SELECT.columns, ...passThroughColumns]
-    recursive.SET.args[1].SELECT.columns = [...recursive.SET.args[1].SELECT.columns, ...passThroughColumns]
-    recursive = this.expr(this.with(recursive))
-
-    let ranked = cds.ql(`
-SELECT
-  HIERARCHY_LEVEL,
-  row_number() over () as HIERARCHY_RANK,
-  HIERARCHY_ROOT_ID
- FROM ${recursive} AS Source`)
-    ranked.as = 'H' + (uniqueCounter++)
-    ranked.SELECT.columns = [...ranked.SELECT.columns, ...passThroughColumns]
-    ranked = this.expr(this.with(ranked))
-
-    let Hierarchy = cds.ql(`
-SELECT
-  HIERARCHY_LEVEL,
-  HIERARCHY_RANK,
-  (SELECT HIERARCHY_RANK FROM ${ranked} AS Ranked WHERE Ranked.NODE_ID = Source.PARENT_ID) AS HIERARCHY_PARENT_RANK,
-  (SELECT HIERARCHY_RANK FROM ${ranked} AS Ranked WHERE Ranked.NODE_ID = Source.HIERARCHY_ROOT_ID) AS HIERARCHY_ROOT_RANK,
-  coalesce(
-    (SELECT MIN(HIERARCHY_RANK) FROM ${ranked} AS Ranked WHERE Ranked.HIERARCHY_RANK > Source.HIERARCHY_RANK AND Ranked.HIERARCHY_LEVEL <= Source.HIERARCHY_LEVEL),
-    (SELECT MAX(HIERARCHY_RANK) + 1 FROM ${ranked})
-  ) - Source.HIERARCHY_RANK AS HIERARCHY_TREE_SIZE
- FROM ${ranked} AS Source`)
-    Hierarchy.as = 'H' + (uniqueCounter++)
-    Hierarchy.SELECT.columns = [...Hierarchy.SELECT.columns, ...passThroughColumns]
-    Hierarchy = this.expr(this.with(Hierarchy))
-
-    return Hierarchy
-  },
-
-  /**
-   * Generates SQL statement for the hierarchy_descendants function
-   * @param {string} [p] - 
-   * @returns {string} - SQL statement
-   */
-  HIERARCHY_DESCENDANTS: function (args) {
-    // Find Hierarchy function call source query
-    const passThroughColumns = args.xpr[1].args[0].xpr[1].SELECT.columns.map(c => ({ ref: [this.column_name(c)] }))
-    // REVISIT: currently only supports func: HIERARCHY as source
-    const src = this.expr(args.xpr[1])
-
-    let uniqueCounter = this._with?.length ?? 0
-
-    let alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
-    const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
-    const distance = args.xpr.find((a, i, arr) => typeof a.val === 'number' && (/DISTANCE/i.test(arr[i - 1]) || /DISTANCE/i.test(arr[i - 2])))
-    const distanceFrom = args.xpr.find((a, i, arr) => /FROM/.test(a) && /DISTANCE/i.test(arr[i - 1]))
-
-    if (alias.startsWith('"') && alias.endsWith('"')) alias = alias.slice(1, -1).replace(/""/g, '"')
-
-    let HierarchyDescendants = cds.ql(`
-SELECT
-  HIERARCHY_LEVEL,
-  HIERARCHY_PARENT_RANK,
-  HIERARCHY_RANK,
-  HIERARCHY_ROOT_RANK,
-  HIERARCHY_TREE_SIZE,
-  0 as HIERARCHY_DISTANCE
- FROM ${src} AS ![${alias}]
-UNION ALL
-SELECT
-  Source.HIERARCHY_LEVEL,
-  Source.HIERARCHY_PARENT_RANK,
-  Source.HIERARCHY_RANK,
-  Source.HIERARCHY_ROOT_RANK,
-  Source.HIERARCHY_TREE_SIZE,
-  Child.HIERARCHY_DISTANCE + 1
- FROM ${src} AS Source
-JOIN H${uniqueCounter} AS Child ON Source.PARENT_ID=Child.NODE_ID`)
-    HierarchyDescendants.as = 'H' + uniqueCounter
-    HierarchyDescendants.SET.args[0].SELECT.where = where.xpr
-    HierarchyDescendants.SET.args[0].SELECT.columns = [...HierarchyDescendants.SET.args[0].SELECT.columns, ...passThroughColumns.map(r => ({ ref: [alias, r.ref[0]] }))]
-    HierarchyDescendants.SET.args[1].SELECT.columns = [...HierarchyDescendants.SET.args[1].SELECT.columns, ...passThroughColumns.map(r => ({ ref: ['Source', r.ref[0]] }))]
-
-    HierarchyDescendants = this.with(HierarchyDescendants)
-    HierarchyDescendants.as = 'HierarchyDescendants'
-
-    return this.expr({
-      SELECT: {
-        columns: [
-          { ref: ['HIERARCHY_LEVEL'] },
-          { ref: ['HIERARCHY_PARENT_RANK'] },
-          { ref: ['HIERARCHY_RANK'] },
-          { ref: ['HIERARCHY_ROOT_RANK'] },
-          { ref: ['HIERARCHY_TREE_SIZE'] },
-          {
-            SELECT: {
-              columns: [{ func: 'MAX', args: [{ ref: ['HIERARCHY_DISTANCE'] }] }],
-              from: HierarchyDescendants,
-              where: [{ ref: [HierarchyDescendants.as, 'HIERARCHY_RANK'] }, '=', { ref: [src, 'HIERARCHY_RANK'] }]
-            },
-            as: 'HIERARCHY_DISTANCE',
-          },
-          ...passThroughColumns,
-        ],
-        from: { ref: [src] },
-        where: [
-          { ref: ['HIERARCHY_RANK'] },
-          'IN',
-          {
-            SELECT: {
-              columns: [{ ref: ['HIERARCHY_RANK'] }],
-              from: HierarchyDescendants,
-              where: [{ ref: ['HIERARCHY_DISTANCE'] }, distanceFrom ? '>=' : '=', distance]
-            }
-          }
-        ]
-      }
-    })
-  },
-
-  /**
-   * Generates SQL statement for the hierarchy_ancestors function
-   * @param {string} [p] - 
-   * @returns {string} - SQL statement
-   */
-  HIERARCHY_ANCESTORS: function (args) {
-    // Find Hierarchy function call source query
-    const passThroughColumns = args.xpr[1].args[0].xpr[1].SELECT.columns.map(c => ({ ref: [this.column_name(c)] }))
-    // REVISIT: currently only supports func: HIERARCHY as source
-    const src = this.expr(args.xpr[1])
-
-    let uniqueCounter = this._with?.length ?? 0
-
-    let alias = args.xpr.find((_, i, arr) => /AS/i.test(arr[i - 1]))
-    const where = args.xpr.find((a, i, arr) => a.xpr && /WHERE/i.test(arr[i - 1]) && /START/i.test(arr[i - 2]))
-
-    if (alias.startsWith('"') && alias.endsWith('"')) alias = alias.slice(1, -1).replace(/""/g, '"')
-
-    let HierarchyAncestors = cds.ql(`
-SELECT
-  HIERARCHY_LEVEL,
-  HIERARCHY_PARENT_RANK,
-  HIERARCHY_RANK,
-  HIERARCHY_ROOT_RANK,
-  HIERARCHY_TREE_SIZE,
-  0 as HIERARCHY_DISTANCE
- FROM ${src} AS ![${alias}]
-UNION ALL
-SELECT
-  Source.HIERARCHY_LEVEL,
-  Source.HIERARCHY_PARENT_RANK,
-  Source.HIERARCHY_RANK,
-  Source.HIERARCHY_ROOT_RANK,
-  Source.HIERARCHY_TREE_SIZE,
-  Child.HIERARCHY_DISTANCE - 1
- FROM ${src} AS Source
-JOIN H${uniqueCounter} AS Child ON Source.NODE_ID=Child.PARENT_ID`)
-    HierarchyAncestors.as = 'H' + uniqueCounter
-    HierarchyAncestors.SET.args[0].SELECT.where = where.xpr
-    HierarchyAncestors.SET.args[0].SELECT.columns = [...HierarchyAncestors.SET.args[0].SELECT.columns, ...passThroughColumns.map(r => ({ ref: [alias, r.ref[0]] }))]
-    HierarchyAncestors.SET.args[1].SELECT.columns = [...HierarchyAncestors.SET.args[1].SELECT.columns, ...passThroughColumns.map(r => ({ ref: ['Source', r.ref[0]] }))]
-
-    HierarchyAncestors = this.with(HierarchyAncestors)
-    HierarchyAncestors.as = 'HierarchyAncestors'
-    return this.expr({
-      SELECT: {
-        columns: [
-          { ref: ['HIERARCHY_LEVEL'] },
-          { ref: ['HIERARCHY_PARENT_RANK'] },
-          { ref: ['HIERARCHY_RANK'] },
-          { ref: ['HIERARCHY_ROOT_RANK'] },
-          { ref: ['HIERARCHY_TREE_SIZE'] },
-          {
-            SELECT: {
-              columns: [{ func: 'MIN', args: [{ ref: ['HIERARCHY_DISTANCE'] }] }],
-              from: HierarchyAncestors,
-              where: [{ ref: [HierarchyAncestors.as, 'HIERARCHY_RANK'] }, '=', { ref: [src, 'HIERARCHY_RANK'] }]
-            },
-            as: 'HIERARCHY_DISTANCE',
-          },
-          ...passThroughColumns,
-        ],
-        from: { ref: [src] },
-        where: [
-          { ref: ['HIERARCHY_RANK'] },
-          'IN',
-          {
-            SELECT: {
-              columns: [{ ref: ['HIERARCHY_RANK'] }],
-              from: HierarchyAncestors,
-            }
-          }
-        ]
-      }
-    })
-  },
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
