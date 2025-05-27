@@ -120,12 +120,13 @@ init() {
    * Helper to re-calculate a Travel's TotalPrice from BookingFees, FlightPrices and Supplement Prices.
    */
   this._update_totals4 = function (travel) {
+    const placeholder = cds.db.kind === 'postgres' ? '$1' : '?'
     // Using plain native SQL for such complex queries
     return cds.run(`UPDATE ${Travel.drafts} SET
       TotalPrice = coalesce(BookingFee,0)
       + ( SELECT coalesce (sum(FlightPrice),0) from ${Booking.drafts} where to_Travel_TravelUUID = TravelUUID )
       + ( SELECT coalesce (sum(Price),0) from ${BookingSupplement.drafts} where to_Travel_TravelUUID = TravelUUID )
-    WHERE TravelUUID = ?`, [travel])
+    WHERE TravelUUID = ${placeholder}`, [travel])
   }
 
 

@@ -802,11 +802,7 @@ function cqn4sql(originalQuery, model) {
         })
     } else {
       outerAlias = transformedQuery.SELECT.from.as
-      const getInnermostTarget = q => (q._target ? getInnermostTarget(q._target) : q)
-      subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [getInnermostTarget(transformedQuery).name]),
-        ...ref,
-      ]
+      subqueryFromRef = [transformedQuery._target.name, ...ref]
     }
 
     // this is the alias of the column which holds the correlated subquery
