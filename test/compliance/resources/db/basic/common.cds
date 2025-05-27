@@ -43,6 +43,14 @@ entity ![default] : _cuid {
   // vector : Vector default '[1.0,0.5,0.0,...]';
 }
 
+entity dollar_now_default {
+  key id    : Integer;
+  date      : Date default $now;
+  time      : Time default $now;
+  dateTime  : DateTime default $now;
+  timestamp : Timestamp default $now;
+}
+
 entity keys {
   key id      : Integer;
   key default : String default 'defaulted';
