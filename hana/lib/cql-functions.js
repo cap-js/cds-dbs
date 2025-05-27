@@ -208,9 +208,6 @@ const HANAFunctions = {
   current_time: () => 'current_utctime',
   current_timestamp: () => 'current_utctimestamp',
   current_utctimestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
-  HIERARCHY: undefined,
-  HIERARCHY_DESCENDANTS: undefined,
-  HIERARCHY_ANCESTORS: undefined,
 }
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
