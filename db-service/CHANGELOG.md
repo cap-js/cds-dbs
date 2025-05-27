@@ -4,6 +4,16 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.20.1](https://github.com/cap-js/cds-dbs/compare/db-service-v1.20.0...db-service-v1.20.1) (2025-05-27)
+
+
+### Fixed
+
+* **`search`:** do not search on non-projected elements ([#1198](https://github.com/cap-js/cds-dbs/issues/1198)) ([1461673](https://github.com/cap-js/cds-dbs/commit/14616730ba8c27e8ffa30c5962b881badfab991c))
+* current_utctimestamp as default ([#1161](https://github.com/cap-js/cds-dbs/issues/1161)) ([c0cccad](https://github.com/cap-js/cds-dbs/commit/c0cccad921c45db96e14f0e2afeced6af69da4a2))
+* exists within expression is properly detected ([#1156](https://github.com/cap-js/cds-dbs/issues/1156)) ([febe175](https://github.com/cap-js/cds-dbs/commit/febe1755186d291b92edbdf69cebbab68a53d0af))
+* resilience for query re-use scenarios ([#1175](https://github.com/cap-js/cds-dbs/issues/1175)) ([fe9abd5](https://github.com/cap-js/cds-dbs/commit/fe9abd5e4c5e9153c0afad9164f240ae2eadf581))
+
 ## [1.20.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.19.1...db-service-v1.20.0) (2025-04-17)
 
 
