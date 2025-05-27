@@ -4,13 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.11.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.11.0...sqlite-v1.11.1) (2025-05-27)
-
-
-### Fixed
-
-* Adopt to recurse `DistanceTo` cqn format ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([14fc446](https://github.com/cap-js/cds-dbs/commit/14fc44625b7aef65fc5848f2b03cdb6a60a58609))
-
 ## [1.11.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.10.0...sqlite-v1.11.0) (2025-04-17)
 
 
