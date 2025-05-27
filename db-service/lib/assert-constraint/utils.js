@@ -63,7 +63,7 @@ function getValidationQuery(target, constraints) {
  * Collect every @assert.constraint defined on an entity, its elements and any
  * compositions that appear in the current payload.
  */
-function collectConstraints(entity, data, model = cds.model) {
+function collectConstraints(entity, data) {
   /** All constraints discovered so far, keyed by constraint name */
   const constraints = { ...extractConstraints(entity) }
 
@@ -84,8 +84,8 @@ function collectConstraints(entity, data, model = cds.model) {
     const payload = data?.[compKey]
     if (!payload) continue // nothing sent for this comp
 
-    const target = model.definitions[composition.target]
-    const recurse = child => mergeConstraintSets(constraints, collectConstraints(target, child, model))
+    const target = cds.model.definitions[composition.target]
+    const recurse = child => mergeConstraintSets(constraints, collectConstraints(target, child))
 
     Array.isArray(payload) ? payload.forEach(recurse) : recurse(payload)
   }
