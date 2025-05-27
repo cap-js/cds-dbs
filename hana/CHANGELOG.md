@@ -7,13 +7,8 @@
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.0...hana-v2.0.1) (2025-05-27)
 
 
-### ⚠ BREAKING CHANGES
-
-* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180))
-
 ### Added
 
-* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180)) ([a1e0bd9](https://github.com/cap-js/cds-dbs/commit/a1e0bd9fe8501c284d8cbfc8d79d4dddda34c087))
 * set NOW as session var in addition to $now ([#1201](https://github.com/cap-js/cds-dbs/issues/1201)) ([33d4814](https://github.com/cap-js/cds-dbs/commit/33d4814bfa77714a18d826b95c3c27b6f865e40f))
 
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v2.0.0) (2025-05-07)

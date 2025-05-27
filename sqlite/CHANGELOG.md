@@ -7,15 +7,6 @@
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.0...sqlite-v2.0.1) (2025-05-27)
 
 
-### ⚠ BREAKING CHANGES
-
-* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180))
-
-### Added
-
-* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180)) ([a1e0bd9](https://github.com/cap-js/cds-dbs/commit/a1e0bd9fe8501c284d8cbfc8d79d4dddda34c087))
-
-
 ### Changed
 
 * remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
