@@ -20,6 +20,8 @@ jobs:
           target-branch: release/v1
       # The logic below handles the npm publication:
       - uses: actions/checkout@v4
+        with:
+          ref: 'release/v1'
       - uses: actions/setup-node@v4
         with:
           node-version: 20
