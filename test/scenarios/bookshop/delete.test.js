@@ -5,8 +5,12 @@ describe('Bookshop - Delete', () => {
   const { expect } = cds.test(bookshop)
 
   test('Deep delete works for queries with multiple where clauses', async () => {
-    const del = DELETE.from('sap.capire.bookshop.Genres[ID = 4711]').where('ID = 4712')
+    const del3 = SELECT.from('sap.capire.bookshop.Genres')
+    const affectedRows3 = await cds.db.run(del3)
+    const del = DELETE.from('sap.capire.bookshop.Genres[ID = 10]')
     const affectedRows = await cds.db.run(del)
+    const del2 = SELECT.from('sap.capire.bookshop.Genres[ID = 10]')
+    const affectedRows2 = await cds.db.run(del2)
     expect(affectedRows).to.be.eq(0)
   })
 
