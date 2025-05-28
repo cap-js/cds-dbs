@@ -238,14 +238,14 @@ SELECT
 
     let Hierarchy = cds.ql(`
 SELECT
-  HIERARCHY_LEVEL,
-  HIERARCHY_RANK,
+  CAST(HIERARCHY_LEVEL AS cds.Int64) AS HIERARCHY_LEVEL,
+  HIERARCHY_RANK AS HIERARCHY_RANK,
   (SELECT HIERARCHY_RANK FROM ${ranked} AS Ranked WHERE Ranked.NODE_ID = Source.PARENT_ID) AS HIERARCHY_PARENT_RANK,
   (SELECT HIERARCHY_RANK FROM ${ranked} AS Ranked WHERE Ranked.NODE_ID = Source.HIERARCHY_ROOT_ID) AS HIERARCHY_ROOT_RANK,
-  coalesce(
+  CAST(coalesce(
     (SELECT MIN(HIERARCHY_RANK) FROM ${ranked} AS Ranked WHERE Ranked.HIERARCHY_RANK > Source.HIERARCHY_RANK AND Ranked.HIERARCHY_LEVEL <= Source.HIERARCHY_LEVEL),
     (SELECT MAX(HIERARCHY_RANK) + 1 FROM ${ranked})
-  ) - Source.HIERARCHY_RANK AS HIERARCHY_TREE_SIZE
+  ) - Source.HIERARCHY_RANK AS cds.Int64) AS HIERARCHY_TREE_SIZE
  FROM ${ranked} AS Source`)
     Hierarchy.as = 'H' + (uniqueCounter++)
     Hierarchy.SELECT.columns = [...Hierarchy.SELECT.columns, ...passThroughColumns]
