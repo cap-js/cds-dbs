@@ -405,11 +405,9 @@ class HANAService extends SQLService {
           })
         }
 
-        let hasBooleans = false
         let hasExpands = false
         let hasStructures = false
         const aliasedOutputColumns = outputColumns.map(c => {
-          if (c.element?.type === 'cds.Boolean') hasBooleans = true
           if (c.elements && c.element?.isAssociation) hasExpands = true
           if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
           return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
@@ -417,7 +415,6 @@ class HANAService extends SQLService {
 
         const isSimpleQuery = (
           cds.env.features.sql_simple_queries &&
-          (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
           !hasStructures &&
           !parent
         )
@@ -534,7 +531,6 @@ class HANAService extends SQLService {
       const blobrefs = []
       let expands = {}
       let blobs = {}
-      let hasBooleans = false
       let path
       let sql = []
 
@@ -681,7 +677,6 @@ class HANAService extends SQLService {
           path = this.expr(x)
           continue
         }
-        if (x.element?.type === 'cds.Boolean') hasBooleans = true
         const converter = x.element?.[this.class._convertOutput] || (e => e)
         const s = x.param !== true && typeof x.val === 'number' ? this.expr({ param: false, __proto__: x }) : this.expr(x)
         sql.push(`${converter(s, x.element)} as "${columnName.replace(/"/g, '""')}"`)
@@ -692,7 +687,6 @@ class HANAService extends SQLService {
       this.blobs.push(...blobColumns.filter(b => !this.blobs.includes(b)))
       if (
         cds.env.features.sql_simple_queries &&
-        (cds.env.features.sql_simple_queries > 1 || !hasBooleans) &&
         structures.length + ObjectKeys(expands).length + ObjectKeys(blobs).length === 0 &&
         !q?.src?.SELECT?.parent &&
         this.temporary.length === 0
@@ -1265,7 +1259,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
     static OutputConverters = {
       ...super.OutputConverters,
-      LargeString: cds.env.features.sql_simple_queries > 0 ? e => `TO_NVARCHAR(${e})` : undefined,
+      LargeString: cds.env.features.sql_simple_queries ? e => `TO_NVARCHAR(${e})` : undefined,
       // REVISIT: binaries should use BASE64_ENCODE, but this results in BASE64_ENCODE(BINTONHEX(${e}))
       Binary: e => `BINTONHEX(${e})`,
       Date: e => `to_char(${e}, 'YYYY-MM-DD')`,
