@@ -315,27 +315,30 @@ class SQLService extends DatabaseService {
             break
           }
           // TODO: If key value is already part of query, we could skip this select
-          const data = await SELECT.from(req.query.DELETE.from).columns(key).where(req.query.DELETE.where)
-          const recursiveQuery = SELECT.from(req.query.DELTE.from).columns(key)
+          const data = await SELECT.from(from).columns(key).where(where)
           const recursiveQueries = []
-          for (const backlink of recursiveBacklinks) {
-            const _recursiveQuery = recursiveQuery.clone()
-            const where = data.flatMap((d,i) => {
-              const res = [{ func: 'DistanceTo', args: [{ val: d[key]}, {val: null }] }]
-              if (i > 0) res.unshift('or')
-              return res
-            })
-            // [[],[],[]]
-            _recursiveQuery.SELECT.recurse = {
-              ref: [backlink],
-              where
+          if (data.length) {
+            for (const backlink of recursiveBacklinks) {
+              const _recursiveQuery = SELECT.from(table).columns(key)
+              const where = data.flatMap((d, i) => {
+                const res = [{ func: 'DistanceTo', args: [{ val: d[key] }, { val: null }] }]
+                if (i > 0) res.unshift('or')
+                return res
+              })
+              _recursiveQuery.SELECT.recurse = {
+                ref: [backlink],
+                where,
+              }
+              recursiveQueries.push(_recursiveQuery)
             }
-            recursiveQueries.push(recursiveQuery)
-            // TODO: We could also perform a DELETE.from(SELECT) based on a recursive SELEECT, to be investiagated
+            // TODO: We could also perform a DELETE.from(SELECT) based on a recursive SELECT, to be investigated
             const recursiveResults = await Promise.all(recursiveQueries) // [[], [], []]
-            // TODO: Also handle transitions etc.
-            // TODO: call this.onDELETE instead
-            await DELETE.from(req.target).where({ ref: [key] }, 'in', { list: recursiveResults.flatMap(r => r.map(r1 => ({ val: r1[key] }))) })
+            if (recursiveResults[0]?.length) {
+              const query = DELETE.from(req.target).where({ ref: [key] }, 'in', {
+                list: recursiveResults.flatMap(r => r.map(r1 => ({ val: r1[key] }))),
+              })
+              await this.onSIMPLE({ query, target: table })
+            }
           }
         }
       }
