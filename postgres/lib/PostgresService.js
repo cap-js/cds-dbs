@@ -212,7 +212,7 @@ GROUP BY k
           if (isBinary) value.setEncoding('base64')
           value.pipe(paramStream)
           value.on('error', err => paramStream.emit('error', err))
-          streams[i] = paramStream
+          streams.push(paramStream)
           newValues[i] = streamID
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
