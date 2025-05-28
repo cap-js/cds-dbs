@@ -332,7 +332,7 @@ class SQLService extends DatabaseService {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
-      if (max === undefined || (n < max && (n || !offset))) return n + offset
+      if (max === undefined || (n < max && (n || !offset))) return String(n + offset)
     }
 
     // Keep original query columns when potentially used insde conditions
@@ -340,7 +340,7 @@ class SQLService extends DatabaseService {
     const columns = (having?.length || groupBy?.length)
       ? query.SELECT.columns.filter(c => !c.expand)
       : [{ val: 1 }]
-    const cq = SELECT.one([{ func: 'count' }]).from(
+    const cq = SELECT.one([{ func: 'count', cast: 'cds.Integer64' }]).from(
       cds.ql.clone(query, {
         columns,
         localized: false,
