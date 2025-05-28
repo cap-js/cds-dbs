@@ -259,7 +259,7 @@ class SQLService extends DatabaseService {
       const { compositions } = table
 
       // Check if we are in the hierarchy case
-      let isHierarchy = req.target.elements.LimitedDescendantCount
+      let isHierarchy = req.target.elements?.LimitedDescendantCount
       const recursiveBacklinks = []
 
       if (compositions) {
