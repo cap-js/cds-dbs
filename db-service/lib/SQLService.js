@@ -254,7 +254,6 @@ class SQLService extends DatabaseService {
         return this.onDELETE({ query, target: transitions.target })
       }
 
-
       const table = getDBTable(req.target)
       const { compositions } = table
 
