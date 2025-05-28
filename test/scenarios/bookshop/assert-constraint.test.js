@@ -349,7 +349,6 @@ describe('Bookshop - assertions', () => {
     })
 
     test('with pseudo variable $now', async () => {
-      // The authors date of birth must not be in the future
       await expect(
         INSERT.into(Authors).entries([{ ID: 100, name: 'Future Author', dateOfBirth: '2100-01-01' }]),
       ).to.be.rejectedWith('The authors date of birth must not be in the future')
