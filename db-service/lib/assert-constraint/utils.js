@@ -238,7 +238,8 @@ function isConstraintExecutionNeeded(constraint) {
       if (Object.prototype.hasOwnProperty.call(obj, ref)) return true
       // calculated elements always lead to constraint execution
       const element = constraint.target.query?._target.elements[ref] || constraint.target.elements[ref]
-      if (element.value) return true
+      // element will be undefined e.g. for $now or $user
+      if (element?.value) return true
     }
     return false
   }

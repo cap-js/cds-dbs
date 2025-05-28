@@ -348,6 +348,13 @@ describe('Bookshop - assertions', () => {
       ).to.be.rejectedWith('Potential revenue of book "The Way of Kings" (500) must not exceed 10.000$, but is 15000$')
     })
 
+    test('with pseudo variable $now', async () => {
+      // The authors date of birth must not be in the future
+      await expect(
+        INSERT.into(Authors).entries([{ ID: 100, name: 'Future Author', dateOfBirth: '2100-01-01' }]),
+      ).to.be.rejectedWith('The authors date of birth must not be in the future')
+    })
+
     test('deduplicate messages if multiple constraints in child are violated but only one in header', async () => {
       /**
        * given this example:

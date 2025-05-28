@@ -54,10 +54,14 @@ annotate my.Books with @(
 
 annotate my.Authors with @(
     assert.constraint.dates : {
-    condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
-    message: 'LIFE_BEFORE_DEATH',
-    parameters: [(dateOfBirth), (name), (dateOfDeath)]
-}
+        condition: ( days_between(dateOfBirth, dateOfDeath) >= 0 ),
+        message: 'LIFE_BEFORE_DEATH',
+        parameters: [(dateOfBirth), (name), (dateOfDeath)],
+    },
+    assert.constraint.dateOfBirthNotInTheFuture: {
+        condition: (dateOfBirth <= $now),
+        message: 'The authors date of birth must not be in the future',
+    }
 );
 
 
