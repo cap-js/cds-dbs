@@ -30,7 +30,8 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
     } else {
       const packageJson = {
         dependencies: {
-          '@sap/cds': '^8',
+          '@sap/cds': '^9',
+
           '@cap-js/postgres': '^1'
         },
         scripts: { start: 'cds-deploy' }
