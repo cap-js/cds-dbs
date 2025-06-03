@@ -108,8 +108,9 @@ class Pool extends EventEmitter {
       }
       const ttl = this.options.acquireTimeoutMillis
       if (typeof ttl === 'number' && ttl >= 0) {
+        const error = new Error(`ResourceRequest timed out after ${ttl/1000}s`)
         request.timeout = setTimeout(() => {
-          request.reject(new Error(`ResourceRequest timed out after ${ttl/1000}s`))
+          request.reject(error)
         }, ttl)
       }
     })
