@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.0...hana-v2.0.1) (2025-05-27)
+
+
+### Added
+
+* set NOW as session var in addition to $now ([#1201](https://github.com/cap-js/cds-dbs/issues/1201)) ([33d4814](https://github.com/cap-js/cds-dbs/commit/33d4814bfa77714a18d826b95c3c27b6f865e40f))
+
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v2.0.0) (2025-05-07)
 
 

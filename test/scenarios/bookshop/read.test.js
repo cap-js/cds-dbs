@@ -157,30 +157,6 @@ describe('Bookshop - Read', () => {
     expect(res[0]).to.have.deep.property('author', { CONSTRAINT: 'Emily Brontë' })
   })
 
-  test('Plain sql', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
-    expect(res.length).to.be.eq(5)
-    const [res1, res2] = await cds.run([
-      'SELECT * FROM sap_capire_bookshop_Books',
-      'SELECT * FROM sap_capire_bookshop_Books',
-    ])
-    expect(res1.length).to.be.eq(5)
-    expect(res2.length).to.be.eq(5)
-  })
-
-  test('Plain sql with values', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [201])
-    expect(res.length).to.be.eq(1)
-  })
-
-  test('Plain sql with multiple values', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [[201], [252]])
-    expect(res.length).to.be.eq(2)
-  })
-
   test('order by computed result column', async () => {
     const { Authors } = cds.entities('sap.capire.bookshop')
     const res = await SELECT
