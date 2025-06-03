@@ -57,7 +57,7 @@ class HANAService extends SQLService {
         testOnBorrow: true,
         fifo: false
       },
-      create: async function create (tenant, _retries = 0) {
+      create: async function create(tenant, start = Date.now()) {
         try {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
@@ -73,8 +73,8 @@ class HANAService extends SQLService {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
               await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              if (_retries < 10) return create(tenant, _retries + 1)
-              else throw new Error(`Pool failed connecting to '${tenant}' after 10 retries`, { cause: err })
+              if (Date.now() - start < acquireTimeoutMillis) return create(tenant, start)
+              else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
             } else {
               // Stop trying when the tenant does not exist or is rate limited
               if (err.status == 404 || err.status == 429) {
