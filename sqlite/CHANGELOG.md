@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.0...sqlite-v2.0.1) (2025-05-27)
+
+
+### Changed
+
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.11.0...sqlite-v2.0.0) (2025-05-07)
 
 
