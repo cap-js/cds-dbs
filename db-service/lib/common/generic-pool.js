@@ -93,7 +93,7 @@ class Pool extends EventEmitter {
   }
 
   async acquire() {
-    if (this._draining) throw new Error('Pool is draining and cannot accept work')
+    if (this._draining) throw new Error('Pool is draining and cannot accept new requests')
     const request = { state: 'pending' }
     request.promise = new Promise((resolve, reject) => {
       request.resolve = value => {
@@ -108,7 +108,7 @@ class Pool extends EventEmitter {
       }
       const ttl = this.options.acquireTimeoutMillis
       if (typeof ttl === 'number' && ttl >= 0) {
-        const error = new Error(`ResourceRequest timed out after ${ttl/1000}s`)
+        const error = new Error(`Pool resource could not be acquired within ${ttl/1000}s`)
         request.timeout = setTimeout(() => {
           request.reject(error)
         }, ttl)
