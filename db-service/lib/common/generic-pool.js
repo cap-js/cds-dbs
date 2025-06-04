@@ -179,9 +179,9 @@ constructor (factory, options = {}) {
   async #createResource() {
     const createPromise = (async () => {
       try {
-        const res = new PooledResource(await this.factory.create())
-        this._all.add(res)
-        this._available.add(res)
+        const resource = new PooledResource(await this.factory.create())
+        this._all.add(resource)
+        this._available.add(resource)
       } catch (err) {
         this._queue.shift()?.reject(err)
       }
@@ -201,9 +201,7 @@ constructor (factory, options = {}) {
     const shortfall = waiting - capacity
     if (shortfall > 0 && this.size < this.options.max) {
       const needed = Math.min(shortfall, this.options.max - this.size)
-      for (let i = 0; i < needed; i++) {
-        this.#createResource()
-      }
+      for (let i = 0; i < needed; i++) this.#createResource()
     }
     const dispense = async resource => {
       const request = this._queue.shift()
@@ -284,23 +282,9 @@ constructor (factory, options = {}) {
     }, evictionRunIntervalMillis).unref()
   }
 
-  get size() {
-    return this._all.size + this._creates.size
-  }
-
-  get available() {
-    return this._available.size
-  }
-
-  get borrowed() {
-    return this._loans.size
-  }
-
-  get tenant() {
-    return this.options.tenant
-  }
-
-  get pending() {
-    return this._queue.length
-  }
+  get size()      { return this._all.size + this._creates.size }
+  get available() { return this._available.size }
+  get borrowed()  { return this._loans.size }
+  get pending()   { return this._queue.length }
+  get tenant()    { return this.options.tenant }
 }
