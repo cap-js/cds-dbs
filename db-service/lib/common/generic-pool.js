@@ -150,16 +150,21 @@ class Pool extends EventEmitter {
   }
 
   async #createResource() {
-    try {
-      const resource = new PooledResource(await this.factory.create())
-      this._all.add(resource)
-      this._available.add(resource)
-    } catch (error) {
-      const request = this._queue.shift()
-      request?.reject(error)
-    } finally {
+    const createPromise = (async () => {
+      try {
+        const res = new PooledResource(await this.factory.create())
+        this._all.add(res)
+        this._available.add(res)
+      } catch (err) {
+        this._queue.shift()?.reject(err)
+      }
+    })()
+    this._creates.add(createPromise)
+    createPromise.finally(() => {
+      this._creates.delete(createPromise)
       this.#dispense()
-    }
+    })
+    return createPromise
   }
 
   async #dispense() {
@@ -170,12 +175,7 @@ class Pool extends EventEmitter {
     if (shortfall > 0 && this.size < this.options.max) {
       const needed = Math.min(shortfall, this.options.max - this.size)
       for (let i = 0; i < needed; i++) {
-        const _create = this.#createResource()
-        this._creates.add(_create)
-        _create.finally(() => {
-          this._creates.delete(_create)
-          this.#dispense()
-        })
+        this.#createResource()
       }
     }
     const dispense = async resource => {
