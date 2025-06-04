@@ -57,7 +57,7 @@ class HANAService extends SQLService {
         testOnBorrow: true,
         fifo: false
       },
-      create: async function (tenant) {
+      create: async function create(tenant, start = Date.now()) {
         try {
           const { credentials } = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
@@ -68,15 +68,24 @@ class HANAService extends SQLService {
           return dbc
         } catch (err) {
           if (isMultitenant) {
-            // REVISIT: throw the error and break retry loop
-            // Stop trying when the tenant does not exist or is rate limited
-            if (err.status == 404 || err.status == 429)
-              return new Promise(function (_, reject) {
-                setTimeout(() => reject(err), acquireTimeoutMillis)
-              })
+            if (cds.requires.db?.pool?.builtin) {
+              if (err.status === 404 || err.status === 429) {
+                throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
+              }
+              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+              if (Date.now() - start < acquireTimeoutMillis) return create(tenant, start)
+              else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+            } else {
+              // Stop trying when the tenant does not exist or is rate limited
+              if (err.status == 404 || err.status == 429) {
+                return new Promise(function (_, reject) { // break retry loop for generic-pool
+                  setTimeout(() => reject(err), acquireTimeoutMillis)
+                })
+              }
+              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
+              throw new Error(`Pool failed connecting to'${tenant}'`, { cause: err }) // generic-pool will retry on errors
+            }
           } else if (err.code !== 10) throw err
-          await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-          return this.create(tenant)
         }
       },
       error: (err /*, tenant*/) => {
