@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.1...db-service-v2.1.0) (2025-06-04)
+
+
+### Added
+
+* opt-in replacement for `generic-pool` ([#815](https://github.com/cap-js/cds-dbs/issues/815)) ([32c08f4](https://github.com/cap-js/cds-dbs/commit/32c08f474eab67c71dad3b5e6a378f8bc52520b0))
+
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.0...db-service-v2.0.1) (2025-05-27)
 
 
