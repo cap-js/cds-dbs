@@ -25,7 +25,7 @@
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^2",
+    "@cap-js/db-service": "^2.1.0",
     "hdb": "^0.19.5"
   },
   "peerDependencies": {
