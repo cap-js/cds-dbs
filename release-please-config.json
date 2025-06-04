@@ -7,7 +7,6 @@
     "postgres": {
     },
     "hana": {
-      "release-as": "2.0.2"
     }
   },
   "changelog-sections": [
