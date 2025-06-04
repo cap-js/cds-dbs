@@ -1,16 +1,13 @@
 {
   "packages": {
     "db-service": {
-      "release-as": "2.0.1"
     },
     "sqlite": {
-      "release-as": "2.0.1"
     },
     "postgres": {
-      "release-as": "2.0.1"
     },
     "hana": {
-      "release-as": "2.0.1"
+      "release-as": "2.0.2"
     }
   },
   "changelog-sections": [
