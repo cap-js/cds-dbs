@@ -43,11 +43,41 @@ module.exports = DEBUG && !cds.requires.db?.pool?.builtin ? TrackedConnectionPoo
 const { EventEmitter } = require('events')
 
 const ResourceState = Object.freeze({
-  ALLOCATED: 'ALLOCATED',
-  IDLE: 'IDLE',
-  INVALID: 'INVALID',
-  VALIDATION: 'VALIDATION'
+  ALLOCATED: 'allocated',
+  IDLE: 'idle',
+  INVALID: 'invalid',
+  VALIDATION: 'validation'
 })
+
+const RequestState = Object.freeze({
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected'
+})
+
+class Request {
+  constructor (ttl) {
+    this.state = 'pending'
+    this.promise = new Promise((resolve, reject) => {
+      this._resolve = value => {
+        clearTimeout(this._timeout)
+        this.state = RequestState.RESOLVED
+        resolve(value)
+      }
+      this._reject = reason => {
+        clearTimeout(this._timeout)
+        this.state = RequestState.REJECTED
+        reject(reason)
+      }
+      if (typeof ttl === 'number' && ttl >= 0) {
+        const err = new Error(`Pool resource could not be acquired within ${ttl / 1000}s`)
+        this._timeout = setTimeout(() => this._reject(err), ttl)
+      }
+    })
+  }
+  resolve (v) { if (this.state === 'pending') this._resolve(v) }
+  reject (e) { if (this.state === 'pending') this._reject(e) }
+}
 
 class PooledResource {
   constructor(resource) {
@@ -67,53 +97,48 @@ class PooledResource {
 
 class Pool extends EventEmitter {
 
-  constructor(factory, options = {}) {
-    super()
-    this.factory = factory
-    this.options = Object.assign({
-      testOnBorrow: false,
-      evictionRunIntervalMillis: 100000,
-      numTestsPerEvictionRun: 3,
-      softIdleTimeoutMillis: -1,
-      idleTimeoutMillis: 30000,
-      acquireTimeoutMillis: null,
-      destroyTimeoutMillis: null,
-      fifo: false,
-      min: 0,
-      max: 10
-    }, options)
-    this._draining = false
-    this._available = new Set()
-    this._loans = new Map()
-    this._all = new Set()
-    this._creates = new Set()
-    this._queue = []
-    this.#scheduleEviction()
-    for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
-  }
+constructor (factory, options = {}) {
+  super()
+  this.factory = factory
+
+  this.options = Object.assign({
+    testOnBorrow: false,
+    evictionRunIntervalMillis: 100000,
+    numTestsPerEvictionRun: 3,
+    softIdleTimeoutMillis: -1,
+    idleTimeoutMillis: 30000,
+    acquireTimeoutMillis: null,
+    destroyTimeoutMillis: null,
+    fifo: false,
+    min: 0,
+    max: 10
+  }, options)
+
+  /** @type {boolean} */
+  this._draining = false
+
+  /** @type {Set<PooledResource>} */
+  this._available = new Set()
+
+  /** @type {Map<any, { pooledResource: PooledResource }>} */
+  this._loans = new Map()
+
+  /** @type {Set<PooledResource>} */
+  this._all = new Set()
+
+  /** @type {Set<Promise<void>>} */
+  this._creates = new Set()
+
+  /** @type {Request[]} */
+  this._queue = []
+
+  this.#scheduleEviction()
+  for (let i = 0; i < this.options.min - this.size; i++) this.#createResource()
+}
 
   async acquire() {
     if (this._draining) throw new Error('Pool is draining and cannot accept new requests')
-    const request = { state: 'pending' }
-    request.promise = new Promise((resolve, reject) => {
-      request.resolve = value => {
-        clearTimeout(request.timeout)
-        request.state = 'resolved'
-        resolve(value)
-      }
-      request.reject = reason => {
-        clearTimeout(request.timeout)
-        request.state = 'rejected'
-        reject(reason)
-      }
-      const ttl = this.options.acquireTimeoutMillis
-      if (typeof ttl === 'number' && ttl >= 0) {
-        const error = new Error(`Pool resource could not be acquired within ${ttl/1000}s`)
-        request.timeout = setTimeout(() => {
-          request.reject(error)
-        }, ttl)
-      }
-    })
+    const request = new Request(this.options.acquireTimeoutMillis)
     this._queue.push(request)
     this.#dispense()
     return request.promise
@@ -140,7 +165,9 @@ class Pool extends EventEmitter {
 
   async drain() {
     this._draining = true
-    if (this._queue.length > 0) await this._queue.at(-1).promise
+    for (const request of this._queue.splice(0)) {
+      if (request.state === RequestState.PENDING) request.reject(new Error('Pool is draining and cannot fulfil request'))
+    }
     clearTimeout(this._scheduledEviction)
   }
 
@@ -185,7 +212,7 @@ class Pool extends EventEmitter {
         this._available.add(resource)
         return false
       }
-      if (request.state !== 'pending') {
+      if (request.state !== RequestState.PENDING) {
         this.#dispense()
         return false
       }
