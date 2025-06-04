@@ -145,8 +145,8 @@ class Pool extends EventEmitter {
   }
 
   async clear() {
-    await Promise.all(Array.from(this._creates))
-    await Promise.all(Array.from(this._available).map(resource => this.#destroy(resource)))
+    await Promise.allSettled(Array.from(this._creates))
+    await Promise.allSettled(Array.from(this._available).map(resource => this.#destroy(resource)))
   }
 
   async #createResource() {
