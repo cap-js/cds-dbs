@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.1...hana-v2.1.0) (2025-06-04)
+
+
+### Added
+
+* hana skip hextobin conversion for "select x from ..." input ([#1215](https://github.com/cap-js/cds-dbs/issues/1215)) ([e6d3d1b](https://github.com/cap-js/cds-dbs/commit/e6d3d1ba34fad4a5f8fa14328ab12108abfa3cf8))
+* opt-in replacement for `generic-pool` ([#815](https://github.com/cap-js/cds-dbs/issues/815)) ([32c08f4](https://github.com/cap-js/cds-dbs/commit/32c08f474eab67c71dad3b5e6a378f8bc52520b0))
+
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.0...hana-v2.0.1) (2025-05-27)
 
 
