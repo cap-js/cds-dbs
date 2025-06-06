@@ -230,7 +230,7 @@ constructor (factory, options = {}) {
           try {
             const isValid = await this.factory.validate(resource.obj)
             if (isValid) return dispense(resource)
-          } catch {/* marked as invalid below */}
+          } catch (e) { debugger/* marked as invalid below */}
           resource.update(ResourceState.INVALID)
           await this.#destroy(resource)
           this.#dispense()
