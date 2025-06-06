@@ -41,6 +41,7 @@ jobs:
       # testing
       - run: npm test -ws
         env:
+          cds_requires_db_pool_builtin: true
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
