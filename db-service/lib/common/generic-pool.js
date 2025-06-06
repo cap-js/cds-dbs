@@ -213,7 +213,7 @@ constructor (factory, options = {}) {
       if (this.options.fifo) {
         resource = this._available.values().next().value
       } else {
-        resource = Array.from(this._available)[this._available.size - 1]
+        resource = Array.from(this._available).pop()
       }
 
       this._available.delete(resource)
