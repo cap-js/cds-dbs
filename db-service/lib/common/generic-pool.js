@@ -230,7 +230,7 @@ constructor (factory, options = {}) {
         resource.update(ResourceState.INVALID)
         await this.#destroy(resource)
         request.reject(err)
-        this.#dispense()
+        setImmediate(() => this.#dispense())
         continue
       }
     }
