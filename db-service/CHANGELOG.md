@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.0...db-service-v2.1.1) (2025-06-06)
+
+
+### Fixed
+
+* Better opt in flag for builtin generic pool ([#1234](https://github.com/cap-js/cds-dbs/issues/1234)) ([98282ff](https://github.com/cap-js/cds-dbs/commit/98282ffd86cb143ebe9000f75b4a51156f6c3539))
+* miscellaneous fixes for builtin pool ([#1235](https://github.com/cap-js/cds-dbs/issues/1235)) ([c657a0b](https://github.com/cap-js/cds-dbs/commit/c657a0ba2292fd429adb1b69aa9ead3eec9d5be0))
+
 ## [2.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.1...db-service-v2.1.0) (2025-06-04)
 
 
