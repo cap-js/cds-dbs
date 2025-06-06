@@ -205,35 +205,45 @@ constructor (factory, options = {}) {
       const needed = Math.min(shortfall, this.options.max - this.size)
       for (let i = 0; i < needed; i++) this.#createResource()
     }
-    while (this._queue.length > 0 && this._available.size > 0) {
+    const dispense = async resource => {
       const request = this._queue.shift()
-      if (request.state !== RequestState.PENDING) continue
-
-      let resource
-      if (this.options.fifo) {
-        resource = this._available.values().next().value
-      } else {
-        resource = Array.from(this._available).pop()
+      if (!request) {
+        resource.idle()
+        this._available.add(resource)
+        return false
       }
+      if (request.state !== RequestState.PENDING) {
+        this.#dispense()
+        return false
+      }
+      this._loans.set(resource.obj, { pooledResource: resource })
+      resource.update(ResourceState.ALLOCATED)
+      request.resolve(resource.obj)
+      return true
+    }
 
+    const _dispenses = []
+    for (let i = 0; i < Math.min(this._available.size, waiting); i++) {
+      const resource = this._available.values().next().value
       this._available.delete(resource)
-      try {
-        if (this.options.testOnBorrow) {
+      if (this.options.testOnBorrow) {
+        const validationPromise = (async () => {
           resource.update(ResourceState.VALIDATION)
-          const isValid = await this.factory.validate(resource.obj)
-          if (!isValid) throw new Error('Resource validation failed')
-        }
-        this._loans.set(resource.obj, { pooledResource: resource })
-        resource.update(ResourceState.ALLOCATED)
-        request.resolve(resource.obj)
-      } catch (err) {
-        resource.update(ResourceState.INVALID)
-        await this.#destroy(resource)
-        request.reject(err)
-        setImmediate(() => this.#dispense())
-        continue
+          try {
+            const isValid = await this.factory.validate(resource.obj)
+            if (isValid) return dispense(resource)
+          } catch {/* marked as invalid below */}
+          resource.update(ResourceState.INVALID)
+          await this.#destroy(resource)
+          this.#dispense()
+          return false
+        })()
+        _dispenses.push(validationPromise)
+      } else {
+        _dispenses.push(dispense(resource))
       }
     }
+    await Promise.all(_dispenses)
   }
 
   async #destroy(resource) {
