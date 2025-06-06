@@ -44,3 +44,4 @@ jobs:
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+          cds_features_pool: builtin
