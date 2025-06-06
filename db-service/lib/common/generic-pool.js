@@ -1,10 +1,8 @@
 const cds = require('@sap/cds')
 const LOG = cds.log('db')
 
-const createPool = (factory, config) => {
-  if (cds.requires.db?.pool?.builtin) return new Pool(factory, config)
-  return require('generic-pool').createPool(factory, config)
-}
+const use_new_pool = cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin'
+const createPool = use_new_pool ? (...args) => new Pool(...args) : require('generic-pool').createPool
 
 function ConnectionPool (factory, tenant) {
   let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
@@ -35,7 +33,7 @@ function TrackedConnectionPool (factory, tenant) {
 }
 
 const DEBUG = /\bpool\b/.test(process.env.DEBUG)
-module.exports = DEBUG && !cds.requires.db?.pool?.builtin ? TrackedConnectionPool : ConnectionPool
+module.exports = DEBUG && !use_new_pool ? TrackedConnectionPool : ConnectionPool
 
 // Drop-in replacement for https://github.com/coopernurse/node-pool
 // TODO: fifo: true? relevant for our use case?
