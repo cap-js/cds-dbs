@@ -121,9 +121,6 @@ class HANAService extends SQLService {
     // REVISIT: required to be compatible with generated views
     if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
     if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
-    if (variables['$valid.to'] || variables['$valid.from']) variables['TEMPORAL_SYSTEM_TIME_AS_OF'] = variables['$valid.to'] < variables['$valid.from']
-      ? variables['$valid.to']
-      : variables['$valid.from']
     if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
     if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
     if (variables['$now']) variables['NOW'] = variables['$now']
