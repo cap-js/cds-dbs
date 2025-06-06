@@ -50,6 +50,8 @@ class PostgresService extends SQLService {
         }
         const dbc = new Client({ ...credentials, ...clientOptions })
         await dbc.connect()
+        dbc.open = true
+        dbc.on('end', () => { dbc.open = false })
         return dbc
       },
       destroy: dbc => dbc.end(),
@@ -283,7 +285,7 @@ GROUP BY k
         return target && this.run(cds.ql.CREATE(target))
       }
     }
-    
+
     try {
       return await super.onPlainSQL(req, next)
     }
@@ -379,7 +381,7 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = this.context.locale  ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
+      const locale = this.context.locale ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
       return this._orderBy(orderBy, localized, locale)
     }
 

@@ -249,14 +249,14 @@ describe('SELECT', () => {
     })
 
     test('$now in view refers to tx timestamp', async () => {
-      let ts, res1,res2
+      let ts, res1, res2
       await cds.tx(async tx => {
         ts = tx.context.timestamp
         // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
         res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
         res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
       })
-  
+
       expect(res1.now).to.eq(ts.toISOString())
       expect(res1.now).to.eq(res2.now)
     })
@@ -821,6 +821,7 @@ describe('SELECT', () => {
           await expect(tx2.run(lock4(false))).rejected
         } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
+          await cds.db.disconnect() // builtin-pool doesn't release/dequeue failed acquires
         }
       })
 
@@ -836,6 +837,7 @@ describe('SELECT', () => {
           await expect(tx2.run(lock4(false))).rejected
         } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
+          await cds.db.disconnect() // builtin-pool doesn't release/dequeue failed acquires
         }
       })
     })
@@ -856,6 +858,7 @@ describe('SELECT', () => {
           await tx2.run(lock4(false))
         } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
+          await cds.db.disconnect() // builtin-pool doesn't release/dequeue failed acquires
         }
       })
 
@@ -878,6 +881,7 @@ describe('SELECT', () => {
           }
         } finally {
           await Promise.allSettled([tx1.commit(), tx2.commit()])
+          await cds.db.disconnect() // builtin-pool doesn't release/dequeue failed acquires
         }
       })
     })
@@ -1017,7 +1021,7 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cqn.clone().then (rows => rows.map(process.bind(aggregate)))
+      await cqn.clone().then(rows => rows.map(process.bind(aggregate)))
       expect(aggregate).deep.eq(expected)
     }))
 
