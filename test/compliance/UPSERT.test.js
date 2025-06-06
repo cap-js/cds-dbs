@@ -29,7 +29,7 @@ describe('UPSERT', () => {
       const { ASC } = cds.entities('complex.keywords')
       await UPSERT.into(ASC).entries({ ID: 42, select: 4711 })
       await UPSERT.into(ASC).entries({ ID: 42, alias: 9 })
-      select = await SELECT.one.from(ASC).where('ID = 42')
+      const select = await SELECT.one.from(ASC).where('ID = 42')
       expect(select).to.eql({ ID: 42, select: 4711, alias: 9 })
     })
   })

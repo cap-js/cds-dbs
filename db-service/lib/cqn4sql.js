@@ -5,7 +5,7 @@ cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._ta
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias } = require('./utils')
+const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -78,6 +78,7 @@ function cqn4sql(originalQuery, model) {
     }
   }
   inferred = infer(inferred, model)
+  const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
   // TODO: move all the way to the top of this function once cds.infer supports joins as well
   //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
@@ -225,7 +226,7 @@ function cqn4sql(originalQuery, model) {
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
-    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     transformedQuery[kind].into = { ref: [target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
@@ -281,7 +282,7 @@ function cqn4sql(originalQuery, model) {
       const args = []
       if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
       else {
-        const id = localized(r.queryArtifact)
+        const id = getLocalizedName(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
       }
       from = { join: r.join || 'left', args, on: [] }
@@ -308,7 +309,7 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = localized(getDefinition(nextAssoc.$refLink.definition.target))
+      const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -801,11 +802,7 @@ function cqn4sql(originalQuery, model) {
         })
     } else {
       outerAlias = transformedQuery.SELECT.from.as
-      const getInnermostTarget = q => q._target ? getInnermostTarget(q._target) : q
-      subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [getInnermostTarget(transformedQuery).name]),
-        ...ref,
-      ]
+      subqueryFromRef = [transformedQuery._target.name, ...ref]
     }
 
     // this is the alias of the column which holds the correlated subquery
@@ -844,10 +841,7 @@ function cqn4sql(originalQuery, model) {
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', {
-      value: expanded.elements,
-      writable: true,
-    })
+    defineProperty(correlated, 'elements', expanded.elements)
     return correlated
 
     function _correlate(subq, outer) {
@@ -1069,9 +1063,9 @@ function cqn4sql(originalQuery, model) {
     else {
       const outerQueries = inferred.outerQueries || []
       outerQueries.push(inferred)
-      Object.defineProperty(q, 'outerQueries', { value: outerQueries })
+      defineProperty(q, 'outerQueries', outerQueries)
     }
-    const target = cds.infer.target (inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     return cqn4sql(q, model)
@@ -1083,7 +1077,7 @@ function cqn4sql(originalQuery, model) {
         getImplicitAlias(last.id || last),
         inferred.outerQueries,
       )
-      Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+      defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', uniqueSubqueryAlias)
     }
   }
 
@@ -1310,7 +1304,7 @@ function cqn4sql(originalQuery, model) {
             const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
             setElementOnColumns(flatColumn, flatForeignKey || fkElement)
-            Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
+            defineProperty(flatColumn, '_csnPath', csnPath)
             flatColumns.push(flatColumn)
           }
         }
@@ -1342,7 +1336,7 @@ function cqn4sql(originalQuery, model) {
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
     setElementOnColumns(flatRef, element)
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
+    defineProperty(flatRef, '_csnPath', csnPath)
     return [flatRef]
 
     function getReplacement(from) {
@@ -1675,7 +1669,7 @@ function cqn4sql(originalQuery, model) {
     const transformedWhere = []
     let transformedFrom = copy(from) // REVISIT: too expensive!
     if (from.$refLinks)
-      Object.defineProperty(transformedFrom, '$refLinks', { value: [...from.$refLinks], writable: true })
+      defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
       from.args.forEach(arg => {
@@ -1740,7 +1734,7 @@ function cqn4sql(originalQuery, model) {
            * with the main query alias. see @function expandColumn()
            * There is one exception:
            * - if current and next have the same alias, we need to assign a new alias to the next
-           *                          
+           *
            */
           if (!(inferred.SELECT?.expand === true && current.alias.toLowerCase() !== as.toLowerCase())) {
             as = getNextAvailableTableAlias(as)
@@ -1787,7 +1781,7 @@ function cqn4sql(originalQuery, model) {
       const subquerySource =
         getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
       if (subquerySource.params && !args) args = {}
-      const id = localized(subquerySource)
+      const id = getLocalizedName(subquerySource)
       transformedFrom.ref = [args ? { id, args } : id]
 
       return { transformedWhere, transformedFrom }
@@ -1923,10 +1917,7 @@ function cqn4sql(originalQuery, model) {
           const refLinkFaker = thing => {
             const { ref } = thing
             const assocHost = getParentEntity(assocRefLink.definition)
-            Object.defineProperty(thing, '$refLinks', {
-              value: [],
-              writable: true,
-            })
+            defineProperty(thing, '$refLinks', [])
             let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self') {
@@ -1995,9 +1986,7 @@ function cqn4sql(originalQuery, model) {
             }
             // assumption: if first step is the association itself, all following ref steps must be resolvable
             // within target `assoc.assoc.fk` -> `assoc.assoc_fk`
-            else if (
-              lhsFirstDef === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name]
-            )
+            else if (lhsFirstDef === getParentEntity(assocRefLink.definition).elements[assocRefLink.definition.name])
               result[i].ref = [assocRefLink.alias, lhs.ref.slice(lhs.ref[0] === '$self' ? 2 : 1).join('_')]
             // naive assumption: if the path starts with an association which is not the association from
             // which the on-condition originates, it must be a foreign key and hence resolvable in the source
@@ -2078,7 +2067,7 @@ function cqn4sql(originalQuery, model) {
         // pseudo element
         return element
       if (element.kind === 'entity') return element
-      else return getDefinition(localized(getParentEntity(element.parent)))
+      else return getDefinition(getParentEntity(element.parent).name)
     }
   }
 
@@ -2165,8 +2154,8 @@ function cqn4sql(originalQuery, model) {
       on.push(...(customWhere && hasLogicalOr(unmanagedOn) ? [asXpr(unmanagedOn)] : unmanagedOn))
     }
 
-    const subquerySource = assocTarget(nextDefinition) || nextDefinition
-    const id = localized(subquerySource)
+    const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
+    const id = getLocalizedName(subquerySource)
     if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
@@ -2202,52 +2191,6 @@ function cqn4sql(originalQuery, model) {
       on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
     }
     return SELECT
-  }
-
-  /**
-   * If the query is `localized`, return the name of the `localized` entity for the `definition`.
-   * If there is no `localized` entity for the `definition`, return the name of the `definition`
-   *
-   * @param {CSN.definition} definition
-   * @returns the name of the localized entity for the given `definition` or `definition.name`
-   */
-  function localized(definition) {
-    if (!isLocalized(definition)) return definition.name
-    const view = getDefinition(`localized.${definition.name}`)
-    return view?.name || definition.name
-  }
-
-  /**
-   * If a given query is required to be translated, the query has
-   * the `.localized` property set to `true`. If that is the case,
-   * and the definition has not set the `@cds.localized` annotation
-   * to `false`, the given definition must be translated.
-   *
-   * @returns true if the given definition shall be localized
-   */
-  function isLocalized(definition) {
-    return (
-      inferred.SELECT?.localized &&
-      definition['@cds.localized'] !== false &&
-      !inferred.SELECT.forUpdate &&
-      !inferred.SELECT.forShareLock
-    )
-  }
-
-  /** returns the CSN definition for the given name from the model */
-  function getDefinition(name) {
-    if (!name) return null
-    return model.definitions[name]
-  }
-
-  /**
-   * Get the csn definition of the target of a given association
-   *
-   * @param assoc
-   * @returns the csn definition of the association target or null if it is not an association
-   */
-  function assocTarget(assoc) {
-    return getDefinition(assoc.target) || null
   }
 
   /**
@@ -2417,10 +2360,7 @@ function getParentEntity(element) {
  * @param {csn.Element} element
  */
 function setElementOnColumns(col, element) {
-  Object.defineProperty(col, 'element', {
-    value: element,
-    writable: true,
-  })
+  defineProperty(col, 'element', element)
 }
 
 const getName = col => col.as || col.ref?.at(-1)

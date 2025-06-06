@@ -2,7 +2,7 @@
     "name": "@capire/sflight",
     "version": "1.0.0",
     "devDependencies": {
-        "@cap-js/sqlite": "^1.0.1"
+        "@cap-js/sqlite": "*"
     },
     "private": true,
     "cds": {

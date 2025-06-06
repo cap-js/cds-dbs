@@ -10,11 +10,12 @@
     "hana"
   ],
   "devDependencies": {
+    "@cap-js/cds-test": ">=0.2.0",
     "axios": "^1"
   },
   "scripts": {
     "test": "npm t -w db-service -w sqlite",
     "lint": "npx eslint ."
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }

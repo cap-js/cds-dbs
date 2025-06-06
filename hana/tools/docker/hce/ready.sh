@@ -3,7 +3,7 @@ do
   sleep 1
 done
 
-docker exec hce-hana-1 /bin/bash -c "while ! ./check_hana_health ; do sleep 10 ; done; /otel.sh &"
+docker exec hce-hana-1 /bin/bash -c "while ! ./check_hana_health ; do sleep 10 ; done;/otel.sh &"
 docker exec -it hce-hana-1 /bin/bash -c "\
 cd /usr/sap/H00/HDB00;\
 . ./hdbenv.sh;\

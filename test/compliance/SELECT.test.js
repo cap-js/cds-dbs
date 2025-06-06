@@ -247,6 +247,19 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
     })
+
+    test('$now in view refers to tx timestamp', async () => {
+      let ts, res1,res2
+      await cds.tx(async tx => {
+        ts = tx.context.timestamp
+        // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+        res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+        res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+      })
+  
+      expect(res1.now).to.eq(ts.toISOString())
+      expect(res1.now).to.eq(res2.now)
+    })
   })
 
   describe('excluding', () => {
@@ -994,7 +1007,7 @@ describe('SELECT', () => {
       for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
     }
 
-    test('aggregate', async () => {
+    test('aggregate', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1004,12 +1017,12 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cqn.clone().foreach(process.bind(aggregate))
+      await cqn.clone().then (rows => rows.map(process.bind(aggregate)))
       expect(aggregate).deep.eq(expected)
-    })
+    }))
 
     // REVISIT: unskip when merged into @sap/cds
-    test.skip('async iterator', async () => {
+    test.skip('async iterator', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1021,12 +1034,12 @@ describe('SELECT', () => {
       const aggregate = {}
       for await (const row of cqn.clone()) process.call(aggregate, row)
       expect(aggregate).deep.eq(expected)
-    })
+    }))
   })
 
   // REVISIT: unskip when merged into @sap/cds
   describe.skip('pipe', () => {
-    test('json stream', async () => {
+    test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1035,9 +1048,9 @@ describe('SELECT', () => {
       let result
       await cqn.clone().pipe(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
-    })
+    }))
 
-    test('req.res stream', async () => {
+    test('req.res stream', () => cds.tx(async () => {
       const http = require('http')
       const { json } = require('stream/consumers')
       const { promisify } = require('util')
@@ -1064,7 +1077,7 @@ describe('SELECT', () => {
       })
 
       expect(result).deep.eq(expected)
-    })
+    }))
   })
 
   describe('expr', () => {
