@@ -219,7 +219,7 @@ describe('CREATE', () => {
         elements: globals.elements
       })
       await db.run(cds.ql.CREATE(entity))
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
+      // REVISIT: reading from entities not in the model requires additional handling in infer
       // await SELECT.from(entity)
     })
 

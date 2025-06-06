@@ -49,7 +49,7 @@ async function beforeWrite(dbs, isolate) {
     for (const fn of ['onSIMPLE', 'onUPDATE', 'onINSERT']) {
       const org = ten[fn]
       ten[fn] = function (req) {
-        if (req.query?.target) modified[req.query.target.name] = true
+        if (req.query?._target) modified[req.query._target.name] = true
         return org.apply(this, arguments)
       }
     }

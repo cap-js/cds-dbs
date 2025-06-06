@@ -639,6 +639,7 @@ GROUP BY k
         await this.tx(tx => tx
           .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
           .catch(e => {
+            // Don't throw for 42710 (duplicate_object) and 23505 (unique_violation)
             if (e.code === '42710' || e.code === '23505') return
             throw e
           }))
@@ -661,7 +662,8 @@ GROUP BY k
       if (clean) await this.tx(tx => tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`))
       else await this.tx(tx => tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
         .catch(err => {
-          if (err.code == '42P06' || err.code === '23505') return
+         // Don't throw for 42P06 (duplicate_schema) and 23505 (unique_violation)
+         if (err.code == '42P06' || err.code === '23505') return
           throw err
         }))
     } finally {
