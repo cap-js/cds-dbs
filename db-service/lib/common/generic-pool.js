@@ -207,8 +207,15 @@ constructor (factory, options = {}) {
     }
     while (this._queue.length > 0 && this._available.size > 0) {
       const request = this._queue.shift()
-      if (request.state !== RequestState.PENDING) continue // request resolved or rejected in the meantime
-      const resource = this._available.values().next().value
+      if (request.state !== RequestState.PENDING) continue
+
+      let resource
+      if (this.options.fifo) {
+        resource = this._available.values().next().value
+      } else {
+        resource = Array.from(this._available)[this._available.size - 1]
+      }
+
       this._available.delete(resource)
       try {
         if (this.options.testOnBorrow) {
@@ -223,6 +230,7 @@ constructor (factory, options = {}) {
         resource.update(ResourceState.INVALID)
         await this.#destroy(resource)
         request.reject(err)
+        this.#dispense()
         continue
       }
     }
