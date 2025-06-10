@@ -22,7 +22,7 @@ jobs:
       - run: npm i
       - run: npm test -w db-service -w sqlite -w postgres
         env:
-          cds_requires_db_pool_builtin: true
+          cds_features_pool: true
       - name: get-version # this takes the version of the monorepo root
         id: package-version
         # v1.3.1
