@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.0...hana-v2.1.1) (2025-06-06)
+
+
+### Fixed
+
+* Better opt in flag for builtin generic pool ([#1234](https://github.com/cap-js/cds-dbs/issues/1234)) ([98282ff](https://github.com/cap-js/cds-dbs/commit/98282ffd86cb143ebe9000f75b4a51156f6c3539))
+* do not set session var TEMPORAL_SYSTEM_TIME_AS_OF by default ([#1233](https://github.com/cap-js/cds-dbs/issues/1233)) ([f13410d](https://github.com/cap-js/cds-dbs/commit/f13410d475d3a727921deed2185d82d95d31c376))
+
 ## [2.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.1...hana-v2.1.0) (2025-06-04)
 
 
