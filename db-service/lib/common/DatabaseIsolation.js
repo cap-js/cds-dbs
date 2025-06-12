@@ -71,7 +71,6 @@ async function beforeWrite(dbs, isolate) {
 }
 
 async function deploy(dbs, isolate) {
-  console.log('DEPLOYING:', isolate.tenant)
   const { ten } = dbs
   await ten.tx(async () => {
     try {
@@ -101,7 +100,7 @@ async function getReadTenant(dbs, isolate) {
       await tx.run(INSERT({ tenant: isolate.tenant, source: isolate.source, available: false, started: new Date() }).into(schemas))
       isnew = true
     })
-  } catch (err) {
+  } catch {
     const query = cds.ql`SELECT FROM ${schemas} {
       (SELECT count(1) FROM ${schemas} WHERE tenant=${isolate.tenant} and available=${false} and seconds_between(started, $now) < ${deployTimeout}) as progress,
       (SELECT count(1) FROM ${schemas} WHERE tenant=${isolate.tenant} and available=${true}) as available,
@@ -148,8 +147,6 @@ async function getWriteTenant(dbs, isolate) {
     }
   })
 
-  console.log('USING:', isolate.tenant)
-
   await dat.tenant(isolate)
   if (isnew) await deploy({ ten: dat }, isolate)
   await ten.disconnect()
@@ -172,7 +169,7 @@ async function getWriteTenant(dbs, isolate) {
         })
 
         await dat.run(UPDATE(schemas).where`tenant=${isolate.tenant}`.with({ available: true }))
-      } catch (err) {
+      } catch {
         // Try to cleanup broken tenant isolation
         await ten.tenant(isolate, true)
         // Remove cleaned up schema
@@ -182,10 +179,7 @@ async function getWriteTenant(dbs, isolate) {
         await dat.disconnect()
         await sys.disconnect()
       }
-    } catch (err) {
-      // if an shutdown handler throws an error it goes into an infinite loop
-      console.error(err)
-    }
+    } catch { /* prevent infinite shutdown loop */ }
   })
 }
 
@@ -212,7 +206,7 @@ module.exports = async function (db) {
         dat.disconnect(),
         sys.disconnect(),
       ])
-    } catch { }
+    } catch { /* prevent infinite shutdown loop */ }
   })
 
   await dbs.dat.database(isolate)

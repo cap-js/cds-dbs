@@ -254,7 +254,6 @@ describe('CREATE', () => {
     if (entity.query) return // Skip complex view as cqn4sql does not allow union views
 
     desc(`${entity.projection ? 'View' : 'Type'}: ${type}`, () => {
-      let db
       let deploy
 
       beforeAll(async () => {
