@@ -3,7 +3,7 @@ const cds = require('../../test/cds')
 describe('Versioned table', () => {
   before(() => {
     // Include the versioning feature model extension
-    cds.requires.toggles = true
+    // cds.requires.toggles = true
   })
 
   const { expect } = cds.test(

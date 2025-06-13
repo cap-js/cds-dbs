@@ -12,7 +12,7 @@ module.exports = async tx => {
   if (already_filled) return
 
   await tx.run(
-    INSERT.into('sap.common.Currencies')
+    UPSERT.into('sap.common.Currencies')
       .columns(['code', 'symbol', 'name'])
       .rows(
         ['EUR', '€', 'Euro'],

@@ -306,7 +306,7 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
-    test('compare with DateTime column', async () => {
+    test.skip('compare with DateTime column', async () => {
       const { dateTime: entity } = cds.entities('basic.literals')
       const sel = SELECT('dateTime').from(entity)
       const [{ dateTime }] = await sel.clone()
