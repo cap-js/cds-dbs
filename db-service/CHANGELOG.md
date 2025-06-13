@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.1...db-service-v2.1.2) (2025-06-12)
+
+
+### Fixed
+
+* Hierarchy View support for ancestors/descendants requests ([#1241](https://github.com/cap-js/cds-dbs/issues/1241)) ([1ccb8b7](https://github.com/cap-js/cds-dbs/commit/1ccb8b7ded50f77de1d71d79b0c4b2040ee6a4f1))
+
 ## [2.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.0...db-service-v2.1.1) (2025-06-06)
 
 
