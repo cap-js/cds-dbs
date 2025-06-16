@@ -270,6 +270,7 @@ class SQLService extends DatabaseService {
         await Promise.all(
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
+            if (req.query.DELETE.__ignore && req.query.DELETE.__ignore.some(i => i.ref[0] === c.name)) return // REVISIT: unofficial, needed by draft hierarchies
             if (c._target === req.target) {
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
