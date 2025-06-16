@@ -360,6 +360,96 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(2)
   })
 
+  test('Filter Books(complex filter in apply) and groupby(by navigation sub properties) that return no records', async () => {
+    // This test is cover next issue https://github.com/cap-js/cds-dbs/issues/1228
+    // We have apply filter that did not match any records.
+    // Also we have group by navigation sub property.
+    // And $count is true.
+    // Expeted result is empty array
+    const res = await GET(`/admin/Books?$apply=filter(price le -999)/groupby((author/name,author/ID))&$top=500&$count=true`,
+      admin//
+    );
+    expect(res.status).to.be.eq(200)
+    expect(res.data["@odata.count"]).to.be.eq(0);
+    expect(res.data.value.length).to.be.eq(0)
+  })
+
+  test('groupby(by navigation sub properties) that return at least some records', async () => {
+    // This test is cover next issue https://github.com/cap-js/cds-dbs/issues/1228
+    // We have apply filter - it should return any records
+    // Also we have group by navigation sub property.
+    // And $count is true.
+    const res = await GET(`/admin/Books?$apply=filter(price ge -1)/groupby((author/name,author/ID))&$top=500&$count=true`,
+      admin
+    );
+    expect(res.status).to.be.eq(200);
+    expect(res.data.value.length).to.be.gt(0);
+    expect(res.data["@odata.count"]).to.be.gt(0);
+
+    expect(
+      res.data.value.every(
+        item =>
+          // Lets validate that we have {author:{ID:number, name:string}}
+          'author' in item &&
+          'ID' in item.author &&
+          'name' in item.author
+      ),
+    ).to.be.true
+  })
+
+  test('Run SELECT without Columns but with group by', async () => {
+    const queryAllBooks = {
+      SELECT: {
+        from: { ref: ['sap.capire.bookshop.Books'], as: 'Books' },
+      }
+    }
+    const resultAllBooks = await cds.db.run(queryAllBooks);
+    expect(resultAllBooks.length).to.be.gt(0); // Make sure that we have any books.
+
+    const queryGropuByAuthors = {
+      SELECT: {
+        from: { ref: ['sap.capire.bookshop.Books'], as: 'Books' },
+        groupBy: [{ ref: ['author', 'name'] }, { ref: ['Books', 'author_ID'] }]
+      }
+    }
+
+    let resultGroupByAuthors = null;
+    let handleError = false;
+    // HANA and Postgres did not allow to have select with coulmns that are not agregate or group by.
+    // On other hand - sqlite allow it. TODO: disable this posibility at sqlite level ?
+    try {
+      resultGroupByAuthors = await cds.db.run(queryGropuByAuthors)
+    } catch (error) {
+      const validErrorMessages = ["must appear in the GROUP BY clause", "must be in group by clause"]
+      //must appear in the GROUP BY clause
+      const columnIsNotInGroupByError = validErrorMessages.some(msg => {
+        return `${error}`.toLocaleLowerCase().indexOf(msg.toLocaleLowerCase()) !== -1;
+      })
+      if (!columnIsNotInGroupByError) {
+        throw new Error(`Expect to failed with error indicating that column is not specified in group by. Actual error:${error}`);
+      }
+      handleError = true;
+    }
+
+    if (handleError && resultGroupByAuthors === null) {
+      // If we are HANA or Postgres - we are failed with error.
+      return; // This test is OK/green.
+    }
+    // We are in sqlite case. Lets make sure it return some valid data.
+    expect(resultGroupByAuthors.length).to.be.gt(0); // Make sure that we have any books.
+    expect(resultGroupByAuthors.length).to.be.lt(resultAllBooks.length); // Make sure that we have Author with more than 1 book, i.e groupby is working
+    expect(
+      // TODO this could be removed if sqlite is not allowing to select fields that are not part of group by collection
+      resultGroupByAuthors.every(
+        item =>
+          // Lets validate that we have some of fields that are not specified in group by, but are valid Book attribute.
+          'author_ID' in item &&
+          'descr' in item &&
+          'title' in item
+      ),
+    ).to.be.true
+  })
+
   it('joins as subselect are executable', async () => {
     const subselect = {
       SELECT: {

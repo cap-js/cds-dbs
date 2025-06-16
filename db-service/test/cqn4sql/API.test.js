@@ -36,6 +36,17 @@ describe('Repetitive calls to cqn4sql must work', () => {
   it('accepts empty select list', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { }`)
+    expect(query.SELECT.columns.length).to.be.eq(0); // no items inside SELECT.columns
+    expect(query.SELECT.groupBy?.length || 0).to.be.eq(0); // no items inisde SELECT.groupBy
+  })
+
+  it('accepts empty select list with groupby - return select with attribute inside groupby', () => {
+    // FIX https://github.com/cap-js/cds-dbs/issues/1228
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { } GROUP BY Books.author.name, Books.author.ID`, model)
+
+    expect(query.SELECT.columns.length).to.be.eq(2);
+    expect(query.SELECT.columns).to.deep.equal(query.SELECT.groupBy); // We expect to have same values from groupBy into SELECT.columns
+    expect(query.SELECT.columns).to.deep.equal([{ ref: ['author', 'name'] }, { ref: ['Books', 'author_ID'] }]);
   })
 
   it('yields the same result if same query is transformed multiple times', () => {
