@@ -25,6 +25,8 @@ jobs:
           types: |
             feat
             fix
+            changed
+            removed
             docs
             style
             refactor

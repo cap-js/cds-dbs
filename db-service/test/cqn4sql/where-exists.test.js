@@ -557,6 +557,28 @@ describe('EXISTS predicate in where', () => {
       }`)
     })
 
+    it('MUST handle negated where exists wrapped in xpr in CASE', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Books {
+        ID,
+        case when not (exists author[name = 'FOO'] or exists author[name = 'BAR']) then 'yes'
+             else 'no'
+        end as x
+       }`,
+        model,
+      )
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B {
+        $B.ID,
+        case when not (
+          exists (SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'FOO')
+          or
+          exists (SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $B.author_ID and $a2.name = 'BAR')
+        ) then 'yes'
+             else 'no'
+        end as x
+      }`)
+    })
+
     it('MUST handle simple where exists with filter in CASE', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Books {

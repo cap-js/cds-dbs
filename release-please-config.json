@@ -1,9 +1,13 @@
 {
   "packages": {
-    "db-service": {},
-    "sqlite": {},
-    "postgres": {},
-    "hana": {}
+    "db-service": {
+    },
+    "sqlite": {
+    },
+    "postgres": {
+    },
+    "hana": {
+    }
   },
   "changelog-sections": [
     {
@@ -23,7 +27,17 @@
     },
     {
       "type": "perf",
-      "section": "Performance Improvements",
+      "section": "Changed",
+      "hidden": false
+    },
+    {
+      "type": "removed",
+      "section": "Removed",
+      "hidden": false
+    },
+    {
+      "type": "changed",
+      "section": "Changed",
       "hidden": false
     }
   ]

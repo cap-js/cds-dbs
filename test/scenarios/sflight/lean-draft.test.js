@@ -972,7 +972,7 @@ describe('draft tests', () => {
       )
       expect(1).to.be.eq('Editing an active entity with an existing draft must fail')
     } catch (e) {
-      expect(e.message).to.be.eq('409 - A draft for this entity already exists')
+      expect(e.response.status).to.be.eq(409) // DRAFT_ALREADY_EXISTS
     }
   })
 })

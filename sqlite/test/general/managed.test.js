@@ -1,3 +1,5 @@
+process.env.cds_runtime_put__as__replace = 'true'
+
 const cds = require('../../../test/cds.js')
 
 describe('Managed thingies', () => {

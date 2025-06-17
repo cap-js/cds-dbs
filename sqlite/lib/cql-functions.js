@@ -151,7 +151,7 @@ const HANAFunctions = {
    * @returns {string} - SQL statement
    */
   years_between(x, y) {
-    return `floor(${this.months_between(x, y)} / 12)`
+    return `floor(${this.expr({ func: 'months_between', args: [x, y] })} / 12)`
   },
 }
 

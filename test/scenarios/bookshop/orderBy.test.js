@@ -9,23 +9,18 @@ describe('Bookshop - Order By', () => {
     // the resulting query has two query sources in the end --> Authors and Books
     // even though both Tables have the element "createdBy", the DB should be able to resolve the
     // order by reference to the column unambiguously
-    const query = CQL(`SELECT from sap.capire.bookshop.Books {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books {
       createdBy,
       author.name as author
     } order by createdBy, author
-      limit 1`)
+      limit 1`
     const res = await cds.run(query)
     expect(res.length).to.be.eq(1)
     expect(res[0].author).to.eq('Charlotte Brontë')
   })
   test('collations for aggregating queries with subselect', async () => {
     const subquery = SELECT.localized.from('sap.capire.bookshop.Books').orderBy('title')
-    const query = SELECT.localized
-      .from(subquery)
-      .columns('title', 'sum(price) as pri')
-      .limit(1)
-      .groupBy('title')
-      .orderBy('title')
+    const query = SELECT.localized.from(subquery).columns('title', 'sum(price) as pri').limit(1).groupBy('title').orderBy('title')
 
     query.SELECT.count = true
 

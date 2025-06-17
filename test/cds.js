@@ -131,8 +131,3 @@ const _includes = expect.includes
 expect.includes = function (x) {
   return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
 }
-
-// Release cds._context for garbage collection
-global.afterEach(() => {
-  cds._context.disable()
-})

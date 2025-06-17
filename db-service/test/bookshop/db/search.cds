@@ -13,6 +13,16 @@ entity Books {
 @cds.search: {author.lastName}
 entity BooksSearchAuthorName : Books {}
 
+@cds.search: {title}
+entity PathInSearchNotProjected as select from BooksSearchAuthorName {
+    ID,
+    title
+};
+
+entity NoSearchCandidateProjected as select from PathInSearchNotProjected {
+    ID
+};
+
 // search through all searchable fields in the author
 @cds.search: {author}
 entity BooksSearchAuthor : Books {}
