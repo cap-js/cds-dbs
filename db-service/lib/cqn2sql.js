@@ -294,7 +294,12 @@ class CQN2SQLRenderer {
       }
 
       // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
-      where = [{ list: keys }, 'in', { SELECT: { from, where, columns: keys }}]
+      const clone = q.clone()
+      clone.SELECT.columns = []
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
     }
 
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
