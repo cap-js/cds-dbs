@@ -3,8 +3,7 @@ const { text } = require('stream/consumers')
 const { PassThrough, Readable } = require('stream')
 
 describe('INSERT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('into', () => {
     test.skip('missing', () => {

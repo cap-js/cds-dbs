@@ -22,7 +22,7 @@ class PostgresService extends SQLService {
       options: {
         min: 0,
         testOnBorrow: true,
-        acquireTimeoutMillis: 1000,
+        acquireTimeoutMillis: 10000,
         destroyTimeoutMillis: 1000,
         ...this.options.pool,
       },
@@ -655,15 +655,17 @@ GROUP BY k
 
     try {
       if (!clean) {
-        await cds
+        await this.tx(tx => tx
           .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
           .catch(e => {
-            if (e.code === '42710') return
+            // Don't throw for 42710 (duplicate_object) and 23505 (unique_violation)
+            if (e.code === '42710' || e.code === '23505') return
             throw e
-          })
+          }))
+
         // Retry granting priviledges as this is being done by multiple instances
         // Postgres just rejects when other connections are granting the same user
-        const grant = (i = 0) => cds.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+        const grant = (i = 0) => this.tx(tx => tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`))
           .catch((err) => {
             if (i > 100) throw err
             return grant(i + 1)
@@ -676,10 +678,13 @@ GROUP BY k
       this.options.credentials = Object.assign({}, this.options.credentials, creds)
 
       // Create new schema using schema owner
-      await this.tx(async tx => {
-        await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
-      })
+      if (clean) await this.tx(tx => tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`))
+      else await this.tx(tx => tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
+        .catch(err => {
+         // Don't throw for 42P06 (duplicate_schema) and 23505 (unique_violation)
+         if (err.code == '42P06' || err.code === '23505') return
+          throw err
+        }))
     } finally {
       await this.disconnect()
     }
