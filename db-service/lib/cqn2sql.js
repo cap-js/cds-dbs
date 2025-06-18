@@ -376,11 +376,12 @@ class CQN2SQLRenderer {
     const expandedByOne = { list: [] } // DistanceTo(...,1)
     const expandedByZero = { list: [] } // not DistanceTo(...,null)
     let expandedFilter = []
+    // If a root where exists it should always be DistanceFromRoot otherwise when a recurse.where exists with only DistanceTo() calls
     let distanceType = 'DistanceFromRoot'
     let distanceVal
 
     if (recurse.where) {
-      distanceType = 'Distance'
+      distanceType = where?.length ? 'DistanceFromRoot' : 'Distance'
       if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
       expandedFilter = [...recurse.where]
       collectDistanceTo(expandedFilter)
@@ -463,7 +464,7 @@ class CQN2SQLRenderer {
           },
           where: expandedFilter.length ? expandedFilter : undefined,
           orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
-          groupBy: [{ ref: ['NODE_ID'] },{ ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
 

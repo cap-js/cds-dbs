@@ -9,7 +9,7 @@ entity date     as projection on literals.date;
 entity time     as projection on literals.time;
 entity dateTime as projection on literals.dateTime;
 
-entity now_in_view as select $now as now from literals.globals;
+entity now_in_view as select $now as now: Timestamp from literals.globals;
 
 entity ![all]   as
     select from literals.globals {
