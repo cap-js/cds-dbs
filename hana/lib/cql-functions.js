@@ -141,7 +141,7 @@ const StandardFunctions = {
               `Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`,
             )
         }
-        fuzzy += ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        fuzzy += ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search' search mode 'text'`
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
