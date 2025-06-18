@@ -290,7 +290,6 @@ class CQN2SQLRenderer {
         const k = _target.keys[_key]
         if (!k.virtual && !k.isAssociation && !k.value) {
           keys.push({ ref: [_key] })
-          break
         }
       }
 
