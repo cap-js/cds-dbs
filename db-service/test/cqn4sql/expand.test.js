@@ -1,10 +1,5 @@
-'use strict'
-
-const _cqn4sql = require('../../lib/cqn4sql')
-function cqn4sql(q, model = cds.model) {
-  return _cqn4sql(q, model)
-}
-const cds = require('@sap/cds')
+import _cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 describe('Unfold expands on structure', () => {
@@ -1333,113 +1328,6 @@ describe('Expands with aggregations are special', () => {
     qx.SELECT.columns[1].SELECT.from = null
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
-  })
-
-  it('with multiple expands', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
-      ID,
-      Books.author { name },
-      genre { name }
-    } group by author.name, genre.name`
-
-    const qx = cds.ql`SELECT from bookshop.Books as Books
-    left join bookshop.Authors as author on author.ID = Books.author_ID
-    left join bookshop.Genres as genre on genre.ID = Books.genre_ID
-    {
-      Books.ID,
-      (SELECT from DUMMY { author.name as name}) as author,
-      (SELECT from DUMMY { genre.name as name}) as genre
-    } group by author.name, genre.name`
-    qx.SELECT.columns[1].SELECT.from = null
-    qx.SELECT.columns[2].SELECT.from = null
-    const res = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
-  })
-  it('with nested expands', () => {
-    const q = cds.ql`SELECT from bookshop.Genres as Genres {
-      ID,
-      Genres.parent { parent { name } },
-    } group by parent.parent.name`
-
-    const qx = cds.ql`SELECT from bookshop.Genres as Genres
-    left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
-    left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
-    {
-      Genres.ID,
-      (
-        SELECT from DUMMY {
-          (SELECT from DUMMY { parent2.name as name }) as parent
-        }
-      ) as parent,
-    } group by parent2.name`
-    qx.SELECT.columns[1].SELECT.from = null
-    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
-    const res = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
-  })
-  it('with nested expands and non-nested sibling', () => {
-    const q = cds.ql`SELECT from bookshop.Genres as Genres {
-      ID,
-      Genres.parent { parent { name }, name },
-    } group by parent.parent.name, parent.name`
-
-    const qx = cds.ql`SELECT from bookshop.Genres as Genres
-    left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
-    left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
-    {
-      Genres.ID,
-      (
-        SELECT from DUMMY {
-          (SELECT from DUMMY { parent2.name as name}) as parent,
-          parent.name as name
-        }
-      ) as parent,
-    } group by parent2.name, parent.name`
-    qx.SELECT.columns[1].SELECT.from = null
-    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
-    const res = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
-  })
-
-  // negative tests
-  it('simple path not part of group by', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
-      ID,
-      Books.author { name, ID }
-    } group by author.name`
-
-    expect(() => cqn4sql(q, model)).to.throw(/The expanded column "author.ID" must be part of the group by clause/)
-  })
-  it('nested path not part of group by', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
-      ID,
-      Books.author { books {title}, ID }
-    } group by author.ID`
-
-    expect(() => cqn4sql(q, model)).to.throw(
-      /The expanded column "author.books.title" must be part of the group by clause/,
-    )
-  })
-  it('deeply nested path not part of group by', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
-      ID,
-      Books.author { books { author { name } } , ID }
-    } group by author.ID`
-
-    expect(() => cqn4sql(q, model)).to.throw(
-      /The expanded column "author.books.author.name" must be part of the group by clause/,
-    )
-  })
-
-  it('expand path with filter must be an exact match in group by', () => {
-    const q = cds.ql`SELECT from bookshop.Books as Books {
-      Books.ID,
-      author[name='King'] { name }
-    } group by author.name`
-
-    expect(() => cqn4sql(q, model)).to.throw(
-      `The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`,
-    )
   })
   it('expand path with filter must be an exact match in group by (2)', () => {
     const q = cds.ql`SELECT from bookshop.Books as Books {

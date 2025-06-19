@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-const cds = require('../../../test/cds')
-require('../../index') // to extend cds.ql query objects with .forSQL() and alike
+import cds from '../../../test/cds.js'
+import '../../index.js' // to extend cds.ql query objects with .forSQL() and alike
 
 describe('where exists assoc', () => {
   it('should work with managed assocs', async () => {

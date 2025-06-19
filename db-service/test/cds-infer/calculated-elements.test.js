@@ -1,7 +1,5 @@
-'use strict'
-
-const _inferred = require('../../lib/infer')
-const cds = require('@sap/cds')
+import infer from '../../lib/infer/index.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 describe('Infer types of calculated elements in select list', () => {
@@ -10,7 +8,7 @@ describe('Infer types of calculated elements in select list', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/booksWithExpr').then(cds.linked)
   })
   it('calc element has type or has cast', () => {
-    let inferred = _inferred(
+    let inferred = infer(
       cds.ql`SELECT from booksCalc.Books {
           ID,
           area,
@@ -32,7 +30,7 @@ describe('Infer types of calculated elements in select list', () => {
     })
   })
   it('calc elements via wildcard', () => {
-    let inferred = _inferred(
+    let inferred = infer(
       cds.ql`SELECT from booksCalc.Books { * } excluding { length, width, height, stock, price}`,
       model,
     )

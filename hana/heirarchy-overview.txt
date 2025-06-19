@@ -1,0 +1,64 @@
+heirachy(source (SELECT FROM Genres)) -> HANA specific full graph
+
+
+heirachy_descendants(source (...) START WHERE $filter || PARENT_ID IS NULL)
+heirachy_ancesters(source (...) START WHERE $filter || PARENT_ID IS NULL)
+
+SELECT * FROM heirachy_descendants || heirachy_ancesters
+heirachy_distance => (current row level - start row level)
+  - ancestor negative
+  - descendant positive
+
+distance from root
+
+
+ancesters($filter)/toplevel(1)
+ancesters($search)/toplevel(null)
+
+heirachy_ancesters($filter) -> leaf
+
+------------------------------------
+ancesters($filter) => distance <= 0
+toplevel(1) => DistanceFromRoot <= 1
+
+heirachy_descendants(start where $filter) WHERE DistanceFromRoot <= 1
+heirachy_ancesters(start where $filter) WHERE DistanceFromRoot <= 1
+
+----------------------------------
+descendant($filter,1) => distance <= 0
+
+heirachy_descendants(start where $filter DISTANCE)
+
+----------------------------------
+toplevel(1) => DistanceFromRoot <= 1
+
+heirachy_descendants(start where PARENT_ID IS NULL DISTANCE 1)
+
+-------------------------------------
+ancesters($filter) => ignored
+descendant($filter) => where
+
+heirachy_descendants(start where $filter)
+
+-------------------------------------
+toplevel(1,[{ID:'...',levels:1}]) => DistanceFromRoot <= 1 or ....
+
+heirachy_descendants(start where $filter))
+heirachy_descendants(start (select rank as start_rank FROM source where $filter))
+
+
+heirachy_descendants(start (select start_rank, node_id as start_node_id FROM source where $filter))
+
+node_id, parent_id
+1, null
+2, 1
+3, 2
+4, 3
+
+where = distance <= 2
+
+node_id, start_node_id, heirachy_distance, drillstate
+1,1,0, expand
+2,1,1, expand
+3,1,2, collapsed => (? DistanceFromRoot <=) or start_node_id = '...' and heirachy_distance <= levels-1 .......
+4,1,3, filtered out

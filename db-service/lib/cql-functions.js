@@ -1,9 +1,7 @@
-'use strict'
-
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
 
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
-const StandardFunctions = {
+export const StandardFunctions = {
   /**
    * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
    * @param {string} ref - The reference object containing column information
@@ -164,7 +162,7 @@ const StandardFunctions = {
   mindatetime: () => `'0001-01-01T00:00:00.000Z'`,
 }
 
-const HANAFunctions = {
+export const HANAFunctions = {
   /**
    * Generates SQL statement that calls the session_context function with the given parameter
    * @param {string} x - The session variable name or SQL expression
@@ -415,4 +413,5 @@ JOIN H${uniqueCounter} AS Child ON Source.NODE_ID=Child.PARENT_ID`)
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+const allFunctions = { ...StandardFunctions, ...HANAFunctions }
+export default allFunctions

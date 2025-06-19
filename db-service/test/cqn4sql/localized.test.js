@@ -1,8 +1,5 @@
-// process.env.CDS_ENV = 'better-sqlite'
-'use strict'
-
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 const transitive_ = !cds.unfold || 'transitive_localized_views' in cds.env.sql && cds.env.sql.transitive_localized_views !== false
 const options = { fewerLocalizedViews: false }

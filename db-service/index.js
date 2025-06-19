@@ -1,6 +1,6 @@
-const DatabaseService = require('./lib/common/DatabaseService')
-const SQLService = require('./lib/SQLService')
-const CQN2SQL = require('./lib/cqn2sql').classDefinition
+import DatabaseService from './lib/common/DatabaseService.js'
+import SQLService from './lib/SQLService.js'
+import { classDefinition as CQN2SQL } from './lib/cqn2sql.js'
 
 /**
  * @template T
@@ -11,8 +11,4 @@ const CQN2SQL = require('./lib/cqn2sql').classDefinition
  * @typedef {import('./lib/SQLService').prototype.PreparedStatement} PreparedStatement
  */
 
-module.exports = {
-  DatabaseService,
-  SQLService,
-  CQN2SQL,
-}
+export { DatabaseService, SQLService, CQN2SQL }

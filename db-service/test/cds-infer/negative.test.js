@@ -1,12 +1,9 @@
-'use strict'
+import cds from '@sap/cds'
+import cqn4sql from '../../lib/cqn4sql.js'
+import infer from '../../lib/infer/index.js'
 
-const cds = require('@sap/cds')
-
-const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
-const cqn4sql = require('../../lib/cqn4sql')
-const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
-  return inferred(q, m)
+  return infer(q, m)
 }
 
 describe('negative', () => {

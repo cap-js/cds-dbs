@@ -1,10 +1,7 @@
-'use strict'
-
-const cds = require('@sap/cds')
-
-const JoinTree = require('./join-tree')
-const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty } = require('../utils')
+import cds from '@sap/cds'
+import JoinTree from './join-tree.js'
+import { pseudos } from './pseudos.js'
+import { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty } from '../utils.js'
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -1153,4 +1150,4 @@ function applyToFunctionArgs(funcArgs, cb, cbArgs) {
   else if (typeof funcArgs === 'object') Object.keys(funcArgs).forEach(prop => cb(funcArgs[prop], ...cbArgs))
 }
 
-module.exports = infer
+export default infer

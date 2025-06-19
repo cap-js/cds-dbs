@@ -1,4 +1,4 @@
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
 
 class SessionContext {
   constructor(ctx) {
@@ -43,4 +43,4 @@ getters(SessionContext)
 getters(TemporalSessionContext)
 
 // REVISIT: only set temporal context if required!
-module.exports = TemporalSessionContext
+export default TemporalSessionContext

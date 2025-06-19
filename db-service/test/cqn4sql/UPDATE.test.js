@@ -1,7 +1,5 @@
-// cqn4sql must flatten and transform where exists shortcuts into subqueries
-'use strict'
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 describe('UPDATE', () => {
@@ -221,6 +219,7 @@ describe('UPDATE with path expression', () => {
         WHERE (book.stock * 2) = 4.99
         )
       `,
+
     ]
 
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))

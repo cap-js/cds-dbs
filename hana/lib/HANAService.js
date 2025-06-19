@@ -1,11 +1,10 @@
-const fs = require('fs')
-const path = require('path')
-const { Readable } = require('stream')
-
-const { SQLService } = require('@cap-js/db-service')
-const drivers = require('./drivers')
-const cds = require('@sap/cds')
-const collations = require('./collations.json')
+import fs from 'fs'
+import path from 'path'
+import { Readable } from 'stream'
+import { SQLService } from '@cap-js/db-service'
+import drivers from './drivers/index.js'
+import cds from '@sap/cds'
+import collations from './collations.json' assert { type: 'json' }
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
 const hanaKeywords = keywords.reduce((prev, curr) => {
@@ -174,7 +173,7 @@ class HANAService extends SQLService {
         // REVISIT: No support for count
         // where [keys] in [values]
         const left = { list: keys.map(k => ({ ref: [k] })) }
-        const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) })) }
+        const right = { list: rows.map(r => ({ list: keys.map(k => ({ val: r[k.toUpperCase()] })) )) }
         resultQuery.SELECT.limit = undefined
         resultQuery.SELECT.where = [left, 'in', right]
       }
@@ -832,7 +831,6 @@ class HANAService extends SQLService {
       // JSON_TABLE parses the whole JSON document at once meaning that the whole JSON document has to be in memory
       // With the buffer table approach the data is processed in chunks of a configurable size
       // Which allows even smaller HANA systems to process large datasets
-      // But the chunk size determines the maximum size of a single row
       return (this.sql = `INSERT INTO ${this.quote(entity)} (${this.columns.map(c =>
         this.quote(c),
       )}) WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
@@ -1534,4 +1532,4 @@ const lobTypes = {
   'cds.hana.CLOB': 1,
 }
 
-module.exports = HANAService
+export default HANAService

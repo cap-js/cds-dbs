@@ -260,4 +260,4 @@ class JoinTree {
   }
 }
 
-module.exports = JoinTree
+export default JoinTree

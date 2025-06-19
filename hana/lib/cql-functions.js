@@ -1,6 +1,4 @@
-'use strict'
-
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
@@ -10,7 +8,7 @@ const getTimeCast = x => (isVal(x) ? `TO_${getTimeType(x)}(${x})` : x)
 const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
-const StandardFunctions = {
+export const StandardFunctions = {
   // ==============================
   // String Functions
   // ==============================
@@ -203,7 +201,7 @@ const StandardFunctions = {
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 
-const HANAFunctions = {
+export const HANAFunctions = {
   current_date: () => 'current_utcdate',
   current_time: () => 'current_utctime',
   current_timestamp: () => 'current_utctimestamp',
@@ -215,4 +213,5 @@ const HANAFunctions = {
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+const allFunctions = { ...StandardFunctions, ...HANAFunctions }
+export default allFunctions

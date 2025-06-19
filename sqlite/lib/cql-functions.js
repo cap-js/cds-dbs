@@ -1,6 +1,6 @@
 'use strict'
 
-const StandardFunctions = {
+export const StandardFunctions = {
   // ==============================
   // Date and Time Functions
   // ==============================
@@ -82,7 +82,7 @@ const StandardFunctions = {
   matchespattern: (x, y) => `(${x} regexp ${y})`,
 }
 
-const HANAFunctions = {
+export const HANAFunctions = {
   // ==============================
   // Timestamp Difference Functions
   // ==============================
@@ -157,4 +157,5 @@ const HANAFunctions = {
 
 for (let each in HANAFunctions) HANAFunctions[each.toUpperCase()] = HANAFunctions[each]
 
-module.exports = { ...StandardFunctions, ...HANAFunctions }
+const allFunctions = { ...StandardFunctions, ...HANAFunctions }
+export default allFunctions

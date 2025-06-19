@@ -1,8 +1,7 @@
-const cds = require('../../../test/cds')
-const {expect} = cds.test.in(__dirname) // IMPORTANT: that has to go before loading cds.env below
-cds.env.features.recursion_depth = 2
+import cds from '../../../test/cds.js'
+import { getDeepQueries, getExpandForDeep } from '../../lib/deep-queries.js'
 
-const { getDeepQueries, getExpandForDeep } = require('../../lib/deep-queries')
+cds.env.features.recursion_depth = 2
 
 describe('test deep query generation', () => {
 

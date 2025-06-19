@@ -1,11 +1,8 @@
-'use strict'
-// test the calculation of the elements of the query
+import cds from '@sap/cds'
+import infer from '../../lib/infer/index.js'
 
-const cds = require('@sap/cds')
-const { expect } = cds.test.in(__dirname + '/../bookshop')
-const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
-  return inferred(q, m)
+  return infer(q, m)
 }
 
 describe('infer elements', () => {

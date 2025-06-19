@@ -1,7 +1,7 @@
-const SessionContext = require('./session-context')
-const ConnectionPool = require('./generic-pool')
-const infer = require('../infer')
-const cds = require('@sap/cds')
+import SessionContext from './session-context.js'
+import ConnectionPool from './generic-pool.js'
+import infer from '../infer/index.js'
+import cds from '@sap/cds'
 
 /** @typedef {unknown} DatabaseDriver */
 
@@ -168,4 +168,4 @@ class DatabaseService extends cds.Service {
 }
 
 DatabaseService.prototype.isDatabaseService = true
-module.exports = DatabaseService
+export default DatabaseService

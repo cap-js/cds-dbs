@@ -1,8 +1,13 @@
-const cds = require('@sap/cds')
-const LOG = cds.log('db')
+import { createPool as genericCreatePool } from 'generic-pool'
+import { EventEmitter } from 'events'
+import cds from '@sap/cds'
+
+function getLog() {
+  return cds.log('db')
+}
 
 const use_new_pool = cds.requires.db?.pool?.builtin || cds.env.features.pool === 'builtin'
-const createPool = use_new_pool ? (...args) => new Pool(...args) : require('generic-pool').createPool
+const createPool = use_new_pool ? (...args) => new Pool(...args) : genericCreatePool
 
 function ConnectionPool (factory, tenant) {
   let bound_factory = { __proto__: factory, create: factory.create.bind(null, tenant) }
@@ -20,7 +25,6 @@ function TrackedConnectionPool (factory, tenant) {
         connections.add((dbc._beginStack = new Error('begin called from:')))
         return dbc
       } catch (err) {
-        // TODO: add acquire timeout error check
         err.stack += `\nActive connections:${connections.size}\n${[...connections].map(e => e.stack).join('\n')}`
         throw err
       }
@@ -33,12 +37,11 @@ function TrackedConnectionPool (factory, tenant) {
 }
 
 const DEBUG = /\bpool\b/.test(process.env.DEBUG)
-module.exports = DEBUG && !use_new_pool ? TrackedConnectionPool : ConnectionPool
+const PoolImpl = DEBUG && !use_new_pool ? TrackedConnectionPool : ConnectionPool
+export default PoolImpl
 
 // Drop-in replacement for https://github.com/coopernurse/node-pool
 // TODO: fifo: true? relevant for our use case?
-
-const { EventEmitter } = require('events')
 
 const ResourceState = Object.freeze({
   ALLOCATED: 'allocated',
@@ -261,7 +264,7 @@ constructor (factory, options = {}) {
         await destroyPromise
       }
     } catch (e) {
-       LOG.error(e)
+       getLog().error(e)
        /* FIXME: We have to ignore errors here due to a TypeError in hdb */
        /* This was also a problem with the old (generic-pool) implementation */
        /* Root cause in hdb needs to be fixed */

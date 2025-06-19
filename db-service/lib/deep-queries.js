@@ -1,5 +1,5 @@
-const cds = require('@sap/cds')
-const { _target_name4 } = require('./SQLService')
+import cds from '@sap/cds'
+import { _target_name4 } from './SQLService.js'
 
 const ROOT = Symbol('root')
 
@@ -295,9 +295,4 @@ const _getDeepQueries = (diff, target, deletes = new Map(), inserts = new Map(),
   return root ? { updates, inserts, deletes } : dirty
 }
 
-module.exports = {
-  onDeep,
-  hasDeep,
-  getDeepQueries, // only for testing
-  getExpandForDeep, // only for testing
-}
+export { onDeep, hasDeep, getDeepQueries, getExpandForDeep }

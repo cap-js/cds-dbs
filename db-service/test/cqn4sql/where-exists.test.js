@@ -1,6 +1,5 @@
-'use strict'
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 /**
@@ -1513,7 +1512,8 @@ describe('path expression within infix filter following exists predicate', () =>
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
         SELECT 1 from bookshop.Books as $b
         inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
         where $b.author_ID = Authors.ID and genre.name = 'Thriller'
@@ -1525,7 +1525,8 @@ describe('path expression within infix filter following exists predicate', () =>
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
         SELECT 1 from bookshop.Books as $b
         where $b.author_ID = Authors.ID and EXISTS (
 
@@ -1548,7 +1549,8 @@ describe('path expression within infix filter following exists predicate', () =>
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
         SELECT 1 from bookshop.Books as $b
         inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
         where $b.author_ID = Authors.ID and toLower(genre.name) = 'thriller'
@@ -1561,7 +1563,8 @@ describe('path expression within infix filter following exists predicate', () =>
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
         SELECT 1 from bookshop.Books as $b
         inner join bookshop.Authors as coAuthorUnmanaged on coAuthorUnmanaged.ID = $b.coAuthor_ID_unmanaged
         where $b.author_ID = Authors.ID and coAuthorUnmanaged.name = 'King'
@@ -1574,7 +1577,8 @@ describe('path expression within infix filter following exists predicate', () =>
 
     const transformed = cqn4sql(query, model)
     expect(transformed).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID } WHERE EXISTS (
+      cds.ql`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
         SELECT 1 from bookshop.Books as $b
         inner join bookshop.Genres as genre on genre.ID = $b.genre_ID
         where $b.author_ID = Authors.ID and toLower(genre.name) = 'thriller'

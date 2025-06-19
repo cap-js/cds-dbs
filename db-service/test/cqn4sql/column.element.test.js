@@ -1,11 +1,10 @@
-'use strict'
+import cds from '@sap/cds'
+import cqn4sql from '../../lib/cqn4sql.js'
+
 // for convenience, we attach a non-enumerable property 'element' onto each column with a ref
 // this property holds the corresponding csn definition to which the column refers
 
-const cds = require('@sap/cds')
-
-const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
-const cqn4sql = require('../../lib/cqn4sql')
+const { expect } = cds.test.in(__dirname + '/../bookshop')
 describe('assign element onto columns', () => {
   let model
   beforeAll(async () => {

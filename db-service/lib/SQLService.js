@@ -1,10 +1,12 @@
-const cds = require('@sap/cds'),
-  DEBUG = cds.debug('sql|db')
-const { Readable, Transform } = require('stream')
-const { pipeline } = require('stream/promises')
-const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
-const DatabaseService = require('./common/DatabaseService')
-const cqn4sql = require('./cqn4sql')
+import cds from '@sap/cds'
+const DEBUG = cds.debug('sql|db')
+import { Readable, Transform } from 'stream'
+import { pipeline } from 'stream/promises'
+import { resolveView, getDBTable, getTransition } from '@sap/cds/libx/_runtime/common/utils/resolveView.js'
+import DatabaseService from './common/DatabaseService.js'
+import cqn4sql from './cqn4sql.js'
+import fillInKeys from './fill-in-keys.js'
+import { onDeep } from './deep-queries.js'
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -36,8 +38,8 @@ const _hasProps = (obj) => {
 
 class SQLService extends DatabaseService {
   init() {
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], fillInKeys) // REVISIT should be replaced by correct input processing eventually
+    this.on(['INSERT', 'UPSERT', 'UPDATE'], onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
         const elements = query._target?.elements
@@ -485,8 +487,7 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
-/** @param {import('@sap/cds').ql.Query} q */
-const _target_name4 = q => {
+export const _target_name4 = q => {
   const target = q._subject
     || q.SELECT?.from
     || q.INSERT?.into
@@ -528,4 +529,4 @@ cds.extend(cds.ql.Query).with(
 )
 
 Object.assign(SQLService, { _target_name4 })
-module.exports = SQLService
+export default SQLService

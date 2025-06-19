@@ -1,1 +1,2 @@
-module.exports = require('./lib/SQLiteService.js')
+import SQLiteService from './lib/SQLiteService.js'
+export default SQLiteService

@@ -1,7 +1,7 @@
 // access of structured elements with dot notation
 'use strict'
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 // "... to flat fields" is not entirely true, as we also have tests with paths ending on a structure
 // -> move them to separate section?
@@ -285,11 +285,11 @@ describe('Structured Access', () => {
 
     it('structured fk', () => {
       let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books  as Books { ID, Books.dedication.addressee.ID as dedicationAddressee }`,
+        cds.ql`SELECT from bookshop.Books  as Books { ID, Books.dedication.addressee.ID as dedicationAddRessee }`,
         model,
       )
       expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_addressee_ID as dedicationAddressee }`,
+        cds.ql`SELECT from bookshop.Books as Books { Books.ID, Books.dedication_addressee_ID as dedicationAddRessee }`,
       )
     })
     it('optimizes assoc.assoc.fk path', () => {

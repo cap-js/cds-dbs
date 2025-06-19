@@ -1,9 +1,10 @@
-const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds')
-const sqlite = require('better-sqlite3')
+import { SQLService } from '@cap-js/db-service'
+import cds from '@sap/cds'
+import sqlite from 'better-sqlite3'
 const $session = Symbol('dbc.session')
-const convStrm = require('stream/consumers')
-const { Readable } = require('stream')
+import * as convStrm from 'stream/consumers'
+import { Readable } from 'stream'
+import cqlFunctions from './cql-functions.js'
 
 const keywords = cds.compiler.to.sql.sqlite.keywords
 // keywords come as array
@@ -261,7 +262,7 @@ class SQLiteService extends SQLService {
     }
 
     // Used for SQL function expressions
-    static Functions = { ...super.Functions, ...require('./cql-functions') }
+    static Functions = { ...super.Functions, ...cqlFunctions }
 
     // Used for CREATE TABLE statements
     static TypeMap = {
@@ -285,4 +286,4 @@ class SQLiteService extends SQLService {
   }
 }
 
-module.exports = SQLiteService
+export default SQLiteService

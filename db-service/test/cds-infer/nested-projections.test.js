@@ -1,10 +1,8 @@
-'use strict'
-
-const cds = require('@sap/cds')
+import cds from '@sap/cds'
+import infer from '../../lib/infer/index.js'
 const { expect } = cds.test
-const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
-  return inferred(q, m)
+  return infer(q, m)
 }
 
 describe('nested projections', () => {

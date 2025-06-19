@@ -3,6 +3,7 @@
   "version": "1.3.1",
   "description": "This is a monorepo for our SQL Database Services.",
   "author": "SAP SE (https://www.sap.com)",
+  "type": "module",
   "workspaces": [
     "db-service",
     "sqlite",

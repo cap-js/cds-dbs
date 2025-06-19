@@ -10,6 +10,7 @@
   ],
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
+  "type": "module",
   "files": [
     "cds-plugin.js",
     "lib",

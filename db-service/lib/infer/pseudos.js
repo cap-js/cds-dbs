@@ -1,8 +1,4 @@
-'use strict'
-
-// REVISIT: we should always return cds.linked elements
-// > e.g. cds.linked({definitions:{pseudos}})
-const pseudos = {
+export const pseudos = {
   elements: {
     $user: {
       elements: {
@@ -19,5 +15,3 @@ const pseudos = {
     $tenant: { type: 'cds.String' },
   },
 }
-
-module.exports = { pseudos }

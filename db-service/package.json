@@ -16,6 +16,7 @@
   ],
   "author": "SAP SE (https://www.sap.com)",
   "main": "index.js",
+  "type": "module",
   "files": [
     "lib",
     "CHANGELOG.md"

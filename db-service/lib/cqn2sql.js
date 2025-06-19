@@ -1,16 +1,15 @@
-const cds = require('@sap/cds')
-const cds_infer = require('./infer')
-const cqn4sql = require('./cqn4sql')
-const _simple_queries = cds.env.features.sql_simple_queries
-const _strict_booleans = _simple_queries < 2
-
-const { Readable } = require('stream')
+import cds from '@sap/cds'
+import cds_infer from './infer/index.js'
+import cqn4sql from './cqn4sql.js'
+import { Readable } from 'stream'
+import util from 'node:util'
+import cqlFunctions from './cql-functions.js'
 
 const DEBUG = cds.debug('sql|sqlite')
 const LOG_SQL = cds.log('sql')
 const LOG_SQLITE = cds.log('sqlite')
 
-class CQN2SQLRenderer {
+export class CQN2SQLRenderer {
   /**
    * Creates a new CQN2SQL instance for processing a query
    * @constructor
@@ -1270,7 +1269,7 @@ class CQN2SQLRenderer {
     return '?'
   }
 
-  static Functions = require('./cql-functions')
+  static Functions = cqlFunctions
   /**
    * Renders a function call into mapped SQL definitions from the Functions definition
    * @param {import('./infer/cqn').func} param0
@@ -1460,7 +1459,7 @@ class CQN2SQLRenderer {
   }
 }
 
-Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
+Readable.prototype[util.inspect.custom] = Readable.prototype.toJSON = function () { return this._raw || `[object ${this.constructor.name}]` }
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {
@@ -1476,6 +1475,6 @@ const _empty = a => !a || a.length === 0
  * @param {import('@sap/cds/apis/cqn').Query} q
  * @param {import('@sap/cds/apis/csn').CSN} m
  */
-module.exports = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
-module.exports.class = CQN2SQLRenderer
-module.exports.classDefinition = CQN2SQLRenderer // class is a reserved typescript word
+const cqn2sql = (q, m) => new CQN2SQLRenderer({ model: m }).render(cqn4sql(q, m))
+export default cqn2sql
+export const classDefinition = CQN2SQLRenderer // for compatibility

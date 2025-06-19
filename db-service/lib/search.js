@@ -206,7 +206,4 @@ const computeColumnsToBeSearched = (cqn, entity = { __searchableColumns: [] }) =
   return toBeSearched
 }
 
-module.exports = {
-  getColumns,
-  computeColumnsToBeSearched,
-}
+export { getColumns, computeColumnsToBeSearched }

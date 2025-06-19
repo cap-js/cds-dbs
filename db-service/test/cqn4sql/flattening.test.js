@@ -1,9 +1,7 @@
-'use strict'
-
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
-const { expect } = cds.test
-const _inferred = require('../../lib/infer')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
+import { expect } from cds.test
+import _inferred from '../../lib/infer.js'
 
 describe('Flattening', () => {
   let model

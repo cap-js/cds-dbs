@@ -1,15 +1,13 @@
-'use strict'
+import cds from '@sap/cds'
+import cqn4sql from '../../lib/cqn4sql.js'
+import infer from '../../lib/infer/index.js'
 // for convenience, we attach a non-enumerable property 'element' onto each column
 // this property holds either the corresponding csn definition to which the column refers
 // or an object - potentially with type information - for expressions or values.
 
-const cds = require('@sap/cds')
-
 const { expect } = cds.test.in(__dirname + '/../bookshop') // IMPORTANT: that has to go before the requires below to avoid loading cds.env before cds.test()
-const cqn4sql = require('../../lib/cqn4sql')
-const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
-  return inferred(q, m)
+  return infer(q, m)
 }
 
 describe('assign element onto columns', () => {

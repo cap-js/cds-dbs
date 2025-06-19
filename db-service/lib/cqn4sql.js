@@ -1,30 +1,26 @@
-'use strict'
+import cds from '@sap/cds'
+import infer from './infer/index.js'
+import { computeColumnsToBeSearched } from './search.js'
+import { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } from './utils.js'
+import { pseudos } from './infer/pseudos.js'
 
-const cds = require('@sap/cds')
 cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
-
-const infer = require('./infer')
-const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
  * If there are at least two leaf elements and if there are tokens before or after the recognized pattern, we enclose the resulting condition in parens (...)
  */
-const eqOps = [['is'], ['='] /* ['=='] */]
+export const eqOps = [['is'], ['='] /* ['=='] */]
 /**
  * For operators of <notEqOps>, do the same but use or instead of and.
  * This ensures that not struct == <value> is the same as struct != <value>.
  */
-const notEqOps = [['is', 'not'], ['<>'], ['!=']]
+export const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
  * not supported in comparison w/ struct because of unclear semantics
  */
-const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
+export const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
 
-const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
-
-const { pseudos } = require('./infer/pseudos')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
  *  - transform association paths in `from` to `WHERE exists` subqueries
@@ -347,7 +343,7 @@ function cqn4sql(originalQuery, model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$RefLinks.length - 1].definition)) {
         const name = getName(col)
         if (!transformedColumns.some(inserted => getName(inserted) === name)) {
           const calcElement = resolveCalculatedElement(col)
@@ -961,7 +957,7 @@ function cqn4sql(originalQuery, model) {
     const res = []
     for (let i = 0; i < columns.length; i++) {
       let col = columns[i]
-      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition)) {
+      if (isCalculatedOnRead(col.$refLinks?.[col.$RefLinks.length - 1].definition)) {
         const calcElement = resolveCalculatedElement(col, true)
         res.push(calcElement)
       } else if (pseudos.elements[col.ref?.[0]]) {
@@ -1602,7 +1598,7 @@ function cqn4sql(originalQuery, model) {
           const rhsPath = value.ref.join('.')
           throw new Error(`Can't compare "${lhsPath}" with "${rhsPath}": the operands must have the same structure`)
         }
-        const rhs = flatRhs.splice(indexOfElementOnRhs, 1)[0] // remove the element also from RHS
+        const rhs = flatRhs.splice(indexOfElementOnRhs, 1) // remove the element also from RHS
         result.push({ ref }, ...operator, rhs)
         if (flatLhs.length > 0) result.push(boolOp)
       }
@@ -2149,11 +2145,9 @@ function cqn4sql(originalQuery, model) {
         if (i > 0) on.push('and')
         on.push(sourceSide, '=', targetSide)
       })
-    } else {
-      const unmanagedOn = onCondFor(inWhere ? next : current, inWhere ? current : next, inWhere)
-      on.push(...(customWhere && hasLogicalOr(unmanagedOn) ? [asXpr(unmanagedOn)] : unmanagedOn))
+    } else if (on) {
+      on.push(...(customWhere && hasLogicalOr(on) ? [asXpr(on)] : on))
     }
-
     const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
     const id = getLocalizedName(subquerySource)
     if (subquerySource.params && !customArgs) customArgs = {}
@@ -2192,191 +2186,9 @@ function cqn4sql(originalQuery, model) {
     }
     return SELECT
   }
-
-  /**
-   * For a given search expression return a function "search" which holds the search expression
-   * as well as the searchable columns as arguments.
-   *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {object} query - The FROM clause of the CQN statement.
-   *
-   * @returns {(Object|null)} returns either:
-   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
-   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
-   */
-  function getSearchTerm(search, query) {
-    const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
-    const searchIn = computeColumnsToBeSearched(inferred, entity)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const searchFunc = {
-        func: 'search',
-        args: [{ list: searchIn }, xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }],
-      }
-      return searchFunc
-    } else {
-      return null
-    }
-  }
-
-  /**
-   * Calculates the name of the source which can be used to address the given node.
-   *
-   * @param {object} node a csn object with a `ref` and `$refLinks`
-   * @param {object} $baseLink optional base `$refLink`, e.g. for infix filters.
-   *                           For an infix filter, we must explicitly pass the TA name
-   *                           because the first step of the ref might not be part of
-   *                           the combined elements of the query
-   * @returns the source name which can be used to address the node
-   */
-  function getTableAlias(node, $baseLink = null) {
-    if (!node || !node.$refLinks || !node.ref) {
-      throw new Error('Invalid node')
-    }
-    if ($baseLink) {
-      return getBaseLinkAlias($baseLink)
-    }
-    if (node.isJoinRelevant) {
-      return getJoinRelevantAlias(node)
-    }
-    return getSelectOrEntityAlias(node) || getCombinedElementAlias(node)
-    function getBaseLinkAlias($baseLink) {
-      return $baseLink.alias
-    }
-
-    function getJoinRelevantAlias(node) {
-      return [...node.$refLinks]
-        .reverse()
-        .find($refLink => $refLink.definition.isAssociation && !$refLink.onlyForeignKeyAccess).alias
-    }
-
-    function getSelectOrEntityAlias(node) {
-      let firstRefLink = node.$refLinks[0].definition
-      if (firstRefLink.SELECT || firstRefLink.kind === 'entity') {
-        const firstStep = node.ref[0]
-        /**
-         * If the node.ref refers to an implicit alias which is later on changed by cqn4sql,
-         * we need to replace the usage of the implicit alias, with the correct, auto-generated table alias.
-         *
-         * This is the case if the following holds true:
-         * - the original query has NO explicit alias
-         * - ref[0] equals the implicit alias of the query (i.e. from.ref[ from.length - 1 ].split('.').pop())
-         * - but differs from the explicit alias, assigned by cqn4sql (i.e. <subquery>.from.uniqueSubqueryAlias)
-         */
-        if (
-          inferred.SELECT?.from.uniqueSubqueryAlias &&
-          !inferred.SELECT?.from.as &&
-          getImplicitAlias(firstStep) === getImplicitAlias(transformedQuery.SELECT.from.ref[0])
-        ) {
-          return inferred.SELECT?.from.uniqueSubqueryAlias
-        }
-        return node.ref[0]
-      }
-    }
-
-    function getCombinedElementAlias(node) {
-      return inferred.$combinedElements[node.ref[0].id || node.ref[0]]?.[0].index
-    }
-  }
-  function getTransformedFunctionArgs(args, $baseLink = null) {
-    let result = null
-    if (Array.isArray(args)) {
-      result = args.map(t => {
-        if (!t.val)
-          // this must not be touched
-          return getTransformedTokenStream([t], $baseLink)[0]
-        return t
-      })
-    } else if (typeof args === 'object') {
-      result = {}
-      for (const prop in args) {
-        const t = args[prop]
-        if (!t.val)
-          // this must not be touched
-          result[prop] = getTransformedTokenStream([t], $baseLink)[0]
-        else result[prop] = t
-      }
-    }
-    return result
-  }
 }
 
-function calculateElementName(token) {
-  const nonJoinRelevantAssoc = [...token.$refLinks].findIndex(l => l.definition.isAssociation && l.onlyForeignKeyAccess)
-  let name
-  if (nonJoinRelevantAssoc !== -1)
-    // calculate fk name
-    name = token.ref.slice(nonJoinRelevantAssoc).join('_')
-  else name = getFullName(token.$refLinks[token.$refLinks.length - 1].definition)
-  return name
-}
-
-/**
- * Calculate the flat name for a deeply nested element:
- * @example `entity E { struct: { foo: String} }` => `getFullName(foo)` => `struct_foo`
- *
- * @param {CSN.element} node an element
- * @param {object} name the last part of the name, e.g. the name of the deeply nested element
- * @returns the flat name of the element
- */
-function getFullName(node, name = node.name) {
-  // REVISIT: this is an unfortunate implementation
-  if (!node.parent || node.parent.kind === 'entity') return name
-
-  return getFullName(node.parent, `${node.parent.name}_${name}`)
-}
-
-function copy(obj) {
-  const walk = function (par, prop) {
-    const val = prop ? par[prop] : par
-
-    // If value is native return
-    if (typeof val !== 'object' || val == null || val instanceof RegExp || val instanceof Date || val instanceof Buffer)
-      return val
-
-    const ret = Array.isArray(val) ? [] : {}
-    Object.keys(val).forEach(k => {
-      ret[k] = walk(val, k)
-    })
-    return ret
-  }
-
-  return walk(obj)
-}
-
-function hasLogicalOr(tokenStream) {
-  return tokenStream.some(t => t in { OR: true, or: true })
-}
-
-function getParentEntity(element) {
-  if (element.kind === 'entity') return element
-  else return getParentEntity(element.parent)
-}
-
-/**
- * Assigns the given `element` as non-enumerable property 'element' onto `col`.
- *
- * @param {object} col
- * @param {csn.Element} element
- */
-function setElementOnColumns(col, element) {
-  defineProperty(col, 'element', element)
-}
-
-const getName = col => col.as || col.ref?.at(-1)
-const idOnly = ref => ref.id || ref
-const refWithConditions = step => {
-  let appendix
-  const { args, where } = step
-  if (where && args) appendix = JSON.stringify(where) + JSON.stringify(args)
-  else if (where) appendix = JSON.stringify(where)
-  else if (args) appendix = JSON.stringify(args)
-  return appendix ? step.id + appendix : step
-}
-const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
-
-module.exports = Object.assign(cqn4sql, {
-  // for own tests only:
+export default Object.assign(cqn4sql, {
   eqOps,
   notEqOps,
   notSupportedOps,

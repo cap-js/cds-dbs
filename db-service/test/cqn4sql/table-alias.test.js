@@ -1,7 +1,5 @@
-'use strict'
-
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 describe('table alias access', () => {
   let model
@@ -533,14 +531,14 @@ describe('table alias access', () => {
     })
     it('refer to my own column in function expression', () => {
       const q = cds.ql`
-        SELECT from bookshop.Books as Books {
+        SELECT from bookshop.Books {
           cast('2007-07-07' as Date) as twoLeapYearsEarlier,
           cast('2013-07-06' as Date) as twoLeapYearsLater,
           months_between($self.twoLeapYearsEarlier, $self.twoLeapYearsLater)
         }`
       const transformed = cqn4sql(q, model)
       const expectation = cds.ql`
-        SELECT from bookshop.Books as Books {
+        SELECT from bookshop.Books {
           cast('2007-07-07' as cds.Date) as twoLeapYearsEarlier,
           cast('2013-07-06' as cds.Date) as twoLeapYearsLater,
           months_between(cast('2007-07-07' as cds.Date), cast('2007-07-06' as cds.Date)) as months_between
@@ -556,14 +554,14 @@ describe('table alias access', () => {
     })
     it('refer to my own column in calc expression', () => {
       const q = cds.ql`
-        SELECT from bookshop.Books as Books {
+        SELECT from bookshop.Books {
           (cast('2007-07-07' as Date) + 1) as twoLeapYearsEarlier,
           (cast('2013-07-06' as Date) + 1) as twoLeapYearsLater,
           $self.twoLeapYearsEarlier +  months_between($self.twoLeapYearsEarlier + 15) as calc
         }`
       const transformed = cqn4sql(q, model)
       const expectation = cds.ql`
-        SELECT from bookshop.Books as Books {
+        SELECT from bookshop.Books {
           (cast('2007-07-07' as cds.Date) + 1) as twoLeapYearsEarlier,
           (cast('2013-07-06' as cds.Date) + 1) as twoLeapYearsLater,
           (cast('2007-07-07' as cds.Date) + 1) + months_between((cast('2007-07-07' as cds.Date) + 1) + 15) as calc

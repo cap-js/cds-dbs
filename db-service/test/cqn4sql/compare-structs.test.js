@@ -1,13 +1,5 @@
-// In general, structs are not allowed in an expression position.
-// For convenience, we allow certain conditions involving structs, which
-// are translated by respective conditions on the leave elements, combined with AND.
-
-// (SMW) TODO move text from issue to here?
-
-'use strict'
-
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 describe('compare structures', () => {

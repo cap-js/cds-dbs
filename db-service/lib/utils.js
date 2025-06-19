@@ -131,8 +131,7 @@ function getModelUtils(model, query) {
   }
 }
 
-// export the function to be used in other modules
-module.exports = {
+export {
   prettyPrintRef,
   isCalculatedOnRead,
   isCalculatedElement,

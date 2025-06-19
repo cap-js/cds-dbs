@@ -1,7 +1,7 @@
 // cqn4sql must flatten and transform where exists shortcuts into subqueries
 'use strict'
-const cqn4sql = require('../../lib/cqn4sql')
-const cds = require('@sap/cds')
+import cqn4sql from '../../lib/cqn4sql.js'
+import cds from '@sap/cds'
 const { expect } = cds.test
 
 describe('DELETE', () => {
