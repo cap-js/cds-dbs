@@ -1,3 +1,7 @@
+import cds from '@sap/cds'
+const _cds = {}
+export default _cds
+
 // REVISIT: enable UInt8 type
 import typeCheck from '@sap/cds-compiler/lib/checks/checkForTypes.js'
 typeCheck.type = function () { }
@@ -13,9 +17,6 @@ typeMapping.cdsToSqlTypes.postgres = {
   'cds.hana.ST_POINT': 'POINT',
   'cds.hana.ST_GEOMETRY': 'POLYGON',
 }
-
-import cds from '@sap/cds'
-export default cds
 
 const cdsTest = cds.test
 let isolateCounter = 0

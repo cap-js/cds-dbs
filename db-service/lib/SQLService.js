@@ -1,5 +1,7 @@
-import cds from '@sap/cds'
-const DEBUG = cds.debug('sql|db')
+import cds, {debug, extend, Query, entity, error} from '@sap/cds'
+const DEBUG = debug('sql|db')
+import InsertResults from './InsertResults.js'
+import { classDefinition as CQN2SQL } from './cqn2sql.js'
 import { Readable, Transform } from 'stream'
 import { pipeline } from 'stream/promises'
 import { resolveView, getDBTable, getTransition } from '@sap/cds/libx/_runtime/common/utils/resolveView.js'
@@ -58,7 +60,7 @@ class SQLService extends DatabaseService {
         const invalidColumns = columns.filter(c => !(c in elements))
 
         if (invalidColumns.length > 0) {
-          cds.error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
+          error(`STRICT MODE: Trying to ${kind} non existent columns (${invalidColumns})`)
         }
       })
     }
@@ -131,7 +133,7 @@ class SQLService extends DatabaseService {
   async onSELECT({ query, data, iterator, objectMode }) {
     // REVISIT: for custom joins, infer is called twice, which is bad
     //          --> make cds.infer properly work with custom joins and remove this
-    if (!(query._target instanceof cds.entity)) {
+    if (!(query._target instanceof entity)) {
       try { this.infer(query) } catch { /**/ }
     }
     if (!query._target?._unresolved) { // REVISIT: use query._target instead
@@ -343,7 +345,7 @@ class SQLService extends DatabaseService {
       ? query.SELECT.columns.filter(c => !c.expand)
       : [{ val: 1 }]
     const cq = SELECT.one([{ func: 'count' }]).from(
-      cds.ql.clone(query, {
+      ql.clone(query, {
         columns,
         localized: false,
         expand: false,
@@ -359,13 +361,13 @@ class SQLService extends DatabaseService {
    * Helper class for results of INSERTs.
    * Subclasses may override this.
    */
-  static InsertResults = require('./InsertResults')
+  static InsertResults = InsertResults
 
   /**
    * Helper class implementing {@link SQLService#cqn2sql}.
    * Subclasses commonly override this.
    */
-  static CQN2SQL = require('./cqn2sql').class
+  static CQN2SQL = CQN2SQL
 
   // REVISIT: There must be a better way!
   // preserves $count for .map calls on array
@@ -496,7 +498,7 @@ export const _target_name4 = q => {
     || q.DELETE?.from
     || q.CREATE?.entity
     || q.DROP?.entity
-  if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
+  if (target?.SET?.op === 'union') throw new error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
@@ -511,7 +513,7 @@ const sqls = new (class extends SQLService {
     return cds.model
   }
 })()
-cds.extend(cds.ql.Query).with(
+extend(Query).with(
   class {
     forSQL() {
       let cqn = (cds.db || sqls).cqn4sql(this)

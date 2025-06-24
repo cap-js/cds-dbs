@@ -1,8 +1,8 @@
-import cds from '@sap/cds'
+import cds, { linked, error, array, struct } from '@sap/cds'
 import JoinTree from './join-tree.js'
 import { pseudos } from './pseudos.js'
 import { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty } from '../utils.js'
-const cdsTypes = cds.linked({
+const cdsTypes = linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
     DateTime: { type: 'cds.DateTime' },
@@ -96,7 +96,7 @@ function infer(originalQuery, model) {
     if (ref) {
       const { id, args } = ref[0]
       const first = id || ref[0]
-      let target = getDefinition(first) || cds.error`"${first}" not found in the definitions of your model`
+      let target = getDefinition(first) || error`"${first}" not found in the definitions of your model`
       if (!target) throw new Error(`"${first}" not found in the definitions of your model`)
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
@@ -129,7 +129,7 @@ function infer(originalQuery, model) {
       querySources[subqueryAlias] = { definition: from }
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
-      const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
+      const definition = getDefinition(from) || error`"${from}" not found in the definitions of your model`
       querySources[getImplicitAlias(from, useTechnicalAlias)] = { definition }
     } else if (from.SET) {
       infer(from, model)
@@ -197,8 +197,8 @@ function infer(originalQuery, model) {
           wildcardSelect = true
         } else if (col.val !== undefined || col.xpr || col.SELECT || col.func || col.param) {
           const as = col.as || col.func || col.val
-          if (as === undefined) cds.error`Expecting expression to have an alias name`
-          if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
+          if (as === undefined) error`Expecting expression to have an alias name`
+          if (queryElements[as]) error`Duplicate definition of element “${as}”`
           if (col.xpr || col.SELECT) {
             queryElements[as] = getElementForXprOrSubquery(col, queryElements, dollarSelfRefs)
           }
@@ -227,7 +227,7 @@ function infer(originalQuery, model) {
         } else if (col.expand) {
           inferArg(col, queryElements, null)
         } else {
-          cds.error`Not supported: ${JSON.stringify(col)}`
+          error`Not supported: ${JSON.stringify(col)}`
         }
       })
 
@@ -466,7 +466,7 @@ function infer(originalQuery, model) {
           }
           nameSegments.push(id)
         } else if (inFrom) {
-          const definition = getDefinition(id) || cds.error`"${id}" not found in the definitions of your model`
+          const definition = getDefinition(id) || error`"${id}" not found in the definitions of your model`
           arg.$refLinks.push({ definition, target: definition })
         } else if (firstStepIsTableAlias) {
           arg.$refLinks.push({
@@ -539,12 +539,12 @@ function infer(originalQuery, model) {
         }
         const foreignKeyAlias = Array.isArray(definition.keys)
           ? definition.keys.find(k => {
-              if (k.ref.every((step, j) => arg.ref[i + j] === step)) {
-                skipAliasedFkSegmentsOfNameStack.push(...k.ref.slice(1))
-                return true
-              }
-              return false
-            })?.as
+            if (k.ref.every((step, j) => arg.ref[i + j] === step)) {
+              skipAliasedFkSegmentsOfNameStack.push(...k.ref.slice(1))
+              return true
+            }
+            return false
+          })?.as
           : null
         if (foreignKeyAlias) nameSegments.push(foreignKeyAlias)
         else if (skipAliasedFkSegmentsOfNameStack[0] === id) skipAliasedFkSegmentsOfNameStack.shift()
@@ -558,7 +558,7 @@ function infer(originalQuery, model) {
         const definition = arg.$refLinks[i].definition
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
-        if (!inFrom && !arg.expand)defineProperty(arg, 'isJoinRelevant', true)
+        if (!inFrom && !arg.expand) defineProperty(arg, 'isJoinRelevant', true)
         let skipJoinsForFilter = false
         step.where.forEach(token => {
           if (token === 'exists') {
@@ -756,8 +756,8 @@ function infer(originalQuery, model) {
         if (col.as) expandSubquery.SELECT.as = col.as
         const inferredExpandSubquery = infer(expandSubquery, model)
         const res = $leafLink.definition.is2one
-          ? new cds.struct({ elements: inferredExpandSubquery.elements })
-          : new cds.array({ items: new cds.struct({ elements: inferredExpandSubquery.elements }) })
+          ? new struct({ elements: inferredExpandSubquery.elements })
+          : new array({ items: new struct({ elements: inferredExpandSubquery.elements }) })
         return defineProperty(res, '$assocExpand', true)
       } else if ($leafLink.definition.elements) {
         let elements = {}
@@ -771,7 +771,7 @@ function infer(originalQuery, model) {
             else elements[e.as || e.flatName] = e.$refLinks ? e.$refLinks[e.$refLinks.length - 1].definition : e
           }
         })
-        return new cds.struct({ elements })
+        return new struct({ elements })
       }
     }
 
@@ -897,7 +897,7 @@ function infer(originalQuery, model) {
         const calcElementIsJoinRelevant = isColumnJoinRelevant(p)
         if (calcElementIsJoinRelevant) {
           if (!calcElement.value.isJoinRelevant)
-            defineProperty(step, 'isJoinRelevant',true)
+            defineProperty(step, 'isJoinRelevant', true)
           joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,
@@ -1047,7 +1047,7 @@ function infer(originalQuery, model) {
     if (!cast) return {}
     if ($refLinks?.[$refLinks.length - 1].definition.elements)
       // no cast on structure
-      cds.error`Structured elements can't be cast to a different type`
+      error`Structured elements can't be cast to a different type`
     thing.cast = cdsTypes[cast.type] || cast
     return thing.cast
   }

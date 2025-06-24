@@ -1,13 +1,13 @@
-import cds from '@sap/cds'
+import cds, { debug, log } from '@sap/cds'
 import cds_infer from './infer/index.js'
 import cqn4sql from './cqn4sql.js'
 import { Readable } from 'stream'
 import util from 'node:util'
 import cqlFunctions from './cql-functions.js'
 
-const DEBUG = cds.debug('sql|sqlite')
-const LOG_SQL = cds.log('sql')
-const LOG_SQLITE = cds.log('sqlite')
+const DEBUG = debug('sql|sqlite')
+const LOG_SQL = log('sql')
+const LOG_SQLITE = log('sqlite')
 
 export class CQN2SQLRenderer {
   /**

@@ -1,9 +1,7 @@
 import cds from '@sap/cds'
+import propagateForeignKeys from '@sap/cds/libx/_runtime/common/utils/propagateForeignKeys.js'
+import {enrichDataWithKeysFromWhere} from '@sap/cds/libx/_runtime/common/utils/keys.js'
 import { hasDeep } from '../lib/deep-queries.js'
-import { createRequire } from 'module'
-const require = createRequire(import.meta.url)
-const propagateForeignKeys = require('../../../../cds/libx/_runtime/common/utils/propagateForeignKeys.js')
-const enrichDataWithKeysFromWhere = require('../../../../cds/libx/_runtime/common/utils/keys.js').enrichDataWithKeysFromWhere
 
 const assoc4 = (e) => e.own('$fk4', ()=> {
   const old = e['@odata.foreignKey4']; if (old) return old

@@ -1,6 +1,6 @@
 'use strict'
 
-const { prettyPrintRef } = require('../utils')
+import { prettyPrintRef } from '../utils.js'
 
 // REVISIT: define following unknown types
 

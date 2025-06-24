@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "@cap-js/sqlite": "*"
   }

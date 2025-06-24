@@ -1,11 +1,11 @@
 import SessionContext from './session-context.js'
 import ConnectionPool from './generic-pool.js'
 import infer from '../infer/index.js'
-import cds from '@sap/cds'
+import cds, { Service } from '@sap/cds'
 
 /** @typedef {unknown} DatabaseDriver */
 
-class DatabaseService extends cds.Service {
+class DatabaseService extends Service {
 
   init() {
     cds.on('shutdown', () => this.disconnect())

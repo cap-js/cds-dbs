@@ -1,12 +1,12 @@
 import { SQLService } from '@cap-js/db-service'
-import cds from '@sap/cds'
+import cds, { cdsc } from '@sap/cds'
 import sqlite from 'better-sqlite3'
 const $session = Symbol('dbc.session')
 import * as convStrm from 'stream/consumers'
 import { Readable } from 'stream'
 import cqlFunctions from './cql-functions.js'
 
-const keywords = cds.compiler.to.sql.sqlite.keywords
+const keywords = cdsc.to.sql.sqlite.keywords
 // keywords come as array
 const sqliteKeywords = keywords.reduce((prev, curr) => {
   prev[curr] = 1

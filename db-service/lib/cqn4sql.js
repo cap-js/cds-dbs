@@ -1,10 +1,12 @@
-import cds from '@sap/cds'
+'use strict'
+
+import { ql, infer as cds_infer, parse } from '@sap/cds'
 import infer from './infer/index.js'
 import { computeColumnsToBeSearched } from './search.js'
 import { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } from './utils.js'
 import { pseudos } from './infer/pseudos.js'
 
-cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
+// cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -42,7 +44,7 @@ export const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
  * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
-  let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
+  let inferred = typeof originalQuery === 'string' ? parse.cql(originalQuery) : ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
 
@@ -80,7 +82,7 @@ function cqn4sql(originalQuery, model) {
   //       we need to infer the query even if no transformation will happen because cds.infer can't calculate the target
   if (hasCustomJoins) return originalQuery
 
-  let transformedQuery = cds.ql.clone(inferred)
+  let transformedQuery = ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
 
   if (inferred.INSERT || inferred.UPSERT) {
@@ -222,7 +224,7 @@ function cqn4sql(originalQuery, model) {
    */
   function transformQueryForInsertUpsert(kind) {
     const { as } = transformedQuery[kind].into
-    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds_infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     transformedQuery[kind].into = { ref: [target.name] }
     if (as) transformedQuery[kind].into.as = as
     return transformedQuery
@@ -1061,7 +1063,7 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
-    const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
+    const target = cds_infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     return cqn4sql(q, model)
