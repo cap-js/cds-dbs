@@ -155,7 +155,7 @@ describe('INSERT', () => {
         ],
       }
       await INSERT(data).into(Order)
-      const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where exists alter`)
+      const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where ID = ${1} and exists alter`)
       expect(select[0]).to.deep.eql(data)
     })
   })

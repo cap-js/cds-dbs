@@ -3,9 +3,9 @@ const cds = require('../cds.js')
 describe('UPSERT', () => {
   const { expect } = cds.test(__dirname + '/resources')
   const uniques = {
-    keys: { ID: 30411041904 },
-    ASC: { ID: 30411041904 },
-    Books: { ID: 30411041904 },
+    keys: { ID: 304110 },
+    ASC: { ID: 304110 },
+    Books: { ID: 304110 },
   }
 
   after(async () => {
@@ -20,6 +20,8 @@ describe('UPSERT', () => {
 
   describe('into', () => {
     test('Apply default for keys before join to existing data', async () => {
+      const { keys } = cds.entities('basic.common')
+
       // HXE cannot handle the default key logic when using @sap/hana-client
       await INSERT([{ ...uniques.keys, data: 'insert' }, { ...uniques.keys, default: 'overwritten', data: 'insert' }]).into(keys)
       const insert = await SELECT.from(keys)

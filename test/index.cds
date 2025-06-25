@@ -8,6 +8,7 @@ using from './bookshop/srv/tree-service';
 // sflight
 using from './sflight/srv/analytics-service';
 using from './sflight/srv/travel-service';
+using from './sflight/app/services';
 
 // compliance
 using from './compliance/resources/db';

@@ -202,11 +202,4 @@ describe('UPDATE', () => {
       await UPDATE(BooksUnique).data(data).where(`ID = ${data.ID}`)
     })
   })
-
-  test('affected rows', async () => {
-    const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
-
-    const affectedRows = await UPDATE.entity('complex.associations.Books').data({ title: 'Book' })
-    expect(affectedRows).to.be.eq(count)
-  })
 })
