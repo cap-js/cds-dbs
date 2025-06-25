@@ -44,7 +44,7 @@ entity ![default] : _cuid {
 }
 
 entity dollar_now_default {
-  key id    : Integer;
+  key ID    : Integer;
   date      : Date default $now;
   time      : Time default $now;
   dateTime  : DateTime default $now;
@@ -52,7 +52,7 @@ entity dollar_now_default {
 }
 
 entity keys {
-  key id      : Integer;
+  key ID      : Integer;
   key default : String default 'defaulted';
       data    : String;
 }
