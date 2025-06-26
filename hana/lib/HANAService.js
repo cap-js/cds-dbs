@@ -213,7 +213,7 @@ class HANAService extends SQLService {
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
-      throw err
+      return this.rollback(err)
     }
   }
 
