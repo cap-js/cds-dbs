@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@cap-js/db-service": "^2",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^12.0.0"
   },
   "peerDependencies": {
     "@sap/cds": ">=9"
