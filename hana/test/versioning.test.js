@@ -6,6 +6,12 @@ describe('Versioned table', () => {
     cds.requires.toggles = true
   })
 
+  afterAll(async () => {
+    const { history } = cds.entities('edge.hana.versioning.versioned')
+    // REVISIT: Remove history data as it is not tracked by database isolation
+    await cds.ql.DELETE.from(history).where({ val: true })
+  })
+
   const { expect } = cds.test(
     __dirname + '/../../test/compliance/resources',
     // Additional model definition is required, because feature flags don't work correctly without mtx
