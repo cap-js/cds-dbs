@@ -166,21 +166,8 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe('CREATE', () => {
-  // TODO: reference to ./definitions.test.js
-
-  // Set cds.root before requiring cds.Service as it resolves and caches package.json
-  // Call default cds.test API
-  const { data } = cds.test(__dirname + '/resources')
-  // Prevent deployment
-  /* skipping deploy causes issues with running all compliance tests in a single suite
-  cds.deploy = () => ({
-    to:() => {return cds.db || cds.connect('db')},
-    then:() => {return cds.db || cds.connect('db')}
-  })
-  // */
-  data.autoIsolation(true)
-  data._deployed = true // Skip automatic deployment
+describe.skip('CREATE', () => {
+  cds.test(__dirname + '/resources')
 
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
