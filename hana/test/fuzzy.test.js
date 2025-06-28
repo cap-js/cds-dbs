@@ -31,11 +31,21 @@ describe('search', () => {
     test('global config', async () => {
       cds.env.hana.fuzzy = 1
       const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"autobio"').columns('1')
+      const cqn = SELECT.from(Books).search('"autobiography"').columns('1')
       const {sql} = cqn.toSQL()
-      expect(sql).to.include('FUZZY MINIMAL TOKEN SCORE 1')
+      expect(sql).to.include('EXACT MINIMAL SCORE 1')
       const res = await cqn
-      expect(res.length).to.be(2) // Eleonora and Jane Eyre
+      expect(res.length).to.be(1) // Jane Eyre
+    })
+
+    test('global config', async () => {
+      cds.env.hana.fuzzy = 1
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(Books).search('is often').columns('1')
+      const {sql} = cqn.toSQL()
+      expect(sql).to.include('EXACT MINIMAL SCORE 1')
+      const res = await cqn
+      expect(res.length).to.be(2) // Eleonora and Raven
     })
 
     test('annotations', async () => {
@@ -48,6 +58,18 @@ describe('search', () => {
       
       const res = await cqn
       expect(res.length).to.be(1) // jane eyre
+    })
+
+    test('annotations with score 1', async () => {
+      const { BooksAnnotatedScore1 } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(BooksAnnotatedScore1).search('is often').columns('1')
+      const {sql} = cqn.toSQL()
+      expect(sql).to.include('title FUZZY WEIGHT 0.8 MINIMAL TOKEN SCORE 0.9')
+      expect(sql).to.include('code FUZZY WEIGHT 0.5 MINIMAL TOKEN SCORE 0.7')
+      expect(sql).to.include('descr EXACT WEIGHT 0.3 MINIMAL SCORE 1')
+      
+      const res = await cqn
+      expect(res.length).to.be(2) // Eleonora and Raven
     })
   })
 
