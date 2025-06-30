@@ -48,8 +48,10 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client({...credentials, ...clientOptions})
+        const dbc = new Client({ ...credentials, ...clientOptions })
         await dbc.connect()
+        dbc.open = true
+        dbc.on('end', () => { dbc.open = false })
         return dbc
       },
       destroy: dbc => dbc.end(),
@@ -283,7 +285,7 @@ GROUP BY k
         return target && this.run(cds.ql.CREATE(target))
       }
     }
-    
+
     try {
       return await super.onPlainSQL(req, next)
     }
@@ -367,8 +369,8 @@ GROUP BY k
         const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
         const o = localized
           ? this.expr(c) +
-            (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
-            (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
           : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
         return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
       })
@@ -379,7 +381,7 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = this.context.locale  ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
+      const locale = this.context.locale ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
       return this._orderBy(orderBy, localized, locale)
     }
 
@@ -710,14 +712,19 @@ class QueryStream extends Query {
     this.push = this.stream.push.bind(this.stream)
 
     this._prom = new Promise((resolve, reject) => {
+      let hasData = false
       this.once('error', reject)
       this.once('end', () => {
-        if (!objectMode && !this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) {
+          if (!hasData) this.push(this.constructor.open)
+          this.push(this.constructor.close)
+        }
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
-        resolve(null)
+        resolve(this._one ? null : this.stream)
       })
       this.once('row', row => {
+        hasData = true
         if (row == null) return resolve(null)
         resolve(this.stream)
       })

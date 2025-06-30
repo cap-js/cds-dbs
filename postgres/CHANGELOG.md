@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.1...postgres-v2.0.2) (2025-06-04)
+
+
+### Fixed
+
+* Allow raw streams to have empty results ([#1224](https://github.com/cap-js/cds-dbs/issues/1224)) ([0a59e69](https://github.com/cap-js/cds-dbs/commit/0a59e69eae2f701b5c475512fd1cd83cfb586153))
+
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.0...postgres-v2.0.1) (2025-05-27)
 
 
