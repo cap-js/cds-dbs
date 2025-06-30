@@ -154,8 +154,9 @@ class HANAService extends SQLService {
 
     // REVISIT: add prepare options when param:true is used
     let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
-    const { hints } = query.SELECT
-    if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
+    const { hints = [] } = query.SELECT
+    hints.push('prelimit_rule_with_sql_parameters')
+    sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
@@ -929,11 +930,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         if (c.nulls) return o + ' NULLS ' + (c.nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
         return o
       })
-    }
-
-    limit({ rows, offset }) {
-      rows = { param: false, __proto__: rows }
-      return super.limit({ rows, offset })
     }
 
     where(xpr) {
