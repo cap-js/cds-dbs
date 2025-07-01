@@ -1672,7 +1672,7 @@ describe('path expression within infix filter following exists predicate', () =>
   })
 })
 
-describe.only('define additional query modifiers', () => {
+describe('define additional query modifiers', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
