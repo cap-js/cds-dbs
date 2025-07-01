@@ -744,6 +744,12 @@ describe('EXISTS predicate in where', () => {
       )`)
     })
   })
+
+  describe('define additional query modifiers', () => {
+    it('MUST ... add query modifiers', () => {
+      let transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE EXISTS author[having]`, model)
+    })
+  })
 })
 
 describe('EXISTS predicate in infix filter', () => {

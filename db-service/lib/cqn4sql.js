@@ -1409,7 +1409,8 @@ function cqn4sql(originalQuery, model) {
           }
           const { definition: fkSource } = next
           ensureValidForeignKeys(fkSource, ref)
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, {args: step.args}))
+          const { where, ...args } = step
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, where, true, args))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
