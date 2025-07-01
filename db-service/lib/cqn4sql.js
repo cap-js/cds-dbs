@@ -64,18 +64,7 @@ function cqn4sql(originalQuery, model) {
   // query modifiers can also be defined in from ref leaf infix filter
   // > SELECT from bookshop.Books[order by price] {ID}
   if (inferred.SELECT?.from.ref) {
-    for (const [key, val] of Object.entries(inferred.SELECT.from.ref.at(-1))) {
-      if (key in { orderBy: 1, groupBy: 1 }) {
-        if (inferred.SELECT[key]) inferred.SELECT[key].push(...val)
-        else inferred.SELECT[key] = val
-      } else if (key === 'limit') {
-        // limit defined on the query has precedence
-        if (!inferred.SELECT.limit) inferred.SELECT.limit = val
-      } else if (key === 'having') {
-        if (!inferred.SELECT.having) inferred.SELECT.having = val
-        else inferred.SELECT.having.push('and', ...val)
-      }
-    }
+    assignQueryModifiers(inferred.SELECT, inferred.SELECT.from.ref.at(-1))
   }
   inferred = infer(inferred, model)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
@@ -1420,7 +1409,7 @@ function cqn4sql(originalQuery, model) {
           }
           const { definition: fkSource } = next
           ensureValidForeignKeys(fkSource, ref)
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, {args: step.args}))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
@@ -1716,7 +1705,7 @@ function cqn4sql(originalQuery, model) {
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
         if (current.definition.target && next) {
-          const { where, args } = nextStep
+          const { where, ...args } = nextStep
           if (isStructured(next.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
@@ -1777,12 +1766,10 @@ function cqn4sql(originalQuery, model) {
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
-      let args = from.ref.at(-1).args
       const subquerySource =
         getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
-      if (subquerySource.params && !args) args = {}
       const id = getLocalizedName(subquerySource)
-      transformedFrom.ref = [args ? { id, args } : id]
+      transformedFrom.ref = [subquerySource.params ? { id, args: from.ref.at(-1).args || {} } : id]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1812,10 +1799,6 @@ function cqn4sql(originalQuery, model) {
 
   function getNextAvailableTableAlias(id) {
     return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
-  }
-
-  function asXpr(thing) {
-    return { xpr: thing }
   }
 
   /**
@@ -2133,9 +2116,11 @@ function cqn4sql(originalQuery, model) {
    * @param {object[]} customWhere infix filter which must be part of the where exists subquery on condition
    * @param {boolean} inWhere whether or not the path is part of the queries where clause
    *                    -> if it is, target and source side are flipped in the where exists subquery
+   * @param {object} queryModifier optional query modifiers: group by, order by, limit, offset
+   * 
    * @returns {CQN.SELECT}
    */
-  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, customArgs = null) {
+  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, queryModifier = null) {
     const { definition } = current
     const { definition: nextDefinition } = next
     const on = []
@@ -2156,10 +2141,9 @@ function cqn4sql(originalQuery, model) {
 
     const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
     const id = getLocalizedName(subquerySource)
-    if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
-        ref: [customArgs ? { id, args: customArgs } : id],
+        ref: [subquerySource.params ? { id, args: queryModifier.args || {} } : id],
         as: next.alias,
       },
       columns: [
@@ -2170,25 +2154,27 @@ function cqn4sql(originalQuery, model) {
       ],
       where: on,
     }
-    if (next.pathExpressionInsideFilter) {
-      SELECT.where = customWhere
-      const transformedExists = transformSubquery({ SELECT })
-      // infix filter conditions are wrapped in `xpr` when added to the on-condition
-      if (transformedExists.SELECT.where) {
-        on.push(
-          ...[
-            'and',
-            ...(hasLogicalOr(transformedExists.SELECT.where)
-              ? [asXpr(transformedExists.SELECT.where)]
-              : transformedExists.SELECT.where),
-          ],
-        )
+    // this requires sub-sequent transformation of the subquery
+    if (next.pathExpressionInsideFilter || (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))) {
+      SELECT.where = next.pathExpressionInsideFilter ? customWhere : [];
+      if (queryModifier) assignQueryModifiers(SELECT, queryModifier);
+
+      const transformedExists = transformSubquery({ SELECT });
+      if (transformedExists.SELECT.where?.length) {
+      const wrappedWhere = hasLogicalOr(transformedExists.SELECT.where)
+        ? [asXpr(transformedExists.SELECT.where)]
+        : transformedExists.SELECT.where;
+
+      on.push('and', ...wrappedWhere);
       }
-      transformedExists.SELECT.where = on
-      return transformedExists.SELECT
-    } else if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next)
-      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
+      transformedExists.SELECT.where = on;
+      return transformedExists.SELECT;
+    }
+
+    if (customWhere) {
+      const filter = getTransformedTokenStream(customWhere, next);
+      const wrappedFilter = hasLogicalOr(filter) ? [asXpr(filter)] : filter;
+      on.push('and', ...wrappedFilter);
     }
     return SELECT
   }
@@ -2351,6 +2337,26 @@ function hasLogicalOr(tokenStream) {
 function getParentEntity(element) {
   if (element.kind === 'entity') return element
   else return getParentEntity(element.parent)
+}
+
+
+function asXpr(thing) {
+  return { xpr: thing }
+}
+
+function assignQueryModifiers(SELECT, modifiers) {
+  for (const [key, val] of Object.entries(modifiers)) {
+    if (key in { orderBy: 1, groupBy: 1 }) {
+      if (SELECT[key]) SELECT[key].push(...val)
+      else SELECT[key] = val
+    } else if (key === 'limit') {
+      // limit defined on the query has precedence
+      if (!SELECT.limit) SELECT.limit = val
+    } else if (key === 'having') {
+      if (!SELECT.having) SELECT.having = val
+      else SELECT.having.push('and', ...val)
+    }
+  }
 }
 
 /**

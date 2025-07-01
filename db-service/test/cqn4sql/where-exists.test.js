@@ -1670,4 +1670,20 @@ describe('path expression within infix filter following exists predicate', () =>
       )`,
     )
   })
+
+  it('supports additional query modifiers for the exists subqueries', () => {
+    const q = cds.ql`
+      SELECT from bookshop.Books[group by author.ID having count(*) > 5]:author { name }
+    `;
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as $a { $a.name }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $B
+        where $B.author_ID = $a.ID
+        group by $B.author_ID
+        having count(*) > 5
+      )
+    `;
+    expect(cqn4sql(q, model)).to.deep.equal(expected);
+  });
 })
