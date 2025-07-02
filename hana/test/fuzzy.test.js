@@ -28,24 +28,24 @@ describe('search', () => {
       expect(res.length).to.be(2) // Eleonora and Jane Eyre
     })
     
-    test('global config', async () => {
+    test('global config partial string', async () => {
       cds.env.hana.fuzzy = 1
       const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"autobiography"').columns('1')
+      const cqn = SELECT.from(Books).search('"autobio"').columns('1')
       const {sql} = cqn.toSQL()
       expect(sql).to.include('EXACT MINIMAL SCORE 1')
       const res = await cqn
-      expect(res.length).to.be(1) // Jane Eyre
+      expect(res.length).to.be(0) // must be exact match
     })
 
-    test('global config', async () => {
+    test('global config whole string', async () => {
       cds.env.hana.fuzzy = 1
       const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('is often').columns('1')
+      const cqn = SELECT.from(Books).search('"Jane"').columns('1')
       const {sql} = cqn.toSQL()
       expect(sql).to.include('EXACT MINIMAL SCORE 1')
       const res = await cqn
-      expect(res.length).to.be(2) // Eleonora and Raven
+      expect(res.length).to.be(2) // Wuthering Heights and and Jane Eyre
     })
 
     test('annotations', async () => {
@@ -60,7 +60,7 @@ describe('search', () => {
       expect(res.length).to.be(1) // jane eyre
     })
 
-    test('annotations with score 1', async () => {
+    test('annotations with descr score 1', async () => {
       const { BooksAnnotatedScore1 } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(BooksAnnotatedScore1).search('is often').columns('1')
       const {sql} = cqn.toSQL()
