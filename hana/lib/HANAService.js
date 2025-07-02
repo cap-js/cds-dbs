@@ -1429,8 +1429,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const creds = {
       containerGroup: database.toUpperCase(),
       usergroup: `${database}_USERS`.toUpperCase(),
-      schema: tenant.toUpperCase(),
-      user: `${tenant}_USER`.toUpperCase(),
+      schema: `${database}_${tenant}`.toUpperCase(),
+      user: `${database}_${tenant}_USER`.toUpperCase(),
     }
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 
