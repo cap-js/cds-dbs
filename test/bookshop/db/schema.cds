@@ -80,4 +80,3 @@ entity Values {
 }
 
 entity BooksAnnotated as projection on Books;
-entity BooksAnnotatedScore1 as projection on Books;
