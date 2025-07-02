@@ -282,6 +282,25 @@ class CQN2SQLRenderer {
   SELECT_recurse(q) {
     let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
+    const keys = []
+    const _target = q._target
+
+    if (_target) {
+      for (const _key in _target.keys) {
+        const k = _target.keys[_key]
+        if (!k.virtual && !k.isAssociation && !k.value) {
+          keys.push({ ref: [_key] })
+        }
+      }
+
+      // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
+      const clone = q.clone()
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
+    }
+
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
     if (!_internal) requiredComputedColumns.RANK = true
     const addComputedColumn = (name) => {
