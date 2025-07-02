@@ -203,11 +203,6 @@ function cqn4sql(originalQuery, model) {
       const transformedGroupBy = getTransformedOrderByGroupBy(groupBy)
       if (transformedGroupBy.length) {
         transformedQuery.SELECT.groupBy = transformedGroupBy
-        if (transformedQuery.SELECT.columns.length === 0) {
-          // We did not have selected columns, but we have group by. This could be a problem for almost all sql dialects (Postgree is exception)
-          // ? Safe fallback is to use groupby columns as SELECT statement ?
-          transformedQuery.SELECT.columns.push(...transformedGroupBy)
-        }
       }
     }
 
