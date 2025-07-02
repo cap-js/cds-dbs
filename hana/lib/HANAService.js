@@ -814,7 +814,7 @@ class HANAService extends SQLService {
 
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
-      if (this.server.major <= 2) {
+      if (this.srv.server.major <= 2) {
         this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
@@ -1204,7 +1204,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      const path = this.string(this.server.major <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
+      const path = this.string(this.srv.server.major <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
