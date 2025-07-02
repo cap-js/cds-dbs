@@ -61,7 +61,7 @@ describe('search', () => {
     })
 
     test('annotations with descr score 1', async () => {
-      const { BooksAnnotatedScore1 } = cds.entities('sap.capire.bookshop')
+      const { BooksAnnotatedScore1 } = cds.entities
       const cqn = SELECT.from(BooksAnnotatedScore1).search('is often').columns('1')
       const {sql} = cqn.toSQL()
       expect(sql).to.include('title FUZZY WEIGHT 0.8 MINIMAL TOKEN SCORE 0.9')
