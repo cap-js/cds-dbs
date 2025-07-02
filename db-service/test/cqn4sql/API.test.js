@@ -38,7 +38,6 @@ describe('Repetitive calls to cqn4sql must work', () => {
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { }`)
   })
 
-
   it('yields the same result if same query is transformed multiple times', () => {
     const input = cds.ql`SELECT from bookshop.Books:author`
     let query = cqn4sql(input, model)
