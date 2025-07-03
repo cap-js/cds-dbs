@@ -284,7 +284,7 @@ class CQN2SQLRenderer {
 
     const _target = q._target
 
-    if (_target) {
+    if (_target && where) {
       const keys = []
       for (const _key in _target.keys) {
         const k = _target.keys[_key]
@@ -294,13 +294,11 @@ class CQN2SQLRenderer {
       }
 
       // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
-      if (where) {
-        const clone = q.clone()
-        clone.columns(keys)
-        clone.SELECT.recurse = undefined
-        clone.SELECT.expand = undefined // omits JSON
-        where = [{ list: keys }, 'in', clone]
-      }
+      const clone = q.clone()
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
     }
 
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
