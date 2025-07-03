@@ -285,7 +285,7 @@ class CQN2SQLRenderer {
     const keys = []
     const _target = q._target
 
-    if (_target) {
+    if (_target && where?.length) {
       for (const _key in _target.keys) {
         const k = _target.keys[_key]
         if (!k.virtual && !k.isAssociation && !k.value) {
