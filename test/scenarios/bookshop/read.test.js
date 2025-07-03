@@ -361,11 +361,6 @@ describe('Bookshop - Read', () => {
   })
 
   test('Filter Books(complex filter in apply) and groupby(by navigation sub properties) that return no records', async () => {
-    // This test is cover next issue https://github.com/cap-js/cds-dbs/issues/1228
-    // We have apply filter that did not match any records.
-    // Also we have group by navigation sub property.
-    // And $count is true.
-    // Expeted result is empty array
     const res = await GET(`/admin/Books?$apply=filter(price le -999)/groupby((author/name,author/ID))&$top=500&$count=true`,
       admin//
     );
@@ -375,10 +370,6 @@ describe('Bookshop - Read', () => {
   })
 
   test('groupby(by navigation sub properties) that return at least some records', async () => {
-    // This test is cover next issue https://github.com/cap-js/cds-dbs/issues/1228
-    // We have apply filter - it should return any records
-    // Also we have group by navigation sub property.
-    // And $count is true.
     const res = await GET(`/admin/Books?$apply=filter(price ge -1)/groupby((author/name,author/ID))&$top=500&$count=true`,
       admin
     );
