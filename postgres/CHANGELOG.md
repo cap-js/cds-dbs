@@ -4,6 +4,40 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.3](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.2...postgres-v2.0.3) (2025-06-30)
+
+
+### Fixed
+
+* **`cds-build`:** retain more build relevant options in the deployer app ([#1206](https://github.com/cap-js/cds-dbs/issues/1206)) ([e7ed70f](https://github.com/cap-js/cds-dbs/commit/e7ed70f36920867ec0063d29255e3681dec1b60c))
+
+## [2.0.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.1...postgres-v2.0.2) (2025-06-04)
+
+
+### Fixed
+
+* Allow raw streams to have empty results ([#1224](https://github.com/cap-js/cds-dbs/issues/1224)) ([0a59e69](https://github.com/cap-js/cds-dbs/commit/0a59e69eae2f701b5c475512fd1cd83cfb586153))
+
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.0...postgres-v2.0.1) (2025-05-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180))
+
+
+### Fixed
+
+* Enable mixing stream and normal parameters in queries ([#1179](https://github.com/cap-js/cds-dbs/issues/1179)) ([7ee8083](https://github.com/cap-js/cds-dbs/commit/7ee808365426072250dd6de87abd11215f44561a))
+* hierarchies in quoted mode ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+* only sort by locale if locale is set ([#1193](https://github.com/cap-js/cds-dbs/issues/1193)) ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+
+
+### Changed
+
+* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180)) ([a1e0bd9](https://github.com/cap-js/cds-dbs/commit/a1e0bd9fe8501c284d8cbfc8d79d4dddda34c087))
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.14.0...postgres-v2.0.0) (2025-05-07)
 
 

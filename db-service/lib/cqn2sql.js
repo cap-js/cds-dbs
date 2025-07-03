@@ -282,6 +282,25 @@ class CQN2SQLRenderer {
   SELECT_recurse(q) {
     let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
+    const keys = []
+    const _target = q._target
+
+    if (_target) {
+      for (const _key in _target.keys) {
+        const k = _target.keys[_key]
+        if (!k.virtual && !k.isAssociation && !k.value) {
+          keys.push({ ref: [_key] })
+        }
+      }
+
+      // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
+      const clone = q.clone()
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
+    }
+
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
     if (!_internal) requiredComputedColumns.RANK = true
     const addComputedColumn = (name) => {
@@ -376,11 +395,12 @@ class CQN2SQLRenderer {
     const expandedByOne = { list: [] } // DistanceTo(...,1)
     const expandedByZero = { list: [] } // not DistanceTo(...,null)
     let expandedFilter = []
+    // If a root where exists it should always be DistanceFromRoot otherwise when a recurse.where exists with only DistanceTo() calls
     let distanceType = 'DistanceFromRoot'
     let distanceVal
 
     if (recurse.where) {
-      distanceType = 'Distance'
+      distanceType = where?.length ? 'DistanceFromRoot' : 'Distance'
       if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
       expandedFilter = [...recurse.where]
       collectDistanceTo(expandedFilter)
@@ -463,7 +483,7 @@ class CQN2SQLRenderer {
           },
           where: expandedFilter.length ? expandedFilter : undefined,
           orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
-          groupBy: [{ ref: ['NODE_ID'] },{ ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
         }
       }
 

@@ -4,6 +4,50 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.2...db-service-v2.2.0) (2025-06-30)
+
+
+### Added
+
+* **recurse:** object-page hierarchies ([#1247](https://github.com/cap-js/cds-dbs/issues/1247)) ([6fe81f2](https://github.com/cap-js/cds-dbs/commit/6fe81f27bc1aee0b8edebe3d9251928ebea8474a))
+
+## [2.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.1...db-service-v2.1.2) (2025-06-12)
+
+
+### Fixed
+
+* Hierarchy View support for ancestors/descendants requests ([#1241](https://github.com/cap-js/cds-dbs/issues/1241)) ([1ccb8b7](https://github.com/cap-js/cds-dbs/commit/1ccb8b7ded50f77de1d71d79b0c4b2040ee6a4f1))
+
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.0...db-service-v2.1.1) (2025-06-06)
+
+
+### Fixed
+
+* Better opt in flag for builtin generic pool ([#1234](https://github.com/cap-js/cds-dbs/issues/1234)) ([98282ff](https://github.com/cap-js/cds-dbs/commit/98282ffd86cb143ebe9000f75b4a51156f6c3539))
+* miscellaneous fixes for builtin pool ([#1235](https://github.com/cap-js/cds-dbs/issues/1235)) ([c657a0b](https://github.com/cap-js/cds-dbs/commit/c657a0ba2292fd429adb1b69aa9ead3eec9d5be0))
+
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.1...db-service-v2.1.0) (2025-06-04)
+
+
+### Added
+
+* opt-in replacement for `generic-pool` ([#815](https://github.com/cap-js/cds-dbs/issues/815)) ([32c08f4](https://github.com/cap-js/cds-dbs/commit/32c08f474eab67c71dad3b5e6a378f8bc52520b0))
+
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.0.0...db-service-v2.0.1) (2025-05-27)
+
+
+### Fixed
+
+* **`search`:** do not search on non-projected elements ([#1198](https://github.com/cap-js/cds-dbs/issues/1198)) ([73d9e67](https://github.com/cap-js/cds-dbs/commit/73d9e67b1bc7d7727c04b4577cb73f4daaed852b))
+* add shortcut for empty UPDATE.data ([#1203](https://github.com/cap-js/cds-dbs/issues/1203)) ([cf991ff](https://github.com/cap-js/cds-dbs/commit/cf991ff8179efee6a4621d2a2bd8bf6265e58893))
+* hierarchies in quoted mode ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+* only sort by locale if locale is set ([#1193](https://github.com/cap-js/cds-dbs/issues/1193)) ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+
+
+### Changed
+
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
 ## [2.0.0](https://github.com/cap-js/cds-dbs/compare/db-service-v1.20.0...db-service-v2.0.0) (2025-05-07)
 
 
