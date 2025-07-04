@@ -4,5 +4,13 @@
     "devDependencies": {
         "@cap-js/sqlite": "*"
     },
-    "private": true
+    "private": true,
+    "cds": {
+        "features": {
+            "ieee754compatible": true
+        },
+        "fiori": {
+            "draft_deletion_timeout": false
+        }
+    }
 }
