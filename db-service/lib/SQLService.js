@@ -309,36 +309,23 @@ class SQLService extends DatabaseService {
           let key
           // For hierarchies, only a single key is supported
           for (const _key in req.target.keys) {
-            if (key === 'IsActiveEntity') continue
+            if (req.target.keys[_key].virtual) continue
             key = _key
             break
           }
-          // TODO: If key value is already part of query, we could skip this select
-          const data = await SELECT.from(from).columns(key).where(where)
-          const recursiveQueries = []
-          if (data.length) {
-            for (const backlink of recursiveBacklinks) {
-              const _recursiveQuery = SELECT.from(table).columns(key)
-              const where = data.flatMap((d, i) => {
-                const res = [{ func: 'DistanceTo', args: [{ val: d[key] }, { val: null }] }]
-                if (i > 0) res.unshift('or')
-                return res
-              })
-              _recursiveQuery.SELECT.recurse = {
-                ref: [backlink],
-                where,
-              }
-              recursiveQueries.push(_recursiveQuery)
+          const _where = []
+          for (const backlink of recursiveBacklinks) {
+            const _recursiveQuery = SELECT.from(table).columns(key)
+            _recursiveQuery.SELECT.recurse = {
+              ref: [backlink],
+              where: from.ref[0].where,
             }
-            // TODO: We could also perform a DELETE.from(SELECT) based on a recursive SELECT, to be investigated
-            const recursiveResults = await Promise.all(recursiveQueries) // [[], [], []]
-            if (recursiveResults[0]?.length) {
-              const query = DELETE.from(req.target).where({ ref: [key] }, 'in', {
-                list: recursiveResults.flatMap(r => r.map(r1 => ({ val: r1[key] }))),
-              })
-              await this.onSIMPLE({ query, target: table })
-            }
+            _where.push({ ref: [key] }, 'in', _recursiveQuery, 'or')
           }
+
+          _where.pop()
+          const query = DELETE.from(table).where(_where)
+          await this.onSIMPLE({ query, target: table })
         }
       }
       return this.onSIMPLE(req)
