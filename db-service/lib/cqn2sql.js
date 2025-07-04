@@ -282,10 +282,10 @@ class CQN2SQLRenderer {
   SELECT_recurse(q) {
     let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
-    const keys = []
     const _target = q._target
 
-    if (_target) {
+    if (_target && where) {
+      const keys = []
       for (const _key in _target.keys) {
         const k = _target.keys[_key]
         if (!k.virtual && !k.isAssociation && !k.value) {
