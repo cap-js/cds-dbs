@@ -6,9 +6,7 @@ const RootPWithKeys = 'complex.RootPWithKeys'
 const ChildPWithWhere = 'complex.ChildPWithWhere'
 
 describe('DELETE', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
-  data.autoReset()
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('from', () => {
     describe('deep', () => {
@@ -47,6 +45,10 @@ describe('DELETE', () => {
         expect(insertsResp[0].affectedRows).to.be.eq(1)
       })
 
+      after(async () => {
+        await DELETE.from(Root).where({ ID: [5, 6, 7, 8, 9] })
+      })
+
       test('on root with keys', async () => {
         const deepDelete = await cds.run(DELETE.from(RootPWithKeys).where({ ID: 5 }))
         expect(deepDelete).to.be.eq(1)
@@ -77,8 +79,8 @@ describe('DELETE', () => {
     test('ref', async () => {
       const { Authors } = cds.entities('complex.associations')
       await INSERT.into(Authors).entries(new Array(9).fill().map((e, i) => ({ ID: 100 + i, name: 'name' + i })))
-      const changes = await cds.run(DELETE.from(Authors))
-      expect(changes | 0).to.be.eq(10, 'Ensure that all rows are affected') // 1 from csv, 9 newly added
+      const changes = await cds.run(DELETE.from(Authors).where(`ID BETWEEN 100 AND 109`))
+      expect(changes | 0).to.be.eq(9, 'Ensure that all rows are affected')
     })
   })
 

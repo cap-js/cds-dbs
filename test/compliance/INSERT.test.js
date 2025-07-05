@@ -3,8 +3,7 @@ const { text } = require('stream/consumers')
 const { PassThrough, Readable } = require('stream')
 
 describe('INSERT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
 
   describe('into', () => {
     test.skip('missing', () => {
@@ -13,19 +12,32 @@ describe('INSERT', () => {
   })
 
   describe('entries', () => {
+    const list = []
+    const where = [{ ref: ['uuid'] }, 'in', { list }]
     let genCount = 0
     const gen = function* () {
-      for (var i = 0; i < 100; i++)
-        yield { uuid: cds.utils.uuid() }
+      for (var i = 0; i < 100; i++) {
+        const row = { uuid: cds.utils.uuid() }
+        list.push({ val: row.uuid })
+        yield row
+      }
       genCount += i
     }
+
+    after(async () => {
+      const { uuid } = cds.entities('basic.literals')
+      const { Order } = cds.entities('complex.keywords')
+
+      await DELETE.from(uuid).where(where)
+      await DELETE.from(Order).where({ ID: 1 })
+    })
 
     test('array', async () => {
       const { uuid } = cds.entities('basic.literals')
 
       await INSERT([...gen()]).into(uuid)
 
-      const result = await SELECT.from(uuid)
+      const result = await SELECT.from(uuid).where(where)
       expect(result.length).to.eq(genCount)
     })
 
@@ -34,7 +46,7 @@ describe('INSERT', () => {
 
       await INSERT(gen()).into(uuid)
 
-      const result = await SELECT.from(uuid)
+      const result = await SELECT.from(uuid).where(where)
       expect(result.length).to.eq(genCount)
     })
 
@@ -43,7 +55,7 @@ describe('INSERT', () => {
 
       await INSERT(Readable.from(gen())).into(uuid)
 
-      const result = await SELECT.from(uuid)
+      const result = await SELECT.from(uuid).where(where)
       expect(result.length).to.eq(genCount)
     })
 
@@ -63,7 +75,7 @@ describe('INSERT', () => {
 
       await INSERT(Readable.from(raw(gen()), { objectMode: false })).into(uuid)
 
-      const result = await SELECT.from(uuid)
+      const result = await SELECT.from(uuid).where(where)
       expect(result.length).to.eq(genCount)
     })
 
@@ -143,7 +155,7 @@ describe('INSERT', () => {
         ],
       }
       await INSERT(data).into(Order)
-      const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where exists alter`)
+      const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where ID = ${1} and exists alter`)
       expect(select[0]).to.deep.eql(data)
     })
   })
@@ -163,6 +175,13 @@ describe('INSERT', () => {
   })
 
   describe('from', () => {
+    after(async () => {
+      const { Alter, ASC } = cds.entities('complex.keywords')
+
+      await DELETE.from(ASC).where({ ID: 1 })
+      await DELETE.from(Alter).where({ ID: 1 })
+    })
+
     test('smart quoting', async () => {
       const { Alter, ASC } = cds.entities('complex.keywords')
       // fill other table first
@@ -179,6 +198,10 @@ describe('INSERT', () => {
     })
   })
 
+  after(async () => {
+    await DELETE.from('complex.associations.Books').where({ ID: 5 })
+  })
+
   test('InsertResult', async () => {
     const insert = INSERT.into('complex.associations.Books').entries({ ID: 5 })
     const affectedRows = await cds.db.run(insert)
@@ -188,15 +211,19 @@ describe('INSERT', () => {
     expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
   })
 
+  after(async () => {
+    await DELETE.from('basic.common.dollar_now_default').where({ ID: [5, 6] })
+  })
+
   test('default $now adds current tx timestamp in correct format', async () => {
     await cds.tx(async tx => {
       // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
-      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 5 }))
-      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ id: 6 }))
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ ID: 5 }))
+      await tx.run(INSERT.into('basic.common.dollar_now_default').entries({ ID: 6 }))
     })
 
     const result = await SELECT.from('basic.common.dollar_now_default')
-    
+
     expect(result.length).to.eq(2)
     expect(result[0].date).to.match(/^\d{4}-\d{2}-\d{2}$/)
     expect(result[0].date).to.eq(result[1].date)

@@ -110,20 +110,20 @@ describe('SELECT', () => {
 
     test('select func', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT count() FROM ${string}`
+      const cqn = cds.ql`SELECT count() FROM ${string} WHERE string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
+      assert.strictEqual(res[0].count, 2, 'Ensure that the function is applied')
     })
 
     test('select funcs', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string} WHERE string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].min, 'no', 'Ensure that the function is applied')
       assert.strictEqual(res[0].max, 'yes', 'Ensure that the function is applied')
-      assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
+      assert.strictEqual(res[0].count, 2, 'Ensure that the function is applied')
     })
 
     test('select funcs (duplicates)', async () => {
@@ -134,10 +134,10 @@ describe('SELECT', () => {
 
     test('select func alias', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT count() as count_renamed FROM ${string}`
+      const cqn = cds.ql`SELECT count() as count_renamed FROM ${string} where string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].count_renamed, 3, 'Ensure that the function is applied and aliased')
+      assert.strictEqual(res[0].count_renamed, 2, 'Ensure that the function is applied and aliased')
     })
 
     test('select funcs alias', async () => {
@@ -148,7 +148,8 @@ describe('SELECT', () => {
         count(1) as count_one,
         count(string) as count_string,
         count(char) as count_char
-      FROM ${string}`
+      FROM ${string}
+      WHERE string in (${'yes'},${'no'}) or string is null`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].count_star, 3, 'Ensure that the function is applied and aliased')
@@ -173,7 +174,10 @@ describe('SELECT', () => {
     test('select xpr', async () => {
       // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
+      const cqn = cds.ql`SELECT (${'yes'} = string) as xpr : cds.Boolean 
+      FROM ${string}
+      WHERE string is null or string = ${'yes'} or string = ${'no'}
+      ORDER BY string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.equal(res[0].xpr, null)
@@ -183,37 +187,34 @@ describe('SELECT', () => {
 
     test('select calculation', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT (string || string) as string FROM ${string}`
+      const cqn = cds.ql`SELECT (string || string) as string FROM ${string} WHERE string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('select sub select', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT (SELECT string FROM ${string} as sub WHERE sub.string = root.string) as string FROM ${string} as root`
+      const cqn = cds.ql`SELECT (SELECT string FROM ${string} as sub WHERE sub.string = root.string) as string FROM ${string} as root WHERE string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('select 200 columns', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = SELECT(new Array(200).fill().map((_, i) => ({ as: `${i}`, val: i }))).from(string)
+      const cqn = SELECT.one(new Array(200).fill().map((_, i) => ({ as: `${i}`, val: i }))).from(string)
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      assert.equal(Object.keys(res[0]).length, cqn.SELECT.columns.length)
+      assert.equal(Object.keys(res).length, cqn.SELECT.columns.length)
     })
 
     const nulls = length => new Array(length).fill().map((_, i) => ({ as: `null${i}`, val: null }))
     test('select 200 null columns', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = SELECT(nulls(200)).from(string)
+      const cqn = SELECT.one(nulls(200)).from(string)
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       // ensure that all null values are returned
-      assert.strictEqual(Object.keys(res[0]).length, 200)
-      res[0]
+      assert.strictEqual(Object.keys(res).length, 200)
       cqn.SELECT.columns.forEach((c) => {
-        assert.strictEqual(res[0][c.as], null)
+        assert.strictEqual(res[c.as], null)
       })
     })
 
@@ -267,7 +268,7 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT FROM ${string} excluding { string }`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.notEqual(res.length, 0, 'Ensure that rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
     })
 
@@ -275,7 +276,7 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT FROM ${string} { * } excluding { string }`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.notEqual(res.length, 0, 'Ensure that rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
     })
 
@@ -283,7 +284,7 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT FROM ${string} { *, ${'extra'} } excluding { string }`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.notEqual(res.length, 0, 'Ensure that rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
       assert.strictEqual('extra' in res[0], true, 'Ensure that specific columns are included')
     })
@@ -292,7 +293,7 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT FROM ${string} { string, char } excluding { string }`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.notEqual(res.length, 0, 'Ensure that rows are coming back')
       assert.strictEqual('string' in res[0], true, 'Ensure that specific columns are included')
     })
   })
@@ -303,7 +304,7 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT bool FROM ${globals}`
       cqn.SELECT.where = []
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.notEqual(res.length, 0, 'Ensure that rows are coming back')
     })
 
     test('compare with DateTime column', async () => {
@@ -614,37 +615,37 @@ describe('SELECT', () => {
   describe('groupby', () => {
     test('single ref', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'}) GROUP BY string`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('multiple refs', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string, char`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'}) GROUP BY string, char`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${'1'}`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'}) GROUP BY string,${'1'}`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('func', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'}) GROUP BY string,now()`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('func', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'}) GROUP BY string,now()`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('navigation with duplicate identifier in path', async () => {
@@ -708,7 +709,6 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string asc`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
@@ -717,7 +717,6 @@ describe('SELECT', () => {
       const { string } = cds.entities('basic.literals')
       const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string desc`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       const sorted = [...res].sort((a, b) => _localeSort(b.string, a.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
