@@ -324,6 +324,7 @@ class CQN2SQLRenderer {
       DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
       DrillState: false,
       LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
+      LimitedRank: { xpr: [{ func: 'row_number', args: [], xpr: ['OVER', { list: [] }] }, '-', { val: 1, param: false }], as: 'LimitedRank' }
     }
 
     const columnsFiltered = columns
@@ -1176,7 +1177,7 @@ class CQN2SQLRenderer {
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
-        if (x.xpr) return `(${this.xpr(x)})`
+        if (x.xpr && !x.func) return `(${this.xpr(x)})`
         else return this.expr(x)
       })
       .join(' ')
