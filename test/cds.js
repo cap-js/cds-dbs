@@ -36,13 +36,16 @@ cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(() => {
     try {
-      const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
-      const serviceDefinitionPath = testSource + 'test/service'
-      cds.env.requires.db = require(serviceDefinitionPath)
-      require(testSource + 'cds-plugin')
+      const path = cds.utils.path
+      const sep = path.sep
+      const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
+      const serviceDefinitionPath = `${testSource}/test/service`
+      cds.env.requires.db = {...cds.env.requires.db, ...require(serviceDefinitionPath)}
+      require(testSource + '/cds-plugin')
     } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = require('@cap-js/sqlite/test/service')
+      cds.env.requires.db = {...cds.env.requires.db, ...require('@cap-js/sqlite/test/service')}
+      require('@cap-js/sqlite/cds-plugin')
     }
   })
 
@@ -116,10 +119,15 @@ cds.test = Object.setPrototypeOf(function () {
     global.cds.resolve.cache = {}
   })
 
+  ret.expect = cdsTest.expect
   return ret
 }, cdsTest.constructor.prototype)
 
-// Release cds._context for garbage collection
-global.afterEach(() => {
-  cds._context.disable()
-})
+cds.test.expect = cdsTest.expect
+
+// REVISIT: remove once sflight or cds-test is adjusted to the correct behavior
+const expect = cdsTest.expect().__proto__.constructor.prototype
+const _includes = expect.includes
+expect.includes = function (x) {
+  return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
+}

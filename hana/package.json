@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "1.2.0",
+  "version": "2.1.1",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
@@ -16,24 +16,29 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && jest --silent",
-    "test:remote": "jest --silent",
+    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && npm run test:plain && npm run test:bookshop:quoted",
+    "test:bookshop:quoted": "cds_sql_names=quoted cds-test bookshop",
+    "test:plain": "cds-test",
+    "test:remote": "cds-test",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "hdb": "^0.19.5",
-    "@cap-js/db-service": "^1.9.0"
+    "@cap-js/db-service": "^2.1.1",
+    "hdb": "^0.19.5"
   },
   "peerDependencies": {
-    "@sap/hana-client": ">=2",
-    "@sap/cds": ">=8.2"
+    "@sap/hana-client": "^2",
+    "@sap/cds": ">=9"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@sap/hana-client": ">=2"
   },
   "cds": {
     "requires": {
@@ -50,5 +55,5 @@
       "db": "sql"
     }
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }

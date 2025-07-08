@@ -7,10 +7,21 @@ entity Books {
         coAuthor_ID_unmanaged : Integer;
         coAuthorUnmanaged     : Association to Authors
                                     on coAuthorUnmanaged.ID = coAuthor_ID_unmanaged;
+        shelf                 : Association to BookShelf;
 }
 
 @cds.search: {author.lastName}
 entity BooksSearchAuthorName : Books {}
+
+@cds.search: {title}
+entity PathInSearchNotProjected as select from BooksSearchAuthorName {
+    ID,
+    title
+};
+
+entity NoSearchCandidateProjected as select from PathInSearchNotProjected {
+    ID
+};
 
 // search through all searchable fields in the author
 @cds.search: {author}
@@ -69,4 +80,15 @@ entity CalculatedAddresses : Addresses {
 // calculated elements are not searchable by default
 entity CalculatedAddressesWithoutAnno : Addresses {
     calculatedAddress : String = street || ' ' || zip || '' || city
+}
+
+@cds.search: {
+    genre,
+    books.doesNotExist
+}
+entity BookShelf {
+    key ID    : Integer;
+        genre : String;
+        books : Composition of many Books
+                    on books.shelf = $self;
 }

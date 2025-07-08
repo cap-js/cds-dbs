@@ -1,22 +1,22 @@
 const cds = require('../../../test/cds.js')
-const { fs, path } = cds.utils
 const { Readable } = require('stream')
 
-const checkSize = async stream => {
-  let size = 0
-  for await (const chunk of stream) {
-    size += chunk.length
-  }
-  expect(size).toEqual(7891)
-}
-
 describe('streaming', () => {
-  cds.test(__dirname, 'model.cds')
+  const { expect } = cds.test(__dirname, 'model.cds')
+  const { fs, path } = cds.utils
+
+  const checkSize = async stream => {
+    let size = 0
+    for await (const chunk of stream) {
+      size += chunk.length
+    }
+    expect(size).to.equal(7891)
+  }
 
   describe('Streaming API', () => {
     beforeAll(async () => {
       const data = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
-      await cds.run('INSERT INTO test_Images values(?,?,?)', [
+      await INSERT.into('test.Images').columns('ID', 'data', 'data2').rows([
         [1, data, data],
         [2, null, data],
         [3, data, null],
@@ -50,13 +50,13 @@ describe('streaming', () => {
           .columns('data', { val: 'image/jpeg', as: '$mediaContentType' })
           .where({ ID: 1 })
         await checkSize(stream)
-        expect(val).toEqual('image/jpeg')
+        expect(val).to.equal('image/jpeg')
       }))
 
       test('READ null stream property with .from, .column and .where', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const [{ data: stream }] = await SELECT.from(Images).columns('data').where({ ID: 2 })
-        expect(stream).toBeNull()
+        expect(stream).to.be.null
       }))
 
       // re-enable after /cap/cdsnode/issues/2130 has been fixed
@@ -64,7 +64,7 @@ describe('streaming', () => {
         const { Images } = cds.entities('test')
         const [{ ID, data: stream }] = await SELECT.from(Images).columns(['ID', 'data']).where({ ID: 1 })
         await checkSize(stream)
-        expect(ID).toEqual(1)
+        expect(ID).to.equal(1)
       }))
 
       test('READ multiple stream properties with .from, .column and .where', async () => cds.tx(async () => {
@@ -76,7 +76,7 @@ describe('streaming', () => {
           .where({ ID: 1 })
         await checkSize(stream1)
         await checkSize(stream2)
-        expect(ID).toEqual(1)
+        expect(ID).to.equal(1)
       }))
 
       test('READ all entries with stream property with .from, .column ', async () => cds.tx(async () => {
@@ -88,52 +88,52 @@ describe('streaming', () => {
         ] = await SELECT.from(Images).columns(['ID', 'data', 'data2'])
         await checkSize(stream1)
         await checkSize(stream2)
-        expect(stream3).toBeNull()
+        expect(stream3).to.be.null
         await checkSize(stream4)
         await checkSize(stream5)
-        expect(stream6).toBeNull()
-        expect(ID1).toEqual(1)
-        expect(ID2).toEqual(2)
-        expect(ID3).toEqual(3)
+        expect(stream6).to.be.null
+        expect(ID1).to.equal(1)
+        expect(ID2).to.equal(2)
+        expect(ID3).to.equal(3)
       }))
 
       test('READ one ignore stream properties if columns = all', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const result = await SELECT.from(Images).where({ ID: 1 })
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
+        expect(result[0].ID).equals(1)
+        expect(result[0].data).to.be.undefined
+        expect(result[0].data2).to.be.undefined
       }))
 
       test('READ multiple entries ignore stream properties if columns = all', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const result = await SELECT.from(Images)
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
-        expect(result[1].ID).toBe(2)
-        expect(result[1].data).toBeUndefined()
-        expect(result[1].data2).toBeUndefined()
+        expect(result[0].ID).equals(1)
+        expect(result[0].data).to.be.undefined
+        expect(result[0].data2).to.be.undefined
+        expect(result[1].ID).equals(2)
+        expect(result[1].data).to.be.undefined
+        expect(result[1].data2).to.be.undefined
       }))
 
       test('READ ignore stream properties if columns = *', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const result = await SELECT.from(Images).columns('*').where({ ID: 1 })
-        expect(result[0].ID).toBe(1)
-        expect(result[0].data).toBeUndefined()
-        expect(result[0].data2).toBeUndefined()
+        expect(result[0].ID).equals(1)
+        expect(result[0].data).to.be.undefined
+        expect(result[0].data2).to.be.undefined
       }))
 
       test('READ all properties from not existing entry', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const res = await SELECT.from(Images).columns('*').where({ ID: 15 })
-        expect(res.length).toBe(0)
+        expect(res.length).equals(0)
       }))
 
       test('READ stream property from not existing entry', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
         const res = await SELECT.from(Images).columns('data').where({ ID: 15 })
-        expect(res.length).toBe(0)
+        expect(res.length).equals(0)
       }))
     })
 
@@ -149,9 +149,9 @@ describe('streaming', () => {
         })
         try {
           await UPDATE(Images).with({ data: stream }).where({ ID: 1 })
-          expect(1).toBe(2)
+          expect(1).equals(2)
         } catch (err) {
-          expect(err.code).toEqual('ERR_INVALID_ARG_TYPE')
+          expect(err.code).to.equal('ERR_INVALID_ARG_TYPE')
         }
       }))
 
@@ -160,7 +160,7 @@ describe('streaming', () => {
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-        expect(changes).toEqual(1)
+        expect(changes).to.equal(1)
 
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
@@ -172,7 +172,7 @@ describe('streaming', () => {
         const stream2 = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data: stream1, data2: stream2 }).where({ ID: 4 })
-        expect(changes).toEqual(1)
+        expect(changes).to.equal(1)
 
         const [{
           data: stream1_, data2: stream2_
@@ -187,8 +187,12 @@ describe('streaming', () => {
         const { Images } = cds.entities('test')
         const { data: stream } = await SELECT.one.from(Images).columns('data').where({ ID: 1 })
 
-        const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
-        expect(changes).toEqual(1)
+        const insert = async () => {
+          const changes = await UPDATE(Images).with({ data2: stream }).where({ ID: 3 })
+          expect(changes).to.equal(1)
+        }
+        if(cds.db.pools._factory.options.max > 1) await cds.tx(insert) // Stream over multiple transaction for `hdb` limitation
+        else await insert()
 
         const [{ data2: stream_ }] = await SELECT.from(Images).columns('data2').where({ ID: 3 })
         await checkSize(stream_)
@@ -200,7 +204,7 @@ describe('streaming', () => {
         const blob2 = fs.readFileSync(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(Images).with({ data: blob1, data2: blob2 }).where({ ID: 4 })
-        expect(changes).toEqual(1)
+        expect(changes).to.equal(1)
 
         const [{
           data: stream1_,
@@ -217,7 +221,7 @@ describe('streaming', () => {
         const stream = fs.createReadStream(path.join(__dirname, 'samples/test.jpg'))
 
         const changes = await UPDATE(ImagesView).with({ renamedData: stream }).where({ ID: 1 })
-        expect(changes).toEqual(1)
+        expect(changes).to.equal(1)
 
         const [{ renamedData: stream_ }] = await SELECT.from(ImagesView).columns('renamedData').where({ ID: 1 })
         await checkSize(stream_)
@@ -257,7 +261,7 @@ describe('streaming', () => {
         await Promise.all([wrap(out1000), wrap(out1001)])
       }))
 
-      xtest('WRITE dataset from json generator stream', async () => cds.tx(async () => {
+      test.skip('WRITE dataset from json generator stream', async () => cds.tx(async () => {
         const { Images } = cds.entities('test')
 
         const start = 2000

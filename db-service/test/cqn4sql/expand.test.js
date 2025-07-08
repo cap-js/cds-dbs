@@ -12,29 +12,29 @@ describe('Unfold expands on structure', () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
   it('supports nested projections for structs', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books { Books.ID,
+      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
         Books.dedication_addressee_ID,
       }`,
     )
   })
   it('supports deeply nested projections for structs', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee, sub { foo } } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee, sub { foo } } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books { Books.ID,
+      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
       }`,
     )
   })
   it('supports deeply nested projections for structs w/ wildcard', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee, sub { * } } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee, sub { * } } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
@@ -42,10 +42,10 @@ describe('Unfold expands on structure', () => {
     )
   })
   it('supports renaming', () => {
-    let query = CQL`SELECT from bookshop.Books { ID as foo, dedication as bubu { addressee, sub { * } } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID as foo, dedication as bubu { addressee, sub { * } } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as Books {
         Books.ID as foo,
         Books.dedication_addressee_ID as bubu_addressee_ID,
         Books.dedication_sub_foo as bubu_sub_foo,
@@ -53,10 +53,10 @@ describe('Unfold expands on structure', () => {
     )
   })
   it('supports nested projections for structs w/ order by', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication as bubu { addressee, sub { * } } } order by bubu.sub.foo`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication as bubu { addressee, sub { * } } } order by bubu.sub.foo`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.dedication_addressee_ID as bubu_addressee_ID,
         Books.dedication_sub_foo as bubu_sub_foo,
@@ -65,10 +65,10 @@ describe('Unfold expands on structure', () => {
   })
 
   it('supports nested projections for structs with wildcard select and respects order', () => {
-    let query = CQL`SELECT from bookshop.Books { dedication {text, * } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { dedication {text, * } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as Books {
         Books.dedication_text,
         Books.dedication_addressee_ID,
         Books.dedication_sub_foo,
@@ -77,10 +77,10 @@ describe('Unfold expands on structure', () => {
     )
   })
   it('supports nested projections for structs with wildcard select', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { * } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { * } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books { Books.ID,
+      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
         Books.dedication_addressee_ID,
         Books.dedication_text,
         Books.dedication_sub_foo,
@@ -89,10 +89,10 @@ describe('Unfold expands on structure', () => {
     )
   })
   it('supports nested projections for structs with smart wildcard', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { *, 5 as text } }`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { *, 5 as text } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.dedication_addressee_ID,
         5 as dedication_text,
@@ -103,78 +103,78 @@ describe('Unfold expands on structure', () => {
   })
 
   it('supports nested projections for structs with join relevant path expression', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee.name } }`
+    let query = cds.ql`SELECT from bookshop.Books { ID, dedication { addressee.name } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books
-          left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID {
-            Books.ID,
+      cds.ql`SELECT from bookshop.Books as $B
+          left outer join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID {
+            $B.ID,
             addressee.name as dedication_addressee_name
       }`,
     )
   })
   it('supports nested projections for structs with join relevant path expression w/ infix filter', () => {
-    let query = CQL`SELECT from bookshop.Books { ID, dedication { addressee[ID=42].name } }`
+    let query = cds.ql`SELECT from bookshop.Books { ID, dedication { addressee[ID=42].name } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books
-          left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID and addressee.ID = 42 {
-            Books.ID,
+      cds.ql`SELECT from bookshop.Books as $B
+          left outer join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID and addressee.ID = 42 {
+            $B.ID,
             addressee.name as dedication_addressee_name
       }`,
     )
   })
   it('nested projection of assoc within structured expand', () => {
-    let query = CQL`SELECT from bookshop.Books {
+    let query = cds.ql`SELECT from bookshop.Books {
                     ID,
                     dedication { text, addressee { name } }
                   }`
     let transformed = cqn4sql(query)
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
-            Books.ID,
-            Books.dedication_text,
+      cds.ql`SELECT from bookshop.Books as $B {
+            $B.ID,
+            $B.dedication_text,
             (
-              SELECT dedication_addressee.name
-              from bookshop.Person as dedication_addressee
-              where Books.dedication_addressee_ID = dedication_addressee.ID
+              SELECT $d.name
+              from bookshop.Person as $d
+              where $B.dedication_addressee_ID = $d.ID
             ) as dedication_addressee
       }`,
     )
   })
 
   it('handles smart wildcard and respects order', () => {
-    let query = CQL`SELECT from bookshop.Books { dedication { 'first' as first, 'second' as sub, *, 5 as ![5], 'Baz' as text } }`
+    let query = cds.ql`SELECT from bookshop.Books { dedication { 'first' as first, 'second' as sub, *, 5 as ![5], 'Baz' as text } }`
     let transformed = cqn4sql(query)
     expect(transformed).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
+      cds.ql`SELECT from bookshop.Books as $B {
         'first' as dedication_first,
         'second' as dedication_sub,
-        Books.dedication_addressee_ID,
+        $B.dedication_addressee_ID,
         'Baz' as dedication_text,
-        Books.dedication_dedication,
+        $B.dedication_dedication,
         5 as dedication_5
       }`,
     )
   })
 
   it('structured expand within nested projection of assoc within structured expand', () => {
-    let query = CQL`SELECT from bookshop.Books {
+    let query = cds.ql`SELECT from bookshop.Books {
                     ID,
                     dedication { text, addressee { name, address { * } } }
                   }`
     let transformed = cqn4sql(query)
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(
-      CQL`SELECT from bookshop.Books as Books {
-            Books.ID,
-            Books.dedication_text,
+      cds.ql`SELECT from bookshop.Books as $B {
+            $B.ID,
+            $B.dedication_text,
             (
               SELECT
-                dedication_addressee.name,
-                dedication_addressee.address_street,
-                dedication_addressee.address_city
-              from bookshop.Person as dedication_addressee
-              where Books.dedication_addressee_ID = dedication_addressee.ID
+                $d.name,
+                $d.address_street,
+                $d.address_city
+              from bookshop.Person as $d
+              where $B.dedication_addressee_ID = $d.ID
             ) as dedication_addressee
       }`,
     )
@@ -191,46 +191,31 @@ describe('Unfold expands on associations to special subselects', () => {
   // - they can select multiple columns
   // - they can return multiple rows
   it('rejects unmanaged association in infix filter of expand path', () => {
-    expect(() => cqn4sql(CQL`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
+    expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { author[books.title = 'foo'] { name } }`, model)).to.throw(
       /Unexpected unmanaged association “books” in filter expression of “author”/,
     )
   })
   it('rejects non-fk access in infix filter of expand path', () => {
     expect(() =>
-      cqn4sql(CQL`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model),
+      cqn4sql(cds.ql`SELECT from bookshop.EStrucSibling { self[sibling.struc1 = 'foo'] { ID } }`, model),
     ).to.throw(/Only foreign keys of “sibling” can be accessed in infix filter/)
   })
   it('unfold expand, one field', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books {
       author { name }
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
     expect(res.SELECT.columns[0].SELECT).to.have.property('one').that.equals(true)
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as $B {
       (
-        SELECT from bookshop.Authors as author {
-          author.name
-        } where Books.author_ID = author.ID
+        SELECT from bookshop.Authors as $a {
+          $a.name
+        } where $B.author_ID = $a.ID
       ) as author
     }`
     expect(JSON.parse(JSON.stringify(res)))
       .to.deep.equal(expected)
-      .to.deep.equal({
-        SELECT: {
-          from: { ref: ['bookshop.Books'], as: 'Books' },
-          columns: [
-            {
-              SELECT: {
-                from: { ref: ['bookshop.Authors'], as: 'author' },
-                columns: [{ ref: ['author', 'name'] }],
-                where: [{ ref: ['Books', 'author_ID'] }, '=', { ref: ['author', 'ID'] }],
-              },
-              as: 'author',
-            },
-          ],
-        },
-      })
   })
   it('do not loose additional properties on expand column', () => {
     const q = {
@@ -266,13 +251,77 @@ describe('Unfold expands on associations to special subselects', () => {
     }
 
     const res = cqn4sql(q)
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as $B {
       (
-        SELECT from bookshop.Authors as author {
-          author.name
+        SELECT from bookshop.Authors as $a {
+          $a.name
         }
-        where Books.author_ID = author.ID
+        where $B.author_ID = $a.ID
         order by name ASC
+        limit 1
+        offset 1
+      ) as author
+    }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('do not loose additional properties on expand column if defined in ref', () => {
+    const q = cds.ql`SELECT from bookshop.Authors { books[order by price] { title } }`
+    const res = cqn4sql(q)
+    const expected = cds.ql`SELECT from bookshop.Authors as $A {
+      (
+        SELECT from bookshop.Books as $b {
+          $b.title
+        }
+        where $A.ID = $b.author_ID
+        order by $b.price
+      ) as books
+    }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('query modifiers in ref are combined with sibling properties to expand', () => {
+    const q = {
+      SELECT: {
+        from: {
+          ref: ['bookshop.Books'],
+        },
+        columns: [
+          {
+            ref: [{id: 'author', orderBy: [{ref:['dateOfBirth'], sort: 'desc'}]}],
+            expand: [
+              {
+                ref: ['name'],
+              },
+            ],
+            limit: {
+              offset: {
+                val: 1,
+              },
+              rows: {
+                val: 1,
+              },
+            },
+            // this order by is overwritten by the one in the ref
+            orderBy: [
+              {
+                ref: ['dateOfDeath'],
+                sort: 'asc',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    const res = cqn4sql(q)
+    const expected = cds.ql`SELECT from bookshop.Books as $B {
+      (
+        SELECT from bookshop.Authors as $a {
+          $a.name
+        }
+        where $B.author_ID = $a.ID
+        order by $a.dateOfDeath asc, $a.dateOfBirth desc
         limit 1
         offset 1
       ) as author
@@ -314,17 +363,17 @@ describe('Unfold expands on associations to special subselects', () => {
       },
     }
 
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as $B {
       (
-        SELECT from bookshop.Authors as author {
-          author.name
+        SELECT from bookshop.Authors as $a {
+          $a.name
         }
-        where Books.author_ID = author.ID and
-            exists ( SELECT 1 from bookshop.Books as books2 where
-                books2.author_ID = author.ID and exists (
-                  SELECT 1 from bookshop.Authors as author2 where
-                    author2.ID = books2.author_ID and
-                    author2.name = 'King'
+        where $B.author_ID = $a.ID and
+            exists ( SELECT 1 from bookshop.Books as $b2 where
+                $b2.author_ID = $a.ID and exists (
+                  SELECT 1 from bookshop.Authors as $a2 where
+                    $a2.ID = $b2.author_ID and
+                    $a2.name = 'King'
                   )
               )
         order by name ASC
@@ -338,7 +387,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, make sure the prototype of the subquery is not polluted', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books {
       author { name }
     }`
     const res = cqn4sql(q)
@@ -347,16 +396,16 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('enforce external alias to texts expand', () => {
-    const q = CQL`SELECT from bookshop.Books as NotBooks {
+    const q = cds.ql`SELECT from bookshop.Books as NotBooks {
       ID,
       texts { locale }
     }`
-    const qx = CQL`SELECT from bookshop.Books as NotBooks {
+    const qx = cds.ql`SELECT from bookshop.Books as NotBooks {
       NotBooks.ID,
       (
-        SELECT texts.locale
-        from bookshop.Books.texts as texts
-        where texts.ID = NotBooks.ID
+        SELECT $t.locale
+        from bookshop.Books.texts as $t
+        where $t.ID = NotBooks.ID
       ) as texts
     }`
     const res = cqn4sql(q)
@@ -364,12 +413,12 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, one field w/ infix filter', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books {
       author[name='King' or name like '%Sanderson'] { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT author.name from bookshop.Authors as author
-        where Books.author_ID = author.ID and (author.name = 'King' or author.name like '%Sanderson')) as author
+    const qx = cds.ql`SELECT from bookshop.Books as $B {
+      (SELECT $a.name from bookshop.Authors as $a
+        where $B.author_ID = $a.ID and ($a.name = 'King' or $a.name like '%Sanderson')) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -378,17 +427,17 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('backlink with simple condition AND backlink', () => {
-    let query = cqn4sql(CQL`
+    let query = cqn4sql(cds.ql`
       SELECT from bookshop.SoccerTeams {
         goalKeeper { name }
       }
     `)
-    let expected = CQL`
-      SELECT from bookshop.SoccerTeams as SoccerTeams {
+    let expected = cds.ql`
+      SELECT from bookshop.SoccerTeams as $S {
         (
-          SELECT from bookshop.SoccerPlayers as goalKeeper {
-            goalKeeper.name
-          } where goalKeeper.jerseyNumber = 1 and (SoccerTeams.ID = goalKeeper.team_ID)
+          SELECT from bookshop.SoccerPlayers as $g {
+            $g.name
+          } where $g.jerseyNumber = 1 and ($S.ID = $g.team_ID)
         ) as goalKeeper
       }
     `
@@ -398,15 +447,15 @@ describe('Unfold expands on associations to special subselects', () => {
   // TODO: aliases of outer query needs to be considered
   // still valid sql in this case
   it('unfold expand, with subquery in expand', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books{
       author { name, (select title from bookshop.Books) as book }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
+    const qx = cds.ql`SELECT from bookshop.Books as $B {
       (SELECT
-          author.name,
-          (select Books2.title from bookshop.Books as Books2) as book
-        from bookshop.Authors as author
-        where Books.author_ID = author.ID) as author
+          $a.name,
+          (select $B2.title from bookshop.Books as $B2) as book
+        from bookshop.Authors as $a
+        where $B.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -415,26 +464,26 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('correctly builds correlated subquery if selecting from subquery', () => {
-    const q = CQL`SELECT from (select author from bookshop.Books) as book {
+    const q = cds.ql`SELECT from (select author from bookshop.Books) as book {
       author { name }
     }`
-    const qx = CQL`SELECT from (select Books.author_ID from bookshop.Books as Books) as book {
+    const qx = cds.ql`SELECT from (select $B.author_ID from bookshop.Books as $B) as book {
       (SELECT
-          author.name
-        from bookshop.Authors as author
-        where book.author_ID = author.ID) as author
+          $a.name
+        from bookshop.Authors as $a
+        where book.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
   })
 
   it('unfold expand, several fields with alias', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author { name, dateOfBirth as dob, placeOfBirth as pob}
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT author.name, author.dateOfBirth as dob, author.placeOfBirth as pob
-         from bookshop.Authors as author where Books.author_ID = author.ID) as author
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
+      (SELECT $a.name, $a.dateOfBirth as dob, $a.placeOfBirth as pob
+         from bookshop.Authors as $a where Books.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -443,12 +492,12 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, several fields with expressions', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author { name, substring(placeOfBirth, 1, 1) as pob }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT author.name, substring(author.placeOfBirth, 1, 1) as pob
-         from bookshop.Authors as author where Books.author_ID = author.ID) as author
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
+      (SELECT $a.name, substring($a.placeOfBirth, 1, 1) as pob
+         from bookshop.Authors as $a where Books.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -457,13 +506,13 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, structured field', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author { name, address }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
       ( SELECT
-        author.name, author.address_street, author.address_city
-        from bookshop.Authors as author where Books.author_ID = author.ID) as author
+        $a.name, $a.address_street, $a.address_city
+        from bookshop.Authors as $a where Books.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -471,13 +520,13 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('unfold expand, structured field with alias', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author { name, address as BUBU }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
       ( SELECT
-        author.name, author.address_street as BUBU_street, author.address_city as BUBU_city
-        from bookshop.Authors as author where Books.author_ID = author.ID) as author
+        $a.name, $a.address_street as BUBU_street, $a.address_city as BUBU_city
+        from bookshop.Authors as $a where Books.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -486,15 +535,15 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, *', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author { * }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
       ( SELECT
-        author.createdAt, author.createdBy, author.modifiedAt, author.modifiedBy,
-        author.ID, author.name, author.dateOfBirth, author.dateOfDeath, author.placeOfBirth, author.placeOfDeath,
-        author.address_street, author.address_city
-        from bookshop.Authors as author where Books.author_ID = author.ID) as author
+        $a.createdAt, $a.createdBy, $a.modifiedAt, $a.modifiedBy,
+        $a.ID, $a.name, $a.dateOfBirth, $a.dateOfDeath, $a.placeOfBirth, $a.placeOfDeath,
+        $a.address_street, $a.address_city
+        from bookshop.Authors as $a where Books.author_ID = $a.ID) as author
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -504,11 +553,11 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // explicit alias for struc name is also used as table alias for subquery
   it('unfold expand, with association alias', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author as a { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT a.name from bookshop.Authors as a where Books.author_ID  = a.ID) as a
+    const qx = cds.ql`SELECT from bookshop.Books as Books{
+      (SELECT $a.name from bookshop.Authors as $a where Books.author_ID  = $a.ID) as a
     }`
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
@@ -517,26 +566,26 @@ describe('Unfold expands on associations to special subselects', () => {
   // if the provided alias needs to be renamed when used as table alias, the alias for the element
   // must not change
   it('unfold expand, with duplicate association alias', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author as books { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT books2.name from bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
+      (SELECT $b.name from bookshop.Authors as $b where Books.author_ID = $b.ID) as books
     }`
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
 
   it('unfold expand, two expands', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       author as a1 { name },
       author as a2 { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
-      (SELECT a1.name from bookshop.Authors as a1
-        where Books.author_ID = a1.ID) as a1,
-      (SELECT a2.name from bookshop.Authors as a2
-        where Books.author_ID = a2.ID) as a2
+    const qx = cds.ql`SELECT from bookshop.Books as Books {
+      (SELECT $a.name from bookshop.Authors as $a
+        where Books.author_ID = $a.ID) as a1,
+      (SELECT $a2.name from bookshop.Authors as $a2
+        where Books.author_ID = $a2.ID) as a2
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
@@ -547,17 +596,17 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, with path expressions in nested projection', () => {
-    const q = CQL`SELECT from bookshop.Authors {
+    const q = cds.ql`SELECT from bookshop.Authors {
       books {
         title,
         genre.name
       }
     }`
-    const qx = CQL`SELECT from bookshop.Authors as Authors {
-      (SELECT books.title, genre.name AS genre_name
-        FROM bookshop.Books AS books
-        LEFT JOIN bookshop.Genres AS genre ON genre.ID = books.genre_ID
-        WHERE Authors.ID = books.author_ID
+    const qx = cds.ql`SELECT from bookshop.Authors as $A {
+      (SELECT $b.title, genre.name AS genre_name
+        FROM bookshop.Books AS $b
+        LEFT JOIN bookshop.Genres AS genre ON genre.ID = $b.genre_ID
+        WHERE $A.ID = $b.author_ID
       ) as books
     }`
     const res = cqn4sql(q)
@@ -567,15 +616,15 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, expand after association', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       title,
       author.books { title }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.title,
-        (SELECT author_books.title from bookshop.Books as author_books where author.ID = author_books.author_ID) as author_books
+        (SELECT $a.title from bookshop.Books as $a where author.ID = $a.author_ID) as author_books
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[1].SELECT).to.have.property('expand').that.equals(true)
@@ -585,17 +634,17 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO (SMW) new test
   it('unfold expand, expand after association (2)', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       title,
       author.name,
       author.books { title }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.title,
         author.name as author_name,
-        (SELECT author_books.title from bookshop.Books as author_books where author.ID = author_books.author_ID) as author_books
+        (SELECT $a.title from bookshop.Books as $a where author.ID = $a.author_ID) as author_books
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[2].SELECT).to.have.property('expand').that.equals(true)
@@ -604,17 +653,17 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, expand after association (3) with infix filter on last step', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       title,
       author.name,
       author.books[title = 'foo'] { title }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.title,
         author.name as author_name,
-        (SELECT author_books.title from bookshop.Books as author_books where author.ID = author_books.author_ID and author_books.title = 'foo') as author_books
+        (SELECT $a.title from bookshop.Books as $a where author.ID = $a.author_ID and $a.title = 'foo') as author_books
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[2].SELECT).to.have.property('expand').that.equals(true)
@@ -623,18 +672,18 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, expand after association (4) with infix filter in intermediate step', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       title,
       author.name,
       Books.author.books.genre[name = 'foo'] { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID
       left outer join bookshop.Books as books2 on books2.author_ID = author.ID
       {
         Books.title,
         author.name as author_name,
-        (SELECT author_books_genre.name from bookshop.Genres as author_books_genre where books2.genre_ID = author_books_genre.ID and author_books_genre.name = 'foo') as author_books_genre
+        (SELECT $a.name from bookshop.Genres as $a where books2.genre_ID = $a.ID and $a.name = 'foo') as author_books_genre
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[2].SELECT).to.have.property('expand').that.equals(true)
@@ -642,18 +691,18 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('unfold expand, expand after association (5) with infix filter on first step', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       title,
       author[name='Sanderson'].name,
       author[name='Sanderson'].books.genre { name }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left outer join bookshop.Authors as author on author.ID = Books.author_ID and author.name = 'Sanderson'
       left outer join bookshop.Books as books2 on books2.author_ID = author.ID
       {
         Books.title,
         author.name as author_name,
-        (SELECT author_books_genre.name from bookshop.Genres as author_books_genre where books2.genre_ID = author_books_genre.ID) as author_books_genre
+        (SELECT $a.name from bookshop.Genres as $a where books2.genre_ID = $a.ID) as author_books_genre
     }`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[2].SELECT).to.have.property('expand').that.equals(true)
@@ -662,18 +711,18 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, expand after association (6) with assoc as key', () => {
-    const q = CQL`SELECT from bookshop.AssocAsKey {
+    const q = cds.ql`SELECT from bookshop.AssocAsKey {
       foo,
       toAuthor.books { title }
     }`
-    const qx = CQL`SELECT from bookshop.AssocAsKey as AssocAsKey
-    left outer join bookshop.Authors as toAuthor on toAuthor.ID = AssocAsKey.toAuthor_ID
+    const qx = cds.ql`SELECT from bookshop.AssocAsKey as $A
+    left outer join bookshop.Authors as toAuthor on toAuthor.ID = $A.toAuthor_ID
       {
-        AssocAsKey.foo,
+        $A.foo,
         (
-          SELECT toAuthor_books.title
-            from bookshop.Books as toAuthor_books
-            where toAuthor.ID = toAuthor_books.author_ID
+          SELECT $t.title
+            from bookshop.Books as $t
+            where toAuthor.ID = $t.author_ID
         ) as toAuthor_books
     }`
     const res = cqn4sql(q)
@@ -684,13 +733,13 @@ describe('Unfold expands on associations to special subselects', () => {
 
   // TODO clarify if it would be okay to only forbid addressing to many expands
   it('unfold expand // reference in order by is NOT referring to expand column', () => {
-    const input = CQL`SELECT from bookshop.Books.twin { author { name } } order by author.name asc`
-    let qx = CQL`SELECT from bookshop.Books.twin as twin
-    left outer join bookshop.Authors as author on author.ID = twin.author_ID
+    const input = cds.ql`SELECT from bookshop.Books.twin { author { name } } order by author.name asc`
+    let qx = cds.ql`SELECT from bookshop.Books.twin as $t
+    left outer join bookshop.Authors as author on author.ID = $t.author_ID
     {
       (
-        select author2.name from bookshop.Authors as author2
-        where twin.author_ID = author2.ID
+        select $a.name from bookshop.Authors as $a
+        where $t.author_ID = $a.ID
       ) as author
     } order by author.name asc
   `
@@ -699,16 +748,16 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand within structure', () => {
-    const q = CQL`SELECT from bookshop.DeepRecursiveAssoc {
+    const q = cds.ql`SELECT from bookshop.DeepRecursiveAssoc {
       ID,
       one.two.three.toSelf { ID }
     }`
-    const qx = CQL`SELECT from bookshop.DeepRecursiveAssoc as DeepRecursiveAssoc {
-        DeepRecursiveAssoc.ID,
+    const qx = cds.ql`SELECT from bookshop.DeepRecursiveAssoc as $D {
+        $D.ID,
         (
-          SELECT one_two_three_toSelf.ID
-            from bookshop.DeepRecursiveAssoc as one_two_three_toSelf
-            where DeepRecursiveAssoc.one_two_three_toSelf_ID = one_two_three_toSelf.ID
+          SELECT $o.ID
+            from bookshop.DeepRecursiveAssoc as $o
+            where $D.one_two_three_toSelf_ID = $o.ID
         ) as one_two_three_toSelf
     }`
     const res = cqn4sql(q)
@@ -717,19 +766,19 @@ describe('Unfold expands on associations to special subselects', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('unfold expand within structure (2) + joins', () => {
-    const q = CQL`SELECT from bookshop.DeepRecursiveAssoc {
+    const q = cds.ql`SELECT from bookshop.DeepRecursiveAssoc {
       ID,
       one.two.three.toSelf.one.two.three.toSelf { ID }
     }`
-    const qx = CQL`SELECT from bookshop.DeepRecursiveAssoc as DeepRecursiveAssoc
+    const qx = cds.ql`SELECT from bookshop.DeepRecursiveAssoc as $D
     left outer join bookshop.DeepRecursiveAssoc as toSelf on
-      toSelf.ID = DeepRecursiveAssoc.one_two_three_toSelf_ID
+      toSelf.ID = $D.one_two_three_toSelf_ID
     {
-        DeepRecursiveAssoc.ID,
+        $D.ID,
         (
-          SELECT one_two_three_toSelf_one_two_three_toSelf.ID
-            from bookshop.DeepRecursiveAssoc as one_two_three_toSelf_one_two_three_toSelf
-            where toSelf.one_two_three_toSelf_ID = one_two_three_toSelf_one_two_three_toSelf.ID
+          SELECT $o.ID
+            from bookshop.DeepRecursiveAssoc as $o
+            where toSelf.one_two_three_toSelf_ID = $o.ID
         ) as one_two_three_toSelf_one_two_three_toSelf
     }`
     const res = cqn4sql(q)
@@ -739,7 +788,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold nested expands', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books {
       author {
         books {
           genre {
@@ -748,15 +797,15 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     }`
-    const qx = CQL`SELECT from bookshop.Books as Books {
+    const qx = cds.ql`SELECT from bookshop.Books as $B {
       ( SELECT
           ( SELECT
-            ( SELECT genre.name
-              FROM bookshop.Genres as genre WHERE books2.genre_ID = genre.ID
+            ( SELECT $g.name
+              FROM bookshop.Genres as $g WHERE $b2.genre_ID = $g.ID
             ) as genre
-            FROM bookshop.Books AS books2 WHERE author.ID = books2.author_ID
+            FROM bookshop.Books AS $b2 WHERE $a.ID = $b2.author_ID
           ) as books
-        FROM bookshop.Authors as author WHERE Books.author_ID = author.ID
+        FROM bookshop.Authors as $a WHERE $B.author_ID = $a.ID
       ) as author
     }`
     const res = cqn4sql(q)
@@ -776,51 +825,51 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('unfold expand, with assoc in FROM', () => {
-    const q = CQL`SELECT from bookshop.Books:author {
+    const q = cds.ql`SELECT from bookshop.Books:author {
       name,
       books { title }
     }`
-    const qx = CQL`SELECT from bookshop.Authors as author {
-      author.name,
-      (SELECT books2.title from bookshop.Books as books2
-        where author.ID = books2.author_ID) as books
-    } where exists (SELECT 1 from bookshop.Books as Books where Books.author_ID = author.ID)`
+    const qx = cds.ql`SELECT from bookshop.Authors as $a {
+      $a.name,
+      (SELECT $b2.title from bookshop.Books as $b2
+        where $a.ID = $b2.author_ID) as books
+    } where exists (SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID)`
     const res = cqn4sql(q)
     expect(res.SELECT.columns[1].SELECT).to.have.property('expand').that.equals(true)
     expect(res.SELECT.columns[1].SELECT).to.have.property('one').that.equals(false)
     expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
   })
   it('expand on assoc respects smart wildcard rules', () => {
-    const q = CQL`SELECT from bookshop.Authors {
+    const q = cds.ql`SELECT from bookshop.Authors {
       name,
       books { 'first' as first, 'second' as ID, *, 'third' as createdAt, 'last' as last }
     }`
-    const qx = CQL`SELECT from bookshop.Authors as Authors {
-      Authors.name,
+    const qx = cds.ql`SELECT from bookshop.Authors as $A {
+      $A.name,
       (SELECT
         'first' as first,
         'second' as ID,
         'third' as createdAt,
-        books.createdBy,
-        books.modifiedAt,
-        books.modifiedBy,
-        books.anotherText,
-        books.title,
-        books.descr,
-        books.author_ID,
-        books.coAuthor_ID,
-        books.genre_ID,
-        books.stock,
-        books.price,
-        books.currency_code,
-        books.dedication_addressee_ID,
-        books.dedication_text,
-        books.dedication_sub_foo,
-        books.dedication_dedication,
-        books.coAuthor_ID_unmanaged,
+        $b.createdBy,
+        $b.modifiedAt,
+        $b.modifiedBy,
+        $b.anotherText,
+        $b.title,
+        $b.descr,
+        $b.author_ID,
+        $b.coAuthor_ID,
+        $b.genre_ID,
+        $b.stock,
+        $b.price,
+        $b.currency_code,
+        $b.dedication_addressee_ID,
+        $b.dedication_text,
+        $b.dedication_sub_foo,
+        $b.dedication_dedication,
+        $b.coAuthor_ID_unmanaged,
         'last' as last
-        from bookshop.Books as books
-        where Authors.ID = books.author_ID
+        from bookshop.Books as $b
+        where $A.ID = $b.author_ID
       ) as books
     }`
     const res = cqn4sql(q)
@@ -830,7 +879,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('correctly calculates aliases for refs of on condition within xpr', () => {
-    const q = CQL`SELECT from bookshop.WorklistItems {
+    const q = cds.ql`SELECT from bookshop.WorklistItems {
       ID,
       releaseChecks {
         ID,
@@ -839,23 +888,23 @@ describe('Unfold expands on associations to special subselects', () => {
         }
       }
     }`
-    const expected = CQL`SELECT from bookshop.WorklistItems as WorklistItems {
-      WorklistItems.ID,
+    const expected = cds.ql`SELECT from bookshop.WorklistItems as $W {
+      $W.ID,
       (
-        SELECT from bookshop.WorklistItem_ReleaseChecks as releaseChecks {
-          releaseChecks.ID,
+        SELECT from bookshop.WorklistItem_ReleaseChecks as $r {
+          $r.ID,
           (
-            SELECT from bookshop.QualityDeviations as detailsDeviations {
-              detailsDeviations.ID
-            } where detailsDeviations.material_ID  = releaseChecks.parent_releaseDecisionTrigger_batch_material_ID
+            SELECT from bookshop.QualityDeviations as $d {
+              $d.ID
+            } where $d.material_ID  = $r.parent_releaseDecisionTrigger_batch_material_ID
             and (
-                    detailsDeviations.batch_ID = '*'
-                or detailsDeviations.batch_ID = releaseChecks.parent_releaseDecisionTrigger_batch_ID
+                    $d.batch_ID = '*'
+                or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID
             )
-            and detailsDeviations.snapshotHash = releaseChecks.snapshotHash
+            and $d.snapshotHash = $r.snapshotHash
           ) as detailsDeviations
-        } where releaseChecks.parent_ID = WorklistItems.ID
-            and releaseChecks.parent_snapshotHash = WorklistItems.snapshotHash
+        } where $r.parent_ID = $W.ID
+            and $r.parent_snapshotHash = $W.snapshotHash
       ) as releaseChecks
     }
     `
@@ -863,20 +912,20 @@ describe('Unfold expands on associations to special subselects', () => {
   })
 
   it('ignores expands which target ”@cds.persistence.skip”', () => {
-    const q = CQL`SELECT from bookshop.NotSkipped {
+    const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID, skipped { text }
     }`
-    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped {
+    const qx = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       NotSkipped.ID
     }`
     const res = cqn4sql(q)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('ignores expand if assoc in path expression has target ”@cds.persistence.skip”', () => {
-    const q = CQL`SELECT from bookshop.NotSkipped {
+    const q = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       ID, skipped.notSkipped { text }
     }`
-    const qx = CQL`SELECT from bookshop.NotSkipped as NotSkipped {
+    const qx = cds.ql`SELECT from bookshop.NotSkipped as NotSkipped {
       NotSkipped.ID
     }`
     const res = cqn4sql(q)
@@ -884,7 +933,7 @@ describe('Unfold expands on associations to special subselects', () => {
   })
   describe('anonymous expand', () => {
     it('scalar elements', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books as Books {
         ID,
         {
           title,
@@ -892,7 +941,7 @@ describe('Unfold expands on associations to special subselects', () => {
           price
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books {
+      const qx = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.title as bookInfos_title,
         Books.descr as bookInfos_descr,
@@ -902,7 +951,7 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('scalar elements, structure with renaming and association', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books as Books {
         ID,
         {
           title,
@@ -911,7 +960,7 @@ describe('Unfold expands on associations to special subselects', () => {
           dedication.sub as deep
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books {
+      const qx = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.title as bookInfos_title,
         Books.author_ID as bookInfos_author_ID,
@@ -922,7 +971,7 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('mixed with inline', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books as Books {
         ID,
         {
           dedication.{
@@ -930,7 +979,7 @@ describe('Unfold expands on associations to special subselects', () => {
           }
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books {
+      const qx = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.dedication_addressee_ID as bookInfos_dedication_addressee_ID,
         Books.dedication_text as bookInfos_dedication_text,
@@ -941,13 +990,13 @@ describe('Unfold expands on associations to special subselects', () => {
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
     })
     it('join relevant association', () => {
-      const q = CQL`SELECT from bookshop.Books {
+      const q = cds.ql`SELECT from bookshop.Books as Books {
         ID,
         {
           author.name
         } as bookInfos
       }`
-      const qx = CQL`SELECT from bookshop.Books as Books
+      const qx = cds.ql`SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
       {
         Books.ID,
@@ -964,25 +1013,25 @@ describe('Unfold expands on associations to special subselects', () => {
     })
 
     it('assoc comparison needs to be expanded in on condition calculation', () => {
-      const query = cqn4sql(CQL`SELECT from a2j.Foo { ID, buz { foo } }`, model)
-      const expected = CQL`
-        SELECT from a2j.Foo as Foo {
-          Foo.ID,
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo { ID, buz { foo } }`, model)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as $F {
+          $F.ID,
           (
-            SELECT buz.foo_ID from a2j.Buz as buz
-              where (buz.bar_ID = Foo.bar_ID AND buz.bar_foo_ID = Foo.bar_foo_ID) and buz.foo_ID = Foo.ID
+            SELECT $b.foo_ID from a2j.Buz as $b
+              where ($b.bar_ID = $F.bar_ID AND $b.bar_foo_ID = $F.bar_foo_ID) and $b.foo_ID = $F.ID
           ) as buz
         }`
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
     })
     it('unmanaged association path traversal in on condition needs to be flattened', () => {
-      const query = cqn4sql(CQL`SELECT from a2j.Foo { ID, buzUnmanaged { foo } }`, model)
-      const expected = CQL`
-        SELECT from a2j.Foo as Foo {
-          Foo.ID,
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo { ID, buzUnmanaged { foo } }`, model)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as $F {
+          $F.ID,
           (
-            SELECT buzUnmanaged.foo_ID from a2j.Buz as buzUnmanaged
-              where buzUnmanaged.bar_foo_ID = Foo.bar_foo_ID and buzUnmanaged.bar_ID = Foo.bar_ID and buzUnmanaged.foo_ID = Foo.ID
+            SELECT $b.foo_ID from a2j.Buz as $b
+              where $b.bar_foo_ID = $F.bar_foo_ID and $b.bar_ID = $F.bar_ID and $b.foo_ID = $F.ID
           ) as buzUnmanaged
         }`
       expect(JSON.parse(JSON.stringify(query))).to.eql(expected)
@@ -992,7 +1041,7 @@ describe('Unfold expands on associations to special subselects', () => {
     // innermost expand on association with backlink plus additional condition
     // must be properly linked
     const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
-    const q = CQL`
+    const q = cds.ql`
       SELECT from Collaborations {
         id,
         leads {
@@ -1007,26 +1056,128 @@ describe('Unfold expands on associations to special subselects', () => {
       }
     `
     let transformed = cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(CQL`
-      SELECT from Collaborations as Collaborations {
-        Collaborations.id,
+    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(cds.ql`
+      SELECT from Collaborations as $C {
+        $C.id,
         (
-          SELECT from CollaborationLeads as leads {
-            leads.id
-          } where ( Collaborations.id = leads.collaboration_id ) and leads.isLead = true
+          SELECT from CollaborationLeads as $l {
+            $l.id
+          } where ( $C.id = $l.collaboration_id ) and $l.isLead = true
         ) as leads,
         (
-          SELECT from SubCollaborations as subCollaborations {
-            subCollaborations.id,
+          SELECT from SubCollaborations as $s {
+            $s.id,
             (
-              SELECT from SubCollaborationAssignments as leads2 {
-                leads2.id
-              } where ( subCollaborations.id = leads2.subCollaboration_id ) and leads2.isLead = true
+              SELECT from SubCollaborationAssignments as $l2 {
+                $l2.id
+              } where ( $s.id = $l2.subCollaboration_id ) and $l2.isLead = true
             ) as leads
-          } where Collaborations.id = subCollaborations.collaboration_id
+          } where $C.id = $s.collaboration_id
         ) as subCollaborations
       }
     `)
+  })
+
+  it('assign unique subquery alias if implicit alias would be ambiguous', () => {
+    const q = cds.ql`SELECT from bookshop.Item as $t {
+      Item {
+        ID
+      }
+    }`
+    const expected = cds.ql`SELECT from bookshop.Item as $t {
+      (
+        SELECT $I.ID from bookshop.Item as $I
+        where $t.Item_ID = $I.ID
+      ) as Item
+    }`
+    expect(JSON.parse(JSON.stringify(cqn4sql(q, model)))).to.eql(expected)
+  })
+
+  it('expand via subquery with path expressions', () => {
+    const q = cds.ql`SELECT from (SELECT from bookshop.Books as inner { author, ID } where author.name = 'King') as Outer {
+      ID,
+      author { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+        SELECT from bookshop.Books as inner
+          left join bookshop.Authors as author on author.ID = inner.author_ID {
+            inner.author_ID,
+            inner.ID
+          } where author.name = 'King'
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Authors as $a {
+            $a.name
+          }
+          where Outer.author_ID = $a.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+  it('expand via subquery with path expressions nested', () => {
+    const q = cds.ql`SELECT from (SELECT from (SELECT from bookshop.Books as inner { author, ID } where author.name = 'King') as Mid { * }) as Outer {
+      ID,
+      author { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+         SELECT from (
+          SELECT from bookshop.Books as inner
+          left join bookshop.Authors as author on author.ID = inner.author_ID {
+            inner.author_ID,
+            inner.ID
+          } where author.name = 'King'
+         ) as Mid {
+          Mid.author_ID,
+          Mid.ID 
+         }
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Authors as $a {
+            $a.name
+          }
+          where Outer.author_ID = $a.ID
+        ) as author
+      }`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+  it('expand via subquery with path expressions and scoped query', () => {
+    const q = cds.ql`SELECT from (SELECT from bookshop.Books:genre as inner { parent, ID } where parent.name = 'Drama') as Outer {
+      ID,
+      parent { name }
+    }`
+    const res = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from (
+        SELECT from bookshop.Genres as inner
+          left join bookshop.Genres as parent on parent.ID = inner.parent_ID {
+            inner.parent_ID,
+            inner.ID
+          } where
+          exists (
+            SELECT 1 from bookshop.Books as $B
+            where $B.genre_ID = inner.ID
+          )
+          and parent.name = 'Drama'
+        ) as Outer
+      {
+        Outer.ID,
+        (
+          SELECT from bookshop.Genres as $p {
+            $p.name
+          }
+          where Outer.parent_ID = $p.ID
+        ) as parent
+      }
+    `
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 })
 
@@ -1037,12 +1188,12 @@ describe('Expands with aggregations are special', () => {
   })
 
   it('simple aggregation', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { name }
     } group by author.name`
 
-    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+    const qx = cds.ql`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
       Books.ID,
       (SELECT from DUMMY { author.name as name }) as author
     } group by author.name`
@@ -1050,13 +1201,68 @@ describe('Expands with aggregations are special', () => {
     const res = cqn4sql(q, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
+
+  it('aggregation with mulitple path steps', () => {
+    const q = cds.ql`SELECT from bookshop.Intermediate as Intermediate {
+      ID,
+      toAssocWithStructuredKey { toStructuredKey { second } }
+    } group by toAssocWithStructuredKey.toStructuredKey.second`
+
+    const qx = cds.ql`SELECT from bookshop.Intermediate as Intermediate
+    left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
+      on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+    {
+      Intermediate.ID,
+      (SELECT from DUMMY {
+        (SELECT from DUMMY {
+          toAssocWithStructuredKey.toStructuredKey_second as second 
+        }) as toStructuredKey
+      }) as toAssocWithStructuredKey
+    } group by toAssocWithStructuredKey.toStructuredKey_second`
+    qx.SELECT.columns[1].SELECT.from = null
+    qx.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+  it.skip('simple aggregation expand ref wrapped in func', () => {
+    // TODO: how to detect the nested ref?
+    const q = cds.ql`SELECT from bookshop.Books {
+      ID,
+      Books.author { toLower(name) as lower }
+    } group by author.name`
+
+    const qx = cds.ql`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+      Books.ID,
+      (SELECT from DUMMY { toLower(author.name) as name }) as author
+    } group by author.name`
+    qx.SELECT.columns[1].SELECT.from = null
+
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
+  it('wildcard expand vanishes for aggregations', () => {
+    const q = cds.ql`SELECT from bookshop.TestPublisher as TestPublisher {
+      ID,
+      texts { publisher {*} }
+    } group by ID, publisher.structuredKey_ID, publisher.title`
+
+    const qx = cds.ql`SELECT from bookshop.TestPublisher as TestPublisher
+    left join bookshop.Publisher as publisher on publisher.structuredKey_ID = TestPublisher.publisher_structuredKey_ID {
+      TestPublisher.ID
+    } group by TestPublisher.ID, TestPublisher.publisher_structuredKey_ID, publisher.title`
+    // the key is not flat in the model so we use a flat csn for this test
+    const res = cqn4sql(q, cds.compile.for.nodejs(model))
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+  })
+
   it('aggregation with structure', () => {
-    const q = CQL`SELECT from bookshop.Authors as Authors {
+    const q = cds.ql`SELECT from bookshop.Authors as Authors {
       ID,
       books { dedication }
     } group by books.dedication`
 
-    const qx = CQL`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
+    const qx = cds.ql`SELECT from bookshop.Authors as Authors left join bookshop.Books as books on books.author_ID = Authors.ID {
       Authors.ID,
       (SELECT from DUMMY { 
         books.dedication_addressee_ID as dedication_addressee_ID,
@@ -1070,12 +1276,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('optimized foreign key access', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { name, ID }
     } group by author.name, author.ID`
 
-    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+    const qx = cds.ql`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
       Books.ID,
       (SELECT from DUMMY { author.name as name, Books.author_ID as ID }) as author
     } group by author.name, Books.author_ID`
@@ -1084,12 +1290,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('foreign key access renamed', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { name, ID as foo }
     } group by author.name, author.ID`
 
-    const qx = CQL`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
+    const qx = cds.ql`SELECT from bookshop.Books as Books left join bookshop.Authors as author on author.ID = Books.author_ID {
       Books.ID,
       (SELECT from DUMMY { author.name as name, Books.author_ID as foo }) as author
     } group by author.name, Books.author_ID`
@@ -1098,12 +1304,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('non optimized foreign key access with filters', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author[ID = 201] { name, ID }
     } group by author[ID = 201].name, author[ID = 201].ID`
 
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
       left join bookshop.Authors as author on author.ID = Books.author_ID and author.ID = 201
     {
       Books.ID,
@@ -1114,12 +1320,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('expand path with filter must be an exact match in group by', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       Books.ID,
       author[name='King'] { name }
     } group by author[name='King'].name`
 
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
     left join bookshop.Authors as author on author.ID = Books.author_ID and author.name = 'King' {
       Books.ID,
       (SELECT from DUMMY { author.name as name }) as author
@@ -1130,13 +1336,13 @@ describe('Expands with aggregations are special', () => {
   })
 
   it('with multiple expands', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { name },
       genre { name }
     } group by author.name, genre.name`
 
-    const qx = CQL`SELECT from bookshop.Books as Books
+    const qx = cds.ql`SELECT from bookshop.Books as Books
     left join bookshop.Authors as author on author.ID = Books.author_ID
     left join bookshop.Genres as genre on genre.ID = Books.genre_ID
     {
@@ -1150,12 +1356,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('with nested expands', () => {
-    const q = CQL`SELECT from bookshop.Genres {
+    const q = cds.ql`SELECT from bookshop.Genres as Genres {
       ID,
       Genres.parent { parent { name } },
     } group by parent.parent.name`
 
-    const qx = CQL`SELECT from bookshop.Genres as Genres
+    const qx = cds.ql`SELECT from bookshop.Genres as Genres
     left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
     left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     {
@@ -1172,12 +1378,12 @@ describe('Expands with aggregations are special', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
   })
   it('with nested expands and non-nested sibling', () => {
-    const q = CQL`SELECT from bookshop.Genres {
+    const q = cds.ql`SELECT from bookshop.Genres as Genres {
       ID,
       Genres.parent { parent { name }, name },
     } group by parent.parent.name, parent.name`
 
-    const qx = CQL`SELECT from bookshop.Genres as Genres
+    const qx = cds.ql`SELECT from bookshop.Genres as Genres
     left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
     left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
     {
@@ -1197,7 +1403,7 @@ describe('Expands with aggregations are special', () => {
 
   // negative tests
   it('simple path not part of group by', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { name, ID }
     } group by author.name`
@@ -1205,7 +1411,7 @@ describe('Expands with aggregations are special', () => {
     expect(() => cqn4sql(q, model)).to.throw(/The expanded column "author.ID" must be part of the group by clause/)
   })
   it('nested path not part of group by', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { books {title}, ID }
     } group by author.ID`
@@ -1215,7 +1421,7 @@ describe('Expands with aggregations are special', () => {
     )
   })
   it('deeply nested path not part of group by', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       ID,
       Books.author { books { author { name } } , ID }
     } group by author.ID`
@@ -1226,15 +1432,17 @@ describe('Expands with aggregations are special', () => {
   })
 
   it('expand path with filter must be an exact match in group by', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       Books.ID,
       author[name='King'] { name }
     } group by author.name`
 
-    expect(() => cqn4sql(q, model)).to.throw(`The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`)
+    expect(() => cqn4sql(q, model)).to.throw(
+      `The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`,
+    )
   })
   it('expand path with filter must be an exact match in group by (2)', () => {
-    const q = CQL`SELECT from bookshop.Books {
+    const q = cds.ql`SELECT from bookshop.Books as Books {
       Books.ID,
       author { name }
     } group by author[name='King'].name`
@@ -1252,27 +1460,27 @@ describe('expand on structure part II', () => {
   })
 
   it('simple structural expansion', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
       office {
         floor,
         room
       }
     }`
 
-    let expected = CQL`select from Employee as Employee {
+    let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       Employee.office_room
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('structural expansion with path expression', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
       office {
         floor,
         building.name
       }
     }`
-    let expected = CQL`select from Employee as Employee
+    let expected = cds.ql`select from Employee as Employee
     left join Building as building on building.id = Employee.office_building_id
     {
       Employee.office_floor,
@@ -1282,7 +1490,7 @@ describe('expand on structure part II', () => {
   })
 
   it('deep expand', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
           office {
             floor,
             address {
@@ -1291,7 +1499,7 @@ describe('expand on structure part II', () => {
             }
           }
     }`
-    let expected = CQL`SELECT from Employee as Employee {
+    let expected = cds.ql`SELECT from Employee as Employee {
         Employee.office_floor,
         Employee.office_address_city,
         Employee.office_address_street
@@ -1300,7 +1508,7 @@ describe('expand on structure part II', () => {
   })
 
   it('multi expand with star - foreign key must survive in flat mode', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee {
         *,
         department {
           id,
@@ -1311,13 +1519,13 @@ describe('expand on structure part II', () => {
           descr
         }
     } excluding { office_floor, office_address_country, office_building, office_room, office_building_id, office_address_city, office_building_id, office_address_street, office_address_country_code, office_address_country_code, office_furniture_chairs,office_furniture_desks }`
-    let expected = CQL`SELECT from Employee as Employee {
-        Employee.id,
-        Employee.name,
-        Employee.job,
-        Employee.department_id,
-        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
-        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    let expected = cds.ql`SELECT from Employee as $E {
+        $E.id,
+        $E.name,
+        $E.job,
+        $E.department_id,
+        (SELECT $d.id, $d.name from Department as $d where $E.department_id = $d.id) as department,
+        (SELECT $a.id, $a.descr from Assets as $a where $E.id = $a.owner_id) as assets
     }`
     expect(
       JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))),
@@ -1325,7 +1533,7 @@ describe('expand on structure part II', () => {
   })
 
   it('multi expand with star but foreign key does not survive in structured mode', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee {
         *,
         department {
           id,
@@ -1336,18 +1544,20 @@ describe('expand on structure part II', () => {
           descr
         }
     } excluding { office }`
-    let expected = CQL`SELECT from Employee as Employee {
-        Employee.id,
-        Employee.name,
-        Employee.job,
-        (SELECT department.id, department.name from Department as department where Employee.department_id = department.id) as department,
-        (SELECT assets.id, assets.descr from Assets as assets where Employee.id = assets.owner_id) as assets
+    let expected = cds.ql`SELECT from Employee as $E {
+        $E.id,
+        $E.name,
+        $E.job,
+        (SELECT $d.id, $d.name from Department as $d where $E.department_id = $d.id) as department,
+        (SELECT $a.id, $a.descr from Assets as $a where $E.id = $a.owner_id) as assets
     }`
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
 
+  // Implicit alias of nested expand subquery is the first letter
+  // of the column alias
   it('structured expand with deep assoc expand', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
       office {
         floor,
         address {
@@ -1357,20 +1567,20 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = CQL`select from Employee as Employee {
+    let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       Employee.office_address_city,
       Employee.office_address_street,
       (
-        SELECT office_address_country.code from Country as office_address_country
-        where Employee.office_address_country_code = office_address_country.code
+        SELECT $o.code from Country as $o
+        where Employee.office_address_country_code = $o.code
       ) as office_address_country
     }`
     // expand subqueries have special non-enumerable props -> ignore them
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
   it('deep, structured expand', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
       office {
         floor,
         address {
@@ -1379,7 +1589,7 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = CQL`select from Employee as Employee{
+    let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       Employee.office_address_city,
       Employee.office_address_street,
@@ -1387,7 +1597,7 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('deep expand on assoc within structure expand', () => {
-    let expandQuery = CQL`select from Employee {
+    let expandQuery = cds.ql`select from Employee as Employee {
       office {
         floor,
         building {
@@ -1395,11 +1605,11 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = CQL`select from Employee as Employee {
+    let expected = cds.ql`select from Employee as Employee {
       Employee.office_floor,
       (
-        select office_building.id from Building as office_building
-        where Employee.office_building_id = office_building.id
+        select $o.id from Building as $o
+        where Employee.office_building_id = $o.id
       ) as office_building
     }`
     // expand subqueries have special non-enumerable props -> ignore them
@@ -1407,10 +1617,10 @@ describe('expand on structure part II', () => {
   })
 
   it('wildcard expand toplevel', () => {
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { * }
     }`
-    let absolutePaths = CQL`select from EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.floor,
       office.room,
       office.building,
@@ -1418,7 +1628,7 @@ describe('expand on structure part II', () => {
       office.furniture
     }`
 
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_floor,
       EmployeeNoUnmanaged.office_room,
       EmployeeNoUnmanaged.office_building_id,
@@ -1433,10 +1643,10 @@ describe('expand on structure part II', () => {
     expect(wildcard).to.eql(absolute).to.eql(expected)
   })
   it('wildcard on expand deep', () => {
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { address {*} }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_address_city,
       EmployeeNoUnmanaged.office_address_street,
       EmployeeNoUnmanaged.office_address_country_code,
@@ -1447,10 +1657,10 @@ describe('expand on structure part II', () => {
 
   it('smart wildcard - assoc overwrite after *', () => {
     // office.address.city replaces office.floor
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { *, furniture as building, address.city as floor, building.id as room }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_address_city as office_floor,
       EmployeeNoUnmanaged.office_building_id as office_room,
       EmployeeNoUnmanaged.office_furniture_chairs as office_building_chairs,
@@ -1467,10 +1677,10 @@ describe('expand on structure part II', () => {
 
   it('smart wildcard - structure overwritten by assoc before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ building as furniture, * }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_building_id as office_furniture_id,
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
@@ -1483,10 +1693,10 @@ describe('expand on structure part II', () => {
   })
   it('smart wildcard - structure overwritten by join relevant assoc before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { building[name='mega tower'].name as furniture, * }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
       left join Building as building on building.id = EmployeeNoUnmanaged.office_building_id and building.name = 'mega tower'
     {
      building.name as office_furniture,
@@ -1501,10 +1711,10 @@ describe('expand on structure part II', () => {
   })
   it('wildcard - no overwrite but additional cols', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { *, 'foo' as last }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
     {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
@@ -1520,20 +1730,20 @@ describe('expand on structure part II', () => {
   })
   it('assigning alias within expand only influences name of element, prefix still appended', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { floor as x }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor as office_x,
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('smart wildcard - structured overwrite before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { 'first' as furniture, 'second' as building, * }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      'first' as office_furniture,
      'second' as office_building,
      EmployeeNoUnmanaged.office_floor,
@@ -1546,10 +1756,10 @@ describe('expand on structure part II', () => {
   })
   it('smart wildcard - structured overwrite after *', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office {*, 'third' as building, 'fourth' as address }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
      'third' as office_building,
@@ -1562,10 +1772,10 @@ describe('expand on structure part II', () => {
 
   it('wildcard expansion - exclude association', () => {
     // intermediate structures are overwritten
-    let expandQuery = CQL`select from EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office {*} excluding { building, address }
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
      EmployeeNoUnmanaged.office_furniture_chairs,
@@ -1575,13 +1785,13 @@ describe('expand on structure part II', () => {
   })
 
   it('wildcard expansion sql style on table alias', () => {
-    let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
       E {*}
     }`
-    let regularWildcard = CQL`select from EmployeeNoUnmanaged as E {
+    let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E {
       *
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
      E.id,
      E.name,
      E.job,
@@ -1598,13 +1808,13 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
   it('wildcard expansion sql style on table alias - exclude stuff', () => {
-    let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
       E {*} excluding { office }
     }`
-    let regularWildcard = CQL`select from EmployeeNoUnmanaged as E {
+    let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E {
       *
     } excluding { office }`
-    let expected = CQL`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
      E.id,
      E.name,
      E.job,
@@ -1616,10 +1826,10 @@ describe('expand on structure part II', () => {
       .to.eql(JSON.parse(JSON.stringify(cqn4sql(regularWildcard)))) // prototype is different
   })
   it('wildcard expansion sql style on IMPLICIT table alias - exclude stuff', () => {
-    let expandQuery = CQL`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
       {*} excluding { office } as FOO
     }`
-    let expected = CQL`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
      E.FOO_id,
      E.FOO_name,
      E.FOO_job,

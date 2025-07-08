@@ -55,6 +55,7 @@ describe('Bookshop - Update', () => {
   })
 
   test('programmatic insert/upsert/update/select/delete with unknown entity', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     const ID = 999
     let affectedRows = await INSERT.into(books)
@@ -129,7 +130,7 @@ describe('Bookshop - Update', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.be.eq('UNIQUE_CONSTRAINT_VIOLATION')
+    expect(err.message).to.match(/UNIQUE.constraint/i)
   })
 
 
@@ -138,11 +139,45 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
       .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('foo').that.equals(42)
+  })
+
+  test('Upsert behavior validation', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+
+    const entries = {
+      ID: 482,
+      descr: 'CREATED'
+    }
+
+    const read = SELECT.one.from(Books).where(`ID = `, entries.ID)
+
+    await UPSERT.into(Books).entries(entries)
+    const onInsert = await read.clone()
+
+    entries.descr = 'UPDATED'
+    await UPSERT.into(Books).entries(entries)
+
+    const onUpdate = await read.clone()
+
+    // Ensure that the @cds.on.insert and @cds.on.update are being applied
+    expect(onInsert.createdAt).to.be.not.undefined
+    expect(onInsert.modifiedAt).to.be.not.undefined
+    expect(onUpdate.createdAt).to.be.not.undefined
+    expect(onUpdate.modifiedAt).to.be.not.undefined
+
+    // Ensure that the @cds.on.insert and @cds.on.update are correctly applied
+    expect(onInsert.createdAt).to.be.eq(onInsert.modifiedAt)
+    expect(onInsert.createdAt).to.be.eq(onUpdate.createdAt)
+    expect(onInsert.modifiedAt).to.be.not.eq(onUpdate.modifiedAt)
+
+    // Ensure that the actual update happened
+    expect(onInsert.descr).to.be.eq('CREATED')
+    expect(onUpdate.descr).to.be.eq('UPDATED')
   })
 
   test('Upsert draft enabled entity', async () => {
@@ -157,8 +192,8 @@ describe('Bookshop - Update', () => {
     const updateRichardsBooks = UPDATE.entity(MoreDraftEnabledBooks)
     .where(`author.name = 'Richard Carpenter'`)
     .set('ID = 42')
-    const selectRichardsBooks = CQL`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
-    
+    const selectRichardsBooks = cds.ql`SELECT * FROM ${MoreDraftEnabledBooks} where author.name = 'Richard Carpenter'`
+
     await cds.run(updateRichardsBooks)
     const afterUpdate = await cds.db.run(selectRichardsBooks)
     expect(afterUpdate[0]).to.have.property('ID').that.equals(42)

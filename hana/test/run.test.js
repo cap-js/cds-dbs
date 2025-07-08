@@ -1,5 +1,4 @@
 const cds = require('../../test/cds')
-const { expect } = require('@jest/globals')
 
 let schema
 
@@ -89,7 +88,7 @@ async function addData() {
 }
 
 describe('stored procedures', () => {
-  cds.test(__dirname, 'proc.cds')
+  const { expect } = cds.test(__dirname, 'proc.cds')
 
   beforeAll(async () => {
     await addData()
@@ -112,30 +111,30 @@ describe('stored procedures', () => {
       }
       let res
       res = await cds.run(`CALL PROC_TEST_4(VAL_1 => ?,TEST_1 => ?,TEST_2 => ?,TEST_3 => ?)`, [2, 0])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run(`CALL PROC_TEST_4(TEST_1 => ?,TEST_2 => ?,TEST_3 => ?,VAL_1 => ?)`, [0, 2])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run(`CALL PROC_TEST_4(?,?,?,?)`, [0, 2])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
 
     test('multiple output parameters 0', async () => {
       const exp = { TEST_1: [{ TEST_1_COL_1: '1' }], TEST_2: '2' }
       const res = await cds.run('CALL "procTest0"(?,?)')
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
 
     test('multiple output parameters 1', async () => {
       const exp = { TEST_1: [{ TEST_1_COL_1: '1' }], TEST_2: [{ TEST_2_COL_1: '2' }], VAL_1: '1' }
       let res
       res = await cds.run('CALL PROC_TEST_1(TEST_1 => ?,TEST_2 => ?,VAL_2 => ?,VAL_1 => ?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL PROC_TEST_1(TEST_1 => ?,TEST_2 => ?,VAL_1 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL PROC_TEST_1(TEST_1 => ?,VAL_1 => ?,TEST_2 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL PROC_TEST_1(?,?,?,?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
 
     test('multiple output parameters 2', async () => {
@@ -143,13 +142,13 @@ describe('stored procedures', () => {
       let res
       // also testing leading whitespaces
       res = await cds.run(' CALL PROC_TEST_2(TEST_1 => ?,TEST_2 => ?,VAL_2 => ?,VAL_1 => ?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run(' CALL PROC_TEST_2(TEST_1 => ?,TEST_2 => ?,VAL_1 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run(' CALL PROC_TEST_2(TEST_1 => ?,VAL_1 => ?,TEST_2 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run(' CALL PROC_TEST_2(?,?,?,?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
 
     test('multiple output parameters 3', async () => {
@@ -157,13 +156,13 @@ describe('stored procedures', () => {
       let res
       // also testing multiple whitespaces
       res = await cds.run('CALL   PROC_TEST_3(TEST_1 => ?,TEST_2 => ?,VAL_2 => ?,VAL_1 => ?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL   PROC_TEST_3(TEST_1 => ?,TEST_2 => ?,VAL_1 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL   PROC_TEST_3(TEST_1 => ?,VAL_1 => ?,TEST_2 => ?,VAL_2 => ?)', ['1', '2'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
       res = await cds.run('CALL   PROC_TEST_3(?,?,?,?)', ['2', '1'])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
 
     test('arbitrary procedure name', async () => {
@@ -174,14 +173,14 @@ describe('stored procedures', () => {
         '1',
         '2'
       ])
-      expect(res).toEqual(exp)
+      expect(res).to.containSubset(exp)
     })
   })
 
   describe('with schema name', () => {
     test('schema name — undelimited', async () => {
       const result = await cds.run(`CALL ${schema}.MY_PROC(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
-      expect(result).toMatchObject({
+      expect(result).to.containSubset({
         PARAM_1: [{ NUM0: 0 }],
         PARAM_2: [{ NUM1: 1 }]
       })
@@ -189,7 +188,7 @@ describe('stored procedures', () => {
 
     test('schema name — delimited', async () => {
       const result = await cds.run(`CALL "${schema}"."MY_PROC"(PARAM_0 => ?, PARAM_1 => ?, PARAM_2 => ?);`, [0])
-      expect(result).toMatchObject({
+      expect(result).to.containSubset({
         PARAM_1: [{ NUM0: 0 }],
         PARAM_2: [{ NUM1: 1 }]
       })

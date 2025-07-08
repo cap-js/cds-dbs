@@ -16,13 +16,16 @@ describe('entities and views with parameters', () => {
 
   describe('associations to joins', () => {
     it('select from view with param', () => {
-      const query = cqn4sql(SELECT.from('PBooks(P1: 1, P2: 2)').columns('ID'), model)
-      const expected = SELECT.from('PBooks(P1: 1, P2: 2) as PBooks').columns('PBooks.ID')
+      // const query = cqn4sql(SELECT.from('PBooks(P1: 1, P2: 2)').columns('ID'), model)
+      const query = cqn4sql(cds.ql`SELECT from PBooks(P1: 1, P2: 2) as PBooks { ID }`, model)
+      const expected = cds.ql`SELECT from PBooks(P1: 1, P2: 2) as PBooks { PBooks.ID }`
       expect(query).to.deep.equal(expected)
     })
     it('follow association to entity with params', () => {
-      const query = cqn4sql(SELECT.from('Books').columns('author(P1: 1, P2: 2).name as author'), model)
-      const expected = CQL`
+      const query = cqn4sql(cds.ql`SELECT from Books as Books {
+        author(P1: 1, P2: 2).name as author
+      }`, model)
+      const expected = cds.ql`
       SELECT FROM Books as Books left join Authors(P1:1, P2: 2) as author
         on author.ID = Books.author_ID {
           author.name as author
@@ -31,8 +34,11 @@ describe('entities and views with parameters', () => {
       expect(query).to.deep.equal(expected)
     })
     it('select from entity with params and follow association to entity with params', () => {
-      const query = cqn4sql(SELECT.from('PBooks(P1: 42, P2: 45)').columns('author(P1: 1, P2: 2).name as author'), model)
-      const expected = CQL`
+      const query = cqn4sql(cds.ql`
+        SELECT from PBooks(P1: 42, P2: 45) as PBooks {
+          author(P1: 1, P2: 2).name as author
+        }`, model)
+      const expected = cds.ql`
       SELECT FROM PBooks(P1: 42, P2: 45) as PBooks left join Authors(P1:1, P2: 2) as author
         on author.ID = PBooks.author_ID {
           author.name as author
@@ -41,7 +47,7 @@ describe('entities and views with parameters', () => {
       expect(query).to.deep.equal(expected)
     })
     it('join identity via params', () => {
-      const cqn = CQL`SELECT from PBooks(P1: 42, P2: 45) {
+      const cqn = cds.ql`SELECT from PBooks(P1: 42, P2: 45) as PBooks {
             author(P1: 1, P2: 2).name as author,
             author(P1: 1, P2: 2).name as sameAuthor,
 
@@ -50,7 +56,7 @@ describe('entities and views with parameters', () => {
             author(P1: 1)[ID > 15].name as otherOtherAuthor,
     }`
       const query = cqn4sql(cqn, model)
-      const expected = CQL`
+      const expected = cds.ql`
       SELECT FROM PBooks(P1: 42, P2: 45) as PBooks
       left join Authors(P1:1, P2: 2) as author on author.ID = PBooks.author_ID
       left join Authors(P1:1) as author2 on author2.ID = PBooks.author_ID
@@ -68,11 +74,11 @@ describe('entities and views with parameters', () => {
       expect(query).to.deep.equal(expected)
     })
     it('empty argument list if no params provided for association', () => {
-      const cqn = CQL`SELECT from PBooks(P1: 42, P2: 45) {
+      const cqn = cds.ql`SELECT from PBooks(P1: 42, P2: 45) as PBooks {
             author.name as author,
     }`
       const query = cqn4sql(cqn, model)
-      const expected = CQL`
+      const expected = cds.ql`
       SELECT FROM PBooks(P1: 42, P2: 45) as PBooks
       left join Authors(P1: dummy) as author on author.ID = PBooks.author_ID
         {
@@ -84,11 +90,11 @@ describe('entities and views with parameters', () => {
       expect(query).to.deep.equal(expected)
     })
     it('empty argument list if no params provided for entity and association', () => {
-      const cqn = CQL`SELECT from PBooks {
+      const cqn = cds.ql`SELECT from PBooks as PBooks {
             author.name as author,
     }`
       const query = cqn4sql(cqn, model)
-      const expected = CQL`
+      const expected = cds.ql`
       SELECT FROM PBooks(P1: dummy) as PBooks
       left join Authors(P1: dummy) as author on author.ID = PBooks.author_ID
         {
@@ -101,11 +107,11 @@ describe('entities and views with parameters', () => {
       expect(query).to.deep.equal(expected)
     })
     it('empty argument list for UDF', () => {
-      const cqn = CQL`SELECT from BooksUDF {
+      const cqn = cds.ql`SELECT from BooksUDF as BooksUDF {
       author.name as author,
     }`
       const query = cqn4sql(cqn, model)
-      const expected = CQL`
+      const expected = cds.ql`
       SELECT FROM BooksUDF(P1: dummy) as BooksUDF
       left join AuthorsUDF(P1: dummy) as author on author.ID = BooksUDF.author_ID
         {
@@ -121,31 +127,31 @@ describe('entities and views with parameters', () => {
 
   describe('where exists', () => {
     it('scoped query', () => {
-      const query = CQL`SELECT from Books:author(P1: 1, P2: 2) { ID }`
-      const expected = CQL`
+      const query = cds.ql`SELECT from Books:author(P1: 1, P2: 2) as author { ID }`
+      const expected = cds.ql`
         SELECT from Authors(P1: 1, P2: 2) as author { author.ID }
           where exists (
-            SELECT 1 from Books as Books where Books.author_ID = author.ID
+            SELECT 1 from Books as $B where $B.author_ID = author.ID
           )
       `
       expect(cqn4sql(query, model)).to.deep.equal(expected)
     })
     it('where exists shortcut', () => {
-      const query = CQL`SELECT from Books { ID } where exists author(P1: 1, P2: 2)`
-      const expected = CQL`
+      const query = cds.ql`SELECT from Books as Books { ID } where exists author(P1: 1, P2: 2)`
+      const expected = cds.ql`
         SELECT from Books as Books { Books.ID }
           where exists (
-            SELECT 1 from Authors(P1: 1, P2: 2) as author where author.ID = Books.author_ID
+            SELECT 1 from Authors(P1: 1, P2: 2) as $a where $a.ID = Books.author_ID
           )
       `
       expect(cqn4sql(query, model)).to.deep.equal(expected)
     })
     it('where exists shortcut w/o params', () => {
-      const query = CQL`SELECT from Books { ID } where exists author`
-      const expected = CQL`
+      const query = cds.ql`SELECT from Books as Books { ID } where exists author`
+      const expected = cds.ql`
         SELECT from Books as Books { Books.ID }
           where exists (
-            SELECT 1 from Authors(P1: dummy) as author where author.ID = Books.author_ID
+            SELECT 1 from Authors(P1: dummy) as $a where $a.ID = Books.author_ID
           )
       `
       // manually remove the param from argument list because compiler does not allow empty args for cqn
@@ -156,27 +162,27 @@ describe('entities and views with parameters', () => {
 
   describe('expand subqueries', () => {
     it('expand with params', () => {
-      const query = CQL`SELECT from Books {
+      const query = cds.ql`SELECT from Books as Books {
         author(P1: 1, P2: 2) { ID }
       }`
-      const expected = CQL`SELECT from Books as Books {
+      const expected = cds.ql`SELECT from Books as Books {
         (
-          SELECT from Authors(P1: 1, P2: 2) as author {
-            author.ID
-          } where Books.author_ID = author.ID
+          SELECT from Authors(P1: 1, P2: 2) as $a {
+            $a.ID
+          } where Books.author_ID = $a.ID
         ) as author
       }`
       expect(JSON.parse(JSON.stringify(cqn4sql(query, model)))).to.deep.equal(expected)
     })
     it('expand on parameterized entity without args', () => {
-      const query = CQL`SELECT from Books {
+      const query = cds.ql`SELECT from Books as Books {
         author { ID }
       }`
-      const expected = CQL`SELECT from Books as Books {
+      const expected = cds.ql`SELECT from Books as Books {
         (
-          SELECT from Authors(P1: dummy) as author {
-            author.ID
-          } where Books.author_ID = author.ID
+          SELECT from Authors(P1: dummy) as $a {
+            $a.ID
+          } where Books.author_ID = $a.ID
         ) as author
       }`
       // manually remove the param from argument list because compiler does not allow empty args for cqn

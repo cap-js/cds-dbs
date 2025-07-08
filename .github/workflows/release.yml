@@ -17,16 +17,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           registry-url: https://registry.npmjs.org/
       - run: npm i
-      - run: npm test -w db-service -w sqlite -w postgres -- --maxWorkers=1
+      - run: npm test -w db-service -w sqlite -w postgres
+        env:
+          cds_features_pool: true
       - name: get-version # this takes the version of the monorepo root
         id: package-version
         # v1.3.1
         uses: martinbeentjes/npm-get-version-action@3cf273023a0dda27efcd3164bdfb51908dd46a5b
       - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
+        # v1.15.0
+        uses: ncipollo/release-action@90dc22b77f7e5e8d3a3a92924b18415dca53f445
         with:
           tag: 'v${{ steps.package-version.outputs.current-version}}'
           name: 'Release v${{ steps.package-version.outputs.current-version}}'

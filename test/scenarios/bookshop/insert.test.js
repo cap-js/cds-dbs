@@ -11,7 +11,7 @@ describe('Bookshop - Insert', () => {
     // Works fine locally, but refuses to function in pipeline
     // expect(err).to.be.instanceOf(Error)
     // expect(err instanceof Error).to.be.true
-    expect(err.message).to.be.eq('ENTITY_ALREADY_EXISTS')
+    expect(err.message).to.match(/ENTITY_ALREADY_EXISTS|UNIQUE constraint/i)
   })
 
   test('insert with undefined value works', async () => {
@@ -21,6 +21,7 @@ describe('Bookshop - Insert', () => {
   })
 
   test('mass insert on unknown entities', async () => {
+    if(cds.env.sql.names === 'quoted') return 'skipped'
     const books = 'sap_capire_bookshop_Books'
     let affectedRows = await INSERT.into(books)
       .entries([{
@@ -62,5 +63,4 @@ describe('Bookshop - Insert', () => {
       expect(written.price).to.be.eq(entry.price)
     }
   })
-
 })
