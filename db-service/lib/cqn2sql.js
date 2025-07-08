@@ -282,6 +282,25 @@ class CQN2SQLRenderer {
   SELECT_recurse(q) {
     let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
+    const _target = q._target
+
+    if (_target && where) {
+      const keys = []
+      for (const _key in _target.keys) {
+        const k = _target.keys[_key]
+        if (!k.virtual && !k.isAssociation && !k.value) {
+          keys.push({ ref: [_key] })
+        }
+      }
+
+      // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
+      const clone = q.clone()
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
+    }
+
     const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
     if (!_internal) requiredComputedColumns.RANK = true
     const addComputedColumn = (name) => {
@@ -305,6 +324,7 @@ class CQN2SQLRenderer {
       DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
       DrillState: false,
       LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
+      LimitedRank: { xpr: [{ func: 'row_number', args: [] }, 'OVER', { xpr: [] }, '-', { val: 1, param: false }], as: 'LimitedRank' }
     }
 
     const columnsFiltered = columns
@@ -1157,7 +1177,7 @@ class CQN2SQLRenderer {
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
-        if (x.xpr) return `(${this.xpr(x)})`
+        if (x.xpr && !x.func) return `(${this.xpr(x)})`
         else return this.expr(x)
       })
       .join(' ')

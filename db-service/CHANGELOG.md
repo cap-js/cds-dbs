@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.2...db-service-v2.2.0) (2025-06-30)
+
+
+### Added
+
+* **recurse:** object-page hierarchies ([#1247](https://github.com/cap-js/cds-dbs/issues/1247)) ([6fe81f2](https://github.com/cap-js/cds-dbs/commit/6fe81f27bc1aee0b8edebe3d9251928ebea8474a))
+
 ## [2.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.1...db-service-v2.1.2) (2025-06-12)
 
 
