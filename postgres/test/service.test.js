@@ -72,7 +72,7 @@ describe('OData to Postgres dialect', () => {
       expect(response.data.name).to.equal('Schönramer Hell')
     })
 
-    test.only('odata: single entity -> sql: select record containing all entity field keys', async () => {
+    test('odata: single entity -> sql: select record containing all entity field keys', async () => {
       const response = await GET('/beershop/Beers(9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b)')
       ;['ID', 'createdAt', 'createdBy', 'modifiedAt', 'modifiedBy', 'name', 'abv', 'ibu', 'brewery_ID'].forEach(
         property => {
