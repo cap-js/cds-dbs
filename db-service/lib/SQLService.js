@@ -257,8 +257,6 @@ class SQLService extends DatabaseService {
       const table = getDBTable(req.target)
       const { compositions } = table
 
-      // Check if we are in the hierarchy case
-      let isHierarchy = req.target.elements?.LimitedDescendantCount
       const recursiveBacklinks = []
 
       if (compositions) {
@@ -277,20 +275,17 @@ class SQLService extends DatabaseService {
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
             if (c._target === req.target) {
-              if (isHierarchy) {
-                // special treatment for recursive compositions in hierarchies
-                function _getBacklinkName(on) {
-                  const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
-                  if (i === -1) return
-                  let ref
-                  if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
-                  if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
-                  return ref && ref[ref.length - 1]
-                }
-                const backlinkName = _getBacklinkName(c.on)
-                recursiveBacklinks.push(backlinkName)
-                return
+              // special treatment for recursive compositions in hierarchies
+              function _getBacklinkName(on) {
+                const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
+                if (i === -1) return
+                let ref
+                if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
+                if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
+                return ref && ref[ref.length - 1]
               }
+              const backlinkName = _getBacklinkName(c.on)
+              recursiveBacklinks.push(backlinkName)
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -305,7 +300,8 @@ class SQLService extends DatabaseService {
             return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
-        if (recursiveBacklinks.length) {
+        // only perform one recursive delete for root request
+        if (recursiveBacklinks.length && !req.depth) {
           let key
           // For hierarchies, only a single key is supported
           for (const _key in req.target.keys) {
@@ -328,7 +324,9 @@ class SQLService extends DatabaseService {
           await this.onSIMPLE({ query, target: table })
         }
       }
-      return this.onSIMPLE(req)
+      // skip recursive compositions because they are handled above
+      if (compositions?.[req.query.DELETE.from.ref[req.query.DELETE.from.ref.length-1]]?._target === req.target) return
+      else return this.onSIMPLE(req)
     }
   }
 
