@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.2.0...db-service-v2.3.0) (2025-07-10)
+
+
+### Added
+
+* **hierarchy:** LimitedRank ([#1268](https://github.com/cap-js/cds-dbs/issues/1268)) ([52e16db](https://github.com/cap-js/cds-dbs/commit/52e16db2c83d06e318ea05947a3c3c3153bd3ab2))
+
+
+### Fixed
+
+* **hierarchy:** only modify where if existent ([#1265](https://github.com/cap-js/cds-dbs/issues/1265)) ([eaca855](https://github.com/cap-js/cds-dbs/commit/eaca855ec06087e22bf780fac5e4010ef1b5ff4f))
+* TypeError for empty `list` ([#1269](https://github.com/cap-js/cds-dbs/issues/1269)) ([f262718](https://github.com/cap-js/cds-dbs/commit/f26271813e161c9f7c05fbc82b10c4d5f14916a7))
+
 ## [2.2.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.2...db-service-v2.2.0) (2025-06-30)
 
 
