@@ -10,7 +10,6 @@ process.env.DEBUG && jest.setTimeout(100000)
 describe('OData to Postgres dialect', () => {
   const { GET, POST, expect, data } = cds.test('serve', '--project', project)
 
-  data.autoIsolation(true)
   data.autoReset(true)
 
   describe('OData types: CREATE', () => {

@@ -9,7 +9,6 @@ process.env.DEBUG && jest.setTimeout(100000)
 describe('QL to PostgreSQL', () => {
   const { expect, data } = cds.test('serve', '--project', project).verbose()
 
-  data.autoIsolation(true)
   data.autoReset(true)
 
   describe('SELECT', () => {

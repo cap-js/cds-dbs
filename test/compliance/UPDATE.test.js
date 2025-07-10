@@ -4,7 +4,6 @@ const BooksUnique = 'complex.uniques.Books'
 
 describe('UPDATE', () => {
   const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
   data.autoReset()
 
   describe('entity', () => {

@@ -7,8 +7,14 @@ const cds = require('@sap/cds')
 
 class DatabaseService extends cds.Service {
 
-  init() {
+  async init() {
     cds.on('shutdown', () => this.disconnect())
+    if (this.options.isolate !== false && (
+      Object.getOwnPropertyDescriptor(cds, 'test') || this.options.isolate
+    )) {
+      const isolation = require('./DatabaseIsolation')
+      await isolation(this)
+    }
     return super.init()
   }
 
@@ -47,7 +53,7 @@ class DatabaseService extends cds.Service {
    * transaction with `BEGIN`
    * @returns this
    */
-  async begin (min) {
+  async begin(min) {
     // We expect tx.begin() being called for an txed db service
     const ctx = this.context
 
@@ -129,9 +135,9 @@ class DatabaseService extends cds.Service {
   }
 
   // REVISIT: should happen automatically after a configurable time
-  async disconnect (tenant) {
+  async disconnect(tenant) {
     const tenants = tenant ? [tenant] : Object.keys(this.pools)
-    await Promise.all (tenants.map (async t => {
+    await Promise.all(tenants.map(async t => {
       const pool = this.pools[t]; if (!pool) return
       delete this.pools[t]
       await pool.drain()

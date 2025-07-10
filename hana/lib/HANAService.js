@@ -1375,7 +1375,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   // Creates a new database using HDI container groups
   async database({ database }, clean = false) {
-    if (clean) {
+    if (this.options.credentials.__system__) {
       // Reset back to system credentials
       this.options.credentials = this.options.credentials.__system__
     }
@@ -1417,11 +1417,12 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   // This removes SCHEMA name conflicts when testing in the same system
   // Additionally this allows for deploying using the HDI procedures
   async tenant({ database, tenant }, clean = false) {
-    if (clean) {
+    if (this.options.credentials.__database__) {
       // Reset back to database credentials
       this.options.credentials = this.options.credentials.__database__
     }
 
+    tenant = tenant.replaceAll('-','')
     const creds = {
       containerGroup: database.toUpperCase(),
       usergroup: `${database}_USERS`.toUpperCase(),

@@ -7,7 +7,6 @@ const ChildPWithWhere = 'complex.ChildPWithWhere'
 
 describe('DELETE', () => {
   const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
   data.autoReset()
 
   describe('from', () => {

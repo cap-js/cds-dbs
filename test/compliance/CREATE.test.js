@@ -166,24 +166,27 @@ const dataTest = async function (entity, table, type, obj) {
   }
 }
 
-describe('CREATE', () => {
-  // TODO: reference to ./definitions.test.js
 
-  // Set cds.root before requiring cds.Service as it resolves and caches package.json
+describe('CREATE', () => {
   // Call default cds.test API
-  const { data } = cds.test(__dirname + '/resources')
-  // Prevent deployment
-  /* skipping deploy causes issues with running all compliance tests in a single suite
-  cds.deploy = () => ({
-    to:() => {return cds.db || cds.connect('db')},
-    then:() => {return cds.db || cds.connect('db')}
+  beforeAll(() => {
+    cds.env.features.ieee754compatible = true
   })
-  // */
-  data.autoIsolation(true)
-  data._deployed = true // Skip automatic deployment
+
+  let emptyModel
+  afterAll(() => {
+    cds.model = cds.db.model = emptyModel
+  })
+
+  cds.test(__dirname, 'empty.cds')
 
   // Load model before test suite to generate test suite from model definition
   const model = cds.load(__dirname + '/resources/db', { sync: true })
+
+  beforeAll(() => {
+    emptyModel = cds.model
+    cds.model = cds.db.model = cds.compile.for.nodejs(model)
+  })
 
   const literals = Object.keys(model.definitions)
     .filter(n =>
@@ -215,7 +218,7 @@ describe('CREATE', () => {
         name: entityName,
         elements: globals.elements
       })
-      await db.run({ CREATE: { entity } })
+      await db.run(cds.ql.CREATE(entity))
       // REVISIT: reading from entities not in the model requires additional handling in infer
       // await SELECT.from(entity)
     })
@@ -236,7 +239,8 @@ describe('CREATE', () => {
       })
       */
 
-      await db.run({ CREATE: { entity: globals } })
+      await db.run(cds.ql.DROP(globals))
+      await db.run(cds.ql.CREATE(globals))
       await db.run({ CREATE: { entity: entityName, as: query } })
       // await SELECT.from(entity)
     })
@@ -250,76 +254,25 @@ describe('CREATE', () => {
     if (entity.query) return // Skip complex view as cqn4sql does not allow union views
 
     desc(`${entity.projection ? 'View' : 'Type'}: ${type}`, () => {
-      let db
       let deploy
 
       beforeAll(async () => {
-        // Very important to use the cds.db instance as it is enhanced
-        // When using new SqliteService directly from class constructor it is missing the model
-        // Causing all run calls to prefix the target with the service name
-        db = await cds.connect()
+        await cds.ql.DROP(table)
+        if (entity.projection) await cds.ql.DROP(entity.projection.from.ref[0])
 
-        await db
-          .run(async tx => {
-            await tx.run({
-              DROP: {
-                entity: table,
-              },
-            })
-
-            if (entity.projection) {
-              await tx.run({
-                DROP: {
-                  entity: entity.projection.from.ref[0],
-                },
-              })
-            }
-          })
-          .catch(() => { })
-
-        await db.run(async tx => {
-          deploy = Promise.resolve()
-          // Create parent entity
-          if (entity.projection) {
-            deploy = tx.run({
-              CREATE: {
-                entity: entity.projection.from.ref[0],
-              },
-            })
-          }
-          // actually CREATE test
-          deploy = deploy.then(() =>
-            tx.run({
-              CREATE: {
-                entity: table,
-              },
-            }),
-          )
-          await deploy.catch(() => { })
-        })
+        deploy = Promise.resolve()
+        // Create parent entity
+        if (entity.projection) {
+          deploy = deploy.then(() => cds.ql.CREATE(entity.projection.from.ref[0]))
+        }
+        // actually CREATE test
+        deploy = deploy.then(() => cds.ql.CREATE(table))
+        await deploy.catch(() => { })
       })
 
       afterAll(async () => {
-        // DROP as normal deployment already deployed the model
-        await db
-          .run(async tx => {
-            await tx.run({
-              DROP: {
-                entity: table,
-              },
-            })
-
-            if (entity.projection) {
-              await tx.run({
-                DROP: {
-                  entity: entity.projection.from.ref[0],
-                },
-              })
-            }
-          })
-          .catch(() => { })
-
-        await db.disconnect()
+        await cds.ql.DROP(table)
+        if (entity.projection) await cds.ql.DROP(entity.projection.from.ref[0])
       })
 
       test('CREATE', async () => {
