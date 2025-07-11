@@ -322,7 +322,7 @@ class SQLService extends DatabaseService {
           // Delete all non-recursive compositions from recursive composition
           if (nonRecursiveComps.length) {
             await Promise.all(
-              Object.values(nonRecursiveComps).map(c => {
+              nonRecursiveComps.map(c => {
                 const query = DELETE.from({ ref: [{ id: table.name, where: _where }, c.name] })
                 query._target = c._target
                 return this.onSIMPLE({ query, target: c._target })
