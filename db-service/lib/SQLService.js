@@ -276,7 +276,7 @@ class SQLService extends DatabaseService {
             if (c._target === req.target) {
               // special treatment for recursive compositions in hierarchies
               function _getBacklinkName(on) {
-                const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
+                const i = on?.findIndex(e => e.ref && e.ref[0] === '$self')
                 if (i === -1) return
                 let ref
                 if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
