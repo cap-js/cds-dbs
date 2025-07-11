@@ -418,8 +418,13 @@ class CQN2SQLRenderer {
         isOne
           ? [{ val: 1 }]
           : ['FROM', { val: 1 }]
-      )]
-      where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      )]      
+      if (expandedFilter.length && !expandedByOne.list.length && !expandedByNr.list.length) {
+        if (where?.length) where.push('and', ...expandedFilter)
+        else where = expandedFilter
+      } else {
+        where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      }
       expandedFilter = []
     }
 
