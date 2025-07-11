@@ -134,9 +134,9 @@ function cqn4sql(originalQuery, model) {
         const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
         const subquery = {
           SELECT: {
-            from: { ...transformedFrom },
+            from: { ...(from || entity) },
             columns: [], // primary keys of the query target will be added later
-            where: [...transformedProp.where],
+            where: [...where],
           },
         }
         // The alias of the original query is now the alias for the subquery

@@ -170,9 +170,22 @@ describe('UPDATE', () => {
   })
 
   it('supports multiple path expressions in where clause', () => {
-    const q = UPDATE('bookshop.Window').set({ description: 'sliding window' }).where('door.car.make =', 'BMW')
+    const q = UPDATE('bookshop.Window as Window').set({ description: 'sliding window' }).where('door.car.make =', 'BMW')
     const res = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(res))).to.eql('tbd')
+
+    const innerSelect = cds.ql`SELECT from bookshop.Window as Window
+      left join bookshop.Door as door on door.ID = Window.door_ID
+      left join bookshop.Car as car on car.ID = door.car_ID
+      { Window.ID }
+      where car.make = 'BMW'`
+
+    const expected = UPDATE.entity({ ref: ['bookshop.Window'] }).alias('Window2')
+    expected.UPDATE.where = [
+      { list: [{ ref: ['Window2', 'ID'] }] },
+      'in',
+      innerSelect,
+    ]
+    expect (JSON.parse(JSON.stringify(res))).to.deep.equal(JSON.parse(JSON.stringify(expected)))
   })
 })
 describe('UPDATE with path expression', () => {
