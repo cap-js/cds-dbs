@@ -4,7 +4,7 @@ const Child = 'complex.Child'
 const GrandChild = 'complex.GrandChild'
 const RootPWithKeys = 'complex.RootPWithKeys'
 const ChildPWithWhere = 'complex.ChildPWithWhere'
-const recusive = [
+const recusiveData = [
   {
     ID: 10,
     fooRoot: 'Another Low Horror',
@@ -198,18 +198,16 @@ describe('DELETE', () => {
         expect(grandchild.length).to.be.eq(0)
       })
 
-      test('on root with keys with recursive', async () => {
+      test('on root with keys with recursive composition', async () => {
         const insertsResp = await cds.run(INSERT.into(Root).entries(recusive))
         expect(insertsResp.affectedRows).to.be.eq(5)
-        
-        const root2 = await cds.run(SELECT.from(Root))
-        const child2 = await cds.run(SELECT.from(Child))
 
         const deepDelete = await cds.run(DELETE.from(RootPWithKeys).where({ ID: 5 }))
         expect(deepDelete).to.be.eq(1)
 
         const root = await cds.run(SELECT.from(Root))
         expect(root.length).to.be.eq(0)
+        
         const child = await cds.run(SELECT.from(Child))
         expect(child.length).to.be.eq(0)
 
