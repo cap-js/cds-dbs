@@ -168,6 +168,12 @@ describe('UPDATE', () => {
       }`)
     expect(query.UPDATE).to.deep.equal(expected.UPDATE)
   })
+
+  it('supports multiple path expressions in where clause', () => {
+    const q = UPDATE('bookshop.Window').set({ description: 'sliding window' }).where('door.car.make =', 'BMW')
+    const res = cqn4sql(q, model)
+    expect(JSON.parse(JSON.stringify(res))).to.eql('tbd')
+  })
 })
 describe('UPDATE with path expression', () => {
   let model
