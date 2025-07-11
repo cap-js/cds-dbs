@@ -211,7 +211,7 @@ describe('DELETE', () => {
         const root = await cds.run(SELECT.from(Root))
         expect(root.length).to.be.eq(0)
         const child = await cds.run(SELECT.from(Child))
-        expect(child.length).to.be.eq(2)
+        expect(child.length).to.be.eq(0)
 
         const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
         expect(grandchild.length).to.be.eq(0)

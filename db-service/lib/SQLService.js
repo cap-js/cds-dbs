@@ -268,8 +268,7 @@ class SQLService extends DatabaseService {
           if (last.where) [last, where] = [last.id, [{ xpr: last.where }, 'and', { xpr: where }]]
           from = { ref: [...from.ref.slice(0, -1), { id: last, where }] }
         }
-        // Process child compositions depth-first
-        let { depth = 0, visited = [] } = req
+        let { visited = [] } = req
         visited.push(req.target.name)
         await Promise.all(
           Object.values(compositions).map(c => {
@@ -286,8 +285,7 @@ class SQLService extends DatabaseService {
               }
               const backlinkName = _getBacklinkName(c.on)
               recursiveBacklinks.push(backlinkName)
-              // the Genre.children case
-              if (++depth > (c['@depth'] || 3)) return
+              return
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
@@ -297,11 +295,10 @@ class SQLService extends DatabaseService {
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
             query._target = c._target
-            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+            return this.onDELETE({ query, visited: [...visited], target: c._target })
           }),
         )
-        // only perform one recursive delete for root request
-        if (recursiveBacklinks.length && !req.depth) {
+        if (recursiveBacklinks.length) {
           let key
           // For hierarchies, only a single key is supported
           for (const _key in req.target.keys) {
@@ -320,13 +317,24 @@ class SQLService extends DatabaseService {
           }
 
           _where.pop()
+
+          const nonRecursiveComps = Object.values(compositions).filter(c => c._target !== req.target)
+          // Delete all non-recursive compositions from recursive composition
+          if (nonRecursiveComps.length) {
+            await Promise.all(
+              Object.values(nonRecursiveComps).map(c => {
+                const query = DELETE.from({ ref: [{ id: table.name, where: _where }, c.name] })
+                query._target = c._target
+                return this.onSIMPLE({ query, target: c._target })
+              }),
+            )
+          }
+          // Delete all recursive composition
           const query = DELETE.from(table).where(_where)
           await this.onSIMPLE({ query, target: table })
         }
       }
-      // skip recursive compositions because they are handled above
-      if (compositions?.[req.query.DELETE.from.ref[req.query.DELETE.from.ref.length-1]]?._target === req.target) return
-      else return this.onSIMPLE(req)
+      return this.onSIMPLE(req)
     }
   }
 
