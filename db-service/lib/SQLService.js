@@ -283,9 +283,16 @@ class SQLService extends DatabaseService {
                 if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
                 return ref && ref[ref.length - 1]
               }
-              const backlinkName = _getBacklinkName(c.on)
-              recursiveBacklinks.push(backlinkName)
-              return
+              if (c.on) {
+                const backlinkName = c.on ? _getBacklinkName(c.on) : c.name
+                recursiveBacklinks.push(backlinkName)
+                return
+              } else {
+                // recursive composition of one
+                const query = DELETE.from({ ref: [...from.ref, c.name] })
+                query._target = c._target
+                return this.onSIMPLE({ query, target: table })
+              }
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
