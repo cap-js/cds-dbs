@@ -467,3 +467,23 @@ entity Third as projection on Second {
   *,
   first: redirected to FirstRedirected on $self.ID = first.BUBU
 };
+
+entity Car {
+    key ID: Integer;
+    make: String;
+    model: String;
+    doors: Association to many Door on doors.car = $self;
+}
+
+entity Door {
+    key ID: Integer;
+    description: String;
+    car: Association to Car;
+    windows: Association to many Window on windows.door = $self
+}
+
+entity Window {
+    key ID: Integer;
+    description: String;
+    door: Association to Door;
+}
