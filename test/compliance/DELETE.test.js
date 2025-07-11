@@ -199,7 +199,7 @@ describe('DELETE', () => {
       })
 
       test('on root with keys with recursive composition', async () => {
-        const insertsResp = await cds.run(INSERT.into(Root).entries(recusive))
+        const insertsResp = await cds.run(INSERT.into(Root).entries(recusiveData))
         expect(insertsResp.affectedRows).to.be.eq(5)
 
         const deepDelete = await cds.run(DELETE.from(RootPWithKeys).where({ ID: 5 }))
@@ -207,7 +207,7 @@ describe('DELETE', () => {
 
         const root = await cds.run(SELECT.from(Root))
         expect(root.length).to.be.eq(0)
-        
+
         const child = await cds.run(SELECT.from(Child))
         expect(child.length).to.be.eq(0)
 
