@@ -1,6 +1,6 @@
 'use strict'
 
-const { getValidationQuery, buildMessage, getWhereOfPatch, getConstraintsByTarget } = require('./utils')
+const { getValidationQuery, buildMessage, getConstraintsByTarget } = require('./utils')
 
 const constraintStorage = require('./storage')
 
@@ -37,15 +37,7 @@ function attachConstraints(_res, req) {
   const byTarget = getConstraintsByTarget(req.target, req.data)
   if (!byTarget.size) return
 
-  const patchWhere = getWhereOfPatch(req) // null | array
-  const rootName = req.target.name
-
   for (const [targetName, constraints] of byTarget) {
-    if (patchWhere && targetName === rootName) {
-      Object.values(constraints).forEach(c => {
-        c.where.push([{ xpr: patchWhere }])
-      })
-    }
     constraintStorage.merge(this.tx, targetName, constraints)
   }
 }
@@ -63,14 +55,17 @@ function attachConstraints(_res, req) {
  *
  * @param {import('@sap/cds').Request} req – CDS request that will hold any validation errors.
  */
-async function checkConstraints(req) {
+async function checkConstraints(_res, req) {
   const constraintsPerTarget = constraintStorage.get(this.tx)
   if (!constraintsPerTarget.size) return
 
   // build exactly one query per bucket
   const queries = []
   for (const [targetName, constraints] of constraintsPerTarget) {
-    queries.push(getValidationQuery(targetName, constraints))
+    if(targetName === req?.target.name)
+      queries.push(getValidationQuery(targetName, constraints, req))
+    else // deep
+      queries.push(getValidationQuery(targetName, constraints))
   }
 
   const results = await this.run(queries)
@@ -108,10 +103,11 @@ async function checkConstraints(req) {
   }
 
   for (const [text, targetList] of messages) {
-    req.error(400, {
+    req.error({
+      code: 400,
       message: text,
       target: targetList[0]?.ref.join('/'),
-      '@Common.additionalTargets': targetList.map(t => t.ref.join('/')),
+      '@Common.additionalTargets': targetList.slice(1).map(t => t.ref.join('/')),
     })
   }
 

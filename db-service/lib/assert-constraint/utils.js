@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds')
 
-function getValidationQuery(target, constraints) {
+function getValidationQuery(target, constraints, req = null) {
   const columns = []
   const paramColumns = []
   const parameterAliases = new Set() // tracks every alias already added
@@ -43,12 +43,22 @@ function getValidationQuery(target, constraints) {
   const first = Object.values(constraints)[0]
   const keyMatchingCondition = first.where.flatMap((matchKey, i) => (i > 0 ? ['or', ...matchKey] : matchKey))
 
-  const validationQuery = SELECT.from(target).columns(columns).where(keyMatchingCondition)
+  const validationQuery = SELECT.from(req?.subject || {ref: [target]}).columns(columns).where(keyMatchingCondition)
+  // let validationQuery
+  // if (req) {
+  //   validationQuery = SELECT.from(req.subject).columns(columns).where(keyMatchingCondition)
+  //   const prop = req.query?.UPDATE || req.query?.UPSERT
+  //   if(prop?.where) {
+  //     validationQuery.SELECT.where = [...validationQuery.SELECT.where, 'or', ...prop.where]
+  //   } 
+  // } else { // hack for deep because req.subject != target
+  //   validationQuery = SELECT.from({ref: [target]}).columns(columns).where(keyMatchingCondition)
+  // }
 
   // there will be a separate query for the params which will only
   // be fired if the validation query returns any violated constraints
   if (paramColumns.length) {
-    const paramQuery = SELECT.from(target)
+    const paramQuery = SELECT.from(validationQuery.SELECT.from)
       .columns(paramColumns)
       .where([...keyMatchingCondition])
 
@@ -214,13 +224,6 @@ function getConstraintsByTarget(target, data) {
   return map
 }
 
-function getWhereOfPatch(req) {
-  if (!['UPDATE', 'UPSERT'].includes(req.event)) return null
-
-  const q = req.query[req.event]
-  return q?.where ?? q?.entity?.ref?.[0]?.where ?? null
-}
-
 /**
  * Decides whether the constraint must be executed for the given data payload.
  *
@@ -288,5 +291,4 @@ module.exports = {
   getConstraintsByTarget,
   collectConstraints,
   buildMessage,
-  getWhereOfPatch,
 }

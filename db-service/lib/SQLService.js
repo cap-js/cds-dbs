@@ -39,6 +39,7 @@ class SQLService extends DatabaseService {
   init() {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./fill-in-keys')) // REVISIT should be replaced by correct input processing eventually
     this.after(['INSERT', 'UPSERT', 'UPDATE'], attachConstraints)
+    this.after(['INSERT', 'UPSERT', 'UPDATE'], checkConstraints)
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
@@ -69,7 +70,6 @@ class SQLService extends DatabaseService {
     this.on(['DELETE'], this.onDELETE)
     this.on(['CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
-    this.before(['COMMIT'], checkConstraints)
     this.on(['*'], this.onPlainSQL)
     return super.init()
   }
