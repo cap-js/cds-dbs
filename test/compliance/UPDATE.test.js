@@ -1,5 +1,5 @@
 const cds = require('../cds.js')
-const Books = 'complex.associations.Books'
+const Root = 'complex.associations.Root'
 const BooksUnique = 'complex.uniques.Books'
 
 describe('UPDATE', () => {
@@ -122,16 +122,16 @@ describe('UPDATE', () => {
   describe('where', () => {
     test('flat with or on key', async () => {
       const insert = await cds.run(
-        INSERT.into(Books).entries([
-          { ID: 5, title: 'foo' },
-          { ID: 6, title: 'bar' },
+        INSERT.into(Root).entries([
+          { ID: 5, fooRoot: 'foo' },
+          { ID: 6, fooRoot: 'bar' },
         ]),
       )
       expect(insert.affectedRows).to.equal(2)
 
       const update = await cds.run(
-        UPDATE.entity(Books)
-          .set({ title: 'foo' })
+        UPDATE.entity(Root)
+          .set({ fooRoot: 'foo' })
           .where({ ID: 5, or: { ID: 6 } }),
       )
       expect(update).to.equal(2)
@@ -172,9 +172,9 @@ describe('UPDATE', () => {
   })
 
   test('affected rows', async () => {
-    const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
+    const { count } = await SELECT.one`count(*)`.from('complex.associations.Root')
 
-    const affectedRows = await UPDATE.entity('complex.associations.Books').data({ title: 'Book' })
+    const affectedRows = await UPDATE.entity('complex.associations.Root').data({ fooRoot: 'fooRoot1' })
     expect(affectedRows).to.be.eq(count)
   })
 })
