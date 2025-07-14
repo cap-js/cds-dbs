@@ -5,7 +5,14 @@ cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._ta
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, defineProperty, getModelUtils } = require('./utils')
+const {
+  prettyPrintRef,
+  isCalculatedOnRead,
+  isCalculatedElement,
+  getImplicitAlias,
+  defineProperty,
+  getModelUtils,
+} = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -84,6 +91,7 @@ function cqn4sql(originalQuery, model) {
     const from = queryProp.from
 
     const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
     // Transform the existing where, prepend table aliases, and so on...
     if (where) {
@@ -93,7 +101,47 @@ function cqn4sql(originalQuery, model) {
     // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
     // The already transformed `where` clause is then glued together with the resulting subqueries.
     const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
-    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
+
+    // build a subquery for DELETE / UPDATE queries with path expressions and match the primary keys
+    if (queryNeedsJoins && (inferred.UPDATE || inferred.DELETE)) {
+      const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
+      const subquery = {
+        SELECT: {
+          from: { ...(from || entity) },
+          columns: [], // primary keys of the query target will be added later
+          where: [...where],
+        },
+      }
+      // The alias of the original query is now the alias for the subquery
+      // so that potential references in the where clause to the alias match.
+      // Hence, replace the alias of the original query with the next
+      // available alias, so that each alias is unique.
+      const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
+      transformedFrom.as = uniqueSubqueryAlias
+
+      // calculate the primary keys of the target entity, there is always exactly
+      // one query source for UPDATE / DELETE
+      const queryTarget = Object.values(inferred.sources)[0].definition
+      const primaryKey = { list: [] }
+      for (const k of Object.keys(queryTarget.elements)) {
+        const e = queryTarget.elements[k]
+        if (e.key === true && !e.virtual && e.isAssociation !== true) {
+          subquery.SELECT.columns.push({ ref: [e.name] })
+          primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
+        }
+      }
+
+      const transformedSubquery = cqn4sql(subquery, model)
+
+      // replace where condition of original query with the transformed subquery
+      // correlate UPDATE / DELETE query with subquery by primary key matches
+      transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
+
+      if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
+      else transformedQuery.DELETE.from = transformedFrom
+
+      return transformedQuery
+    }
 
     if (inferred.SELECT) {
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
@@ -119,45 +167,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (queryNeedsJoins) {
-      if (inferred.UPDATE || inferred.DELETE) {
-        const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
-        const subquery = {
-          SELECT: {
-            from: { ...transformedFrom },
-            columns: [], // primary keys of the query target will be added later
-            where: [...transformedProp.where],
-          },
-        }
-        // The alias of the original query is now the alias for the subquery
-        // so that potential references in the where clause to the alias match.
-        // Hence, replace the alias of the original query with the next
-        // available alias, so that each alias is unique.
-        const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
-        transformedFrom.as = uniqueSubqueryAlias
-
-        // calculate the primary keys of the target entity, there is always exactly
-        // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(inferred.sources)[0].definition
-        const primaryKey = { list: [] }
-        for (const k of Object.keys(queryTarget.elements)) {
-          const e = queryTarget.elements[k]
-          if (e.key === true && !e.virtual && e.isAssociation !== true) {
-            subquery.SELECT.columns.push({ ref: [e.name] })
-            primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
-          }
-        }
-
-        const transformedSubquery = cqn4sql(subquery, model)
-
-        // replace where condition of original query with the transformed subquery
-        // correlate UPDATE / DELETE query with subquery by primary key matches
-        transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
-
-        if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
-        else transformedQuery.DELETE.from = transformedFrom
-      } else {
-        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
-      }
+      transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
     }
   }
 
@@ -1658,8 +1668,7 @@ function cqn4sql(originalQuery, model) {
   function getTransformedFrom(from, existingWhere = []) {
     const transformedWhere = []
     let transformedFrom = copy(from) // REVISIT: too expensive!
-    if (from.$refLinks)
-      defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
+    if (from.$refLinks) defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
       from.args.forEach(arg => {
