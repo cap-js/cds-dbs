@@ -360,32 +360,10 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(2)
   })
 
-  test('Filter Books(complex filter in apply) and groupby(by navigation sub properties) that return no records', async () => {
-    const res = await GET(`/admin/Books?$apply=filter(price le -999)/groupby((author/name,author/ID))&$top=500&$count=true`,
-      admin//
-    );
-    expect(res.status).to.be.eq(200)
-    expect(res.data["@odata.count"]).to.be.eq(0);
-    expect(res.data.value.length).to.be.eq(0)
-  })
-
-  test('groupby(by navigation sub properties) that return at least some records', async () => {
-    const res = await GET(`/admin/Books?$apply=filter(price ge -1)/groupby((author/name,author/ID))&$top=500&$count=true`,
-      admin
-    );
-    expect(res.status).to.be.eq(200);
-    expect(res.data.value.length).to.be.gt(0);
-    expect(res.data["@odata.count"]).to.be.gt(0);
-
-    expect(
-      res.data.value.every(
-        item =>
-          // Lets validate that we have {author:{ID:number, name:string}}
-          'author' in item &&
-          'ID' in item.author &&
-          'name' in item.author
-      ),
-    ).to.be.true
+  test('Books $count with $top=0 and group by', async () => {
+    // top=0 to force count subquery
+    const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
+    expect(res.data['@odata.count']).to.be.eq(4)
   })
 
   it('joins as subselect are executable', async () => {
