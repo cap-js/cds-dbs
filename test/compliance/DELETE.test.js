@@ -7,25 +7,24 @@ const ChildPWithWhere = 'complex.ChildPWithWhere'
 const recusiveData = [
   {
     ID: 10,
-    fooRoot: 'Another Low Horror',
-    parent_ID: 5,
+    fooRoot: 'Horror',
     children: [
       {
         ID: 101,
         fooChild: 'bar',
         children: [
           {
-            ID: 102,
+            ID: 1011,
             fooGrandChild: 'bar',
           },
         ],
       },
       {
-        ID: 103,
+        ID: 102,
         fooChild: 'foo',
         children: [
           {
-            ID: 104,
+            ID: 1021,
             fooGrandChild: 'foo',
           },
         ],
@@ -34,7 +33,7 @@ const recusiveData = [
   },
   {
     ID: 11,
-    fooRoot: 'Another Medium Horror',
+    fooRoot: 'Low Horror',
     parent_ID: 10,
     children: [
       {
@@ -42,17 +41,17 @@ const recusiveData = [
         fooChild: 'bar',
         children: [
           {
-            ID: 112,
+            ID: 1111,
             fooGrandChild: 'bar',
           },
         ],
       },
       {
-        ID: 113,
+        ID: 112,
         fooChild: 'foo',
         children: [
           {
-            ID: 114,
+            ID: 1121,
             fooGrandChild: 'foo',
           },
         ],
@@ -61,7 +60,7 @@ const recusiveData = [
   },
   {
     ID: 12,
-    fooRoot: 'Another Hard Horror',
+    fooRoot: 'Medium Horror',
     parent_ID: 11,
     children: [
       {
@@ -69,17 +68,17 @@ const recusiveData = [
         fooChild: 'bar',
         children: [
           {
-            ID: 122,
+            ID: 1211,
             fooGrandChild: 'bar',
           },
         ],
       },
       {
-        ID: 123,
+        ID: 122,
         fooChild: 'foo',
         children: [
           {
-            ID: 124,
+            ID: 1221,
             fooGrandChild: 'foo',
           },
         ],
@@ -88,7 +87,7 @@ const recusiveData = [
   },
   {
     ID: 13,
-    fooRoot: 'Another Very Hard Horror',
+    fooRoot: 'Hard Horror',
     parent_ID: 11,
     children: [
       {
@@ -96,17 +95,17 @@ const recusiveData = [
         fooChild: 'bar',
         children: [
           {
-            ID: 132,
+            ID: 1311,
             fooGrandChild: 'bar',
           },
         ],
       },
       {
-        ID: 133,
+        ID: 1312,
         fooChild: 'foo',
         children: [
           {
-            ID: 134,
+            ID: 13121,
             fooGrandChild: 'foo',
           },
         ],
@@ -115,7 +114,7 @@ const recusiveData = [
   },
   {
     ID: 14,
-    fooRoot: 'Another Very Very Hard Horror',
+    fooRoot: 'Very Hard Horror',
     parent_ID: 12,
     children: [
       {
@@ -123,17 +122,44 @@ const recusiveData = [
         fooChild: 'bar',
         children: [
           {
-            ID: 142,
+            ID: 1411,
             fooGrandChild: 'bar',
           },
         ],
       },
       {
-        ID: 143,
+        ID: 142,
         fooChild: 'foo',
         children: [
           {
-            ID: 144,
+            ID: 1421,
+            fooGrandChild: 'foo',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    ID: 15,
+    fooRoot: 'Very Very Hard Horror',
+    parent_ID: 14,
+    children: [
+      {
+        ID: 151,
+        fooChild: 'bar',
+        children: [
+          {
+            ID: 1511,
+            fooGrandChild: 'bar',
+          },
+        ],
+      },
+      {
+        ID: 152,
+        fooChild: 'foo',
+        children: [
+          {
+            ID: 1521,
             fooGrandChild: 'foo',
           },
         ],
@@ -199,19 +225,20 @@ describe('DELETE', () => {
       })
 
       test('on root with keys with recursive composition', async () => {
-        const insertsResp = await cds.run(INSERT.into(Root).entries(recusiveData))
-        expect(insertsResp.affectedRows).to.be.eq(5)
+        const { RootPWithKeys: RootAPWithKeys, Root: RootA, Child: ChildA, GrandChild: GrandChildA } = cds.entities('complex.associations')
+        const insertsResp = await cds.run(INSERT.into(RootA).entries(recusiveData))
+        expect(insertsResp.affectedRows).to.be.eq(6)
 
-        const deepDelete = await cds.run(DELETE.from(RootPWithKeys).where({ ID: 5 }))
+        const deepDelete = await cds.run(DELETE.from(RootAPWithKeys).where({ ID: 10 }))
         expect(deepDelete).to.be.eq(1)
 
-        const root = await cds.run(SELECT.from(Root))
+        const root = await cds.run(SELECT.from(RootA))
         expect(root.length).to.be.eq(0)
 
-        const child = await cds.run(SELECT.from(Child))
+        const child = await cds.run(SELECT.from(ChildA))
         expect(child.length).to.be.eq(0)
 
-        const grandchild = await cds.run(SELECT.from(GrandChild).where({ ID: 8, or: { ID: 9 } }))
+        const grandchild = await cds.run(SELECT.from(GrandChildA).where({ ID: 8, or: { ID: 9 } }))
         expect(grandchild.length).to.be.eq(0)
       })
 

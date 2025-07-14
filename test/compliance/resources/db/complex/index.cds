@@ -9,8 +9,6 @@ using from './keywords';
 entity Root {
   key ID       : Integer;
       fooRoot  : String;
-      parent: Association to Root;
-      recursive: Composition of many Root on recursive.parent = $self;
       children : Composition of many Child
                    on children.parent = $self;
 }

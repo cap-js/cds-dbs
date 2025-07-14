@@ -1,15 +1,36 @@
 namespace complex.associations.unmanaged;
 
-entity Books {
-  key ID : Integer;
-  title  : String(111);
-  author_ID: Integer;
-  author : Association to Authors on author.ID = $self.author_ID;
+entity Root {
+  key ID                 : Integer;
+      fooRoot            : String(111);
+      children_ID        : Integer;
+      children           : Composition of many Child
+                             on children.ID = $self.children_ID;
 }
 
-entity Authors {
-  key ID : Integer;
-  name   : String(111);
-  books  : Association to many Books on books.author = $self;
-  static  : Association to many Books on static.author = $self and static.ID > 0 and name != null;
+entity Child {
+  key ID       : Integer;
+      fooChild : String;
+      parent   : Association to one Root;
+      children : Composition of many GrandChild
+                   on children.parent = $self;
+      static   : Association to many Root
+                   on  static.children =  $self
+                   and static.ID       >  0
+                   and fooChild        != null;
+}
+
+entity GrandChild {
+  key ID            : Integer;
+      fooGrandChild : String;
+      parent        : Association to one Child;
+}
+
+extend Root with {
+  LimitedDescendantCount : Integer = null;
+  DistanceFromRoot       : Integer = null;
+  DrillState             : String  = null;
+  Matched                : Boolean = null;
+  MatchedDescendantCount : Integer = null;
+  LimitedRank            : Integer = null;
 }
