@@ -337,9 +337,11 @@ class SQLService extends DatabaseService {
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
-    const columns = (having?.length || groupBy?.length)
-      ? query.SELECT.columns.filter(c => !c.expand)
-      : [{ val: 1 }]
+    let columns = []
+    if((having?.length || groupBy?.length)) {
+      columns = query.SELECT.columns.filter(c => !c.expand)
+    }
+    if (columns.length === 0) columns.push({ val: 1 })
     const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
         columns,
