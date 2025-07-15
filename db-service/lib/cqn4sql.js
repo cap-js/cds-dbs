@@ -70,7 +70,7 @@ function cqn4sql(originalQuery, model) {
   }
   // query modifiers can also be defined in from ref leaf infix filter
   // > SELECT from bookshop.Books[order by price] {ID}
-  if (inferred.SELECT?.from.ref) {
+  if (inferred.SELECT?.from.ref?.at(-1).id) {
     assignQueryModifiers(inferred.SELECT, inferred.SELECT.from.ref.at(-1))
   }
   inferred = infer(inferred, model)
