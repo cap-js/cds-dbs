@@ -8,6 +8,10 @@
   "cds": {
     "features": {
       "assert_integrity": "db"
+    },
+    "cdsc": {
+      "defaultStringLength": 1000,
+      "standardDatabaseFunctions": true
     }
   }
 }

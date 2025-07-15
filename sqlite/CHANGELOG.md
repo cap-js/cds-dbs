@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.1...sqlite-v2.0.2) (2025-06-30)
+
+
+### Fixed
+
+* **deps:** update dependency better-sqlite3 to v12 ([#1253](https://github.com/cap-js/cds-dbs/issues/1253)) ([8975490](https://github.com/cap-js/cds-dbs/commit/8975490f29624a96d2c0f128b19a6ddc5b66f91d))
+
 ## [2.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.0...sqlite-v2.0.1) (2025-05-27)
 
 
