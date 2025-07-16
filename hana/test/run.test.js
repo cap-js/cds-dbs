@@ -62,6 +62,16 @@ async function createProcedures() {
       BEGIN
         PARAM_1=SELECT :PARAM_0 AS NUM0 FROM dummy;
         PARAM_2=SELECT :PARAM_0+1 AS NUM1 FROM dummy;
+      END;`,
+
+      `CREATE PROCEDURE MY_PROC_15 (
+        IN PARAM_0 INT
+      )
+      LANGUAGE SQLSCRIPT
+      DEFAULT SCHEMA ${schema}
+      AS
+      BEGIN
+        INSERT INTO sap_capire_TestEntity (ID, title) VALUES (:PARAM_0, 'test');
       END;`
   ]
 
@@ -174,6 +184,23 @@ describe('stored procedures', () => {
         '2'
       ])
       expect(res).to.containSubset(exp)
+    })
+
+    test('tx isolation of procedures', async () => {
+      try {
+        await cds.tx(async (tx) => {
+          await tx.run('CALL MY_PROC_15(?)', [1111])
+          const res = await tx.run(SELECT.from('SAP_CAPIRE_TESTENTITY', { ID: 1111}).columns('ID'))
+          expect(res).to.eql({ ID: 1111})
+          throw new Error('test error') // initiate rollback
+        })
+      } catch(err) {
+        expect(err.message).to.include('test error')
+      }finally {
+        const res = await cds.run(SELECT.from('SAP_CAPIRE_TESTENTITY', { ID: 1111}))
+        expect(res).not.to.exist
+      }
+      
     })
   })
 
