@@ -1,29 +1,32 @@
 namespace complex.associations.unmanaged;
 
 entity Root {
-  key ID                 : Integer;
-      fooRoot            : String(111);
-      children_ID        : Integer;
-      children           : Composition of many Child
-                             on children.ID = $self.children_ID;
+  key ID       : Integer;
+      fooRoot  : String(111);
+      children : Composition of many Child
+                   on children.parent = $self;
+      static   : Association to many Child
+                   on  static.parent =  $self
+                   and static.ID     >  0
+                   and fooRoot       != null;
 }
 
 entity Child {
-  key ID       : Integer;
-      fooChild : String;
-      parent   : Association to one Root;
-      children : Composition of many GrandChild
-                   on children.parent = $self;
-      static   : Association to many Root
-                   on  static.children =  $self
-                   and static.ID       >  0
-                   and fooChild        != null;
+  key ID        : Integer;
+      fooChild  : String;
+      parent_ID : Integer;
+      parent    : Association to one Root
+                    on parent.ID = $self.parent_ID;
+      children  : Composition of many GrandChild
+                    on children.parent = $self;
 }
 
 entity GrandChild {
   key ID            : Integer;
       fooGrandChild : String;
-      parent        : Association to one Child;
+      parent_ID     : Integer;
+      parent        : Association to one Child
+                        on parent.ID = $self.parent_ID;
 }
 
 extend Root with {

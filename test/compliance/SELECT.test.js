@@ -291,8 +291,8 @@ describe('SELECT', () => {
     })
 
     test('expand association with static values', async () => {
-      const { Child } = cds.entities('complex.associations.unmanaged')
-      const cqn = cds.ql`SELECT static{*} FROM ${Child}`
+      const { Root } = cds.entities('complex.associations.unmanaged')
+      const cqn = cds.ql`SELECT static{*} FROM ${Root}`
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
       assert.strictEqual(res[0].static.length, 1)
@@ -390,7 +390,7 @@ describe('SELECT', () => {
       const { Child } = cds.entities('complex.associations')
       const cqn = cds.ql`SELECT * FROM ${Child} WHERE exists parent.children[parent.fooRoot = ${'fooRoot1'}]`
       const res = await cds.run(cqn)
-      expect(res.length).to.be.equal(2)
+      expect(res).to.have.property('length', 2)
       expect(res[0]).to.have.property('fooChild', 'fooChild11')
       expect(res[1]).to.have.property('fooChild', 'fooChild12')
     })
