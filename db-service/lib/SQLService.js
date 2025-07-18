@@ -287,7 +287,7 @@ class SQLService extends DatabaseService {
                   if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
                   return ref && ref[ref.length - 1]
                 }
-                const backlinkName = _getBacklinkName(c.on)
+                const backlinkName = c.on ? _getBacklinkName(c.on) : c.name
                 recursiveBacklinks.push(backlinkName)
                 return
               }
