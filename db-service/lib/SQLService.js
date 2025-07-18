@@ -253,8 +253,14 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
+
       const table = getDBTable(req.target)
       const { compositions } = table
+
+       // Check if we are in the hierarchy case
+      let isHierarchy = req.target.elements?.LimitedDescendantCount
+      const recursiveBacklinks = []
+
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
@@ -271,6 +277,20 @@ class SQLService extends DatabaseService {
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
             if (c._target === req.target) {
+              // deep delete for hierarchies
+              if (isHierarchy) {
+                function _getBacklinkName(on) {
+                  const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
+                  if (i === -1) return
+                  let ref
+                  if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
+                  if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
+                  return ref && ref[ref.length - 1]
+                }
+                const backlinkName = _getBacklinkName(c.on)
+                recursiveBacklinks.push(backlinkName)
+                return
+              }
               // the Genre.children case
               if (++depth > (c['@depth'] || 3)) return
             } else if (visited.includes(c._target.name))
@@ -285,6 +305,41 @@ class SQLService extends DatabaseService {
             return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
+        if (recursiveBacklinks.length) {
+          let key
+          // For hierarchies, only a single key is supported
+          for (const _key in req.target.keys) {
+            if (req.target.keys[_key].virtual) continue
+            key = _key
+            break
+          }
+          const _where = []
+          for (const backlink of recursiveBacklinks) {
+            const _recursiveQuery = SELECT.from(table).columns(key)
+            _recursiveQuery.SELECT.recurse = {
+              ref: [backlink],
+              where: from.ref[0].where,
+            }
+            _where.push({ ref: [key] }, 'in', _recursiveQuery, 'or')
+          }
+
+          _where.pop()
+
+          const nonRecursiveComps = Object.values(compositions).filter(c => c._target !== req.target)
+          // Delete all non-recursive compositions from recursive composition
+          if (nonRecursiveComps.length) {
+            await Promise.all(
+              nonRecursiveComps.map(c => {
+                const query = DELETE.from({ ref: [{ id: table.name, where: _where }, c.name] })
+                query._target = c._target
+                return this.onSIMPLE({ query, target: c._target })
+              }),
+            )
+          }
+          // Delete all recursive composition
+          const query = DELETE.from(table).where(_where)
+          await this.onSIMPLE({ query, target: table })
+        }
       }
       return this.onSIMPLE(req)
     }
