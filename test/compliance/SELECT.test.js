@@ -4,6 +4,63 @@ const cds = require('../cds.js')
 describe('SELECT', () => {
   const { expect } = cds.test(__dirname + '/resources')
 
+  beforeAll(async () => {
+    const { Root } = cds.entities('complex.associations')
+    const { Root: RootUnmanaged } = cds.entities('complex.associations.unmanaged')
+    const inserts = [
+      INSERT.into(Root).entries([
+        {
+          ID: 1,
+          fooRoot: 'fooRoot1',
+          children: [
+            {
+              ID: 11,
+              fooChild: 'fooChild11',
+              children: [
+                {
+                  ID: 111,
+                  fooGrandChild: 'fooGrandChild111',
+                },
+              ],
+            },
+            {
+              ID:12,
+              fooChild: 'fooChild12',
+              children: [
+                {
+                  ID: 121,
+                  fooGrandChild: 'fooGrandChild121',
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      INSERT.into(RootUnmanaged).entries([
+        {
+          ID: 2,
+          fooRoot: 'fooRootUnmanaged2',
+          children: [
+            {
+              ID: 21,
+              parent_ID: 2,
+              fooChild: 'fooChildUnmanaged21',
+              children: [
+                {
+                  parent_ID: 21,
+                  ID: 211,
+                  fooGrandChild: 'fooGrandChildUnmanaged211',
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    ]
+    const insertsResp = await cds.run(inserts)
+    expect(insertsResp[0].affectedRows).to.be.eq(1)
+  })
+
   describe('from', () => {
     test('table', async () => {
       const { globals } = cds.entities('basic.projection')
@@ -218,24 +275,24 @@ describe('SELECT', () => {
     })
 
     test('expand to many with 200 columns', async () => {
-      const { Authors } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]).from(Authors)
+      const { Child } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['fooChild'] }, { ref: ['parent'], expand: ['*', ...nulls(191)] }]).from(Child)
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
-      assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
+      assert.strictEqual(Object.keys(res[0].parent).length, 200)
     })
 
     test('expand to one with 200 columns', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]).from(Books)
+      const { Root } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['fooRoot'] }, { ref: ['children'], expand: ['*', ...nulls(197)] }]).from(Root)
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
-      assert.strictEqual(Object.keys(res[0].author).length, 200)
+      assert.strictEqual(Object.keys(res[0].children[0]).length, 200)
     })
 
     test('expand association with static values', async () => {
-      const { Authors } = cds.entities('complex.associations.unmanaged')
-      const cqn = cds.ql`SELECT static{*} FROM ${Authors}`
+      const { Root } = cds.entities('complex.associations.unmanaged')
+      const cqn = cds.ql`SELECT static{*} FROM ${Root}`
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
       assert.strictEqual(res[0].static.length, 1)
@@ -330,17 +387,19 @@ describe('SELECT', () => {
     })
 
     test('exists path expression', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const cqn = cds.ql`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
+      const { Child } = cds.entities('complex.associations')
+      const cqn = cds.ql`SELECT * FROM ${Child} WHERE exists parent.children[parent.fooRoot = ${'fooRoot1'}]`
       const res = await cds.run(cqn)
-      expect(res[0]).to.have.property('title', 'Wuthering Heights')
+      expect(res).to.have.property('length', 2)
+      expect(res[0]).to.have.property('fooChild', 'fooChild11')
+      expect(res[1]).to.have.property('fooChild', 'fooChild12')
     })
 
     test('exists path expression (unmanaged)', async () => {
-      const { Books } = cds.entities('complex.associations.unmanaged')
-      const cqn = cds.ql`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
+      const { Child } = cds.entities('complex.associations.unmanaged')
+      const cqn = cds.ql`SELECT * FROM ${Child} WHERE exists parent.children[parent.fooRoot = ${'fooRootUnmanaged2'}]`
       const res = await cds.run(cqn)
-      expect(res[0]).to.have.property('title', 'Wuthering Heights')
+      expect(res[0]).to.have.property('fooChild', 'fooChildUnmanaged21')
     })
 
     test('like wildcard', async () => {
@@ -648,15 +707,15 @@ describe('SELECT', () => {
     })
 
     test('navigation with duplicate identifier in path', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const res = await cds.ql`SELECT name { name } FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      const { Root } = cds.entities('complex.associations')
+      const res = await cds.ql`SELECT children { fooChild } FROM ${Root} GROUP BY children.fooChild`
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('navigation with duplicate identifier in path and aggregation', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const res = await cds.ql`SELECT name { name }, count(1) as total FROM ${Books} GROUP BY name.name`
-      assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
+      const { Root } = cds.entities('complex.associations')
+      const res = await cds.ql`SELECT children { fooChild }, count(1) as total FROM ${Root} GROUP BY children.fooChild`
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
   })
 
@@ -954,11 +1013,11 @@ describe('SELECT', () => {
 
   describe('count', () => {
     test('count is preserved with .map', async () => {
-      const query = SELECT.from('complex.associations.Authors')
+      const query = SELECT.from('complex.associations.Root')
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
-      const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
+      const renamed = result.map(row => ({ key: row.ID, fullName: row.fooRoot }))
       assert.strictEqual(renamed.$count, 1)
     })
   })
