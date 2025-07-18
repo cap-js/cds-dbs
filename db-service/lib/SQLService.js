@@ -257,8 +257,6 @@ class SQLService extends DatabaseService {
       const table = getDBTable(req.target)
       const { compositions } = table
 
-       // Check if we are in the hierarchy case
-      let isHierarchy = req.target.elements?.LimitedDescendantCount
       const recursiveBacklinks = []
 
       if (compositions) {
@@ -271,28 +269,24 @@ class SQLService extends DatabaseService {
           from = { ref: [...from.ref.slice(0, -1), { id: last, where }] }
         }
         // Process child compositions depth-first
-        let { depth = 0, visited = [] } = req
+        let { visited = [] } = req
         visited.push(req.target.name)
         await Promise.all(
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
             if (c._target === req.target) {
               // deep delete for hierarchies
-              if (isHierarchy) {
-                function _getBacklinkName(on) {
-                  const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
-                  if (i === -1) return
-                  let ref
-                  if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
-                  if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
-                  return ref && ref[ref.length - 1]
-                }
-                const backlinkName = c.on ? _getBacklinkName(c.on) : c.name
-                recursiveBacklinks.push(backlinkName)
-                return
+              function _getBacklinkName(on) {
+                const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
+                if (i === -1) return
+                let ref
+                if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
+                if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
+                return ref && ref[ref.length - 1]
               }
-              // the Genre.children case
-              if (++depth > (c['@depth'] || 3)) return
+              const backlinkName = c.on ? _getBacklinkName(c.on) : c.name
+              recursiveBacklinks.push(backlinkName)
+              return
             } else if (visited.includes(c._target.name))
               throw new Error(
                 `Transitive circular composition detected: \n\n` +
@@ -302,7 +296,7 @@ class SQLService extends DatabaseService {
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
             query._target = c._target
-            return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
+            return this.onDELETE({ query, visited: [...visited], target: c._target })
           }),
         )
         if (recursiveBacklinks.length) {
