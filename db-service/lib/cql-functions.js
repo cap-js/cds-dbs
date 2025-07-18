@@ -204,8 +204,6 @@ const HANAFunctions = {
     // Ensure that the orderBy column are exposed by the source for hierarchy sorting
     const orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
 
-    const startWhere = args.xpr.find((_, i, arr) => /START/i.test(arr[i - 2]) && /WHERE/i.test(arr[i - 1]))
-
     const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
     src.as = 'H' + (uniqueCounter++)
     src = this.expr(this.with(src))
@@ -215,7 +213,7 @@ SELECT
   1 as HIERARCHY_LEVEL,
   NODE_ID as HIERARCHY_ROOT_ID
  FROM ${src} AS Source
-WHERE ${startWhere ? this.expr(startWhere) : 'parent_ID IS NULL'}
+WHERE parent_ID IS NULL
 UNION ALL
 SELECT
   Parent.HIERARCHY_LEVEL + 1,
