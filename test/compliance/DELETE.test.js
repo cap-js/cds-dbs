@@ -30,6 +30,26 @@ const recusiveData = [
         ],
       },
     ],
+    recursiveToOne: {
+      ID: 103,
+      fooRoot: 'Recursive to one Horror',
+      children: [
+        {
+          ID: 1031,
+          fooChild: 'bar',
+          children: [
+            {
+              ID: 10311,
+              fooGrandChild: 'bar',
+            },
+          ],
+          recursiveToOne: {
+            ID: 10312,
+            fooRoot: 'Recursive to one Horror 2',
+          },
+        },
+      ],
+    },
   },
   {
     ID: 11,

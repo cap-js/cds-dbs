@@ -3,6 +3,7 @@ namespace complex.associations;
 entity Root {
   key ID        : Integer;
       fooRoot   : String;
+      recursiveToOne : Composition of one Root;
       parent    : Association to Root;
       recursive : Composition of many Root
                     on recursive.parent = $self;
