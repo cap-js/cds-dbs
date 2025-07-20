@@ -357,9 +357,15 @@ class CQN2SQLRenderer {
     const nodeKeys = []
     const parentKeys = []
     const association = target.elements[recurse.ref[0]]
+    const isRecToOne = association._target === q._target && association.is2one && !association._isCompositionBacklink
     association._foreignKeys.forEach(fk => {
-      nodeKeys.push(fk.childElement.name)
-      parentKeys.push(fk.parentElement.name)
+      if (isRecToOne) {
+        nodeKeys.push(fk.parentElement.name)
+        parentKeys.push(fk.childElement.name)
+      } else {
+        nodeKeys.push(fk.childElement.name)
+        parentKeys.push(fk.parentElement.name)
+      }
     })
 
     columnsIn.push(
@@ -385,11 +391,29 @@ class CQN2SQLRenderer {
     const stableFrom = getStableFrom(from)
     const alias = stableFrom.as
     const source = () => {
-      return ({
-      func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
-      as: alias
-    })
+      return {
+        func: 'HIERARCHY',
+        args: [
+          {
+            xpr: [
+              'SOURCE',
+              { SELECT: { columns: columnsIn, from: stableFrom } },
+              ...(isRecToOne
+                ? ['START', 'WHERE', { xpr: [
+                    { ref: ['parent_ID'] }, 'NOT', 'IN',
+                    { SELECT: { columns: [{ ref: ['NODE_ID'] }],
+                      from: { SELECT: { columns: columnsIn.filter(f => f.as === 'NODE_ID'), from: { ref: stableFrom.ref } } },
+                      where: [{ ref: ['NODE_ID'] }, '!=', { val: null, param: false }] }
+                    }]
+                  }]
+                : []
+              ),
+              ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : []),
+            ],
+          },
+        ],
+        as: alias,
+      }
   }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
@@ -418,8 +442,13 @@ class CQN2SQLRenderer {
         isOne
           ? [{ val: 1 }]
           : ['FROM', { val: 1 }]
-      )]
-      where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      )]      
+      if (expandedFilter.length && !expandedByOne.list.length && !expandedByNr.list.length) {
+        if (where?.length) where.push('and', ...expandedFilter)
+        else where = expandedFilter
+      } else {
+        where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      }
       expandedFilter = []
     }
 
