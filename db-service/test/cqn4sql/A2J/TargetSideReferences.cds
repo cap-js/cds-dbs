@@ -1,7 +1,5 @@
-// By using an empty filter, we refer to the target side, not the foreign key.
-//
-// FIXME: https://github.tools.sap/cap/cds-compiler/issues/13960
-
+// model to test some special join cases
+// see assoc2joins.test.js --> 'References to target side via dummy filter'
 service S {
 
   entity Source {

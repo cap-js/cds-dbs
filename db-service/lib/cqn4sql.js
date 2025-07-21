@@ -32,7 +32,6 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
 const { pseudos } = require('./infer/pseudos')
-const { table } = require('@sap/cds/lib/ql/resolve')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
  *  - transform association paths in `from` to `WHERE exists` subqueries

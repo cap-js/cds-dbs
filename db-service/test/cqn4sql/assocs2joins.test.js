@@ -1427,22 +1427,7 @@ describe('References to target side via dummy filter', () => {
     }`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
-  // @UI.pathsWithFilters: [
-  //   (toMid  .toTarget  .toSource  .sourceID), // full foreign key
-  //   (toMid[].toTarget  .toSource  .sourceID), // foreign key after [] for toMid
-  //   (toMid  .toTarget[].toSource  .sourceID), // foreign key after [] for toTarget
-  //   (toMid  .toTarget  .toSource[].sourceID), // target side
-  //   (toMid[].toTarget[].toSource[].sourceID), // target side
 
-  //   (toMid.toTarget.toSource.toMid.toTarget.toSource.sourceID),
-  //   //                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ // foreign key
-
-
-  //   // Since the filter is not within the foreign key, these are all rendered the same
-  //   // as the reference without filters above.
-  //   (toMid[].toTarget  .toSource  .toMid  .toTarget  .toSource  .sourceID),
-  //   (toMid  .toTarget[].toSource  .toMid  .toTarget  .toSource  .sourceID),
-  //   (toMid  .toTarget  .toSource[].toMid  .toTarget  .toSource  .sourceID),
   it('Shared join nodes', () => {
     const query = cds.ql`
     SELECT from S.Source {
@@ -1535,6 +1520,8 @@ describe('References to target side via dummy filter', () => {
     expect(transformed).to.deep.equal(expected)
   })
 
+  //   (toMid.toTarget.toSource.toMid.toTarget.toSource.sourceID),
+  //                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ // foreign key
   it.skip('round trip leads to join', () => {
     // TODO
     const query = cds.ql`
