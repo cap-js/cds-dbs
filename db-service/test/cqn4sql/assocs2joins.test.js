@@ -1544,5 +1544,4 @@ describe('References to target side via dummy filter', () => {
 
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
-
 })
