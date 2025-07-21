@@ -1407,7 +1407,7 @@ describe('optimize fk access', () => {
   })
 })
 
-describe('References to target side via empty filter', () => {
+describe('References to target side via dummy filter', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/A2J/TargetSideReferences').then(cds.linked)
@@ -1450,20 +1450,54 @@ describe('References to target side via empty filter', () => {
   //   (toMid  .toTarget  .toSource  .toMid  .toTarget[].toSource  .sourceID), // foreign key after []
   //   (toMid  .toTarget  .toSource  .toMid  .toTarget  .toSource[].sourceID), // target side
   // ]
-  it('UI.pathsWithFilters first block', () => {
-    // toMid.toTarget[].toSource.sourceID as foreignKeyAfterToTarget,
-    // toMid.toTarget.toSource[].sourceID as targetSide,
-    // toMid[].toTarget[].toSource[].sourceID as targetSideWithArray
+  it('Shared join nodes', () => {
     const query = cds.ql`
     SELECT from S.Source {
       toMid.toTarget.toSource.sourceID as fullForeignKey,
-      toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid
+      toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid,
+      toMid[1=1].toTarget[1=1].toSource.sourceID as foreignKeyAfterToTarget,
+      toMid[1=1].toTarget[1=1].toSource[1=1].sourceID as targetsKeyAfterToSource
     }`
 
+    // REVISIT: toTarget2 should just be toTarget, alias calculation gets messy here..
+    //          toSource3 should just be toSource
     const expected = cds.ql`
-    SELECT from S.Source as $S left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1 {
+    SELECT from S.Source as $S
+      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
+      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid.toTarget_toSource_sourceID and 1 = 1
+      left join S.Source as toSource3 on toSource3.sourceID = toTarget2.toSource_sourceID and 1 = 1
+    {
       $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid
+      toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid,
+      toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
+      toSource3.sourceID as targetsKeyAfterToSource
+    }
+    `
+    const transformed = cqn4sql(query, model)
+    expect(transformed).to.deep.equal(expected)
+  })
+
+  it.skip('Own join nodes', () => {
+    const query = cds.ql`
+    SELECT from S.Source {
+      toMid.toTarget.toSource.sourceID as fullForeignKey,
+      toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid,
+      toMid.toTarget[1=1].toSource.sourceID as foreignKeyAfterToTarget,
+      toMid.toTarget.toSource[1=1].sourceID as targetsKeyAfterToSource
+    }`
+
+    // REVISIT: toTarget2 should just be toTarget, alias calculation gets messy here..
+    //          toSource3 should just be toSource
+    const expected = cds.ql`
+    SELECT from S.Source as $S
+      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
+      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid.toTarget_toSource_sourceID and 1 = 1
+      left join S.Source as toSource3 on toSource3.sourceID = toTarget2.toSource_sourceID and 1 = 1
+    {
+      $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
+      toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid,
+      toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
+      toSource3.sourceID as targetsKeyAfterToSource
     }
     `
     const transformed = cqn4sql(query, model)
