@@ -938,7 +938,10 @@ function infer(originalQuery, model) {
       }
       if (assoc) {
         // foreign key access without filters never join relevant
-        if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
+        if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) {
+          if(column.ref.slice(i).some(s => s.where)) continue // probably join relevant later on
+          return false // only foreign keys from here
+        }
         // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
         return true
       }

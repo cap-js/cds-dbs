@@ -212,6 +212,14 @@ class JoinTree {
             // filter is always join relevant
             // if the column ends up in an `inline` -> each assoc step is join relevant
             child.$refLink.onlyForeignKeyAccess = false
+            // all parents are now also join relevant
+            let parent = child.parent
+            while (parent) {
+              if(parent.$refLink?.definition.isAssociation) {
+                parent.$refLink.onlyForeignKeyAccess = false
+              }
+              parent = parent.parent
+            }
           } else {
             child.$refLink.onlyForeignKeyAccess = true
           }

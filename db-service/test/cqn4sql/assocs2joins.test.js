@@ -1443,13 +1443,6 @@ describe('References to target side via dummy filter', () => {
   //   (toMid[].toTarget  .toSource  .toMid  .toTarget  .toSource  .sourceID),
   //   (toMid  .toTarget[].toSource  .toMid  .toTarget  .toSource  .sourceID),
   //   (toMid  .toTarget  .toSource[].toMid  .toTarget  .toSource  .sourceID),
-
-  //   // Same behavior as for the paths above without the round trip.
-  //   // Foreign key segment / the last segment gets shorter and shorter.
-  //   (toMid  .toTarget  .toSource  .toMid[].toTarget  .toSource  .sourceID), // foreign key after []
-  //   (toMid  .toTarget  .toSource  .toMid  .toTarget[].toSource  .sourceID), // foreign key after []
-  //   (toMid  .toTarget  .toSource  .toMid  .toTarget  .toSource[].sourceID), // target side
-  // ]
   it('Shared join nodes', () => {
     const query = cds.ql`
     SELECT from S.Source {
@@ -1477,7 +1470,7 @@ describe('References to target side via dummy filter', () => {
     expect(transformed).to.deep.equal(expected)
   })
 
-  it.skip('Own join nodes', () => {
+  it('Own join nodes', () => {
     const query = cds.ql`
     SELECT from S.Source {
       toMid.toTarget.toSource.sourceID as fullForeignKey,
@@ -1486,13 +1479,15 @@ describe('References to target side via dummy filter', () => {
       toMid.toTarget.toSource[1=1].sourceID as targetsKeyAfterToSource
     }`
 
-    // REVISIT: toTarget2 should just be toTarget, alias calculation gets messy here..
-    //          toSource3 should just be toSource
     const expected = cds.ql`
     SELECT from S.Source as $S
       left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
-      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid.toTarget_toSource_sourceID and 1 = 1
-      left join S.Source as toSource3 on toSource3.sourceID = toTarget2.toSource_sourceID and 1 = 1
+      
+      left join S.Mid as toMid2 on toMid2.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
+      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid2.toTarget_toSource_sourceID and 1 = 1
+
+      left join S.Target as toTarget3 on toTarget3.toSource_sourceID = toMid2.toTarget_toSource_sourceID
+      left join S.Source as toSource3 on toSource3.sourceID = toTarget3.toSource_sourceID and 1 = 1
     {
       $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
       toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid,
