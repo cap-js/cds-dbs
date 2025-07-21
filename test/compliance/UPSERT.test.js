@@ -61,7 +61,7 @@ describe('UPSERT', () => {
   })
 
   test('affected row', async () => {
-    const affectedRows = await UPSERT.into('complex.associations.Books').entries({ ID: 9999999, title: 'Book' })
+    const affectedRows = await UPSERT.into('complex.associations.Root').entries({ ID: 9999999, fooRoot: 'fooRoot' })
     expect(affectedRows).to.be.eq(1)
   })
 })
