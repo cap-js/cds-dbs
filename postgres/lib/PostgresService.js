@@ -808,13 +808,15 @@ class ParameterStream extends Writable {
     this.lengthBuffer = Buffer.from([0x64, 0, 0, 0, 0])
 
     // Flush quote character before input stream
-    this.flushChunk = chunk => {
+    this.flushChunk = (chunk, cb) => {
       delete this.flushChunk
 
       this.lengthBuffer.writeUInt32BE(chunk.length + 5, 1)
-      this.connection.stream.write(this.lengthBuffer)
-      this.connection.stream.write(Buffer.from(this.constructor.sep))
-      return this.connection.stream.write(chunk)
+      this.connection.stream.write(this.lengthBuffer, () => {
+        this.connection.stream.write(Buffer.from(this.constructor.sep), () => {
+          this.connection.stream.write(chunk, cb)
+        })
+      })
     }
   }
 
@@ -869,17 +871,15 @@ class ParameterStream extends Writable {
     })
   }
 
-  flush(chunk, callback) {
-    if (this.flushChunk(chunk)) {
-      return callback()
-    }
-    this.connection.stream.once('drain', callback)
+  flush(chunk, cb) {
+    this.flushChunk(chunk, cb)
   }
 
-  flushChunk(chunk) {
+  flushChunk(chunk, cb) {
     this.lengthBuffer.writeUInt32BE(chunk.length + 4, 1)
-    this.connection.stream.write(this.lengthBuffer)
-    return this.connection.stream.write(chunk)
+    this.connection.stream.write(this.lengthBuffer, () => {
+      this.connection.stream.write(chunk, cb)
+    })
   }
 
   handleError(e) {
