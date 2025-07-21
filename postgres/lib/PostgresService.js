@@ -812,15 +812,13 @@ class ParameterStream extends Writable {
       delete this.flushChunk
 
       this.lengthBuffer.writeUInt32BE(chunk.length + 5, 1)
-      this.connection.stream.write(this.lengthBuffer, () => {
-        this.connection.stream.write(Buffer.from(this.constructor.sep), () => {
-          this.connection.stream.write(chunk, cb)
-        })
-      })
+      this.connection.stream.write(this.lengthBuffer)
+      this.connection.stream.write(this.constructor.sep)
+      this.connection.stream.write(chunk, cb)
     }
   }
 
-  static sep = String.fromCharCode(31) // Separator One
+  static sep = Buffer.from(String.fromCharCode(31)) // Separator One
   static done = Buffer.from([0x63, 0, 0, 0, 4])
 
   then(resolve, reject) {
@@ -877,9 +875,8 @@ class ParameterStream extends Writable {
 
   flushChunk(chunk, cb) {
     this.lengthBuffer.writeUInt32BE(chunk.length + 4, 1)
-    this.connection.stream.write(this.lengthBuffer, () => {
-      this.connection.stream.write(chunk, cb)
-    })
+    this.connection.stream.write(this.lengthBuffer)
+    this.connection.stream.write(chunk, cb)
   }
 
   handleError(e) {
