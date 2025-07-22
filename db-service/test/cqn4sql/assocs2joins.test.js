@@ -1484,6 +1484,33 @@ describe('References to target side via dummy filter', () => {
     expect(transformed).to.deep.equal(expected)
   })
 
+  it('Own join nodes with roundtrip', () => {
+    // TODO: toMid.toTarget.toSource[1=1].toMid.toTarget.toSource.sourceID as third
+    const query = cds.ql`
+    SELECT from S.Source {
+      toMid[1 = 1].toTarget.toSource.toMid.toTarget.toSource.sourceID as first,
+      toMid.toTarget[1=1].toSource.toMid.toTarget.toSource.sourceID as second
+    }`
+
+    const expected = cds.ql`
+    SELECT from S.Source as $S
+      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
+      left join S.Target as toTarget on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
+      left join S.Source as toSource on toSource.sourceID = toTarget.toSource_sourceID
+
+      left join S.Mid as toMid3 on toMid3.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
+      left join S.Target as toTarget3 on toTarget3.toSource_sourceID = toMid3.toTarget_toSource_sourceID and 1 = 1
+      left join S.Source as toSource3 on toSource3.sourceID = toTarget3.toSource_sourceID
+
+    {
+      toSource.toMid_toTarget_toSource_sourceID as first,
+      toSource3.toMid_toTarget_toSource_sourceID as second
+    }
+    `
+
+    expect(cqn4sql(query, model)).to.deep.equal(expected)
+  })
+
   it('Shared base joins with round-trips', () => {
     const query = cds.ql`
     SELECT from S.Source {
