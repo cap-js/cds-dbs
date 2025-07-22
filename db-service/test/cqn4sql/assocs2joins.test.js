@@ -1520,10 +1520,7 @@ describe('References to target side via dummy filter', () => {
     expect(transformed).to.deep.equal(expected)
   })
 
-  //   (toMid.toTarget.toSource.toMid.toTarget.toSource.sourceID),
-  //                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ // foreign key
-  it.skip('round trip leads to join', () => {
-    // TODO
+  it('round trip leads to join', () => {
     const query = cds.ql`
     SELECT from S.Source {
       toMid.toTarget.toSource.sourceID as fullForeignKey,
@@ -1533,12 +1530,10 @@ describe('References to target side via dummy filter', () => {
     SELECT from S.Source as $S
       left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
       left join S.Target as toTarget on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
-
-      left join S.Mid as toMid2 on toMid2.toTarget_toSource_sourceID = toTarget.toSource_sourceID
-      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid2.toTarget_toSource_sourceID
+      left join S.Source as toSource on toSource.sourceID = toTarget.toSource_sourceID
     {
       $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toMid2.toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
+      toSource.toMid_toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
     }
     `
 
