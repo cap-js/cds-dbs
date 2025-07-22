@@ -3,31 +3,87 @@ const assert = require('assert')
 const cds = require('../cds.js')
 
 describe('SELECT', () => {
-  const { data, expect } = cds.test(__dirname + '/resources')
-  data.autoIsolation(true)
+  const { expect } = cds.test(__dirname + '/resources')
+
+  beforeAll(async () => {
+    const { Root } = cds.entities('complex.associations')
+    const { Root: RootUnmanaged } = cds.entities('complex.associations.unmanaged')
+    const inserts = [
+      INSERT.into(Root).entries([
+        {
+          ID: 1,
+          fooRoot: 'fooRoot1',
+          children: [
+            {
+              ID: 11,
+              fooChild: 'fooChild11',
+              children: [
+                {
+                  ID: 111,
+                  fooGrandChild: 'fooGrandChild111',
+                },
+              ],
+            },
+            {
+              ID:12,
+              fooChild: 'fooChild12',
+              children: [
+                {
+                  ID: 121,
+                  fooGrandChild: 'fooGrandChild121',
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+      INSERT.into(RootUnmanaged).entries([
+        {
+          ID: 2,
+          fooRoot: 'fooRootUnmanaged2',
+          children: [
+            {
+              ID: 21,
+              parent_ID: 2,
+              fooChild: 'fooChildUnmanaged21',
+              children: [
+                {
+                  parent_ID: 21,
+                  ID: 211,
+                  fooGrandChild: 'fooGrandChildUnmanaged211',
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    ]
+    const insertsResp = await cds.run(inserts)
+    expect(insertsResp[0].affectedRows).to.be.eq(1)
+  })
 
   describe('from', () => {
     test('table', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`SELECT bool FROM ${globals}`)
+      const res = await cds.run(cds.ql`SELECT bool FROM ${globals}`)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('table *', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`SELECT * FROM ${globals}`)
+      const res = await cds.run(cds.ql`SELECT * FROM ${globals}`)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('projection', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`SELECT bool FROM ${globals}`)
+      const res = await cds.run(cds.ql`SELECT bool FROM ${globals}`)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('join', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`
+      const res = await cds.run(cds.ql`
       SELECT A.bool
       FROM ${globals} as A
       LEFT JOIN basic.projection.globals AS B
@@ -45,19 +101,19 @@ describe('SELECT', () => {
 
     test('from select', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`SELECT bool FROM (SELECT bool FROM ${globals}) AS nested`)
+      const res = await cds.run(cds.ql`SELECT bool FROM (SELECT bool FROM ${globals}) AS nested`)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('from ref', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string}[string = ${'yes'}]`
+      const cqn = cds.ql`SELECT * FROM ${string}[string = ${'yes'}]`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, `Ensure that only 'yes' matches`)
     })
 
     test('from non existant entity', async () => {
-      const cqn = CQL`SELECT * FROM ![¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?]`
+      const cqn = cds.ql`SELECT * FROM ![¿HoWdIdYoUmAnAgeToCaLaNeNtItyThIsNaMe?]`
       await expect(cds.run(cqn)).rejected
     })
   })
@@ -65,7 +121,7 @@ describe('SELECT', () => {
   describe('columns', () => {
     test('missing', async () => {
       const { globals } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT FROM ${globals}`
+      const cqn = cds.ql`SELECT FROM ${globals}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('bool' in res[0], true, 'Ensure that all columns are coming back')
@@ -73,7 +129,7 @@ describe('SELECT', () => {
 
     test('star', async () => {
       const { globals } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${globals}`
+      const cqn = cds.ql`SELECT * FROM ${globals}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('bool' in res[0], true, 'Ensure that all columns are coming back')
@@ -81,7 +137,7 @@ describe('SELECT', () => {
 
     test('specific', async () => {
       const { globals } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT bool FROM ${globals}`
+      const cqn = cds.ql`SELECT bool FROM ${globals}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('bool' in res[0], true, 'Ensure that all columns are coming back')
@@ -89,7 +145,7 @@ describe('SELECT', () => {
 
     test('statics', async () => {
       const { globals } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`
+      const res = await cds.run(cds.ql`
         SELECT
           null as ![nullt] : String,
           'String' as ![string],
@@ -112,7 +168,7 @@ describe('SELECT', () => {
 
     test('select func', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT count() FROM ${string}`
+      const cqn = cds.ql`SELECT count() FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
@@ -120,7 +176,7 @@ describe('SELECT', () => {
 
     test('select funcs', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT min(string),max(string),count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].min, 'no', 'Ensure that the function is applied')
@@ -130,13 +186,13 @@ describe('SELECT', () => {
 
     test('select funcs (duplicates)', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT count(*),count(1),count(string),count(char) FROM ${string}`
+      const cqn = cds.ql`SELECT count(*),count(1),count(string),count(char) FROM ${string}`
       await expect(cds.run(cqn)).rejected
     })
 
     test('select func alias', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT count() as count_renamed FROM ${string}`
+      const cqn = cds.ql`SELECT count() as count_renamed FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].count_renamed, 3, 'Ensure that the function is applied and aliased')
@@ -144,7 +200,7 @@ describe('SELECT', () => {
 
     test('select funcs alias', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`
+      const cqn = cds.ql`
       SELECT
         count(*) as count_star,
         count(1) as count_one,
@@ -155,44 +211,44 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].count_star, 3, 'Ensure that the function is applied and aliased')
       assert.strictEqual(res[0].count_one, 3, 'Ensure that the function is applied and aliased')
-      assert.strictEqual(res[0].count_string, 3, 'Ensure that the function is applied and aliased')
+      assert.strictEqual(res[0].count_string, 2, 'Ensure that the function is applied and aliased')
       assert.strictEqual(res[0].count_char, 0, 'Ensure that the function is applied and aliased')
     })
 
     test('select funcs alias (duplicates)', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT min(string) as count,max(string) as count,count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string) as count,max(string) as count,count() FROM ${string}`
       await expect(cds.run(cqn)).rejected
     })
 
     test('select function (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT 'func' as function : cds.String FROM ${globals}`
+      const cqn = cds.ql`SELECT 'func' as function : cds.String FROM ${globals}`
       cqn.SELECT.columns[0].val = function () { }
       await expect(cds.run(cqn)).rejected
     })
 
-    test.skip('select xpr', async () => {
+    test('select xpr', async () => {
       // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string}`
+      const cqn = cds.ql`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      assert.equal(res[0].xpr, true)
+      assert.equal(res[0].xpr, null)
       assert.equal(res[1].xpr, false)
-      assert.equal(res[2].xpr, false)
+      assert.equal(res[2].xpr, true)
     })
 
     test('select calculation', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT (string || string) as string FROM ${string}`
+      const cqn = cds.ql`SELECT (string || string) as string FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('select sub select', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT (SELECT string FROM ${string} as sub WHERE sub.string = root.string) as string FROM ${string} as root`
+      const cqn = cds.ql`SELECT (SELECT string FROM ${string} as sub WHERE sub.string = root.string) as string FROM ${string} as root`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
@@ -220,24 +276,24 @@ describe('SELECT', () => {
     })
 
     test('expand to many with 200 columns', async () => {
-      const { Authors } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['name'] }, { ref: ['books'], expand: ['*', ...nulls(197)] }]).from(Authors)
+      const { Child } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['fooChild'] }, { ref: ['parent'], expand: ['*', ...nulls(191)] }]).from(Child)
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
-      assert.strictEqual(Object.keys(res[0].books[0]).length, 200)
+      assert.strictEqual(Object.keys(res[0].parent).length, 200)
     })
 
     test('expand to one with 200 columns', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['title'] }, { ref: ['author'], expand: ['*', ...nulls(198)] }]).from(Books)
+      const { Root } = cds.entities('complex.associations')
+      const cqn = SELECT([{ ref: ['ID'] }, { ref: ['fooRoot'] }, { ref: ['children'], expand: ['*', ...nulls(197)] }]).from(Root)
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
-      assert.strictEqual(Object.keys(res[0].author).length, 200)
+      assert.strictEqual(Object.keys(res[0].children[0]).length, 200)
     })
 
     test('expand association with static values', async () => {
-      const { Authors } = cds.entities('complex.associations.unmanaged')
-      const cqn = CQL`SELECT static{*} FROM ${Authors}`
+      const { Root } = cds.entities('complex.associations.unmanaged')
+      const cqn = cds.ql`SELECT static{*} FROM ${Root}`
       const res = await cds.run(cqn)
       // ensure that all values are returned in json format
       assert.strictEqual(res[0].static.length, 1)
@@ -245,16 +301,29 @@ describe('SELECT', () => {
 
     test.skip('invalid cast (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
+      const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
+    })
+
+    test('$now in view refers to tx timestamp', async () => {
+      let ts, res1, res2
+      await cds.tx(async tx => {
+        ts = tx.context.timestamp
+        // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+        res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+        res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+      })
+
+      expect(res1.now).to.eq(ts.toISOString())
+      expect(res1.now).to.eq(res2.now)
     })
   })
 
   describe('excluding', () => {
     test('without columns', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT FROM ${string} excluding { string }`
+      const cqn = cds.ql`SELECT FROM ${string} excluding { string }`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
@@ -262,7 +331,7 @@ describe('SELECT', () => {
 
     test('with start', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT FROM ${string} { * } excluding { string }`
+      const cqn = cds.ql`SELECT FROM ${string} { * } excluding { string }`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
@@ -270,7 +339,7 @@ describe('SELECT', () => {
 
     test('with extra columns', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT FROM ${string} { *, ${'extra'} } excluding { string }`
+      const cqn = cds.ql`SELECT FROM ${string} { *, ${'extra'} } excluding { string }`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('string' in res[0], false, 'Ensure that excluded columns are missing')
@@ -279,7 +348,7 @@ describe('SELECT', () => {
 
     test('with specific columns', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT FROM ${string} { string, char } excluding { string }`
+      const cqn = cds.ql`SELECT FROM ${string} { string, char } excluding { string }`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
       assert.strictEqual('string' in res[0], true, 'Ensure that specific columns are included')
@@ -289,7 +358,7 @@ describe('SELECT', () => {
   describe('where', () => {
     test('empty where clause', async () => {
       const { globals } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT bool FROM ${globals}`
+      const cqn = cds.ql`SELECT bool FROM ${globals}`
       cqn.SELECT.where = []
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
@@ -297,45 +366,46 @@ describe('SELECT', () => {
 
     test('compare with DateTime column', async () => {
       const { dateTime: entity } = cds.entities('basic.literals')
-      const dateTime = '1970-02-02T10:09:34Z'
-      const timestamp = dateTime.slice(0, -1) + '.000Z'
-      await DELETE.from(entity)
-      await INSERT({ dateTime }).into(entity)
-      const dateTimeMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, dateTime)
-      assert.strictEqual(dateTimeMatches.length, 1, 'Ensure that the dateTime column matches the dateTime value')
-      const timestampMatches = await SELECT('dateTime').from(entity).where(`dateTime = `, timestamp)
-      assert.strictEqual(timestampMatches.length, 1, 'Ensure that the dateTime column matches the timestamp value')
+      const sel = SELECT('dateTime').from(entity)
+      const [{ dateTime }] = await sel.clone()
+      const timestamp = new Date(dateTime)
+
+      expect(await sel.clone().where(`dateTime = `, dateTime)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp)).length(1)
+      expect(await sel.clone().where(`dateTime = `, timestamp.toISOString())).length(1)
     })
 
     test('combine expr with nested functions and other compare', async () => {
       const { string } = cds.entities('basic.literals')
-      const res = await cds.run(CQL`SELECT string FROM ${string} WHERE string != ${'foo'} and contains(tolower(string),tolower(${'bar'}))`)
+      const res = await cds.run(cds.ql`SELECT string FROM ${string} WHERE string != ${'foo'} and contains(tolower(string),tolower(${'bar'}))`)
       assert.strictEqual(res.length, 0, 'Ensure that no row is coming back')
     })
 
     test('combine expr and other compare', async () => {
       const { globals } = cds.entities('basic.literals')
-      const res = await cds.run(CQL`SELECT bool FROM ${globals} WHERE (bool != ${true}) and bool = ${false}`)
+      const res = await cds.run(cds.ql`SELECT bool FROM ${globals} WHERE (bool != ${true}) and bool = ${false}`)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
     test('exists path expression', async () => {
-      const { Books } = cds.entities('complex.associations')
-      const cqn = CQL`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
-      await expect(cds.run(cqn))
-        .to.be.rejectedWith('Only foreign keys of “author” can be accessed in infix filter, but found “name”');
+      const { Child } = cds.entities('complex.associations')
+      const cqn = cds.ql`SELECT * FROM ${Child} WHERE exists parent.children[parent.fooRoot = ${'fooRoot1'}]`
+      const res = await cds.run(cqn)
+      expect(res).to.have.property('length', 2)
+      expect(res[0]).to.have.property('fooChild', 'fooChild11')
+      expect(res[1]).to.have.property('fooChild', 'fooChild12')
     })
 
     test('exists path expression (unmanaged)', async () => {
-      const { Books } = cds.entities('complex.associations.unmanaged')
-      const cqn = CQL`SELECT * FROM ${Books} WHERE exists author.books[author.name = ${'Emily'}]`
-      await expect(cds.run(cqn))
-        .to.be.rejectedWith('Unexpected unmanaged association “author” in filter expression of “books”');
+      const { Child } = cds.entities('complex.associations.unmanaged')
+      const cqn = cds.ql`SELECT * FROM ${Child} WHERE exists parent.children[parent.fooRoot = ${'fooRootUnmanaged2'}]`
+      const res = await cds.run(cqn)
+      expect(res[0]).to.have.property('fooChild', 'fooChildUnmanaged21')
     })
 
     test('like wildcard', async () => {
       const { string } = cds.entities('basic.projection')
-      const res = await cds.run(CQL`SELECT string FROM ${string} WHERE string LIKE 'ye_'`)
+      const res = await cds.run(cds.ql`SELECT string FROM ${string} WHERE string LIKE 'ye_'`)
       assert.strictEqual(res.length, 1, `Ensure that only 'true' matches`)
     })
 
@@ -351,42 +421,42 @@ describe('SELECT', () => {
 
     test('ref in list', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'})`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (${'yes'},${'no'})`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('list in list of list', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE (string) in ((${'yes'}),(${'no'}))`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE (string) in ((${'yes'}),(${'no'}))`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('list in list of list (static)', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE (string,${'static'}) in ((${'yes'},${'static'}),(${'no'},${'static'}))`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE (string,${'static'}) in ((${'yes'},${'static'}),(${'no'},${'static'}))`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('ref in SELECT', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string in (SELECT string from ${string})`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (SELECT string from ${string})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('ref in SELECT alias', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string in (SELECT string as string_renamed from ${string})`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string in (SELECT string as string_renamed from ${string})`
       const res = await cds.run(cqn)
-      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
 
     test('param ?', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string = ?`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string = ?`
       const res = await cds.run(cqn, ['yes'])
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
@@ -394,21 +464,21 @@ describe('SELECT', () => {
     // REVISIT: it is not yet fully supported to have named parameters on all databases
     test.skip('param named', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string = :param`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string = :param`
       const res = await cds.run(cqn, { param: 'yes' })
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
     test.skip('param number', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string = :7`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string = :7`
       const res = await cds.run(cqn, { 7: 'yes' })
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
     test('param multiple uses', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE string = ?`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE string = ?`
       let res = await cds.run(cqn, ['yes'])
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       res = await cds.run(cqn, [''])
@@ -419,14 +489,14 @@ describe('SELECT', () => {
 
     test('func', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE concat(string, string) = 'yesyes'`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE concat(string, string) = 'yesyes'`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
 
     test('random combination 1', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = CQL`SELECT string FROM ${string} WHERE (string || string) = ${'yesyes'} and string in (SELECT string from ${string} WHERE string = ${'yes'})`
+      const cqn = cds.ql`SELECT string FROM ${string} WHERE (string || string) = ${'yesyes'} and string in (SELECT string from ${string} WHERE string = ${'yes'})`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
@@ -434,13 +504,13 @@ describe('SELECT', () => {
     // search tests don't check results as the search behavior is undefined
     test('search one column', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string} WHERE search((string),${'yes'})`
+      const cqn = SELECT.from(string).where([{ func: 'search', args: [{ list: [{ ref: ['string'] }] }, { val: 'yes' }] }])
       await cds.run(cqn)
     })
 
     test('search multiple column', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string} WHERE search((string,char,short,medium,large),${'yes'})`
+      const cqn = cds.ql`SELECT * FROM ${string} WHERE search((string,char,short,medium,large),${'yes'})`
       await cds.run(cqn)
     })
 
@@ -469,49 +539,191 @@ describe('SELECT', () => {
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, `Ensure that only matches comeback`)
     })
+
+    test('deep nested not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested boolean function w/o operator', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('deep nested not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple levels of not negations of expressions', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple not in a single deep nested expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('multiple levels of not negations of expression with not + and', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('deep nested not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested multiple not before xpr with CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('deep nested not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('deep nested multiple not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      await cds.tx(async tx => {
+        let res
+        try {
+          res = await tx.run(query)
+        } catch (err) {
+          if (tx.dbc.server.major < 4) return // not not is not supported by older HANA versions
+          throw err
+        }
+        assert.strictEqual(res[0].string, 'yes')
+      })
+    })
+
+    test('not before CASE statement', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
+
+    test('and beetwen CASE statements', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'no')
+    })
+
+    test('and beetwen CASE statements with not', async () => {
+      const { string } = cds.entities('basic.literals')
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const res = await cds.run(query)
+      assert.strictEqual(res[0].string, 'yes')
+    })
   })
 
   describe('groupby', () => {
     test('single ref', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('multiple refs', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string, char`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string, char`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string,${1}`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,${'1'}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('func', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string,now()`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
     test('func', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string,now()`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string,now()`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+    })
+
+    test('navigation with duplicate identifier in path', async () => {
+      const { Root } = cds.entities('complex.associations')
+      const res = await cds.ql`SELECT children { fooChild } FROM ${Root} GROUP BY children.fooChild`
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
+    })
+
+    test('navigation with duplicate identifier in path and aggregation', async () => {
+      const { Root } = cds.entities('complex.associations')
+      const res = await cds.ql`SELECT children { fooChild }, count(1) as total FROM ${Root} GROUP BY children.fooChild`
+      assert.strictEqual(res.length, 2, 'Ensure that all rows are coming back')
     })
   })
 
   describe('having', () => {
     test('ignore empty array', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string}`
+      const cqn = cds.ql`SELECT string FROM ${string}`
       cqn.SELECT.having = []
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
@@ -519,22 +731,25 @@ describe('SELECT', () => {
 
     test('without groupby (not allowed)', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} HAVING string = ${'yes'}`
+      const cqn = cds.ql`SELECT string FROM ${string} HAVING string = ${'yes'}`
       await expect(cds.run(cqn)).rejected
     })
 
     test('with groupby', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} GROUP BY string HAVING string = ${'yes'}`
+      const cqn = cds.ql`SELECT string FROM ${string} GROUP BY string HAVING string = ${'yes'}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
   })
 
   describe('orderby', () => {
+
+    const _localeSort = (a, b) => a === b ? 0 : a === null ? -1 : b === null ? 1 : String.prototype.localeCompare.call(a, b)
+
     test('ignore empty array', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string}`
+      const cqn = cds.ql`SELECT string FROM ${string}`
       cqn.SELECT.orderBy = []
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
@@ -542,38 +757,50 @@ describe('SELECT', () => {
 
     test('single ref', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
     test('single ref asc (explicit)', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string asc`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string asc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
     test('single ref desc', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string desc`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string desc`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(b.string, a.string))
+      const sorted = [...res].sort((a, b) => _localeSort(b.string, a.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
 
+    test('sort is case insensitive', async () => {
+      const { string } = cds.entities('basic.literals')
+      const mixedDesc = SELECT.from(string).columns('string').orderBy('string DeSc')
+      const desc = SELECT.from(string).columns('string').orderBy('string desc')
+      const mixedAsc = SELECT.from(string).columns('string').orderBy('string aSC')
+      const asc = SELECT.from(string).columns('string').orderBy('string asc')
+
+      expect(await cds.run(mixedDesc)).to.eql(await cds.run(desc))
+      expect(await cds.run(mixedAsc)).to.eql(await cds.run(asc))
+    })
+
+
     test('localized', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string`
       cqn.SELECT.localized = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
-      const sorted = [...res].sort((a, b) => String.prototype.localeCompare.call(a.string, b.string))
+      const sorted = [...res].sort((a, b) => _localeSort(a.string, b.string))
       assert.deepEqual(res, sorted, 'Ensure that all rows are in the correct order')
     })
   })
@@ -581,50 +808,57 @@ describe('SELECT', () => {
   describe('limit', () => {
     test('rows', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string LIMIT ${1}`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string LIMIT ${1}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].string, 'no', 'Ensure that the first row is coming back')
+      assert.strictEqual(res[0].string, null, 'Ensure that the first row is coming back')
     })
 
     test('offset', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string LIMIT ${1} OFFSET ${1}`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string LIMIT ${1} OFFSET ${1}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
-      assert.strictEqual(res[0].string, 'null', 'Ensure that the first row is coming back')
+      assert.strictEqual(res[0].string, 'no', 'Ensure that the first row is coming back')
     })
   })
 
-  const generalLockTest = (lock4, shared = false) => {
+  const generalLockTest = (lock4, { shared = false, ignoreLocked = false } = {}) => {
     const isSQLite = () => cds.db.options.impl === '@cap-js/sqlite'
 
     const setMax = max => {
-      let oldMax
+      let oldMax, oldTimeout
       beforeAll(async () => {
-        if (isSQLite()) return
+        const options = cds.db.pools._factory.options
+        const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+
+        oldMax = options.max || activeOptions.max
+        oldTimeout = options.acquireTimeoutMillis || activeOptions.acquireTimeoutMillis
+
+        if (isSQLite()) {
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = 1000
+          return
+        }
         await cds.db.disconnect()
-        oldMax = cds.db.pools._factory.options.max
-        cds.db.pools._factory.options.max = max
+
+        options.max = max
+        options.acquireTimeoutMillis = 1000
       })
 
       afterAll(async () => {
-        if (isSQLite()) return
-        cds.db.pools._factory.options.max = oldMax
+        const options = cds.db.pools._factory.options
+
+        if (isSQLite()) {
+          const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = oldTimeout
+          return
+        }
+        await cds.db.disconnect()
+
+        options.max = oldMax || 1
+        options.acquireTimeoutMillis = oldTimeout
       })
     }
-
-    let oldTimeout
-    beforeAll(async () => {
-      oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = 1000
-    })
-
-    afterAll(() => {
-      cds.db.pools.undefined._config.acquireTimeoutMillis =
-        cds.db.pools._factory.options.acquireTimeoutMillis = oldTimeout
-    })
 
     describe('pool max = 1', () => {
       setMax(1)
@@ -695,7 +929,7 @@ describe('SELECT', () => {
           await tx1.run(lock4(false))
 
           // Lock false
-          if (shared) {
+          if (shared || ignoreLocked) {
             const ret = await tx2.run(lock4(false))
             expect(ret).is.not.undefined
           } else {
@@ -708,7 +942,7 @@ describe('SELECT', () => {
     })
   }
 
-  describe('forUpdate', () => {
+  describe.skip('forUpdate', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forUpdate({
         of: ['bool'],
@@ -720,7 +954,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe('forShareLock', () => {
+  describe.skip('forShareLock', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
@@ -729,7 +963,20 @@ describe('SELECT', () => {
 
     generalLockTest(bool => boolLock.clone()
       .where([{ ref: ['bool'] }, '=', { val: bool }]),
-      true
+      { shared: true }
+    )
+  })
+
+  describe.skip('forUpdate ignore locked', () => {
+    const boolLock = SELECT.from('basic.projection.globals')
+      .forShareLock({
+        of: ['bool'],
+        ignoreLocked: true
+      })
+
+    generalLockTest(bool => boolLock.clone()
+      .where([{ ref: ['bool'] }, '=', { val: bool }]),
+      { ignoreLocked: true }
     )
   })
 
@@ -738,28 +985,28 @@ describe('SELECT', () => {
 
     test('single word', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string}`
+      const cqn = cds.ql`SELECT * FROM ${string}`
       cqn.SELECT.search = [{ val: 'yes' }]
       await cds.run(cqn)
     })
 
     test('single quoted word', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string}`
+      const cqn = cds.ql`SELECT * FROM ${string}`
       cqn.SELECT.search = [{ val: '"yes"' }]
       await cds.run(cqn)
     })
 
     test('multiple words', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string}`
+      const cqn = cds.ql`SELECT * FROM ${string}`
       cqn.SELECT.search = [{ val: 'yes no' }]
       await cds.run(cqn)
     })
 
     test('multiple quoted words', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT * FROM ${string}`
+      const cqn = cds.ql`SELECT * FROM ${string}`
       cqn.SELECT.search = [{ val: '"yes" "no"' }]
       await cds.run(cqn)
     })
@@ -767,11 +1014,11 @@ describe('SELECT', () => {
 
   describe('count', () => {
     test('count is preserved with .map', async () => {
-      const query = SELECT.from('complex.associations.Authors')
+      const query = SELECT.from('complex.associations.Root')
       query.SELECT.count = true
       const result = await query
       assert.strictEqual(result.$count, 1)
-      const renamed = result.map(row => ({ key: row.ID, fullName: row.name }))
+      const renamed = result.map(row => ({ key: row.ID, fullName: row.fooRoot }))
       assert.strictEqual(renamed.$count, 1)
     })
   })
@@ -779,27 +1026,27 @@ describe('SELECT', () => {
   describe('one', () => {
     test('simple', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.strictEqual(!Array.isArray(res) && typeof res, 'object', 'Ensure that the result is an object')
-      assert.strictEqual(res.string, 'no', 'Ensure that the first row is coming back')
+      assert.strictEqual(res.string, null, 'Ensure that the first row is coming back and null values come first')
     })
 
     test('conflicting with limit clause', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string} ORDER BY string LIMIT 2 OFFSET 1`
+      const cqn = cds.ql`SELECT string FROM ${string} ORDER BY string LIMIT 2 OFFSET 1`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.strictEqual(!Array.isArray(res) && typeof res, 'object', 'Ensure that the result is an object')
-      assert.strictEqual(res.string, 'null', 'Ensure that the second row is coming back')
+      assert.strictEqual(res.string, 'no', 'Ensure that the second row is coming back')
     })
   })
 
   describe('distinct', () => {
     test('simple', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT string FROM ${string}`
+      const cqn = cds.ql`SELECT string FROM ${string}`
       cqn.SELECT.distinct = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
@@ -807,13 +1054,12 @@ describe('SELECT', () => {
 
     test('static val', async () => {
       const { string } = cds.entities('basic.literals')
-      const cqn = CQL`SELECT ${'static'} FROM ${string}`
+      const cqn = cds.ql`SELECT ${'static'} FROM ${string}`
       cqn.SELECT.distinct = true
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
     })
   })
-
 
   describe('explain', () => {
     test('Ensure explain returns the same result', async () => {
@@ -846,6 +1092,85 @@ describe('SELECT', () => {
         await fs.promises.rm(dir, { force: true, recursive: true, maxRetries: 100 })
       }
     })
+  })
+
+
+  describe('foreach', () => {
+    const process = function (row) {
+      for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
+    }
+
+    test('aggregate', () => cds.tx(async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cqn.clone().then(rows => rows.map(process.bind(aggregate)))
+      expect(aggregate).deep.eq(expected)
+    }))
+
+    // REVISIT: unskip when merged into @sap/cds
+    test.skip('async iterator', () => cds.tx(async () => {
+      const { all } = cds.entities('basic.projection')
+
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      const expected = {}
+      const rows = await cqn.clone()
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      for await (const row of cqn.clone()) process.call(aggregate, row)
+      expect(aggregate).deep.eq(expected)
+    }))
+  })
+
+  // REVISIT: unskip when merged into @sap/cds
+  describe.skip('pipe', () => {
+    test('json stream', () => cds.tx(async () => {
+      const { json } = require('stream/consumers')
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+      const expected = await cqn.clone()
+
+      let result
+      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      expect(result).deep.eq(expected)
+    }))
+
+    test('req.res stream', () => cds.tx(async () => {
+      const http = require('http')
+      const { json } = require('stream/consumers')
+      const { promisify } = require('util')
+
+      const { all } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT FROM ${all}`
+
+      // Start simple http server
+      const srv = http.createServer((_, res) => cqn.pipe(res))
+      await promisify(srv.listen.bind(srv))()
+      cds.once('shutdown', () => { srv.close() })
+
+      const expected = await cqn.clone()
+
+      const result = await new Promise((resolve, reject) => {
+        const { port } = srv.address()
+        const req = http.get(`http://localhost:${port}/`)
+        req.on('error', reject)
+        req.on('response', res => {
+          expect(res.headers).to.have.property('content-type').eq('application/json')
+          expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
+          json(res).then(resolve, reject)
+        })
+      })
+
+      expect(result).deep.eq(expected)
+    }))
   })
 
   describe('expr', () => {
@@ -1026,7 +1351,7 @@ describe('SELECT', () => {
     unified.scalar = [
       // TODO: investigate search issue for nvarchar columns
       ...unified.ref.filter(ref => cds.builtin.types[ref.element?.type] === cds.builtin.types.LargeString).map(ref => {
-        return unified.string.map(val => ({ func: 'search', args: [ref, val] }))
+        return unified.string.map(val => ({ func: 'search', args: [{ list: [ref] }, val] }))
       }).flat(),
       // ...unified.string.map(val => ({ func: 'search', args: [{ list: unified.ref.filter(stringRefs) }, val] })),
       ...unified.ref.filter(stringRefs).filter(noBooleanRefs).map(X => {
@@ -1256,7 +1581,7 @@ describe('SELECT', () => {
       for (const comp of unified.comparators) {
         yield { xpr: ['CASE', 'WHEN', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
         if (!minimal || unified.comparators[0] === comp) {
-          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', ...comp.xpr] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
+          yield { xpr: ['CASE', 'WHEN', { xpr: ['NOT', comp] }, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           // for (const comp2 of unified.comparators) {
           yield { xpr: ['CASE', 'WHEN', comp, 'AND', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
           yield { xpr: ['CASE', 'WHEN', comp, 'OR', comp, 'THEN', { val: true }, 'ELSE', { val: false }, 'END'], as: 'xpr' }
@@ -1310,20 +1635,25 @@ describe('SELECT', () => {
       )
     })
 
-    for (let type of ['ref', 'val', 'func', 'xpr', 'list', 'SELECT']) {
+    const os = require('os')
+    for (let type of ['ref', 'val', 'func', 'xpr', 'list', ...(minimal ? [] : ['SELECT'])]) {
       describe(`${type}: ${unified[type].length}`, () => {
         test('execute', async () => {
-          // const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
-          const batches = new Array(1).fill('')
+          const batchCount = Math.min(os.availableParallelism() - 1, cds.db.factory.options.max || 1)
+          const batches = new Array(batchCount).fill('')
           const iterator = typeof unified[type] === 'function' ? unified[type]() : unified[type][Symbol.iterator]()
-
           const { [targetName]: target } = cds.entities
           await Promise.all(batches.map(() => cds.tx(async (tx) => {
             for (const t of iterator) {
               // limit(0) still validates that the query is valid, but improves test execution time
               await tx.run(SELECT([t]).from(target).limit(0))
             }
-          })))
+          })
+            .catch(err => {
+              if (err.name === 'TimeoutError') return
+              throw err
+            }))
+          )
         })
       })
     }

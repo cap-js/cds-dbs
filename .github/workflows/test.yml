@@ -30,7 +30,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: 'npm'
-
+      - run: npm ci
+      - run: npm install -g @sap/cds-dk
       - run: npm ci
       - run: npm run lint
       - id: hxe
@@ -40,6 +41,7 @@ jobs:
       # testing
       - run: npm test -ws
         env:
+          cds_features_pool: true
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}

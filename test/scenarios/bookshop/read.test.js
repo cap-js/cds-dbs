@@ -39,6 +39,24 @@ describe('Bookshop - Read', () => {
     expect(res.data['@odata.count']).to.be.eq(5)
   })
 
+  test('Books $count in expand', async () => {
+    const res = await GET(
+      `/admin/Authors?$select=name&$expand=books($count=true)`, admin
+    )
+    expect(res.status).to.be.eq(200)
+    for (const row of res.data.value) {
+      expect(row['books@odata.count']).to.be.eq(row.books.length + '')
+    }
+  })
+
+  test.skip('Books $count in orderby', async () => {
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$orderby=books/$count desc`, admin)
+  })
+
+  test.skip('Books $count in filter', async () => {
+    await GET(`/admin/Authors?$select=name&$expand=books($count=true)&$filter=books/$count eq 2`, admin)
+  })
+
   test('Books with groupby with path expression and expand result', async () => {
     const res = await GET(
       '/admin/Books?$apply=filter(title%20ne%20%27bar%27)/groupby((author/name),aggregate(price with sum as totalAmount))',
@@ -55,10 +73,10 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.length).to.be.eq(4) // As there are two books which have the same author
     expect(
       res.data.value.every(
-      item =>
-        'author' in item &&
-        'ID' in item.author && // foreign key is renamed to element name in target
-        !('author_ID' in item.author),
+        item =>
+          'author' in item &&
+          'ID' in item.author && // foreign key is renamed to element name in target
+          !('author_ID' in item.author),
       ),
     ).to.be.true
   })
@@ -79,8 +97,43 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.every(row => row.author.name)).to.be.true
   })
 
+  test('groupby with multiple path expressions', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toC/toB/ID))', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
+  test('groupby with multiple path expressions and orderby', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$orderby=toB/toC/ID', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
+  // creates having null = 1 in the SQL statement
+  test.skip('groupby with multiple path expressions and filter', async () => {
+    const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
+  // REVISIT: un skip when SELECT[async iterator] is merged into @sap/cds
+  test.skip('Books aggregation using for await', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let total = 0
+    for await (const row of cds.ql`SELECT price FROM ${Books}`) {
+      total += Number.parseFloat(row.price)
+    }
+    expect(total).gt(200)
+  })
+
+  // REVISIT: un skip when SELECT.pipe is merged into @sap/cds
+  test.skip('Books download using pipe', async () => {
+    const { json } = require('stream/consumers')
+    const { Books } = cds.entities('sap.capire.bookshop')
+    let result
+    await cds.ql`SELECT FROM ${Books}`.pipe(async stream => { result = await json(stream) })
+    expect(result).length(5)
+  })
+
   test('Path expression', async () => {
-    const q = CQL`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
+    const q = cds.ql`SELECT title, author.name as author FROM sap.capire.bookshop.Books where author.name LIKE '%a%'`
     const res = await cds.run(q)
     expect(res.length).to.be.eq(4)
     const columns = Object.keys(res[0])
@@ -89,11 +142,11 @@ describe('Bookshop - Read', () => {
   })
 
   test('Smart quotation', async () => {
-    const q = CQL`
+    const q = cds.ql`
       SELECT FROM sap.capire.bookshop.Books as ![FROM]
       {
         ![FROM].title as group,
-        ![FROM].author { name as CONSTRAINT } 
+        ![FROM].author { name as CONSTRAINT }
       }
       where ![FROM].title LIKE '%Wuthering%'
       order by group
@@ -104,19 +157,26 @@ describe('Bookshop - Read', () => {
     expect(res[0]).to.have.deep.property('author', { CONSTRAINT: 'Emily Brontë' })
   })
 
-  test('Plain sql', async () => {
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
-    expect(res.length).to.be.eq(5)
+  test('order by computed result column', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT
+      .columns`ID,sum(books_price) as price :Decimal`
+      .from(cds.ql`SELECT ID,books.price from ${Authors}`)
+      .groupBy`ID`
+      .orderBy`price desc`
+    expect(res.length).to.be.eq(4)
+    expect(res[0].price).to.be.eq('150')
   })
 
-  test('Plain sql with values', async () => {
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [201])
-    expect(res.length).to.be.eq(1)
-  })
+  test('select distinct order by selected result column with alias', async () => {
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.distinct
+      .columns`ID`
+      .from`${Authors} as a`
+      .orderBy`a.ID`
 
-  test('Plain sql with multiple values', async () => {
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [[201], [252]])
-    expect(res.length).to.be.eq(2)
+    expect(res.length).to.be.eq(4)
+    expect(res[0].ID).to.be.eq(101)
   })
 
   test('reuse already executed select as subselect', async () => {
@@ -202,6 +262,16 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('Expand Book with alias', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from`${Books}[ID=252]`
+
+    expect(res.i).to.be.eq(252)
+    expect(res.t).to.be.eq('Eleonora')
+    expect(res.a.n).to.be.eq('Edgar Allen Poe')
+    expect(res.a.b.length).to.be.eq(2)
+  })
+
   test.skip('Expand Book($count,$top,$orderby)', async () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
@@ -239,13 +309,14 @@ describe('Bookshop - Read', () => {
       expect(res2.status).to.be.eq(200)
       expect(res2.data.value[1].title).to.be.eq('dracula')
 
-      const q = CQL`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
+      const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
-      expect(res3[res3.length - 1].title).to.be.eq('dracula')
+      expect(res3.at(-1).title).to.be.eq('dracula')
 
+      // If no locale is set, we do not sort by default locale, standard sorting applies
       q.SELECT.localized = true
       const res4 = await cds.run(q)
-      expect(res4[1].title).to.be.eq('dracula')
+      expect(res4.at(-1).title).to.be.eq('dracula')
     } finally {
       await DELETE('/admin/Books(280)', admin)
     }
@@ -287,6 +358,12 @@ describe('Bookshop - Read', () => {
     const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
+  })
+
+  test('Books $count with $top=0 and group by', async () => {
+    // top=0 to force count subquery
+    const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
+    expect(res.data['@odata.count']).to.be.eq(4)
   })
 
   it('joins as subselect are executable', async () => {
@@ -355,18 +432,58 @@ describe('Bookshop - Read', () => {
   })
 
   it('allows filtering with between operator', async () => {
-    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where ({ stock: { between: 0, and: 100 } })
+    const query = SELECT.from('sap.capire.bookshop.Books', ['ID', 'stock']).where({ stock: { between: 0, and: 100 } })
 
-    return expect((await query).every(row => row.stock >=0 && row.stock <=100)).to.be.true
+    return expect((await query).every(row => row.stock >= 0 && row.stock <= 100)).to.be.true
   })
 
   it('allows various mechanisms for expressing "not in"', async () => {
     const results = await cds.db.run([
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }),
-      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251])
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { 'not in': [201, 251] } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where({ ID: { not: { in: [201, 251] } } }).orderBy('ID'),
+      SELECT.from('sap.capire.bookshop.Books', ['ID']).where('ID not in', [201, 251]).orderBy('ID'),
     ])
 
-    for (const row of results) expect(row).to.deep.eq([{ID: 207},{ID: 252},{ID: 271}])
+    for (const row of results) expect(row).to.deep.eq([{ ID: 207 }, { ID: 252 }, { ID: 271 }])
+  })
+
+  it('select all authors which have written books that have genre.name = null', async () => {
+    await insertTemporaryData()
+
+    // the path expression inside the filter after the exists predicate must not
+    // be transformed to a left outer join but to an inner join
+    // if not, we would also get all authors which have books which have no genre at all (like Lord of the Rings in our example)
+    const { Authors } = cds.entities('sap.capire.bookshop')
+    const query = SELECT`from ${Authors} where exists books[ genre.name = null ]`
+    const equivalentQuery = SELECT`from ${Authors} where exists books[ exists genre [ name = null ] ]`
+    const results = await cds.db.run(query)
+    const equivalentReults = await cds.db.run(equivalentQuery)
+    expect(results).to.have.length(1)
+    expect(results.length).to.equal(equivalentReults.length) // only J.K. Rowling has written a book with genre.name = null
+
+
+    async function insertTemporaryData() {
+      await cds.run(INSERT.into('sap.capire.bookshop.Books').entries([
+        { ID: 272, title: 'Harry Potter', descr: 'The genre of this book has no name', author_ID: 171, genre_ID: 25 },
+        { ID: 273, title: 'Lord of the Rings', descr: 'This book has no genre', author_ID: 172, genre_ID: null }
+      ]))
+      await cds.run(INSERT.into('sap.capire.bookshop.Authors').entries([
+        { ID: 171, name: 'J.K. Rowling', dateOfBirth: '1965-07-31', placeOfBirth: 'Yate, Gloucestershire', city: 'Edinburgh', street: '3 Main Street' },
+        { ID: 172, name: 'J.R.R. Tolkien', dateOfBirth: '1892-01-03', placeOfBirth: 'Bloemfontein, South Africa', dateOfDeath: '1973-09-02', placeOfDeath: 'Bournemouth, England', city: 'Oxford', street: '20 Northmoor Road' }
+      ]))
+      await cds.run(INSERT.into('sap.capire.bookshop.Genres').entries([
+        { ID: 25, parent_ID: 20, name: null }
+      ]))
+    }
+  })
+
+  it('cross joins without on condition', async () => {
+    const query = cds.ql`SELECT from sap.capire.bookshop.Books as Books, sap.capire.bookshop.Authors as Authors {
+      Books.title, Authors.name as author
+    } where Books.author_ID = Authors.ID`
+    const pathExpressionQuery = SELECT.from('sap.capire.bookshop.Books').columns('title', 'author.name as author')
+    const crossJoinResult = await cds.db.run(query)
+    const pathExpressionResult = await cds.db.run(pathExpressionQuery)
+    expect(crossJoinResult).to.deep.eq(pathExpressionResult)
   })
 })

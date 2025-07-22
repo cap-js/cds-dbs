@@ -53,7 +53,7 @@ const dataTest = async function (entity, table, type, obj) {
       throws = obj[k]
       return
     }
-    if (k[0] === '=') {
+    if (k.length > 1 && k[0] === '=') {
       assign(transforms, k.substring(1), cur)
     } else {
       assign(data, k, cur)
@@ -191,22 +191,22 @@ describe('CREATE', () => {
       model.definitions[n].kind === 'entity'
     )
 
-  describe('custom entites', () => {
+  describe('custom entities', () => {
     const entityName = 'custom.entity'
 
     afterEach(async () => {
-      const db = await cds.connect()
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
-      await db.run({ DROP: { entity: globals } }).catch(() => { })
+      await db.run({ DROP: { entity: globals.name } }).catch(() => { })
       await db.run({ DROP: { entity: entityName } }).catch(() => { })
       await db.run({ DROP: { table: { ref: [entityName] } } }).catch(() => { })
       await db.run({ DROP: { view: { ref: [entityName] } } }).catch(() => { })
     })
 
-    test('definiton provided', async () => {
-      const db = await cds.connect()
+    test('definition provided', async () => {
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
@@ -216,17 +216,17 @@ describe('CREATE', () => {
         elements: globals.elements
       })
       await db.run({ CREATE: { entity } })
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
+      // REVISIT: reading from entities not in the model requires additional handling in infer
       // await SELECT.from(entity)
     })
 
-    test('definiton provided', async () => {
-      const db = await cds.connect()
+    test('definition provided', async () => {
+      const db = await cds.connect.to('db')
 
       const { globals } = cds.entities('basic.literals')
 
       const query = SELECT.from(globals)
-      // REVISIT: reading from entities not in the model requires additional hanlding in infer
+      // REVISIT: reading from entities not in the model requires additional handling in infer
       /*
       const entity = new cds.entity({
         kind: 'entity',
@@ -330,7 +330,7 @@ describe('CREATE', () => {
       try {
         if (entity.projection) return
         const file = entity.$location.file
-        const data = require(fspath.resolve(cds.root, file.substring(0, file.length - 4), table + '.js'))
+        const data = require(fspath.resolve(cds.root, file.substring(0, file.length - 4), encodeURIComponent(table) + '.js'))
         const noData = data.length === 0
 
         describe('INSERT', () => {

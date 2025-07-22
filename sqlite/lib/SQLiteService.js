@@ -12,38 +12,34 @@ const sqliteKeywords = keywords.reduce((prev, curr) => {
   return prev
 }, {})
 
+// define date and time functions in js to allow for throwing errors
+const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
+const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
+const toDate = (d, allowTime = false) => {
+  const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
+  if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
+  return date
+}
+
+
 class SQLiteService extends SQLService {
-  init() {
-    return super.init(...arguments)
-  }
 
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
       create: tenant => {
         const database = this.url4(tenant)
-        const dbc = new sqlite(database)
-
+        const dbc = new sqlite(database, this.options.client)
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
         dbc.function('ISO', deterministic, d => d && new Date(d).toISOString())
-
-        // define date and time functions in js to allow for throwing errors
-        const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
-        const hasTimezone = /([+-]\d{1,2}:?\d{0,2}|Z)$/
-        const toDate = (d, allowTime = false) => {
-          const date = new Date(allowTime && isTime.test(d) ? `1970-01-01T${d}Z` : hasTimezone.test(d) ? d : d + 'Z')
-          if (Number.isNaN(date.getTime())) throw new Error(`Value does not contain a valid ${allowTime ? 'time' : 'date'} "${d}"`)
-          return date
-        }
         dbc.function('year', deterministic, d => d === null ? null : toDate(d).getUTCFullYear())
         dbc.function('month', deterministic, d => d === null ? null : toDate(d).getUTCMonth() + 1)
         dbc.function('day', deterministic, d => d === null ? null : toDate(d).getUTCDate())
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
-
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
@@ -77,7 +73,7 @@ class SQLiteService extends SQLService {
         run: (..._) => this._run(stmt, ..._),
         get: (..._) => stmt.get(..._),
         all: (..._) => stmt.all(..._),
-        stream: (..._) => this._stream(stmt, ..._),
+        stream: (..._) => this._allStream(stmt, ..._),
       }
     } catch (e) {
       e.message += ' in:\n' + (e.query = sql)
@@ -98,7 +94,8 @@ class SQLiteService extends SQLService {
     return stmt.run(binding_params)
   }
 
-  async *_iterator(rs, one) {
+  async *_iteratorRaw(rs, one) {
+    const pageSize = (1 << 16)
     // Allow for both array and iterator result sets
     const first = Array.isArray(rs) ? { done: !rs[0], value: rs[0] } : rs.next()
     if (first.done) return
@@ -109,14 +106,46 @@ class SQLiteService extends SQLService {
       return
     }
 
-    yield '['
+    let buffer = '[' + first.value[0]
     // Print first value as stand alone to prevent comma check inside the loop
-    yield first.value[0]
     for (const row of rs) {
-      yield `,${row[0]}`
+      buffer += `,${row[0]}`
+      if (buffer.length > pageSize) {
+        yield buffer
+        buffer = ''
+      }
     }
-    yield ']'
+    buffer += ']'
+    yield buffer
   }
+
+  async *_iteratorObjectMode(rs) {
+    for (const row of rs) {
+      yield JSON.parse(row[0])
+    }
+  }
+
+  async _allStream(stmt, binding_params, one, objectMode) {
+    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
+    stmt.raw(true)
+    const get = stmt.get(binding_params)
+    if (!get) return []
+    const rs = stmt.iterate(binding_params)
+    const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
+    const close = () => rs.return() // finish result set when closed early
+    stream.on('error', close)
+    stream.on('close', close)
+    return stream
+  }
+
+  pragma(pragma, options) {
+    if (!this.dbc) return this.begin('pragma').then(tx => {
+      try { return tx.pragma(pragma, options) }
+      finally { tx.release() }
+    })
+    return this.dbc.pragma(pragma, options)
+  }
+
 
   exec(sql) {
     return this.dbc.exec(sql)
@@ -223,7 +252,10 @@ ${plan.map(r => `|${r.addr}|${r.opcode}|${r.p1}|${r.p2}|${r.p3}|${r.p4}|${r.p5}|
       struct: expr => `${expr}->'$'`,
       array: expr => `${expr}->'$'`,
       // SQLite has no booleans so we need to convert 0 and 1
-      boolean: expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
+      boolean:
+        cds.env.features.sql_simple_queries === 2
+          ? undefined
+          : expr => `CASE ${expr} when 1 then 'true' when 0 then 'false' END ->'$'`,
       // DateTimes are returned without ms added by InputConverters
       DateTime: e => `substr(${e},0,20)||'Z'`,
       // Timestamps are returned with ms, as written by InputConverters.
@@ -254,6 +286,7 @@ ${plan.map(r => `|${r.addr}|${r.opcode}|${r.p1}|${r.p2}|${r.p3}|${r.p4}|${r.p5}|
       Time: () => 'TIME_TEXT',
       DateTime: () => 'DATETIME_TEXT',
       Timestamp: () => 'TIMESTAMP_TEXT',
+      Map: () => 'JSON_TEXT'
     }
 
     get is_distinct_from_() {
@@ -265,44 +298,6 @@ ${plan.map(r => `|${r.addr}|${r.opcode}|${r.p1}|${r.p2}|${r.p3}|${r.p4}|${r.p5}|
 
     static ReservedWords = { ...super.ReservedWords, ...sqliteKeywords }
   }
-
-  // REALLY REVISIT: Here we are doing error handling which we probably never should have started.
-  // And worst of all, we handed out this as APIs without documenting it, so stakeholder tests rely
-  // on that? -> we urgently need to review these stakeholder tests.
-  // And we'd also need this to be implemented by each db service, and therefore documented, correct?
-  async onINSERT(req) {
-    try {
-      return await super.onINSERT(req)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
-    }
-  }
-}
-
-// function _not_null (err) {
-//   if (err.code === "SQLITE_CONSTRAINT_NOTNULL") return Object.assign (err, {
-//     code: 'MUST_NOT_BE_NULL',
-//     target: /\.(.*?)$/.exec(err.message)[1], // here we are even constructing OData responses, with .target
-//     message: 'Value is required',
-//   })
-// }
-
-function _not_unique(err, code) {
-  if (err.message.match(/unique constraint/i))
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  return err
 }
 
 module.exports = SQLiteService

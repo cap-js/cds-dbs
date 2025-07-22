@@ -12,6 +12,7 @@ entity temporal : _cuid, _temporal {}
 
 // Set default values for all literals from ./literals.cds
 entity ![default] : _cuid {
+  uuidDflt  : UUID default '00000000-0000-0000-4000-000000000000';
   bool      : Boolean default false;
   integer8  : UInt8 default 8;
   integer16 : Int16 default 9;
@@ -29,14 +30,25 @@ entity ![default] : _cuid {
   // default value cannot be created on column of data type NCLOB: BLOB
   // blob        : LargeString default 'default';
   date      : Date default '1970-01-01';
+  date_lit  : Date default date'2021-05-05';
   time      : Time default '01:02:03';
   dateTime  : DateTime default '1970-01-01T01:02:03Z';
   timestamp : Timestamp default '1970-01-01T01:02:03.123456789Z';
-// Binary default values don't make sense. while technically possible
-// binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
-// largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
-// Vector default values probably also don't make sense
-// vector : Vector default '[1.0,0.5,0.0,...]';
+  // Comment out, when HANA supports default functions or compiler generates them not as defaults 
+  // func      : String(100) default tolower('DEfAUlT');
+  // Binary default values don't make sense. while technically possible
+  // binary      : Binary default 'YmluYXJ5'; // base64 encoded 'binary';
+  // largebinary : LargeBinary default 'YmluYXJ5'; // base64 encoded 'binary';
+  // Vector default values probably also don't make sense
+  // vector : Vector default '[1.0,0.5,0.0,...]';
+}
+
+entity dollar_now_default {
+  key id    : Integer;
+  date      : Date default $now;
+  time      : Time default $now;
+  dateTime  : DateTime default $now;
+  timestamp : Timestamp default $now;
 }
 
 entity keys {

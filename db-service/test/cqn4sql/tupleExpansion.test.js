@@ -23,7 +23,7 @@ describe('Structural comparison', () => {
   it('compare scalar leaf with value', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Books { ID } where dedication.text ${first} 'for mommy'`
+      const queryString = `SELECT from bookshop.Books as Books { ID } where dedication.text ${first} 'for mommy'`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Books as Books { Books.ID }
@@ -34,7 +34,7 @@ describe('Structural comparison', () => {
   it('compare scalar (join relevant) leaf with value', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Books { ID } where dedication.addressee.name ${first} 'mommy'`
+      const queryString = `SELECT from bookshop.Books as Books { ID } where dedication.addressee.name ${first} 'mommy'`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Books as Books
@@ -48,7 +48,7 @@ describe('Structural comparison', () => {
   it('expand struct1 <structEqOps> struct2 in where w/ parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStruc { ID } where not struc1 ${first} struc2`
+      const queryString = `SELECT from bookshop.EStruc as EStruc { ID } where not struc1 ${first} struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStruc as EStruc { EStruc.ID }
@@ -62,7 +62,7 @@ describe('Structural comparison', () => {
   it('expand assoc1 <structEqOps> assoc2 in where w/ parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Books { ID } where not author ${first} coAuthor`
+      const queryString = `SELECT from bookshop.Books as Books { ID } where not author ${first} coAuthor`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Books as Books { Books.ID }
@@ -74,7 +74,7 @@ describe('Structural comparison', () => {
   it('expand struct1 <structEqOps> struct2 in where w/o parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStruc { ID } where struc1 ${first} struc2`
+      const queryString = `SELECT from bookshop.EStruc as EStruc { ID } where struc1 ${first} struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStruc as EStruc { EStruc.ID }
@@ -87,7 +87,7 @@ describe('Structural comparison', () => {
   it('expand assoc1 <structEqOps> assoc2 in where w/o parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Books { ID } where author ${first} coAuthor`
+      const queryString = `SELECT from bookshop.Books as Books { ID } where author ${first} coAuthor`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Books as Books { Books.ID }
@@ -99,7 +99,7 @@ describe('Structural comparison', () => {
   it('expand struct1 <structNotEqOps> struct2 in where w/o parens', () => {
     notEqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStruc { ID } where struc1 ${first} struc2`
+      const queryString = `SELECT from bookshop.EStruc as EStruc { ID } where struc1 ${first} struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStruc as EStruc { EStruc.ID }
@@ -115,8 +115,8 @@ describe('Structural comparison', () => {
       const queryString = `SELECT from bookshop.Books { ID } where author ${first} coAuthor`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
-          SELECT from bookshop.Books as Books { Books.ID }
-            where Books.author_ID ${first} Books.coAuthor_ID`
+          SELECT from bookshop.Books as $B { $B.ID }
+            where $B.author_ID ${first} $B.coAuthor_ID`
       expect(query).to.deep.equal(CQL(expectedQueryString))
     })
   })
@@ -124,7 +124,7 @@ describe('Structural comparison', () => {
   it('expand struct1 <structNotEqOps> struct2 in where w/ parens', () => {
     notEqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStruc { ID } where struc1 ${first} struc2 and 1 = 1`
+      const queryString = `SELECT from bookshop.EStruc as EStruc { ID } where struc1 ${first} struc2 and 1 = 1`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStruc as EStruc { EStruc.ID }
@@ -137,7 +137,7 @@ describe('Structural comparison', () => {
   it('expand assoc1 <structNotEqOps> assoc2 in where w/ parens', () => {
     notEqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Books { ID } where author ${first} coAuthor and 1 = 1`
+      const queryString = `SELECT from bookshop.Books as Books { ID } where author ${first} coAuthor and 1 = 1`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Books as Books { Books.ID }
@@ -149,7 +149,7 @@ describe('Structural comparison', () => {
   it('expand struc2Reversed <structEqOps> struct2 in where w/o parens (order should not matter)', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStruc { ID } where struc2Reversed ${first} struc2`
+      const queryString = `SELECT from bookshop.EStruc as EStruc { ID } where struc2Reversed ${first} struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStruc as EStruc { EStruc.ID }
@@ -161,7 +161,7 @@ describe('Structural comparison', () => {
   it('compare nested struct', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.Foo { ID } where stru.nested ${first} stru.nested`
+      const queryString = `SELECT from bookshop.Foo as Foo { ID } where stru.nested ${first} stru.nested`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.Foo as Foo { Foo.ID }
@@ -236,7 +236,7 @@ describe('Structural comparison', () => {
   it('compare struct with struct via assoc', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStrucSibling { ID }
+      const queryString = `SELECT from bookshop.EStrucSibling as EStrucSibling { ID }
           where EStrucSibling.struc2 ${first} EStrucSibling.self.struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
@@ -255,8 +255,8 @@ describe('Structural comparison', () => {
       const queryString = `SELECT from bookshop.DeepRecursiveAssoc { ID } where one ${first} one`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
-          SELECT from bookshop.DeepRecursiveAssoc as DeepRecursiveAssoc { DeepRecursiveAssoc.ID }
-            where DeepRecursiveAssoc.one_two_three_toSelf_ID ${first} DeepRecursiveAssoc.one_two_three_toSelf_ID`
+          SELECT from bookshop.DeepRecursiveAssoc as $D { $D.ID }
+            where $D.one_two_three_toSelf_ID ${first} $D.one_two_three_toSelf_ID`
       expect(query).to.deep.equal(CQL(expectedQueryString))
     })
   })
@@ -265,14 +265,14 @@ describe('Structural comparison', () => {
     const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey = null]:accessGroup { ID }`
     let query = cqn4sql(CQL(queryString), model)
     const expectedQueryString = `
-        SELECT from bookshop.AccessGroups as accessGroup
-        { accessGroup.ID }
+        SELECT from bookshop.AccessGroups as $a
+        { $a.ID }
         where exists (
-          SELECT 1 from bookshop.AssocWithStructuredKey as AssocWithStructuredKey
-          where AssocWithStructuredKey.accessGroup_ID = accessGroup.ID and
-              AssocWithStructuredKey.toStructuredKey_struct_mid_leaf        = null and
-              AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf = null and
-              AssocWithStructuredKey.toStructuredKey_second                 = null
+          SELECT 1 from bookshop.AssocWithStructuredKey as $A2
+          where $A2.accessGroup_ID = $a.ID and
+              $A2.toStructuredKey_struct_mid_leaf        = null and
+              $A2.toStructuredKey_struct_mid_anotherLeaf = null and
+              $A2.toStructuredKey_second                 = null
         )
       `
     expect(query).to.deep.equal(CQL(expectedQueryString))
@@ -322,7 +322,7 @@ describe('Structural comparison', () => {
   it('join relevant structural comparison', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStrucSibling { ID } where not struc2 ${first} sibling.struc2`
+      const queryString = `SELECT from bookshop.EStrucSibling as EStrucSibling { ID } where not struc2 ${first} sibling.struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStrucSibling as EStrucSibling
@@ -336,7 +336,7 @@ describe('Structural comparison', () => {
   it('join relevant structural comparison / both operands are in assoc target', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStrucSibling { ID } where not sibling.struc2 ${first} sibling.struc2`
+      const queryString = `SELECT from bookshop.EStrucSibling as EStrucSibling { ID } where not sibling.struc2 ${first} sibling.struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStrucSibling as EStrucSibling
@@ -350,7 +350,7 @@ describe('Structural comparison', () => {
   it('join relevant structural comparison / both operands are in assoc target / not equal ops', () => {
     notEqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStrucSibling { ID } where not sibling.struc2 ${first} sibling.struc2`
+      const queryString = `SELECT from bookshop.EStrucSibling as EStrucSibling { ID } where not sibling.struc2 ${first} sibling.struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStrucSibling as EStrucSibling
@@ -364,7 +364,7 @@ describe('Structural comparison', () => {
   it('join relevant structural comparison / both operands are in assoc target which is the source entity', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.EStrucSibling { ID } where not self.struc2 ${first} self.struc2`
+      const queryString = `SELECT from bookshop.EStrucSibling as EStrucSibling { ID } where not self.struc2 ${first} self.struc2`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.EStrucSibling as EStrucSibling
@@ -387,7 +387,7 @@ describe('Structural comparison', () => {
   it('proper error for comparison w/ value', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
         'Can\'t compare structure "AssocWithStructuredKey.toStructuredKey" with value "5"',
       )
@@ -396,18 +396,18 @@ describe('Structural comparison', () => {
   it('proper error for comparison w/ value, reversed', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
         "An association can't be used as a value in an expression",
       )
     })
   })
   it('Struct needs to be unfolded in on-condition of join', () => {
-    const query = CQL`SELECT from bookshop.Unmanaged {
+    const query = cds.ql`SELECT from bookshop.Unmanaged as Unmanaged {
       toSelf.field
     }`
 
-    const expected = CQL`SELECT from bookshop.Unmanaged as Unmanaged
+    const expected = cds.ql`SELECT from bookshop.Unmanaged as Unmanaged
     left join bookshop.Unmanaged as toSelf
     on Unmanaged.struct_leaf = toSelf.struct_leaf and Unmanaged.struct_toBook_ID = toSelf.struct_toBook_ID {
       toSelf.field as toSelf_field

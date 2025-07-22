@@ -421,7 +421,7 @@ entity Unmanaged {
 
 entity Item {
   key ID: Integer;
-  item: Association to Item;
+  Item: Association to Item;
 }
 
 entity Posts {
@@ -429,4 +429,61 @@ entity Posts {
   name: String;
   iSimilar: Association to many Posts on UPPER(name) = UPPER(iSimilar.name);
   iSimilarNested: Association to many Posts on UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(name)), name); 
+}
+
+entity ![$special] {
+  key ID: Integer;
+  name: String;
+  ![$special] : Association to ![$special];
+}
+
+entity ![$] {
+  key ID: Integer;
+  name: String;
+  ![$] : Association to ![$];
+}
+
+entity First {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  second: Association to Second;
+}
+
+entity Second {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  first: Association to many First on $self = first.second;
+}
+
+entity FirstRedirected {
+  key BUBU: Integer;
+  name: String;
+  text: localized String;
+}
+
+entity Third as projection on Second {
+  *,
+  first: redirected to FirstRedirected on $self.ID = first.BUBU
+};
+
+entity Car {
+    key ID: Integer;
+    make: String;
+    model: String;
+    doors: Association to many Door on doors.car = $self;
+}
+
+entity Door {
+    key ID: Integer;
+    description: String;
+    car: Association to Car;
+    windows: Association to many Window on windows.door = $self
+}
+
+entity Window {
+    key ID: Integer;
+    description: String;
+    door: Association to Door;
 }
