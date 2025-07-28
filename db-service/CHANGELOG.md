@@ -10,14 +10,12 @@
 ### Added
 
 * **`exists`:** support additional query modifiers ([#1261](https://github.com/cap-js/cds-dbs/issues/1261)) ([1394b46](https://github.com/cap-js/cds-dbs/commit/1394b46b10f628748dd1f945095ab4ce7f3963f6))
-* deep delete for hierachies ([#1217](https://github.com/cap-js/cds-dbs/issues/1217)) ([47d6ed7](https://github.com/cap-js/cds-dbs/commit/47d6ed765800c5bd3fa6ff7b920efb5ac4481c63))
 * **hierarchy:** LimitedRank ([#1268](https://github.com/cap-js/cds-dbs/issues/1268)) ([52e16db](https://github.com/cap-js/cds-dbs/commit/52e16db2c83d06e318ea05947a3c3c3153bd3ab2))
 
 
 ### Fixed
 
 * `count` subquery for queries with only `expand` columns ([#1264](https://github.com/cap-js/cds-dbs/issues/1264)) ([097a332](https://github.com/cap-js/cds-dbs/commit/097a332f78156526823b2088bdc35278aea09854))
-* correct unneccessary import from ../lib ([#1279](https://github.com/cap-js/cds-dbs/issues/1279)) ([e3f2058](https://github.com/cap-js/cds-dbs/commit/e3f2058948c98167a94967d93f612bc05fef1365))
 * **cqn4sql:** multiple path expressions in where clause ([#1272](https://github.com/cap-js/cds-dbs/issues/1272)) ([9b35366](https://github.com/cap-js/cds-dbs/commit/9b353660f4c2568176f57baa642ab2b052cfcff9))
 * **hierarchy:** only modify where if existent ([#1265](https://github.com/cap-js/cds-dbs/issues/1265)) ([eaca855](https://github.com/cap-js/cds-dbs/commit/eaca855ec06087e22bf780fac5e4010ef1b5ff4f))
 * TypeError for empty `list` ([#1269](https://github.com/cap-js/cds-dbs/issues/1269)) ([f262718](https://github.com/cap-js/cds-dbs/commit/f26271813e161c9f7c05fbc82b10c4d5f14916a7))
