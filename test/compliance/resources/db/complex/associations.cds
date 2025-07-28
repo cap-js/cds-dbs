@@ -4,9 +4,9 @@ entity Root {
   key ID        : Integer;
       fooRoot   : String;
       recursiveToOne : Composition of one Root;
-      parent    : Association to Root;
+      recParent    : Association to Root;
       recursive : Composition of many Root
-                    on recursive.parent = $self;
+                    on recursive.recParent = $self;
       children  : Composition of many Child
                     on children.parent = $self;
 }

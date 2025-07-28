@@ -357,15 +357,9 @@ class CQN2SQLRenderer {
     const nodeKeys = []
     const parentKeys = []
     const association = target.elements[recurse.ref[0]]
-    const isRecToOne = association._target === q._target && association.is2one && !association._isCompositionBacklink
     association._foreignKeys.forEach(fk => {
-      if (isRecToOne) {
-        nodeKeys.push(fk.parentElement.name)
-        parentKeys.push(fk.childElement.name)
-      } else {
         nodeKeys.push(fk.childElement.name)
         parentKeys.push(fk.parentElement.name)
-      }
     })
 
     columnsIn.push(
@@ -398,16 +392,6 @@ class CQN2SQLRenderer {
             xpr: [
               'SOURCE',
               { SELECT: { columns: columnsIn, from: stableFrom } },
-              ...(isRecToOne
-                ? ['START', 'WHERE', { xpr: [
-                    { ref: ['parent_ID'] }, 'NOT', 'IN',
-                    { SELECT: { columns: [{ ref: ['NODE_ID'] }],
-                      from: { SELECT: { columns: columnsIn.filter(f => f.as === 'NODE_ID'), from: { ref: stableFrom.ref } } },
-                      where: [{ ref: ['NODE_ID'] }, '!=', { val: null, param: false }] }
-                    }]
-                  }]
-                : []
-              ),
               ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : []),
             ],
           },

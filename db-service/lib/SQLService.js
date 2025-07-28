@@ -257,7 +257,7 @@ class SQLService extends DatabaseService {
       const table = getDBTable(req.target)
       const { compositions } = table
 
-      const recursiveBacklinks = []
+      const recursiveComps = []
 
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -275,17 +275,7 @@ class SQLService extends DatabaseService {
           Object.values(compositions).map(c => {
             if (c._target['@cds.persistence.skip'] === true) return
             if (c._target === req.target) {
-              // deep delete for hierarchies
-              function _getBacklinkName(on) {
-                const i = on.findIndex(e => e.ref && e.ref[0] === '$self')
-                if (i === -1) return
-                let ref
-                if (on[i + 1] && on[i + 1] === '=') ref = on[i + 2].ref
-                if (on[i - 1] && on[i - 1] === '=') ref = on[i - 2].ref
-                return ref && ref[ref.length - 1]
-              }
-              const backlinkName = c.on ? _getBacklinkName(c.on) : c.name
-              recursiveBacklinks.push(backlinkName)
+              recursiveComps.push(c.name)
               return
             } else if (visited.includes(c._target.name))
               throw new Error(
@@ -299,7 +289,7 @@ class SQLService extends DatabaseService {
             return this.onDELETE({ query, visited: [...visited], target: c._target })
           }),
         )
-        if (recursiveBacklinks.length) {
+        if (recursiveComps.length) {
           let key
           // For hierarchies, only a single key is supported
           for (const _key in req.target.keys) {
@@ -308,10 +298,11 @@ class SQLService extends DatabaseService {
             break
           }
           const _where = []
-          for (const backlink of recursiveBacklinks) {
+          for (const comp of recursiveComps) {
             const _recursiveQuery = SELECT.from(table).columns(key)
             _recursiveQuery.SELECT.recurse = {
-              ref: [backlink],
+              ref: [comp],
+              backward: false,
               where: from.ref[0].where,
             }
             _where.push({ ref: [key] }, 'in', _recursiveQuery, 'or')
