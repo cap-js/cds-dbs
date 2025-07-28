@@ -386,11 +386,11 @@ class CQN2SQLRenderer {
     const alias = stableFrom.as
     const source = () => {
       return ({
-      func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
-      as: alias
-    })
-  }
+        func: 'HIERARCHY',
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+        as: alias
+      })
+    }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
     const expandedByOne = { list: [] } // DistanceTo(...,1)
