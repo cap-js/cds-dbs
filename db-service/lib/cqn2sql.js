@@ -358,8 +358,8 @@ class CQN2SQLRenderer {
     const parentKeys = []
     const association = target.elements[recurse.ref[0]]
     association._foreignKeys.forEach(fk => {
-        nodeKeys.push(fk.childElement.name)
-        parentKeys.push(fk.parentElement.name)
+      nodeKeys.push(fk.childElement.name)
+      parentKeys.push(fk.parentElement.name)
     })
 
     columnsIn.push(
@@ -385,20 +385,12 @@ class CQN2SQLRenderer {
     const stableFrom = getStableFrom(from)
     const alias = stableFrom.as
     const source = () => {
-      return {
+      return ({
         func: 'HIERARCHY',
-        args: [
-          {
-            xpr: [
-              'SOURCE',
-              { SELECT: { columns: columnsIn, from: stableFrom } },
-              ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : []),
-            ],
-          },
-        ],
-        as: alias,
-      }
-  }
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+        as: alias
+      })
+    }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
     const expandedByOne = { list: [] } // DistanceTo(...,1)
