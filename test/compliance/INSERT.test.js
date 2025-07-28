@@ -180,7 +180,7 @@ describe('INSERT', () => {
   })
 
   test('InsertResult', async () => {
-    const insert = INSERT.into('complex.associations.Root').entries({ ID: 5 })
+    const insert = INSERT.into('complex.associations.Books').entries({ ID: 5 })
     const affectedRows = await cds.db.run(insert)
     // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
     expect(affectedRows == 1).to.be.eq(true)
