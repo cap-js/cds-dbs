@@ -1567,3 +1567,55 @@ describe('References to target side via dummy filter', () => {
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 })
+
+describe('Assoc is foreign key', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/A2J/FKAccess').then(cds.linked)
+  })
+
+  it('path ends on assoc which is fk', () => {
+    const q = cds.ql`SELECT from S.Books as Books {
+      authorAddress.address as assocAsForeignKey
+    }`
+    const expected = cds.ql`SELECT from S.Books as Books {
+      Books.authorAddress_address_street as assocAsForeignKey_street,
+      Books.authorAddress_address_number as assocAsForeignKey_number,
+      Books.authorAddress_address_zip as assocAsForeignKey_zip,
+      Books.authorAddress_address_city as assocAsForeignKey_city,
+    }`
+
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
+  it('path ends on assoc which is fk, prefix is structured', () => {
+    const q = cds.ql`SELECT from S.Books as Books {
+      deeply.nested.authorAddress.address as deepAssocAsForeignKey
+    }`
+    const expected = cds.ql`SELECT from S.Books as Books {
+      Books.deeply_nested_authorAddress_address_street as deepAssocAsForeignKey_street,
+      Books.deeply_nested_authorAddress_address_number as deepAssocAsForeignKey_number,
+      Books.deeply_nested_authorAddress_address_zip as deepAssocAsForeignKey_zip,
+      Books.deeply_nested_authorAddress_address_city as deepAssocAsForeignKey_city
+    }`
+
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
+  it('path ends on assoc which is fk, renamed', () => {
+    const q = cds.ql`SELECT from S.Books as Books {
+      authorAddressFKRenamed.address as renamedAssocAsForeignKey
+    }`
+
+    const expected = cds.ql`SELECT from S.Books as Books {
+      Books.authorAddressFKRenamed_bar_street as renamedAssocAsForeignKey_street,
+      Books.authorAddressFKRenamed_bar_number as renamedAssocAsForeignKey_number,
+      Books.authorAddressFKRenamed_bar_zip as renamedAssocAsForeignKey_zip,
+      Books.authorAddressFKRenamed_bar_city as renamedAssocAsForeignKey_city
+    }`
+
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
+  
+})
