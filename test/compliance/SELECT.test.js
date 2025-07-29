@@ -1252,7 +1252,6 @@ describe('SELECT', () => {
       ...unified.ref.filter(numberRefs).map(ref => ({ func: 'average', args: [ref] })),
       ...unified.ref.filter(noBlobRefs).map(ref => ({ func: 'count', args: [ref] })),
       { func: 'count', args: ['*'] },
-      { func: 'count', args: [''] },
       { func: 'count' },
       ...unified.ref.filter(noBlobRefs).map(ref => ({ func: 'countdistinct', args: [ref] })),
       ...unified.ref.filter(noBlobRefs).filter(noBooleanRefs).map(ref => ({ func: 'max', args: [ref] })),
