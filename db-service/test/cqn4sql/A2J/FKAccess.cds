@@ -25,10 +25,4 @@ service S {
         key zip : String;
         key city : String;
     }
-
-    entity First as select from Books {
-        authorAddress.address as assocAsForeignKey,
-        deeply.nested.authorAddress.address as deepAssocAsForeignKey,
-        authorAddressFKRenamed.address as renamedAssocAsForeignKey
-    }
 }
