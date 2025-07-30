@@ -10,6 +10,20 @@ const BINARY_TYPES = {
   'cds.hana.BINARY': 1
 }
 
+/**
+ * Checks if parameter is an object that at least contains one property.
+ *
+ * @param {*} obj 
+ * @returns Boolean
+ */
+const _hasProps = (obj) => { 
+  if (!obj) return false
+  for (const p in obj) {
+    return true
+  }
+  return false
+}
+
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
 
 /**
@@ -56,24 +70,18 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  _changeToStreams(columns, rows, one, compat) {
+  _changeToStreams(columns, rows, one) {
     if (!rows || !columns) return
     if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return
-
-    // REVISIT: remove after removing stream_compat feature flag
-    if (compat) {
-      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
-      return
-    }
+    if (!rows.length || !Object.keys(rows[0]).length) return   
 
     let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
-        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
+        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false)
         else
-          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false, compat))
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false))
       } else if (col.element?.type === 'cds.LargeBinary') {
         changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
@@ -140,23 +148,7 @@ class SQLService extends DatabaseService {
         if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
       if (!iterator) {
-        // REVISIT: remove after removing stream_compat feature flag
-        if (cds.env.features.stream_compat) {
-          if (query._streaming) {
-            if (!rows.length) return
-            this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-            const result = rows[0]
-
-            // stream is always on position 0. Further properties like etag are inserted later.
-            let [key, val] = Object.entries(result)[0]
-            result.value = val
-            delete result[key]
-
-            return result
-          }
-        } else {
-          this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
-        }
+         this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
       } else if (objectMode) {
         const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
         const changeToStreams = new Transform({
@@ -215,8 +207,8 @@ class SQLService extends DatabaseService {
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
-      !req.query.UPDATE.data &&
-      !req.query.UPDATE.with &&
+      !_hasProps(req.query.UPDATE.data) &&
+      !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
@@ -345,9 +337,11 @@ class SQLService extends DatabaseService {
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
-    const columns = (having?.length || groupBy?.length)
-      ? query.SELECT.columns.filter(c => !c.expand)
-      : [{ val: 1 }]
+    let columns = []
+    if((having?.length || groupBy?.length)) {
+      columns = query.SELECT.columns.filter(c => !c.expand)
+    }
+    if (columns.length === 0) columns.push({ val: 1 })
     const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
         columns,
@@ -489,16 +483,16 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
+/** @param {import('@sap/cds').ql.Query} q */
 const _target_name4 = q => {
-  const target =
-    q._target_ref ||
-    q.SELECT?.from ||
-    q.INSERT?.into ||
-    q.UPSERT?.into ||
-    q.UPDATE?.entity ||
-    q.DELETE?.from ||
-    q.CREATE?.entity ||
-    q.DROP?.entity
+  const target = q._subject
+    || q.SELECT?.from
+    || q.INSERT?.into
+    || q.UPSERT?.into
+    || q.UPDATE?.entity
+    || q.DELETE?.from
+    || q.CREATE?.entity
+    || q.DROP?.entity
   if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref

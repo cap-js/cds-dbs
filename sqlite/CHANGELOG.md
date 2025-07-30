@@ -4,6 +4,41 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.1...sqlite-v2.0.2) (2025-06-30)
+
+
+### Fixed
+
+* **deps:** update dependency better-sqlite3 to v12 ([#1253](https://github.com/cap-js/cds-dbs/issues/1253)) ([8975490](https://github.com/cap-js/cds-dbs/commit/8975490f29624a96d2c0f128b19a6ddc5b66f91d))
+
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.0.0...sqlite-v2.0.1) (2025-05-27)
+
+
+### Changed
+
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
+## [2.0.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.11.0...sqlite-v2.0.0) (2025-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165))
+
+
+### Added
+
+* Support for hierarchical queries ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+
+
+### Changed
+
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165)) ([ff39e22](https://github.com/cap-js/cds-dbs/commit/ff39e22ac6cd3f20c98bc31c1a6bb828aa009796))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+
 ## [1.11.0](https://github.com/cap-js/cds-dbs/compare/sqlite-v1.10.0...sqlite-v1.11.0) (2025-04-17)
 
 

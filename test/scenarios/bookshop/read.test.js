@@ -157,30 +157,6 @@ describe('Bookshop - Read', () => {
     expect(res[0]).to.have.deep.property('author', { CONSTRAINT: 'Emily Brontë' })
   })
 
-  test('Plain sql', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books')
-    expect(res.length).to.be.eq(5)
-    const [res1, res2] = await cds.run([
-      'SELECT * FROM sap_capire_bookshop_Books',
-      'SELECT * FROM sap_capire_bookshop_Books',
-    ])
-    expect(res1.length).to.be.eq(5)
-    expect(res2.length).to.be.eq(5)
-  })
-
-  test('Plain sql with values', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [201])
-    expect(res.length).to.be.eq(1)
-  })
-
-  test('Plain sql with multiple values', async () => {
-    if(cds.env.sql.names === 'quoted') return 'skipped'
-    const res = await cds.run('SELECT * FROM sap_capire_bookshop_Books where ID = ?', [[201], [252]])
-    expect(res.length).to.be.eq(2)
-  })
-
   test('order by computed result column', async () => {
     const { Authors } = cds.entities('sap.capire.bookshop')
     const res = await SELECT
@@ -335,11 +311,12 @@ describe('Bookshop - Read', () => {
 
       const q = cds.ql`SELECT title FROM sap.capire.bookshop.Books ORDER BY title`
       const res3 = await cds.run(q)
-      expect(res3[res3.length - 1].title).to.be.eq('dracula')
+      expect(res3.at(-1).title).to.be.eq('dracula')
 
+      // If no locale is set, we do not sort by default locale, standard sorting applies
       q.SELECT.localized = true
       const res4 = await cds.run(q)
-      expect(res4[1].title).to.be.eq('dracula')
+      expect(res4.at(-1).title).to.be.eq('dracula')
     } finally {
       await DELETE('/admin/Books(280)', admin)
     }
@@ -381,6 +358,12 @@ describe('Bookshop - Read', () => {
     const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
+  })
+
+  test('Books $count with $top=0 and group by', async () => {
+    // top=0 to force count subquery
+    const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
+    expect(res.data['@odata.count']).to.be.eq(4)
   })
 
   it('joins as subselect are executable', async () => {

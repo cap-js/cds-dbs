@@ -5,7 +5,14 @@ cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._ta
 
 const infer = require('./infer')
 const { computeColumnsToBeSearched } = require('./search')
-const { prettyPrintRef, isCalculatedOnRead, isCalculatedElement, getImplicitAlias, getModelUtils } = require('./utils')
+const {
+  prettyPrintRef,
+  isCalculatedOnRead,
+  isCalculatedElement,
+  getImplicitAlias,
+  defineProperty,
+  getModelUtils,
+} = require('./utils')
 
 /**
  * For operators of <eqOps>, this is replaced by comparing all leaf elements with null, combined with and.
@@ -63,19 +70,8 @@ function cqn4sql(originalQuery, model) {
   }
   // query modifiers can also be defined in from ref leaf infix filter
   // > SELECT from bookshop.Books[order by price] {ID}
-  if (inferred.SELECT?.from.ref) {
-    for (const [key, val] of Object.entries(inferred.SELECT.from.ref.at(-1))) {
-      if (key in { orderBy: 1, groupBy: 1 }) {
-        if (inferred.SELECT[key]) inferred.SELECT[key].push(...val)
-        else inferred.SELECT[key] = val
-      } else if (key === 'limit') {
-        // limit defined on the query has precedence
-        if (!inferred.SELECT.limit) inferred.SELECT.limit = val
-      } else if (key === 'having') {
-        if (!inferred.SELECT.having) inferred.SELECT.having = val
-        else inferred.SELECT.having.push('and', ...val)
-      }
-    }
+  if (inferred.SELECT?.from.ref?.at(-1).id) {
+    assignQueryModifiers(inferred.SELECT, inferred.SELECT.from.ref.at(-1))
   }
   inferred = infer(inferred, model)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
@@ -95,6 +91,7 @@ function cqn4sql(originalQuery, model) {
     const from = queryProp.from
 
     const transformedProp = { __proto__: queryProp } // IMPORTANT: don't lose anything you might not know of
+    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
 
     // Transform the existing where, prepend table aliases, and so on...
     if (where) {
@@ -104,7 +101,47 @@ function cqn4sql(originalQuery, model) {
     // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
     // The already transformed `where` clause is then glued together with the resulting subqueries.
     const { transformedWhere, transformedFrom } = getTransformedFrom(from || entity, transformedProp.where)
-    const queryNeedsJoins = inferred.joinTree && !inferred.joinTree.isInitial
+
+    // build a subquery for DELETE / UPDATE queries with path expressions and match the primary keys
+    if (queryNeedsJoins && (inferred.UPDATE || inferred.DELETE)) {
+      const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
+      const subquery = {
+        SELECT: {
+          from: { ...(from || entity) },
+          columns: [], // primary keys of the query target will be added later
+          where: [...where],
+        },
+      }
+      // The alias of the original query is now the alias for the subquery
+      // so that potential references in the where clause to the alias match.
+      // Hence, replace the alias of the original query with the next
+      // available alias, so that each alias is unique.
+      const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
+      transformedFrom.as = uniqueSubqueryAlias
+
+      // calculate the primary keys of the target entity, there is always exactly
+      // one query source for UPDATE / DELETE
+      const queryTarget = Object.values(inferred.sources)[0].definition
+      const primaryKey = { list: [] }
+      for (const k of Object.keys(queryTarget.elements)) {
+        const e = queryTarget.elements[k]
+        if (e.key === true && !e.virtual && e.isAssociation !== true) {
+          subquery.SELECT.columns.push({ ref: [e.name] })
+          primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
+        }
+      }
+
+      const transformedSubquery = cqn4sql(subquery, model)
+
+      // replace where condition of original query with the transformed subquery
+      // correlate UPDATE / DELETE query with subquery by primary key matches
+      transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
+
+      if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
+      else transformedQuery.DELETE.from = transformedFrom
+
+      return transformedQuery
+    }
 
     if (inferred.SELECT) {
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
@@ -130,45 +167,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (queryNeedsJoins) {
-      if (inferred.UPDATE || inferred.DELETE) {
-        const prop = inferred.UPDATE ? 'UPDATE' : 'DELETE'
-        const subquery = {
-          SELECT: {
-            from: { ...transformedFrom },
-            columns: [], // primary keys of the query target will be added later
-            where: [...transformedProp.where],
-          },
-        }
-        // The alias of the original query is now the alias for the subquery
-        // so that potential references in the where clause to the alias match.
-        // Hence, replace the alias of the original query with the next
-        // available alias, so that each alias is unique.
-        const uniqueSubqueryAlias = getNextAvailableTableAlias(transformedFrom.as)
-        transformedFrom.as = uniqueSubqueryAlias
-
-        // calculate the primary keys of the target entity, there is always exactly
-        // one query source for UPDATE / DELETE
-        const queryTarget = Object.values(inferred.sources)[0].definition
-        const primaryKey = { list: [] }
-        for (const k of Object.keys(queryTarget.elements)) {
-          const e = queryTarget.elements[k]
-          if (e.key === true && !e.virtual && e.isAssociation !== true) {
-            subquery.SELECT.columns.push({ ref: [e.name] })
-            primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
-          }
-        }
-
-        const transformedSubquery = cqn4sql(subquery, model)
-
-        // replace where condition of original query with the transformed subquery
-        // correlate UPDATE / DELETE query with subquery by primary key matches
-        transformedQuery[prop].where = [primaryKey, 'in', transformedSubquery]
-
-        if (prop === 'UPDATE') transformedQuery.UPDATE.entity = transformedFrom
-        else transformedQuery.DELETE.from = transformedFrom
-      } else {
-        transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
-      }
+      transformedQuery[kind].from = translateAssocsToJoins(transformedQuery[kind].from)
     }
   }
 
@@ -802,11 +801,7 @@ function cqn4sql(originalQuery, model) {
         })
     } else {
       outerAlias = transformedQuery.SELECT.from.as
-      const getInnermostTarget = q => (q._target ? getInnermostTarget(q._target) : q)
-      subqueryFromRef = [
-        ...(transformedQuery.SELECT.from.ref || /* subq in from */ [getInnermostTarget(transformedQuery).name]),
-        ...ref,
-      ]
+      subqueryFromRef = [transformedQuery._target.name, ...ref]
     }
 
     // this is the alias of the column which holds the correlated subquery
@@ -845,10 +840,7 @@ function cqn4sql(originalQuery, model) {
     }
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
-    Object.defineProperty(correlated, 'elements', {
-      value: expanded.elements,
-      writable: true,
-    })
+    defineProperty(correlated, 'elements', expanded.elements)
     return correlated
 
     function _correlate(subq, outer) {
@@ -1070,7 +1062,7 @@ function cqn4sql(originalQuery, model) {
     else {
       const outerQueries = inferred.outerQueries || []
       outerQueries.push(inferred)
-      Object.defineProperty(q, 'outerQueries', { value: outerQueries })
+      defineProperty(q, 'outerQueries', outerQueries)
     }
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
@@ -1084,7 +1076,7 @@ function cqn4sql(originalQuery, model) {
         getImplicitAlias(last.id || last),
         inferred.outerQueries,
       )
-      Object.defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', { value: uniqueSubqueryAlias })
+      defineProperty(q.SELECT.from, 'uniqueSubqueryAlias', uniqueSubqueryAlias)
     }
   }
 
@@ -1311,7 +1303,7 @@ function cqn4sql(originalQuery, model) {
             const flatForeignKey = getDefinition(element.parent.name)?.elements[fkBaseName]
 
             setElementOnColumns(flatColumn, flatForeignKey || fkElement)
-            Object.defineProperty(flatColumn, '_csnPath', { value: csnPath, writable: true })
+            defineProperty(flatColumn, '_csnPath', csnPath)
             flatColumns.push(flatColumn)
           }
         }
@@ -1343,7 +1335,7 @@ function cqn4sql(originalQuery, model) {
     if (column.sort) flatRef.sort = column.sort
     if (columnAlias) flatRef.as = columnAlias
     setElementOnColumns(flatRef, element)
-    Object.defineProperty(flatRef, '_csnPath', { value: csnPath, writable: true })
+    defineProperty(flatRef, '_csnPath', csnPath)
     return [flatRef]
 
     function getReplacement(from) {
@@ -1427,7 +1419,8 @@ function cqn4sql(originalQuery, model) {
           }
           const { definition: fkSource } = next
           ensureValidForeignKeys(fkSource, ref)
-          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, step.where, true, step.args))
+          const { where, ...args } = step
+          whereExistsSubSelects.push(getWhereExistsSubquery(current, next, where, true, args))
         }
 
         const whereExists = { SELECT: whereExistsSubqueries(whereExistsSubSelects) }
@@ -1675,8 +1668,7 @@ function cqn4sql(originalQuery, model) {
   function getTransformedFrom(from, existingWhere = []) {
     const transformedWhere = []
     let transformedFrom = copy(from) // REVISIT: too expensive!
-    if (from.$refLinks)
-      Object.defineProperty(transformedFrom, '$refLinks', { value: [...from.$refLinks], writable: true })
+    if (from.$refLinks) defineProperty(transformedFrom, '$refLinks', [...from.$refLinks])
     if (from.args) {
       transformedFrom.args = []
       from.args.forEach(arg => {
@@ -1723,7 +1715,7 @@ function cqn4sql(originalQuery, model) {
         const nextStep = refReverse[i + 1] // only because we want the filter condition
 
         if (current.definition.target && next) {
-          const { where, args } = nextStep
+          const { where, ...args } = nextStep
           if (isStructured(next.definition)) {
             // find next association / entity in the ref because this is actually our real nextStep
             const nextStepIndex =
@@ -1784,12 +1776,10 @@ function cqn4sql(originalQuery, model) {
       // adjust ref & $refLinks after associations have turned into where exists subqueries
       transformedFrom.$refLinks.splice(0, transformedFrom.$refLinks.length - 1)
 
-      let args = from.ref.at(-1).args
       const subquerySource =
         getDefinition(transformedFrom.$refLinks[0].definition.target) || transformedFrom.$refLinks[0].target
-      if (subquerySource.params && !args) args = {}
       const id = getLocalizedName(subquerySource)
-      transformedFrom.ref = [args ? { id, args } : id]
+      transformedFrom.ref = [subquerySource.params ? { id, args: from.ref.at(-1).args || {} } : id]
 
       return { transformedWhere, transformedFrom }
     }
@@ -1819,10 +1809,6 @@ function cqn4sql(originalQuery, model) {
 
   function getNextAvailableTableAlias(id) {
     return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
-  }
-
-  function asXpr(thing) {
-    return { xpr: thing }
   }
 
   /**
@@ -1924,10 +1910,7 @@ function cqn4sql(originalQuery, model) {
           const refLinkFaker = thing => {
             const { ref } = thing
             const assocHost = getParentEntity(assocRefLink.definition)
-            Object.defineProperty(thing, '$refLinks', {
-              value: [],
-              writable: true,
-            })
+            defineProperty(thing, '$refLinks', [])
             let pseudoPath = false
             ref.reduce((prev, res, i) => {
               if (res === '$self') {
@@ -2143,9 +2126,11 @@ function cqn4sql(originalQuery, model) {
    * @param {object[]} customWhere infix filter which must be part of the where exists subquery on condition
    * @param {boolean} inWhere whether or not the path is part of the queries where clause
    *                    -> if it is, target and source side are flipped in the where exists subquery
+   * @param {object} queryModifier optional query modifiers: group by, order by, limit, offset
+   * 
    * @returns {CQN.SELECT}
    */
-  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, customArgs = null) {
+  function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, queryModifier = null) {
     const { definition } = current
     const { definition: nextDefinition } = next
     const on = []
@@ -2166,10 +2151,9 @@ function cqn4sql(originalQuery, model) {
 
     const subquerySource = getDefinition(nextDefinition.target) || nextDefinition
     const id = getLocalizedName(subquerySource)
-    if (subquerySource.params && !customArgs) customArgs = {}
     const SELECT = {
       from: {
-        ref: [customArgs ? { id, args: customArgs } : id],
+        ref: [subquerySource.params ? { id, args: queryModifier.args || {} } : id],
         as: next.alias,
       },
       columns: [
@@ -2180,25 +2164,27 @@ function cqn4sql(originalQuery, model) {
       ],
       where: on,
     }
-    if (next.pathExpressionInsideFilter) {
-      SELECT.where = customWhere
-      const transformedExists = transformSubquery({ SELECT })
-      // infix filter conditions are wrapped in `xpr` when added to the on-condition
-      if (transformedExists.SELECT.where) {
-        on.push(
-          ...[
-            'and',
-            ...(hasLogicalOr(transformedExists.SELECT.where)
-              ? [asXpr(transformedExists.SELECT.where)]
-              : transformedExists.SELECT.where),
-          ],
-        )
+    // this requires sub-sequent transformation of the subquery
+    if (next.pathExpressionInsideFilter || (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))) {
+      SELECT.where = next.pathExpressionInsideFilter ? customWhere : [];
+      if (queryModifier) assignQueryModifiers(SELECT, queryModifier);
+
+      const transformedExists = transformSubquery({ SELECT });
+      if (transformedExists.SELECT.where?.length) {
+      const wrappedWhere = hasLogicalOr(transformedExists.SELECT.where)
+        ? [asXpr(transformedExists.SELECT.where)]
+        : transformedExists.SELECT.where;
+
+      on.push('and', ...wrappedWhere);
       }
-      transformedExists.SELECT.where = on
-      return transformedExists.SELECT
-    } else if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next)
-      on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
+      transformedExists.SELECT.where = on;
+      return transformedExists.SELECT;
+    }
+
+    if (customWhere) {
+      const filter = getTransformedTokenStream(customWhere, next);
+      const wrappedFilter = hasLogicalOr(filter) ? [asXpr(filter)] : filter;
+      on.push('and', ...wrappedFilter);
     }
     return SELECT
   }
@@ -2363,6 +2349,26 @@ function getParentEntity(element) {
   else return getParentEntity(element.parent)
 }
 
+
+function asXpr(thing) {
+  return { xpr: thing }
+}
+
+function assignQueryModifiers(SELECT, modifiers) {
+  for (const [key, val] of Object.entries(modifiers)) {
+    if (key in { orderBy: 1, groupBy: 1 }) {
+      if (SELECT[key]) SELECT[key].push(...val)
+      else SELECT[key] = val
+    } else if (key === 'limit') {
+      // limit defined on the query has precedence
+      if (!SELECT.limit) SELECT.limit = val
+    } else if (key === 'having') {
+      if (!SELECT.having) SELECT.having = val
+      else SELECT.having.push('and', ...val)
+    }
+  }
+}
+
 /**
  * Assigns the given `element` as non-enumerable property 'element' onto `col`.
  *
@@ -2370,10 +2376,7 @@ function getParentEntity(element) {
  * @param {csn.Element} element
  */
 function setElementOnColumns(col, element) {
-  Object.defineProperty(col, 'element', {
-    value: element,
-    writable: true,
-  })
+  defineProperty(col, 'element', element)
 }
 
 const getName = col => col.as || col.ref?.at(-1)

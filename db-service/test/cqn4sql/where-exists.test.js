@@ -557,6 +557,28 @@ describe('EXISTS predicate in where', () => {
       }`)
     })
 
+    it('MUST handle negated where exists wrapped in xpr in CASE', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Books {
+        ID,
+        case when not (exists author[name = 'FOO'] or exists author[name = 'BAR']) then 'yes'
+             else 'no'
+        end as x
+       }`,
+        model,
+      )
+      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B {
+        $B.ID,
+        case when not (
+          exists (SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.name = 'FOO')
+          or
+          exists (SELECT 1 from bookshop.Authors as $a2 where $a2.ID = $B.author_ID and $a2.name = 'BAR')
+        ) then 'yes'
+             else 'no'
+        end as x
+      }`)
+    })
+
     it('MUST handle simple where exists with filter in CASE', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Books {
@@ -1647,5 +1669,67 @@ describe('path expression within infix filter following exists predicate', () =>
         where $b.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
       )`,
     )
+  })
+})
+
+describe('define additional query modifiers', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+  })
+
+  it('...for scoped queries', () => {
+    const q = cds.ql`
+      SELECT from bookshop.Books[group by author.ID having count(*) > 5]:author { name }
+    `;
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as $a { $a.name }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $B
+        where $B.author_ID = $a.ID
+        group by $B.author_ID
+        having count(*) > 5
+      )
+    `;
+    expect(cqn4sql(q, model)).to.deep.equal(expected);
+  });
+  it('...after exists predicate', () => {
+    const q = cds.ql`SELECT from bookshop.Authors { name } where exists books[group by author.ID having count(*) > 5]`
+    const expected = cds.ql`SELECT from bookshop.Authors as $A { $A.name } WHERE EXISTS (
+      SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
+      group by $b.author_ID
+      having count(*) > 5
+    )`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+  it('...in case statements', () => {
+    const q = cds.ql`
+      SELECT from bookshop.Authors as Authors
+      { ID,
+        case when exists books[group by author.ID having count(*) > 5] then 1
+             when exists books[group by author.ID having count(*) > 10] then 2
+        end as descr
+      }`
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as Authors
+      { Authors.ID,
+        case 
+          when exists (
+            select 1 from bookshop.Books as $b
+            where $b.author_ID = Authors.ID
+            group by $b.author_ID
+            having count(*) > 5
+          )
+          then 1
+          when exists (
+            select 1 from bookshop.Books as $b2
+            where $b2.author_ID = Authors.ID
+            group by $b2.author_ID
+            having count(*) > 10
+          )
+          then 2
+        end as descr
+      }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 })
