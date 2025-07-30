@@ -787,7 +787,7 @@ class HANAService extends SQLService {
       }
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
-      const transitions = cds.ql.resolve.transitions4db(q, this.srv)
+      const transitions = this.srv.resolve.transitions4db(q)
 
       const columns = elements
         ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
