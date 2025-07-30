@@ -10,6 +10,7 @@ service S {
                 authorAddress: Association to Authors { address };
             }
         }
+        toSelf: Association to Books { deeply.nested as baz }
     }
 
     entity Authors {

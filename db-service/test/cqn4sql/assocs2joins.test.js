@@ -1617,5 +1617,19 @@ describe('Assoc is foreign key', () => {
     expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 
+  it('recursive path end on deeply nested struct that contains assoc', () => {
+    const q = cds.ql`SELECT from S.Books as Books {
+      toSelf.deeply.nested
+    }`
+    const expected = cds.ql`SELECT from S.Books as Books {
+      Books.toSelf_baz_authorAddress_address_street as toSelf_deeply_nested_authorAddress_street,
+      Books.toSelf_baz_authorAddress_address_number as toSelf_deeply_nested_authorAddress_number,
+      Books.toSelf_baz_authorAddress_address_zip as toSelf_deeply_nested_authorAddress_zip,
+      Books.toSelf_baz_authorAddress_address_city as toSelf_deeply_nested_authorAddress_city
+    }`
+
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
   
 })
