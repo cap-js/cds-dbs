@@ -1054,14 +1054,23 @@ class CQN2SQLRenderer {
     const { INSERT } = q
     const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     const alias = INSERT.into.as
-    const src = this.cqn4sql(INSERT.as)
+    const src = this.cqn4sql(INSERT.from)
     const elements = q.elements || q._target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
-      c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
-    ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
-      this.cqn4sql(INSERT.from || INSERT.as),
-    )}`
+    const transitions = this.srv.resolve.transitions4db(q, this.srv)
+    let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
+      .filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+        && c in transitions.target.elements
+        && !transitions.target.elements[c].virtual
+        && !transitions.target.elements[c].value
+        && !transitions.target.elements[c].isAssociation
+      ))
+
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
+    const sql = extractions.length > columns.length
+      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      : this.SELECT(src)
+    if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql}`
     this.entries = [this.values]
     return this.sql
   }
@@ -1413,7 +1422,7 @@ class CQN2SQLRenderer {
    * @returns {string} Database table name
    */
   table_name(q) {
-    const table = this.srv.resolve.table(q._target)
+    const table = cds.db.resolve.table(q._target)
     return this.name(table.name, q)
   }
 
