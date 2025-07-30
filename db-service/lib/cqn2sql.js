@@ -1413,7 +1413,7 @@ class CQN2SQLRenderer {
    * @returns {string} Database table name
    */
   table_name(q) {
-    const table = cds.db.resolve.table(q._target)
+    const table = this.srv.resolve.table(q._target)
     return this.name(table.name, q)
   }
 
