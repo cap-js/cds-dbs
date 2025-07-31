@@ -1474,35 +1474,35 @@ function cqn4sql(originalQuery, model) {
         transformedTokenStream.push({ ...token })
       } else {
         // expand `struct = null | struct2`
-        const definition = token.$refLinks?.at(-1).definition
         const next = tokenStream[i + 1]
-        if (allOps.some(([firstOp]) => firstOp === next) && (definition?.elements || definition?.keys)) {
+        let indexRhs = i + 2
+        let rhs = tokenStream[indexRhs] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
+        const lhsDef = token.$refLinks?.at(-1).definition
+        let rhsDef = rhs?.$refLinks?.at(-1)?.definition
+        if (
+          allOps.some(([firstOp]) => firstOp === next) &&
+          (lhsDef?.elements || lhsDef?.keys || rhsDef?.elements || rhsDef?.keys)
+        ) {
           const ops = [next]
-          let indexRhs = i + 2
-          let rhs = tokenStream[i + 2] // either another operator (i.e. `not like` et. al.) or the operand, i.e. the val | null
           if (allOps.some(([, secondOp]) => secondOp === rhs)) {
             ops.push(rhs)
             rhs = tokenStream[i + 3]
             indexRhs += 1
+            rhsDef = rhs?.$refLinks?.at(-1)?.definition
           }
-          if (
-            isAssocOrStruct(rhs.$refLinks?.[rhs.$refLinks.length - 1].definition) ||
-            rhs.val !== undefined ||
-            /* unary operator `is null` parsed as string */
-            rhs === 'null'
-          ) {
-            if (notSupportedOps.some(([firstOp]) => firstOp === next))
-              throw new Error(`The operator "${next}" is not supported for structure comparison`)
-            const newTokens = expandComparison(token, ops, rhs, $baseLink)
-            const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
-            transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
-            i = indexRhs // jump to next relevant index
-          }
+
+          if (notSupportedOps.some(([firstOp]) => firstOp === next))
+            throw new Error(`The operator "${next}" is not supported for structure comparison`)
+
+          const newTokens = expandComparison(token, ops, rhs, $baseLink)
+          const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
+          transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
+          i = indexRhs // jump to next relevant index
         } else {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
           assertNoStructInXpr(token, $baseLink)
           // reject virtual elements in expressions as they will lead to a sql error down the line
-          if (definition?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
+          if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
@@ -1557,9 +1557,9 @@ function cqn4sql(originalQuery, model) {
   /**
    * Expand the given definition and compare all leafs to `val`.
    *
-   * @param {object} token with $refLinks
+   * @param {object} lhs with $refLinks
    * @param {string} operator one of allOps
-   * @param {object} value either `null` or a column (with `ref` and `$refLinks`)
+   * @param {object} rhs either `null` or a column (with `ref` and `$refLinks`)
    * @param {object} $baseLink optional base `$refLink`, e.g. for infix filters of scoped queries.
    *                           In the following example, we must pass `bookshop:Reproduce` as $baseLink for `author`:
    *
@@ -1567,26 +1567,21 @@ function cqn4sql(originalQuery, model) {
    *                                                            ^^^^^^
    * @returns {array}
    */
-  function expandComparison(token, operator, value, $baseLink = null) {
-    const { definition } = token.$refLinks[token.$refLinks.length - 1]
-    let flatRhs
+  function expandComparison(lhs, operator, rhs, $baseLink = null) {
+    const { definition: lhsDef, val: lhsVal } = lhs.val ? lhs : lhs.$refLinks.at(-1)
+    const { definition: rhsDef, val: rhsVal } = rhs.val ? rhs : rhs.$refLinks?.at(-1) || {}
     const result = []
-    if (value.$refLinks) {
-      // structural comparison
-      flatRhs = flattenWithBaseName(value)
-    }
+    if (lhsDef && rhsDef) {
+      // both must be structured
+      const lhsIsStructured = isAssocOrStruct(lhsDef)
+      const rhsIsStructured = isAssocOrStruct(rhsDef)
+      if (!lhsIsStructured)
+        throw new Error(`Can't compare structure “${rhs.ref.map(idOnly).join('.')}” with non-structure “${lhs.ref.map(idOnly).join('.')}”`)
+      if (!rhsIsStructured)
+        throw new Error(`Can't compare structure “${lhs.ref.map(idOnly).join('.')}” with non-structure “${rhs.ref.map(idOnly).join('.')}”`)
 
-    if (flatRhs) {
-      const flatLhs = flattenWithBaseName(token)
-      // make sure we can compare both structures
-      if (flatRhs.length !== flatLhs.length) {
-        throw new Error(
-          `Can't compare "${definition.name}" with "${
-            value.$refLinks[value.$refLinks.length - 1].definition.name
-          }": the operands must have the same structure`,
-        )
-      }
-
+      const flatLhs = flattenWithBaseName(lhs)
+      const flatRhs = flattenWithBaseName(rhs)
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       while (flatLhs.length > 0) {
         // retrieve and remove one flat element from LHS and search for it in RHS (remove it there too)
@@ -1598,26 +1593,46 @@ function cqn4sql(originalQuery, model) {
         })
         // not found in rhs --> exit
         if (indexOfElementOnRhs === -1) {
-          const lhsPath = token.ref.join('.')
-          const rhsPath = value.ref.join('.')
+          const lhsPath = lhs.ref.map(idOnly).join('.')
+          const rhsPath = rhs.ref.map(idOnly).join('.')
           throw new Error(`Can't compare "${lhsPath}" with "${rhsPath}": the operands must have the same structure`)
         }
-        const rhs = flatRhs.splice(indexOfElementOnRhs, 1)[0] // remove the element also from RHS
-        result.push({ ref }, ...operator, rhs)
+        const cleansedRhs = flatRhs.splice(indexOfElementOnRhs, 1)[0] // remove the element also from RHS
+        result.push({ ref }, ...operator, cleansedRhs)
         if (flatLhs.length > 0) result.push(boolOp)
       }
-    } else {
+    } else if (lhsDef && (rhsVal || rhs === 'null' || rhs.val === null)) {
       // compare with value
-      const flatLhs = flattenWithBaseName(token)
-      if (flatLhs.length > 1 && value.val !== null && value !== 'null')
-        throw new Error(`Can't compare structure "${token.ref.join('.')}" with value "${value.val}"`)
+      const flatLhs = flattenWithBaseName(lhs)
+      if (flatLhs.length > 1 && rhsVal && rhs !== 'null')
+        cantCompareToComplexStructure(lhsDef, lhs.ref, rhsVal)
+
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatLhs.forEach((column, i) => {
-        result.push(column, ...operator, value)
+        result.push(column, ...operator, rhs)
         if (flatLhs[i + 1]) result.push(boolOp)
+      })
+    } else if (lhsVal && rhsDef) {
+      const flatRhs = flattenWithBaseName(rhs)
+      // comparing a struct to a value is ok if structure has exactly one leaf
+      if (flatRhs.length > 1 && lhsVal)
+        cantCompareToComplexStructure(rhsDef, rhs.ref, lhsVal)
+
+      const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
+      flatRhs.forEach((column, i) => {
+        result.push(lhs, ...operator, column)
+        if (flatRhs[i + 1]) result.push(boolOp)
       })
     }
     return result
+
+    function cantCompareToComplexStructure(struct, structRef, nonStruct) {
+      const what = struct.isAssociation ? 'association' : 'structure'
+      const postfix = struct.isAssociation ? 'associations with one foreign key' : 'structures with one sub-element'
+      throw new Error(
+        `Can't compare ${what} "${structRef.map(idOnly).join('.')}" with value "${nonStruct}"; only possible for ${postfix}`
+      )
+    }
 
     function flattenWithBaseName(def) {
       if (!def.$refLinks) return def
@@ -2127,7 +2142,7 @@ function cqn4sql(originalQuery, model) {
    * @param {boolean} inWhere whether or not the path is part of the queries where clause
    *                    -> if it is, target and source side are flipped in the where exists subquery
    * @param {object} queryModifier optional query modifiers: group by, order by, limit, offset
-   * 
+   *
    * @returns {CQN.SELECT}
    */
   function getWhereExistsSubquery(current, next, customWhere = null, inWhere = false, queryModifier = null) {
@@ -2165,26 +2180,29 @@ function cqn4sql(originalQuery, model) {
       where: on,
     }
     // this requires sub-sequent transformation of the subquery
-    if (next.pathExpressionInsideFilter || (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))) {
-      SELECT.where = next.pathExpressionInsideFilter ? customWhere : [];
-      if (queryModifier) assignQueryModifiers(SELECT, queryModifier);
+    if (
+      next.pathExpressionInsideFilter ||
+      (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))
+    ) {
+      SELECT.where = next.pathExpressionInsideFilter ? customWhere : []
+      if (queryModifier) assignQueryModifiers(SELECT, queryModifier)
 
-      const transformedExists = transformSubquery({ SELECT });
+      const transformedExists = transformSubquery({ SELECT })
       if (transformedExists.SELECT.where?.length) {
-      const wrappedWhere = hasLogicalOr(transformedExists.SELECT.where)
-        ? [asXpr(transformedExists.SELECT.where)]
-        : transformedExists.SELECT.where;
+        const wrappedWhere = hasLogicalOr(transformedExists.SELECT.where)
+          ? [asXpr(transformedExists.SELECT.where)]
+          : transformedExists.SELECT.where
 
-      on.push('and', ...wrappedWhere);
+        on.push('and', ...wrappedWhere)
       }
-      transformedExists.SELECT.where = on;
-      return transformedExists.SELECT;
+      transformedExists.SELECT.where = on
+      return transformedExists.SELECT
     }
 
     if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next);
-      const wrappedFilter = hasLogicalOr(filter) ? [asXpr(filter)] : filter;
-      on.push('and', ...wrappedFilter);
+      const filter = getTransformedTokenStream(customWhere, next)
+      const wrappedFilter = hasLogicalOr(filter) ? [asXpr(filter)] : filter
+      on.push('and', ...wrappedFilter)
     }
     return SELECT
   }
@@ -2348,7 +2366,6 @@ function getParentEntity(element) {
   if (element.kind === 'entity') return element
   else return getParentEntity(element.parent)
 }
-
 
 function asXpr(thing) {
   return { xpr: thing }

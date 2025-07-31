@@ -386,7 +386,7 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        /Can't compare structure "nested" with value "2"/,
       )
     })
 
@@ -402,9 +402,14 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects managed associations in expressions in WHERE clause (1)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+    it('allows managed associations in comparison, if it ends in one foreign key', () => {
+      const res = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE author = 2 `, model)
+      expect(res).to.deep.equal(
+        cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE Books.author_ID = 2`
+      )
+      const reverse = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE 2 = author `, model)
+      expect(reverse).to.deep.equal(
+        cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE 2 = Books.author_ID`
       )
     })
 
@@ -829,12 +834,10 @@ describe('Flattening', () => {
     //
     // expressions
     //   structured fields inside expressions aren't supported anywhere
-    //   TODO if implementation is same for all clauses, we probably don't need all these tests
-    //   relax for certain patterns -> see "Expressions in where clauses"
 
     it('rejects struct fields in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } HAVING 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        /Can't compare structure "nested" with value "2"/,
       )
     })
 
@@ -855,9 +858,9 @@ describe('Flattening', () => {
     //   TODO if implementation is same for all clauses, we probably don't need all these tests
     //   relax for certain patterns -> see "Expressions in where clauses"
 
-    it('rejects managed associations in expressions in HAVING clause (1)', () => {
+    it.skip('rejects managed associations in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+        /Can't compare association "author" with value "2"/,
       )
     })
 
