@@ -856,15 +856,8 @@ describe('Flattening', () => {
     // expressions
     //   managed associations inside expressions aren't supported anywhere
     //   TODO if implementation is same for all clauses, we probably don't need all these tests
-    //   relax for certain patterns -> see "Expressions in where clauses"
 
-    it.skip('rejects managed associations in expressions in HAVING clause (1)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.throw(
-        /Can't compare association "author" with value "2"/,
-      )
-    })
-
-    it('rejects managed associations in expressions in HAVING clause (2)', () => {
+    it('rejects managed associations in expressions in HAVING clause', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING sin(author) < 0`, model)).to.throw(
         /An association can't be used as a value in an expression/,
       )
