@@ -451,7 +451,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" with value "5"; only possible for associations with one foreign key',
+        'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" to value "5"; only possible for associations with one foreign key',
       )
     })
   })
@@ -460,7 +460,7 @@ describe('Structural comparison', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" with value "5"; only possible for associations with one foreign key',
+        'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" to value "5"; only possible for associations with one foreign key',
       )
     })
   })

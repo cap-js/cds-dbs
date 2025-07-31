@@ -1626,11 +1626,11 @@ function cqn4sql(originalQuery, model) {
     }
     return result
 
-    function cantCompareToComplexStructure(struct, structRef, nonStruct) {
+    function cantCompareToComplexStructure(struct, structRef, val) {
       const what = struct.isAssociation ? 'association' : 'structure'
       const postfix = struct.isAssociation ? 'associations with one foreign key' : 'structures with one sub-element'
       throw new Error(
-        `Can't compare ${what} "${structRef.map(idOnly).join('.')}" with value "${nonStruct}"; only possible for ${postfix}`
+        `Can't compare ${what} "${structRef.map(idOnly).join('.')}" to value "${val}"; only possible for ${postfix}`
       )
     }
 

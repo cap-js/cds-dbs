@@ -386,7 +386,7 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE 2 = nested`, model)).to.throw(
-        /Can't compare structure "nested" with value "2"/,
+        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/
       )
     })
 
@@ -837,7 +837,7 @@ describe('Flattening', () => {
 
     it('rejects struct fields in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } HAVING 2 = nested`, model)).to.throw(
-        /Can't compare structure "nested" with value "2"/,
+        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/
       )
     })
 
