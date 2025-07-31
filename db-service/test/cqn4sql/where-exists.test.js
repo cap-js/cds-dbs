@@ -1604,6 +1604,17 @@ describe('path expression within infix filter following exists predicate', () =>
         )`,
     )
   })
+
+  it('path expression embedded in xpr', () => {
+    const q = cds.ql`select from bookshop.Books as Books { 1 as foo } where exists genre[('foo' || parent.name || 'bar') LIKE 'foo%bar']`
+    const expected = cds.ql`SELECT from bookshop.Books as Books { 1 as foo } where exists (
+      SELECT 1 from bookshop.Genres as $g
+      inner join bookshop.Genres as parent on parent.ID = $g.parent_ID
+      where $g.ID = Books.genre_ID and ('foo' || parent.name || 'bar') LIKE 'foo%bar'
+    )`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
   it('rejects the path expression at the leaf of scoped queries', () => {
     // original idea was to just add the `genre.name` as where clause to the query
     // however, with left outer joins we might get too many results
