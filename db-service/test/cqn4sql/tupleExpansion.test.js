@@ -339,7 +339,6 @@ describe('Structural comparison', () => {
     expect(query).to.deep.equal(CQL(expectedQueryString))
   })
 
-
   it('compare assocs with multiple keys', () => {
     eqOps.forEach(op => {
       const [first] = op
@@ -464,6 +463,25 @@ describe('Structural comparison', () => {
       )
     })
   })
+
+  it('allows `assoc <op> val`, if it ends in one foreign key', () => {
+    const res = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE author = 2 `, model)
+    expect(res).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE Books.author_ID = 2`)
+    const reverse = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE 2 = author `, model)
+    expect(reverse).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE 2 = Books.author_ID`)
+  })
+
+  it('allows `structure <op> val`, if struct has exactly one leaf', () => {
+    const res = cqn4sql(cds.ql`SELECT from bookshop.DeepRecursiveAssoc as D { ID } WHERE one = 2 `, model)
+    expect(res).to.deep.equal(
+      cds.ql`SELECT from bookshop.DeepRecursiveAssoc as D { D.ID } WHERE D.one_two_three_toSelf_ID = 2`,
+    )
+    const reverse = cqn4sql(cds.ql`SELECT from bookshop.DeepRecursiveAssoc as D { ID } WHERE 2 = one `, model)
+    expect(reverse).to.deep.equal(
+      cds.ql`SELECT from bookshop.DeepRecursiveAssoc as D { D.ID } WHERE 2 = D.one_two_three_toSelf_ID`,
+    )
+  })
+
   it('Struct needs to be unfolded in on-condition of join', () => {
     const query = cds.ql`SELECT from bookshop.Unmanaged as Unmanaged {
       toSelf.field
@@ -492,7 +510,11 @@ describe('Structural comparison', () => {
     const query = cds.ql`SELECT from bookshop.Books as Books { ID } where author.ID = genre.parent`
     const flipped = cds.ql`SELECT from bookshop.Books as Books { ID } where genre.parent = author.ID`
     // throw new Error(`Can't compare structure “${rhs.ref.map(idOnly).join('.')}” with non-structure “${lhs.ref.map(idOnly).join('.')}”`)
-    expect(() => cqn4sql(query, model)).to.throw(/Can't compare structure “genre.parent” with non-structure “author.ID”/)
-    expect(() => cqn4sql(flipped, model)).to.throw(/Can't compare structure “genre.parent” with non-structure “author.ID”/)
+    expect(() => cqn4sql(query, model)).to.throw(
+      /Can't compare structure “genre.parent” with non-structure “author.ID”/,
+    )
+    expect(() => cqn4sql(flipped, model)).to.throw(
+      /Can't compare structure “genre.parent” with non-structure “author.ID”/,
+    )
   })
 })

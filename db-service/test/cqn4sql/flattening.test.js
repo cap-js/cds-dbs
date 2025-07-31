@@ -402,17 +402,6 @@ describe('Flattening', () => {
       )
     })
 
-    it('allows managed associations in comparison, if it ends in one foreign key', () => {
-      const res = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE author = 2 `, model)
-      expect(res).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE Books.author_ID = 2`
-      )
-      const reverse = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE 2 = author `, model)
-      expect(reverse).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as Books { Books.ID } WHERE 2 = Books.author_ID`
-      )
-    })
-
     it('rejects managed associations in expressions in WHERE clause (2)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE sin(author) < 0`, model)).to.throw(
         /An association can't be used as a value in an expression/,
