@@ -230,7 +230,7 @@ class SQLService extends DatabaseService {
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
       const resolve = this.resolve
-      const transitions = resolve.transitions4db(req.query, this, {skipForbiddenViewCheck: false, event: req.query.cmd || 'DELETE'})
+      const transitions = resolve.transitions4db(req.query, false)
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
