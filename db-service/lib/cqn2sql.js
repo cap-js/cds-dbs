@@ -750,11 +750,9 @@ class CQN2SQLRenderer {
         tableCols.push(transitions.mapping.get(c))
       }
     }
-    return this.where([
-      { list: tableCols },
-      'in',
-      SELECT.from(from).columns(viewCols).where(where),
-    ])
+    return tableCols.length > 0
+      ? this.where([{ list: tableCols }, 'in', SELECT.from(from).columns(viewCols).where(where)])
+      : this.where(where)
   }
 
   /**
@@ -864,7 +862,7 @@ class CQN2SQLRenderer {
     }
     const transitions = this.srv.resolve.transitions4db(q)
     const columns = elements
-      ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+      ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
         && !transitions.target.elements[c].virtual
         && !transitions.target.elements[c].value
@@ -1058,7 +1056,7 @@ class CQN2SQLRenderer {
     const elements = q.elements || q._target?.elements || {}
     const transitions = this.srv.resolve.transitions4db(q, this.srv)
     let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
-      .filter(c => (c = transitions.mapping.get(c)?.ref[0] || c)
+      .filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
         && !transitions.target.elements[c].virtual
         && !transitions.target.elements[c].value
@@ -1170,7 +1168,7 @@ class CQN2SQLRenderer {
     if (_with) _add(_with, x => this.expr(x))
     function _add(data, sql4) {
       for (let col in data) {
-        const c = transitions.mapping.get(col)?.ref[0] || col
+        const c = transitions.mapping.get(col)?.ref?.[0] || col
         const columnExistsInDatabase = elements
           && c in transitions.target.elements
           && !transitions.target.elements[c].virtual
