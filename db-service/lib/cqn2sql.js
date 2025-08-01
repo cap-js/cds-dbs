@@ -750,7 +750,7 @@ class CQN2SQLRenderer {
         tableCols.push(transitions.mapping.get(c))
       }
     }
-    return tableCols.length > 0
+    return tableCols.length > 0 && !q._target.elements['validFrom']?.['@cds.valid.from']
       ? this.where([{ list: tableCols }, 'in', SELECT.from(from).columns(viewCols).where(where)])
       : this.where(where)
   }
