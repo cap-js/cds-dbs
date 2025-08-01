@@ -1604,8 +1604,8 @@ function cqn4sql(originalQuery, model) {
     } else if (lhsDef && (rhsVal || rhs === 'null' || rhs.val === null)) {
       // compare with value
       const flatLhs = flattenWithBaseName(lhs)
-      if (flatLhs.length > 1 && rhsVal && rhs !== 'null')
-        cantCompareToComplexStructure(lhsDef, lhs.ref, rhsVal)
+      if (flatLhs.length !== 1 && rhsVal && rhs !== 'null')
+        canOnlyCompareToExactlyOneLeaf(lhsDef, lhs.ref, rhsVal)
 
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatLhs.forEach((column, i) => {
@@ -1615,8 +1615,8 @@ function cqn4sql(originalQuery, model) {
     } else if (lhsVal && rhsDef) {
       const flatRhs = flattenWithBaseName(rhs)
       // comparing a struct to a value is ok if structure has exactly one leaf
-      if (flatRhs.length > 1 && lhsVal)
-        cantCompareToComplexStructure(rhsDef, rhs.ref, lhsVal)
+      if (flatRhs.length !== 1 && lhsVal)
+        canOnlyCompareToExactlyOneLeaf(rhsDef, rhs.ref, lhsVal)
 
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatRhs.forEach((column, i) => {
@@ -1626,7 +1626,7 @@ function cqn4sql(originalQuery, model) {
     }
     return result
 
-    function cantCompareToComplexStructure(struct, structRef, val) {
+    function canOnlyCompareToExactlyOneLeaf(struct, structRef, val) {
       const what = struct.isAssociation ? 'association' : 'structure'
       const postfix = struct.isAssociation ? 'associations with one foreign key' : 'structures with one sub-element'
       throw new Error(

@@ -448,18 +448,34 @@ describe('Structural comparison', () => {
   it('proper error for comparison w/ value', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
-      expect(() => cqn4sql(CQL(queryString), model)).to.throw(
+      const moreThanOneFK = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} 5`
+      const zeroFK = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.empty ${first} 5`
+      const moreThanOneSubElm = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey.struct ${first} 5`
+      const zeroSubElms = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.emptyStruct ${first} 5`
+      expect(() => cqn4sql(CQL(moreThanOneFK), model)).to.throw(
         'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" to value "5"; only possible for associations with one foreign key',
+      )
+      expect(() => cqn4sql(CQL(zeroFK), model)).to.throw(
+        'Can\'t compare association "AssocWithStructuredKey.empty" to value "5"; only possible for associations with one foreign key',
+      )
+      expect(() => cqn4sql(CQL(moreThanOneSubElm), model)).to.throw(
+        'Can\'t compare structure "AssocWithStructuredKey.toStructuredKey.struct" to value "5"; only possible for structures with one sub-element',
+      )
+      expect(() => cqn4sql(CQL(zeroSubElms), model)).to.throw(
+        'Can\'t compare structure "AssocWithStructuredKey.emptyStruct" to value "5"; only possible for structures with one sub-element',
       )
     })
   })
   it('proper error for comparison w/ value, reversed', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
-      expect(() => cqn4sql(CQL(queryString), model)).to.throw(
+      const moreThanOneFK = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.toStructuredKey`
+      const zeroFK = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not 5 ${first} AssocWithStructuredKey.empty`
+      expect(() => cqn4sql(CQL(moreThanOneFK), model)).to.throw(
         'Can\'t compare association "AssocWithStructuredKey.toStructuredKey" to value "5"; only possible for associations with one foreign key',
+      )
+      expect(() => cqn4sql(CQL(zeroFK), model)).to.throw(
+        'Can\'t compare association "AssocWithStructuredKey.empty" to value "5"; only possible for associations with one foreign key',
       )
     })
   })
