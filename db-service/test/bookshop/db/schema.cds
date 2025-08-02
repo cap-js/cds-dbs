@@ -171,6 +171,8 @@ entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
   accessGroup : Composition of AccessGroups;
+  empty: Association to AssocWithStructuredKey {};
+  emptyStruct: { a { b { c { d {} } } } };
 }
 entity Intermediate {
   key ID: Integer;
