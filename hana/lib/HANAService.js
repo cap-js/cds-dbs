@@ -351,7 +351,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
+      let { limit, one, distinct, from, orderBy, groupBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -403,6 +403,9 @@ class HANAService extends SQLService {
               if (!match) {
                 c.as = `$$${c.ref.join('.')}$$`
                 columns.push(c)
+                if (groupBy && !groupBy.find(col => col.ref + '' === ref)) {
+                  groupBy.push(c)
+                }
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
@@ -618,7 +621,9 @@ class HANAService extends SQLService {
                     // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
                     if (col.ref?.length > 1) {
                       const colName = this.column_name(col)
-                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
+
+                      const ref = col.ref + ''
+                      if (!parent.SELECT.columns.some(c => !c.elements && c.ref + '' === ref)) {
                         const isSource = from => {
                           if (from.as === col.ref[0]) return true
                           return from.args?.some(a => {
