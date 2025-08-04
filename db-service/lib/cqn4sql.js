@@ -1209,7 +1209,9 @@ function cqn4sql(originalQuery, model) {
 
       if(column.element && !isAssocOrStruct(column.element)) {
         columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
-        return [{ref: [tableAlias, calculateElementName(column)], as: columnAlias }]
+        const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
+        setElementOnColumns(res, element)
+        return [res]
       }
 
     } else if (!baseName && structsAreUnfoldedAlready) {
