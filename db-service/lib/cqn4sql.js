@@ -1189,7 +1189,7 @@ function cqn4sql(originalQuery, model) {
     let { baseName, columnAlias = column.as, tableAlias } = names
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
-    let firstNonJoinRelevantAssoc, stepAfterAssoc
+    let leafAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
     if (element.on && !element.keys)
@@ -1197,21 +1197,14 @@ function cqn4sql(originalQuery, model) {
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
-      const leafAssocIndex = column.$refLinks.findIndex(link => link.definition.isAssociation && link.onlyForeignKeyAccess)
-      firstNonJoinRelevantAssoc = column.$refLinks[leafAssocIndex] || [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
-      stepAfterAssoc = column.$refLinks.at(leafAssocIndex + 1) || column.$refLinks.at(-1)
-      let elements = firstNonJoinRelevantAssoc.definition.elements || firstNonJoinRelevantAssoc.definition.foreignKeys
-      if (elements && stepAfterAssoc.definition.name in elements) {
-        element = firstNonJoinRelevantAssoc.definition
-        baseName = getFullName(firstNonJoinRelevantAssoc.definition)
+      const leaf = column.$refLinks.at(-1)
+      leafAssoc = [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
+      let elements = leafAssoc.definition.elements || leafAssoc.definition.foreignKeys
+      if (elements && leaf.definition.name in elements) {
+        element = leafAssoc.definition
+        baseName = getFullName(leafAssoc.definition)
         columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
-
-      if(column.element && !isAssocOrStruct(column.element)) {
-        columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
-        return [{ref: [tableAlias, calculateElementName(column)], as: columnAlias }]
-      }
-
     } else if (!baseName && structsAreUnfoldedAlready) {
       baseName = element.name // name is already fully constructed
     } else {
@@ -1252,11 +1245,11 @@ function cqn4sql(originalQuery, model) {
         const flattenThisForeignKey =
           !$refLinks || // the association is passed as element, not as ref --> flatten full foreign key
           element === $refLinks.at(-1).definition || // the association is the leaf of the ref --> flatten full foreign key
-          keyElement === stepAfterAssoc.definition // the foreign key is the leaf of the ref --> only flatten this specific foreign key
+          keyElement === $refLinks.at(-1).definition // the foreign key is the leaf of the ref --> only flatten this specific foreign key
         if (flattenThisForeignKey) {
           const fkElement = getElementForRef(k.ref, getDefinition(element.target))
           let fkBaseName
-          if (!firstNonJoinRelevantAssoc || firstNonJoinRelevantAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          if (!leafAssoc || leafAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
           // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
           else fkBaseName = k.ref.at(-1)
           const fkPath = [...csnPath, k.ref.at(-1)]
@@ -1535,7 +1528,7 @@ function cqn4sql(originalQuery, model) {
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
             if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
-              let name = calculateElementName(token)
+              let name = calculateElementName(token, getFullName)
               result.ref = [tableAlias, name]
             } else if (tableAlias) {
               result.ref = [tableAlias, token.flatName]
