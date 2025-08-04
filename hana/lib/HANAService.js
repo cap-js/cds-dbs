@@ -800,7 +800,7 @@ class HANAService extends SQLService {
         : ObjectKeys(INSERT.entries[0])
       this.columns = columns
 
-      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements)
+      const extractions = this._managed = this.managed(columns.map(c => ({ name: c })), elements).slice(0, columns.length)
 
       // REVISIT: @cds.extension required
       const extraction = extractions.map(c => c.extract)
