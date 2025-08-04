@@ -9,7 +9,7 @@
 
 ### Fixed
 
-* **`V1`:** detect path expression inside nested xpr after `exists` ([#1293](https://github.com/cap-js/cds-dbs/issues/1293)) ([05c045d](https://github.com/cap-js/cds-dbs/commit/05c045def55862028c026ba885dcfa4cfd019efc))
+* detect path expression inside nested xpr after `exists` ([#1293](https://github.com/cap-js/cds-dbs/issues/1293)) ([05c045d](https://github.com/cap-js/cds-dbs/commit/05c045def55862028c026ba885dcfa4cfd019efc))
 
 ## [1.20.2](https://github.com/cap-js/cds-dbs/compare/db-service-v1.20.1...db-service-v1.20.2) (2025-05-28)
 
