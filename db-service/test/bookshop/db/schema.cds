@@ -174,6 +174,7 @@ entity AssocWithStructuredKey {
   accessGroup : Composition of AccessGroups;
   empty: Association to AssocWithStructuredKey {};
   emptyStruct: { a { b { c { d {} } } } };
+  emptyStructUnmanaged: { a { b { c { d { unmanaged: Association to Books on 1 = 1 } } } } };
 }
 entity Intermediate {
   key ID: Integer;

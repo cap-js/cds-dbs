@@ -134,6 +134,12 @@ describe('Flattening', () => {
       )
     })
 
+    it('rejects unmanaged associations in expressions in SELECT clause (3)', () => {
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey { sin(emptyStructUnmanaged) as x }`, model)).to.throw(
+        /A structured element can't be used as a value in an expression/,
+      )
+    })
+
     it('unfolds managed associations in SELECT clause', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Books as Books {
