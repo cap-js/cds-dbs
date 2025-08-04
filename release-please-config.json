@@ -1,5 +1,5 @@
 {
-  "last-release-sha": "e326dd27e13a32014aff6068a2de3e764fc08779",
+  "last-release-sha": "1e4cd0731f9511d9364d2c979ce803c372f03c62",
   "pull-request-title-pattern": "chore(v1): release downport",
   "packages": {
     "db-service": {},
