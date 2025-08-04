@@ -295,6 +295,23 @@ describe('Structural comparison', () => {
     expect(query).to.deep.equal(CQL(expectedQueryString))
   })
 
+  it('<assoc> IS NULL (keys renamed)', () => {
+    const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKeyRenamed is null]:accessGroup { ID }`
+    let query = cqn4sql(cds.ql(queryString), model)
+    const expectedQueryString = `
+        SELECT from bookshop.AccessGroups as $a
+        { $a.ID }
+        where exists (
+          SELECT 1 from bookshop.AssocWithStructuredKey as $A2
+          where $A2.accessGroup_ID = $a.ID and
+              $A2.toStructuredKeyRenamed_renamedStructMid_leaf        IS null and
+              $A2.toStructuredKeyRenamed_renamedStructMid_anotherLeaf IS null and
+              $A2.toStructuredKeyRenamed_renamedSecond                IS null
+        )
+      `
+    expect(query).to.deep.equal(CQL(expectedQueryString))
+  })
+
   it('<assoc> IS NOT NULL', () => {
     const queryString = `SELECT from bookshop.AssocWithStructuredKey[toStructuredKey is not null]:accessGroup { ID }`
     let query = cqn4sql(cds.ql(queryString), model)
@@ -530,7 +547,7 @@ describe('Structural comparison', () => {
     }
   })
 
-  it('lhs is fk rhs is assoc', () => {
+  it('lhs is fk + rhs is assoc (and the other way around)', () => {
     const query = cds.ql`SELECT from bookshop.Books as Books { ID } where author.ID = genre.parent`
     const flipped = cds.ql`SELECT from bookshop.Books as Books { ID } where genre.parent = author.ID`
     // throw new Error(`Can't compare structure “${rhs.ref.map(idOnly).join('.')}” with non-structure “${lhs.ref.map(idOnly).join('.')}”`)
