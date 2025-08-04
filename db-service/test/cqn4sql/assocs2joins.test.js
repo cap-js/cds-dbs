@@ -24,10 +24,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in select, one deep assoc, with filter', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books as Books { ID, dedication.addressee[name = 'Hasso'].name }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, dedication.addressee[name = 'Hasso'].name }`, model)
     const expected = cds.ql`SELECT from bookshop.Books as Books
         left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID and addressee.name = 'Hasso'
         { Books.ID, addressee.name as dedication_addressee_name }
@@ -61,10 +58,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
     expect(query).to.deep.equal(expected)
   })
   it('in select, two assocs, last shortcuts to structured foreign key', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Intermediate as Intermediate { ID, toAssocWithStructuredKey.toStructuredKey }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Intermediate as Intermediate { ID, toAssocWithStructuredKey.toStructuredKey }`, model)
     const expected = cds.ql`SELECT from bookshop.Intermediate as Intermediate
         left outer join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
         { Intermediate.ID,
@@ -305,10 +299,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in where, one assoc in xpr, one field', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books as Books { ID } where ((author.name + 's') = 'Schillers')`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } where ((author.name + 's') = 'Schillers')`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID
         { Books.ID } WHERE ((author.name + 's') = 'Schillers')
@@ -382,9 +373,9 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   })
 
   it('in select, same field with different filters requires alias', () => {
-    expect(() =>
-      cqn4sql(cds.ql`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`, model),
-    ).to.throw(/Duplicate definition of element “author_name”/)
+    expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID, author[ID=1].name, author[ID=2].name }`, model)).to.throw(
+      /Duplicate definition of element “author_name”/,
+    )
   })
 
   // TODO (SMW) new test
@@ -403,10 +394,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
   // TODO (SMW) new test
   // if FK field is accessed with filter, a JOIN is generated and the FK must be fetched from the association target
   it('in select, access to FK field with filter', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books as Books { title, author[name='Mr. X' or name = 'Mr. Y'].ID }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { title, author[name='Mr. X' or name = 'Mr. Y'].ID }`, model)
     expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books
         left outer join bookshop.Authors as author on author.ID = Books.author_ID AND (author.name='Mr. X' or author.name = 'Mr. Y')
         { Books.title, author.ID as author_ID }
@@ -822,10 +810,7 @@ describe('Variations on ON', () => {
   })
 
   it('unmanaged assoc with on condition with length === 1', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, onlyOneRef.foo }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, onlyOneRef.foo }`, model)
     const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
         left outer join bookshop.BooksWithWeirdOnConditions as onlyOneRef on BooksWithWeirdOnConditions.ID
         { BooksWithWeirdOnConditions.ID, onlyOneRef.foo as onlyOneRef_foo }
@@ -833,10 +818,7 @@ describe('Variations on ON', () => {
     expect(query).to.deep.equal(expected)
   })
   it('unmanaged assoc with on condition with odd length', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, oddNumber.foo }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, oddNumber.foo }`, model)
     const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
         left outer join bookshop.BooksWithWeirdOnConditions as oddNumber on BooksWithWeirdOnConditions.foo / 5 + BooksWithWeirdOnConditions.ID = BooksWithWeirdOnConditions.ID + BooksWithWeirdOnConditions.foo
         { BooksWithWeirdOnConditions.ID, oddNumber.foo as oddNumber_foo }
@@ -904,10 +886,7 @@ describe('subqueries in from', () => {
   })
 
   it('expose managed assoc in FROM subquery, expose in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author }) as Bar { Bar.author }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from (SELECT from bookshop.Books as Books { author }) as Bar { Bar.author }`, model)
     const expected = cds.ql`SELECT from (
         SELECT from bookshop.Books as Books { Books.author_ID }
       ) as Bar { Bar.author_ID }
@@ -916,10 +895,7 @@ describe('subqueries in from', () => {
   })
 
   it('expose managed assoc in FROM subquery with alias, expose in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author as a }) as Bar { Bar.a }`,
-      model,
-    )
+    let query = cqn4sql(cds.ql`SELECT from (SELECT from bookshop.Books as Books { author as a }) as Bar { Bar.a }`, model)
     const expected = cds.ql`SELECT from (
         SELECT from bookshop.Books as Books { Books.author_ID as a_ID }
       ) as Bar { Bar.a_ID }
@@ -1405,231 +1381,4 @@ describe('optimize fk access', () => {
 
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
-})
-
-describe('References to target side via dummy filter', () => {
-  let model
-  beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/TargetSideReferences').then(cds.linked)
-  })
-
-  it('foreign keys, no joins', () => {
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid.toTarget.toSource.sourceID as foreignKey,
-      toMid.{ toTarget.{ toSource.{ sourceID as inlineForeignKey } } },
-    }`
-
-    const expected = cds.ql`
-    SELECT from S.Source as $S {
-      $S.toMid_toTarget_toSource_sourceID as foreignKey,
-      $S.toMid_toTarget_toSource_sourceID as toMid_toTarget_toSource_inlineForeignKey
-    }`
-    expect(cqn4sql(query, model)).to.deep.equal(expected)
-  })
-
-  it('Shared join nodes', () => {
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid.toTarget.toSource.sourceID as fullForeignKey,
-      toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid,
-      toMid[1=1].toTarget[1=1].toSource.sourceID as foreignKeyAfterToTarget,
-      toMid[1=1].toTarget[1=1].toSource[1=1].sourceID as targetsKeyAfterToSource
-    }`
-
-    // REVISIT: toTarget2 should just be toTarget, alias calculation gets messy here..
-    //          toSource3 should just be toSource
-    const expected = cds.ql`
-    SELECT from S.Source as $S
-      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
-      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid.toTarget_toSource_sourceID and 1 = 1
-      left join S.Source as toSource3 on toSource3.sourceID = toTarget2.toSource_sourceID and 1 = 1
-    {
-      $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid,
-      toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
-      toSource3.sourceID as targetsKeyAfterToSource
-    }
-    `
-    const transformed = cqn4sql(query, model)
-    expect(transformed).to.deep.equal(expected)
-  })
-
-  it('Own join nodes', () => {
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid.toTarget.toSource.sourceID as fullForeignKey,
-      toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid,
-      toMid.toTarget[1=1].toSource.sourceID as foreignKeyAfterToTarget,
-      toMid.toTarget.toSource[1=1].sourceID as targetsKeyAfterToSource
-    }`
-
-    const expected = cds.ql`
-    SELECT from S.Source as $S
-      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
-      
-      left join S.Mid as toMid2 on toMid2.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
-      left join S.Target as toTarget2 on toTarget2.toSource_sourceID = toMid2.toTarget_toSource_sourceID and 1 = 1
-
-      left join S.Target as toTarget3 on toTarget3.toSource_sourceID = toMid2.toTarget_toSource_sourceID
-      left join S.Source as toSource3 on toSource3.sourceID = toTarget3.toSource_sourceID and 1 = 1
-    {
-      $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toMid.toTarget_toSource_sourceID as foreignKeyAfterToMid,
-      toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
-      toSource3.sourceID as targetsKeyAfterToSource
-    }
-    `
-    const transformed = cqn4sql(query, model)
-    expect(transformed).to.deep.equal(expected)
-  })
-
-  it('Own join nodes with roundtrip', () => {
-    // TODO: toMid.toTarget.toSource[1=1].toMid.toTarget.toSource.sourceID as third
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid[1 = 1].toTarget.toSource.toMid.toTarget.toSource.sourceID as first,
-      toMid.toTarget[1=1].toSource.toMid.toTarget.toSource.sourceID as second
-    }`
-
-    const expected = cds.ql`
-    SELECT from S.Source as $S
-      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID and 1 = 1
-      left join S.Target as toTarget on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
-      left join S.Source as toSource on toSource.sourceID = toTarget.toSource_sourceID
-
-      left join S.Mid as toMid3 on toMid3.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
-      left join S.Target as toTarget3 on toTarget3.toSource_sourceID = toMid3.toTarget_toSource_sourceID and 1 = 1
-      left join S.Source as toSource3 on toSource3.sourceID = toTarget3.toSource_sourceID
-
-    {
-      toSource.toMid_toTarget_toSource_sourceID as first,
-      toSource3.toMid_toTarget_toSource_sourceID as second
-    }
-    `
-
-    expect(cqn4sql(query, model)).to.deep.equal(expected)
-  })
-
-  it('Shared base joins with round-trips', () => {
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid.toTarget.toSource.sourceID as fullForeignKey,
-      toMid.toTarget.toSource.toMid[1=1].toTarget.toSource.sourceID as foreignKeyAfterToMid,
-      toMid.toTarget.toSource.toMid.toTarget[1=1].toSource.sourceID as foreignKeyAfterToTarget,
-      toMid.toTarget.toSource.toMid.toTarget.toSource[1=1].sourceID as targetsKeyAfterToSource
-    }`
-
-    // everything up to `toSource` can be used by all columns
-    // own join for `toMid` in column `foreignKeyAfterToTarget` (join `toMid3` is re-used by `targetsKeyAfterToSource`)
-    // own join for `toTarget` in column `targetsKeyAfterToSource` (without the filter)
-
-    const expected = cds.ql`
-    SELECT from S.Source as $S
-      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
-      left join S.Target as toTarget on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
-      left join S.Source as toSource on toSource.sourceID = toTarget.toSource_sourceID
-      left join S.Mid as toMid2 on toMid2.toTarget_toSource_sourceID = toSource.toMid_toTarget_toSource_sourceID and 1 = 1
-
-      left join S.Mid as toMid3 on toMid3.toTarget_toSource_sourceID = toSource.toMid_toTarget_toSource_sourceID
-      left join S.Target as toTarget3 on toTarget3.toSource_sourceID = toMid3.toTarget_toSource_sourceID and 1 = 1
-
-      left join S.Target as toTarget4 on toTarget4.toSource_sourceID = toMid3.toTarget_toSource_sourceID
-      left join S.Source as toSource4 on toSource4.sourceID = toTarget4.toSource_sourceID and 1 = 1
-    {
-      $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toMid2.toTarget_toSource_sourceID as foreignKeyAfterToMid,
-      toTarget3.toSource_sourceID as foreignKeyAfterToTarget,
-      toSource4.sourceID as targetsKeyAfterToSource
-    }
-    `
-    const transformed = cqn4sql(query, model)
-    expect(transformed).to.deep.equal(expected)
-  })
-
-  it('round trip leads to join', () => {
-    const query = cds.ql`
-    SELECT from S.Source {
-      toMid.toTarget.toSource.sourceID as fullForeignKey,
-      toMid.toTarget.toSource.toMid.toTarget.toSource.sourceID as foreignKeyAfterRoundTrip,
-    }`
-    const expected = cds.ql`
-    SELECT from S.Source as $S
-      left join S.Mid as toMid on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
-      left join S.Target as toTarget on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
-      left join S.Source as toSource on toSource.sourceID = toTarget.toSource_sourceID
-    {
-      $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
-      toSource.toMid_toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
-    }
-    `
-
-    expect(cqn4sql(query, model)).to.deep.equal(expected)
-  })
-})
-
-describe('Assoc is foreign key', () => {
-  let model
-  beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/FKAccess').then(cds.linked)
-  })
-
-  it('path ends on assoc which is fk', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
-      authorAddress.address as assocAsForeignKey
-    }`
-    const expected = cds.ql`SELECT from S.Books as Books {
-      Books.authorAddress_address_street as assocAsForeignKey_street,
-      Books.authorAddress_address_number as assocAsForeignKey_number,
-      Books.authorAddress_address_zip as assocAsForeignKey_zip,
-      Books.authorAddress_address_city as assocAsForeignKey_city,
-    }`
-
-    expect(cqn4sql(q, model)).to.deep.equal(expected)
-  })
-
-  it('path ends on assoc which is fk, prefix is structured', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
-      deeply.nested.authorAddress.address as deepAssocAsForeignKey
-    }`
-    const expected = cds.ql`SELECT from S.Books as Books {
-      Books.deeply_nested_authorAddress_address_street as deepAssocAsForeignKey_street,
-      Books.deeply_nested_authorAddress_address_number as deepAssocAsForeignKey_number,
-      Books.deeply_nested_authorAddress_address_zip as deepAssocAsForeignKey_zip,
-      Books.deeply_nested_authorAddress_address_city as deepAssocAsForeignKey_city
-    }`
-
-    expect(cqn4sql(q, model)).to.deep.equal(expected)
-  })
-
-  it('path ends on assoc which is fk, renamed', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
-      authorAddressFKRenamed.address as renamedAssocAsForeignKey
-    }`
-
-    const expected = cds.ql`SELECT from S.Books as Books {
-      Books.authorAddressFKRenamed_bar_street as renamedAssocAsForeignKey_street,
-      Books.authorAddressFKRenamed_bar_number as renamedAssocAsForeignKey_number,
-      Books.authorAddressFKRenamed_bar_zip as renamedAssocAsForeignKey_zip,
-      Books.authorAddressFKRenamed_bar_city as renamedAssocAsForeignKey_city
-    }`
-
-    expect(cqn4sql(q, model)).to.deep.equal(expected)
-  })
-
-  it('recursive path end on deeply nested struct that contains assoc', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
-      toSelf.deeply.nested
-    }`
-    const expected = cds.ql`SELECT from S.Books as Books {
-      Books.toSelf_baz_authorAddress_address_street as toSelf_deeply_nested_authorAddress_street,
-      Books.toSelf_baz_authorAddress_address_number as toSelf_deeply_nested_authorAddress_number,
-      Books.toSelf_baz_authorAddress_address_zip as toSelf_deeply_nested_authorAddress_zip,
-      Books.toSelf_baz_authorAddress_address_city as toSelf_deeply_nested_authorAddress_city
-    }`
-
-    expect(cqn4sql(q, model)).to.deep.equal(expected)
-  })
-
-  
 })

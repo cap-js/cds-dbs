@@ -937,15 +937,8 @@ function infer(originalQuery, model) {
         return true
       }
       if (assoc) {
-        // if(!link.definition.isAssociation) continue
-        let fkIndex = assoc.keys?.findIndex(key => key.ref.every((step, j) => column.ref[i + j] === step))
         // foreign key access without filters never join relevant
-        if (fkIndex !== -1) {
-          if(column.ref.slice(i).some(s => s.where)) continue // probably join relevant later on
-          fkAccess = true
-          assoc = null
-          continue
-        }
+        if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
         // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
         return true
       }
