@@ -170,7 +170,11 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  toStructuredKeyRenamed: Association to WithStructuredKey { struct.mid as renamedStructMid, second as renamedSecond };
   accessGroup : Composition of AccessGroups;
+  empty: Association to AssocWithStructuredKey {};
+  emptyStruct: { a { b { c { d {} } } } };
+  emptyStructUnmanaged: { a { b { c { d { unmanaged: Association to Books on 1 = 1 } } } } };
 }
 entity Intermediate {
   key ID: Integer;
