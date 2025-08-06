@@ -20,14 +20,14 @@ const {
  */
 const eqOps = [['is'], ['='] /* ['=='] */]
 /**
- * For operators of <notEqOps>, do the same but use or instead of and.
- * This ensures that not struct == <value> is the same as struct != <value>.
+ * For operators of <notEqOps>, do the same but use `or` instead of `and`.
+ * This ensures that `not struct == <value>` is the same as `struct != <value>`.
  */
 const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
  * not supported in comparison w/ struct because of unclear semantics
  */
-const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
+const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/']]
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
@@ -1501,7 +1501,7 @@ function cqn4sql(originalQuery, model) {
           }
 
           if (notSupportedOps.some(([firstOp]) => firstOp === next))
-            throw new Error(`The operator "${next}" is not supported for structure comparison`)
+            throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
