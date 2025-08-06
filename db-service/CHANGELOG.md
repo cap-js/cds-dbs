@@ -4,6 +4,29 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.2.0...db-service-v2.3.0) (2025-07-28)
+
+
+### Added
+
+* **`exists`:** support additional query modifiers ([#1261](https://github.com/cap-js/cds-dbs/issues/1261)) ([1394b46](https://github.com/cap-js/cds-dbs/commit/1394b46b10f628748dd1f945095ab4ce7f3963f6))
+* **hierarchy:** LimitedRank ([#1268](https://github.com/cap-js/cds-dbs/issues/1268)) ([52e16db](https://github.com/cap-js/cds-dbs/commit/52e16db2c83d06e318ea05947a3c3c3153bd3ab2))
+
+
+### Fixed
+
+* `count` subquery for queries with only `expand` columns ([#1264](https://github.com/cap-js/cds-dbs/issues/1264)) ([097a332](https://github.com/cap-js/cds-dbs/commit/097a332f78156526823b2088bdc35278aea09854))
+* **cqn4sql:** multiple path expressions in where clause ([#1272](https://github.com/cap-js/cds-dbs/issues/1272)) ([9b35366](https://github.com/cap-js/cds-dbs/commit/9b353660f4c2568176f57baa642ab2b052cfcff9))
+* **hierarchy:** only modify where if existent ([#1265](https://github.com/cap-js/cds-dbs/issues/1265)) ([eaca855](https://github.com/cap-js/cds-dbs/commit/eaca855ec06087e22bf780fac5e4010ef1b5ff4f))
+* TypeError for empty `list` ([#1269](https://github.com/cap-js/cds-dbs/issues/1269)) ([f262718](https://github.com/cap-js/cds-dbs/commit/f26271813e161c9f7c05fbc82b10c4d5f14916a7))
+
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.2...db-service-v2.2.0) (2025-06-30)
+
+
+### Added
+
+* **recurse:** object-page hierarchies ([#1247](https://github.com/cap-js/cds-dbs/issues/1247)) ([6fe81f2](https://github.com/cap-js/cds-dbs/commit/6fe81f27bc1aee0b8edebe3d9251928ebea8474a))
+
 ## [2.1.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.1.1...db-service-v2.1.2) (2025-06-12)
 
 

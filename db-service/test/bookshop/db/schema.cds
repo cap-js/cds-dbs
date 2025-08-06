@@ -170,7 +170,11 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  toStructuredKeyRenamed: Association to WithStructuredKey { struct.mid as renamedStructMid, second as renamedSecond };
   accessGroup : Composition of AccessGroups;
+  empty: Association to AssocWithStructuredKey {};
+  emptyStruct: { a { b { c { d {} } } } };
+  emptyStructUnmanaged: { a { b { c { d { unmanaged: Association to Books on 1 = 1 } } } } };
 }
 entity Intermediate {
   key ID: Integer;
@@ -467,3 +471,23 @@ entity Third as projection on Second {
   *,
   first: redirected to FirstRedirected on $self.ID = first.BUBU
 };
+
+entity Car {
+    key ID: Integer;
+    make: String;
+    model: String;
+    doors: Association to many Door on doors.car = $self;
+}
+
+entity Door {
+    key ID: Integer;
+    description: String;
+    car: Association to Car;
+    windows: Association to many Window on windows.door = $self
+}
+
+entity Window {
+    key ID: Integer;
+    description: String;
+    door: Association to Door;
+}

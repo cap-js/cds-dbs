@@ -112,7 +112,7 @@ cds.test = Object.setPrototypeOf(function () {
     }
 
     // Clean cache
-    delete cds.services._pending.db
+    delete cds.services._pending?.db
     delete cds.services.db
     delete cds.db
     delete cds.model

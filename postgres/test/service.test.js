@@ -73,14 +73,10 @@ describe('OData to Postgres dialect', () => {
     })
 
     test('odata: single entity -> sql: select record containing all entity field keys', async () => {
-      // const response = await GET('/beershop/Beers(9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b)')
-      await GET('/beershop/Beers(9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b)')
-      ;['ID', 'createdAt', 'createdBy', 'modifiedAt', 'modifiedBy', 'name', 'abv', 'ibu', 'brewery'].forEach(
+      const response = await GET('/beershop/Beers(9e1704e3-6fd0-4a5d-bfb1-13ac47f7976b)')
+      ;['ID', 'createdAt', 'createdBy', 'modifiedAt', 'modifiedBy', 'name', 'abv', 'ibu', 'brewery_ID'].forEach(
         property => {
-          expect(property).to.exist
-          // REVISIT: this ^^^ looks like a pretty useless test
-          //> did you mean this?:
-          // expect(response).to.have(property)
+          expect(response.data).to.have(property)
         },
       )
     })
