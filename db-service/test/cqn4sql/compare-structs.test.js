@@ -172,7 +172,7 @@ describe('compare structures', () => {
       const [first] = op
       const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        `The operator "${first}" is not supported for structure comparison`,
+        `The operator "${first}" can only be used with scalar operands`,
       )
     })
   })
