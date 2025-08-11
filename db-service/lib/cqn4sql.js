@@ -1504,6 +1504,9 @@ function cqn4sql(originalQuery, model) {
             throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
+          if(newTokens.length === 0)
+            throw new Error(`Can't compare two empty structures`)
+
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
           transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
           i = indexRhs // jump to next relevant index
