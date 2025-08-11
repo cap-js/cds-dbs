@@ -4,23 +4,18 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
+const { expectSnapshot } = require('../snapshot-helpers')
+
+
 describe('Unfolding Association Path Expressions to Joins', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  // (SMW) note: tests are not yet systematic, just a collection of different situations that are interesting ...
-
-  // (SMW) need to decide: which fields to put on lhs of ON and which on right?
-  // this test assumes that the "target" fields come on lhs
   it('in select, one assoc, one field', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, author.name }`, model)
-    const expected = cds.ql`SELECT from bookshop.Books as Books
-        left outer join bookshop.Authors as author on author.ID = Books.author_ID
-        { Books.ID, author.name as author_name }
-      `
-    expect(query).to.deep.equal(expected)
+    expectSnapshot(query)
   })
 
   it('in select, one deep assoc, with filter', () => {

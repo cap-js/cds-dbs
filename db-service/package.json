@@ -29,5 +29,10 @@
   "peerDependencies": {
     "@sap/cds": ">=9"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "chai-jest-snapshot": "^2.0.0",
+    "jest-snapshot": "^30.0.5",
+    "pretty-format": "^30.0.5"
+  }
 }
