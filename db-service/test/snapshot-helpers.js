@@ -13,7 +13,7 @@ function canon(v) {
 
 // use when you've already removed inline 'expected'
 function expectSnapshot(actual, name) {
-  // 'name' is optional; mostly useful if you snapshot multiple sub-parts in one test
+  // 'name' is optional; useful if we snapshot multiple sub-parts in one test
   return expect(canon(actual), name).to.matchSnapshot()
 }
 
@@ -22,7 +22,7 @@ function equalOrSnapshot(actual, expected, name) {
   if (expected !== undefined) {
     return expect(actual).to.deep.equal(expected) // old behavior for now
   }
-  return expectSnapshot(actual, name) // once you delete 'expected', it snapshots
+  return expectSnapshot(actual, name)
 }
 
 module.exports = { expectSnapshot, equalOrSnapshot, canon }
