@@ -1,0 +1,55 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Unfolding Association Path Expressions to Joins in select, one assoc, one field 1`] = `
+{
+  "SELECT": {
+    "columns": [
+      {
+        "ref": [
+          "Books",
+          "ID"
+        ]
+      },
+      {
+        "as": "author_name",
+        "ref": [
+          "author",
+          "name"
+        ]
+      }
+    ],
+    "from": {
+      "args": [
+        {
+          "as": "Books",
+          "ref": [
+            "bookshop.Books"
+          ]
+        },
+        {
+          "as": "author",
+          "ref": [
+            "bookshop.Authors"
+          ]
+        }
+      ],
+      "join": "left",
+      "on": [
+        {
+          "ref": [
+            "author",
+            "ID"
+          ]
+        },
+        "=",
+        {
+          "ref": [
+            "Books",
+            "author_ID"
+          ]
+        }
+      ]
+    }
+  }
+}
+`;

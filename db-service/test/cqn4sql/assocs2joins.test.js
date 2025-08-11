@@ -4,7 +4,7 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
-const { expectSnapshot } = require('../snapshot-helpers')
+const { expectSnapshot, equalOrSnapshot } = require('../snapshot-helpers')
 
 
 describe('Unfolding Association Path Expressions to Joins', () => {
@@ -27,7 +27,7 @@ describe('Unfolding Association Path Expressions to Joins', () => {
         left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID and addressee.name = 'Hasso'
         { Books.ID, addressee.name as dedication_addressee_name }
       `
-    expect(query).to.deep.equal(expected)
+    equalOrSnapshot(query, expected) // this is how we can still use the inline expectation
   })
 
   it('in select, two assocs, second navigates to foreign key', () => {
