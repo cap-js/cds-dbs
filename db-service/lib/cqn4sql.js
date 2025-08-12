@@ -331,7 +331,11 @@ function cqn4sql(originalQuery, model) {
           lhs = joinForBranch(lhs, c)
         })
       }
-      return lhs.args.length > 1 ? lhs : lhs.args[0]
+      const res = lhs.args.length > 1 ? lhs : lhs.args[0]
+      // default is to-one
+      if(nextAssoc && nextAssoc.$refLink.definition)
+        Object.defineProperty(res, 'element', { value: nextAssoc.$refLink.definition, /* why do we need this */writable: true })
+      return res
     }
   }
 
