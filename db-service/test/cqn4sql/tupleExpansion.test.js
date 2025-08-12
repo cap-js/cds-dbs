@@ -558,4 +558,22 @@ describe('Structural comparison', () => {
       /Can't compare structure “genre.parent” with non-structure “author.ID”/,
     )
   })
+  it('lhs is empty & rhs is empty', () => {
+    const emptyStructs = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.emptyStruct = AssocWithStructuredKey.emptyStruct) as foo }`
+    const emptyAssocs = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.empty = AssocWithStructuredKey.empty) as foo }`
+    const emptyStructWithAssoc = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.empty = AssocWithStructuredKey.emptyStruct) as foo }`
+    const inWhere = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where AssocWithStructuredKey.empty = AssocWithStructuredKey.emptyStruct`
+    expect(() => cqn4sql(emptyStructs, model)).to.throw(
+      /Can't compare two empty structures/,
+    )
+    expect(() => cqn4sql(emptyAssocs, model)).to.throw(
+      /Can't compare two empty structures/,
+    )
+    expect(() => cqn4sql(emptyStructWithAssoc, model)).to.throw(
+      /Can't compare two empty structures/,
+    )
+    expect(() => cqn4sql(inWhere, model)).to.throw(
+      /Can't compare two empty structures/,
+    )
+  })
 })
