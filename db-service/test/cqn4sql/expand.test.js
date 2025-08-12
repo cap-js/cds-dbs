@@ -1009,7 +1009,7 @@ describe('Unfold expands on associations to special subselects', () => {
   describe('comparisons of associations in on condition of elements needs to be expanded', () => {
     let model
     beforeAll(async () => {
-      model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+      model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
     })
 
     it('assoc comparison needs to be expanded in on condition calculation', () => {

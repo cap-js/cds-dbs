@@ -1003,7 +1003,7 @@ describe('subqueries in from', () => {
 describe('Backlink Associations', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
   it('self managed', () => {
     let query = cqn4sql(
@@ -1135,7 +1135,7 @@ describe('Backlink Associations', () => {
 describe('Shared foreign key identity', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/sharedFKIdentity').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/sharedFKIdentity').then(cds.linked)
   })
   it('identifies FKs following toB', () => {
     let query = cqn4sql(
@@ -1232,7 +1232,7 @@ describe('Where exists in combination with assoc to join', () => {
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
   it('assoc comparison needs to be expanded in on condition calculation', () => {
@@ -1260,7 +1260,7 @@ describe('comparisons of associations in on condition of elements needs to be ex
 describe('optimize fk access', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/classes').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/classes').then(cds.linked)
   })
   it('association (with multiple, structured, renamed fks) is key', () => {
     const query = cds.ql`SELECT from ForeignKeyIsAssoc as ForeignKeyIsAssoc {
@@ -1410,7 +1410,7 @@ describe('optimize fk access', () => {
 describe('References to target side via dummy filter', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/TargetSideReferences').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/TargetSideReferences').then(cds.linked)
   })
 
   it('foreign keys, no joins', () => {
@@ -1571,7 +1571,7 @@ describe('References to target side via dummy filter', () => {
 describe('Assoc is foreign key', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/FKAccess').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/FKAccess').then(cds.linked)
   })
 
   it('path ends on assoc which is fk', () => {
