@@ -1,6 +1,5 @@
 'use strict'
 
-require('../helpers/expectCqn')
 const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
 const { expect } = cds.test

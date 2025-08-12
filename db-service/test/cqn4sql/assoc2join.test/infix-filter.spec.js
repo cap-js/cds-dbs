@@ -1,6 +1,5 @@
 'use strict'
 
-require('../helpers/expectCqn')
 const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
 const { expect } = cds.test
@@ -92,7 +91,7 @@ describe('(a2j) in infix filter', () => {
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
           left outer join bookshop.Authors as author on author.ID = Books.author_ID
-            or (author.name='Mr. X' or author.name = 'Mr. Y')
+            and (author.name='Mr. X' or author.name = 'Mr. Y')
         {
           Books.title,
           author.ID as author_ID
