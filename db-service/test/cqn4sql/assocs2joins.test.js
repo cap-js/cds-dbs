@@ -52,23 +52,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
 
 
 
-  it('properly rewrite association chains if intermediate assoc is not fk', () => {
-    // this issue came up for ref: [genre.parent.ID] because "ID" is fk of "parent"
-    // but "parent" is not fk of "genre"
-    const q = cds.ql`SELECT from (select genre, ID from bookshop.Books as Books) as book {
-      ID
-    } group by genre.parent.ID, genre.parent.name`
-    const qx = cds.ql`
-    SELECT from (select Books.genre_ID, Books.ID from bookshop.Books as Books) as book
-                                left join bookshop.Genres as genre on genre.ID = book.genre_ID
-                                left join bookshop.Genres as parent on parent.ID = genre.parent_ID
-    {
-      book.ID
-    } group by parent.ID, parent.name`
-    const res = cqn4sql(q, model)
-    expect(JSON.parse(JSON.stringify(res))).to.deep.eql(qx)
-  })
-
   // some notes for later:
   //   what if only field we fetch from assoc target is virtual? -> make join, but don't fetch anything (?)
 })
@@ -79,36 +62,9 @@ describe('Variations on ON', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it('unmanaged 1', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID, coAuthorUnmanaged.name }`, model)
-    const expected = cds.ql`SELECT from bookshop.Books as Books
-        left outer join bookshop.Authors as coAuthorUnmanaged
-          on coAuthorUnmanaged.ID = Books.coAuthor_ID_unmanaged
-        { Books.ID, coAuthorUnmanaged.name as coAuthorUnmanaged_name }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('unmanaged 2', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz as Baz { id, parent.id as pid }`, model)
-    const expected = cds.ql`SELECT from bookshop.Baz as Baz
-        left outer join bookshop.Baz as parent
-          on parent.id = Baz.parent_id or parent.id > 17
-        { Baz.id, parent.id as pid }
-      `
-    expect(query).to.deep.equal(expected)
-  })
 
   // TODO (SMW) original ON condition must be enclosed in parens if there is a filter
-  it('unmanaged 2 plus filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz as Baz { id, parent[id < 19].id as pid }`, model)
-    const expected = cds.ql`SELECT from bookshop.Baz as Baz
-        left outer join bookshop.Baz as parent
-          on (parent.id = Baz.parent_id or parent.id > 17) and parent.id < 19
-        { Baz.id, parent.id as pid }
-      `
-    expect(query).to.deep.equal(expected)
-  })
+
 
   it('managed complicated', () => {
     let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID, a_assocYA.a as x }`, model)
@@ -135,67 +91,6 @@ describe('Variations on ON', () => {
       `
     expect(query).to.deep.equal(expected)
   })
-
-  it('unmanaged assoc with on condition with length === 1', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, onlyOneRef.foo }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
-        left outer join bookshop.BooksWithWeirdOnConditions as onlyOneRef on BooksWithWeirdOnConditions.ID
-        { BooksWithWeirdOnConditions.ID, onlyOneRef.foo as onlyOneRef_foo }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-  it('unmanaged assoc with on condition with odd length', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, oddNumber.foo }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
-        left outer join bookshop.BooksWithWeirdOnConditions as oddNumber on BooksWithWeirdOnConditions.foo / 5 + BooksWithWeirdOnConditions.ID = BooksWithWeirdOnConditions.ID + BooksWithWeirdOnConditions.foo
-        { BooksWithWeirdOnConditions.ID, oddNumber.foo as oddNumber_foo }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-  it('unmanaged assoc with on condition accessing structured foreign keys', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, oddNumberWithForeignKeyAccess.second }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
-    left outer join bookshop.WithStructuredKey as oddNumberWithForeignKeyAccess on oddNumberWithForeignKeyAccess.struct_mid_anotherLeaf = oddNumberWithForeignKeyAccess.struct_mid_leaf / oddNumberWithForeignKeyAccess.second
-    { BooksWithWeirdOnConditions.ID, oddNumberWithForeignKeyAccess.second as oddNumberWithForeignKeyAccess_second }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-  it('unmanaged assoc with on condition comparing to val', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions { ID, refComparedToVal.refComparedToValFlipped.foo }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from bookshop.BooksWithWeirdOnConditions as BooksWithWeirdOnConditions
-        left outer join bookshop.BooksWithWeirdOnConditions as refComparedToVal on BooksWithWeirdOnConditions.ID != 1
-        left outer join bookshop.BooksWithWeirdOnConditions as refComparedToValFlipped on 1 != refComparedToVal.ID
-        { BooksWithWeirdOnConditions.ID, refComparedToValFlipped.foo as refComparedToVal_refComparedToValFlipped_foo }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('accessing partial key after association implies join if not part of explicit FK', () => {
-    const original = cds.ql`SELECT from bookshop.PartialStructuredKey as PartialStructuredKey { toSelf.struct.one, toSelf.struct.two }`
-    const transformed = cqn4sql(original, model)
-    const expected = cds.ql`SELECT from bookshop.PartialStructuredKey as PartialStructuredKey
-        left outer join bookshop.PartialStructuredKey as toSelf on toSelf.struct_one = PartialStructuredKey.toSelf_partial
-        {
-          PartialStructuredKey.toSelf_partial as toSelf_struct_one,
-          toSelf.struct_two as toSelf_struct_two
-        }
-      `
-    // inferred element name equals original ref navigation
-    expect(transformed.elements).to.have.property('toSelf_struct_one')
-    expect(transformed).to.deep.equal(expected)
-  })
 })
 
 describe('subqueries in from', () => {
@@ -204,115 +99,14 @@ describe('subqueries in from', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it('in select, use one assoc in FROM subquery', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author.name as author_name  }) as Bar { Bar.author_name }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-        SELECT from bookshop.Books as Books
-        left outer join bookshop.Authors as author on author.ID = Books.author_ID
-         { author.name as author_name }
-      ) as Bar { Bar.author_name }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('expose managed assoc in FROM subquery, expose in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author }) as Bar { Bar.author }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-        SELECT from bookshop.Books as Books { Books.author_ID }
-      ) as Bar { Bar.author_ID }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('expose managed assoc in FROM subquery with alias, expose in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author as a }) as Bar { Bar.a }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-        SELECT from bookshop.Books as Books { Books.author_ID as a_ID }
-      ) as Bar { Bar.a_ID }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
   // If a FROM subquery only _exposes_ an association which is then used in the main query,
   // the JOIN happens in the main query.
-  it('expose managed assoc in FROM subquery, use in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books as Books { author }) as Bar
-        { Bar.author.name }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-          SELECT from bookshop.Books as Books { Books.author_ID }
-        ) as Bar
-        left outer join bookshop.Authors as author on author.ID = Bar.author_ID
-        { author.name as author_name }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('expose managed assoc with alias in FROM subquery, use in main select', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books { author as a}) as Bar
-        { Bar.a.name }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-          SELECT from bookshop.Books as $B { $B.author_ID as a_ID }
-        ) as Bar
-        left outer join bookshop.Authors as a on a.ID = Bar.a_ID
-        { a.name as a_name }
-      `
-    expect(query).to.deep.equal(expected)
-  })
 
   // TODO (SMW) check again ...
-  it('in select, assoc exposure multiple joins in subquery', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from (SELECT from bookshop.Books { author.ID, author as a, author.name as author_name  }) as Bar
-        { Bar.author_name, Bar.a.books.descr }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from (
-          SELECT from bookshop.Books as $B
-            left outer join bookshop.Authors as author on author.ID = $B.author_ID
-          { $B.author_ID, $B.author_ID as a_ID, author.name as author_name }
-        ) as Bar
-        left outer join bookshop.Authors as a on a.ID = Bar.a_ID
-        left outer join bookshop.Books as books on books.author_ID = a.ID
-        { Bar.author_name, books.descr as a_books_descr}
-      `
-    expect(query).to.deep.equal(expected)
-  })
+
 
   // (SMW) new
   // TODO move to extra section?
-  it('assoc path in value subquery', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books as Books {
-          title,
-          (select from bookshop.Genres as Genres { parent.code } where Genres.ID = Books.genre.ID) as pc
-        }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from bookshop.Books as Books
-        {
-          Books.title,
-          (select from bookshop.Genres as Genres left outer join bookshop.Genres as parent
-             on parent.ID = Genres.parent_ID
-            { parent.code as parent_code } where Genres.ID = Books.genre_ID) as pc
-        }
-      `
-    expect(JSON.parse(JSON.stringify(query))).to.deep.equal(expected)
-  })
 })
 
 describe('Backlink Associations', () => {

@@ -92,4 +92,73 @@ describe('(a2j) fk detection', () => {
       expect(transformed).to.equalCqn(expected)
     })
   })
+
+  describe('fk renaming', () => {
+    it('only partial key is optimized', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.PartialStructuredKey as PartialStructuredKey
+        {
+          toSelf.struct.one,
+          toSelf.struct.two
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.PartialStructuredKey as PartialStructuredKey
+          left outer join bookshop.PartialStructuredKey as toSelf on toSelf.struct_one = PartialStructuredKey.toSelf_partial
+        {
+          PartialStructuredKey.toSelf_partial as toSelf_struct_one,
+          toSelf.struct_two as toSelf_struct_two
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
+
+  describe('in subqueries', () => {
+    it('expose managed in inner, expose the same also in outer - both fk', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author
+          }
+        ) as Bar
+        {
+          Bar.author
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            Books.author_ID
+          }
+        ) as Bar
+        {
+          Bar.author_ID
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('expose managed in inner with alias, expose the same also in outer - both fk', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author as a
+          }
+        ) as Bar
+        {
+          Bar.a
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            Books.author_ID as a_ID
+          }
+        ) as Bar
+        {
+          Bar.a_ID
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
 })

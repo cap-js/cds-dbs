@@ -179,4 +179,161 @@ describe('(a2j) path detection', () => {
       expect(transformed).to.equalCqn(expected)
     })
   })
+
+  describe('in subquery', () => {
+    it('traverse exposed assoc from subquery', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (select genre, ID from bookshop.Books as Books) as book
+        {
+          ID
+        }
+        GROUP BY genre.parent.ID, genre.parent.name`)
+      const expected = cds.ql`
+        SELECT from (select Books.genre_ID, Books.ID from bookshop.Books as Books) as book
+          left join bookshop.Genres as genre on genre.ID = book.genre_ID
+          left join bookshop.Genres as parent on parent.ID = genre.parent_ID
+        {
+          book.ID
+        }
+        GROUP BY parent.ID, parent.name`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('subquery in from navigates to field, outer query uses the field', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author.name as author_name
+          }
+        ) as Bar
+        {
+          Bar.author_name
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+            left outer join bookshop.Authors as author on author.ID = Books.author_ID
+          {
+            author.name as author_name
+          }
+        ) as Bar
+        {
+          Bar.author_name
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('expose managed assoc in subquery in from, navigation to field in outer', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author
+          }
+        ) as Bar
+        {
+          Bar.author.name
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            Books.author_ID
+          }
+        ) as Bar
+          left outer join bookshop.Authors as author on author.ID = Bar.author_ID
+        {
+          author.name as author_name
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('expose managed assoc in subquery with alias, navigate to field in outer', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author as a
+          }
+        ) as Bar
+        {
+          Bar.a.name
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            Books.author_ID as a_ID
+          }
+        ) as Bar
+          left outer join bookshop.Authors as a on a.ID = Bar.a_ID
+        {
+          a.name as a_name
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('expose managed assoc in subquery with alias, navigate to field in outer (subquery also has joins)', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+          {
+            author.ID,
+            author as a,
+            author.name as author_name
+          }
+        ) as Bar
+        {
+          Bar.author_name,
+          Bar.a.books.descr
+        }`)
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as Books
+            left outer join bookshop.Authors as author on author.ID = Books.author_ID
+          {
+            Books.author_ID,
+            Books.author_ID as a_ID,
+            author.name as author_name
+          }
+        ) as Bar
+          left outer join bookshop.Authors as a on a.ID = Bar.a_ID
+          left outer join bookshop.Books as books on books.author_ID = a.ID
+        {
+          Bar.author_name,
+          books.descr as a_books_descr
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('subquery in column', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          title,
+          (
+            select from bookshop.Genres as Genres
+            {
+              parent.code
+            } 
+            WHERE Genres.ID = Books.genre.ID
+          ) as pc
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.title,
+          (
+            select from bookshop.Genres as Genres
+              left outer join bookshop.Genres as parent on parent.ID = Genres.parent_ID
+            {
+              parent.code as parent_code
+            }
+            WHERE Genres.ID = Books.genre_ID
+          ) as pc
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
 })
