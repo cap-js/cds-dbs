@@ -9,7 +9,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(a2j) fk detection', () => {
   before(async () => {
-    const model = await loadModel([__dirname + '/../../bookshop/db/schema'])
+    const model = await loadModel([__dirname + '/../model/index'])
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(q, model)
   })
@@ -158,6 +158,25 @@ describe('(a2j) fk detection', () => {
         {
           Bar.a_ID
         }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
+
+  describe('Shared foreign key identity', () => {
+    // special test from compiler test suite
+    it('subpaths are renamed but all lead to FK', () => {
+      const transformed = cqn4sql(cds.ql`
+      SELECT from A as A
+      {
+        a.b.c.toB.b.c.d.parent.c.d.e.ID as a_b_c_toB_foo_boo,
+        a.b.c.toB.e.f.g.child.c.d.e.ID as a_b_c_toB_bar_bas
+      }`)
+      const expected = cds.ql`
+      SELECT from A as A
+      {
+        A.a_b_c_toB_foo_boo as a_b_c_toB_foo_boo,
+        A.a_b_c_toB_bar_bas as a_b_c_toB_bar_bas
+      }`
       expect(transformed).to.equalCqn(expected)
     })
   })

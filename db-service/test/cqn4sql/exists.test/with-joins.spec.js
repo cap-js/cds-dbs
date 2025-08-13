@@ -14,7 +14,60 @@ describe('(exist predicates) with joins', () => {
     cqn4sql = q => orig(q, m)
   })
 
-  describe('simple', () => {})
+  describe('scoped queries', () => {
+    it('path in from and in columns', () => {
+      const transformed = cqn4sql(cds.ql`
+      SELECT from bookshop.Books:author as author
+      {
+        books.genre.name
+      }`)
+      const expected = cds.ql`
+      SELECT from bookshop.Authors as author
+        left outer join bookshop.Books as books on books.author_ID = author.ID
+        left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+      {
+        genre.name as books_genre_name
+      }
+      where exists (
+        SELECT 1 from bookshop.Books as $B
+        WHERE $B.author_ID = author.ID
+      )`
+      expect(transformed).to.deep.equal(expected)
+    })
+
+    it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
+      const transformed = cqn4sql(cds.ql`
+      SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent
+      {
+        parent.parent.parent.descr
+      }`)
+      // Revisit: Alias count order in where + from could be flipped
+      const expected = cds.ql`
+      SELECT from bookshop.Genres as parent
+        left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+        left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
+      {
+        parent3.descr as parent_parent_descr
+      }
+      WHERE exists (
+        SELECT 1 from bookshop.Genres as $p
+        WHERE $p.parent_ID = parent.ID and exists (
+          SELECT 1 from bookshop.Genres as $p2
+          WHERE $p2.parent_ID = $p.ID and exists (
+            SELECT 1 from bookshop.Genres as $g
+            WHERE $g.parent_ID = $p2.ID and exists (
+              SELECT 1 from bookshop.Books as $b
+              WHERE $b.genre_ID = $g.ID and exists (
+                SELECT 1 from bookshop.Authors as $A
+                WHERE $A.ID = $b.author_ID
+              )
+            )
+          )
+        )
+      )`
+      expect(transformed).to.deep.equal(expected)
+    })
+  })
 
   describe('with filter conditions', () => {
     it('in case', () => {

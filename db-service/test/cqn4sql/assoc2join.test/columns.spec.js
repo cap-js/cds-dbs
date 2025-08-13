@@ -9,9 +9,9 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(a2j) in columns', () => {
   before(async () => {
-    const m = await loadModel([__dirname + '/../../bookshop/db/schema'])
+    const model = await loadModel([__dirname + '/../model/index'])
     const orig = cqn4sql // keep reference to original to avoid recursion
-    cqn4sql = q => orig(q, m)
+    cqn4sql = q => orig(q, model)
   })
 
   describe('simple', () => {

@@ -9,9 +9,9 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(a2j) unmanaged associations', () => {
   before(async () => {
-    const m = await loadModel([__dirname + '/../../bookshop/db/schema'])
+    const model = await loadModel([__dirname + '/../model/index'])
     const orig = cqn4sql // keep reference to original to avoid recursion
-    cqn4sql = q => orig(q, m)
+    cqn4sql = q => orig(q, model)
   })
 
   describe('simple', () => {
@@ -144,6 +144,29 @@ describe('(a2j) unmanaged associations', () => {
           BooksWithWeirdOnConditions.ID,
           refComparedToValFlipped.foo as refComparedToVal_refComparedToValFlipped_foo
         }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
+
+  describe('on-condition flattening', () => {
+    it('assoc comparison in on-condition', () => {
+      const transformed = cqn4sql(cds.ql`
+      SELECT from a2j.Foo as Foo
+      {
+        ID,
+        buz.foo
+      }`)
+      const expected = cds.ql`
+      SELECT from a2j.Foo as Foo
+        left join a2j.Buz as buz
+        on  (
+              (buz.bar_ID = Foo.bar_ID AND buz.bar_foo_ID = Foo.bar_foo_ID)
+              and buz.foo_ID = Foo.ID
+            )
+      {
+        Foo.ID,
+        buz.foo_ID as buz_foo_ID
+      }`
       expect(transformed).to.equalCqn(expected)
     })
   })

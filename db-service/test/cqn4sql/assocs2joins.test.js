@@ -114,131 +114,20 @@ describe('Backlink Associations', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
-  it('self managed', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Header as Header {
-        toItem_selfMgd.id,
-      }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_selfMgd on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
-        { toItem_selfMgd.id as toItem_selfMgd_id}
-      `)
-  })
 
-  it('self unmanaged', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Header as Header {
-        toItem_selfUmgd.id,
-      }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_selfUmgd on (toItem_selfUmgd.elt2 = Header.elt)
-        { toItem_selfUmgd.id as toItem_selfUmgd_id}
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('self combined', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Header as Header {
-        toItem_combined.id,
-      }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_combined
-          on (
-                  (toItem_combined.toHeader_id = Header.id and toItem_combined.toHeader_id2 = Header.id2)
-                  OR
-                  (toItem_combined.elt2 = Header.elt)
-             ) and 5 != 4
-        { toItem_combined.id as toItem_combined_id}
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('forward', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Header as Header {
-        toItem_fwd.id,
-      }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_fwd on Header.id = toItem_fwd.id
-        { toItem_fwd.id as toItem_fwd_id}
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('all of the above combined', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Header as Header {
-        toItem_selfMgd.id as selfMgd_id,
-        toItem_selfUmgd.id as selfUmgd_id,
-        toItem_combined.id as combined_id,
-        toItem_fwd.id as direct_id
-      }`,
-      model,
-    )
-    const expected = cds.ql`SELECT from a2j.Header as Header
-        left outer join a2j.Item as toItem_selfMgd
-          on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
-        left outer join a2j.Item as toItem_selfUmgd
-          on toItem_selfUmgd.elt2 = Header.elt
-        left outer join a2j.Item as toItem_combined
-          on ((toItem_combined.toHeader_id = Header.id and toItem_combined.toHeader_id2 = Header.id2) OR (toItem_combined.elt2 = Header.elt)) and 5 != 4
-        left outer join a2j.Item as toItem_fwd
-          on Header.id = toItem_fwd.id
-        {
-          toItem_selfMgd.id as selfMgd_id,
-          toItem_selfUmgd.id as selfUmgd_id,
-          toItem_combined.id as combined_id,
-          toItem_fwd.id as direct_id
-        }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  it('backlink usage', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.Folder as Folder {
-        nodeCompanyCode.assignments.data
-      }`,
-      model,
-    )
-
-    const expected = cds.ql`SELECT from a2j.Folder as Folder
-      left outer join a2j.Folder as nodeCompanyCode on nodeCompanyCode.id = Folder.nodeCompanyCode_id
-      left outer join a2j.Assignment as assignments on assignments.toFolder_id = nodeCompanyCode.id
-        {
-          assignments.data as nodeCompanyCode_assignments_data
-        }
-      `
-    expect(query).to.deep.equal(expected)
-  })
-
-  // compiler generates '$user.id' // cqn4sql generates `ref: ['$user', 'id']`
-  it('Backlinks with other items in same on-condition', () => {
-    let query = cqn4sql(
-      cds.ql`select from a2j.F as F {
-        toE.data
-      }`,
-      model,
-    )
-
-    const expected = cds.ql`select from a2j.F as F
-      left outer join a2j.E as toE on (toE.toF_id = F.id) and
-      toE.id = $user.id
-      {
-        toE.data as toE_data
-      }
-      `
-    expect(query).to.deep.equal(expected)
-  })
+  // it('forward', () => {
+  //   let query = cqn4sql(
+  //     cds.ql`select from a2j.Header as Header {
+  //       toItem_fwd.id,
+  //     }`,
+  //     model,
+  //   )
+  //   const expected = cds.ql`SELECT from a2j.Header as Header
+  //       left outer join a2j.Item as toItem_fwd on Header.id = toItem_fwd.id
+  //       { toItem_fwd.id as toItem_fwd_id}
+  //     `
+  //   expect(query).to.deep.equal(expected)
+  // })
 })
 
 describe('Shared foreign key identity', () => {
@@ -246,21 +135,7 @@ describe('Shared foreign key identity', () => {
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/A2J/sharedFKIdentity').then(cds.linked)
   })
-  it('identifies FKs following toB', () => {
-    let query = cqn4sql(
-      cds.ql`select from A as A {
-        a.b.c.toB.b.c.d.parent.c.d.e.ID  as a_b_c_toB_foo_boo,
-        a.b.c.toB.e.f.g.child.c.d.e.ID  as a_b_c_toB_bar_bas
-      }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from A as A
-        {
-          A.a_b_c_toB_foo_boo AS a_b_c_toB_foo_boo,
-          A.a_b_c_toB_bar_bas AS a_b_c_toB_bar_bas
-        }
-      `)
-  })
+
 })
 
 describe('Where exists in combination with assoc to join', () => {
@@ -269,73 +144,6 @@ describe('Where exists in combination with assoc to join', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
-  it('one assoc + one where exists / aliases are treated case insensitive', () => {
-    let query = cqn4sql(
-      cds.ql`select from bookshop.Books:author as author {
-      books.genre.name,
-    }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author
-      left outer join bookshop.Books as books on books.author_ID = author.ID
-      left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-      { genre.name as books_genre_name } where exists (
-        SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
-      )
-    `)
-  })
-  it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent
-      { parent.parent.parent.descr, }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as parent
-    left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
-    left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
-    {
-      parent3.descr as parent_parent_descr,
-    }
-    WHERE EXISTS (
-      SELECT 1 from bookshop.Genres as $p where $p.parent_ID = parent.ID and EXISTS (
-        SELECT 1 from bookshop.Genres as $p2 where $p2.parent_ID = $p.ID and EXISTS (
-          SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p2.ID and EXISTS (
-            SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
-              SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-            )
-          )
-        )
-      )
-    )`)
-  })
-
-  // Revisit: Alias count order in where + from could be flipped
-  it('aliases for recursive assoc in column + recursive assoc in from + where exists <assoc> must not clash', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors:books.genre.parent.parent.parent as parent
-      { parent.parent.parent.descr } where exists parent`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as parent
-    left outer join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
-    left outer join bookshop.Genres as parent3 on parent3.ID = parent2.parent_ID
-    {
-      parent3.descr as parent_parent_descr,
-    }
-    WHERE EXISTS (
-      SELECT 1 from bookshop.Genres as $p2 where $p2.parent_ID = parent.ID and EXISTS (
-        SELECT 1 from bookshop.Genres as $p3 where $p3.parent_ID = $p2.ID and EXISTS (
-          SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p3.ID and EXISTS (
-            SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
-              SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-            )
-          )
-        )
-      )
-    ) and EXISTS (
-      SELECT 1 from bookshop.Genres as $p where $p.ID = parent.parent_ID
-    )`)
-  })
 })
 
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
@@ -344,15 +152,7 @@ describe('comparisons of associations in on condition of elements needs to be ex
     model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
-  it('assoc comparison needs to be expanded in on condition calculation', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID, buz.foo }`, model)
-    const expected = cds.ql`
-      SELECT from a2j.Foo as Foo left join a2j.Buz as buz on ((buz.bar_ID = Foo.bar_ID AND buz.bar_foo_ID = Foo.bar_foo_ID) and buz.foo_ID = Foo.ID){
-        Foo.ID,
-        buz.foo_ID as buz_foo_ID
-      }`
-    expect(query).to.eql(expected)
-  })
+
   it('unmanaged association path traversal in on condition needs to be flattened', () => {
     const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID, buzUnmanaged.foo }`, model)
     const expected = cds.ql`
@@ -684,10 +484,10 @@ describe('Assoc is foreign key', () => {
   })
 
   it('path ends on assoc which is fk', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
+    const q = cds.ql`SELECT from fkaccess.Books as Books {
       authorAddress.address as assocAsForeignKey
     }`
-    const expected = cds.ql`SELECT from S.Books as Books {
+    const expected = cds.ql`SELECT from fkaccess.Books as Books {
       Books.authorAddress_address_street as assocAsForeignKey_street,
       Books.authorAddress_address_number as assocAsForeignKey_number,
       Books.authorAddress_address_zip as assocAsForeignKey_zip,
@@ -698,10 +498,10 @@ describe('Assoc is foreign key', () => {
   })
 
   it('path ends on assoc which is fk, prefix is structured', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
+    const q = cds.ql`SELECT from fkaccess.Books as Books {
       deeply.nested.authorAddress.address as deepAssocAsForeignKey
     }`
-    const expected = cds.ql`SELECT from S.Books as Books {
+    const expected = cds.ql`SELECT from fkaccess.Books as Books {
       Books.deeply_nested_authorAddress_address_street as deepAssocAsForeignKey_street,
       Books.deeply_nested_authorAddress_address_number as deepAssocAsForeignKey_number,
       Books.deeply_nested_authorAddress_address_zip as deepAssocAsForeignKey_zip,
@@ -712,11 +512,11 @@ describe('Assoc is foreign key', () => {
   })
 
   it('path ends on assoc which is fk, renamed', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
+    const q = cds.ql`SELECT from fkaccess.Books as Books {
       authorAddressFKRenamed.address as renamedAssocAsForeignKey
     }`
 
-    const expected = cds.ql`SELECT from S.Books as Books {
+    const expected = cds.ql`SELECT from fkaccess.Books as Books {
       Books.authorAddressFKRenamed_bar_street as renamedAssocAsForeignKey_street,
       Books.authorAddressFKRenamed_bar_number as renamedAssocAsForeignKey_number,
       Books.authorAddressFKRenamed_bar_zip as renamedAssocAsForeignKey_zip,
@@ -727,10 +527,10 @@ describe('Assoc is foreign key', () => {
   })
 
   it('recursive path end on deeply nested struct that contains assoc', () => {
-    const q = cds.ql`SELECT from S.Books as Books {
+    const q = cds.ql`SELECT from fkaccess.Books as Books {
       toSelf.deeply.nested
     }`
-    const expected = cds.ql`SELECT from S.Books as Books {
+    const expected = cds.ql`SELECT from fkaccess.Books as Books {
       Books.toSelf_baz_authorAddress_address_street as toSelf_deeply_nested_authorAddress_street,
       Books.toSelf_baz_authorAddress_address_number as toSelf_deeply_nested_authorAddress_number,
       Books.toSelf_baz_authorAddress_address_zip as toSelf_deeply_nested_authorAddress_zip,

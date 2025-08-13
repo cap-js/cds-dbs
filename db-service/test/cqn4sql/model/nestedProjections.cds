@@ -1,4 +1,6 @@
 // based on cds.compiler specification which can be found under 'internalDoc/NestedProjectionByExample.md'
+
+namespace nestedProjections;
 entity Employee {
   key id : String;
   name : String;
