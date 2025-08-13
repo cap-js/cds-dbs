@@ -3,6 +3,7 @@
 const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -201,7 +202,7 @@ describe('(a2j) in infix filter', () => {
   })
 
   describe('shared prefix', () => {
-    it('same filter along first association navigation, different in second - shared base join', () => {
+    it('same filter at first association navigation, different at second - shared base join', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors as Authors
         {
@@ -224,7 +225,7 @@ describe('(a2j) in infix filter', () => {
         }`
       expect(transformed).to.equalCqn(expected)
     })
-    it('same filter along all association navigation - shared joins', () => {
+    it('same filter at all associations - shared joins', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors as Authors
         {
@@ -268,7 +269,71 @@ describe('(a2j) in infix filter', () => {
           genre.descr as d1,
           genre2.descr as d2
         }`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('same filter at first association, different at second (in where) - shared base join', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books[stock=1].genre[code='A'].descr
+        }
+        WHERE books[stock=1].genre[code='B'].descr = 'foo'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID AND genre.code = 'A'
+          left outer join bookshop.Genres as genre2 on genre2.ID = books.genre_ID AND genre2.code = 'B'
+        {
+          Authors.ID,
+          genre.descr as books_genre_descr
+        }
+        WHERE genre2.descr = 'foo'`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('same filter at first association, different at second (in case when) - shared base join', () => {
+      let query = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          case when ID<4 then books[stock=1].genre[code='A'].descr
+               when ID>4 then books[stock=1].genre[code='B'].descr
+          end as descr
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID AND genre.code = 'A'
+          left outer join bookshop.Genres as genre2 on genre2.ID = books.genre_ID AND genre2.code = 'B'
+        {
+          Authors.ID,
+          case when Authors.ID<4 then genre.descr
+               when Authors.ID>4 then genre2.descr
+          end as descr
+        }`
+      expect(query).to.equalCqn(expected)
+    })
+
+    it('same filter at assoc in having', () => {
+      const query = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author[placeOfBirth='Marbach'].name
+        }
+        HAVING author[placeOfBirth='Marbach'].name = 'King'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+           and author.placeOfBirth = 'Marbach'
+          {
+            Books.ID,
+            author.name as author_name
+          }
+          HAVING author.name = 'King'`
+      expect(query).to.deep.equal(expected)
     })
   })
 })

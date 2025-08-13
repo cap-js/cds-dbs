@@ -3,6 +3,7 @@
 const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -204,7 +205,7 @@ describe('(a2j) in columns', () => {
 				}`
       expect(transformed).to.equalCqn(expected)
     })
-    it('same prefix in where', () => {
+    it('in where', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
@@ -221,6 +222,25 @@ describe('(a2j) in columns', () => {
         }
         WHERE author.placeOfBirth = 'Marbach'`
       expect(transformed).to.equalCqn(expected)
+    })
+
+    it('in having', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name
+        }
+        HAVING author.placeOfBirth = 'Marbach'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          author.name as author_name
+        }
+        HAVING author.placeOfBirth = 'Marbach'`
+      expect(transformed).to.deep.equal(expected)
     })
   })
 

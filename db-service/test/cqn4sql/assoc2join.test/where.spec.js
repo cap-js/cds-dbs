@@ -3,6 +3,7 @@
 const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
 const { expect } = cds.test
+require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -25,8 +26,5 @@ describe('(a2j) in where', () => {
          WHERE author.name = 'Schiller'`
       expect(transformed).to.equalCqn(expected)
     })
-  })
-
-  describe('shared prefix', () => {
   })
 })
