@@ -35,9 +35,12 @@ describe('(a2j) fk detection', () => {
       expect(transformed).to.equalCqn(expected)
     })
     it('select managed assoc with structured foreign key', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Intermediate as Intermediate { ID, toAssocWithStructuredKey.toStructuredKey }`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Intermediate as Intermediate
+        {
+          ID,
+          toAssocWithStructuredKey.toStructuredKey
+        }`)
       const expected = cds.ql`
         SELECT from bookshop.Intermediate as Intermediate
           left outer join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID

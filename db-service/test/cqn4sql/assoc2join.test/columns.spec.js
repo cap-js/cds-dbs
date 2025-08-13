@@ -76,16 +76,14 @@ describe('(a2j) in columns', () => {
     })
 
     it('respect explicit column alias', () => {
-      const transformed = cqn4sql(
-        cds.ql`
-					SELECT from bookshop.Authors as Authors
-					{
-						name,
-						books.genre.descr as foo,
-						books.title as books_title,
-						books.genre.code as books_genre_code
-					}`,
-      )
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Authors as Authors
+				{
+					name,
+					books.genre.descr as foo,
+					books.title as books_title,
+					books.genre.code as books_genre_code
+				}`)
       const expected = cds.ql`
 				SELECT from bookshop.Authors as Authors
 					left outer join bookshop.Books as books on books.author_ID = Authors.ID
@@ -100,16 +98,14 @@ describe('(a2j) in columns', () => {
     })
 
     it('different paths with different assocs', () => {
-      const transformed = cqn4sql(
-        cds.ql`
-					SELECT from bookshop.Books as Books 
-					{
-						ID,
-						author.name, genre.descr,
-						dedication.addressee.name,
-						author.dateOfBirth
-					}`,
-      )
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Books as Books 
+				{
+					ID,
+					author.name, genre.descr,
+					dedication.addressee.name,
+					author.dateOfBirth
+				}`)
       const expected = cds.ql`
 				SELECT from bookshop.Books as Books
 					left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -154,9 +150,13 @@ describe('(a2j) in columns', () => {
     })
 
     it('drill into structure', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Books as Books { ID, author.name, author.address.street }`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name,
+          author.address.street
+        }`)
       const expected = cds.ql`
 				SELECT from bookshop.Books as Books
 					left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -182,17 +182,15 @@ describe('(a2j) in columns', () => {
     })
 
     it('different leaf association', () => {
-      const transformed = cqn4sql(
-        cds.ql`
-					SELECT from bookshop.Authors as Authors
-					{
-						name,
-						books.genre.descr,
-						books.coAuthor.name,
-						books.genre.code,
-						books.coAuthor.dateOfBirth
-					}`,
-      )
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Authors as Authors
+				{
+					name,
+					books.genre.descr,
+					books.coAuthor.name,
+					books.genre.code,
+					books.coAuthor.dateOfBirth
+				}`)
       const expected = cds.ql`
 				SELECT from bookshop.Authors as Authors
 					left outer join bookshop.Books as books on books.author_ID = Authors.ID
@@ -207,9 +205,13 @@ describe('(a2j) in columns', () => {
       expect(transformed).to.equalCqn(expected)
     })
     it('same prefix in where', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Books as Books { ID, author.name } where author.placeOfBirth = 'Marbach'`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author.name
+        }
+        WHERE author.placeOfBirth = 'Marbach'`)
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
           left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -224,18 +226,16 @@ describe('(a2j) in columns', () => {
 
   describe('recursive associations', () => {
     it('assign unique table aliases', () => {
-      const transformed = cqn4sql(
-        cds.ql`
-					SELECT from bookshop.Books as Books
-					{
-						title,
-						genre.descr,
-						genre.parent.code,
-						genre.parent.descr,
-						genre.parent.parent.descr,
-						genre.parent.parent.parent.descr,
-					}`,
-      )
+      const transformed = cqn4sql(cds.ql`
+				SELECT from bookshop.Books as Books
+				{
+					title,
+					genre.descr,
+					genre.parent.code,
+					genre.parent.descr,
+					genre.parent.parent.descr,
+					genre.parent.parent.parent.descr,
+				}`)
       const expected = cds.ql`
 				SELECT from bookshop.Books as Books
 					left outer join bookshop.Genres as genre on genre.ID = Books.genre_ID
@@ -254,11 +254,7 @@ describe('(a2j) in columns', () => {
     })
 
     it('explicit table alias shadows assoc', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Genres as parent {
-						parent.parent.parent.descr
-					}`,
-      )
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Genres as parent { parent.parent.parent.descr }`)
 
       const expected = cds.ql`
 				SELECT from bookshop.Genres as parent

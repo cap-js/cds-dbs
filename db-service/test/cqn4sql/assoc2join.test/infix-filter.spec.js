@@ -15,9 +15,12 @@ describe('(a2j) in infix filter', () => {
 
   describe('simple', () => {
     it('managed assoc', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Books as Books { ID, author[placeOfBirth='Marbach'].name }`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author[placeOfBirth='Marbach'].name
+        }`)
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
           left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -85,9 +88,12 @@ describe('(a2j) in infix filter', () => {
     })
 
     it('no fk optimization after infix filter', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Books as Books { title, author[name='Mr. X' or name = 'Mr. Y'].ID }`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          title,
+          author[name='Mr. X' or name = 'Mr. Y'].ID
+        }`)
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
           left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -127,12 +133,12 @@ describe('(a2j) in infix filter', () => {
 
     it('same path with and without filter lead to independent joins', () => {
       const transformed = cqn4sql(cds.ql`
-          SELECT from bookshop.Books as Books
-          {
-            ID,
-            author[placeOfBirth='Marbach'].name as n1,
-            author.name as n2
-          }`)
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          author[placeOfBirth='Marbach'].name as n1,
+          author.name as n2
+        }`)
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
           left outer join bookshop.Authors as author on author.ID = Books.author_ID
@@ -172,22 +178,97 @@ describe('(a2j) in infix filter', () => {
     })
 
     it('reversed filter conditions lead to independent joins', () => {
-      let query = cqn4sql(cds.ql`
+      const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
           ID,
           author[placeOfBirth='Marbach'].name as n1,
           author['Marbach'=placeOfBirth].name as n2
-        }`,
-      )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as Books
-            left outer join bookshop.Authors as author on author.ID = Books.author_ID AND author.placeOfBirth = 'Marbach'
-            left outer join bookshop.Authors as author2 on author2.ID = Books.author_ID AND 'Marbach' = author2.placeOfBirth
-            { Books.ID,
-              author.name as n1,
-              author2.name as n2
-            }
-          `)
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+           and author.placeOfBirth = 'Marbach'
+          left outer join bookshop.Authors as author2 on author2.ID = Books.author_ID
+           and 'Marbach' = author2.placeOfBirth
+        {
+          Books.ID,
+          author.name as n1,
+          author2.name as n2
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+  })
+
+  describe('shared prefix', () => {
+    it('same filter along first association navigation, different in second - shared base join', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books[stock=1].genre[code='A'].descr as d1,
+          books[stock=1].genre[code='B'].descr as d2
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID
+           and books.stock = 1
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+           and genre.code = 'A'
+          left outer join bookshop.Genres as genre2 on genre2.ID = books.genre_ID
+           and genre2.code = 'B'
+        {
+          Authors.ID,
+          genre.descr as d1,
+          genre2.descr as d2
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+    it('same filter along all association navigation - shared joins', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books[stock=1].genre[code='A'].descr as d1,
+          books[stock=1].genre[code='A'].descr as d2
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID
+            and books.stock = 1
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+            and genre.code = 'A'
+        {
+          Authors.ID,
+          genre.descr as d1,
+          genre.descr as d2
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+    it('same filter only in last association navigation - independent joins', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books[stock=1].genre[code='A'].descr as d1,
+          books[stock=2].genre[code='A'].descr as d2
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID
+           and books.stock = 1
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+           and genre.code = 'A'
+          left outer join bookshop.Books as books2 on books2.author_ID = Authors.ID
+           and books2.stock = 2
+          left outer join bookshop.Genres as genre2 on genre2.ID = books2.genre_ID
+           and genre2.code = 'A'
+        {
+          Authors.ID,
+          genre.descr as d1,
+          genre2.descr as d2
+        }`
+      expect(transformed).to.deep.equal(expected)
     })
   })
 })

@@ -48,45 +48,6 @@ describe('Unfolding Association Path Expressions to Joins', () => {
 
   // we compare filters based on AST
 
-  it('in select, two levels of assocs (1)', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors as Authors
-       { ID,
-         books[stock=1].genre[code='A'].descr as d1,
-         books[stock=1].genre[code='A'].descr as d2
-       }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors
-        left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
-        left outer join bookshop.Genres as genre on genre.ID = books.genre_ID AND genre.code = 'A'
-        { Authors.ID,
-          genre.descr as d1,
-          genre.descr as d2
-        }
-      `)
-  })
-
-  it('in select, two levels of assocs (2)', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Authors as Authors
-       { ID,
-         books[stock=1].genre[code='A'].descr as d1,
-         books[stock=1].genre[code='B'].descr as d2
-       }`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as Authors
-        left outer join bookshop.Books as books on books.author_ID = Authors.ID AND books.stock = 1
-        left outer join bookshop.Genres as genre on genre.ID = books.genre_ID AND genre.code = 'A'
-        left outer join bookshop.Genres as genre2 on genre2.ID = books.genre_ID AND genre2.code = 'B'
-        { Authors.ID,
-          genre.descr as d1,
-          genre2.descr as d2
-        }
-      `)
-  })
-
   it('in select, two levels of assocs (3)', () => {
     let query = cqn4sql(
       cds.ql`SELECT from bookshop.Authors as Authors
