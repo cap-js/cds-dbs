@@ -113,6 +113,21 @@ describe('(a2j) fk detection', () => {
         where Classrooms.ID = 1`
       expect(transformed).to.equalCqn(expected)
     })
+
+    it('inline to foreign key', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from S.Source {
+          toMid.toTarget.toSource.sourceID as foreignKey,
+          toMid.{ toTarget.{ toSource.{ sourceID as inlineForeignKey } } },
+        }`)
+
+      const expected = cds.ql`
+        SELECT from S.Source as $S {
+          $S.toMid_toTarget_toSource_sourceID as foreignKey,
+          $S.toMid_toTarget_toSource_sourceID as toMid_toTarget_toSource_inlineForeignKey
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
   })
 
   describe('prefix is join relevant', () => {
