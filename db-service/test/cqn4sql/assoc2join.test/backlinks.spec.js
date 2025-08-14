@@ -120,20 +120,20 @@ describe('(a2j) backlinks', () => {
   describe('on-condition flattening', () => {
     it('$user.id as special ref', () => {
       // compiler generates '$user.id' // cqn4sql generates `ref: ['$user', 'id']`
-      let query = cqn4sql(
-        cds.ql`select from a2j.F as F {
-            toE.data
-          }`,
-      )
+      const transformed = cqn4sql(cds.ql`
+        SELECT from a2j.F as F
+        {
+          toE.data
+        }`)
 
-      const expected = cds.ql`select from a2j.F as F
-          left outer join a2j.E as toE on (toE.toF_id = F.id) and
-          toE.id = $user.id
-          {
-            toE.data as toE_data
-          }
-          `
-      expect(query).to.deep.equal(expected)
+      const expected = cds.ql`
+        SELECT from a2j.F as F
+          left outer join a2j.E as toE on (toE.toF_id = F.id)
+            and toE.id = $user.id
+        {
+          toE.data as toE_data
+        }`
+      expect(transformed).to.equalCqn(expected)
     })
   })
 
@@ -155,7 +155,7 @@ describe('(a2j) backlinks', () => {
           AM.a,
           a_assocYA_back.ID as x
         }`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 })

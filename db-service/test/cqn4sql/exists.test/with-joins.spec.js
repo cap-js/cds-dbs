@@ -32,7 +32,7 @@ describe('(exist predicates) with joins', () => {
         SELECT 1 from bookshop.Books as $B
         WHERE $B.author_ID = author.ID
       )`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
 
     it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
@@ -65,7 +65,7 @@ describe('(exist predicates) with joins', () => {
           )
         )
       )`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 

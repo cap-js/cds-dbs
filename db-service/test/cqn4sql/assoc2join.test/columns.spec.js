@@ -240,7 +240,7 @@ describe('(a2j) in columns', () => {
           author.name as author_name
         }
         HAVING author.placeOfBirth = 'Marbach'`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 
@@ -306,7 +306,7 @@ describe('(a2j) in columns', () => {
           AM.ID,
           a_assocYA.a as x
         }`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 })

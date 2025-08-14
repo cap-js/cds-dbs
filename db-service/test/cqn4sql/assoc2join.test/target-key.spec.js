@@ -76,7 +76,7 @@ describe('(a2j) target key detection', () => {
           toSource.toMid_toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
         }`
 
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 
@@ -202,7 +202,7 @@ describe('(a2j) target key detection', () => {
           toSource3.toMid_toTarget_toSource_sourceID as second
         }`
 
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
 
     it('Shared base joins with round-trips', () => {
@@ -244,7 +244,7 @@ describe('(a2j) target key detection', () => {
           toTarget3.toSource_sourceID as foreignKeyAfterToTarget,
           toSource4.sourceID as targetsKeyAfterToSource
         }`
-      expect(transformed).to.deep.equal(expected)
+      expect(transformed).to.equalCqn(expected)
     })
   })
 })

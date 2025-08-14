@@ -333,7 +333,7 @@ describe('(a2j) in infix filter', () => {
             author.name as author_name
           }
           HAVING author.name = 'King'`
-      expect(query).to.deep.equal(expected)
+      expect(query).to.equalCqn(expected)
     })
   })
 })
