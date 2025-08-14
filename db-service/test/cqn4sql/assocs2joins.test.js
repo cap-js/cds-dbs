@@ -1,3 +1,6 @@
+// This test suite has been split up and moved to /assoc2join.test/
+// commented-out tests are not relevant anymore --> covered by other tests
+
 'use strict'
 
 const cqn4sql = require('../../lib/cqn4sql')
