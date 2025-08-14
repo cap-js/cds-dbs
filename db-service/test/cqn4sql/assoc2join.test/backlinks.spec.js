@@ -136,4 +136,26 @@ describe('(a2j) backlinks', () => {
       expect(query).to.deep.equal(expected)
     })
   })
+
+  describe('key renaming', () => {
+    it('backlink has assoc as key with renaming on multiple levels', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze2 as AM {
+          a,
+          a_assocYA_back.ID as x
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as AM
+          left outer join bookshop.AssocMaze1 as a_assocYA_back
+            on a_assocYA_back.a_assocYA_B_1_a    = AM.A_1_a
+              and a_assocYA_back.a_assocYA_B_1_b_ID = AM.A_1_b_ID
+              and a_assocYA_back.a_assocYA_B_2_a    = AM.A_2_a
+              and a_assocYA_back.a_assocYA_B_2_b_ID = AM.A_2_b_ID
+        {
+          AM.a,
+          a_assocYA_back.ID as x
+        }`
+      expect(transformed).to.deep.equal(expected)
+    })
+  })
 })

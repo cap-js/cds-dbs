@@ -55,6 +55,29 @@ describe('(a2j) target key detection', () => {
         group by classroom.ID, classroom.info_capacity`
       expect(transformed).to.equalCqn(expected)
     })
+
+    it('round trip leads to join', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from S.Source {
+          toMid.toTarget.toSource.sourceID as fullForeignKey,
+          toMid.toTarget.toSource.toMid.toTarget.toSource.sourceID as foreignKeyAfterRoundTrip
+        }`)
+
+      const expected = cds.ql`
+        SELECT from S.Source as $S
+          left join S.Mid as toMid
+          on toMid.toTarget_toSource_sourceID = $S.toMid_toTarget_toSource_sourceID
+          left join S.Target as toTarget
+          on toTarget.toSource_sourceID = toMid.toTarget_toSource_sourceID
+          left join S.Source as toSource
+          on toSource.sourceID = toTarget.toSource_sourceID
+        {
+          $S.toMid_toTarget_toSource_sourceID as fullForeignKey,
+          toSource.toMid_toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
+        }`
+
+      expect(transformed).to.deep.equal(expected)
+    })
   })
 
   describe('with filter', () => {

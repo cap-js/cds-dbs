@@ -128,6 +128,40 @@ describe('(a2j) fk detection', () => {
         }`
       expect(transformed).to.equalCqn(expected)
     })
+
+    it('path ends on assoc which is fk', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          authorAddress.address as assocAsForeignKey
+        }`)
+      const expected = cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          Books.authorAddress_address_street as assocAsForeignKey_street,
+          Books.authorAddress_address_number as assocAsForeignKey_number,
+          Books.authorAddress_address_zip as assocAsForeignKey_zip,
+          Books.authorAddress_address_city as assocAsForeignKey_city
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('path ends on assoc which is fk, prefix is structured', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          deeply.nested.authorAddress.address as deepAssocAsForeignKey
+        }`)
+      const expected = cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          Books.deeply_nested_authorAddress_address_street as deepAssocAsForeignKey_street,
+          Books.deeply_nested_authorAddress_address_number as deepAssocAsForeignKey_number,
+          Books.deeply_nested_authorAddress_address_zip as deepAssocAsForeignKey_zip,
+          Books.deeply_nested_authorAddress_address_city as deepAssocAsForeignKey_city
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
   })
 
   describe('prefix is join relevant', () => {
@@ -240,6 +274,41 @@ describe('(a2j) fk detection', () => {
         }
         where classrooms2.classroom_ID = 1
         order by classrooms2.classroom_ID`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('path ends on assoc which is fk', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          authorAddressFKRenamed.address as renamedAssocAsForeignKey
+        }`)
+
+      const expected = cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          Books.authorAddressFKRenamed_bar_street as renamedAssocAsForeignKey_street,
+          Books.authorAddressFKRenamed_bar_number as renamedAssocAsForeignKey_number,
+          Books.authorAddressFKRenamed_bar_zip as renamedAssocAsForeignKey_zip,
+          Books.authorAddressFKRenamed_bar_city as renamedAssocAsForeignKey_city
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('recursive path end ons deeply nested struct (renamed) that contains assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          toSelf.deeply.nested
+        }`)
+      const expected = cds.ql`
+        SELECT from fkaccess.Books as Books
+        {
+          Books.toSelf_baz_authorAddress_address_street as toSelf_deeply_nested_authorAddress_street,
+          Books.toSelf_baz_authorAddress_address_number as toSelf_deeply_nested_authorAddress_number,
+          Books.toSelf_baz_authorAddress_address_zip as toSelf_deeply_nested_authorAddress_zip,
+          Books.toSelf_baz_authorAddress_address_city as toSelf_deeply_nested_authorAddress_city
+        }`
       expect(transformed).to.equalCqn(expected)
     })
   })

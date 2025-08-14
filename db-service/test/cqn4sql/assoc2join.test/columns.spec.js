@@ -286,4 +286,27 @@ describe('(a2j) in columns', () => {
       expect(transformed).to.equalCqn(expected)
     })
   })
+
+  describe('key renaming', () => {
+    it('multiple explicit keys (renamed) along path', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID,
+          a_assocYA.a as x
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+          left outer join bookshop.AssocMaze2 as a_assocYA
+            on a_assocYA.A_1_a = AM.a_assocYA_B_1_a
+              and a_assocYA.A_1_b_ID = AM.a_assocYA_B_1_b_ID
+              and a_assocYA.A_2_a = AM.a_assocYA_B_2_a
+              and a_assocYA.A_2_b_ID = AM.a_assocYA_B_2_b_ID
+        {
+          AM.ID,
+          a_assocYA.a as x
+        }`
+      expect(transformed).to.deep.equal(expected)
+    })
+  })
 })
