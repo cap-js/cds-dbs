@@ -1,9 +1,8 @@
 'use strict'
 
 const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -16,13 +15,13 @@ describe('(a2j) fk detection', () => {
 
   describe('simple', () => {
     it('follow managed assoc, select FK', () => {
-      const query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID }`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID }`)
       const expected = cds.ql`
 	  	SELECT from bookshop.Books as Books
 		  {
 		    Books.author_ID
 		  }`
-      expect(query).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('follow managed assoc, select FK and other field', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID, author.name }`)
@@ -33,7 +32,7 @@ describe('(a2j) fk detection', () => {
           Books.author_ID,
           author.name as author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('select managed assoc with structured foreign key', () => {
       const transformed = cqn4sql(cds.ql`
@@ -51,7 +50,7 @@ describe('(a2j) fk detection', () => {
           toAssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf as toAssocWithStructuredKey_toStructuredKey_struct_mid_anotherLeaf,
           toAssocWithStructuredKey.toStructuredKey_second as toAssocWithStructuredKey_toStructuredKey_second
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('two assoc steps, last to foreign key', () => {
@@ -69,7 +68,7 @@ describe('(a2j) fk detection', () => {
           pupils.pupil_ID as studentCount
         }
         where Classrooms.ID = 1`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('two step path ends in foreign key in aggregation clauses', () => {
@@ -93,7 +92,7 @@ describe('(a2j) fk detection', () => {
         group by pupils.pupil_ID
         having pupils.pupil_ID = 1
         order by pupils.pupil_ID`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('two step path ends in foreign key in function arg', () => {
@@ -111,7 +110,7 @@ describe('(a2j) fk detection', () => {
           count(pupils.pupil_ID) as studentCount
         }
         where Classrooms.ID = 1`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('inline to foreign key', () => {
@@ -126,7 +125,7 @@ describe('(a2j) fk detection', () => {
           $S.toMid_toTarget_toSource_sourceID as foreignKey,
           $S.toMid_toTarget_toSource_sourceID as toMid_toTarget_toSource_inlineForeignKey
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path ends on assoc which is fk', () => {
@@ -143,7 +142,7 @@ describe('(a2j) fk detection', () => {
           Books.authorAddress_address_zip as assocAsForeignKey_zip,
           Books.authorAddress_address_city as assocAsForeignKey_city
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path ends on assoc which is fk, prefix is structured', () => {
@@ -160,7 +159,7 @@ describe('(a2j) fk detection', () => {
           Books.deeply_nested_authorAddress_address_zip as deepAssocAsForeignKey_zip,
           Books.deeply_nested_authorAddress_address_city as deepAssocAsForeignKey_city
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -174,7 +173,7 @@ describe('(a2j) fk detection', () => {
           Authors.ID,
           books.genre_ID as books_genre_ID
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('select managed assoc', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors { ID, books.genre.ID }`)
@@ -185,7 +184,7 @@ describe('(a2j) fk detection', () => {
           Authors.ID,
           books.genre_ID as books_genre_ID
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('three assocs, last navigates to foreign key', () => {
@@ -198,7 +197,7 @@ describe('(a2j) fk detection', () => {
           Authors.ID, 
           genre.parent_ID as foo
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -217,7 +216,7 @@ describe('(a2j) fk detection', () => {
           PartialStructuredKey.toSelf_partial as toSelf_struct_one,
           toSelf.struct_two as toSelf_struct_two
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('association (with multiple, structured, renamed fks) is key', () => {
@@ -233,7 +232,7 @@ describe('(a2j) fk detection', () => {
           ForeignKeyIsAssoc.my_room_name as teachersRoom_name,
           ForeignKeyIsAssoc.my_room_location as teachersRoom_info_location
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('association as key leads to non-key field', () => {
@@ -253,7 +252,7 @@ describe('(a2j) fk detection', () => {
           Pupils.ID
         }
         group by classroom.ID, classroom.name`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('multi step path ends in foreign key', () => {
@@ -274,7 +273,7 @@ describe('(a2j) fk detection', () => {
         }
         where classrooms2.classroom_ID = 1
         order by classrooms2.classroom_ID`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path ends on assoc which is fk', () => {
@@ -292,7 +291,7 @@ describe('(a2j) fk detection', () => {
           Books.authorAddressFKRenamed_bar_zip as renamedAssocAsForeignKey_zip,
           Books.authorAddressFKRenamed_bar_city as renamedAssocAsForeignKey_city
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('recursive path end ons deeply nested struct (renamed) that contains assoc', () => {
@@ -309,7 +308,7 @@ describe('(a2j) fk detection', () => {
           Books.toSelf_baz_authorAddress_address_zip as toSelf_deeply_nested_authorAddress_zip,
           Books.toSelf_baz_authorAddress_address_city as toSelf_deeply_nested_authorAddress_city
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -335,7 +334,7 @@ describe('(a2j) fk detection', () => {
         {
           Bar.author_ID
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('expose managed in inner with alias, expose the same also in outer - both fk', () => {
@@ -359,7 +358,7 @@ describe('(a2j) fk detection', () => {
         {
           Bar.a_ID
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -378,7 +377,7 @@ describe('(a2j) fk detection', () => {
         A.a_b_c_toB_foo_boo as a_b_c_toB_foo_boo,
         A.a_b_c_toB_bar_bas as a_b_c_toB_bar_bas
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

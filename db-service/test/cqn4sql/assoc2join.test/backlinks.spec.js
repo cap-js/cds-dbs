@@ -1,9 +1,8 @@
 'use strict'
 
 const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -27,7 +26,7 @@ describe('(a2j) backlinks', () => {
         {
           toItem_selfMgd.id as toItem_selfMgd_id
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('navigate along backlink assoc', () => {
@@ -44,7 +43,7 @@ describe('(a2j) backlinks', () => {
       {
         assignments.data as nodeCompanyCode_assignments_data
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -61,7 +60,7 @@ describe('(a2j) backlinks', () => {
       {
         toItem_selfUmgd.id as toItem_selfUmgd_id
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -82,7 +81,7 @@ describe('(a2j) backlinks', () => {
       {
         toItem_combined.id as toItem_combined_id
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('different backlink paths used (managed/unmanaged/combined)', () => {
@@ -113,7 +112,7 @@ describe('(a2j) backlinks', () => {
         toItem_combined.id as combined_id,
         toItem_fwd.id as direct_id
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -133,7 +132,7 @@ describe('(a2j) backlinks', () => {
         {
           toE.data as toE_data
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -155,7 +154,7 @@ describe('(a2j) backlinks', () => {
           AM.a,
           a_assocYA_back.ID as x
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

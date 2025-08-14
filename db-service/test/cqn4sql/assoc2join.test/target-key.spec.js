@@ -1,9 +1,8 @@
 'use strict'
 
-const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
+const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -33,7 +32,7 @@ describe('(a2j) target key detection', () => {
           Pupils.ID
         }
         group by classroom.ID, classroom.name`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('key from target if there is a join relevant leaf for shared prefix (structured)', () => {
@@ -53,7 +52,7 @@ describe('(a2j) target key detection', () => {
           Pupils.ID
         }
         group by classroom.ID, classroom.info_capacity`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('round trip leads to join', () => {
@@ -76,7 +75,7 @@ describe('(a2j) target key detection', () => {
           toSource.toMid_toTarget_toSource_sourceID as foreignKeyAfterRoundTrip
         }`
 
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -95,7 +94,7 @@ describe('(a2j) target key detection', () => {
         {
           pupil.ID as student
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('optimized next to non-optimized', () => {
       const transformed = cqn4sql(cds.ql`
@@ -113,7 +112,7 @@ describe('(a2j) target key detection', () => {
           pupil.ID as nonOptimized,
           ClassroomsPupils.pupil_ID as optimized
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('Shared prefixes with associations as foreign keys', () => {
@@ -138,7 +137,7 @@ describe('(a2j) target key detection', () => {
           toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
           toSource3.sourceID as targetsKeyAfterToSource
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('partially shared prefixes', () => {
@@ -171,7 +170,7 @@ describe('(a2j) target key detection', () => {
           toTarget2.toSource_sourceID as foreignKeyAfterToTarget,
           toSource3.sourceID as targetsKeyAfterToSource
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('Own join nodes with roundtrip', () => {
@@ -202,7 +201,7 @@ describe('(a2j) target key detection', () => {
           toSource3.toMid_toTarget_toSource_sourceID as second
         }`
 
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('Shared base joins with round-trips', () => {
@@ -244,7 +243,7 @@ describe('(a2j) target key detection', () => {
           toTarget3.toSource_sourceID as foreignKeyAfterToTarget,
           toSource4.sourceID as targetsKeyAfterToSource
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

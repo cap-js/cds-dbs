@@ -1,9 +1,8 @@
 'use strict'
 
-const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
+const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -32,7 +31,7 @@ describe('(exist predicates) with joins', () => {
         SELECT 1 from bookshop.Books as $B
         WHERE $B.author_ID = author.ID
       )`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('aliases for recursive assoc in column + recursive assoc in from must not clash', () => {
@@ -65,7 +64,7 @@ describe('(exist predicates) with joins', () => {
           )
         )
       )`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -101,7 +100,7 @@ describe('(exist predicates) with joins', () => {
                then genre2.descr
           end as descr
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('predicate inside infix filter - exists also has filter', () => {
       const transformed = cqn4sql(cds.ql`
@@ -120,7 +119,7 @@ describe('(exist predicates) with joins', () => {
               Authors.ID,
               books.title as books_title
             }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('predicate inside infix filter - exists also has filter (with OR)', () => {
@@ -142,7 +141,7 @@ describe('(exist predicates) with joins', () => {
           Authors.ID,
           books.title as books_title
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

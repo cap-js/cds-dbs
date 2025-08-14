@@ -1,9 +1,8 @@
 'use strict'
 
 const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -24,7 +23,7 @@ describe('(a2j) in columns', () => {
 					Books.ID,
 					author.name as author_name
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('path ends in structure', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.EStrucSibling as EStrucSibling { ID, self.struc1 }`)
@@ -36,7 +35,7 @@ describe('(a2j) in columns', () => {
 					self.struc1_deeper_foo as  self_struc1_deeper_foo,
 					self.struc1_deeper_bar as  self_struc1_deeper_bar
 				}`
-      expect(transformed).equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('assoc is within structure', () => {
@@ -48,11 +47,11 @@ describe('(a2j) in columns', () => {
 					Books.ID,
 					addressee.name as dedication_addressee_name
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path via multiple assocs', () => {
-      let query = cqn4sql(
+      const transformed = cqn4sql(
         cds.ql`
 					SELECT from bookshop.Authors as Authors
 					{
@@ -73,7 +72,7 @@ describe('(a2j) in columns', () => {
 					genre.code as books_genre_code
 				}`
 
-      expect(query).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('respect explicit column alias', () => {
@@ -95,7 +94,7 @@ describe('(a2j) in columns', () => {
 					books.title as books_title,
 					genre.code as books_genre_code
 				}`
-      expect(transformed).equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('different paths with different assocs', () => {
@@ -118,7 +117,7 @@ describe('(a2j) in columns', () => {
 					addressee.name as dedication_addressee_name,
 					author.dateOfBirth as author_dateOfBirth
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('different paths with different assocs with same target', () => {
@@ -132,7 +131,7 @@ describe('(a2j) in columns', () => {
 					author.name as author_name,
 					coAuthor.name as coAuthor_name
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -147,7 +146,7 @@ describe('(a2j) in columns', () => {
 					author.name as author_name,
 					author.dateOfBirth as author_dateOfBirth
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('drill into structure', () => {
@@ -166,7 +165,7 @@ describe('(a2j) in columns', () => {
 					author.name as author_name,
 					author.address_street as author_address_street
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('drill into structure w/ explicit table alias', () => {
@@ -179,7 +178,7 @@ describe('(a2j) in columns', () => {
 					author.name as author_name,
 					author.address_street as author_address_street
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('different leaf association', () => {
@@ -203,7 +202,7 @@ describe('(a2j) in columns', () => {
 					genre.code as books_genre_code,
 					coAuthor.dateOfBirth as books_coAuthor_dateOfBirth
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('in where', () => {
       const transformed = cqn4sql(cds.ql`
@@ -221,7 +220,7 @@ describe('(a2j) in columns', () => {
           author.name as author_name
         }
         WHERE author.placeOfBirth = 'Marbach'`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('in having', () => {
@@ -240,7 +239,7 @@ describe('(a2j) in columns', () => {
           author.name as author_name
         }
         HAVING author.placeOfBirth = 'Marbach'`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -270,7 +269,7 @@ describe('(a2j) in columns', () => {
 					parent2.descr as genre_parent_parent_descr,
 					parent3.descr as genre_parent_parent_parent_descr
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('explicit table alias shadows assoc', () => {
@@ -283,7 +282,7 @@ describe('(a2j) in columns', () => {
 				{
 					parent3.descr as parent_parent_descr
 				}`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -306,7 +305,7 @@ describe('(a2j) in columns', () => {
           AM.ID,
           a_assocYA.a as x
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

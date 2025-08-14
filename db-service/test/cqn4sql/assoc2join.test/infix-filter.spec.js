@@ -1,9 +1,8 @@
 'use strict'
 
 const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -30,7 +29,7 @@ describe('(a2j) in infix filter', () => {
           Books.ID,
           author.name as author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('managed assoc within structure', () => {
       const transformed = cqn4sql(cds.ql`
@@ -47,7 +46,7 @@ describe('(a2j) in infix filter', () => {
           Books.ID,
           addressee.name as dedication_addressee_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('key in filter - retrieve from target in on-condition', () => {
@@ -60,7 +59,7 @@ describe('(a2j) in infix filter', () => {
           Books.ID,
           author.name as author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('columns need aliases - even with different filter conditions', () => {
@@ -85,7 +84,7 @@ describe('(a2j) in infix filter', () => {
           Books.ID,
           author.name as author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('no fk optimization after infix filter', () => {
@@ -103,7 +102,7 @@ describe('(a2j) in infix filter', () => {
           Books.title,
           author.ID as author_ID
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('different filter conditions lead to independent joins ', () => {
@@ -129,7 +128,7 @@ describe('(a2j) in infix filter', () => {
         }
         HAVING author2.ID and genre.ID
           `
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('same path with and without filter lead to independent joins', () => {
@@ -150,7 +149,7 @@ describe('(a2j) in infix filter', () => {
           author.name as n1,
           author2.name as n2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('shared filter conditions lead to shared joins', () => {
@@ -175,7 +174,7 @@ describe('(a2j) in infix filter', () => {
           author.dateOfBirth as d1,
           author2.dateOfBirth as d2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('reversed filter conditions lead to independent joins', () => {
@@ -197,7 +196,7 @@ describe('(a2j) in infix filter', () => {
           author.name as n1,
           author2.name as n2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -223,7 +222,7 @@ describe('(a2j) in infix filter', () => {
           genre.descr as d1,
           genre2.descr as d2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('same filter at all associations - shared joins', () => {
       const transformed = cqn4sql(cds.ql`
@@ -244,7 +243,7 @@ describe('(a2j) in infix filter', () => {
           genre.descr as d1,
           genre.descr as d2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('same filter only in last association navigation - independent joins', () => {
       const transformed = cqn4sql(cds.ql`
@@ -269,7 +268,7 @@ describe('(a2j) in infix filter', () => {
           genre.descr as d1,
           genre2.descr as d2
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('same filter at first association, different at second (in where) - shared base join', () => {
@@ -290,11 +289,11 @@ describe('(a2j) in infix filter', () => {
           genre.descr as books_genre_descr
         }
         WHERE genre2.descr = 'foo'`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('same filter at first association, different at second (in case when) - shared base join', () => {
-      let query = cqn4sql(cds.ql`
+      let transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors as Authors
         {
           ID,
@@ -313,11 +312,11 @@ describe('(a2j) in infix filter', () => {
                when Authors.ID>4 then genre2.descr
           end as descr
         }`
-      expect(query).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('same filter at assoc in having', () => {
-      const query = cqn4sql(cds.ql`
+      const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
           ID,
@@ -333,7 +332,7 @@ describe('(a2j) in infix filter', () => {
             author.name as author_name
           }
           HAVING author.name = 'King'`
-      expect(query).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

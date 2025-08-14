@@ -1,9 +1,8 @@
 'use strict'
 
-const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
+const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -30,7 +29,7 @@ describe('(a2j) unmanaged associations', () => {
           Books.ID,
           coAuthorUnmanaged.name as coAuthorUnmanaged_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path to target key', () => {
@@ -48,7 +47,7 @@ describe('(a2j) unmanaged associations', () => {
           Baz.id,
           parent.id as pid
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -68,7 +67,7 @@ describe('(a2j) unmanaged associations', () => {
           Baz.id,
           parent.id as pid
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -88,7 +87,7 @@ describe('(a2j) unmanaged associations', () => {
           BooksWithWeirdOnConditions.ID,
           onlyOneRef.foo as onlyOneRef_foo
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('on-condition with odd length', () => {
@@ -106,7 +105,7 @@ describe('(a2j) unmanaged associations', () => {
           BooksWithWeirdOnConditions.ID,
           oddNumber.foo as oddNumber_foo
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('on-condition accessing structured foreign keys', () => {
@@ -124,7 +123,7 @@ describe('(a2j) unmanaged associations', () => {
           BooksWithWeirdOnConditions.ID,
           oddNumberWithForeignKeyAccess.second as oddNumberWithForeignKeyAccess_second
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('on-condition comparing to val', () => {
@@ -144,7 +143,7 @@ describe('(a2j) unmanaged associations', () => {
           BooksWithWeirdOnConditions.ID,
           refComparedToValFlipped.foo as refComparedToVal_refComparedToValFlipped_foo
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -169,11 +168,11 @@ describe('(a2j) unmanaged associations', () => {
         Foo.ID,
         buz.foo_ID as buz_foo_ID
       }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('drill into foreign keys', () => {
-      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID, buzUnmanaged.foo }`)
+      const transformed = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID, buzUnmanaged.foo }`)
       const expected = cds.ql`
         SELECT from a2j.Foo as Foo left join a2j.Buz as buzUnmanaged
           on buzUnmanaged.bar_foo_ID = Foo.bar_foo_ID and buzUnmanaged.bar_ID = Foo.bar_ID and buzUnmanaged.foo_ID = Foo.ID
@@ -181,7 +180,7 @@ describe('(a2j) unmanaged associations', () => {
           Foo.ID,
           buzUnmanaged.foo_ID as buzUnmanaged_foo_ID
         }`
-      expect(query).to.eql(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })

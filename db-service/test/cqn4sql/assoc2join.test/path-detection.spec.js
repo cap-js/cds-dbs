@@ -1,9 +1,8 @@
 'use strict'
 
-const { loadModel } = require('../helpers/model')
 const cds = require('@sap/cds')
-const { expect } = cds.test
-require('../helpers/test.setup')
+const { loadModel } = require('../helpers/model')
+const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -15,6 +14,18 @@ describe('(a2j) path detection', () => {
   })
 
   describe('in where', () => {
+    it('basic', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } where author.name = 'Schiller'`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left outer join bookshop.Authors as author on author.ID = Books.author_ID
+         {
+           Books.ID
+         }
+         WHERE author.name = 'Schiller'`
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('in expression', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
@@ -29,7 +40,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         WHERE ((author.name + 's') = 'Schillers') or ((author.name + 's') = 'Goethes')`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('in list', () => {
@@ -43,7 +54,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         WHERE (author.name, 1) in ('foo', 'bar')`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('in tuple within list', () => {
@@ -61,7 +72,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         WHERE ((author.name, genre.name), 1) in (('foo', 1), ('bar', 2))`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -75,7 +86,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         HAVING author.name = 'Schiller'`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('in list', () => {
       const transformed = cqn4sql(cds.ql`
@@ -91,7 +102,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         HAVING (author.name, 1) in ('foo', 'bar')`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -110,7 +121,7 @@ describe('(a2j) path detection', () => {
         Books.ID
       }
       GROUP BY author.name`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
     it('path via wildcard', () => {
       const transformed = cqn4sql(cds.ql`
@@ -141,7 +152,7 @@ describe('(a2j) path detection', () => {
           Books.coAuthor_ID_unmanaged
         }
         GROUP BY author.name`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -160,7 +171,7 @@ describe('(a2j) path detection', () => {
           Books.ID
         }
         ORDER BY author.name asc`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('path via wildcard', () => {
@@ -176,7 +187,7 @@ describe('(a2j) path detection', () => {
           twin.stock
         }
         ORDER BY author.name asc`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
@@ -196,7 +207,7 @@ describe('(a2j) path detection', () => {
           book.ID
         }
         GROUP BY parent.ID, parent.name`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('subquery in from navigates to field, outer query uses the field', () => {
@@ -221,7 +232,7 @@ describe('(a2j) path detection', () => {
         {
           Bar.author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('expose managed assoc in subquery in from, navigation to field in outer', () => {
@@ -246,7 +257,7 @@ describe('(a2j) path detection', () => {
         {
           author.name as author_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('expose managed assoc in subquery with alias, navigate to field in outer', () => {
@@ -271,7 +282,7 @@ describe('(a2j) path detection', () => {
         {
           a.name as a_name
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('expose managed assoc in subquery with alias, navigate to field in outer (subquery also has joins)', () => {
@@ -304,7 +315,7 @@ describe('(a2j) path detection', () => {
           Bar.author_name,
           books.descr as a_books_descr
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
 
     it('subquery in column', () => {
@@ -333,7 +344,7 @@ describe('(a2j) path detection', () => {
             WHERE Genres.ID = Books.genre_ID
           ) as pc
         }`
-      expect(transformed).to.equalCqn(expected)
+      expectCqn(transformed).to.equal(expected)
     })
   })
 })
