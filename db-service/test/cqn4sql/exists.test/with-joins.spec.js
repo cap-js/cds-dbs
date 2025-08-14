@@ -8,7 +8,7 @@ let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(exist predicates) with joins', () => {
   before(async () => {
-    const m = await loadModel([__dirname + '/../../bookshop/db/schema'])
+    const m = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(q, m)
   })

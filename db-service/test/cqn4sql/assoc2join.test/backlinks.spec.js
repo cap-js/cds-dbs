@@ -1,14 +1,14 @@
 'use strict'
 
+const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 const { expectCqn } = require('../helpers/expectCqn')
-const cds = require('@sap/cds')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
 describe('(a2j) backlinks', () => {
   before(async () => {
-    const model = await loadModel([__dirname + '/../model/index'])
+    const model = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(q, model)
   })

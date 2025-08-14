@@ -30,4 +30,7 @@ function expectCqn(actual) {
   }
 }
 
-module.exports.expectCqn = expectCqn
+module.exports = {
+  expectCqn,
+  expect: cds.test.expect,
+}
