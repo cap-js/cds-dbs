@@ -53,6 +53,66 @@ describe('(a2j) fk detection', () => {
         }`
       expect(transformed).to.equalCqn(expected)
     })
+
+    it('two assoc steps, last to foreign key', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Classrooms as Classrooms
+        {
+          pupils.pupil.ID as studentCount
+        }
+        where Classrooms.ID = 1`)
+      const expected = cds.ql`
+        SELECT from Classrooms as Classrooms
+          left join ClassroomsPupils as pupils
+          on pupils.classroom_ID = Classrooms.ID
+        {
+          pupils.pupil_ID as studentCount
+        }
+        where Classrooms.ID = 1`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('two step path ends in foreign key in aggregation clauses', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Classrooms as Classrooms
+        {
+          pupils.pupil.ID as studentCount
+        }
+        where pupils.pupil.ID = 1
+        group by pupils.pupil.ID
+        having pupils.pupil.ID = 1
+        order by pupils.pupil.ID`)
+      const expected = cds.ql`
+        SELECT from Classrooms as Classrooms
+          left join ClassroomsPupils as pupils
+          on pupils.classroom_ID = Classrooms.ID
+        {
+          pupils.pupil_ID as studentCount
+        }
+        where pupils.pupil_ID = 1
+        group by pupils.pupil_ID
+        having pupils.pupil_ID = 1
+        order by pupils.pupil_ID`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('two step path ends in foreign key in function arg', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Classrooms as Classrooms
+        {
+          count(pupils.pupil.ID) as studentCount
+        }
+        where Classrooms.ID = 1`)
+      const expected = cds.ql`
+        SELECT from Classrooms as Classrooms
+          left join ClassroomsPupils as pupils
+          on pupils.classroom_ID = Classrooms.ID
+        {
+          count(pupils.pupil_ID) as studentCount
+        }
+        where Classrooms.ID = 1`
+      expect(transformed).to.equalCqn(expected)
+    })
   })
 
   describe('prefix is join relevant', () => {
@@ -108,6 +168,63 @@ describe('(a2j) fk detection', () => {
           PartialStructuredKey.toSelf_partial as toSelf_struct_one,
           toSelf.struct_two as toSelf_struct_two
         }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('association (with multiple, structured, renamed fks) is key', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from ForeignKeyIsAssoc as ForeignKeyIsAssoc
+        {
+          my.room as teachersRoom
+        }`)
+      const expected = cds.ql`
+        SELECT from ForeignKeyIsAssoc as ForeignKeyIsAssoc
+        {
+          ForeignKeyIsAssoc.my_room_number as teachersRoom_number,
+          ForeignKeyIsAssoc.my_room_name as teachersRoom_name,
+          ForeignKeyIsAssoc.my_room_location as teachersRoom_info_location
+        }`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('association as key leads to non-key field', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Pupils as Pupils
+        {
+          ID
+        }
+        group by classrooms.classroom.ID, classrooms.classroom.name`)
+      const expected = cds.ql`
+        SELECT from Pupils as Pupils
+          left join ClassroomsPupils as classrooms
+            on classrooms.pupil_ID = Pupils.ID
+          left join Classrooms as classroom
+          on classroom.ID = classrooms.classroom_ID
+        {
+          Pupils.ID
+        }
+        group by classroom.ID, classroom.name`
+      expect(transformed).to.equalCqn(expected)
+    })
+
+    it('multi step path ends in foreign key', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Classrooms as Classrooms
+        {
+          count(pupils.pupil.classrooms.classroom.ID) as classCount
+        }
+        where pupils.pupil.classrooms.classroom.ID = 1
+        order by pupils.pupil.classrooms.classroom.ID`)
+      const expected = cds.ql`
+        SELECT from Classrooms as Classrooms
+          left join ClassroomsPupils as pupils on pupils.classroom_ID = Classrooms.ID
+          left join Pupils as pupil on pupil.ID = pupils.pupil_ID
+          left join ClassroomsPupils as classrooms2 on classrooms2.pupil_ID = pupil.ID
+        {
+          count(classrooms2.classroom_ID) as classCount
+        }
+        where classrooms2.classroom_ID = 1
+        order by classrooms2.classroom_ID`
       expect(transformed).to.equalCqn(expected)
     })
   })

@@ -149,13 +149,15 @@ describe('(a2j) unmanaged associations', () => {
   })
 
   describe('on-condition flattening', () => {
-    it('assoc comparison in on-condition', () => {
+    // everything in here is about flattening the on-conditions
+    // --> the interesting part (the on-conditions) is found in the model
+    it('assoc comparison', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Foo as Foo
-      {
-        ID,
-        buz.foo
-      }`)
+        SELECT from a2j.Foo as Foo
+        {
+          ID,
+          buz.foo
+        }`)
       const expected = cds.ql`
       SELECT from a2j.Foo as Foo
         left join a2j.Buz as buz
@@ -168,6 +170,18 @@ describe('(a2j) unmanaged associations', () => {
         buz.foo_ID as buz_foo_ID
       }`
       expect(transformed).to.equalCqn(expected)
+    })
+
+    it('drill into foreign keys', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID, buzUnmanaged.foo }`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo left join a2j.Buz as buzUnmanaged
+          on buzUnmanaged.bar_foo_ID = Foo.bar_foo_ID and buzUnmanaged.bar_ID = Foo.bar_ID and buzUnmanaged.foo_ID = Foo.ID
+        {
+          Foo.ID,
+          buzUnmanaged.foo_ID as buzUnmanaged_foo_ID
+        }`
+      expect(query).to.eql(expected)
     })
   })
 })
