@@ -6,11 +6,33 @@ const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
-describe('(exist predicates) with joins', () => {
+describe('(exist predicate) with joins', () => {
   before(async () => {
     const m = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(q, m)
+  })
+
+  describe('in where', () => {
+    it('managed assoc after exists and in expression', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author and ((author.name + 's') = 'Schillers')`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID
+        ) and ((author.name + 's') = 'Schillers')`
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('scoped queries', () => {
