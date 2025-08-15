@@ -124,7 +124,32 @@ describe('(exist predicate) in where conditions', () => {
   })
 
   describe('multi step exists', () => {
-    it('two associations, last with backlink', () => {
+    it('with two associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books.author`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with two associations, last with backlink', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
@@ -143,6 +168,76 @@ describe('(exist predicate) in where conditions', () => {
             WHERE $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
           )
         )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('exists has nested exists and condition before navigating to genre', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction']`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and (
+              EXISTS (
+                SELECT 1 from bookshop.Authors as $a2
+                WHERE $a2.ID = $b.author_ID
+              )
+              or $b.title = 'Gravity'
+            )
+            and EXISTS (
+              SELECT 1 from bookshop.Genres as $g
+              WHERE $g.ID = $b.genre_ID
+                and $g.name = 'Fiction'
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('both assoc steps have infix filter with each one nested exists', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction' and exists children[name = 'Foo']]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and (
+              EXISTS (
+                SELECT 1 from bookshop.Authors as $a2
+                WHERE $a2.ID = $b.author_ID
+              )
+              or $b.title = 'Gravity'
+            )
+            and EXISTS (
+              SELECT 1 from bookshop.Genres as $g
+              WHERE $g.ID = $b.genre_ID
+                and $g.name = 'Fiction'
+                and EXISTS (
+                  SELECT 1 from bookshop.Genres as $c
+                  WHERE $c.parent_ID = $g.ID
+                    and $c.name = 'Foo'
+                )
+            )
+        )`
+
       expectCqn(transformed).to.equal(expected)
     })
   })
@@ -284,6 +379,168 @@ describe('(exist predicate) in where conditions', () => {
               )
           )
       )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('exists has two other exists in infix filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[NOT EXISTS author[EXISTS books]]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and NOT EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as $b2
+                  WHERE $b2.author_ID = $a2.ID
+                )
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('two round trips along exists with four associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books.author.books.author`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as $b2
+                  WHERE $b2.author_ID = $a2.ID
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as $a3
+                      WHERE $a3.ID = $b2.author_ID
+                    )
+                )
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('exists with two adjacent four-association chains', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books.author.books.author
+          and EXISTS books.author.books.author`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as $b2
+                  WHERE $b2.author_ID = $a2.ID
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as $a3
+                      WHERE $a3.ID = $b2.author_ID
+                    )
+                )
+            )
+        )
+        and EXISTS (
+          SELECT 1 from bookshop.Books as $b3
+          WHERE $b3.author_ID = $A.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as $a4
+              WHERE $a4.ID = $b3.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as $b4
+                  WHERE $b4.author_ID = $a4.ID
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as $a5
+                      WHERE $a5.ID = $b4.author_ID
+                    )
+                )
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it.skip('adjacent exists subqueries could reuse the same table aliases independently', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books.author.books.author
+          and EXISTS books.author.books.author`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as books
+          WHERE author_ID = Authors.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as author
+              WHERE ID = books.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as books2
+                  WHERE author_ID = author.ID
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as author2
+                      WHERE ID = books2.author_ID
+                    )
+                )
+            )
+        )
+        and EXISTS (
+          SELECT 1 from bookshop.Books as books
+          WHERE author_ID = Authors.ID
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as author
+              WHERE ID = books.author_ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as books2
+                  WHERE author_ID = author.ID
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as author2
+                      WHERE ID = books2.author_ID
+                    )
+                )
+            )
+        )`
+
       expectCqn(transformed).to.equal(expected)
     })
   })
@@ -524,6 +781,275 @@ describe('(exist predicate) in where conditions', () => {
           SELECT 1 from bookshop.Authors as $a
           WHERE $a.ID = $B.author_ID and not ($a.name = 'Sanderson')
         )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('four associations each has  filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[stock > 11].author[name = 'Horst'].books[price < 9.99].author[placeOfBirth = 'Rom']`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+            and $b.stock > 11
+            and EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+                and $a2.name = 'Horst'
+                and EXISTS (
+                  SELECT 1 from bookshop.Books as $b2
+                  WHERE $b2.author_ID = $a2.ID
+                    and $b2.price < 9.99
+                    and EXISTS (
+                      SELECT 1 from bookshop.Authors as $a3
+                      WHERE $a3.ID = $b2.author_ID
+                        and $a3.placeOfBirth = 'Rom'
+                    )
+                )
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('flattening of foreign keys', () => {
+    it('association has structured FK', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        WHERE EXISTS a_struc`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.ID_1_a = AM.a_struc_ID_1_a
+            and $a.ID_1_b = AM.a_struc_ID_1_b
+            and $a.ID_2_a = AM.a_struc_ID_2_a
+            and $a.ID_2_b = AM.a_struc_ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit scalar FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_strucX`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.a = AM.a_strucX_a
+            and $a.b = AM.a_strucX_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit structured FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_strucY`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.S_1_a = AM.a_strucY_S_1_a
+            and $a.S_1_b = AM.a_strucY_S_1_b
+            and $a.S_2_a = AM.a_strucY_S_2_a
+            and $a.S_2_b = AM.a_strucY_S_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit structured renamed FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_strucXA`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.S_1_a = AM.a_strucXA_T_1_a
+            and $a.S_1_b = AM.a_strucXA_T_1_b
+            and $a.S_2_a = AM.a_strucXA_T_2_a
+            and $a.S_2_b = AM.a_strucXA_T_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has FKs that are managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_assoc`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze3 as $a
+          WHERE $a.assoc1_ID_1_a = AM.a_assoc_assoc1_ID_1_a
+            and $a.assoc1_ID_1_b = AM.a_assoc_assoc1_ID_1_b
+            and $a.assoc1_ID_2_a = AM.a_assoc_assoc1_ID_2_a
+            and $a.assoc1_ID_2_b = AM.a_assoc_assoc1_ID_2_b
+            and $a.assoc2_ID_1_a = AM.a_assoc_assoc2_ID_1_a
+            and $a.assoc2_ID_1_b = AM.a_assoc_assoc2_ID_1_b
+            and $a.assoc2_ID_2_a = AM.a_assoc_assoc2_ID_2_a
+            and $a.assoc2_ID_2_b = AM.a_assoc_assoc2_ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit FKs that are managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_assocY`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.A_1_a = AM.a_assocY_A_1_a
+            and $a.A_1_b_ID = AM.a_assocY_A_1_b_ID
+            and $a.A_2_a = AM.a_assocY_A_2_a
+            and $a.A_2_b_ID = AM.a_assocY_A_2_b_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit aliased FKs that are managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_assocYA`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.A_1_a = AM.a_assocYA_B_1_a
+            and $a.A_1_b_ID = AM.a_assocYA_B_1_b_ID
+            and $a.A_2_a = AM.a_assocYA_B_2_a
+            and $a.A_2_b_ID = AM.a_assocYA_B_2_b_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has FKs that are mix of structured and managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_strass`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze4 as $a
+          WHERE $a.A_1_a = AM.a_strass_A_1_a
+            and $a.A_1_b_assoc1_ID_1_a = AM.a_strass_A_1_b_assoc1_ID_1_a
+            and $a.A_1_b_assoc1_ID_1_b = AM.a_strass_A_1_b_assoc1_ID_1_b
+            and $a.A_1_b_assoc1_ID_2_a = AM.a_strass_A_1_b_assoc1_ID_2_a
+            and $a.A_1_b_assoc1_ID_2_b = AM.a_strass_A_1_b_assoc1_ID_2_b
+            and $a.A_1_b_assoc2_ID_1_a = AM.a_strass_A_1_b_assoc2_ID_1_a
+            and $a.A_1_b_assoc2_ID_1_b = AM.a_strass_A_1_b_assoc2_ID_1_b
+            and $a.A_1_b_assoc2_ID_2_a = AM.a_strass_A_1_b_assoc2_ID_2_a
+            and $a.A_1_b_assoc2_ID_2_b = AM.a_strass_A_1_b_assoc2_ID_2_b
+            and $a.A_2_a = AM.a_strass_A_2_a
+            and $a.A_2_b_assoc1_ID_1_a = AM.a_strass_A_2_b_assoc1_ID_1_a
+            and $a.A_2_b_assoc1_ID_1_b = AM.a_strass_A_2_b_assoc1_ID_1_b
+            and $a.A_2_b_assoc1_ID_2_a = AM.a_strass_A_2_b_assoc1_ID_2_a
+            and $a.A_2_b_assoc1_ID_2_b = AM.a_strass_A_2_b_assoc1_ID_2_b
+            and $a.A_2_b_assoc2_ID_1_a = AM.a_strass_A_2_b_assoc2_ID_1_a
+            and $a.A_2_b_assoc2_ID_1_b = AM.a_strass_A_2_b_assoc2_ID_1_b
+            and $a.A_2_b_assoc2_ID_2_a = AM.a_strass_A_2_b_assoc2_ID_2_a
+            and $a.A_2_b_assoc2_ID_2_b = AM.a_strass_A_2_b_assoc2_ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('association has explicit FKs that are path into a structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          ID
+        }
+        where exists a_part`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze1 as AM
+        {
+          AM.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze2 as $a
+          WHERE $a.A_1_a = AM.a_part_a
+            and $a.S_2_b = AM.a_part_b
+        )`
+
       expectCqn(transformed).to.equal(expected)
     })
   })

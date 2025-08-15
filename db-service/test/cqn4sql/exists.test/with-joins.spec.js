@@ -34,6 +34,37 @@ describe('(exist predicate) with joins', () => {
         )`
       expectCqn(transformed).to.equal(expected)
     })
+    it.skip('reject non foreign key access in infix filter', async () => {
+      const model = await loadModel({ flatModel: true })
+
+      const transformed = cqn4sql(
+        cds.ql`
+        SELECT from Collaborations
+        {
+          id
+        }
+        where exists leads[participant.scholar_userID = $user.id]
+      `,
+        model,
+      )
+
+      const expected = cds.ql`
+        SELECT from Collaborations as Collaborations
+        {
+          Collaborations.id
+        }
+        where exists (
+          SELECT 1 from CollaborationLeads as leads
+            inner join CollaborationParticipants as participant
+              on participant.ID = leads.participant_id
+          WHERE leads.collaboration_id = Collaborations.id
+            and leads.isLead = true
+            and participant.scholar_userID = $user.id
+        )
+      `
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('in where', () => {
