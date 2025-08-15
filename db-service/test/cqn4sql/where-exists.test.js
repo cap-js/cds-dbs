@@ -65,109 +65,24 @@ describe('EXISTS predicate in where', () => {
   })
 
   describe('infix filter', () => {
-
-
-    it('where exists to-one association with additional filter with xpr', () => {
-      // note: now all source side elements are addressed with their table alias
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[not (name = 'Sanderson')]`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and not ($a.name = 'Sanderson')
-        )`)
-    })
-
-    it('MUST ... with simple filter', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[title = 'ABAP Objects']`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.title = 'ABAP Objects'
-        )`)
-    })
-
-    it('MUST fail for unknown field in filter (1)', () => {
-      expect(() =>
-        cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`, model),
-      ).to.throw(/"books" not found in "books"/)
-      // it would work if entity "Books" had a field called "books"
-      // Done by infer
-    })
-
-    it('MUST fail for unknown field in filter (2)', () => {
-      expect(() =>
-        cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[Authors.name = 'Horst']`, model),
-      ).to.throw(/"Authors" not found in "books"/)
-      //expect (query) .to.fail
-    })
-
-    it('MUST ... access struc fields in filter', () => {
-      let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.text = 'For Hasso']`,
-        model,
-      )
-      // TODO original test had no before `dedication_text`
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.dedication_text = 'For Hasso'
-        )`)
-    })
-
     // accessing FK of managed assoc in filter
-    it('MUST ... access FK of managed assoc in filter', () => {
-      let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.ID = 29]`,
-        model,
-      )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $A { $A.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID AND $b.dedication_addressee_ID = 29
-        )`)
-    })
+    // --> managed assoc within structure
+    // replaced by test which checks result
+    // 
+    // 
+    // it('MUST not fail if following managed assoc in filter in where exists', () => {
+    //   expect(() =>
+    //     cqn4sql(
+    //       cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
+    //       model,
+    //     ),
+    //   ).to.not.throw('Only foreign keys of “addressee” can be accessed in infix filter')
+    // })
 
-    it('MUST not fail if following managed assoc in filter in where exists', () => {
-      expect(() =>
-        cqn4sql(
-          cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[dedication.addressee.name = 'Hasso']`,
-          model,
-        ),
-      ).to.not.throw('Only foreign keys of “addressee” can be accessed in infix filter')
-    })
-    it('MUST fail if following managed assoc in filter (path expressions inside filter only enabled for exists subqueries)', () => {
-      expect(() =>
-        cqn4sql(
-          cds.ql`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
-          model,
-        ),
-      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
-    })
-
-    it('MUST handle simple where exists with multiple association and also with $self backlink', () => {
-      let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID } where exists author.books[title = 'Harry Potter']`,
-        model,
-      )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and EXISTS (
-            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
-          )
-        )`)
-    })
-
-    it('MUST handle simple where exists with additional filter, shortcut notation', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author[17]`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.ID = 17
-        )`)
-    })
   })
 
   describe('nested exists in infix filter', () => {
-    it('MUST handle simple where exists with multiple association and also with $self backlink in shortcut notation', () => {
-      let query = cqn4sql(
-        cds.ql`SELECT from bookshop.Books { ID } where exists author[exists books[title = 'Harry Potter']]`,
-        model,
-      )
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as $B { $B.ID } WHERE EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and EXISTS (
-            SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
-            )
-          )`)
-    })
+
 
     // --> paths for exists predicates?
 

@@ -13,6 +13,29 @@ describe('(exist predicate) with joins', () => {
     cqn4sql = q => orig(q, m)
   })
 
+  describe('inner join in exists subquery for path expressions in infix filter', () => {
+    it('managed assoc within structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[dedication.addressee.name = 'Hasso']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            inner join bookshop.Person as addressee on addressee.ID = $b.dedication_addressee_ID
+          WHERE $b.author_ID = $A.ID
+            and addressee.name = 'Hasso'
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
   describe('in where', () => {
     it('managed assoc after exists and in expression', () => {
       const transformed = cqn4sql(cds.ql`

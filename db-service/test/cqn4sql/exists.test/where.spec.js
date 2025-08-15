@@ -104,6 +104,30 @@ describe('(exist predicate) in where conditions', () => {
     })
   })
 
+  describe('multi step exists', () => {
+    it('two associations, last with backlink', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author.books[title = 'Harry Potter']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID and EXISTS (
+            SELECT 1 from bookshop.Books as $b2
+            WHERE $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
+          )
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
   describe('table alias assignment', () => {
     it('query source TA has the same name as the assoc', () => {
       // element name wins over table alias
@@ -140,6 +164,28 @@ describe('(exist predicate) in where conditions', () => {
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $b
           WHERE $b.author_ID = books.ID
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('nested exists in filter with same auto-generated TA as outer query', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author[EXISTS books[title = 'Harry Potter']]`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID and EXISTS (
+          SELECT 1 from bookshop.Books as $b2
+          WHERE $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
+          )
         )`
       expectCqn(transformed).to.equal(expected)
     })
@@ -186,20 +232,77 @@ describe('(exist predicate) in where conditions', () => {
 
     it('simple infix filter on leaf', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from bookshop.Books
-      {
-        ID
-      }
-      WHERE EXISTS author[name = 'Sanderson']`)
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author[name = 'Sanderson']`)
       const expected = cds.ql`
-      SELECT from bookshop.Books as $B
-      {
-        $B.ID
-      }
-      WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as $a
-        WHERE $a.ID = $B.author_ID and $a.name = 'Sanderson'
-      )`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID and $a.name = 'Sanderson'
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('shortcut notation in filter auto-coerce target key', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author[17]`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID and $a.ID = 17
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('simple infix filter on leaf (unmanaged)', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[title = 'ABAP Objects']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID and $b.title = 'ABAP Objects'
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('structure access in filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[dedication.text = 'For Hasso']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID and $b.dedication_text = 'For Hasso'
+        )`
       expectCqn(transformed).to.equal(expected)
     })
 
@@ -273,7 +376,7 @@ describe('(exist predicate) in where conditions', () => {
             )
           ) + 2
         ) = 'foo'`
-        expectCqn(query).to.equal(expected)
+      expectCqn(query).to.equal(expected)
     })
 
     it('nested exists within infix filter', () => {
@@ -305,6 +408,25 @@ describe('(exist predicate) in where conditions', () => {
       expected.SELECT.where[1].SELECT.where.splice(4, Infinity, {
         xpr: [...expected.SELECT.where[1].SELECT.where.slice(4)],
       })
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('negation of expression', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS author[not (name = 'Sanderson')]`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          WHERE $a.ID = $B.author_ID and not ($a.name = 'Sanderson')
+        )`
       expectCqn(transformed).to.equal(expected)
     })
   })
