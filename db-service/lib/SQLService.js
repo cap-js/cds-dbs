@@ -360,8 +360,8 @@ class SQLService extends DatabaseService {
    * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
    * @param {function} callback - Function to be invoked for each row
    */
-  async foreach (query, callback) {
-    await query.foreach(callback)
+  foreach (query, callback) {
+    return query.foreach(callback)
   }
 
   /**
