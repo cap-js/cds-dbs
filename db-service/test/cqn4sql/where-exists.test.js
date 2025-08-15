@@ -1423,7 +1423,7 @@ describe('Path expressions in from combined with `exists` predicate', () => {
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
   it('OData lambda where exists comparing managed assocs', () => {
