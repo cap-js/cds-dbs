@@ -361,7 +361,7 @@ class SQLService extends DatabaseService {
    * @param {function} callback - Function to be invoked for each row
    */
   async foreach (query, callback) {
-    for await (const row of query) callback(row)
+    await query.foreach(callback)
   }
 
   /**
