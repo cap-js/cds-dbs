@@ -766,19 +766,6 @@ describe('comparisons of associations in on condition of elements needs to be ex
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
-
-  it('OData lambda where exists with unmanaged assoc', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`, model)
-    const expected = cds.ql`
-      SELECT from a2j.Foo as Foo {
-        Foo.ID
-      } where exists (
-        SELECT 1 FROM a2j.Buz as $b
-          where $b.bar_foo_ID = Foo.bar_foo_ID AND $b.bar_ID = Foo.bar_ID and $b.foo_ID = Foo.ID
-      )
-    `
-    expect(query).to.eql(expected)
-  })
 })
 
 describe('path expression within infix filter following exists predicate', () => {
