@@ -6,7 +6,7 @@ const { expectCqn } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
-describe('(a2j) in columns', () => {
+describe('(a2j) managed associations', () => {
   before(async () => {
     const model = await loadModel()
     const orig = cqn4sql // keep reference to original to avoid recursion
@@ -50,72 +50,27 @@ describe('(a2j) in columns', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('path via multiple assocs', () => {
-      const transformed = cqn4sql(
-        cds.ql`
-					SELECT from bookshop.Authors as Authors
-					{
-						name,
-						books.genre.descr,
-						books.title as books_title,
-						books.genre.code as books_genre_code
-					}`,
-      )
-      const expected = cds.ql`
-				SELECT from bookshop.Authors as Authors
-					left outer join bookshop.Books as books on books.author_ID = Authors.ID
-					left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-				{
-					Authors.name,
-					genre.descr as books_genre_descr,
-					books.title as books_title,
-					genre.code as books_genre_code
-				}`
-
-      expectCqn(transformed).to.equal(expected)
-    })
-
-    it('respect explicit column alias', () => {
-      const transformed = cqn4sql(cds.ql`
-				SELECT from bookshop.Authors as Authors
-				{
-					name,
-					books.genre.descr as foo,
-					books.title as books_title,
-					books.genre.code as books_genre_code
-				}`)
-      const expected = cds.ql`
-				SELECT from bookshop.Authors as Authors
-					left outer join bookshop.Books as books on books.author_ID = Authors.ID
-					left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-				{
-					Authors.name,
-					genre.descr as foo,
-					books.title as books_title,
-					genre.code as books_genre_code
-				}`
-      expectCqn(transformed).to.equal(expected)
-    })
-
     it('different paths with different assocs', () => {
       const transformed = cqn4sql(cds.ql`
 				SELECT from bookshop.Books as Books 
 				{
 					ID,
-					author.name, genre.descr,
-					dedication.addressee.name,
-					author.dateOfBirth
+					author.name,
+					author.dateOfBirth,
+          genre.descr,
+					dedication.addressee.name
 				}`)
       const expected = cds.ql`
 				SELECT from bookshop.Books as Books
 					left outer join bookshop.Authors as author on author.ID = Books.author_ID
 					left outer join bookshop.Genres as genre on genre.ID = Books.genre_ID
 					left outer join bookshop.Person as addressee on addressee.ID = Books.dedication_addressee_ID
-				{ Books.ID,
+				{
+          Books.ID,
 					author.name as author_name,
+					author.dateOfBirth as author_dateOfBirth,
 					genre.descr as genre_descr,
-					addressee.name as dedication_addressee_name,
-					author.dateOfBirth as author_dateOfBirth
+					addressee.name as dedication_addressee_name
 				}`
       expectCqn(transformed).to.equal(expected)
     })
@@ -181,29 +136,6 @@ describe('(a2j) in columns', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('different leaf association', () => {
-      const transformed = cqn4sql(cds.ql`
-				SELECT from bookshop.Authors as Authors
-				{
-					name,
-					books.genre.descr,
-					books.coAuthor.name,
-					books.genre.code,
-					books.coAuthor.dateOfBirth
-				}`)
-      const expected = cds.ql`
-				SELECT from bookshop.Authors as Authors
-					left outer join bookshop.Books as books on books.author_ID = Authors.ID
-					left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
-					left outer join bookshop.Authors as coAuthor on coAuthor.ID = books.coAuthor_ID
-				{ Authors.name,
-					genre.descr as books_genre_descr,
-					coAuthor.name as books_coAuthor_name,
-					genre.code as books_genre_code,
-					coAuthor.dateOfBirth as books_coAuthor_dateOfBirth
-				}`
-      expectCqn(transformed).to.equal(expected)
-    })
     it('in where', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books

@@ -51,6 +51,56 @@ describe('(a2j) unmanaged associations', () => {
     })
   })
 
+  describe('shared prefix', () => {
+    it('different leaf association', () => {
+      const transformed = cqn4sql(cds.ql`
+            SELECT from bookshop.Authors as Authors
+            {
+              name,
+              books.genre.descr,
+              books.genre.code,
+              books.coAuthor.name,
+              books.coAuthor.dateOfBirth
+            }`)
+      const expected = cds.ql`
+            SELECT from bookshop.Authors as Authors
+              left outer join bookshop.Books as books on books.author_ID = Authors.ID
+              left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+              left outer join bookshop.Authors as coAuthor on coAuthor.ID = books.coAuthor_ID
+            {
+              Authors.name,
+              genre.descr as books_genre_descr,
+              genre.code as books_genre_code,
+              coAuthor.name as books_coAuthor_name,
+              coAuthor.dateOfBirth as books_coAuthor_dateOfBirth
+            }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('first node shared by all', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          name,
+          books.title as books_title,
+          books.genre.descr,
+          books.genre.code as books_genre_code
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left outer join bookshop.Books as books on books.author_ID = Authors.ID
+          left outer join bookshop.Genres as genre on genre.ID = books.genre_ID
+        {
+          Authors.name,
+          books.title as books_title,
+          genre.descr as books_genre_descr,
+          genre.code as books_genre_code
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
   describe('with filter', () => {
     it('basic', () => {
       const transformed = cqn4sql(cds.ql`
