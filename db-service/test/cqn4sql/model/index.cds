@@ -1,0 +1,14 @@
+using from './A2J/classes';
+using from './A2J/FKAccess';
+using from './A2J/schema';
+using from './A2J/sharedFKIdentity';
+using from './A2J/TargetSideReferences';
+using from './cap_issue';
+using from './collaborations';
+using from './keyless';
+using from './nestedProjections';
+using from './update';
+using from './withParameters';
+using from '../../bookshop/db/booksWithExpr';
+using from '../../bookshop/db/schema';
+using from '../../bookshop/db/search';

@@ -1423,7 +1423,7 @@ describe('Path expressions in from combined with `exists` predicate', () => {
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
   it('OData lambda where exists comparing managed assocs', () => {
@@ -1604,6 +1604,17 @@ describe('path expression within infix filter following exists predicate', () =>
         )`,
     )
   })
+
+  it('path expression embedded in xpr', () => {
+    const q = cds.ql`select from bookshop.Books as Books { 1 as foo } where exists genre[('foo' || parent.name || 'bar') LIKE 'foo%bar']`
+    const expected = cds.ql`SELECT from bookshop.Books as Books { 1 as foo } where exists (
+      SELECT 1 from bookshop.Genres as $g
+      inner join bookshop.Genres as parent on parent.ID = $g.parent_ID
+      where $g.ID = Books.genre_ID and ('foo' || parent.name || 'bar') LIKE 'foo%bar'
+    )`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+
   it('rejects the path expression at the leaf of scoped queries', () => {
     // original idea was to just add the `genre.name` as where clause to the query
     // however, with left outer joins we might get too many results
@@ -1669,5 +1680,67 @@ describe('path expression within infix filter following exists predicate', () =>
         where $b.author_ID = Authors.ID AND toLower(toUpper(addressee.name)) = 'Hasso'
       )`,
     )
+  })
+})
+
+describe('define additional query modifiers', () => {
+  let model
+  beforeAll(async () => {
+    model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
+  })
+
+  it('...for scoped queries', () => {
+    const q = cds.ql`
+      SELECT from bookshop.Books[group by author.ID having count(*) > 5]:author { name }
+    `;
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as $a { $a.name }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $B
+        where $B.author_ID = $a.ID
+        group by $B.author_ID
+        having count(*) > 5
+      )
+    `;
+    expect(cqn4sql(q, model)).to.deep.equal(expected);
+  });
+  it('...after exists predicate', () => {
+    const q = cds.ql`SELECT from bookshop.Authors { name } where exists books[group by author.ID having count(*) > 5]`
+    const expected = cds.ql`SELECT from bookshop.Authors as $A { $A.name } WHERE EXISTS (
+      SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
+      group by $b.author_ID
+      having count(*) > 5
+    )`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
+  })
+  it('...in case statements', () => {
+    const q = cds.ql`
+      SELECT from bookshop.Authors as Authors
+      { ID,
+        case when exists books[group by author.ID having count(*) > 5] then 1
+             when exists books[group by author.ID having count(*) > 10] then 2
+        end as descr
+      }`
+    const expected = cds.ql`
+      SELECT from bookshop.Authors as Authors
+      { Authors.ID,
+        case 
+          when exists (
+            select 1 from bookshop.Books as $b
+            where $b.author_ID = Authors.ID
+            group by $b.author_ID
+            having count(*) > 5
+          )
+          then 1
+          when exists (
+            select 1 from bookshop.Books as $b2
+            where $b2.author_ID = Authors.ID
+            group by $b2.author_ID
+            having count(*) > 10
+          )
+          then 2
+        end as descr
+      }`
+    expect(cqn4sql(q, model)).to.deep.equal(expected)
   })
 })

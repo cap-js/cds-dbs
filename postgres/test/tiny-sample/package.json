@@ -12,6 +12,15 @@
     "cdsc": {
       "defaultStringLength": 1000,
       "standardDatabaseFunctions": true
+    },
+    "requires": {
+      "db": {
+        "kind": "postgres",
+        "vcap": {
+          "label": false,
+          "name": "postgres-external"
+        }
+      }
     }
   }
 }
