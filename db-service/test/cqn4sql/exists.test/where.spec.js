@@ -46,6 +46,25 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    it('managed assoc within structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID
+        }
+        WHERE EXISTS dedication.addressee`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Person as $a
+          WHERE $a.ID = $B.dedication_addressee_ID
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('one unmanaged association (to-many)', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
@@ -187,6 +206,84 @@ describe('(exist predicate) in where conditions', () => {
           WHERE $b2.author_ID = $a.ID and $b2.title = 'Harry Potter'
           )
         )`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('nested exists in filter with same auto-generated TA as outer query + additional condition', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[EXISTS author or title = 'Gravity']`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          WHERE $b.author_ID = $A.ID
+          and (
+            EXISTS (
+              SELECT 1 from bookshop.Authors as $a2
+              WHERE $a2.ID = $b.author_ID
+            ) or $b.title = 'Gravity'
+          )
+        )`
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('nested EXISTS with unmanaged assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+      SELECT from bookshop.Authors
+      {
+        ID
+      }
+      WHERE EXISTS books[ EXISTS coAuthorUnmanaged[ EXISTS books ]
+      ]`)
+
+      const expected = cds.ql`
+      SELECT from bookshop.Authors as $A
+      {
+        $A.ID
+      }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b
+        WHERE $b.author_ID = $A.ID and EXISTS (
+          SELECT 1 from bookshop.Authors as $c
+          WHERE $c.ID = $b.coAuthor_ID_unmanaged and EXISTS (
+            SELECT 1 from bookshop.Books as $b2
+            WHERE $b2.author_ID = $c.ID
+          )
+        )
+      )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('nested exists in filter with same auto-generated TA as outer query + additional condition reversed', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[title = 'Gravity' or EXISTS author]`)
+      const expected = cds.ql`
+      SELECT from bookshop.Authors as $A
+      {
+        $A.ID
+      }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as $b
+        WHERE $b.author_ID = $A.ID
+          and (
+            $b.title = 'Gravity'
+              or EXISTS (
+                SELECT 1 from bookshop.Authors as $a2
+                WHERE $a2.ID = $b.author_ID
+              )
+          )
+      )`
       expectCqn(transformed).to.equal(expected)
     })
   })
