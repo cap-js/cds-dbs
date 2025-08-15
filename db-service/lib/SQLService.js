@@ -356,6 +356,15 @@ class SQLService extends DatabaseService {
   }
 
   /**
+   * Streaming API variant of .run().
+   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {function} callback - Function to be invoked for each row
+   */
+  async foreach (query, callback) {
+    for await (const row of query) callback(row)
+  }
+
+  /**
    * Helper class for results of INSERTs.
    * Subclasses may override this.
    */
