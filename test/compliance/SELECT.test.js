@@ -1048,7 +1048,7 @@ describe('SELECT', () => {
     }))
   })
 
-  describe('pipe', () => {
+  describe('pipeline', () => {
     test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
