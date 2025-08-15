@@ -43,4 +43,38 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(otherWayOfWritingFilter).to.equal(expected)
     })
   })
+
+  describe('modify subquery', () => {
+    // TODO: FIX
+    it.skip('with group by and having', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[
+          where 1 = 1
+          group by author.ID
+          having count(*) > 5
+          order by 5 desc
+          limit 10
+          ]:author
+        {
+          name
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $a
+        {
+          $a.name
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+          WHERE $B.author_ID = $a.ID
+            and 1 = 1
+          group by $B.author_ID
+          having count(*) > 5
+          order by 5 desc
+          limit 10
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
 })
