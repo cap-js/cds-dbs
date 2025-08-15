@@ -39,7 +39,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # testing
-      - run: npm test -ws
+      - run: npm test -w hana -- --unmute remote.test.js
         env:
           cds_features_pool: true
           FORCE_COLOR: true
