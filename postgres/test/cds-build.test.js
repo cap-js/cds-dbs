@@ -45,4 +45,12 @@ describe('cds build plugin', () => {
     // this is excluded from being copied over
     expect(packageJson.cds?.cdsc?.moduleLookupDirectories).to.be.undefined
   })
+  
+  test('should retain db settings', () => {
+    execSync('npx cds build --production', { cwd: workDir })
+    const packageJson = require(path.join(pgDest, 'package.json'))
+    expect(packageJson.cds?.requires?.db?.kind).to.equal('postgres')
+    expect(packageJson.cds?.requires?.db?.vcap?.label).to.be.false
+    expect(packageJson.cds?.requires?.db?.vcap?.name).to.equal('postgres-external')
+  })
 })
