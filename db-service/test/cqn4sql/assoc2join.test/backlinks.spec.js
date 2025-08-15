@@ -16,22 +16,26 @@ describe('(a2j) backlinks', () => {
   describe('backlink is managed', () => {
     it('basic', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from a2j.Header as Header {
+      SELECT from a2j.Header as Header
+      {
         toItem_selfMgd.id,
       }`)
+
       const expected = cds.ql`
-        SELECT from a2j.Header as Header
-          left outer join a2j.Item as toItem_selfMgd
-            on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
-        {
-          toItem_selfMgd.id as toItem_selfMgd_id
-        }`
+      SELECT from a2j.Header as Header
+        left outer join a2j.Item as toItem_selfMgd
+          on toItem_selfMgd.toHeader_id = Header.id and toItem_selfMgd.toHeader_id2 = Header.id2
+      {
+        toItem_selfMgd.id as toItem_selfMgd_id
+      }`
+
       expectCqn(transformed).to.equal(expected)
     })
 
     it('navigate along backlink assoc', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Folder as Folder {
+      SELECT from a2j.Folder as Folder
+      {
         nodeCompanyCode.assignments.data
       }`)
       const expected = cds.ql`
@@ -50,7 +54,8 @@ describe('(a2j) backlinks', () => {
   describe('backlink is unmanaged', () => {
     it('self unmanaged', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Header as Header {
+      SELECT from a2j.Header as Header
+      {
         toItem_selfUmgd.id,
       }`)
       const expected = cds.ql`
@@ -67,7 +72,8 @@ describe('(a2j) backlinks', () => {
   describe('multiple backlinks', () => {
     it('one backlink is managed, the other unmanaged', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Header as Header {
+      SELECT from a2j.Header as Header
+      {
         toItem_combined.id,
       }`)
       const expected = cds.ql`
@@ -86,7 +92,8 @@ describe('(a2j) backlinks', () => {
 
     it('different backlink paths used (managed/unmanaged/combined)', () => {
       const transformed = cqn4sql(cds.ql`
-      SELECT from a2j.Header as Header {
+      SELECT from a2j.Header as Header
+      {
         toItem_selfMgd.id as selfMgd_id,
         toItem_selfUmgd.id as selfUmgd_id,
         toItem_combined.id as combined_id,
@@ -139,7 +146,8 @@ describe('(a2j) backlinks', () => {
   describe('key renaming', () => {
     it('backlink has assoc as key with renaming on multiple levels', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze2 as AM {
+        SELECT from bookshop.AssocMaze2 as AM
+        {
           a,
           a_assocYA_back.ID as x
         }`)

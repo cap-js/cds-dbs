@@ -14,15 +14,17 @@ describe('(a2j) fk detection', () => {
   })
 
   describe('simple', () => {
+
     it('follow managed assoc, select FK', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID }`)
       const expected = cds.ql`
-	  	SELECT from bookshop.Books as Books
-		  {
-		    Books.author_ID
-		  }`
+        SELECT from bookshop.Books as Books
+        {
+          Books.author_ID
+        }`
       expectCqn(transformed).to.equal(expected)
     })
+
     it('follow managed assoc, select FK and other field', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID, author.name }`)
       const expected = cds.ql`
