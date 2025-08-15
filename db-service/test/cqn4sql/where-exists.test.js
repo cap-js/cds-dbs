@@ -767,30 +767,6 @@ describe('comparisons of associations in on condition of elements needs to be ex
     model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
-  it('OData lambda where exists comparing managed assocs', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buz`, model)
-    const expected = cds.ql`
-      SELECT from a2j.Foo as Foo {
-        Foo.ID
-      } where exists (
-        SELECT 1 FROM a2j.Buz as $b
-          where ($b.bar_ID = Foo.bar_ID AND $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
-      )
-    `
-    expect(query).to.eql(expected)
-  })
-  it('OData lambda where exists comparing managed assocs with renamed keys', () => {
-    const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzRenamed`, model)
-    const expected = cds.ql`
-      SELECT from a2j.Foo as Foo {
-        Foo.ID
-      } where exists (
-        SELECT 1 FROM a2j.Buz as $b
-          where ($b.barRenamed_renameID = Foo.barRenamed_renameID AND $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
-      )
-    `
-    expect(query).to.eql(expected)
-  })
   it('OData lambda where exists with unmanaged assoc', () => {
     const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`, model)
     const expected = cds.ql`

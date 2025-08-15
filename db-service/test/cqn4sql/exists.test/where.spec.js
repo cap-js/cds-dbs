@@ -1053,4 +1053,45 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
   })
+
+  describe('on-condition flattening', () => {
+    it('comparing managed assocs', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buz`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo {
+          Foo.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from a2j.Buz as $b
+          where ($b.bar_ID = Foo.bar_ID and $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
+        )`
+      expect(query).to.eql(expected)
+    })
+
+    it('comparing managed assocs with renamed keys', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzRenamed`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo {
+          Foo.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from a2j.Buz as $b
+          where ($b.barRenamed_renameID = Foo.barRenamed_renameID and $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
+        )`
+      expect(query).to.eql(expected)
+    })
+
+    it('drill down into foreign keys', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo {
+          Foo.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from a2j.Buz as $b
+          where $b.bar_foo_ID = Foo.bar_foo_ID and $b.bar_ID = Foo.bar_ID and $b.foo_ID = Foo.ID
+        )`
+      expect(query).to.eql(expected)
+    })
+  })
 })
