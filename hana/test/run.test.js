@@ -62,6 +62,14 @@ async function createProcedures() {
       BEGIN
         PARAM_1=SELECT :PARAM_0 AS NUM0 FROM dummy;
         PARAM_2=SELECT :PARAM_0+1 AS NUM1 FROM dummy;
+      END;`,
+
+    `CREATE PROCEDURE WRITE_PROC ()
+      LANGUAGE SQLSCRIPT
+      DEFAULT SCHEMA ${schema}
+      AS
+      BEGIN
+        INSERT INTO sap_capire_TestEntity (ID,title) VALUES (10,'FROM ASYNC PROC');
       END;`
   ]
 
@@ -93,6 +101,37 @@ describe('stored procedures', () => {
   beforeAll(async () => {
     await addData()
     await createProcedures()
+  })
+
+  describe('async', () => {
+    test('transactions', async () => {
+      await cds.tx(async (tx) => {
+        // Call INSERT before starting the procedure to make sure it is already on the transaction
+        // before the procedure could ever commit the transaction
+        await cds.run(`INSERT INTO sap_capire_TestEntity (ID,title) VALUES (20,'FROM TX')`)
+
+        // Call the procedure with ASYNC
+        const { ASYNC_CALL_ID } = await cds.run(`CALL WRITE_PROC() ASYNC`, [])
+        const status = await cds.run(`DO (IN ID INTEGER => ?)
+BEGIN
+  USING SQLSCRIPT_SYNC AS SYNCLIB;
+  DECLARE cnt INTEGER DEFAULT 0;
+  DECLARE dur INTEGER DEFAULT 0;
+  WHILE :cnt = 0 DO
+      SELECT count(*) into cnt FROM M_PROCEDURE_ASYNC_EXECUTIONS WHERE ASYNC_CALL_ID = :ID AND END_TIME IS NOT NULL;
+      CALL SYNCLIB:SLEEP_SECONDS(1);
+      dur = :dur + 1;
+  END WHILE;
+  SELECT ERROR_CODE, ERROR_TEXT, :dur AS WAITED_SECONDS FROM M_PROCEDURE_ASYNC_EXECUTIONS WHERE ASYNC_CALL_ID = :ID;
+END;`, [ASYNC_CALL_ID])
+        // Ensure that the procedure succeeded
+        expect(status.changes[1][0].ERROR_CODE).to.eq(0)
+        throw new Error('ROLLBACK')
+      }).catch((err) => { if (err.message !== 'ROLLBACK') throw err })
+
+      const result = await cds.run(`SELECT * FROM sap_capire_TestEntity WHERE ID IN (10,20)`)
+      expect(result).length(1)
+    })
   })
 
   describe('without schema name', () => {
