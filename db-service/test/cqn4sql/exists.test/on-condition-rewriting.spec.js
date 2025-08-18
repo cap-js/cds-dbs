@@ -154,15 +154,51 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         } where exists (
           SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
           where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
-                and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
-                and $d.snapshotHash = $r.snapshotHash
-                and $r.ID = 1 and $r.snapshotHash = 0
-                and exists (
-                  SELECT 1 from bookshop.WorklistItems as $W
-                  where $r.parent_ID = $W.ID
-                    and $r.parent_snapshotHash = $W.snapshotHash
-                    and $W.ID = 1 and $W.snapshotHash = 0
-                )
+            and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
+            and $d.snapshotHash = $r.snapshotHash
+            and $r.ID = 1 and $r.snapshotHash = 0
+            and exists (
+              SELECT 1 from bookshop.WorklistItems as $W
+              where $r.parent_ID = $W.ID
+                and $r.parent_snapshotHash = $W.snapshotHash
+                and $W.ID = 1 and $W.snapshotHash = 0
+            )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('on-condition has xpr and leaf at filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.WorklistItems[ID = 1 and snapshotHash = 0]
+        :releaseChecks[ID = 1 and snapshotHash = 0]
+        .detailsDeviations[ID='0' and snapshotHash='0' and batch_ID='*' and material_ID='1']`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.QualityDeviations as $d
+        {
+          $d.snapshotHash,
+          $d.ID,
+          $d.batch_ID,
+          $d.material_ID,
+        } where exists (
+          SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
+          where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+            and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
+            and $d.snapshotHash = $r.snapshotHash
+            and $r.ID = 1 and $r.snapshotHash = 0
+            and exists (
+              SELECT 1 from bookshop.WorklistItems as $W
+              where $r.parent_ID = $W.ID
+                and $r.parent_snapshotHash = $W.snapshotHash
+                and $W.ID = 1 and $W.snapshotHash = 0
+            )
+        )
+        and (
+          $d.ID = '0'
+          and $d.snapshotHash = '0'
+          and $d.batch_ID = '*'
+          and $d.material_ID = '1'
         )`
 
       expectCqn(transformed).to.equal(expected)

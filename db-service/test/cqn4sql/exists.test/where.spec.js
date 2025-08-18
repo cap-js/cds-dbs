@@ -820,6 +820,55 @@ describe('(exist predicate) in where conditions', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('scoped query + exists predicate in where', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books:genre as genre
+        {
+          ID
+        }
+        where exists parent`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as genre
+        {
+          genre.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+          where $B.genre_ID = genre.ID
+        )
+        AND EXISTS (
+          SELECT 1 from bookshop.Genres as $p
+          where $p.ID = genre.parent_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('semantically same as above', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books:genre[exists parent]
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as $g
+        {
+          $g.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $B
+          where $B.genre_ID = $g.ID
+        )
+        AND EXISTS (
+          SELECT 1 from bookshop.Genres as $p
+          where $p.ID = $g.parent_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('flattening of foreign keys', () => {
@@ -1055,8 +1104,6 @@ describe('(exist predicate) in where conditions', () => {
   })
 
   describe('on-condition flattening', () => {
-    
-
     it('drill down into foreign keys', () => {
       const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`)
       const expected = cds.ql`

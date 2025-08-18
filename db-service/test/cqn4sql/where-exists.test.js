@@ -143,40 +143,6 @@ describe('Scoped queries', () => {
 
 
 
-  it('on condition of to many composition in csn model has xpr and dangling filter', () => {
-    const q = cds.ql`
-      SELECT from bookshop.WorklistItems[ID = 1 and snapshotHash = 0]
-      :releaseChecks[ID = 1 and snapshotHash = 0]
-      .detailsDeviations[ID='0' and snapshotHash='0'and batch_ID='*' and material_ID='1']
-    `
-    const expected = cds.ql`
-      SELECT from bookshop.QualityDeviations as $d {
-        $d.snapshotHash,
-        $d.ID,
-        $d.batch_ID,
-        $d.material_ID,
-      } where exists (
-        SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
-        where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
-              and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
-              and $d.snapshotHash = $r.snapshotHash
-              and $r.ID = 1 and $r.snapshotHash = 0
-              and exists (
-                SELECT 1 from bookshop.WorklistItems as $W
-                where $r.parent_ID = $W.ID
-                  and $r.parent_snapshotHash = $W.snapshotHash
-                  and $W.ID = 1 and $W.snapshotHash = 0
-              )
-      )
-      and (
-              $d.ID = '0'
-          and $d.snapshotHash = '0'
-          and $d.batch_ID = '*'
-          and $d.material_ID = '1'
-        )
-    `
-    expect(cqn4sql(q, model)).to.deep.equal(expected)
-  })
 
   /**
    * TODO
@@ -195,22 +161,8 @@ describe('Path expressions in from combined with `exists` predicate', () => {
   // mixing path in FROM and WHERE EXISTS
   // SMW -> move that in a seperate "describe" ?
   //
-  it('MUST ... mixed with path in FROM clause', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:genre as genre { ID } where exists parent`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre { genre.ID }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.genre_ID = genre.ID )
-          AND EXISTS ( SELECT 1 from bookshop.Genres as $p where $p.ID = genre.parent_ID )
-      `)
-  })
 
   // semantically same as above
-  it('MUST ... EXISTS in filter in FROM', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:genre[exists parent] { ID }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $g { $g.ID }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.genre_ID = $g.ID )
-          AND EXISTS ( SELECT 1 from bookshop.Genres as $p where $p.ID = $g.parent_ID )
-      `)
-  })
 })
 
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
