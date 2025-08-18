@@ -1681,6 +1681,26 @@ describe('path expression within infix filter following exists predicate', () =>
       )`,
     )
   })
+
+  it('custom where exists with path expression', () => {
+    expect(
+      cqn4sql(
+        CQL`SELECT from bookshop.Authors { ID } WHERE EXISTS (
+          SELECT 1 FROM bookshop.Books as books
+          WHERE books.author_ID = books.author.ID and books.ID = 'ebf36bd9-4ef8-4d06-b83e-ffacf2b7fb59'
+        )`,
+        model,
+      ),
+    ).to.eql(
+      CQL`SELECT from bookshop.Authors as Authors { Authors.ID }
+      WHERE EXISTS (
+        SELECT 1 from bookshop.Books as books
+          inner join bookshop.Authors as authors
+          on books.author_ID = authors.ID
+        where books.author_ID = authors.ID AND books.ID = 'ebf36bd9-4ef8-4d06-b83e-ffacf2b7fb59'
+      )`,
+    )
+  })
 })
 
 describe('define additional query modifiers', () => {
