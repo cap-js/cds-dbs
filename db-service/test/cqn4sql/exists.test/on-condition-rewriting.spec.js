@@ -113,5 +113,238 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('comparing managed assocs in on-condition', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buz`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo {
+          Foo.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from a2j.Buz as $b
+          where ($b.bar_ID = Foo.bar_ID and $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
+        )`
+      expectCqn(query).to.equal(expected)
+    })
+
+    it('comparing managed assocs with renamed keys', () => {
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzRenamed`)
+      const expected = cds.ql`
+        SELECT from a2j.Foo as Foo {
+          Foo.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from a2j.Buz as $b
+          where ($b.barRenamed_renameID = Foo.barRenamed_renameID and $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
+        )`
+      expectCqn(query).to.equal(expected)
+    })
+
+    it('on-condition has xpr', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.WorklistItems[ID = 1 and snapshotHash = 0]:releaseChecks[ID = 1 and snapshotHash = 0].detailsDeviations`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.QualityDeviations as $d
+        {
+          $d.snapshotHash,
+          $d.ID,
+          $d.batch_ID,
+          $d.material_ID,
+        } where exists (
+          SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
+          where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+                and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
+                and $d.snapshotHash = $r.snapshotHash
+                and $r.ID = 1 and $r.snapshotHash = 0
+                and exists (
+                  SELECT 1 from bookshop.WorklistItems as $W
+                  where $r.parent_ID = $W.ID
+                    and $r.parent_snapshotHash = $W.snapshotHash
+                    and $W.ID = 1 and $W.snapshotHash = 0
+                )
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('managed', () => {
+    it('with structured FK', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_struc as a_struc
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_struc
+        {
+          a_struc.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_struc_ID_1_a = a_struc.ID_1_a and $A.a_struc_ID_1_b = a_struc.ID_1_b
+            and $A.a_struc_ID_2_a = a_struc.ID_2_a and $A.a_struc_ID_2_b = a_struc.ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with simple explicit FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_strucX as a_strucX
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_strucX
+        {
+          a_strucX.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_strucX_a = a_strucX.a and $A.a_strucX_b = a_strucX.b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with explicit structured FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_strucY as a_strucY
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_strucY
+        {
+          a_strucY.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_strucY_S_1_a = a_strucY.S_1_a and $A.a_strucY_S_1_b = a_strucY.S_1_b
+            and $A.a_strucY_S_2_a = a_strucY.S_2_a and $A.a_strucY_S_2_b = a_strucY.S_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with explicit structured renamed FKs', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_strucXA as a_strucXA
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_strucXA
+        {
+          a_strucXA.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_strucXA_T_1_a = a_strucXA.S_1_a and $A.a_strucXA_T_1_b = a_strucXA.S_1_b
+            and $A.a_strucXA_T_2_a = a_strucXA.S_2_a and $A.a_strucXA_T_2_b = a_strucXA.S_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with explicit FKs being managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_assocY as a_assocY
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_assocY
+        {
+          a_assocY.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_assocY_A_1_a = a_assocY.A_1_a and $A.a_assocY_A_1_b_ID = a_assocY.A_1_b_ID
+            and $A.a_assocY_A_2_a = a_assocY.A_2_a and $A.a_assocY_A_2_b_ID = a_assocY.A_2_b_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with explicit FKs being managed associations (base renamed)', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_assocYA as a_assocYA
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze2 as a_assocYA
+        {
+          a_assocYA.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_assocYA_B_1_a = a_assocYA.A_1_a and $A.a_assocYA_B_1_b_ID = a_assocYA.A_1_b_ID
+            and $A.a_assocYA_B_2_a = a_assocYA.A_2_a and $A.a_assocYA_B_2_b_ID = a_assocYA.A_2_b_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with FKs being mix of structures and managed assoc', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_strass as a_strass
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze4 as a_strass
+        {
+          a_strass.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_strass_A_1_a = a_strass.A_1_a
+            and $A.a_strass_A_1_b_assoc1_ID_1_a = a_strass.A_1_b_assoc1_ID_1_a and $A.a_strass_A_1_b_assoc1_ID_1_b = a_strass.A_1_b_assoc1_ID_1_b
+            and $A.a_strass_A_1_b_assoc1_ID_2_a = a_strass.A_1_b_assoc1_ID_2_a and $A.a_strass_A_1_b_assoc1_ID_2_b = a_strass.A_1_b_assoc1_ID_2_b
+            and $A.a_strass_A_1_b_assoc2_ID_1_a = a_strass.A_1_b_assoc2_ID_1_a and $A.a_strass_A_1_b_assoc2_ID_1_b = a_strass.A_1_b_assoc2_ID_1_b
+            and $A.a_strass_A_1_b_assoc2_ID_2_a = a_strass.A_1_b_assoc2_ID_2_a and $A.a_strass_A_1_b_assoc2_ID_2_b = a_strass.A_1_b_assoc2_ID_2_b
+            and $A.a_strass_A_2_a = a_strass.A_2_a
+            and $A.a_strass_A_2_b_assoc1_ID_1_a = a_strass.A_2_b_assoc1_ID_1_a and $A.a_strass_A_2_b_assoc1_ID_1_b = a_strass.A_2_b_assoc1_ID_1_b
+            and $A.a_strass_A_2_b_assoc1_ID_2_a = a_strass.A_2_b_assoc1_ID_2_a and $A.a_strass_A_2_b_assoc1_ID_2_b = a_strass.A_2_b_assoc1_ID_2_b
+            and $A.a_strass_A_2_b_assoc2_ID_1_a = a_strass.A_2_b_assoc2_ID_1_a and $A.a_strass_A_2_b_assoc2_ID_1_b = a_strass.A_2_b_assoc2_ID_1_b
+            and $A.a_strass_A_2_b_assoc2_ID_2_a = a_strass.A_2_b_assoc2_ID_2_a and $A.a_strass_A_2_b_assoc2_ID_2_b = a_strass.A_2_b_assoc2_ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with FKs being managed associations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.AssocMaze1:a_assoc as a_assoc
+        {
+          val
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.AssocMaze3 as a_assoc
+        {
+          a_assoc.val
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.AssocMaze1 as $A
+          where $A.a_assoc_assoc1_ID_1_a = a_assoc.assoc1_ID_1_a and $A.a_assoc_assoc1_ID_1_b = a_assoc.assoc1_ID_1_b
+            and $A.a_assoc_assoc1_ID_2_a = a_assoc.assoc1_ID_2_a and $A.a_assoc_assoc1_ID_2_b = a_assoc.assoc1_ID_2_b
+            and $A.a_assoc_assoc2_ID_1_a = a_assoc.assoc2_ID_1_a and $A.a_assoc_assoc2_ID_1_b = a_assoc.assoc2_ID_1_b
+            and $A.a_assoc_assoc2_ID_2_a = a_assoc.assoc2_ID_2_a and $A.a_assoc_assoc2_ID_2_b = a_assoc.assoc2_ID_2_b
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 })

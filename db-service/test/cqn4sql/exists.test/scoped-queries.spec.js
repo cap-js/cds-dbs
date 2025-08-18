@@ -508,6 +508,38 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
+    // (SMW) TODO: Order
+    //  semantically correct, but order of infix filter and exists subqueries not consistent
+    it('exists predicate within infix filter at root, leaf and middle', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[exists genre]:author[exists books].books[exists genre]
+        {
+          ID
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $b
+        {
+          $b.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Authors as $a where $a.ID = $b.author_ID
+            and EXISTS (
+              SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
+            )
+            and EXISTS (
+              SELECT 1 from bookshop.Books as $B3 where $B3.author_ID = $a.ID
+                and EXISTS (
+                  SELECT 1 from bookshop.Genres as $g where $g.ID = $B3.genre_ID
+                )
+            )
+        ) and EXISTS (
+          SELECT 1 from bookshop.Genres as $g2 where $g2.ID = $b.genre_ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('multiple, nested exists predicate within infix filter at leaf', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books:author[exists books[exists coAuthorUnmanaged or title = 'Sturmhöhe']]
