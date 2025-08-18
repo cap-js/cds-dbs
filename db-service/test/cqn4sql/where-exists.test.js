@@ -14,30 +14,6 @@ describe('EXISTS predicate in where', () => {
   })
 
   describe('access association after `exists` predicate', () => {
-    it('exists predicate after having', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author`, model)
-      // having only works on aggregated queries, hence the "group by" to make
-      // the example more "real life"
-      expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as $B { $B.ID }
-         GROUP BY $B.ID
-         HAVING EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID
-         )`,
-      )
-    })
-    it('exists predicate after having with infix filter', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`, model)
-      // having only works on aggregated queries, hence the "group by" to make
-      // the example more "real life"
-      expect(query).to.deep.equal(
-        cds.ql`SELECT from bookshop.Books as $B { $B.ID }
-         GROUP BY $B.ID
-         HAVING EXISTS (
-          SELECT 1 from bookshop.Authors as $a where $a.ID = $B.author_ID and $a.ID = 42
-         )`,
-      )
-    })
 
 
 
@@ -124,13 +100,6 @@ describe('EXISTS predicate in where', () => {
     //
 
     // TODO test with ... assoc path in from with FKs being managed assoc with explicit aliased FKs
-
-    it('... managed association with explicit FKs being path into a struc', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } where exists a_part`, model)
-      expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocMaze1 as AM { AM.ID } WHERE EXISTS (
-        SELECT 1 from bookshop.AssocMaze2 as $a where $a.A_1_a = AM.a_part_a and $a.S_2_b = AM.a_part_b
-      )`)
-    })
   })
 })
 
@@ -138,35 +107,6 @@ describe('EXISTS predicate in infix filter', () => {
   let model
   beforeAll(async () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
-  })
-
-  it('reject non foreign key access in infix filter', async () => {
-    const model = await cds.load(__dirname + '/model/collaborations').then(cds.linked)
-    const q = cds.ql`
-      SELECT from Collaborations {
-        id
-      }
-       where exists leads[ participant.scholar_userID = $user.id ]
-    `
-    // maybe in the future this could be something like this
-    // the future is here...
-    // eslint-disable-next-line no-unused-vars
-    const expectation = cds.ql`
-      SELECT from Collaborations as Collaborations {
-        Collaborations.id
-      } where exists (
-        SELECT 1 from CollaborationLeads as leads
-          left join CollaborationParticipants as participant on participant.ID = leads.participant_id
-          where (leads.collaboration_id = Collaborations.id)
-            and leads.isLead = true
-            and participant.scholar_userID = $user.id
-      )
-    `
-    expect(() => {
-      cqn4sql(q, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model))))
-    })
-      .to.not.throw(/Only foreign keys of “participant” can be accessed in infix filter/)
-      .and.to.eql(expectation)
   })
 })
 
@@ -176,395 +116,32 @@ describe('Scoped queries', () => {
     model = cds.model = await cds.load(__dirname + '/../bookshop/srv/cat-service').then(cds.linked)
   })
 
-  it('does not ignore the expand root from being considered for the table alias calculation', () => {
-    const originalQuery = cds.ql`SELECT from bookshop.Genres:parent.parent.parent { ID }`
-    // table aliases for `query.SELECT.expand === true` are not materialized in the transformed query and must be ignored
-    // however, for the main query having the `query.SELECT.expand === 'root'` we must consider the table aliases
-    originalQuery.SELECT.expand = 'root'
-    let query = cqn4sql(originalQuery, model)
 
-    // clean up so that the queries match
-    delete originalQuery.SELECT.expand
 
-    expect(query).to.deep.equal(cds.ql`
-      SELECT from bookshop.Genres as $p { $p.ID }
-      where exists (
-        SELECT 1 from bookshop.Genres as $p2
-          where $p2.parent_ID = $p.ID and
-          exists (
-            SELECT 1 from bookshop.Genres as $p3
-              where $p3.parent_ID = $p2.ID  and
-              exists (
-                SELECT 1 from bookshop.Genres as $G
-                where $G.parent_ID = $p3.ID
-              )
-          )
-      )
-    `)
-  })
 
-  //TODO infix filter with association with structured foreign key
 
-  //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
-  // which, by the way, is the case in tests below where we have a path in FROM -> ???
-  it('handles infix filter at entity and WHERE clause', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[price < 12.13] as Books {Books.ID} where stock < 11`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (Books.price < 12.13)`,
-    )
-  })
-  it('handles multiple assoc steps', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.TestPublisher:texts {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.TestPublisher.texts as $t {$t.ID} WHERE exists (
-        SELECT 1 from bookshop.TestPublisher as $T2 where $t.publisher_structuredKey_ID = $T2.publisher_structuredKey_ID
-      )`,
-    )
-  })
-  it.skip('handles multiple assoc steps with renamed keys', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.TestPublisher:textsRenamedPublisher {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.TestPublisher.texts as textsRenamedPublisher {textsRenamedPublisher.ID} WHERE exists (
-        SELECT 1 from bookshop.TestPublisher as TestPublisher where textsRenamedPublisher.publisherRenamedKey_notID = TestPublisher.publisherRenamedKey_notID
-      )`,
-    )
-  })
 
-  it('handles infix filter with nested xpr at entity and WHERE clause', () => {
-    let query = cqn4sql(
-      cds.ql`
-      SELECT from bookshop.Books[not (price < 12.13)] as Books { Books.ID } where stock < 11
-      `,
-      model,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`,
-    )
-  })
 
-  //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
-  // which, by the way, is the case in tests below where we have a path in FROM -> ???
-  it('gets precedence right for infix filter at entity and WHERE clause', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books[price < 12.13 or stock > 77] as Books {Books.ID} where stock < 11 or price > 17.89`,
-      model,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11 or Books.price > 17.89) and (Books.price < 12.13 or Books.stock > 77)`,
-    )
-    //expect (query) .to.deep.equal (cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.price < 12.13 or Books.stock > 77) and (Books.stock < 11 or Books.price > 17.89)`)  // (SMW) want this
-  })
 
-  it('FROM path ends on to-one association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author { name }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $a { $a.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-      )`)
-  })
-  it('unmanaged to one with (multiple) $self in on-condition', () => {
-    // $self in refs of length > 1 can just be ignored semantically
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:coAuthorUnmanaged { name }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $c { $c.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $c.ID = $B.coAuthor_ID_unmanaged
-      )`)
-  })
-  it('handles FROM path with association with explicit table alias', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author as author { author.name }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author { author.name }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
-      )`)
-  })
 
-  it('handles FROM path with association with mean explicit table alias', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author as $B { name, $B.dateOfBirth }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $B { $B.name, $B.dateOfBirth}
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B2 where $B2.author_ID = $B.ID
-      )`)
-  })
 
-  it('handles FROM path with backlink association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books as books {books.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books as books {books.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as $A where $A.ID = books.author_ID
-      )`)
-  })
-  it('handles FROM path with backlink association for association-like calculated element', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock as booksWithALotInStock {booksWithALotInStock.ID}`, model)
-    expect(query).to.deep
-      .equal(cds.ql`SELECT from bookshop.Books as booksWithALotInStock {booksWithALotInStock.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Authors as $A where ( $A.ID = booksWithALotInStock.author_ID ) and ( booksWithALotInStock.stock > 100 )
-      )`)
-  })
-
-  it('handles FROM path with unmanaged composition and prepends source side alias', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:texts { locale }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Books.texts as $t {$t.locale} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $B where $t.ID = $B.ID
-      )`)
-  })
-
-  it('handles FROM path with struct and association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:dedication.addressee { dateOfBirth }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Person as $a { $a.dateOfBirth }
-        WHERE EXISTS ( SELECT 1 from bookshop.Books as $B where $B.dedication_addressee_ID = $a.ID
-      )`)
-  })
-
-  it('handles FROM path with struct and association (2)', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.DeepRecursiveAssoc:one.two.three.toSelf { ID }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.DeepRecursiveAssoc as $t { $t.ID }
-        WHERE EXISTS (
-          SELECT 1 from bookshop.DeepRecursiveAssoc as $D where $D.one_two_three_toSelf_ID = $t.ID
-      )`)
-  })
-  it('handles FROM path with filter at entity plus association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[ID=201]:author as author {author.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as author {author.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID and $B.ID=201
-      )`)
-  })
-
-  // (SMW) here the explicit WHERE comes at the end (as it should be)
-  it('handles FROM path with association and filters and WHERE', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books[ID=201 or ID=202]:author[ID=4711 or ID=4712] as author {author.ID} where author.name='foo' or name='bar'`,
-      model,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID and ($B.ID=201 or $B.ID=202)
-        ) and (author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar')`,
-    )
-  })
-
-  it('handles FROM path with association with one infix filter at leaf step', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author[ID=4711] as author {author.ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as author {author.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
-        ) and author.ID=4711`,
-    )
-  })
 
   //
   // convenience:
   //   shortcut notation (providing only value) allowed in filter if association target has exactly one PK
   //
 
-  // (SMW) TODO check
-  // (PB) modified -> additional where condition e.g. infix filter in result are wrapped in `xpr`
-  it('MUST ... in from clauses with infix filters, ODATA variant w/o mentioning key', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[201]:author[150] {ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Authors as $a {$a.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID and $B.ID=201
-      ) AND $a.ID = 150`)
-  })
-
-  // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
-  // only shortcut notation is not allowed
-  // TODO: message can include the fix: `write ”<key> = 42” explicitly`
-  it('MUST ... reject filters on associations with multiple foreign keys', () => {
-    expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`, model)).to.throw(
-      /Filters can only be applied to managed associations which result in a single foreign key/,
-    )
-  })
 
   // (SMW) TODO: check
-  it('MUST ... in from clauses with infix filters ODATA variant w/o mentioning key ORDERS/ITEMS', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Orders[201]:items[2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
-        SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID and $O.ID = 201
-      ) AND $i.pos = 2`)
-  })
 
-  // usually, "Filters can only be applied to managed associations which result in a single foreign key"
-  // but because "up__ID" is the foreign key for the backlink association of "items", it is already part of the inner where
-  // `where` condition of the exists subquery. Hence we enable this shortcut notation.
-  it('MUST ... contain foreign keys of backlink association in on-condition?', () => {
-    const query = cqn4sql(cds.ql`SELECT from bookshop.Orders:items[2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
-      SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID
-    ) and $i.pos = 2`)
-  })
 
-  it('same as above but mention key', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Orders:items[pos=2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} WHERE EXISTS (
-        SELECT 1 from bookshop.Orders as $O where $O.ID = $i.up__ID
-      ) and $i.pos = 2`)
-  })
 
-  // TODO
-  it.skip('MUST ... contain foreign keys of backlink association in on-condition? (3)', () => {
-    expect(() => cqn4sql(cds.ql`SELECT from bookshop.Orders.items[2] {pos}`, model)).to.throw(
-      /Please specify all primary keys in the infix filter/,
-    )
-  })
-
-  it('MUST ... be possible to address fully qualified, partial key in infix filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Orders.items[pos=2] {pos}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Orders.items as $i {$i.pos} where $i.pos = 2`)
-  })
-
-  it('handles paths with two associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre as genre {genre.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $b where $b.genre_ID = genre.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-        )
-      )`)
-  })
-  it('handles paths with two associations, first is association-like calculated element', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:booksWithALotInStock.genre as genre {genre.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as genre {genre.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $b where $b.genre_ID = genre.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as $A where ( $A.ID = $b.author_ID ) and ( $b.stock > 100 )
-        )
-      )`)
-  })
-
-  it('handles paths with two associations (mean alias)', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre as books {books.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as books {books.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Books as $b where $b.genre_ID = books.ID and EXISTS (
-          SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-        )
-      )`)
-  })
-
-  it('handles paths with three associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent as $p {$p.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $p {$p.ID} WHERE EXISTS (
-        SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p.ID and EXISTS (
-          SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
-            SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-          )
-        )
-      )`)
-  })
-
-  it('handles paths with recursive associations', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors:books.genre.parent.parent.parent as $p {$p.ID}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Genres as $p {$p.ID}
-      WHERE EXISTS (
-        SELECT 1 from bookshop.Genres as $p2 where $p2.parent_ID = $p.ID and EXISTS (
-          SELECT 1 from bookshop.Genres as $p3 where $p3.parent_ID = $p2.ID and EXISTS (
-            SELECT 1 from bookshop.Genres as $g where $g.parent_ID = $p3.ID and EXISTS (
-              SELECT 1 from bookshop.Books as $b where $b.genre_ID = $g.ID and EXISTS (
-                SELECT 1 from bookshop.Authors as $A where $A.ID = $b.author_ID
-              )
-            )
-          )
-        )
-      )`)
-  })
-
-  it('handles paths with unmanaged association', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent {id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as $p {$p.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as $B where $p.id = $B.parent_id or $p.id > 17
-      )`)
-  })
-
-  it('handles paths with unmanaged association with alias', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent as A {id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as A {A.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as $B where A.id = $B.parent_id or A.id > 17
-      )`)
-  })
 
   // (SMW) need more tests with unmanaged ON conds using all sorts of stuff -> e.g. struc access in ON, FK of mgd assoc in FROM ...
-
-  it('transforms unmanaged association to where exists subquery and infix filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20] as my {my.id}`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as my {my.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as $B where my.id = $B.parent_id or my.id > 17
-      ) AND my.id < 20`)
-  })
-  it('transforms unmanaged association to where exists subquery with multiple infix filter', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Baz:parent[id<20 or id > 12] as my { my.id }`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Baz as my {my.id} WHERE EXISTS (
-        SELECT 1 from bookshop.Baz as $B where my.id = $B.parent_id or my.id > 17
-      ) AND (my.id < 20 or my.id > 12)`)
-  })
-
   //
   // assocs with complicated ON
-  //
 
-  it('exists predicate in infix filter in FROM', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Authors[exists books] {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $A {$A.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
-        )`,
-    )
-  })
 
-  it('exists predicate in infix filter at ssoc path step in FROM', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books:author[exists books] {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-        ) and EXISTS (
-          SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
-        )`,
-    )
-  })
-
-  it('exists predicate followed by unmanaged assoc as infix filter (also within xpr)', () => {
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.Books:author[exists books[exists coAuthorUnmanaged or title = 'Sturmhöhe']] { ID }`,
-      model,
-    )
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
-            where exists (
-              SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-            ) and exists (
-              SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
-              and
-              (
-                exists (
-                SELECT 1 from bookshop.Authors as $c where $c.ID = $b2.coAuthor_ID_unmanaged
-                )  or $b2.title = 'Sturmhöhe'
-              )
-            )
-      `,
-    )
-  })
-
-  it('exists predicate in infix filter followed by assoc in FROM', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[exists genre]:author {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-            and EXISTS (
-              SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID
-            )
-        )`,
-    )
-  })
-
-  it('exists predicate in infix filters in FROM', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[exists genre]:author[exists books] {ID}`, model)
-    expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Authors as $a {$a.ID}
-        WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-          and EXISTS (
-            SELECT 1 from bookshop.Genres as $g where $g.ID = $B.genre_ID
-          )
-        ) and EXISTS (
-          SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
-        )`,
-    )
-  })
 
   // (SMW) revisit: semantically correct, but order of infix filter and exists subqueries not consistent
   it('exists predicate in infix filters in FROM, multiple assoc steps', () => {

@@ -1065,7 +1065,7 @@ describe('(exist predicate) in where conditions', () => {
           SELECT 1 from a2j.Buz as $b
           where ($b.bar_ID = Foo.bar_ID and $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
         )`
-      expect(query).to.eql(expected)
+      expectCqn(query).to.equal(expected)
     })
 
     it('comparing managed assocs with renamed keys', () => {
@@ -1078,7 +1078,7 @@ describe('(exist predicate) in where conditions', () => {
           SELECT 1 from a2j.Buz as $b
           where ($b.barRenamed_renameID = Foo.barRenamed_renameID and $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
         )`
-      expect(query).to.eql(expected)
+      expectCqn(query).to.equal(expected)
     })
 
     it('drill down into foreign keys', () => {
@@ -1091,7 +1091,7 @@ describe('(exist predicate) in where conditions', () => {
           SELECT 1 from a2j.Buz as $b
           where $b.bar_foo_ID = Foo.bar_foo_ID and $b.bar_ID = Foo.bar_ID and $b.foo_ID = Foo.ID
         )`
-      expect(query).to.eql(expected)
+      expectCqn(query).to.equal(expected)
     })
   })
 })

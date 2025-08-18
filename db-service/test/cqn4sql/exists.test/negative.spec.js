@@ -103,5 +103,14 @@ describe('(exist predicate) negative tests', () => {
         'Only foreign keys of “genre” can be accessed in infix filter, but found “name”',
       )
     })
+
+    // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
+    // only shortcut notation is not allowed
+    // TODO: message can include the fix: `write ”<key> = 42” explicitly`
+    it('OData shortcut notation does not work on associations with multiple foreign keys', () => {
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`)).to.throw(
+        /Filters can only be applied to managed associations which result in a single foreign key/,
+      )
+    })
   })
 })

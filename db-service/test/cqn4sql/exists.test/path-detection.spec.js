@@ -253,4 +253,34 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
   })
+
+  describe('in having', () => {
+    it('basic', () => {
+      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author`)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B { $B.ID }
+        GROUP BY $B.ID
+        HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          where $a.ID = $B.author_ID
+        )`
+      expectCqn(query).to.equal(expected)
+    })
+
+    it('with infix filter', () => {
+      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`)
+      // having only works on aggregated queries, hence the "group by" to make
+      // the example more "real life"
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B { $B.ID }
+        GROUP BY $B.ID
+        HAVING EXISTS (
+          SELECT 1 from bookshop.Authors as $a
+          where $a.ID = $B.author_ID and $a.ID = 42
+        )`
+      expectCqn(query).to.equal(expected)
+    })
+  })
 })
