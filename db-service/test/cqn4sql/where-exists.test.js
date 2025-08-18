@@ -1423,7 +1423,7 @@ describe('Path expressions in from combined with `exists` predicate', () => {
 describe('comparisons of associations in on condition of elements needs to be expanded', () => {
   let model
   beforeAll(async () => {
-    model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+    model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
   })
 
   it('OData lambda where exists comparing managed assocs', () => {
@@ -1691,13 +1691,14 @@ describe('define additional query modifiers', () => {
 
   it('...for scoped queries', () => {
     const q = cds.ql`
-      SELECT from bookshop.Books[group by author.ID having count(*) > 5]:author { name }
+      SELECT from bookshop.Books[1 = 1 group by author.ID having count(*) > 5]:author { name }
     `;
     const expected = cds.ql`
       SELECT from bookshop.Authors as $a { $a.name }
       WHERE EXISTS (
         SELECT 1 from bookshop.Books as $B
         where $B.author_ID = $a.ID
+        and 1 = 1
         group by $B.author_ID
         having count(*) > 5
       )
@@ -1705,9 +1706,10 @@ describe('define additional query modifiers', () => {
     expect(cqn4sql(q, model)).to.deep.equal(expected);
   });
   it('...after exists predicate', () => {
-    const q = cds.ql`SELECT from bookshop.Authors { name } where exists books[group by author.ID having count(*) > 5]`
+    const q = cds.ql`SELECT from bookshop.Authors { name } where exists books[1=1 group by author.ID having count(*) > 5]`
     const expected = cds.ql`SELECT from bookshop.Authors as $A { $A.name } WHERE EXISTS (
       SELECT 1 from bookshop.Books as $b where $b.author_ID = $A.ID
+      and 1 = 1
       group by $b.author_ID
       having count(*) > 5
     )`

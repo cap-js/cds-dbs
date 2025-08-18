@@ -236,7 +236,7 @@ type KTA3 : { a : Integer; b : Association to AssocMaze3; };
 entity AssocMaze1 {
   key ID  : Integer;
   a_struc   : Association to AssocMaze2;
-  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like her,
+  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like here,
   // but they automatically come into play when redirecting (explicitly or implicitly) mgd assocs and
   // renaming fields used as FK
   a_strucX  : Association to AssocMaze2 {a, b};
