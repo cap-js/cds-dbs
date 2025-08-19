@@ -15,7 +15,7 @@ describe('(exist predicate) in where conditions', () => {
 
   describe('simple', () => {
     it('one managed association', () => {
-      let transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } where exists author`)
+      let transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE EXISTS author`)
       const expected = cds.ql`
         SELECT from bookshop.Books as $B
         {
@@ -28,12 +28,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
     it('one managed association, with explicit table alias', () => {
-      let transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books as Books
-        {
-          ID
-        }
-        WHERE EXISTS Books.author`)
+      let transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } WHERE EXISTS Books.author`)
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
         {
@@ -47,12 +42,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('managed assoc within structure', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books
-        {
-          ID
-        }
-        WHERE EXISTS dedication.addressee`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE EXISTS dedication.addressee`)
       const expected = cds.ql`
         SELECT from bookshop.Books as $B
         {
@@ -66,12 +56,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('one unmanaged association (to-many)', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors
-        {
-          ID
-        }
-        WHERE EXISTS books`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books`)
       const expected = cds.ql`
         SELECT from bookshop.Authors as $A
         {
@@ -85,12 +70,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('one unmanaged association, with explicit table alias (to-many)', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors as Authors
-        {
-          ID
-        }
-        WHERE EXISTS Authors.books`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors as Authors { ID } WHERE EXISTS Authors.books`)
       const expected = cds.ql`
         SELECT from bookshop.Authors as Authors
         {
@@ -123,14 +103,9 @@ describe('(exist predicate) in where conditions', () => {
     })
   })
 
-  describe('multi step exists', () => {
+  describe('multi step EXISTS', () => {
     it('with two associations', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors
-        {
-          ID
-        }
-        WHERE EXISTS books.author`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books.author`)
 
       const expected = cds.ql`
         SELECT from bookshop.Authors as $A
@@ -171,7 +146,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists has nested exists and condition before navigating to genre', () => {
+    it('EXISTS has nested EXISTS and condition before navigating to genre', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -203,13 +178,13 @@ describe('(exist predicate) in where conditions', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
-    it('both assoc steps have infix filter with each one nested exists', () => {
+    it('both assoc steps have infix filter with each one nested EXISTS', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
           ID
         }
-        WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction' and exists children[name = 'Foo']]`)
+        WHERE EXISTS books[EXISTS author or title = 'Gravity'].genre[name = 'Fiction' and EXISTS children[name = 'Foo']]`)
 
       const expected = cds.ql`
         SELECT from bookshop.Authors as $A
@@ -282,7 +257,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('nested exists in filter with same auto-generated TA as outer query', () => {
+    it('nested EXISTS in filter with same auto-generated TA as outer query', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
@@ -304,7 +279,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('nested exists in filter with same auto-generated TA as outer query + additional condition', () => {
+    it('nested EXISTS in filter with same auto-generated TA as outer query + additional condition', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -334,8 +309,7 @@ describe('(exist predicate) in where conditions', () => {
       {
         ID
       }
-      WHERE EXISTS books[ EXISTS coAuthorUnmanaged[ EXISTS books ]
-      ]`)
+      WHERE EXISTS books[ EXISTS coAuthorUnmanaged[ EXISTS books ] ]`)
 
       const expected = cds.ql`
       SELECT from bookshop.Authors as $A
@@ -356,7 +330,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('nested exists in filter with same auto-generated TA as outer query + additional condition reversed', () => {
+    it('nested EXISTS in filter with same auto-generated TA as outer query + additional condition reversed', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -382,7 +356,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists has two other exists in infix filter', () => {
+    it('EXISTS has two other EXISTS in infix filter', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -411,7 +385,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('two round trips along exists with four associations', () => {
+    it('two round trips along EXISTS with four associations', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -444,7 +418,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists with two adjacent four-association chains', () => {
+    it('EXISTS with two adjacent four-association chains', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -494,7 +468,7 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it.skip('adjacent exists subqueries could reuse the same table aliases independently', () => {
+    it.skip('adjacent EXISTS subqueries could reuse the same table aliases independently', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
@@ -555,7 +529,7 @@ describe('(exist predicate) in where conditions', () => {
         {
           ID
         }
-        WHERE exists books and name = 'Horst'`)
+        WHERE EXISTS books and name = 'Horst'`)
       const expected = cds.ql`
         SELECT from bookshop.Authors as $A
         {
@@ -568,10 +542,13 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists predicate is followed by association-like calculated element', () => {
-      const transformed = cqn4sql(
-        cds.ql`SELECT from bookshop.Authors { ID } WHERE exists booksWithALotInStock and name = 'Horst'`,
-      )
+    it('EXISTS predicate is followed by association-like calculated element', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS booksWithALotInStock and name = 'Horst'`)
       const expected = cds.ql`
         SELECT from bookshop.Authors as $A
         {
@@ -660,13 +637,13 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('multiple exists predicates with individual filters', () => {
+    it('multiple EXISTS predicates with individual filters', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID
         }
-        WHERE EXISTS genre.children[code = 'ABC'] or exists genre.children[code = 'DEF']`)
+        WHERE EXISTS genre.children[code = 'ABC'] or EXISTS genre.children[code = 'DEF']`)
       const expected = cds.ql`
         SELECT from bookshop.Books as $B
         {
@@ -733,14 +710,14 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(query).to.equal(expected)
     })
 
-    it('nested exists within infix filter', () => {
+    it('nested EXISTS within infix filter', () => {
       const query = cds.ql`
         SELECT from bookshop.Authors
         {
           ID
         }
         WHERE EXISTS books[ EXISTS genre[ parent = 1 ] ]`
-      // some OData requests lead to a nested `xpr: [ exists <assoc> ]` which
+      // some OData requests lead to a nested `xpr: [ EXISTS <assoc> ]` which
       // cannot be expressed with the template string cds.ql`` builder
       query.SELECT.where[1].ref[0].where = [{ xpr: [...query.SELECT.where[1].ref[0].where] }]
 
@@ -821,13 +798,13 @@ describe('(exist predicate) in where conditions', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('scoped query + exists predicate in where', () => {
+    it('scoped query + EXISTS predicate in where', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books:genre as genre
         {
           ID
         }
-        where exists parent`)
+        WHERE EXISTS parent`)
 
       const expected = cds.ql`
         SELECT from bookshop.Genres as genre
@@ -848,7 +825,7 @@ describe('(exist predicate) in where conditions', () => {
 
     it('semantically same as above', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books:genre[exists parent]
+        SELECT from bookshop.Books:genre[EXISTS parent]
         {
           ID
         }`)
@@ -873,12 +850,7 @@ describe('(exist predicate) in where conditions', () => {
 
   describe('flattening of foreign keys', () => {
     it('association has structured FK', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        WHERE EXISTS a_struc`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_struc`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -897,12 +869,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit scalar FKs', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_strucX`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_strucX`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -919,12 +886,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit structured FKs', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_strucY`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_strucY`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -943,12 +905,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit structured renamed FKs', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_strucXA`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_strucXA`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -967,12 +924,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has FKs that are managed associations', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_assoc`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_assoc`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -995,12 +947,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit FKs that are managed associations', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_assocY`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_assocY`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -1019,12 +966,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit aliased FKs that are managed associations', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_assocYA`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_assocYA`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -1043,12 +985,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has FKs that are mix of structured and managed associations', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_strass`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_strass`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -1081,12 +1018,7 @@ describe('(exist predicate) in where conditions', () => {
     })
 
     it('association has explicit FKs that are path into a structure', () => {
-      const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.AssocMaze1 as AM
-        {
-          ID
-        }
-        where exists a_part`)
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.AssocMaze1 as AM { ID } WHERE EXISTS a_part`)
 
       const expected = cds.ql`
         SELECT from bookshop.AssocMaze1 as AM
@@ -1105,7 +1037,7 @@ describe('(exist predicate) in where conditions', () => {
 
   describe('on-condition flattening', () => {
     it('drill down into foreign keys', () => {
-      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzUnmanaged`)
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } WHERE EXISTS buzUnmanaged`)
       const expected = cds.ql`
         SELECT from a2j.Foo as Foo {
           Foo.ID

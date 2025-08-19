@@ -15,7 +15,7 @@ describe('(exist predicate) negative tests', () => {
   })
 
   describe('sanity checks - works only with associations', () => {
-    it('rejects $self following exists predicate', () => {
+    it('rejects $self following EXISTS predicate', () => {
       expect(() =>
         cqn4sql(cds.ql`
           SELECT from bookshop.Books
@@ -23,18 +23,18 @@ describe('(exist predicate) negative tests', () => {
             ID,
             author
           }
-          where exists $self.author
+          WHERE EXISTS $self.author
         `),
       ).to.throw('Paths starting with “$self” must not contain steps of type “cds.Association”: ref: [ $self, author ]')
     })
 
-    it('rejects non association following exists predicate', () => {
+    it('rejects non association following EXISTS predicate', () => {
       expect(() =>
         cqn4sql(cds.ql`
           SELECT from bookshop.Books
           {
             ID,
-            author[exists name].name as author
+            author[EXISTS name].name as author
           }
         `),
       ).to.throw(
@@ -42,10 +42,10 @@ describe('(exist predicate) negative tests', () => {
       )
     })
 
-    it('rejects non association following exists predicate in scoped query', () => {
+    it('rejects non association following EXISTS predicate in scoped query', () => {
       expect(() =>
         cqn4sql(cds.ql`
-          SELECT from bookshop.Books:author[exists name]
+          SELECT from bookshop.Books:author[EXISTS name]
           {
             ID
           }
@@ -55,27 +55,27 @@ describe('(exist predicate) negative tests', () => {
       )
     })
 
-    it('rejects non association following exists predicate in where', () => {
+    it('rejects non association following EXISTS predicate in WHERE', () => {
       expect(() =>
         cqn4sql(cds.ql`
           SELECT from bookshop.Books
           {
             ID
           }
-          where exists author[exists name]
+          WHERE EXISTS author[EXISTS name]
         `),
       ).to.throw(
         'Expecting path “name” following “EXISTS” predicate to end with association/composition, found “cds.String”',
       )
     })
 
-    it('rejects non association at leaf of path following exists predicate', () => {
+    it('rejects non association at leaf of path following EXISTS predicate', () => {
       expect(() =>
         cqn4sql(cds.ql`
           SELECT from bookshop.Books
           {
             ID,
-            author[exists books.title].name as author
+            author[EXISTS books.title].name as author
           }
         `),
       ).to.throw(
@@ -86,7 +86,7 @@ describe('(exist predicate) negative tests', () => {
 
   describe('restrictions', () => {
     it('rejects the path expression at the leaf of scoped queries', () => {
-      // original idea was to just add the `genre.name` as where clause to the query
+      // original idea was to just add the `genre.name` as WHERE clause to the query
       // however, with left outer joins we might get too many results
       //
       // --> here we would then get all books which fulfill `genre.name = null`
@@ -104,9 +104,9 @@ describe('(exist predicate) negative tests', () => {
       )
     })
 
-    // (SMW) TODO msg not good -> filter in general is ok for assoc with multiple FKS,
+    // (SMW) msg not good -> filter in general is ok for assoc with multiple FKS,
     // only shortcut notation is not allowed
-    // TODO: message can include the fix: `write ”<key> = 42” explicitly`
+    // TODO: message is BAD, it could include the fix: `write ”<key> = 42” explicitly`
     it('OData shortcut notation does not work on associations with multiple foreign keys', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`)).to.throw(
         /Filters can only be applied to managed associations which result in a single foreign key/,

@@ -42,7 +42,8 @@ describe('(exist predicate) scoped queries', () => {
         }`)
 
       const expected = cds.ql`
-        SELECT from bookshop.Authors as author {
+        SELECT from bookshop.Authors as author
+        {
           author.name
         }
         WHERE EXISTS (
@@ -143,7 +144,8 @@ describe('(exist predicate) scoped queries', () => {
         }`)
 
       const expected = cds.ql`
-        SELECT from bookshop.Books as books {
+        SELECT from bookshop.Books as books
+        {
           books.ID
         }
         WHERE EXISTS (
@@ -162,7 +164,8 @@ describe('(exist predicate) scoped queries', () => {
         }`)
 
       const expected = cds.ql`
-        SELECT from bookshop.Person as $a {
+        SELECT from bookshop.Person as $a
+        {
           $a.dateOfBirth
         }
         WHERE EXISTS (
@@ -366,7 +369,7 @@ describe('(exist predicate) scoped queries', () => {
 
     // usually, OData shortcut notation only works for assocs with exactly one foreign key
     // but because "up__ID" is the foreign key for the backlink association of "items", it is already part of the inner
-    // `where` condition of the exists subquery. Hence we enable this shortcut notation.
+    // `where` condition of the EXISTS subquery. Hence we enable this shortcut notation.
     it('OData shortcut w/o mentioning key (3) - for composition of aspects ', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Orders:items[2]
@@ -414,9 +417,9 @@ describe('(exist predicate) scoped queries', () => {
       )
     })
 
-    it('exists predicate within infix filter', () => {
+    it('EXISTS predicate within infix filter', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors[exists books]
+        SELECT from bookshop.Authors[EXISTS books]
         {
           ID
         }`)
@@ -434,9 +437,9 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists predicate within infix filter at leaf', () => {
+    it('EXISTS predicate within infix filter at leaf', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books:author[exists books]
+        SELECT from bookshop.Books:author[EXISTS books]
         {
           ID
         }`)
@@ -457,9 +460,9 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists predicate within infix filter at root', () => {
+    it('EXISTS predicate within infix filter at root', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books[exists genre]:author
+        SELECT from bookshop.Books[EXISTS genre]:author
         {
           ID
         }`)
@@ -481,9 +484,9 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists predicate within infix filter at root and leaf', () => {
+    it('EXISTS predicate within infix filter at root and leaf', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books[exists genre]:author[exists books]
+        SELECT from bookshop.Books[EXISTS genre]:author[EXISTS books]
         {
           ID
         }`)
@@ -509,10 +512,10 @@ describe('(exist predicate) scoped queries', () => {
     })
 
     // (SMW) TODO: Order
-    //  semantically correct, but order of infix filter and exists subqueries not consistent
-    it('exists predicate within infix filter at root, leaf and middle', () => {
+    //  semantically correct, but order of infix filter and EXISTS subqueries not consistent
+    it('EXISTS predicate within infix filter at root, leaf and middle', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books[exists genre]:author[exists books].books[exists genre]
+        SELECT from bookshop.Books[EXISTS genre]:author[EXISTS books].books[EXISTS genre]
         {
           ID
         }`)
@@ -540,9 +543,9 @@ describe('(exist predicate) scoped queries', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('multiple, nested exists predicate within infix filter at leaf', () => {
+    it('multiple, nested EXISTS predicate within infix filter at leaf', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Books:author[exists books[exists coAuthorUnmanaged or title = 'Sturmhöhe']]
+        SELECT from bookshop.Books:author[EXISTS books[EXISTS coAuthorUnmanaged or title = 'Sturmhöhe']]
         {
           ID
         }`)
@@ -552,13 +555,13 @@ describe('(exist predicate) scoped queries', () => {
         {
           $a.ID
         }
-        where exists (
+        WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
-        ) and exists (
+        ) and EXISTS (
           SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
           and
           (
-            exists (
+            EXISTS (
               SELECT 1 from bookshop.Authors as $c where $c.ID = $b2.coAuthor_ID_unmanaged
             ) or $b2.title = 'Sturmhöhe'
           )
@@ -643,10 +646,7 @@ describe('(exist predicate) scoped queries', () => {
 
     it('two associations, first is association-like calculated element', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors:booksWithALotInStock.genre as genre
-        {
-          genre.ID
-        }`)
+        SELECT from bookshop.Authors:booksWithALotInStock.genre as genre { genre.ID }`)
 
       const expected = cds.ql`
         SELECT from bookshop.Genres as genre
@@ -666,10 +666,7 @@ describe('(exist predicate) scoped queries', () => {
 
     it('recursive association cascade', () => {
       const transformed = cqn4sql(cds.ql`
-        SELECT from bookshop.Authors:books.genre.parent.parent.parent as $p
-        {
-          $p.ID
-        }`)
+        SELECT from bookshop.Authors:books.genre.parent.parent.parent as $p { $p.ID }`)
 
       const expected = cds.ql`
         SELECT from bookshop.Genres as $p
@@ -698,10 +695,7 @@ describe('(exist predicate) scoped queries', () => {
 
     it('does not ignore the expand root from being considered for the table alias calculation', () => {
       const originalQuery = cds.ql`
-        SELECT from bookshop.Genres:parent.parent.parent
-        {
-          ID
-        }`
+        SELECT from bookshop.Genres:parent.parent.parent { ID }`
       // table aliases for `query.SELECT.expand === true` are not materialized in the transformed query and must be ignored
       // however, for the main query having the `query.SELECT.expand === 'root'` we must consider the table aliases
       originalQuery.SELECT.expand = 'root'
@@ -712,13 +706,13 @@ describe('(exist predicate) scoped queries', () => {
 
       const expected = cds.ql`
         SELECT from bookshop.Genres as $p { $p.ID }
-        where exists (
+        WHERE EXISTS (
           SELECT 1 from bookshop.Genres as $p2
             where $p2.parent_ID = $p.ID and
-            exists (
+            EXISTS (
               SELECT 1 from bookshop.Genres as $p3
                 where $p3.parent_ID = $p2.ID  and
-                exists (
+                EXISTS (
                   SELECT 1 from bookshop.Genres as $G
                   where $G.parent_ID = $p3.ID
                 )

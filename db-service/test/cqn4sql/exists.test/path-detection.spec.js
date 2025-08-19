@@ -14,12 +14,12 @@ describe('(exist predicate) detection in other places', () => {
   })
 
   describe('basic', () => {
-    it('exists in select clause', () => {
+    it('EXISTS in select clause', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID,
-          genre[exists children].descr
+          genre[EXISTS children].descr
         }`)
 
       const expected = cds.ql`
@@ -38,12 +38,12 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists in select clause with nested exists', () => {
+    it('EXISTS in select clause with nested EXISTS', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID,
-          genre[exists children[exists children]].descr
+          genre[EXISTS children[EXISTS children]].descr
         }`)
 
       const expected = cds.ql`
@@ -66,12 +66,12 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('nested exists in select clause in both steps of path expression', () => {
+    it('nested EXISTS in select clause in both steps of path expression', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID,
-          genre[exists children[code = 2]].children[exists children[code = 3]].descr
+          genre[EXISTS children[code = 2]].children[EXISTS children[code = 3]].descr
         }`)
 
       const expected = cds.ql`
@@ -105,7 +105,7 @@ describe('(exist predicate) detection in other places', () => {
         SELECT from bookshop.Books
         {
           ID,
-          case when exists author then 'yes'
+          case when EXISTS author then 'yes'
                else 'no'
           end as x
         }`)
@@ -115,7 +115,7 @@ describe('(exist predicate) detection in other places', () => {
         {
           $B.ID,
           case
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Authors as $a
               WHERE $a.ID = $B.author_ID
             ) then 'yes'
@@ -126,12 +126,12 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('negated exists with disjunction', () => {
+    it('negated EXISTS with disjunction', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID,
-          case when not (exists author[name = 'FOO'] or exists author[name = 'BAR']) then 'yes'
+          case when not (EXISTS author[name = 'FOO'] or EXISTS author[name = 'BAR']) then 'yes'
                else 'no'
           end as x
         }`)
@@ -142,12 +142,12 @@ describe('(exist predicate) detection in other places', () => {
           $B.ID,
           case
             when not (
-              exists (
+              EXISTS (
                 SELECT 1 from bookshop.Authors as $a
                 WHERE $a.ID = $B.author_ID
                   and $a.name = 'FOO'
               )
-              or exists (
+              or EXISTS (
                 SELECT 1 from bookshop.Authors as $a2
                 WHERE $a2.ID = $B.author_ID
                   and $a2.name = 'BAR'
@@ -160,12 +160,12 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('exists with filter in case expression', () => {
+    it('EXISTS with filter in case expression', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
           ID,
-          case when exists author[name = 'Sanderson'] then 'yes'
+          case when EXISTS author[name = 'Sanderson'] then 'yes'
                else 'no'
           end as x
         }`)
@@ -175,7 +175,7 @@ describe('(exist predicate) detection in other places', () => {
         {
           $B.ID,
           case
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Authors as $a
               WHERE $a.ID = $B.author_ID
                 and $a.name = 'Sanderson'
@@ -187,14 +187,14 @@ describe('(exist predicate) detection in other places', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('multiple branches, each with exists', () => {
+    it('multiple branches, each with EXISTS', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Authors
         {
           ID,
           case
-            when exists books[price > 10] then 1
-            when exists books[price > 100] then 2
+            when EXISTS books[price > 10] then 1
+            when EXISTS books[price > 100] then 2
           end as descr
         }`)
 
@@ -203,12 +203,12 @@ describe('(exist predicate) detection in other places', () => {
         {
           $A.ID,
           case
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Books as $b
               WHERE $b.author_ID = $A.ID
                 and $b.price > 10
             ) then 1
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Books as $b2
               WHERE $b2.author_ID = $A.ID
                 and $b2.price > 100
@@ -225,8 +225,8 @@ describe('(exist predicate) detection in other places', () => {
         {
           ID,
           case
-            when exists booksWithALotInStock[price > 10 or price < 20] then 1
-            when exists booksWithALotInStock[price > 100 or price < 120] then 2
+            when EXISTS booksWithALotInStock[price > 10 or price < 20] then 1
+            when EXISTS booksWithALotInStock[price > 100 or price < 120] then 2
           end as descr
         }`)
 
@@ -235,13 +235,13 @@ describe('(exist predicate) detection in other places', () => {
         {
           $A.ID,
           case
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Books as $b
               WHERE ( $b.author_ID = $A.ID )
                 and ( $b.stock > 100 )
                 and ( $b.price > 10 or $b.price < 20 )
             ) then 1
-            when exists (
+            when EXISTS (
               SELECT 1 from bookshop.Books as $b2
               WHERE ( $b2.author_ID = $A.ID )
                 and ( $b2.stock > 100 )
@@ -256,11 +256,14 @@ describe('(exist predicate) detection in other places', () => {
 
   describe('in having', () => {
     it('basic', () => {
-      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author`)
+      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having EXISTS author`)
       // having only works on aggregated queries, hence the "group by" to make
       // the example more "real life"
       const expected = cds.ql`
-        SELECT from bookshop.Books as $B { $B.ID }
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
         GROUP BY $B.ID
         HAVING EXISTS (
           SELECT 1 from bookshop.Authors as $a
@@ -270,11 +273,14 @@ describe('(exist predicate) detection in other places', () => {
     })
 
     it('with infix filter', () => {
-      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having exists author[ID=42]`)
+      const query = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } group by ID having EXISTS author[ID=42]`)
       // having only works on aggregated queries, hence the "group by" to make
       // the example more "real life"
       const expected = cds.ql`
-        SELECT from bookshop.Books as $B { $B.ID }
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
         GROUP BY $B.ID
         HAVING EXISTS (
           SELECT 1 from bookshop.Authors as $a

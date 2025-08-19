@@ -50,7 +50,7 @@ describe('(exist predicate) modify auto-generated subquery', () => {
           having count(*) > 5
           order by 5 desc
           limit 10
-          ]:author
+        ]:author
         {
           name
         }`)

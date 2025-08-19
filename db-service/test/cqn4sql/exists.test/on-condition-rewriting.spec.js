@@ -26,9 +26,9 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         {
           $t.ID
         }
-        WHERE exists (
+        WHERE EXISTS (
           SELECT 1 from bookshop.TestPublisher as $T2
-          where $t.publisher_structuredKey_ID = $T2.publisher_structuredKey_ID
+          WHERE $t.publisher_structuredKey_ID = $T2.publisher_structuredKey_ID
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -47,9 +47,9 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         {
           textsRenamedPublisher.ID
         }
-        WHERE exists (
+        WHERE EXISTS (
           SELECT 1 from bookshop.TestPublisher as $T2
-          where textsRenamedPublisher.publisherRenamedKey_notID = $T2.publisherRenamedKey_notID
+          WHERE textsRenamedPublisher.publisherRenamedKey_notID = $T2.publisherRenamedKey_notID
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -69,7 +69,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-          where $c.ID = $B.coAuthor_ID_unmanaged
+          WHERE $c.ID = $B.coAuthor_ID_unmanaged
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -83,12 +83,13 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }`)
 
       const expected = cds.ql`
-        SELECT from bookshop.Books as booksWithALotInStock {
+        SELECT from bookshop.Books as booksWithALotInStock
+        {
           booksWithALotInStock.ID
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Authors as $A
-          where ($A.ID = booksWithALotInStock.author_ID) and (booksWithALotInStock.stock > 100)
+          WHERE ($A.ID = booksWithALotInStock.author_ID) and (booksWithALotInStock.stock > 100)
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -108,34 +109,36 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
-          where $t.ID = $B.ID
+          WHERE $t.ID = $B.ID
         )`
 
       expectCqn(transformed).to.equal(expected)
     })
 
     it('comparing managed assocs in on-condition', () => {
-      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buz`)
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } WHERE EXISTS buz`)
       const expected = cds.ql`
-        SELECT from a2j.Foo as Foo {
+        SELECT from a2j.Foo as Foo
+        {
           Foo.ID
         }
         WHERE EXISTS (
           SELECT 1 from a2j.Buz as $b
-          where ($b.bar_ID = Foo.bar_ID and $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
+          WHERE ($b.bar_ID = Foo.bar_ID and $b.bar_foo_ID = Foo.bar_foo_ID) and $b.foo_ID = Foo.ID
         )`
       expectCqn(query).to.equal(expected)
     })
 
     it('comparing managed assocs with renamed keys', () => {
-      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } where exists buzRenamed`)
+      const query = cqn4sql(cds.ql`SELECT from a2j.Foo as Foo { ID } WHERE EXISTS buzRenamed`)
       const expected = cds.ql`
-        SELECT from a2j.Foo as Foo {
+        SELECT from a2j.Foo as Foo
+        {
           Foo.ID
         }
         WHERE EXISTS (
           SELECT 1 from a2j.Buz as $b
-          where ($b.barRenamed_renameID = Foo.barRenamed_renameID and $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
+          WHERE ($b.barRenamed_renameID = Foo.barRenamed_renameID and $b.barRenamed_foo_ID = Foo.barRenamed_foo_ID) and $b.foo_ID = Foo.ID
         )`
       expectCqn(query).to.equal(expected)
     })
@@ -151,15 +154,15 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
           $d.ID,
           $d.batch_ID,
           $d.material_ID,
-        } where exists (
+        } WHERE EXISTS (
           SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
-          where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+          WHERE $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
             and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
             and $d.snapshotHash = $r.snapshotHash
             and $r.ID = 1 and $r.snapshotHash = 0
-            and exists (
+            and EXISTS (
               SELECT 1 from bookshop.WorklistItems as $W
-              where $r.parent_ID = $W.ID
+              WHERE $r.parent_ID = $W.ID
                 and $r.parent_snapshotHash = $W.snapshotHash
                 and $W.ID = 1 and $W.snapshotHash = 0
             )
@@ -181,15 +184,15 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
           $d.ID,
           $d.batch_ID,
           $d.material_ID,
-        } where exists (
+        } WHERE EXISTS (
           SELECT 1 from bookshop.WorklistItem_ReleaseChecks as $r
-          where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+          WHERE $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
             and ( $d.batch_ID = '*' or $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID )
             and $d.snapshotHash = $r.snapshotHash
             and $r.ID = 1 and $r.snapshotHash = 0
-            and exists (
+            and EXISTS (
               SELECT 1 from bookshop.WorklistItems as $W
-              where $r.parent_ID = $W.ID
+              WHERE $r.parent_ID = $W.ID
                 and $r.parent_snapshotHash = $W.snapshotHash
                 and $W.ID = 1 and $W.snapshotHash = 0
             )
@@ -220,7 +223,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_struc_ID_1_a = a_struc.ID_1_a and $A.a_struc_ID_1_b = a_struc.ID_1_b
+          WHERE $A.a_struc_ID_1_a = a_struc.ID_1_a and $A.a_struc_ID_1_b = a_struc.ID_1_b
             and $A.a_struc_ID_2_a = a_struc.ID_2_a and $A.a_struc_ID_2_b = a_struc.ID_2_b
         )`
 
@@ -241,7 +244,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_strucX_a = a_strucX.a and $A.a_strucX_b = a_strucX.b
+          WHERE $A.a_strucX_a = a_strucX.a and $A.a_strucX_b = a_strucX.b
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -261,7 +264,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_strucY_S_1_a = a_strucY.S_1_a and $A.a_strucY_S_1_b = a_strucY.S_1_b
+          WHERE $A.a_strucY_S_1_a = a_strucY.S_1_a and $A.a_strucY_S_1_b = a_strucY.S_1_b
             and $A.a_strucY_S_2_a = a_strucY.S_2_a and $A.a_strucY_S_2_b = a_strucY.S_2_b
         )`
 
@@ -282,7 +285,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_strucXA_T_1_a = a_strucXA.S_1_a and $A.a_strucXA_T_1_b = a_strucXA.S_1_b
+          WHERE $A.a_strucXA_T_1_a = a_strucXA.S_1_a and $A.a_strucXA_T_1_b = a_strucXA.S_1_b
             and $A.a_strucXA_T_2_a = a_strucXA.S_2_a and $A.a_strucXA_T_2_b = a_strucXA.S_2_b
         )`
 
@@ -303,7 +306,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_assocY_A_1_a = a_assocY.A_1_a and $A.a_assocY_A_1_b_ID = a_assocY.A_1_b_ID
+          WHERE $A.a_assocY_A_1_a = a_assocY.A_1_a and $A.a_assocY_A_1_b_ID = a_assocY.A_1_b_ID
             and $A.a_assocY_A_2_a = a_assocY.A_2_a and $A.a_assocY_A_2_b_ID = a_assocY.A_2_b_ID
         )`
 
@@ -324,7 +327,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_assocYA_B_1_a = a_assocYA.A_1_a and $A.a_assocYA_B_1_b_ID = a_assocYA.A_1_b_ID
+          WHERE $A.a_assocYA_B_1_a = a_assocYA.A_1_a and $A.a_assocYA_B_1_b_ID = a_assocYA.A_1_b_ID
             and $A.a_assocYA_B_2_a = a_assocYA.A_2_a and $A.a_assocYA_B_2_b_ID = a_assocYA.A_2_b_ID
         )`
 
@@ -345,7 +348,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_strass_A_1_a = a_strass.A_1_a
+          WHERE $A.a_strass_A_1_a = a_strass.A_1_a
             and $A.a_strass_A_1_b_assoc1_ID_1_a = a_strass.A_1_b_assoc1_ID_1_a and $A.a_strass_A_1_b_assoc1_ID_1_b = a_strass.A_1_b_assoc1_ID_1_b
             and $A.a_strass_A_1_b_assoc1_ID_2_a = a_strass.A_1_b_assoc1_ID_2_a and $A.a_strass_A_1_b_assoc1_ID_2_b = a_strass.A_1_b_assoc1_ID_2_b
             and $A.a_strass_A_1_b_assoc2_ID_1_a = a_strass.A_1_b_assoc2_ID_1_a and $A.a_strass_A_1_b_assoc2_ID_1_b = a_strass.A_1_b_assoc2_ID_1_b
@@ -374,7 +377,7 @@ describe('(exist predicate) on-condition construction for semi-join in subquery'
         }
         WHERE EXISTS (
           SELECT 1 from bookshop.AssocMaze1 as $A
-          where $A.a_assoc_assoc1_ID_1_a = a_assoc.assoc1_ID_1_a and $A.a_assoc_assoc1_ID_1_b = a_assoc.assoc1_ID_1_b
+          WHERE $A.a_assoc_assoc1_ID_1_a = a_assoc.assoc1_ID_1_a and $A.a_assoc_assoc1_ID_1_b = a_assoc.assoc1_ID_1_b
             and $A.a_assoc_assoc1_ID_2_a = a_assoc.assoc1_ID_2_a and $A.a_assoc_assoc1_ID_2_b = a_assoc.assoc1_ID_2_b
             and $A.a_assoc_assoc2_ID_1_a = a_assoc.assoc2_ID_1_a and $A.a_assoc_assoc2_ID_1_b = a_assoc.assoc2_ID_1_b
             and $A.a_assoc_assoc2_ID_2_a = a_assoc.assoc2_ID_2_a and $A.a_assoc_assoc2_ID_2_b = a_assoc.assoc2_ID_2_b
