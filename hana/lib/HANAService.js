@@ -1145,7 +1145,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     list(list) {
       const first = list.list[0]
       // If the list only contains of lists it is replaced with a json function and a placeholder
-      if (this.values && first.list && !first.list.find(v => v.val == null)) {
+      if (this.values && first?.list && !first.list.find(v => v.val == null)) {
         const listMapped = []
         for (let l of list.list) {
           const obj = {}
@@ -1163,7 +1163,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         return `(SELECT * FROM JSON_TABLE(?, '$' COLUMNS(${extraction})))`
       }
       // If the list only contains of vals it is replaced with a json function and a placeholder
-      if (this.values && first.val != null) {
+      if (this.values && first?.val != null) {
         for (let c of list.list) {
           if (Buffer.isBuffer(c.val)) {
             return super.list(list)
@@ -1427,8 +1427,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const creds = {
       containerGroup: database.toUpperCase(),
       usergroup: `${database}_USERS`.toUpperCase(),
-      schema: tenant.toUpperCase(),
-      user: `${tenant}_USER`.toUpperCase(),
+      schema: `${database}_${tenant}`.toUpperCase(),
+      user: `${database}_${tenant}_USER`.toUpperCase(),
     }
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
 

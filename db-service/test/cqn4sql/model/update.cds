@@ -1,6 +1,6 @@
 // dont use virtual key `isActiveEntity` in `UPDATE … where (<key>) in <subquery>`
 // in case of path expressions
-namespace bookshop;
+namespace update;
 
 entity Books {
   key ID : Integer;
@@ -25,7 +25,7 @@ entity Orders {
 
 service CatalogService {
    @odata.draft.enabled
-   entity Books as projection on bookshop.Books;
+   entity Books as projection on update.Books;
 
-   entity Authors as projection on bookshop.Authors;
+   entity Authors as projection on update.Authors;
 }
