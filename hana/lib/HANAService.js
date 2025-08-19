@@ -1324,7 +1324,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   }
 
   async onCall({ query, data }, name, schema) {
-    const isAsync = /\s+ASYNC\s*$/.test(query)
+    const isAsync = /\sASYNC\s*$/.test(query)
     const outParameters = isAsync ? [{ PARAMETER_NAME: 'ASYNC_CALL_ID' }] : await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
     const ret = this.ensureDBC() && await ps.proc(data, outParameters)
