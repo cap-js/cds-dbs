@@ -2196,7 +2196,7 @@ function cqn4sql(originalQuery, model) {
       next.pathExpressionInsideFilter ||
       (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))
     ) {
-      SELECT.where = next.pathExpressionInsideFilter ? customWhere : []
+      SELECT.where = customWhere || []
       if (queryModifier) assignQueryModifiers(SELECT, queryModifier)
 
       const transformedExists = transformSubquery({ SELECT })

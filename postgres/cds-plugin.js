@@ -47,6 +47,12 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
         }
       }
 
+      if (cds.env?.requires?.db) {
+        packageJson.cds ??= {}
+        packageJson.cds.requires ??= {}
+        packageJson.cds.requires.db = { ...cds.env.requires.db }
+      }
+
       // propagate cds.env.cdsc (minus disallowed)
       const envCdsc = cds.env?.cdsc ?? {}
       const cdscClean = Object.fromEntries(
