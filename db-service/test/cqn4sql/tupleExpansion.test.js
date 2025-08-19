@@ -563,17 +563,11 @@ describe('Structural comparison', () => {
     const emptyAssocs = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.empty = AssocWithStructuredKey.empty) as foo }`
     const emptyStructWithAssoc = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.empty = AssocWithStructuredKey.emptyStruct) as foo }`
     const inWhere = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where AssocWithStructuredKey.empty = AssocWithStructuredKey.emptyStruct`
-    expect(() => cqn4sql(emptyStructs, model)).to.throw(
-      /Can't compare two empty structures/,
-    )
-    expect(() => cqn4sql(emptyAssocs, model)).to.throw(
-      /Can't compare two empty structures/,
-    )
-    expect(() => cqn4sql(emptyStructWithAssoc, model)).to.throw(
-      /Can't compare two empty structures/,
-    )
-    expect(() => cqn4sql(inWhere, model)).to.throw(
-      /Can't compare two empty structures/,
-    )
+    const emptyStructUnmanaged = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { (AssocWithStructuredKey.emptyStructUnmanaged = AssocWithStructuredKey.emptyStructUnmanaged) as foo }`
+    expect(() => cqn4sql(emptyStructs, model)).to.throw(/Can't compare two empty structures/)
+    expect(() => cqn4sql(emptyAssocs, model)).to.throw(/Can't compare two empty structures/)
+    expect(() => cqn4sql(emptyStructWithAssoc, model)).to.throw(/Can't compare two empty structures/)
+    expect(() => cqn4sql(inWhere, model)).to.throw(/Can't compare two empty structures/)
+    expect(() => cqn4sql(emptyStructUnmanaged, model)).to.throw(/Can't compare two empty structures/)
   })
 })
