@@ -11,151 +11,11 @@ describe('Unfold expands on structure', () => {
   beforeAll(async () => {
     cds.model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
-  it('supports nested projections for structs', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
-        Books.dedication_addressee_ID,
-      }`,
-    )
-  })
-  it('supports deeply nested projections for structs', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee, sub { foo } } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
-        Books.dedication_addressee_ID,
-        Books.dedication_sub_foo,
-      }`,
-    )
-  })
-  it('supports deeply nested projections for structs w/ wildcard', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { addressee, sub { * } } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID,
-        Books.dedication_addressee_ID,
-        Books.dedication_sub_foo,
-      }`,
-    )
-  })
-  it('supports renaming', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID as foo, dedication as bubu { addressee, sub { * } } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID as foo,
-        Books.dedication_addressee_ID as bubu_addressee_ID,
-        Books.dedication_sub_foo as bubu_sub_foo,
-      }`,
-    )
-  })
-  it('supports nested projections for structs w/ order by', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication as bubu { addressee, sub { * } } } order by bubu.sub.foo`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID,
-        Books.dedication_addressee_ID as bubu_addressee_ID,
-        Books.dedication_sub_foo as bubu_sub_foo,
-      } order by bubu_sub_foo`,
-    )
-  })
-
-  it('supports nested projections for structs with wildcard select and respects order', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { dedication {text, * } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books {
-        Books.dedication_text,
-        Books.dedication_addressee_ID,
-        Books.dedication_sub_foo,
-        Books.dedication_dedication,
-      }`,
-    )
-  })
-  it('supports nested projections for structs with wildcard select', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { * } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books { Books.ID,
-        Books.dedication_addressee_ID,
-        Books.dedication_text,
-        Books.dedication_sub_foo,
-        Books.dedication_dedication,
-      }`,
-    )
-  })
-  it('supports nested projections for structs with smart wildcard', () => {
-    let query = cds.ql`SELECT from bookshop.Books as Books { ID, dedication { *, 5 as text } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as Books {
-        Books.ID,
-        Books.dedication_addressee_ID,
-        5 as dedication_text,
-        Books.dedication_sub_foo,
-        Books.dedication_dedication,
-      }`,
-    )
-  })
-
-  it('supports nested projections for structs with join relevant path expression', () => {
-    let query = cds.ql`SELECT from bookshop.Books { ID, dedication { addressee.name } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as $B
-          left outer join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID {
-            $B.ID,
-            addressee.name as dedication_addressee_name
-      }`,
-    )
-  })
-  it('supports nested projections for structs with join relevant path expression w/ infix filter', () => {
-    let query = cds.ql`SELECT from bookshop.Books { ID, dedication { addressee[ID=42].name } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as $B
-          left outer join bookshop.Person as addressee on addressee.ID = $B.dedication_addressee_ID and addressee.ID = 42 {
-            $B.ID,
-            addressee.name as dedication_addressee_name
-      }`,
-    )
-  })
-  it('nested projection of assoc within structured expand', () => {
-    let query = cds.ql`SELECT from bookshop.Books {
-                    ID,
-                    dedication { text, addressee { name } }
-                  }`
-    let transformed = cqn4sql(query)
-    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as $B {
-            $B.ID,
-            $B.dedication_text,
-            (
-              SELECT $d.name
-              from bookshop.Person as $d
-              where $B.dedication_addressee_ID = $d.ID
-            ) as dedication_addressee
-      }`,
-    )
-  })
-
-  it('handles smart wildcard and respects order', () => {
-    let query = cds.ql`SELECT from bookshop.Books { dedication { 'first' as first, 'second' as sub, *, 5 as ![5], 'Baz' as text } }`
-    let transformed = cqn4sql(query)
-    expect(transformed).to.deep.eql(
-      cds.ql`SELECT from bookshop.Books as $B {
-        'first' as dedication_first,
-        'second' as dedication_sub,
-        $B.dedication_addressee_ID,
-        'Baz' as dedication_text,
-        $B.dedication_dedication,
-        5 as dedication_5
-      }`,
-    )
+})
+describe('Unfold expands on associations to special subselects', () => {
+  let model
+  beforeAll(async () => {
+    cds.model = model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
   })
 
   it('structured expand within nested projection of assoc within structured expand', () => {
@@ -179,11 +39,24 @@ describe('Unfold expands on structure', () => {
       }`,
     )
   })
-})
-describe('Unfold expands on associations to special subselects', () => {
-  let model
-  beforeAll(async () => {
-    cds.model = model = await cds.load(__dirname + '/../bookshop/db/schema').then(cds.linked)
+
+  it('nested projection of assoc within structured expand', () => {
+    let query = cds.ql`SELECT from bookshop.Books {
+                    ID,
+                    dedication { text, addressee { name } }
+                  }`
+    let transformed = cqn4sql(query)
+    expect(JSON.parse(JSON.stringify(transformed))).to.deep.eql(
+      cds.ql`SELECT from bookshop.Books as $B {
+            $B.ID,
+            $B.dedication_text,
+            (
+              SELECT $d.name
+              from bookshop.Person as $d
+              where $B.dedication_addressee_ID = $d.ID
+            ) as dedication_addressee
+      }`,
+    )
   })
 
   // Expands along associations are translated to subqueries.
@@ -214,8 +87,7 @@ describe('Unfold expands on associations to special subselects', () => {
         } where $B.author_ID = $a.ID
       ) as author
     }`
-    expect(JSON.parse(JSON.stringify(res)))
-      .to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
   it('do not loose additional properties on expand column', () => {
     const q = {
@@ -288,7 +160,7 @@ describe('Unfold expands on associations to special subselects', () => {
         },
         columns: [
           {
-            ref: [{id: 'author', orderBy: [{ref:['dateOfBirth'], sort: 'desc'}]}],
+            ref: [{ id: 'author', orderBy: [{ ref: ['dateOfBirth'], sort: 'desc' }] }],
             expand: [
               {
                 ref: ['name'],
