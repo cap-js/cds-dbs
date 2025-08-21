@@ -1472,6 +1472,7 @@ function cqn4sql(originalQuery, model) {
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           }
         }
+        // TODO: improve error message, the current message is generally not true (only for OData shortcut notation)
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
