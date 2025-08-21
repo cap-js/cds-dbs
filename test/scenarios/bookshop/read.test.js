@@ -486,4 +486,42 @@ describe('Bookshop - Read', () => {
     const pathExpressionResult = await cds.db.run(pathExpressionQuery)
     expect(crossJoinResult).to.deep.eq(pathExpressionResult)
   })
+
+  describe('independency of column order', () => {
+    
+    let execSpy
+    beforeAll(async () => {
+      const hanaService = await cds.connect.to('db')
+      execSpy = jest.spyOn(hanaService, 'exec')
+    })
+
+    afterAll(() => {
+
+    })
+
+    test('should select columns in the same order regardless of the order in which they are specified', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns('ID', 'title', 'descr', 'stock', 'price')
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns('stock', 'title', 'price', 'ID', 'descr')
+
+      const expectedSqlQuery =
+        `WITH "$B" as (` +
+        `SELECT "$B".descr as "descr","$B".ID as "ID",TO_NVARCHAR("$B".price) as "price","$B".stock as "stock","$B".title as "title" ` +
+        `FROM sap_capire_bookshop_Books as "$B"` +
+        `) SELECT ` +
+        `'$[0' as "_path_",` +
+        `'{}' as "_blobs_",` +
+        `'{}' as "_expands_",` +
+        `(` +
+        `SELECT "descr","ID","price","stock","title" ` +
+        `FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)` +
+        `) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" ` +
+        `FROM "$B" ORDER BY "_path_" ASC`
+
+      await cds.db.run(query1)
+      expect(execSpy).toHaveBeenCalledWith(expectedSqlQuery)
+
+      await cds.db.run(query2)
+      expect(execSpy).toHaveBeenCalledWith(expectedSqlQuery)
+    })
+  })
 })
