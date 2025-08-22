@@ -123,6 +123,151 @@ describe('(nested projections) expand', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('reference in order by is NOT referring to expand column', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books.twin
+        {
+          author
+          {
+            name
+          }
+        } order by author.name asc`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books.twin as $t
+          left join bookshop.Authors as author
+            on author.ID = $t.author_ID
+        {
+          (
+            SELECT $a.name
+            from bookshop.Authors as $a
+            where $t.author_ID = $a.ID
+          ) as author
+        } order by author.name asc`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('within structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.DeepRecursiveAssoc
+        {
+          ID,
+          one.two.three.toSelf
+          {
+            ID
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.DeepRecursiveAssoc as $D
+        {
+          $D.ID,
+          (
+            SELECT $o.ID
+            from bookshop.DeepRecursiveAssoc as $o
+            where $D.one_two_three_toSelf_ID = $o.ID
+          ) as one_two_three_toSelf
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('in combination with scoped query', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books:author
+        {
+          name,
+          books
+          {
+            title
+          }
+        }`)
+
+      expect(transformed.SELECT.columns[1].SELECT).to.have.property('expand').that.equals(true)
+      expect(transformed.SELECT.columns[1].SELECT).to.have.property('one').that.equals(false)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $a
+        {
+          $a.name,
+          (
+            SELECT $b2.title
+            from bookshop.Books as $b2
+            where $a.ID = $b2.author_ID
+          ) as books
+        } where exists (
+          SELECT 1 from bookshop.Books as $B
+          where $B.author_ID = $a.ID
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('re-writing if on-condition has complex xpr', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.WorklistItems
+        {
+          ID,
+          releaseChecks
+          {
+            ID,
+            detailsDeviations
+            {
+              ID
+            }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.WorklistItems as $W
+        {
+          $W.ID,
+          (
+            SELECT from bookshop.WorklistItem_ReleaseChecks as $r
+            {
+              $r.ID,
+              (
+                SELECT from bookshop.QualityDeviations as $d
+                {
+                  $d.ID
+                }
+                where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+                  and (
+                        $d.batch_ID = '*'
+                    or  $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID
+                  )
+                  and $d.snapshotHash = $r.snapshotHash
+              ) as detailsDeviations
+            }
+            where $r.parent_ID = $W.ID
+              and $r.parent_snapshotHash = $W.snapshotHash
+          ) as releaseChecks
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('ignores expands which target ”@cds.persistence.skip”', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          ID,
+          skipped
+          {
+            text
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          NotSkipped.ID
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('wildcard', () => {
@@ -156,6 +301,59 @@ describe('(nested projections) expand', () => {
             from bookshop.Authors as $a
             where Books.author_ID = $a.ID
           ) as author
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('respects smart wildcard rules', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          name,
+          books
+          {
+            'first' as first,
+            'second' as ID,
+            *,
+            'third' as createdAt,
+            'last' as last
+          }
+        }`)
+
+      expect(transformed.SELECT.columns[1].SELECT).to.have.property('expand').that.equals(true)
+      expect(transformed.SELECT.columns[1].SELECT).to.have.property('one').that.equals(false)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.name,
+          (
+            SELECT
+              'first' as first,
+              'second' as ID,
+              'third' as createdAt,
+              $b.createdBy,
+              $b.modifiedAt,
+              $b.modifiedBy,
+              $b.anotherText,
+              $b.title,
+              $b.descr,
+              $b.author_ID,
+              $b.coAuthor_ID,
+              $b.genre_ID,
+              $b.stock,
+              $b.price,
+              $b.currency_code,
+              $b.dedication_addressee_ID,
+              $b.dedication_text,
+              $b.dedication_sub_foo,
+              $b.dedication_dedication,
+              $b.coAuthor_ID_unmanaged,
+              'last' as last
+            from bookshop.Books as $b
+            where $A.ID = $b.author_ID
+          ) as books
         }`
 
       expectCqn(transformed).to.equal(expected)
@@ -727,6 +925,88 @@ describe('(nested projections) expand', () => {
             from bookshop.Books as $t
             where toAuthor.ID = $t.author_ID
           ) as toAuthor_books
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('drill into structure, navigate via assoc, drill into structure and expand', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.DeepRecursiveAssoc as $D
+        {
+          ID,
+          one.two.three.toSelf.one.two.three.toSelf
+          {
+            ID
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.DeepRecursiveAssoc as $D
+          left join bookshop.DeepRecursiveAssoc as toSelf
+            on toSelf.ID = $D.one_two_three_toSelf_ID
+        {
+          $D.ID,
+          (
+            SELECT $o.ID
+            from bookshop.DeepRecursiveAssoc as $o
+            where toSelf.one_two_three_toSelf_ID = $o.ID
+          ) as one_two_three_toSelf_one_two_three_toSelf
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('nested', () => {
+    it('unfold nested expands', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          author
+          {
+            books
+            {
+              genre
+              {
+                name
+              }
+            }
+          }
+        }`)
+
+      // author
+      expect(transformed.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
+      expect(transformed.SELECT.columns[0].SELECT).to.have.property('one').that.equals(true)
+      // books
+      expect(transformed.SELECT.columns[0].SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
+      expect(transformed.SELECT.columns[0].SELECT.columns[0].SELECT).to.have.property('one').that.equals(false)
+      // genre
+      expect(transformed.SELECT.columns[0].SELECT.columns[0].SELECT.columns[0].SELECT)
+        .to.have.property('expand')
+        .that.equals(true)
+      expect(transformed.SELECT.columns[0].SELECT.columns[0].SELECT.columns[0].SELECT)
+        .to.have.property('one')
+        .that.equals(true)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          (
+            SELECT
+              (
+                SELECT
+                  (
+                    SELECT $g.name
+                    FROM bookshop.Genres as $g
+                      WHERE $b2.genre_ID = $g.ID
+                  ) as genre
+                FROM bookshop.Books AS $b2
+                  WHERE $a.ID = $b2.author_ID
+              ) as books
+            FROM bookshop.Authors as $a
+              WHERE $B.author_ID = $a.ID
+          ) as author
         }`
 
       expectCqn(transformed).to.equal(expected)
