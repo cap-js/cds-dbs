@@ -22,8 +22,8 @@ describe('keyless entities', () => {
       // ok if explicit foreign key is used
       const qOk = SELECT.columns('ID').from(Books).where(`authorWithExplicitForeignKey[ID = 42].name LIKE 'King'`)
       expect(cqn4sql(qOk, model)).to.eql(
-        cds.ql`SELECT $B.ID FROM Books as $B 
-        left join Authors as authorWithExplicitForeignKey
+        cds.ql`SELECT $B.ID from keyless.Books as $B 
+        left join keyless.Authors as authorWithExplicitForeignKey
           on authorWithExplicitForeignKey.ID = $B.authorWithExplicitForeignKey_ID
           and authorWithExplicitForeignKey.ID = 42
         where authorWithExplicitForeignKey.name LIKE 'King'`,
@@ -37,48 +37,48 @@ describe('keyless entities', () => {
       )
     })
     it('scoped query leading to where exists subquery cant be constructed', () => {
-      const q = SELECT.from('Books:author')
-      expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “Books:author” has no foreign keys`)
+      const q = SELECT.from('keyless.Books:author')
+      expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “keyless.Books:author” has no foreign keys`)
 
       // ok if explicit foreign key is used
-      const qOk = SELECT.from('Books:authorWithExplicitForeignKey').columns('ID')
+      const qOk = SELECT.from('keyless.Books:authorWithExplicitForeignKey').columns('ID')
       expect(cqn4sql(qOk, model)).to.eql(
-        cds.ql`SELECT $a.ID FROM Authors as $a 
+        cds.ql`SELECT $a.ID from keyless.Authors as $a 
         where exists (
-          SELECT 1 from Books as $B where $B.authorWithExplicitForeignKey_ID = $a.ID
+          SELECT 1 from keyless.Books as $B where $B.authorWithExplicitForeignKey_ID = $a.ID
         )`,
       )
     })
     it('where exists predicate cant be transformed to subquery', () => {
-      const q = SELECT.columns('ID').from('Books').where('exists author')
+      const q = SELECT.columns('ID').from('keyless.Books').where('exists author')
       expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “author” has no foreign keys`)
       // ok if explicit foreign key is used
-      const qOk = SELECT.from('Books').columns('ID').where('exists authorWithExplicitForeignKey')
+      const qOk = SELECT.from('keyless.Books').columns('ID').where('exists authorWithExplicitForeignKey')
       expect(cqn4sql(qOk, model)).to.eql(
-        cds.ql`SELECT $B.ID FROM Books as $B 
+        cds.ql`SELECT $B.ID from keyless.Books as $B 
         where exists (
-          SELECT 1 from Authors as $a where $a.ID = $B.authorWithExplicitForeignKey_ID
+          SELECT 1 from keyless.Authors as $a where $a.ID = $B.authorWithExplicitForeignKey_ID
         )`,
       )
     })
     it('correlated subquery for expand cant be constructed', () => {
-      const q = cds.ql`SELECT author { name } from Books`
+      const q = cds.ql`SELECT author { name } from keyless.Books`
       expect(() => cqn4sql(q, model)).to.throw(`Can't expand “author” as it has no foreign keys`)
       // ok if explicit foreign key is used
-      const qOk = cds.ql`SELECT authorWithExplicitForeignKey { name } from Books`
+      const qOk = cds.ql`SELECT authorWithExplicitForeignKey { name } from keyless.Books`
       expect(JSON.parse(JSON.stringify(cqn4sql(qOk, model)))).to.eql(
         cds.ql`
       SELECT
         (
-          SELECT $a.name from Authors as $a
+          SELECT $a.name from keyless.Authors as $a
           where $B.authorWithExplicitForeignKey_ID = $a.ID
         ) as authorWithExplicitForeignKey
-      from Books as $B`,
+      from keyless.Books as $B`,
       )
     })
 
     it('calculated element navigates along keyless assoc', () => {
-      const q = SELECT.from('Books').columns('authorName')
+      const q = SELECT.from('keyless.Books').columns('authorName')
       expect(() => cqn4sql(q, model)).to.throw(`Path step “author” of “author.name” has no foreign keys`)
     })
   })
@@ -91,19 +91,19 @@ describe('keyless entities', () => {
       )
     })
     it('backlink has no foreign keys for scoped query', () => {
-      const q = SELECT.columns('ID').from('Authors:bookWithBackLink')
+      const q = SELECT.columns('ID').from('keyless.Authors:bookWithBackLink')
       expect(() => cqn4sql(q, model)).to.throw(
         `Path step “bookWithBackLink” is a self comparison with “author” that has no foreign keys`,
       )
     })
     it('backlink has no foreign keys for where exists subquery', () => {
-      const q = SELECT.from('Authors').where('exists bookWithBackLink')
+      const q = SELECT.from('keyless.Authors').where('exists bookWithBackLink')
       expect(() => cqn4sql(q, model)).to.throw(
         `Path step “bookWithBackLink” is a self comparison with “author” that has no foreign keys`,
       )
     })
     it('backlink has no foreign keys for expand subquery', () => {
-      const q = cds.ql`SELECT bookWithBackLink { title } from Authors as Authors`
+      const q = cds.ql`SELECT bookWithBackLink { title } from keyless.Authors as Authors`
       expect(() => cqn4sql(q, model)).to.throw(
         `Path step “bookWithBackLink” is a self comparison with “author” that has no foreign keys`,
       )

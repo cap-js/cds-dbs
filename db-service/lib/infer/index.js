@@ -404,7 +404,7 @@ function infer(originalQuery, model) {
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
     if (arg.xpr)
       arg.xpr.forEach((token, i) =>
-        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: arg.xpr[i - 1] === 'exists' }),
+        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: inExists || arg.xpr[i - 1] === 'exists' }),
       ) // e.g. function in expression
 
     if (!arg.ref) {
@@ -937,8 +937,15 @@ function infer(originalQuery, model) {
         return true
       }
       if (assoc) {
+        // if(!link.definition.isAssociation) continue
+        let fkIndex = assoc.keys?.findIndex(key => key.ref.every((step, j) => column.ref[i + j] === step))
         // foreign key access without filters never join relevant
-        if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
+        if (fkIndex !== -1) {
+          if(column.ref.slice(i).some(s => s.where)) continue // probably join relevant later on
+          fkAccess = true
+          assoc = null
+          continue
+        }
         // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
         return true
       }
