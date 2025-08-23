@@ -221,7 +221,7 @@ class SQLiteService extends SQLService {
       ...super.InputConverters,
       // The following allows passing in ISO strings with non-zulu
       // timezones and converts them into zulu dates and times
-      Date: e => e === '?' ? e : `strftime('%Y-%m-%d',${e})`,
+      Date: e => `strftime('%Y-%m-%d',${e})`,
       Time: e => e === '?' ? e : `strftime('%H:%M:%S',${e})`,
       // Both, DateTimes and Timestamps are canonicalized to ISO strings with
       // ms precision to allow safe comparisons, also to query {val}s in where clauses
