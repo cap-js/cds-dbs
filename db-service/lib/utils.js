@@ -21,6 +21,12 @@ function prettyPrintRef(ref, model = null) {
   }, '')
 }
 
+function hasOwnSkip(definition) {
+  return (
+    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true
+  )
+}
+
 /**
  * Determines if a definition is calculated on read.
  * - Stored calculated elements are not unfolded
@@ -123,7 +129,6 @@ function getModelUtils(model, query) {
     if (!def || !isLocalized(def)) return def
     return model.definitions[`localized.${def.name}`] || def
   }
-
   return {
     getLocalizedName,
     isLocalized,
@@ -139,4 +144,5 @@ module.exports = {
   getImplicitAlias,
   defineProperty,
   getModelUtils,
+  hasOwnSkip,
 }
