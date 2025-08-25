@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.14.2](https://github.com/cap-js/cds-dbs/compare/postgres-v1.14.1...postgres-v1.14.2) (2025-08-25)
+
+
+### Fixed
+
+* **v1:** ensure ordering of `ParameterStream` chunks ([#1308](https://github.com/cap-js/cds-dbs/issues/1308)) ([f7872c5](https://github.com/cap-js/cds-dbs/commit/f7872c59b9aa2758fba0773b8f8671186d95901b)), closes [#1270](https://github.com/cap-js/cds-dbs/issues/1270)
+
 ## [1.14.1](https://github.com/cap-js/cds-dbs/compare/postgres-v1.14.0...postgres-v1.14.1) (2025-05-28)
 
 
