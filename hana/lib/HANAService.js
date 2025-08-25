@@ -530,7 +530,11 @@ class HANAService extends SQLService {
       if (!SELECT.columns) return '*'
 
       // Sort selected columns to avoid creating redundant execution plans
-      SELECT.columns = SELECT.columns.sort((a, b) => a.element.name.localeCompare(b.element.name))
+      SELECT.columns = SELECT.columns.sort((a, b) => {
+          const sortRefA = a.as ?? a.ref?.id ?? a.ref?.join('.') ?? a.val ?? a.element.name
+          const sortRefB = b.as ?? a.ref?.id ?? b.ref?.join('.') ?? b.val ?? b.element.name
+          return sortRefA.localeCompare(sortRefB)
+      })
 
       if (SELECT.expand !== 'root') {
         const ret = []
