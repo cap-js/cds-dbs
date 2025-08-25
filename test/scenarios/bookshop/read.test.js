@@ -487,41 +487,123 @@ describe('Bookshop - Read', () => {
     expect(crossJoinResult).to.deep.eq(pathExpressionResult)
   })
 
-  describe('independency of column order', () => {
-    
-    let execSpy
+  describe('regardless of order specifed in query', () => {
+    let hanaService
+
     beforeAll(async () => {
-      const hanaService = await cds.connect.to('db')
-      execSpy = jest.spyOn(hanaService, 'exec')
+      hanaService = await cds.connect.to('db')
     })
 
-    afterAll(() => {
+    test('should select columns in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns(['ID', 'title', 'descr', 'stock', 'price'])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns(['stock', 'title', 'price', 'ID', 'descr'])
 
+      const sql1 = hanaService.cqn2sql(query1)
+      const sql2 = hanaService.cqn2sql(query2)
+      expect(sql1.sql).to.equal(sql2.sql)
+
+      const sqlScript1 = hanaService.wrapTemporary(sql1.temporary, sql1.withclause, sql1.blobs)
+      const sqlScript2 = hanaService.wrapTemporary(sql2.temporary, sql2.withclause, sql2.blobs)
+      expect(sqlScript1).to.equal(sqlScript2)
     })
 
-    test('should select columns in the same order regardless of the order in which they are specified', async () => {
-      const query1 = SELECT.from('sap.capire.bookshop.Books').columns('ID', 'title', 'descr', 'stock', 'price')
-      const query2 = SELECT.from('sap.capire.bookshop.Books').columns('stock', 'title', 'price', 'ID', 'descr')
+    test('should select expands in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns([
+        { ref: ['author'], expand: [{ ref: ['name'] }] },
+        { ref: ['genre'], expand: [{ ref: ['ID'] }] },
+      ])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns([
+        { ref: ['genre'], expand: [{ ref: ['ID'] }] },
+        { ref: ['author'], expand: [{ ref: ['name'] }] },
+      ])
 
-      const expectedSqlQuery =
-        `WITH "$B" as (` +
-        `SELECT "$B".descr as "descr","$B".ID as "ID",TO_NVARCHAR("$B".price) as "price","$B".stock as "stock","$B".title as "title" ` +
-        `FROM sap_capire_bookshop_Books as "$B"` +
-        `) SELECT ` +
-        `'$[0' as "_path_",` +
-        `'{}' as "_blobs_",` +
-        `'{}' as "_expands_",` +
-        `(` +
-        `SELECT "descr","ID","price","stock","title" ` +
-        `FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)` +
-        `) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" ` +
-        `FROM "$B" ORDER BY "_path_" ASC`
+      const sql1 = hanaService.cqn2sql(query1)
+      const sql2 = hanaService.cqn2sql(query2)
+      expect(sql1.sql).to.equal(sql2.sql)
 
-      await cds.db.run(query1)
-      expect(execSpy).toHaveBeenCalledWith(expectedSqlQuery)
+      const sqlScript1 = hanaService.wrapTemporary(sql1.temporary, sql1.withclause, sql1.blobs)
+      const sqlScript2 = hanaService.wrapTemporary(sql2.temporary, sql2.withclause, sql2.blobs)
+      expect(sqlScript1).to.equal(sqlScript2)
+    })
 
-      await cds.db.run(query2)
-      expect(execSpy).toHaveBeenCalledWith(expectedSqlQuery)
+    test('should select flat expands in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns([
+        'ID',
+        { ref: ['author', 'ID'] },
+        { ref: ['genre', 'ID'] },
+        { ref: ['author', 'name'] },
+      ])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns([
+        { ref: ['genre', 'ID'] },
+        { ref: ['author', 'name'] },
+        { ref: ['author', 'ID'] },
+        'ID',
+      ])
+
+      const sql1 = hanaService.cqn2sql(query1)
+      const sql2 = hanaService.cqn2sql(query2)
+      expect(sql1.sql).to.equal(sql2.sql)
+
+      const sqlScript1 = hanaService.wrapTemporary(sql1.temporary, sql1.withclause, sql1.blobs)
+      const sqlScript2 = hanaService.wrapTemporary(sql2.temporary, sql2.withclause, sql2.blobs)
+      expect(sqlScript1).to.equal(sqlScript2)
+    })
+
+    test('should select columns and expands in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns([
+        'ID',
+        { ref: ['author'], expand: [{ ref: ['ID'] }, { ref: ['name'] }] },
+        { ref: ['genre', 'ID'] },
+      ])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns([
+        { ref: ['genre', 'ID'] },
+        { ref: ['author'], expand: [{ ref: ['ID'] }, { ref: ['name'] }] },
+        'ID',
+      ])
+
+      const sql1 = hanaService.cqn2sql(query1)
+      const sql2 = hanaService.cqn2sql(query2)
+      expect(sql1.sql).to.equal(sql2.sql)
+
+      const sqlScript1 = hanaService.wrapTemporary(sql1.temporary, sql1.withclause, sql1.blobs)
+      const sqlScript2 = hanaService.wrapTemporary(sql2.temporary, sql2.withclause, sql2.blobs)
+      expect(sqlScript1).to.equal(sqlScript2)
+    })
+
+    test('should select columns from expands in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns([
+        'ID',
+        { ref: ['author'], expand: [{ ref: ['ID'] }, { ref: ['name'] }] },
+      ])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns([
+        { ref: ['author'], expand: [{ ref: ['name'] }, { ref: ['ID'] }] },
+        'ID',
+      ])
+
+      const sql1 = hanaService.cqn2sql(query1)
+      const sql2 = hanaService.cqn2sql(query2)
+      expect(sql1.sql).to.equal(sql2.sql)
+
+      const sqlScript1 = hanaService.wrapTemporary(sql1.temporary, sql1.withclause, sql1.blobs)
+      const sqlScript2 = hanaService.wrapTemporary(sql2.temporary, sql2.withclause, sql2.blobs)
+      expect(sqlScript1).to.equal(sqlScript2)
+    })
+
+    describe('when selecting expr', () => {
+      test('should select functions in the same order', async () => {
+        const query1 = SELECT.from('sap.capire.bookshop.Books').columns(['ID', { xpr: [] }])
+        const query2 = SELECT.from('sap.capire.bookshop.Books').columns([{ xpr: [] }, 'ID'])
+      })
+
+      test('should select expressions in the same order', async () => {
+        const query1 = SELECT.from('sap.capire.bookshop.Books').columns(['ID', { func: [] }])
+        const query2 = SELECT.from('sap.capire.bookshop.Books').columns([{ func: [] }, 'ID'])
+      })
+
+      test('should select values in the same order', async () => {
+        const query1 = SELECT.from('sap.capire.bookshop.Books').columns(['ID', { val: 'some-static-value' }])
+        const query2 = SELECT.from('sap.capire.bookshop.Books').columns([{ val: 'some-static-value' }, 'ID'])
+      })
     })
   })
 })
