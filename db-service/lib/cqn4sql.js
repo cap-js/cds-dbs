@@ -20,14 +20,14 @@ const {
  */
 const eqOps = [['is'], ['='] /* ['=='] */]
 /**
- * For operators of <notEqOps>, do the same but use or instead of and.
- * This ensures that not struct == <value> is the same as struct != <value>.
+ * For operators of <notEqOps>, do the same but use `or` instead of `and`.
+ * This ensures that `not struct == <value>` is the same as `struct != <value>`.
  */
 const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 /**
  * not supported in comparison w/ struct because of unclear semantics
  */
-const notSupportedOps = [['>'], ['<'], ['>='], ['<=']]
+const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/']]
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
@@ -1471,6 +1471,7 @@ function cqn4sql(originalQuery, model) {
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           }
         }
+        // TODO: improve error message, the current message is generally not true (only for OData shortcut notation)
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
@@ -1501,9 +1502,12 @@ function cqn4sql(originalQuery, model) {
           }
 
           if (notSupportedOps.some(([firstOp]) => firstOp === next))
-            throw new Error(`The operator "${next}" is not supported for structure comparison`)
+            throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
+          if(newTokens.length === 0)
+            throw new Error(`Can't compare two empty structures`)
+
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
           transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
           i = indexRhs // jump to next relevant index
@@ -2193,7 +2197,7 @@ function cqn4sql(originalQuery, model) {
       next.pathExpressionInsideFilter ||
       (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))
     ) {
-      SELECT.where = next.pathExpressionInsideFilter ? customWhere : []
+      SELECT.where = customWhere || []
       if (queryModifier) assignQueryModifiers(SELECT, queryModifier)
 
       const transformedExists = transformSubquery({ SELECT })
