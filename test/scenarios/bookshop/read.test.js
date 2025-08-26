@@ -595,5 +595,12 @@ describe('Bookshop - Read', () => {
 
       expectSqlScriptToBeEqual(query1, query2)
     })
+
+    test('should select numeric values in the same order', async () => {
+      const query1 = SELECT.from('sap.capire.bookshop.Books').columns(['ID', { val: 1 }])
+      const query2 = SELECT.from('sap.capire.bookshop.Books').columns([{ val: 1 }, 'ID'])
+
+      expectSqlScriptToBeEqual(query1, query2)
+    })
   })
 })
