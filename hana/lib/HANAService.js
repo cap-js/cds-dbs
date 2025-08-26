@@ -533,7 +533,7 @@ class HANAService extends SQLService {
       SELECT.columns = SELECT.columns.sort((a, b) => {
           const sortRefA = a.as ?? a.ref?.id ?? a.ref?.join('.') ?? a.val ?? a.element.name
           const sortRefB = b.as ?? a.ref?.id ?? b.ref?.join('.') ?? b.val ?? b.element.name
-          return sortRefA.localeCompare(sortRefB)
+          return sortRefA.toString().localeCompare(sortRefB.toString())
       })
 
       if (SELECT.expand !== 'root') {
