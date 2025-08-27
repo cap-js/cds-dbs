@@ -884,6 +884,36 @@ class HANAService extends SQLService {
       return this.INSERT_entries(q)
     }
 
+    INSERT_select(q) {
+      const { INSERT } = q
+      const entity = this.name(q._target.name, q)
+      const alias = INSERT.into.as
+      const elements = q.elements || q._target?.elements || {}
+      const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
+        c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
+      ))
+
+      if (columns.length !== INSERT.from.SELECT.columns.length)
+        throw new Error('The number of specified columns does not match the number of selected columns')
+      INSERT.from.SELECT.columns
+        .map((c, i) => [c, columns[i]])
+        .sort(([a], [b]) => {
+          const sortRefA = a.as ?? a.ref?.id ?? a.ref?.join('.') ?? (typeof a == 'string' && a) ?? a.val ?? a.element.name
+          const sortRefB = b.as ?? a.ref?.id ?? b.ref?.join('.') ?? (typeof b == 'string' && b) ?? b.val ?? b.element.name
+          return sortRefA.toString().localeCompare(sortRefB.toString())
+        })
+        .forEach(([a, b], i) => {
+          INSERT.from.SELECT.columns[i] = a
+          this.columns[i] = columns[i] = b
+        })
+
+      this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c =>
+        this.quote(c),
+      )}) ${this.SELECT(this.cqn4sql(INSERT.from || INSERT.as))}`
+      this.entries = [this.values]
+      return this.sql
+    }
+
     UPSERT(q) {
       const { UPSERT } = q
       // REVISIT: should @cds.persistence.name be considered ?
