@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Perf Benchmarks by Commit</title>
+<style>
+  :root { --fg:#111; --muted:#666; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial; margin: 24px; color: var(--fg); }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  #chart { width: 100%; height: 72vh; }
+  .meta { margin-top: 8px; color: var(--muted); font-size: 12px; }
+  label { font-size: 12px; margin-right: 8px; color: var(--muted); }
+  select { font-size: 12px; }
+</style>
+<h1>Perf Benchmarks (requests/second) by Commit</h1>
+<div class="meta">
+  Data: cqn4sql-benchmarks.json • Commits: 2 • Metric: requests.average
+</div>
+<div style="margin:8px 0">
+  <label for="filter">Filter benchmark:</label>
+  <select id="filter"><option value="__all__">All</option></select>
+</div>
+<div id="chart"></div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+  const SERIES = [{"name":"select simple","x":["8ea5c2b9","19731f02"],"y":[87328,87520]},{"name":"expand simple","x":["8ea5c2b9","19731f02"],"y":[20440,20016]},{"name":"expand recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[7926,8123]},{"name":"exists simple","x":["8ea5c2b9","19731f02"],"y":[8144,8352]},{"name":"exists recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[46192,46080]},{"name":"assoc2join simple","x":["8ea5c2b9","19731f02"],"y":[53792,54800]},{"name":"assoc2join recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[42480,45888]}];
+  const COMMITS = ["8ea5c2b9","19731f02"];
+  const COMMIT_DATES = ["2025-08-27T15:03:45.583Z","2025-08-27T15:06:07.491Z"];
+
+  // Populate filter
+  const filterEl = document.getElementById('filter');
+  SERIES.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name; opt.textContent = s.name;
+    filterEl.appendChild(opt);
+  });
+
+  function makeTraces(showName) {
+    const base = {
+      mode: 'lines+markers',
+      connectgaps: false,
+      x: COMMITS,
+      customdata: COMMIT_DATES, // one per x
+      hovertemplate:
+        '<b>%{fullData.name}</b><br>' +
+        'commit: %{x}<br>' +
+        'rps: %{y:.0f}<br>' +
+        '%{customdata|%Y-%m-%d %H:%M:%S}<extra></extra>'
+    };
+    const chosen = showName === '__all__'
+      ? SERIES
+      : SERIES.filter(s => s.name === showName);
+    return chosen.map(s => Object.assign({}, base, { name: s.name, y: s.y }));
+  }
+
+  const layout = {
+    xaxis: {
+      title: 'Commit',
+      type: 'category',
+      tickangle: -45,
+      automargin: true
+    },
+    yaxis: { title: 'Requests / second', rangemode: 'tozero' },
+    hovermode: 'x unified',
+    legend: { orientation: 'h' },
+    margin: { l: 60, r: 20, t: 10, b: 80 }
+  };
+
+  function render() {
+    const name = filterEl.value;
+    const traces = makeTraces(name);
+    Plotly.newPlot('chart', traces, layout, { displayModeBar: true, responsive: true });
+  }
+
+  filterEl.addEventListener('change', render);
+  render();
+</script>
+</html>

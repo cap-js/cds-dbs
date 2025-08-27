@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { writeDump } = require('./utils/format-bench')
+const { writeDump } = require('./utils/format-benchmarks')
 
 let cqn4sql = require('../../lib/cqn4sql')
 
