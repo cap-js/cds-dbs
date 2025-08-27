@@ -28,6 +28,7 @@ describe('cqn4sql performance benchmarks', () => {
   runBenchmarkFor('expand recursive (depth 3)', cds.ql`SELECT from my.Genres { ID, parent { parent { parent { name }}} }`)
 
   runBenchmarkFor('exists simple', cds.ql`SELECT from my.Genres { ID } where exists parent`)
+  runBenchmarkFor('exists simple with path expression', cds.ql`SELECT from my.Genres { ID } where exists parent[parent.name = 'foo']`)
   runBenchmarkFor('exists recursive (depth 3)', cds.ql`SELECT from my.Genres { ID } where exists parent.parent.parent`)
 
   runBenchmarkFor('assoc2join simple', cds.ql`SELECT from my.Books { ID, author.name }`)

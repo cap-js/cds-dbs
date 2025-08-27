@@ -65,7 +65,8 @@ const html = `<!doctype html>
 </style>
 <h1>Perf Benchmarks (requests/second) by Commit</h1>
 <div class="meta">
-  Data: ${path.basename(dumpPath)} • Commits: ${entries.length} • Metric: requests.${metric}
+  Data: ${path.basename(dumpPath)} • Commits: ${entries.length} • Metric: requests.${metric} <br>
+  Requests per second (higher = better).
 </div>
 <div style="margin:8px 0">
   <label for="filter">Filter benchmark:</label>
