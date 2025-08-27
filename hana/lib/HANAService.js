@@ -531,9 +531,9 @@ class HANAService extends SQLService {
 
       // Sort selected columns to avoid creating redundant execution plans
       SELECT.columns = SELECT.columns.sort((a, b) => {
-          const sortRefA = a.as ?? a.ref?.id ?? a.ref?.join('.') ?? a.val ?? a.element.name
-          const sortRefB = b.as ?? a.ref?.id ?? b.ref?.join('.') ?? b.val ?? b.element.name
-          return sortRefA.toString().localeCompare(sortRefB.toString())
+        const sortRefA = a.as ?? a.ref?.id ?? a.ref?.join('.') ?? (typeof a == 'string' && a) ?? a.val ?? a.element.name
+        const sortRefB = b.as ?? a.ref?.id ?? b.ref?.join('.') ?? (typeof b == 'string' && b) ?? b.val ?? b.element.name
+        return sortRefA.toString().localeCompare(sortRefB.toString())
       })
 
       if (SELECT.expand !== 'root') {
