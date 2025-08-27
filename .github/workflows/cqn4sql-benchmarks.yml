@@ -39,7 +39,7 @@ jobs:
 
       - name: Build visualization
         run: |
-          cd ./db-service/bench/cqn4sq
+          cd ./db-service/bench/cqn4sql
           mkdir -p dist
           node utils/visualize-benchmarks.js results/cqn4sql-benchmarks.json results/perf-benchmarks.html
           cp perf-benchmarks.json dist/
