@@ -582,7 +582,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
                   const isSource = from => {
                     if (from.as === col.ref[0]) return true
                     return from.args?.some(a => {
