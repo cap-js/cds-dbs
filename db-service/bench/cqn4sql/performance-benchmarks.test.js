@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const { writeDump } = require('./utils/format-bench')
 
 let cqn4sql = require('../../lib/cqn4sql')
 
@@ -15,6 +16,10 @@ describe('cqn4sql performance benchmarks', () => {
     const m = await cds.load([__dirname + '/model/schema']).then(cds.linked)
     const orig = cqn4sql // keep reference to original to avoid recursion
     cqn4sql = q => orig(q, m)
+  })
+
+  after('format & write dump', () => {
+    writeDump({ testFile: __filename })
   })
 
   runBenchmarkFor('select simple', cds.ql`SELECT from my.Books { ID }`)
@@ -34,5 +39,5 @@ describe('cqn4sql performance benchmarks', () => {
 function runBenchmarkFor(name, cqn) {
   it(name, async () => report(await perf.fn(() => {
     cqn4sql(cqn)
-  }), { title: name }))
+  }, { title: name })))
 }
