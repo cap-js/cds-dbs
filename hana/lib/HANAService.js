@@ -118,14 +118,15 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
+    const _variables = {}
     // REVISIT: required to be compatible with generated views
-    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
-    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
-    if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
-    if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
-    if (variables['$now']) variables['NOW'] = variables['$now']
+    if (variables['$valid.from']) _variables['VALID-FROM'] = variables['$valid.from']
+    if (variables['$valid.to']) _variables['VALID-TO'] = variables['$valid.to']
+    if (variables['$user.id']) _variables['APPLICATIONUSER'] = variables['$user.id']
+    if (variables['$user.locale']) _variables['LOCALE'] = variables['$user.locale']
+    if (variables['$now']) _variables['NOW'] = variables['$now']
 
-    this.ensureDBC().set(variables)
+    this.ensureDBC().set(_variables)
   }
 
   async onSELECT(req) {

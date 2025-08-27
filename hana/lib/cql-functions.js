@@ -199,7 +199,7 @@ const StandardFunctions = {
   second: x => `TO_INTEGER(SECOND(${getTimeCast(x)}))`,
   date: x => `TO_DATE(${x})`,
   time: x => `TO_TIME(${x})`,
-  now: () => `session_context('$now')`,
+  now: () => `session_context('NOW')`,
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 
