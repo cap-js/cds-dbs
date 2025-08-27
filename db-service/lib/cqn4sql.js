@@ -12,6 +12,7 @@ const {
   getImplicitAlias,
   defineProperty,
   getModelUtils,
+  hasOwnSkip,
 } = require('./utils')
 
 /**
@@ -467,7 +468,7 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)) return
+      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -966,7 +967,7 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true))
+        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
           continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -1471,6 +1472,7 @@ function cqn4sql(originalQuery, model) {
             flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
           }
         }
+        // TODO: improve error message, the current message is generally not true (only for OData shortcut notation)
         if (flatKeys.length > 1)
           throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
         flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
@@ -2196,7 +2198,7 @@ function cqn4sql(originalQuery, model) {
       next.pathExpressionInsideFilter ||
       (queryModifier && ['orderBy', 'groupBy', 'having', 'limit', 'offset'].some(key => key in queryModifier))
     ) {
-      SELECT.where = next.pathExpressionInsideFilter ? customWhere : []
+      SELECT.where = customWhere || []
       if (queryModifier) assignQueryModifiers(SELECT, queryModifier)
 
       const transformedExists = transformSubquery({ SELECT })
