@@ -1484,9 +1484,9 @@ Readable.prototype[require('node:util').inspect.custom] = Readable.prototype.toJ
 
 const ObjectKeys = o => (o && [...ObjectKeys(o.__proto__), ...Object.keys(o)]) || []
 const _managed = {
-  '$user.id': cds.env.requires.db.impl.includes('hana') ?  'APPLICATIONUSER' : '$user.id',
-  $user: cds.env.requires.db.impl.includes('hana') ? 'APPLICATIONUSER' : '$user.id',
-  $now: cds.env.requires.db.impl.includes('hana') ? 'NOW' : '$now',
+  '$user.id': '$user.id',
+  $user: '$user.id',
+  $now: '$now',
 }
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
