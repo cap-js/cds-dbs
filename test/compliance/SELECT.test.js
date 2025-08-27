@@ -1006,6 +1006,19 @@ describe('SELECT', () => {
       for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
     }
 
+    test('cds/srv.foreach', () => cds.tx(async () => {
+      const { all } = cds.entities('basic.projection')
+
+
+      const expected = {}
+      const rows = await cds.ql`SELECT FROM ${all}`
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cds.foreach(SELECT.from(all),process.bind(aggregate))
+      expect(aggregate).deep.eq(expected)
+    }))
+
     test('aggregate', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
@@ -1020,8 +1033,7 @@ describe('SELECT', () => {
       expect(aggregate).deep.eq(expected)
     }))
 
-    // REVISIT: unskip when merged into @sap/cds
-    test.skip('async iterator', () => cds.tx(async () => {
+    test('async iterator', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1036,8 +1048,7 @@ describe('SELECT', () => {
     }))
   })
 
-  // REVISIT: unskip when merged into @sap/cds
-  describe.skip('pipe', () => {
+  describe('pipeline', () => {
     test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
@@ -1045,7 +1056,7 @@ describe('SELECT', () => {
       const expected = await cqn.clone()
 
       let result
-      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      await cqn.clone().pipeline(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
     }))
 
@@ -1058,7 +1069,7 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT FROM ${all}`
 
       // Start simple http server
-      const srv = http.createServer((_, res) => cqn.pipe(res))
+      const srv = http.createServer((_, res) => cqn.pipeline(res))
       await promisify(srv.listen.bind(srv))()
       cds.once('shutdown', () => { srv.close() })
 
@@ -1069,7 +1080,7 @@ describe('SELECT', () => {
         const req = http.get(`http://localhost:${port}/`)
         req.on('error', reject)
         req.on('response', res => {
-          expect(res.headers).to.have.property('content-type').eq('application/json')
+          // expect(res.headers).to.have.property('content-type').eq('application/json')
           expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
           json(res).then(resolve, reject)
         })

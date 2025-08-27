@@ -1009,7 +1009,7 @@ describe('Unfold expands on associations to special subselects', () => {
   describe('comparisons of associations in on condition of elements needs to be expanded', () => {
     let model
     beforeAll(async () => {
-      model = cds.model = await cds.load(__dirname + '/A2J/schema').then(cds.linked)
+      model = cds.model = await cds.load(__dirname + '/model/A2J/schema').then(cds.linked)
     })
 
     it('assoc comparison needs to be expanded in on condition calculation', () => {
@@ -1460,28 +1460,28 @@ describe('expand on structure part II', () => {
   })
 
   it('simple structural expansion', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
       office {
         floor,
         room
       }
     }`
 
-    let expected = cds.ql`select from Employee as Employee {
+    let expected = cds.ql`select from nestedProjections.Employee as Employee {
       Employee.office_floor,
       Employee.office_room
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('structural expansion with path expression', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
       office {
         floor,
         building.name
       }
     }`
-    let expected = cds.ql`select from Employee as Employee
-    left join Building as building on building.id = Employee.office_building_id
+    let expected = cds.ql`select from nestedProjections.Employee as Employee
+    left join nestedProjections.Building as building on building.id = Employee.office_building_id
     {
       Employee.office_floor,
       building.name as office_building_name
@@ -1490,7 +1490,7 @@ describe('expand on structure part II', () => {
   })
 
   it('deep expand', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
           office {
             floor,
             address {
@@ -1499,7 +1499,7 @@ describe('expand on structure part II', () => {
             }
           }
     }`
-    let expected = cds.ql`SELECT from Employee as Employee {
+    let expected = cds.ql`SELECT from nestedProjections.Employee as Employee {
         Employee.office_floor,
         Employee.office_address_city,
         Employee.office_address_street
@@ -1508,7 +1508,7 @@ describe('expand on structure part II', () => {
   })
 
   it('multi expand with star - foreign key must survive in flat mode', () => {
-    let expandQuery = cds.ql`select from Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee {
         *,
         department {
           id,
@@ -1519,13 +1519,13 @@ describe('expand on structure part II', () => {
           descr
         }
     } excluding { office_floor, office_address_country, office_building, office_room, office_building_id, office_address_city, office_building_id, office_address_street, office_address_country_code, office_address_country_code, office_furniture_chairs,office_furniture_desks }`
-    let expected = cds.ql`SELECT from Employee as $E {
+    let expected = cds.ql`SELECT from nestedProjections.Employee as $E {
         $E.id,
         $E.name,
         $E.job,
         $E.department_id,
-        (SELECT $d.id, $d.name from Department as $d where $E.department_id = $d.id) as department,
-        (SELECT $a.id, $a.descr from Assets as $a where $E.id = $a.owner_id) as assets
+        (SELECT $d.id, $d.name from nestedProjections.Department as $d where $E.department_id = $d.id) as department,
+        (SELECT $a.id, $a.descr from nestedProjections.Assets as $a where $E.id = $a.owner_id) as assets
     }`
     expect(
       JSON.parse(JSON.stringify(cqn4sql(expandQuery, cds.compile.for.nodejs(JSON.parse(JSON.stringify(model)))))),
@@ -1533,7 +1533,7 @@ describe('expand on structure part II', () => {
   })
 
   it('multi expand with star but foreign key does not survive in structured mode', () => {
-    let expandQuery = cds.ql`select from Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee {
         *,
         department {
           id,
@@ -1544,12 +1544,12 @@ describe('expand on structure part II', () => {
           descr
         }
     } excluding { office }`
-    let expected = cds.ql`SELECT from Employee as $E {
+    let expected = cds.ql`SELECT from nestedProjections.Employee as $E {
         $E.id,
         $E.name,
         $E.job,
-        (SELECT $d.id, $d.name from Department as $d where $E.department_id = $d.id) as department,
-        (SELECT $a.id, $a.descr from Assets as $a where $E.id = $a.owner_id) as assets
+        (SELECT $d.id, $d.name from nestedProjections.Department as $d where $E.department_id = $d.id) as department,
+        (SELECT $a.id, $a.descr from nestedProjections.Assets as $a where $E.id = $a.owner_id) as assets
     }`
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
@@ -1557,7 +1557,7 @@ describe('expand on structure part II', () => {
   // Implicit alias of nested expand subquery is the first letter
   // of the column alias
   it('structured expand with deep assoc expand', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
       office {
         floor,
         address {
@@ -1567,12 +1567,12 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = cds.ql`select from Employee as Employee {
+    let expected = cds.ql`select from nestedProjections.Employee as Employee {
       Employee.office_floor,
       Employee.office_address_city,
       Employee.office_address_street,
       (
-        SELECT $o.code from Country as $o
+        SELECT $o.code from nestedProjections.Country as $o
         where Employee.office_address_country_code = $o.code
       ) as office_address_country
     }`
@@ -1580,7 +1580,7 @@ describe('expand on structure part II', () => {
     expect(JSON.parse(JSON.stringify(cqn4sql(expandQuery, model)))).to.eql(expected)
   })
   it('deep, structured expand', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
       office {
         floor,
         address {
@@ -1589,7 +1589,7 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = cds.ql`select from Employee as Employee {
+    let expected = cds.ql`select from nestedProjections.Employee as Employee {
       Employee.office_floor,
       Employee.office_address_city,
       Employee.office_address_street,
@@ -1597,7 +1597,7 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('deep expand on assoc within structure expand', () => {
-    let expandQuery = cds.ql`select from Employee as Employee {
+    let expandQuery = cds.ql`select from nestedProjections.Employee as Employee {
       office {
         floor,
         building {
@@ -1605,10 +1605,10 @@ describe('expand on structure part II', () => {
         }
       }
     }`
-    let expected = cds.ql`select from Employee as Employee {
+    let expected = cds.ql`select from nestedProjections.Employee as Employee {
       Employee.office_floor,
       (
-        select $o.id from Building as $o
+        select $o.id from nestedProjections.Building as $o
         where Employee.office_building_id = $o.id
       ) as office_building
     }`
@@ -1617,10 +1617,10 @@ describe('expand on structure part II', () => {
   })
 
   it('wildcard expand toplevel', () => {
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { * }
     }`
-    let absolutePaths = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let absolutePaths = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.floor,
       office.room,
       office.building,
@@ -1628,7 +1628,7 @@ describe('expand on structure part II', () => {
       office.furniture
     }`
 
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_floor,
       EmployeeNoUnmanaged.office_room,
       EmployeeNoUnmanaged.office_building_id,
@@ -1643,10 +1643,10 @@ describe('expand on structure part II', () => {
     expect(wildcard).to.eql(absolute).to.eql(expected)
   })
   it('wildcard on expand deep', () => {
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { address {*} }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_address_city,
       EmployeeNoUnmanaged.office_address_street,
       EmployeeNoUnmanaged.office_address_country_code,
@@ -1657,10 +1657,10 @@ describe('expand on structure part II', () => {
 
   it('smart wildcard - assoc overwrite after *', () => {
     // office.address.city replaces office.floor
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { *, furniture as building, address.city as floor, building.id as room }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       EmployeeNoUnmanaged.office_address_city as office_floor,
       EmployeeNoUnmanaged.office_building_id as office_room,
       EmployeeNoUnmanaged.office_furniture_chairs as office_building_chairs,
@@ -1677,10 +1677,10 @@ describe('expand on structure part II', () => {
 
   it('smart wildcard - structure overwritten by assoc before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office.{ building as furniture, * }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_building_id as office_furniture_id,
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
@@ -1693,11 +1693,11 @@ describe('expand on structure part II', () => {
   })
   it('smart wildcard - structure overwritten by join relevant assoc before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { building[name='mega tower'].name as furniture, * }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
-      left join Building as building on building.id = EmployeeNoUnmanaged.office_building_id and building.name = 'mega tower'
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged
+      left join nestedProjections.Building as building on building.id = EmployeeNoUnmanaged.office_building_id and building.name = 'mega tower'
     {
      building.name as office_furniture,
      EmployeeNoUnmanaged.office_floor,
@@ -1711,10 +1711,10 @@ describe('expand on structure part II', () => {
   })
   it('wildcard - no overwrite but additional cols', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { *, 'foo' as last }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged
     {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
@@ -1730,20 +1730,20 @@ describe('expand on structure part II', () => {
   })
   it('assigning alias within expand only influences name of element, prefix still appended', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { floor as x }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor as office_x,
     }`
     expect(cqn4sql(expandQuery, model)).to.eql(expected)
   })
   it('smart wildcard - structured overwrite before *', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office { 'first' as furniture, 'second' as building, * }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      'first' as office_furniture,
      'second' as office_building,
      EmployeeNoUnmanaged.office_floor,
@@ -1756,10 +1756,10 @@ describe('expand on structure part II', () => {
   })
   it('smart wildcard - structured overwrite after *', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office {*, 'third' as building, 'fourth' as address }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
      'third' as office_building,
@@ -1772,10 +1772,10 @@ describe('expand on structure part II', () => {
 
   it('wildcard expansion - exclude association', () => {
     // intermediate structures are overwritten
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
       office {*} excluding { building, address }
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as EmployeeNoUnmanaged {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged {
      EmployeeNoUnmanaged.office_floor,
      EmployeeNoUnmanaged.office_room,
      EmployeeNoUnmanaged.office_furniture_chairs,
@@ -1785,13 +1785,13 @@ describe('expand on structure part II', () => {
   })
 
   it('wildcard expansion sql style on table alias', () => {
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
       E {*}
     }`
-    let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E {
+    let regularWildcard = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
       *
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
      E.id,
      E.name,
      E.job,
@@ -1808,13 +1808,13 @@ describe('expand on structure part II', () => {
     expect(cqn4sql(expandQuery)).to.eql(cqn4sql(regularWildcard)).to.eql(expected)
   })
   it('wildcard expansion sql style on table alias - exclude stuff', () => {
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
       E {*} excluding { office }
     }`
-    let regularWildcard = cds.ql`select from EmployeeNoUnmanaged as E {
+    let regularWildcard = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
       *
     } excluding { office }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
      E.id,
      E.name,
      E.job,
@@ -1826,10 +1826,10 @@ describe('expand on structure part II', () => {
       .to.eql(JSON.parse(JSON.stringify(cqn4sql(regularWildcard)))) // prototype is different
   })
   it('wildcard expansion sql style on IMPLICIT table alias - exclude stuff', () => {
-    let expandQuery = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expandQuery = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
       {*} excluding { office } as FOO
     }`
-    let expected = cds.ql`select from EmployeeNoUnmanaged as E {
+    let expected = cds.ql`select from nestedProjections.EmployeeNoUnmanaged as E {
      E.FOO_id,
      E.FOO_name,
      E.FOO_job,
