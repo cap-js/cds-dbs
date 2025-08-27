@@ -592,7 +592,7 @@ class HANAService extends SQLService {
                   }
 
                   // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')} $$`
+                  const as = `$$${col.ref.join('.')}$$`
                   let rename = col.ref[0] !== parent.as
                   let curPar = parent
                   while (curPar) {
@@ -616,51 +616,7 @@ class HANAService extends SQLService {
                     col.ref = [parent.as, colName]
                   }
                 } else {
-                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
-                  x.SELECT.columns.forEach(col => {
-                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
-                    if (col.ref?.length > 1) {
-                      const colName = this.column_name(col)
-
-                      const ref = col.ref + ''
-                      if (!parent.SELECT.columns.some(c => !c.elements && c.ref + '' === ref)) {
-                        const isSource = from => {
-                          if (from.as === col.ref[0]) return true
-                          return from.args?.some(a => {
-                            if (a.args) return isSource(a)
-                            return a.as === col.ref[0]
-                          })
-                        }
-
-                        // Inject foreign columns into parent selects (recursively)
-                        const as = `$$${col.ref.join('.')} $$`
-                        let rename = col.ref[0] !== parent.as
-                        let curPar = parent
-                        while (curPar) {
-                          if (isSource(curPar.SELECT.from)) {
-                            if (curPar.SELECT.columns.find(c => c.as === as)) {
-                              rename = true
-                            } else {
-                              rename = rename || curPar === parent
-                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
-                            }
-                            break
-                          } else {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
-                            curPar = curPar.SELECT.parent
-                          }
-                        }
-                        if (rename) {
-                          col.as = colName
-                          col.ref = [parent.as, as]
-                        } else {
-                          col.ref = [parent.as, colName]
-                        }
-                      } else {
-                        col.ref[1] = colName
-                      }
-                    }
-                  })
+                  col.ref[1] = colName
                 }
               }
             })
