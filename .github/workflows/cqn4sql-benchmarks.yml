@@ -41,8 +41,7 @@ jobs:
         run: |
           cd ./db-service/bench/cqn4sql
           mkdir -p dist
-          node utils/visualize-benchmarks.js results/cqn4sql-benchmarks.json results/perf-benchmarks.html
-          cp perf-benchmarks.json dist/
+          node utils/visualize-benchmarks.js results/cqn4sql-benchmarks.json dist/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
