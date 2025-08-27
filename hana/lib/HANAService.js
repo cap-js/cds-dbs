@@ -351,7 +351,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
+      let { limit, one, distinct, from, orderBy, groupBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -403,6 +403,9 @@ class HANAService extends SQLService {
               if (!match) {
                 c.as = `$$${c.ref.join('.')}$$`
                 columns.push(c)
+                if (groupBy && !groupBy.find(col => col.ref + '' === ref)) {
+                  groupBy.push(c)
+                }
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
@@ -587,7 +590,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
                   const isSource = from => {
                     if (from.as === col.ref[0]) return true
                     return from.args?.some(a => {
@@ -597,7 +600,7 @@ class HANAService extends SQLService {
                   }
 
                   // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')} $$`
+                  const as = `$$${col.ref.join('.')}$$`
                   let rename = col.ref[0] !== parent.as
                   let curPar = parent
                   while (curPar) {
@@ -621,49 +624,7 @@ class HANAService extends SQLService {
                     col.ref = [parent.as, colName]
                   }
                 } else {
-                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
-                  x.SELECT.columns.forEach(col => {
-                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
-                    if (col.ref?.length > 1) {
-                      const colName = this.column_name(col)
-                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
-                        const isSource = from => {
-                          if (from.as === col.ref[0]) return true
-                          return from.args?.some(a => {
-                            if (a.args) return isSource(a)
-                            return a.as === col.ref[0]
-                          })
-                        }
-
-                        // Inject foreign columns into parent selects (recursively)
-                        const as = `$$${col.ref.join('.')} $$`
-                        let rename = col.ref[0] !== parent.as
-                        let curPar = parent
-                        while (curPar) {
-                          if (isSource(curPar.SELECT.from)) {
-                            if (curPar.SELECT.columns.find(c => c.as === as)) {
-                              rename = true
-                            } else {
-                              rename = rename || curPar === parent
-                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
-                            }
-                            break
-                          } else {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
-                            curPar = curPar.SELECT.parent
-                          }
-                        }
-                        if (rename) {
-                          col.as = colName
-                          col.ref = [parent.as, as]
-                        } else {
-                          col.ref = [parent.as, colName]
-                        }
-                      } else {
-                        col.ref[1] = colName
-                      }
-                    }
-                  })
+                  col.ref[1] = colName
                 }
               }
             })
