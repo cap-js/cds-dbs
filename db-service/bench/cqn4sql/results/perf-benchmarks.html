@@ -14,7 +14,7 @@
 </style>
 <h1>Perf Benchmarks (requests/second) by Commit</h1>
 <div class="meta">
-  Data: cqn4sql-benchmarks.json • Commits: 2 • Metric: requests.average
+  Data: cqn4sql-benchmarks.json • Commits: 3 • Metric: requests.average
 </div>
 <div style="margin:8px 0">
   <label for="filter">Filter benchmark:</label>
@@ -24,9 +24,9 @@
 
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
-  const SERIES = [{"name":"select simple","x":["8ea5c2b9","19731f02"],"y":[87328,87520]},{"name":"expand simple","x":["8ea5c2b9","19731f02"],"y":[20440,20016]},{"name":"expand recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[7926,8123]},{"name":"exists simple","x":["8ea5c2b9","19731f02"],"y":[8144,8352]},{"name":"exists recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[46192,46080]},{"name":"assoc2join simple","x":["8ea5c2b9","19731f02"],"y":[53792,54800]},{"name":"assoc2join recursive (depth 3)","x":["8ea5c2b9","19731f02"],"y":[42480,45888]}];
-  const COMMITS = ["8ea5c2b9","19731f02"];
-  const COMMIT_DATES = ["2025-08-27T15:03:45.583Z","2025-08-27T15:06:07.491Z"];
+  const SERIES = [{"name":"select simple","x":["8ea5c2b9","19731f02","95c3b619"],"y":[87328,87520,88224]},{"name":"expand simple","x":["8ea5c2b9","19731f02","95c3b619"],"y":[20440,20016,20280]},{"name":"expand recursive (depth 3)","x":["8ea5c2b9","19731f02","95c3b619"],"y":[7926,8123,8213]},{"name":"exists simple","x":["8ea5c2b9","19731f02","95c3b619"],"y":[8144,8352,8199]},{"name":"exists recursive (depth 3)","x":["8ea5c2b9","19731f02","95c3b619"],"y":[46192,46080,45408]},{"name":"assoc2join simple","x":["8ea5c2b9","19731f02","95c3b619"],"y":[53792,54800,53680]},{"name":"assoc2join recursive (depth 3)","x":["8ea5c2b9","19731f02","95c3b619"],"y":[42480,45888,45600]}];
+  const COMMITS = ["8ea5c2b9","19731f02","95c3b619"];
+  const COMMIT_DATES = ["2025-08-27T15:03:45.583Z","2025-08-27T15:06:07.491Z","2025-08-27T15:21:15.094Z"];
 
   // Populate filter
   const filterEl = document.getElementById('filter');
