@@ -35,7 +35,7 @@ jobs:
       # this needs the cds-test PR to be merged first
       # - name: Run benchmarks
       #   run: |
-      #     cd ./db-service/bench/cqn4sql && cds test
+      #     cd ./db-service/bench/cqn4sql && CDS_BENCH=true cds test
 
       - name: Build visualization
         run: |
