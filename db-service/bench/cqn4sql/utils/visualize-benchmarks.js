@@ -6,7 +6,7 @@ const path = require('path')
 
 const dumpPath = process.argv[2] || 'perf-benchmarks.json'
 const outPath  = process.argv[3] || 'perf-benchmarks.html'
-const metric   = process.argv[4] || 'average' // requests[metric], e.g. average | mean | p50
+const metric   = process.argv[4] || 'mean'
 
 if (!fs.existsSync(dumpPath)) {
   console.error(`❌ Cannot find ${dumpPath}`)
@@ -130,4 +130,4 @@ const html = `<!doctype html>
 </html>`
 
 fs.writeFileSync(outPath, html, 'utf8')
-console.log(`✅ Wrote \${outPath} (\${series.length} series, \${entries.length} commits) using requests.\${metric}\``)
+console.log(`✅ Wrote ${outPath} (${series.length} series, ${entries.length} commits) using requests.${metric}\``)

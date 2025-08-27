@@ -1,0 +1,61 @@
+name: cqn4sql benchmarks + visualization
+
+on:
+  push:
+    branches: [ patrice/cds-test-perfomance ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+      
+      # this needs the cds-test PR to be merged first
+      # - name: Run benchmarks
+      #   run: |
+      #     cd ./db-service/bench/cqn4sql && cds test
+
+      - name: Build visualization
+        run: |
+          cd ./db-service/bench/cqn4sq
+          mkdir -p dist
+          node utils/visualize-benchmarks.js results/cqn4sql-benchmarks.json results/perf-benchmarks.html
+          cp perf-benchmarks.json dist/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
