@@ -1,10 +1,10 @@
 const cds = require('../../test/cds.js')
-const bookshop = cds.utils.path.resolve(__dirname, 'compliance', 'bookshop')
+const bookshop = cds.utils.path.resolve(__dirname, '../../test/bookshop')
 
 describe('read', () => {
-    const { expect } = cds.test(bookshop)
+  const { expect } = cds.test(bookshop)
 
-    describe('regardless of column order specifed in query', () => {
+  describe('regardless of column order specifed in query', () => {
     let hanaService
 
     beforeAll(async () => {
