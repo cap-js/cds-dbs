@@ -4,6 +4,19 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (2025-08-27)
+
+
+### Added
+
+* add default support for `[hybrid]` profile ([#1317](https://github.com/cap-js/cds-dbs/issues/1317)) ([88da9c9](https://github.com/cap-js/cds-dbs/commit/88da9c96f8c4b35f618c7b08b7854aec1379444a))
+* Support `CALL PROC() ASYNC` ([#1276](https://github.com/cap-js/cds-dbs/issues/1276)) ([d81aeac](https://github.com/cap-js/cds-dbs/commit/d81aeac57c8907ba019fc021dae014a8ef8b1d3d))
+
+
+### Fixed
+
+* column name collisions for `$apply=groupby(ID,author/ID)` ([#1289](https://github.com/cap-js/cds-dbs/issues/1289)) ([69597ba](https://github.com/cap-js/cds-dbs/commit/69597bae0737322d606db18c0a297d0d12497973))
+
 ## [2.1.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.1...hana-v2.1.2) (2025-07-28)
 
 
