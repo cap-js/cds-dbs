@@ -1,0 +1,7 @@
+{
+  "$user.id": "APPLICATIONUSER",
+  "$user.locale": "LOCALE",
+  "$now": "NOW",
+  "$valid.from": "VALID-FROM",
+  "$valid.to": "VALID-TO"
+}
