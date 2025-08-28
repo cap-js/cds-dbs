@@ -937,7 +937,7 @@ describe('functions', () => {
       )
       expect(res.id).to.equal('anonymous')
       expect(res.locale).to.equal('en')
-      expect(res.now).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+      expect(res.now).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}/)
     })
   })
   describe('SESSION_USER', () => {

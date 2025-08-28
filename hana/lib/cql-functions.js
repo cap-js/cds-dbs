@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const session = require('./session.json')
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
@@ -11,6 +12,21 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  // ==============================
+  // Session Context Functions
+  // ==============================
+
+  /**
+   * Generates SQL statement to retrieve session context
+   * @param {Object} x - Object containing the session variable
+   * @returns {string} - SQL statement
+   */
+  session_context: x => {
+    let sql = `session_context('${session[x.val] || x.val}')`
+    // if (x.val === '$now') sql += '::timestamp'
+    return sql
+  },
+
   // ==============================
   // String Functions
   // ==============================
