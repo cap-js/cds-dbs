@@ -16,7 +16,6 @@
 ### Fixed
 
 * **`assoc2join`:** target side access detection ([#1282](https://github.com/cap-js/cds-dbs/issues/1282)) ([6f9befa](https://github.com/cap-js/cds-dbs/commit/6f9befa24a06bcc629fe853aa66290613734c3ef))
-* **`assoc2join`:** target side access detection ([#1282](https://github.com/cap-js/cds-dbs/issues/1282)) ([407f435](https://github.com/cap-js/cds-dbs/commit/407f43542284901781afacb3b548a6fe05f2e116))
 * **`cqn4sql`:** only consider `own` property `[@cds](https://github.com/cds).persistence.skip` ([#1324](https://github.com/cap-js/cds-dbs/issues/1324)) ([bd1f52f](https://github.com/cap-js/cds-dbs/commit/bd1f52f67fb4709dce3a27fea8856cb9b875da6b))
 * **`exists`:** do not loose custom where ([#1322](https://github.com/cap-js/cds-dbs/issues/1322)) ([644918c](https://github.com/cap-js/cds-dbs/commit/644918c56d9d939f43f4a0346f42e16722bd6fe9))
 * arithmetic operators can only be used with scalar operands ([#1307](https://github.com/cap-js/cds-dbs/issues/1307)) ([d58d335](https://github.com/cap-js/cds-dbs/commit/d58d33539e22f818d18240bb86ba596fc6fe21d1))
