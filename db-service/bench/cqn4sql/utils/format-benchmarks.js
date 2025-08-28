@@ -15,6 +15,19 @@ function getCommitShort() {
   }
 }
 
+function compactRequests(requests) {
+  return {
+    total: requests.total,
+    mean: requests.mean,
+    min: requests.min,
+    max: requests.max,
+    stddev: requests.stddev,
+    p50: requests.p50,
+    p90: requests.p90,
+    p99: requests.p99,
+  }
+}
+
 function collectBenchmarksForFile(resultsPath, testFileBase) {
   const lines = fs.existsSync(resultsPath) ? fs.readFileSync(resultsPath, 'utf8').split(/\r?\n/).filter(Boolean) : []
 
@@ -34,7 +47,7 @@ function collectBenchmarksForFile(resultsPath, testFileBase) {
     if (!fromThisFile) continue
 
     const title = data.title || key.split(':')[1] || key
-    if (data.requests) benchmarks[title] = data.requests // keep only "requests"
+    if (data.requests) benchmarks[title] = compactRequests(data.requests) // keep only subset of "requests"
   }
   return benchmarks
 }
@@ -76,7 +89,7 @@ function writeDump({
   dump[commit] = entry
 
   fs.mkdirSync(path.dirname(dumpPath), { recursive: true })
-  fs.writeFileSync(dumpPath, JSON.stringify(dump, null, 2) + '\n', 'utf8')
+  fs.writeFileSync(dumpPath, JSON.stringify(dump) + '\n', 'utf8')
 
   if (deleteResultsFile && fs.existsSync(resultsPath)) {
     try {

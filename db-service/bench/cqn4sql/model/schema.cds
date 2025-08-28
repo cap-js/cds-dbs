@@ -8,11 +8,18 @@ entity Books {
       genre  : Association to Genres;
 }
 
+entity BooksWithCalc : Books {
+  authorFullName = author.firstName || ' ' || author.lastName;
+}
+
 entity Authors {
-  key ID    : Integer;
-      name  : String;
-      books : Association to many Books
-                on books.author = $self;
+  key ID          : Integer;
+      firstName   : String;
+      lastName    : String;
+      dateOfBirth : Date;
+      dateOfDeath : Date;
+      books       : Association to many Books
+                      on books.author = $self;
 }
 
 entity Genres {

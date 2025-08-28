@@ -24,6 +24,9 @@ if (process.env.CDS_BENCH === 'true') {
     })
   
     runBenchmarkFor('select simple', cds.ql`SELECT from my.Books { ID }`)
+    
+    runBenchmarkFor('select wildcard', cds.ql`SELECT from my.Books { * }`)
+    runBenchmarkFor('select wildcard with calculated element', cds.ql`SELECT from my.BooksWithCalc { * }`)
   
     runBenchmarkFor('expand simple', cds.ql`SELECT from my.Authors { ID, books { title } }`)
     runBenchmarkFor('expand recursive (depth 3)', cds.ql`SELECT from my.Genres { ID, parent { parent { parent { name }}} }`)
@@ -32,15 +35,28 @@ if (process.env.CDS_BENCH === 'true') {
     runBenchmarkFor('exists simple with path expression', cds.ql`SELECT from my.Genres { ID } where exists parent[parent.name = 'foo']`)
     runBenchmarkFor('exists recursive (depth 3)', cds.ql`SELECT from my.Genres { ID } where exists parent.parent.parent`)
   
-    runBenchmarkFor('assoc2join simple', cds.ql`SELECT from my.Books { ID, author.name }`)
+    runBenchmarkFor('assoc2join simple', cds.ql`SELECT from my.Books { ID, author.firstName }`)
     runBenchmarkFor('assoc2join recursive (depth 3)', cds.ql`SELECT from my.Genres { ID, parent.parent.parent.name }`)
   
   })
   
   
   function runBenchmarkFor(name, cqn) {
-    it(name, async () => report(await perf.fn(() => {
-      cqn4sql(cqn)
-    }, { title: name })))
+    it(name, async () =>
+      report(
+        await perf.fn(
+          () => {
+            cqn4sql(cqn)
+          },
+          {
+            title: name,
+            warmup: {
+              duration: '3s',
+            },
+            duration: '10s',
+          },
+        ),
+      ),
+    )
   }  
 }
