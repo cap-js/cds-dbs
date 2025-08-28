@@ -1,7 +1,7 @@
 const cds = require('../../test/cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../test/bookshop')
 
-describe('read', () => {
+describe('column order', () => {
   const { expect } = cds.test(bookshop)
 
   describe('regardless of column order specifed in query', () => {
