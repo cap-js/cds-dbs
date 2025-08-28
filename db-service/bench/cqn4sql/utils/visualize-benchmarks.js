@@ -4,115 +4,137 @@
 const fs = require('fs')
 const path = require('path')
 
-const dumpPath = process.argv[2] || 'perf-benchmarks.json'
-const outPath  = process.argv[3] || 'perf-benchmarks.html'
-const metric   = process.argv[4] || 'mean'
+const dumpPath = process.argv[2] || 'results/cqn4sql-benchmarks.json'
+const outPath  = process.argv[3] || 'dist/index.html'
 
 if (!fs.existsSync(dumpPath)) {
+  // eslint-disable-next-line no-console
   console.error(`❌ Cannot find ${dumpPath}`)
   process.exit(1)
 }
 
 const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'))
 
-// Normalize + sort commits by date (not shown on axis, but used for order)
+// normalize + sort by date
 const entries = Object.entries(dump)
-  .map(([commit, v]) => ({
-    commit,
-    dateISO: v.date,
-    date: new Date(v.date),
-    benchmarks: v.benchmarks || {}
-  }))
+  .map(([commit, v]) => ({ commit, dateISO: v.date, date: new Date(v.date), benchmarks: v.benchmarks || {} }))
   .sort((a, b) => a.date - b.date)
 
-// X-axis: commit IDs (category axis)
 const commits = entries.map(e => e.commit)
 const commitDates = entries.map(e => e.dateISO)
 
-// Collect all benchmark names across commits
+// collect benchmark names
 const benchNames = Array.from(
   entries.reduce((s, e) => {
     Object.keys(e.benchmarks).forEach(k => s.add(k))
     return s
   }, new Set())
-)
+).sort()
 
-// Build series aligned to commits (null for missing)
-const series = benchNames.map(name => {
-  const y = entries.map(e => {
-    const req = e.benchmarks[name]
-    if (!req) return null
-    const v = req[metric]
-    return typeof v === 'number' ? v : (v != null ? Number(v) : null)
+// collect available metric keys (union across all benches/commits)
+const metricSet = new Set()
+for (const e of entries) {
+  for (const name of Object.keys(e.benchmarks)) {
+    const obj = e.benchmarks[name]
+    Object.keys(obj || {}).forEach(k => metricSet.add(k))
+  }
+}
+
+const metrics = ['mean', 'stddev', 'total', 'p50', 'p90', 'p99', 'min', 'max']
+const initialMetric = 'mean'
+
+// precompute all series data per metric to keep UI snappy
+function buildSeriesForMetric(metric) {
+  return benchNames.map(name => {
+    const y = entries.map(e => {
+      const obj = e.benchmarks[name]
+      if (!obj) return null
+      const v = obj[metric]
+      return (typeof v === 'number') ? v : (v != null ? Number(v) : null)
+    })
+    return { name, x: commits, y }
   })
-  return { name, x: commits, y }
-})
+}
 
-// HTML with Plotly (commit = x, equally spaced)
+const allSeries = {}
+for (const m of metrics) allSeries[m] = buildSeriesForMetric(m)
+
+// HTML (commit categories on X, metric selector, benchmark filter)
 const html = `<!doctype html>
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Perf Benchmarks by Commit</title>
+<title>CQN4SQL Benchmarks</title>
 <style>
   :root { --fg:#111; --muted:#666; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial; margin: 24px; color: var(--fg); }
   h1 { margin: 0 0 8px; font-size: 20px; }
   #chart { width: 100%; height: 72vh; }
-  .meta { margin-top: 8px; color: var(--muted); font-size: 12px; }
-  label { font-size: 12px; margin-right: 8px; color: var(--muted); }
-  select { font-size: 12px; }
+  .meta { margin: 6px 0 12px; color: var(--muted); font-size: 12px; }
+  label { font-size: 12px; margin-right: 6px; color: var(--muted); }
+  select { font-size: 12px; margin-right: 12px; }
 </style>
-<h1>Perf Benchmarks (requests/second) by Commit</h1>
+
+<h1>CQN4SQL Benchmarks</h1>
 <div class="meta">
-  Data: ${path.basename(dumpPath)} • Commits: ${entries.length} • Metric: requests.${metric} <br>
-  Requests per second (higher = better).
+  Data: ${path.basename(dumpPath)} • Commits: ${entries.length}
+  <br>
+  Measurements in requests per second (higher is better)
 </div>
-<div style="margin:8px 0">
-  <label for="filter">Filter benchmark:</label>
-  <select id="filter"><option value="__all__">All</option></select>
+
+<div>
+  <label for="metric">Metric:</label>
+  <select id="metric"></select>
+
+  <label for="bench">Benchmark:</label>
+  <select id="bench"><option value="__all__">All</option></select>
 </div>
+
 <div id="chart"></div>
 
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script>
-  const SERIES = ${JSON.stringify(series)};
   const COMMITS = ${JSON.stringify(commits)};
   const COMMIT_DATES = ${JSON.stringify(commitDates)};
+  const METRICS = ${JSON.stringify(metrics)};
+  const INITIAL_METRIC = ${JSON.stringify(initialMetric)};
+  const BENCH_NAMES = ${JSON.stringify(benchNames)};
+  const ALL_SERIES = ${JSON.stringify(allSeries)};
 
-  // Populate filter
-  const filterEl = document.getElementById('filter');
-  SERIES.forEach(s => {
+  const metricEl = document.getElementById('metric');
+  METRICS.forEach(m => {
     const opt = document.createElement('option');
-    opt.value = s.name; opt.textContent = s.name;
-    filterEl.appendChild(opt);
+    opt.value = m; opt.textContent = m;
+    if (m === INITIAL_METRIC) opt.selected = true;
+    metricEl.appendChild(opt);
   });
 
-  function makeTraces(showName) {
+  const benchEl = document.getElementById('bench');
+  BENCH_NAMES.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    benchEl.appendChild(opt);
+  });
+
+  function tracesFor(metric, benchName) {
     const base = {
       mode: 'lines+markers',
       connectgaps: false,
       x: COMMITS,
-      customdata: COMMIT_DATES, // one per x
+      customdata: COMMIT_DATES,
       hovertemplate:
         '<b>%{fullData.name}</b><br>' +
         'commit: %{x}<br>' +
-        'rps: %{y:.0f}<br>' +
+        'value: %{y:.0f}<br>' +
         '%{customdata|%Y-%m-%d %H:%M:%S}<extra></extra>'
     };
-    const chosen = showName === '__all__'
-      ? SERIES
-      : SERIES.filter(s => s.name === showName);
+    const series = ALL_SERIES[metric] || [];
+    const chosen = benchName === '__all__' ? series : series.filter(s => s.name === benchName);
     return chosen.map(s => Object.assign({}, base, { name: s.name, y: s.y }));
   }
 
   const layout = {
-    xaxis: {
-      title: 'Commit',
-      type: 'category',
-      tickangle: -45,
-      automargin: true
-    },
+    xaxis: { title: 'Commit', type: 'category', tickangle: -45, automargin: true },
     yaxis: { title: 'Requests / second', rangemode: 'tozero' },
     hovermode: 'x unified',
     legend: { orientation: 'h' },
@@ -120,15 +142,20 @@ const html = `<!doctype html>
   };
 
   function render() {
-    const name = filterEl.value;
-    const traces = makeTraces(name);
-    Plotly.newPlot('chart', traces, layout, { displayModeBar: true, responsive: true });
+    const m = metricEl.value;
+    const b = benchEl.value;
+    const traces = tracesFor(m, b);
+    const l = Object.assign({}, layout, { yaxis: Object.assign({}, layout.yaxis, { title: 'Requests / second ('+m+')' }) });
+    Plotly.newPlot('chart', traces, l, { displayModeBar: true, responsive: true });
   }
 
-  filterEl.addEventListener('change', render);
+  metricEl.addEventListener('change', render);
+  benchEl.addEventListener('change', render);
   render();
 </script>
 </html>`
 
+fs.mkdirSync(path.dirname(outPath), { recursive: true })
 fs.writeFileSync(outPath, html, 'utf8')
-console.log(`✅ Wrote ${outPath} (${series.length} series, ${entries.length} commits) using requests.${metric}\``)
+// eslint-disable-next-line no-console
+console.log(`✅ wrote ${outPath} — metrics: [${metrics.join(', ')}], benches: ${benchNames.length}, commits: ${entries.length}`)
