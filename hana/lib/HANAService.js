@@ -533,7 +533,9 @@ class HANAService extends SQLService {
       if (!SELECT.columns) return '*'
 
       // Sort selected columns to avoid creating redundant execution plans (column names can't be equal)
-      SELECT.columns = SELECT.columns.sort((a, b) => this.column_name(a) > this.column_name(b) ? 1 : -1)
+      SELECT.columns = SELECT.columns.sort((a, b) => {
+        return (typeof a == 'string' ? a : this.column_name(a)) > (typeof b == 'string' ? b : this.column_name(b)) ? 1 : -1
+      })
 
       if (SELECT.expand !== 'root') {
         const ret = []
@@ -854,7 +856,7 @@ class HANAService extends SQLService {
         throw new Error('The number of specified columns does not match the number of selected columns')
       INSERT.from.SELECT.columns
         .map((c, i) => [c, i])
-        .sort((a, b) => (this.column_name(a) > this.column_name(b) ? 1 : -1))
+        .sort((a, b) =>  (typeof a == 'string' ? a : this.column_name(a)) > (typeof b == 'string' ? b : this.column_name(b)) ? 1 : -1)
         .forEach(([a, b], i) => {
           INSERT.from.SELECT.columns[i] = a
           this.columns[i] = columns[i] = b
