@@ -34,6 +34,8 @@
 <script>
   const COMMITS = ["8ea5c2b9","19731f02","95c3b619","0d15c979","c8575c73","b1185062","661cb21d","894466ad","8ef8958b","589006ca","f31fbb68","f8035155"];
   const COMMIT_DATES = ["2025-08-27T15:03:45.583Z","2025-08-27T15:06:07.491Z","2025-08-27T15:21:15.094Z","2025-08-27T15:47:11.987Z","2025-08-27T15:47:51.334Z","2025-08-27T15:50:34.031Z","2025-08-27T15:53:50.826Z","2025-08-27T15:55:43.622Z","2025-08-27T16:09:15.187Z","2025-08-27T16:51:33.834Z","2025-08-28T09:34:23.170Z","2025-08-28T10:27:33.581Z"];
+    // labels like: <sha> (YYYY-MM-DD)
+  const COMMIT_LABELS = ["8ea5c2b9 (2025-08-27)","19731f02 (2025-08-27)","95c3b619 (2025-08-27)","0d15c979 (2025-08-27)","c8575c73 (2025-08-27)","b1185062 (2025-08-27)","661cb21d (2025-08-27)","894466ad (2025-08-27)","8ef8958b (2025-08-27)","589006ca (2025-08-27)","f31fbb68 (2025-08-28)","f8035155 (2025-08-28)"];
   const METRICS = ["mean","stddev","total","p50","p90","p99","min","max"];
   const INITIAL_METRIC = "mean";
   const BENCH_NAMES = ["assoc2join recursive (depth 3)","assoc2join simple","exists recursive (depth 3)","exists simple","exists simple with path expression","expand recursive (depth 3)","expand simple","select simple","select wildcard","select wildcard with calculated element"];
@@ -72,7 +74,7 @@
   }
 
   const layout = {
-    xaxis: { title: 'Commit', type: 'category', tickangle: -45, automargin: true },
+    xaxis: { title: 'Commit', tickvals: COMMITS, ticktext: COMMIT_LABELS, type: 'category', tickangle: -45, automargin: true },
     yaxis: { title: 'Requests / second', rangemode: 'tozero' },
     hovermode: 'x unified',
     legend: { orientation: 'h' },

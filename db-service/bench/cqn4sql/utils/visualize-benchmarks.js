@@ -22,6 +22,14 @@ const entries = Object.entries(dump)
 
 const commits = entries.map(e => e.commit)
 const commitDates = entries.map(e => e.dateISO)
+const commitLabels = commits.map((sha, i) => {
+  const d = new Date(commitDates[i])
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${sha} (${y}-${m}-${day})`
+})
+
 
 // collect benchmark names
 const benchNames = Array.from(
@@ -96,6 +104,8 @@ const html = `<!doctype html>
 <script>
   const COMMITS = ${JSON.stringify(commits)};
   const COMMIT_DATES = ${JSON.stringify(commitDates)};
+    // labels like: <sha> (YYYY-MM-DD)
+  const COMMIT_LABELS = ${JSON.stringify(commitLabels)};
   const METRICS = ${JSON.stringify(metrics)};
   const INITIAL_METRIC = ${JSON.stringify(initialMetric)};
   const BENCH_NAMES = ${JSON.stringify(benchNames)};
@@ -134,7 +144,7 @@ const html = `<!doctype html>
   }
 
   const layout = {
-    xaxis: { title: 'Commit', type: 'category', tickangle: -45, automargin: true },
+    xaxis: { title: 'Commit', tickvals: COMMITS, ticktext: COMMIT_LABELS, type: 'category', tickangle: -45, automargin: true },
     yaxis: { title: 'Requests / second', rangemode: 'tozero' },
     hovermode: 'x unified',
     legend: { orientation: 'h' },
