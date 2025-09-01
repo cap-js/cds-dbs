@@ -856,11 +856,11 @@ class HANAService extends SQLService {
         throw new Error('The number of specified columns does not match the number of selected columns')
       this.columns = []
       INSERT.from.SELECT.columns = INSERT.from.SELECT.columns
-        .map((col, originalIdx) => [typeof col == 'string' ? col : this.column_name(col), originalIdx])
-        .sort(([colNameA], [colNameB]) => colNameA > colNameB ? 1 : -1)
-        .map(([, originalIdx], i) => {
-          this.columns[i] = columns[originalIdx]
-          return INSERT.from.SELECT.columns[originalIdx]
+        .map((_, index) => index)
+        .sort((a, b) => this.column_name(INSERT.from.SELECT.columns[a]) > this.column_name(INSERT.from.SELECT.columns[b]) ? 1 : -1)
+        .map((index, i) => {
+          this.columns[i] = columns[index]
+          return INSERT.from.SELECT.columns[index]
         })
 
       this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c =>
