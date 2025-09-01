@@ -14,7 +14,6 @@ describe('(a2j) fk detection', () => {
   })
 
   describe('simple', () => {
-
     it('follow managed assoc, select FK', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { author.ID }`)
       const expected = cds.ql`
@@ -360,6 +359,27 @@ describe('(a2j) fk detection', () => {
         {
           Bar.a_ID
         }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('within infix filter following exists predicate', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[dedication.addressee.ID = 29]`)
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $A
+        {
+          $A.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+          where $b.author_ID = $A.ID
+          AND $b.dedication_addressee_ID = 29
+        )`
+
       expectCqn(transformed).to.equal(expected)
     })
   })
