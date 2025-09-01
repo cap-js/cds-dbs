@@ -122,8 +122,6 @@ class HANAService extends SQLService {
     const _variables = {}
     // Check all properties on the variables object
     for (let name in variables) {
-      // required for compile localization
-      if (name === '$user.locale') _variables[name] = variables[name]
       _variables[sessionVariableMap[name] || name] = variables[name]
     }
 
