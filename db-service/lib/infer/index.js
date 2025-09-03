@@ -792,9 +792,16 @@ function infer(originalQuery, model) {
 
     function stepNotFoundInCombinedElements(step) {
       throw new Error(
-        `"${step}" not found in the elements of ${Object.values(sources)
+        `"${step}" ${Object.values(sources)
           .map(s => s.definition)
-          .map(def => `"${def.name || /* subquery */ def.as}"`)
+          .map(def => {
+            let err
+            if(def.name)
+              err = `not found in the elements of "${def.name}"`
+            else //subquery
+              err = 'not exposed in the columns of ' + (def.as ? `subquery "${def.as}"` : 'anonymous subquery')
+           return err 
+          })
           .join(', ')}`,
       )
     }

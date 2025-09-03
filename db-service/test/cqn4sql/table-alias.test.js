@@ -1118,7 +1118,7 @@ describe('table alias access', () => {
     it('cannot access table name of FROM subquery in outer query', () => {
       expect(() =>
         cqn4sql(cds.ql`SELECT from (SELECT from bookshop.Books as Books { ID, Books.stock }) as B { ID, Books.stock }`, model),
-      ).to.throw(/"Books" not found in the elements of "B"/)
+      ).to.throw(/"Books" not exposed in the columns of subquery "B"/)
     })
 
     it('expose column of inner query in outer query', () => {

@@ -35,6 +35,10 @@ entity Authors {
                         on books.author = $self;
 }
 
+@cds.search: {books, books.genre.title}
+entity AuthorSearchBooks : Authors {
+}
+
 // search over multiple associations
 @cds.search: {authorWithAddress}
 entity BooksSearchAuthorAndAddress : Books {
