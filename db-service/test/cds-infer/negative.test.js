@@ -59,7 +59,7 @@ describe('negative', () => {
 
     it("element can't be found in elements of subquery", () => {
       let query = cds.ql`SELECT from (select from bookshop.Books { ID as FooID }) as Foo { ID }`
-      expect(() => _inferred(query)).to.throw(/"ID" not found in the elements of "Foo"/)
+      expect(() => _inferred(query)).to.throw(/"ID" not exposed in the columns of subquery "Foo"/)
     })
     it("reference in group by can't be found in alias of subquery", () => {
       let query = cds.ql`SELECT from (select from bookshop.Books { ID as FooID }) as Foo group by Foo.ID`

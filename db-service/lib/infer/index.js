@@ -791,20 +791,30 @@ function infer(originalQuery, model) {
     }
 
     function stepNotFoundInCombinedElements(step) {
-      throw new Error(
-        `"${step}" ${Object.values(sources)
-          .map(s => s.definition)
-          .map(def => {
-            let err
-            if(def.name)
-              err = `not found in the elements of "${def.name}"`
-            else //subquery
-              err = 'not exposed in the columns of ' + (def.as ? `subquery "${def.as}"` : 'anonymous subquery')
-           return err 
-          })
-          .join(', ')}`,
-      )
+      const entitySources = [];   // e.g., "bookshop.Authors"
+      const subquerySources = []; // e.g., subquery "q1" / anonymous subquery
+    
+      for (const s of Object.values(sources)) {
+        const def = s && s.definition;
+        if (def && def.name) {
+          entitySources.push(`"${def.name}"`);
+        } else {
+          subquerySources.push(def && def.as ? `subquery "${def.as}"` : 'anonymous subquery');
+        }
+      }
+    
+      const parts = [];
+      if (entitySources.length) {
+        parts.push(`not found in the elements of ${entitySources.join(', ')}`);
+      }
+      if (subquerySources.length) {
+        parts.push(`not exposed in the columns of ${subquerySources.join(', ')}`);
+      }
+    
+      throw new Error(`"${step}" ${parts.join('; ')}`);
     }
+    
+    
 
     function stepNotFoundInColumnList(step) {
       const err = [`"${step}" not found in the columns list of query`]
