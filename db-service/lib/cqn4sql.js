@@ -1376,7 +1376,7 @@ function cqn4sql(originalQuery, model) {
    */
   function getTransformedTokenStream(tokenStream, context = {}) {
     const transformedTokenStream = []
-    const { $baseLink, prop } = context
+    const { $baseLink, /* prop */ } = context
     for (let i = 0; i < tokenStream.length; i++) {
       const token = tokenStream[i]
       if (token === 'exists') {

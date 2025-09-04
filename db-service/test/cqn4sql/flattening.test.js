@@ -446,8 +446,9 @@ describe('Flattening', () => {
         {
           $B.ID
         }
-        WHERE sin($B.author_ID) < 0
-      `
+        WHERE sin($B.author_ID) < 0`
+      expect(transformed).to.deep.eql(expected)
+
     })
     // (PB) TODO align error message with the examples below
     it('rejects unmanaged associations in WHERE clause', () => {
