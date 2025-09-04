@@ -2253,15 +2253,16 @@ function cqn4sql(originalQuery, model) {
       ],
     }
 
-    if (query.SELECT.from.SELECT || inferred.SELECT.groupBy)
-      // aggregation search does not need to be wrapped in subquery
-      return searchFunc
-
     // the primary keys of the query target
     // Revisit: searching on a subquery requires primary keys to be selected
-    const matchColumns = getPrimaryKey(entity)
+    const primaryKey = getPrimaryKey(entity)
 
-    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', SELECT.from(entity).columns(...matchColumns).where(searchFunc)] }
+    // for aggregated queries, queries targeting keyless tables or queries with subqueries in the from clause
+    // we do not add a subquery to search in
+    if (primaryKey.length === 0 || query.SELECT.from.SELECT || inferred.SELECT.groupBy)
+      return searchFunc
+
+    return { xpr: [ primaryKey.length === 1 ? primaryKey[0] : {list: primaryKey}, 'in', SELECT.from(entity).columns(...primaryKey).where(searchFunc)] }
   }
 
   /**
