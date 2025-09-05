@@ -57,6 +57,7 @@ class SQLiteService extends SQLService {
 
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
+    variables.$user = variables['$user.id']
     if (!dbc[$session]) dbc[$session] = variables
     else Object.assign(dbc[$session], variables)
   }
