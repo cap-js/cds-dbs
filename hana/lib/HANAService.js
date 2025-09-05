@@ -852,16 +852,20 @@ class HANAService extends SQLService {
         c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
       )
       
-      if (columns.length !== INSERT.from.SELECT.columns.length)
+      const selectedColumn = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
+      if (columns.length !== selectedColumn?.length)
         throw new Error('The number of specified columns does not match the number of selected columns')
+      
       this.columns = []
-      INSERT.from.SELECT.columns = INSERT.from.SELECT.columns
+      const sortedColumns = selectedColumn
         .map((_, index) => index)
-        .sort((a, b) => this.column_name(INSERT.from.SELECT.columns[a]) > this.column_name(INSERT.from.SELECT.columns[b]) ? 1 : -1)
+        .sort((a, b) => this.column_name(selectedColumn[a]) > this.column_name(selectedColumn[b]) ? 1 : -1)
         .map((index, i) => {
           this.columns[i] = columns[index]
-          return INSERT.from.SELECT.columns[index]
+          return selectedColumn[index]
         })
+      if (INSERT.from?.SELECT) INSERT.from.SELECT.columns = sortedColumns
+      if (INSERT.as?.SELECT) INSERT.as.SELECT.columns = sortedColumns
 
       this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c =>
         this.quote(c),
