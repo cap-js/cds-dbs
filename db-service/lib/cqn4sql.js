@@ -2280,7 +2280,7 @@ function cqn4sql(originalQuery, model) {
         const elements = infer(entity, model).elements
         // match only not-null elements (null values will invalidate the matching logic: (null) in (null) --> unknown)
         // also, BLOBs must not be part of the match columns
-        matchColumns = Object.values(elements).filter(e => e.key).map((k) => { return {ref: [k.name]} })
+        matchColumns = Object.values(elements).filter(e => e.key && !(e.type in {'cds.LargeBinary': 1, 'cds.LargeString': 1})).map((k) => { return {ref: [k.name]} })
         if(matchColumns.length === 0) // keyless subquery, fallback to old behaviour
           return searchFunc
       }
