@@ -920,7 +920,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe.only('search', () => {
+  describe('search', () => {
     // Make sure that the queries work, but never check their behavior as it is undefined
 
     test('single word', async () => {
