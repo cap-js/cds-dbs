@@ -96,7 +96,7 @@ function cqn4sql(originalQuery, model) {
 
     // Transform the existing where, prepend table aliases, and so on...
     if (where) {
-      transformedProp.where = getTransformedTokenStream(where)
+      transformedProp.where = getTransformedTokenStream(where, { prop: 'where' })
     }
 
     // Transform the from clause: association path steps turn into `WHERE EXISTS` subqueries.
@@ -203,7 +203,7 @@ function cqn4sql(originalQuery, model) {
 
     // Like the WHERE clause, aliases from the SELECT list are not accessible for `group by`/`having` (in most DB's)
     if (having) {
-      transformedQuery.SELECT.having = getTransformedTokenStream(having)
+      transformedQuery.SELECT.having = getTransformedTokenStream(having, { prop: 'having' })
     }
 
     if (groupBy) {
@@ -254,7 +254,6 @@ function cqn4sql(originalQuery, model) {
    */
   function transformSearch(searchXpr) {
     let prop = 'where'
-
     // if the query is grouped and the queries columns contain an aggregate function,
     // we must put the search term into the `having` clause, as the search expression
     // is defined on the aggregated result, not on the individual rows
@@ -327,7 +326,7 @@ function cqn4sql(originalQuery, model) {
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
-        const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
+        const filter = getTransformedTokenStream(nextAssoc.where, { $baseLink: nextAssoc.$refLink })
         lhs.on = [
           ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
           'and',
@@ -534,14 +533,14 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
-  function resolveCalculatedElement(column, omitAlias = false, baseLink = null) {
+  function resolveCalculatedElement(column, omitAlias = false, $baseLink = null) {
     let value
 
     if (column.$refLinks) {
       const { $refLinks } = column
       value = $refLinks[$refLinks.length - 1].definition.value
       if (column.$refLinks.length > 1) {
-        baseLink =
+        $baseLink =
           [...$refLinks].reverse().find($refLink => $refLink.definition.isAssociation) ||
           // if there is no association in the path, the table alias is the base link
           // TA might refer to subquery -> we need to propagate the alias to all paths of the calc element
@@ -554,13 +553,13 @@ function cqn4sql(originalQuery, model) {
 
     let res
     if (ref) {
-      res = getTransformedTokenStream([value], baseLink)[0]
+      res = getTransformedTokenStream([value], { $baseLink })[0]
     } else if (xpr) {
-      res = { xpr: getTransformedTokenStream(value.xpr, baseLink) }
+      res = { xpr: getTransformedTokenStream(value.xpr, { $baseLink }) }
     } else if (val !== undefined) {
       res = { val }
     } else if (func) {
-      res = { args: getTransformedFunctionArgs(value.args, baseLink), func: value.func }
+      res = { args: getTransformedFunctionArgs(value.args, $baseLink), func: value.func }
     }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
     return res
@@ -1195,7 +1194,7 @@ function cqn4sql(originalQuery, model) {
     if (column.val || column.func || column.SELECT) return [column]
 
     const structsAreUnfoldedAlready = model.meta.unfolded?.includes('structs')
-    let { baseName, columnAlias = column.as, tableAlias } = names
+    let { baseName, columnAlias = column.as, tableAlias } = names || {}
     const { exclude, replace } = excludeAndReplace || {}
     const { $refLinks, flatName, isJoinRelevant } = column
     let firstNonJoinRelevantAssoc, stepAfterAssoc
@@ -1373,14 +1372,18 @@ function cqn4sql(originalQuery, model) {
    * @param {object[]} tokenStream - The token stream to transform. Each token in the stream is an
    *                                 object representing a CQN construct such as a column, an operator,
    *                                 or a subquery.
-   * @param {object} [$baseLink=null] - The context in which the `ref`s in the token stream are resolvable.
-   *                                    It serves as the reference point for resolving associations in
-   *                                    statements like `{…} WHERE exists assoc[exists anotherAssoc]`.
-   *                                    Here, the $baseLink for `anotherAssoc` would be `assoc`.
+   * @param {object} [context] - Optional context object.
+   * @param {object} [context.$baseLink] - The context in which the `ref`s in the token stream are resolvable.
+   *                                   It serves as the reference point for resolving associations in
+   *                                   statements like `{…} WHERE exists assoc[exists anotherAssoc]`.
+   *                                   Here, the $baseLink for `anotherAssoc` would be `assoc`.
+   * @param {string} [context.prop] - The query property which holds the token stream which shall be
+   *                                  transformed by this function, e.g. "where".
    * @returns {object[]} - The transformed token stream.
    */
-  function getTransformedTokenStream(tokenStream, $baseLink = null) {
+  function getTransformedTokenStream(tokenStream, context = {}) {
     const transformedTokenStream = []
+    const { $baseLink, prop } = context
     for (let i = 0; i < tokenStream.length; i++) {
       const token = tokenStream[i]
       if (token === 'exists') {
@@ -1466,7 +1469,7 @@ function cqn4sql(originalQuery, model) {
           if (list.every(e => e.val))
             // no need for transformation
             transformedTokenStream.push({ list })
-          else transformedTokenStream.push({ list: getTransformedTokenStream(list, $baseLink) })
+          else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink }) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1522,13 +1525,13 @@ function cqn4sql(originalQuery, model) {
           i = indexRhs // jump to next relevant index
         } else {
           // reject associations in expression, except if we are in an infix filter -> $baseLink is set
-          assertNoStructInXpr(token, $baseLink)
+          assertNoStructInXpr(token, context)
           // reject virtual elements in expressions as they will lead to a sql error down the line
           if (lhsDef?.virtual) throw new Error(`Virtual elements are not allowed in expressions`)
 
           let result = is_regexp(token?.val) ? token : copy(token) // REVISIT: too expensive! //
           if (token.ref) {
-            const { definition } = token.$refLinks[token.$refLinks.length - 1]
+            const { definition } = token.$refLinks.at(-1)
             // Add definition to result
             setElementOnColumns(result, definition)
             if (isCalculatedOnRead(definition)) {
@@ -1549,7 +1552,13 @@ function cqn4sql(originalQuery, model) {
             const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
-            if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
+            if(isAssocOrStruct(definition)) {
+              const flat =  getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
+              if(flat.length === 0)
+                throw new Error(`Structured element “${getFullName(definition)}” expands to nothing and can't be used in expressions`)
+              transformedTokenStream.push(...flat)
+              continue
+            } else if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {
               let name = calculateElementName(token)
               result.ref = [tableAlias, name]
             } else if (tableAlias) {
@@ -1562,7 +1571,7 @@ function cqn4sql(originalQuery, model) {
             result = transformSubquery(token)
           } else {
             if (token.xpr) {
-              result.xpr = getTransformedTokenStream(token.xpr, $baseLink)
+              result.xpr = getTransformedTokenStream(token.xpr, { $baseLink })
             }
             if (token.func && token.args) {
               result.args = getTransformedFunctionArgs(token.args, $baseLink)
@@ -1674,11 +1683,15 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
-  function assertNoStructInXpr(token, inInfixFilter = false) {
-    if (!inInfixFilter && token.$refLinks?.[token.$refLinks.length - 1].definition.target)
-      // REVISIT: let this through if not requested otherwise
+  function assertNoStructInXpr(token, context) {
+    const definition = token.$refLinks?.at(-1).definition
+    if(!definition) return
+    const rejectStructs = context && (context.prop in { where: 1, having: 1 })
+    // unmanaged is always forbidden
+    // expanding a ref in a `where`/`having` context
+    if ((rejectStructs && definition?.target) || definition?.on)
       rejectAssocInExpression()
-    if (isStructured(token.$refLinks?.[token.$refLinks.length - 1].definition))
+    if (rejectStructs && isStructured(definition))
       // REVISIT: let this through if not requested otherwise
       rejectStructInExpression()
 
@@ -1784,7 +1797,7 @@ function cqn4sql(originalQuery, model) {
 
       // only append infix filter to outer where if it is the leaf of the from ref
       if (refReverse[0].where)
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where, $refLinksReverse[0]))
+        filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
@@ -2222,7 +2235,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (customWhere) {
-      const filter = getTransformedTokenStream(customWhere, next)
+      const filter = getTransformedTokenStream(customWhere, { $baseLink: next })
       const wrappedFilter = hasLogicalOr(filter) ? [asXpr(filter)] : filter
       on.push('and', ...wrappedFilter)
     }
@@ -2241,7 +2254,7 @@ function cqn4sql(originalQuery, model) {
    * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
    */
   function getSearchTerm(searchTerm, query) {
-    const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
+    const entity = query.SELECT.from.SELECT ? Object.setPrototypeOf(query.SELECT.from, SELECT.class.prototype) : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
     if (searchIn.length === 0) return null
 
@@ -2252,17 +2265,31 @@ function cqn4sql(originalQuery, model) {
         searchTerm.length === 1 && 'val' in searchTerm[0] ? searchTerm[0] : { xpr: searchTerm },
       ],
     }
-
-    // the primary keys of the query target
-    // Revisit: searching on a subquery requires primary keys to be selected
-    const primaryKey = getPrimaryKey(entity)
-
-    // for aggregated queries, queries targeting keyless tables or queries with subqueries in the from clause
-    // we do not add a subquery to search in
-    if (primaryKey.length === 0 || query.SELECT.from.SELECT || inferred.SELECT.groupBy)
+    // for aggregated queries we do not add a subquery to search in
+    if (inferred.SELECT.groupBy)
       return searchFunc
 
-    return { xpr: [ primaryKey.length === 1 ? primaryKey[0] : {list: primaryKey}, 'in', SELECT.from(entity).columns(...primaryKey).where(searchFunc)] }
+    // either columns of the subquery in from or the primary keys of the query source
+
+    let subquery, matchColumns
+    if(entity.SELECT) {
+      matchColumns = entity.SELECT.columns?.map((c) => { return {ref: c.ref} })
+      if(!matchColumns) {
+        const elements = infer(entity, model).elements
+        matchColumns = Object.values(elements).filter(e => e.key).map((k) => { return {ref: [k.name]} })
+        if(matchColumns.length === 0) // keyless subquery, fallback to old behaviour
+          return searchFunc
+      }
+      subquery = cds.ql.clone(entity).columns(...matchColumns).where(searchFunc)
+    }
+    else {
+      matchColumns = getPrimaryKey(entity)
+      if(matchColumns.length === 0) // keyless
+        Object.values(entity.elements).forEach((e) => { matchColumns.push({ref: [e.name]}) } )
+      subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
+
+    }
+    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
   }
 
   /**
@@ -2327,10 +2354,10 @@ function cqn4sql(originalQuery, model) {
   function getTransformedFunctionArgs(args, $baseLink = null) {
     let result = null
     if (Array.isArray(args)) {
-      result = args.map(t => {
+      result = args.flatMap(t => {
         if (!t.val)
           // this must not be touched
-          return getTransformedTokenStream([t], $baseLink)[0]
+          return getTransformedTokenStream([t], { $baseLink })
         return t
       })
     } else if (typeof args === 'object') {
@@ -2339,7 +2366,7 @@ function cqn4sql(originalQuery, model) {
         const t = args[prop]
         if (!t.val)
           // this must not be touched
-          result[prop] = getTransformedTokenStream([t], $baseLink)[0]
+          result[prop] = getTransformedTokenStream([t], { $baseLink })[0]
         else result[prop] = t
       }
     }

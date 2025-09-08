@@ -7,7 +7,7 @@ const admin = {
   },
 }
 
-describe.skip('Bookshop - Search', () => {
+describe('Bookshop - Search', () => {
   const { expect, GET } = cds.test(bookshop)
 
   // Skipping $search tests as the github action HANA version does not support SCORE
