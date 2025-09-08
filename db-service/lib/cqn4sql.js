@@ -2266,33 +2266,26 @@ function cqn4sql(originalQuery, model) {
       ],
     }
     // for aggregated queries we do not add a subquery to search in
-    if (inferred.SELECT.groupBy)
+    if (inferred.SELECT.groupBy || entity.SELECT)
       return searchFunc
 
-    // either columns of the subquery in from or the primary keys of the query source
-
-    let subquery, matchColumns
-    if(entity.SELECT) {
-      // if we search on a subquery, match the columns of the subquery
-      matchColumns = entity.SELECT.columns?.map((c) => { return {ref: c.ref} })
-      if(!matchColumns) {
-        return searchFunc // no columns, fallback to old behavior
-        // const elements = infer(entity, model).elements
-        // match only not-null elements (null values will invalidate the matching logic: (null) in (null) --> unknown)
-        // also, BLOBs must not be part of the match columns
-        // matchColumns = Object.values(elements).filter(e => e.key && !(e.type in {'cds.LargeBinary': 1, 'cds.LargeString': 1})).map((k) => { return {ref: [k.name]} })
-      }
-      subquery = cds.ql.clone(entity).columns(...matchColumns).where(searchFunc)
-    }
-    else {
-      matchColumns = getPrimaryKey(entity)
-      // if(matchColumns.length === 0) // keyless, match all non-blob elements
-      //   Object.values(entity.elements).filter(e => !(e.type in {'cds.LargeBinary': 1, 'cds.LargeString': 1})).forEach((e) => { matchColumns.push({ref: [e.name]}) } )
-      if (matchColumns.length === 0) // keyless, fallback to old behavior
-        return searchFunc
-      subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
-
-    }
+    // if(entity.SELECT) {
+    //   // if we search on a subquery, match the columns of the subquery
+    //   matchColumns = entity.SELECT.columns?.map((c) => { return {ref: c.ref} })
+    //   if(!matchColumns) {
+    //     // match only not-null elements (null values will invalidate the matching logic: (null) in (null) --> unknown)
+    //     // also, BLOBs must not be part of the match columns
+    //     const elements = infer(entity, model).elements
+    //     matchColumns = Object.values(elements).filter(e => e.key && !(e.type in {'cds.LargeBinary': 1, 'cds.LargeString': 1})).map((k) => { return {ref: [k.name]} })
+    //   }
+    //   subquery = cds.ql.clone(entity).columns(...matchColumns).where(searchFunc)
+    // }
+    
+    const matchColumns = getPrimaryKey(entity)
+    if (matchColumns.length === 0) // keyless, fallback to old behavior
+      return searchFunc
+    
+      const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
     return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
   }
 
