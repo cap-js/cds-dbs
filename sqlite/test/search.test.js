@@ -18,8 +18,5 @@ describe('searching', () => {
     const search = SELECT.from(Authors).search('Potter')
     const res = await cds.run(search)
     expect(res).to.have.length(3) // TODO: should be 1
-    // cleanup
-    await DELETE.from(Books).where('ID = 2500 or ID = 2501 or ID = 2502')
-    await DELETE.from(Authors).where('ID = 42')
   })
 })
