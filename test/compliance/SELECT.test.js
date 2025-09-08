@@ -454,19 +454,6 @@ describe('SELECT', () => {
       await cds.run(cqn)
     })
 
-    test('search via to-n association', async () => {
-      const { Authors, Books } = cds.entities('complex.associations')
-      await INSERT.into(Authors).entries({ ID: 42, name: 'Rowling' })
-      await INSERT.into(Books).entries([
-        { ID: 2500, title: 'Harry Potter and the Philosopher\'s Stone', author_ID: 42 },
-        { ID: 2501, title: 'Harry Potter and the Chamber of Secrets', author_ID: 42 },
-        { ID: 2502, title: 'Harry Potter and the Prisoner of Azkaban', author_ID: 42 }
-      ])
-      Authors['@cds.search.books'] = true
-      const search = SELECT.from(Authors).search('Potter')
-      const res = await cds.run(search)
-      expect(res).to.have.length(1)
-    })
 
     test.skip('ref select', async () => {
       // Currently not possible as cqn4sql does not recognize where.ref.id: 'basic.projection.globals' as an external source
@@ -963,6 +950,24 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT * FROM ${string}`
       cqn.SELECT.search = [{ val: '"yes" "no"' }]
       await cds.run(cqn)
+    })
+
+    test('search via to-n association', async () => {
+      // Make sure that there are no duplicates for search along to-many associations
+      const { Authors, Books } = cds.entities('complex.associations')
+      await INSERT.into(Authors).entries({ ID: 42, name: 'Rowling' })
+      await INSERT.into(Books).entries([
+        { ID: 2500, title: 'Harry Potter and the Philosopher\'s Stone', author_ID: 42 },
+        { ID: 2501, title: 'Harry Potter and the Chamber of Secrets', author_ID: 42 },
+        { ID: 2502, title: 'Harry Potter and the Prisoner of Azkaban', author_ID: 42 }
+      ])
+      Authors['@cds.search.books'] = true
+      const search = SELECT.from(Authors).search('Potter')
+      const res = await cds.run(search)
+      expect(res).to.have.length(1)
+      // cleanup
+      await DELETE.from(Books).where('ID = 2500 or ID = 2501 or ID = 2502')
+      await DELETE.from(Authors).where('ID = 42')
     })
   })
 
