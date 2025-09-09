@@ -99,7 +99,7 @@ const StandardFunctions = {
           }
         })
 
-      const columns = ref.list
+      const columns = ref.list || [ref]
       const xpr = []
       for (const s of searchTerms) {
         const nestedXpr = []
@@ -118,7 +118,7 @@ const StandardFunctions = {
     // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
 
-    const csnElements = ref.list
+    const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {

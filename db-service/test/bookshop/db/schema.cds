@@ -170,7 +170,11 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  toStructuredKeyRenamed: Association to WithStructuredKey { struct.mid as renamedStructMid, second as renamedSecond };
   accessGroup : Composition of AccessGroups;
+  empty: Association to AssocWithStructuredKey {};
+  emptyStruct: { a { b { c { d {} } } } };
+  emptyStructUnmanaged: { a { b { c { d { unmanaged: Association to Books on 1 = 1 } } } } };
 }
 entity Intermediate {
   key ID: Integer;
@@ -232,7 +236,7 @@ type KTA3 : { a : Integer; b : Association to AssocMaze3; };
 entity AssocMaze1 {
   key ID  : Integer;
   a_struc   : Association to AssocMaze2;
-  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like her,
+  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like here,
   // but they automatically come into play when redirecting (explicitly or implicitly) mgd assocs and
   // renaming fields used as FK
   a_strucX  : Association to AssocMaze2 {a, b};
@@ -291,6 +295,14 @@ entity Skip {
   key ID: Integer;
   text: String;
   notSkipped: Association to NotSkipped;
+}
+
+@cds.persistence.table: true
+entity PersistenceTableOnSkipped as projection on Skip;
+
+entity ToPersistenceTable {
+  key ID: Integer;
+  ToPersistenceTableOnSkipped: Association to PersistenceTableOnSkipped;
 }
 
 @cds.localized: false
@@ -467,3 +479,23 @@ entity Third as projection on Second {
   *,
   first: redirected to FirstRedirected on $self.ID = first.BUBU
 };
+
+entity Car {
+    key ID: Integer;
+    make: String;
+    model: String;
+    doors: Association to many Door on doors.car = $self;
+}
+
+entity Door {
+    key ID: Integer;
+    description: String;
+    car: Association to Car;
+    windows: Association to many Window on windows.door = $self
+}
+
+entity Window {
+    key ID: Integer;
+    description: String;
+    door: Association to Door;
+}

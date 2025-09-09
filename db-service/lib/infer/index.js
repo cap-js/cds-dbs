@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -404,7 +404,7 @@ function infer(originalQuery, model) {
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
     if (arg.xpr)
       arg.xpr.forEach((token, i) =>
-        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: arg.xpr[i - 1] === 'exists' }),
+        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: inExists || arg.xpr[i - 1] === 'exists' }),
       ) // e.g. function in expression
 
     if (!arg.ref) {
@@ -587,7 +587,7 @@ function infer(originalQuery, model) {
       }
 
       arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-      if (getDefinition(arg.$refLinks[i].definition.target)?.['@cds.persistence.skip'] === true) isPersisted = false
+      if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
         defineProperty(arg, 'flatName', flatName)
@@ -640,7 +640,7 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      const skip = $refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)
+      const skip = $refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))
       if (skip) {
         $refLinks[$refLinks.length - 1].skipExpand = true
         return
@@ -937,8 +937,15 @@ function infer(originalQuery, model) {
         return true
       }
       if (assoc) {
+        // if(!link.definition.isAssociation) continue
+        let fkIndex = assoc.keys?.findIndex(key => key.ref.every((step, j) => column.ref[i + j] === step))
         // foreign key access without filters never join relevant
-        if (assoc.keys?.some(key => key.ref.every((step, j) => column.ref[i + j] === step))) return false
+        if (fkIndex !== -1) {
+          if(column.ref.slice(i).some(s => s.where)) continue // probably join relevant later on
+          fkAccess = true
+          assoc = null
+          continue
+        }
         // <assoc>.<anotherAssoc>.<…> is join relevant as <anotherAssoc> is not fk of <assoc>
         return true
       }

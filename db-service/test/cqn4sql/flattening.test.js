@@ -102,7 +102,7 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { 2*nested as x }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
 
@@ -114,7 +114,7 @@ describe('Flattening', () => {
 
     it('rejects managed associations in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { 2*author as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
     it('rejects managed associations in expressions in SELECT clause (2)', () => {
@@ -131,6 +131,12 @@ describe('Flattening', () => {
     it('rejects unmanaged associations in expressions in SELECT clause (2)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { sin(coAuthorUnmanaged) as x }`, model)).to.throw(
         /An association can't be used as a value in an expression/,
+      )
+    })
+
+    it('rejects unmanaged associations in expressions in SELECT clause (3)', () => {
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey { sin(emptyStructUnmanaged) as x }`, model)).to.throw(
+        /A structured element can't be used as a value in an expression/,
       )
     })
 
@@ -386,7 +392,7 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in WHERE clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/
       )
     })
 
@@ -398,12 +404,6 @@ describe('Flattening', () => {
 
     it('rejects managed association in WHERE clause', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
-    })
-
-    it('rejects managed associations in expressions in WHERE clause (1)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE 2 = author`, model)).to.throw(
         /An association can't be used as a value in an expression/,
       )
     })
@@ -626,7 +626,7 @@ describe('Flattening', () => {
 
     it('rejects struct fields in expressions in ORDER BY clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } ORDER BY 2*nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
 
@@ -680,7 +680,7 @@ describe('Flattening', () => {
 
     it('rejects managed associations in expressions in ORDER BY clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } ORDER BY 2*author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
 
@@ -766,7 +766,7 @@ describe('Flattening', () => {
 
     it('rejects managed associations in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } GROUP BY 2*author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
 
@@ -777,7 +777,7 @@ describe('Flattening', () => {
     })
     it('rejects struct fields in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } GROUP BY 2*nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        `The operator "*" can only be used with scalar operands`,
       )
     })
 
@@ -829,12 +829,10 @@ describe('Flattening', () => {
     //
     // expressions
     //   structured fields inside expressions aren't supported anywhere
-    //   TODO if implementation is same for all clauses, we probably don't need all these tests
-    //   relax for certain patterns -> see "Expressions in where clauses"
 
     it('rejects struct fields in expressions in HAVING clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } HAVING 2 = nested`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
+        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/
       )
     })
 
@@ -853,15 +851,8 @@ describe('Flattening', () => {
     // expressions
     //   managed associations inside expressions aren't supported anywhere
     //   TODO if implementation is same for all clauses, we probably don't need all these tests
-    //   relax for certain patterns -> see "Expressions in where clauses"
 
-    it('rejects managed associations in expressions in HAVING clause (1)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING 2 = author`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
-    })
-
-    it('rejects managed associations in expressions in HAVING clause (2)', () => {
+    it('rejects managed associations in expressions in HAVING clause', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING sin(author) < 0`, model)).to.throw(
         /An association can't be used as a value in an expression/,
       )
