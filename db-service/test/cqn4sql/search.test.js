@@ -368,7 +368,26 @@ describe('search w/ path expressions', () => {
       } where search((authorWithAddress.note, address.city), 'x')
     )`
   
-  expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('search along to-many path', () => {
+    // @cds.search: {books, books.genre.name}
+    let query = cds.ql`SELECT from search.AuthorSearchBooks as A { ID }`
+    query.SELECT.search = [{ val: 'x' }]
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.AuthorSearchBooks as A {
+      A.ID
+    } where A.ID in (
+      SELECT from search.AuthorSearchBooks as $A
+        left join search.Books as books on books.author_ID = $A.ID
+        left join search.Genres as genre on genre.ID = books.genre_ID
+      {
+        $A.ID
+      } where search((books.title, genre.name), 'x')
+    )`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
   it('dont dump for non existing search paths, but ignore the path', () => {
@@ -502,25 +521,5 @@ describe('caching searchable fields', () => {
 
     let secondRun = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(secondRun))).to.deep.equal(expected)
-  })
-
-  it('to-many associations lead to exists subquery search', () => {
-    // @cds.search: {books, books.genre.title}
-    let query = cds.ql`SELECT from search.AuthorSearchBooks as A { ID }`
-    query.SELECT.search = [{ val: 'x' }]
-    let res = cqn4sql(query, model)
-    const expected = cds.ql`
-    SELECT from search.AuthorSearchBooks as A {
-      A.ID
-    } where exists (
-      SELECT 1 from search.Books as books
-      where books.author_ID = A.ID
-      and search((books.title, books.descr), 'x')
-    ) or exists (
-      SELECT 1 from search.Books as books2
-      left join search.Genres as books2_genre on books2_genre.ID = books2.genre_ID
-      where books2.author_ID = A.ID
-      and search((books2_genre.title), 'x')
-    )`
   })
 })
