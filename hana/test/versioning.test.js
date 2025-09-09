@@ -46,5 +46,4 @@ describe('Versioned table', () => {
     // 2 hana express, 4 hana cloud
     expect(cds.db.server.major).to.be.at.least(2)
   })
-
 })
