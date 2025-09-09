@@ -68,7 +68,7 @@ class HANAService extends SQLService {
             : service.options
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
-          service.server.major = dbc.server.major
+          service.server.major = dbc.server.major || service.server.major
           return dbc
         } catch (err) {
           if (isMultitenant) {
