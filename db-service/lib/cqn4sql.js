@@ -2230,7 +2230,7 @@ function cqn4sql(originalQuery, model) {
    * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
    */
   function getSearch(searchTerm, query) {
-    const entity = query.SELECT.from.SELECT ? Object.setPrototypeOf(query.SELECT.from, SELECT.class.prototype) : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
+    const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
     if (searchIn.length === 0) return null
 
