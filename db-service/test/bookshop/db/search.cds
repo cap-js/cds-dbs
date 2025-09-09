@@ -8,6 +8,12 @@ entity Books {
         coAuthorUnmanaged     : Association to Authors
                                     on coAuthorUnmanaged.ID = coAuthor_ID_unmanaged;
         shelf                 : Association to BookShelf;
+        genre                 : Association to Genres;
+}
+
+entity Genres {
+    key ID   : Integer;
+        name : String;
 }
 
 @cds.search: {author.lastName}
@@ -33,6 +39,10 @@ entity Authors {
         firstName : String;
         books     : Association to Books
                         on books.author = $self;
+}
+
+@cds.search: {books, books.genre.name}
+entity AuthorSearchBooks : Authors {
 }
 
 // search over multiple associations
