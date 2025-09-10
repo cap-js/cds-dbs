@@ -1206,7 +1206,7 @@ function cqn4sql(originalQuery, model) {
       if(column.element && !isAssocOrStruct(column.element)) {
         columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
         const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
-        setElementOnColumns(res, element)
+        setElementOnColumns(res, column.element)
         return [res]
       }
 
