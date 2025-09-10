@@ -1174,11 +1174,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       }
     }
 
-    managed_session_context(src) {
-      const val = sessionVariableMap[src]
-      return val && { func: 'session_context', args: [{ val, param: false }] }
-    }
-
     managed_default(name, managed, src) {
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
