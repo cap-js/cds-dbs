@@ -59,20 +59,14 @@ class SQLiteService extends SQLService {
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
 
-    const _variables = {}
-    // Check all properties on the variables object
-    for (let name in variables) {
-      _variables[sessionVariableMap[name] || name] = variables[name]
+    // Enrich provided session context with aliases
+    for (const alias in sessionVariableMap) {
+      const name = sessionVariableMap[alias]
+      if (variables[name]) variables[alias] = variables[name]
     }
 
-    // Explicitly check for the default session variable properties
-    // As they are getters and not own properties of the object
-    for (let name in sessionVariableMap) {
-      if (variables[name]) _variables[sessionVariableMap[name]] = variables[name]
-    }
-
-    if (!dbc[$session]) dbc[$session] = _variables
-    else Object.assign(dbc[$session], _variables)
+    if (!dbc[$session]) dbc[$session] = variables
+    else Object.assign(dbc[$session], variables)
   }
 
   release() {
