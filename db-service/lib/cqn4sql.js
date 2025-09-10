@@ -1810,6 +1810,14 @@ function cqn4sql(originalQuery, model) {
       const id = getLocalizedName(subquerySource)
       transformedFrom.ref = [subquerySource.params ? { id, args: from.ref.at(-1).args || {} } : id]
 
+      const firstRefLink = transformedFrom.$refLinks[0].definition._target || transformedFrom.$refLinks[0].definition
+      const isRuntime = e => e.query && (e['@runtime'] || e.service?.['@runtime'] || isRuntime(e.query._target))
+      if (isRuntime(firstRefLink)) {
+        const alias = transformedFrom.as
+        transformedFrom = cqn4sql(firstRefLink.query, model)
+        transformedFrom.as = alias
+      }
+
       return { transformedWhere, transformedFrom }
     }
   }
