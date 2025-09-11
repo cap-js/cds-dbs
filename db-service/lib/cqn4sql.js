@@ -2246,7 +2246,7 @@ function cqn4sql(originalQuery, model) {
       return searchFunc
     
     const matchColumns = getPrimaryKey(entity)
-    if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless, fallback to old behavior
+    if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
       return searchFunc
     
       const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
