@@ -18,14 +18,7 @@ describe('Replace attribute search by search predicate', () => {
     // single val is stored as val directly, not as expr with val
     const expected = cds.ql`
       SELECT from bookshop.WithStructuredKey as wsk { wsk.second }
-      where (wsk.struct_mid_leaf, wsk.struct_mid_anotherLeaf, wsk.second) in (
-        SELECT from bookshop.WithStructuredKey as $W
-        {
-          $W.struct_mid_leaf,
-          $W.struct_mid_anotherLeaf,
-          $W.second
-        } where search($W.second, 'x')
-      )`
+      where search(wsk.second, 'x')`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -37,15 +30,7 @@ describe('Replace attribute search by search predicate', () => {
     let res = cqn4sql(query, model)
     const expected = cds.ql`
       SELECT from bookshop.WithStructuredKey as wsk { wsk.second }
-      where (wsk.struct_mid_leaf, wsk.struct_mid_anotherLeaf, wsk.second) in (
-        SELECT from bookshop.WithStructuredKey as $W
-        {
-          $W.struct_mid_leaf,
-          $W.struct_mid_anotherLeaf,
-          $W.second
-        } where search($W.second, ('x' OR 'y'))
-      )
-      `
+      where search(wsk.second, ('x' OR 'y'))`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -56,12 +41,7 @@ describe('Replace attribute search by search predicate', () => {
     let res = cqn4sql(query, model)
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
-    } where Genres.ID in (
-      SELECT from bookshop.Genres as $G
-      {
-        $G.ID
-      } where search(($G.name, $G.descr, $G.code), ('x' OR 'y'))
-    )`)
+    } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`)
   })
 
   it('with existing WHERE clause', () => {
@@ -72,12 +52,7 @@ describe('Replace attribute search by search predicate', () => {
     const expected = cds.ql`SELECT from bookshop.Genres as Genres {
       Genres.ID
     } where (Genres.ID < 4 or Genres.ID > 5)
-      and (Genres.ID in (
-      SELECT from bookshop.Genres as $G
-      {
-        $G.ID
-      } where search(($G.name, $G.descr, $G.code), ('x' OR 'y'))
-    ))`
+      and search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y'))`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -87,14 +62,42 @@ describe('Replace attribute search by search predicate', () => {
 
     let res = cqn4sql(query, model)
     // todo, not necessary to add the search predicate as xpr
-    const expected = cds.ql`SELECT from bookshop.Genres as Genres {
-      Genres.ID
-    } where (Genres.ID in (
-      SELECT from bookshop.Genres as $G
-      {
-        $G.ID
-      } where search(($G.name, $G.descr, $G.code), ('x' OR 'y'))
-  )) and (Genres.ID < 4 or Genres.ID > 5)`
+    const expected = { SELECT: {
+        columns: [ { ref: [ 'Genres', 'ID' ] } ],
+        from: { as: 'Genres', ref: [ 'bookshop.Genres' ] },
+        where: [
+          {
+            xpr: [
+              {
+                args: [
+                  {
+                    list: [
+                      { ref: [ 'Genres', 'name' ] },
+                      { ref: [ 'Genres', 'descr' ] },
+                      { ref: [ 'Genres', 'code' ] }
+                    ]
+                  },
+                  { xpr: [ { val: 'x' }, 'or', { val: 'y' } ] }
+                ],
+                func: 'search'
+              }
+            ]
+          },
+          'and',
+          {
+            xpr: [
+              { ref: [ 'Genres', 'ID' ] },
+              '<',
+              { val: 4 },
+              'or',
+              { ref: [ 'Genres', 'ID' ] },
+              '>',
+              { val: 5 }
+            ]
+          }
+        ]
+      }
+    }
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -105,12 +108,7 @@ describe('Replace attribute search by search predicate', () => {
     let res = cqn4sql(query, model)
     const expected = cds.ql`SELECT from bookshop.Person as Person {
       Person.ID
-    } where Person.ID in (
-     SELECT from bookshop.Person as $P {
-      $P.ID
-    } where
-      search(($P.name, $P.placeOfBirth, $P.placeOfDeath, $P.address_street, $P.address_city), ('x' OR 'y')) 
-    )`
+    } where (search((Person.name, Person.placeOfBirth, Person.placeOfDeath, Person.address_street, Person.address_city), ('x' OR 'y')))`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -136,11 +134,7 @@ describe('Replace attribute search by search predicate', () => {
       {
         Books.ID,
         books2.title as authorsBook
-      } where Books.ID in (
-        SELECT from bookshop.Books as $B
-      {
-        $B.ID
-      } where search(($B.createdBy, $B.modifiedBy, $B.anotherText, $B.title, $B.descr, $B.currency_code, $B.dedication_text, $B.dedication_sub_foo, $B.dedication_dedication), ('x' OR 'y')) )`,
+      } where search((Books.createdBy, Books.modifiedBy, Books.anotherText, Books.title, Books.descr, Books.currency_code, Books.dedication_text, Books.dedication_sub_foo, Books.dedication_dedication), ('x' OR 'y'))`,
     )
   })
   it('Search columns if result is grouped', () => {
@@ -173,15 +167,7 @@ describe('Replace attribute search by search predicate', () => {
           SELECT 1 from bookshop.Authors as $A
           where $A.ID = books.author_ID
         )
-      and (
-        books.ID in (
-          SELECT from bookshop.Books as $B
-          {
-            $B.ID
-          } where search(($B.createdBy, $B.modifiedBy, $B.anotherText, $B.title, $B.descr, $B.currency_code, $B.dedication_text, $B.dedication_sub_foo, $B.dedication_dedication), ('x' OR 'y'))
-        )
-      )
-      `
+      and search((books.createdBy, books.modifiedBy, books.anotherText, books.title, books.descr, books.currency_code, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication), ('x' OR 'y'))`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(
       expected,
     )
@@ -309,12 +295,7 @@ describe('search w/ path expressions', () => {
     const expected = cds.ql`
     SELECT from search.PathInSearchNotProjected as PathInSearchNotProjected {
       PathInSearchNotProjected.title
-    } where PathInSearchNotProjected.ID in (
-      SELECT from search.PathInSearchNotProjected as $P
-      {
-        $P.ID
-      } where search($P.title, 'x') 
-    )`
+    }  where search(PathInSearchNotProjected.title, 'x')`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
@@ -400,12 +381,7 @@ describe('search w/ path expressions', () => {
     {
       BookShelf.ID,
       BookShelf.genre
-    } where BookShelf.ID in (
-      SELECT from search.BookShelf as $B
-      {
-        $B.ID
-      } where search($B.genre, 'Harry Plotter') 
-    )`
+    }  where search(BookShelf.genre, 'Harry Plotter')`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 })
@@ -447,12 +423,7 @@ describe('calculated elements', () => {
       SELECT from search.CalculatedAddressesWithoutAnno as Address
       {
         Address.ID
-      } where Address.ID in (
-        SELECT from search.CalculatedAddressesWithoutAnno as $C
-        {
-          $C.ID
-        } where search($C.city, 'x')
-      )`
+      } where search(Address.city, 'x')`
     
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
