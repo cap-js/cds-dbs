@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const sessionVariableMap = require('./session.json')
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
 const hanaKeywords = keywords.reduce((prev, curr) => {
@@ -122,14 +123,19 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
-    // REVISIT: required to be compatible with generated views
-    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
-    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
-    if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
-    if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
-    if (variables['$now']) variables['NOW'] = variables['$now']
+    const _variables = {}
+    // Check all properties on the variables object
+    for (let name in variables) {
+      _variables[sessionVariableMap[name] || name] = variables[name]
+    }
 
-    this.ensureDBC().set(variables)
+    // Explicitly check for the default session variable properties
+    // As they are getters and not own properties of the object
+    for (let name in sessionVariableMap) {
+      if (variables[name]) _variables[sessionVariableMap[name]] = variables[name]
+    }
+
+    this.ensureDBC().set(_variables)
   }
 
   async onSELECT(req) {
