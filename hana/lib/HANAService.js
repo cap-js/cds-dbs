@@ -15,7 +15,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 }, {})
 
 const DEBUG = cds.debug('sql|db')
-let HANAVERSION = 0
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -27,6 +26,11 @@ class HANAService extends SQLService {
     // REVISIT: refactor together with cds-deploy.js
     if (this.options.hdi) {
       super.deploy = this.hdiDeploy
+    }
+
+    // TODO: find a way to reliably detect minor/patch versions
+    this.server = {
+      major: 4
     }
 
     this.on(['BEGIN'], this.onBEGIN)
@@ -65,7 +69,7 @@ class HANAService extends SQLService {
             : service.options
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
-          HANAVERSION = dbc.server.major
+          service.server.major = dbc.server.major || service.server.major
           return dbc
         } catch (err) {
           if (isMultitenant) {
@@ -203,7 +207,7 @@ class HANAService extends SQLService {
       const ps = await this.prepare(sql)
       // HANA driver supports batch execution
       const results = await (entries
-        ? HANAVERSION <= 2
+        ? this.server.major <= 2
           ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
           : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
         : this.ensureDBC() && ps.run())
@@ -777,7 +781,7 @@ class HANAService extends SQLService {
 
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
-      if (HANAVERSION <= 2) {
+      if (this.srv.server.major <= 2) {
         this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
@@ -1167,7 +1171,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      const path = this.string(HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
+      const path = this.string(this.srv.server.major <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
