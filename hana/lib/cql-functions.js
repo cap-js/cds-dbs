@@ -164,7 +164,7 @@ const StandardFunctions = {
         delete e.ref
       })
     } else {
-      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search' SEARCH MODE 'text'`
+      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
     if (Array.isArray(arg.xpr)) {
