@@ -325,22 +325,284 @@ class HANAService extends SQLService {
    * @param {import('@sap/cds/apis/csn').CSN} model The CSN model to be deployed
    */
   async hdiDeploy(model) {
-    const fileGenerator = cds.compile.to.hdbtable(model)
+    const self = this
+    const credentials = this.options.credentials
+
+    model = cds.model = cds.linked(model)
+
+    const remotes = JSON.parse(process.env.remotes || '[]')
+    const externalNameSpaces = []
+    remotes.forEach(remote => externalNameSpaces.push(remote.name))
+    externalNameSpaces.sort((a, b) => b.length - a.length)
+
+    const externalServices = []
+    const localServices = []
+
+    // Sort exteranl and local services
+    for (const service of model.services) {
+      if (
+        // skip all services marked to be ignored
+        service['@cds.ignore'] || service['@cds.serve.ignore'] ||
+        // skip external services, unless asked to mock them and unbound
+        (service['@cds.external']) && (!cds.options.mocked)
+      ) {
+        externalServices.push(service)
+      } else {
+        localServices.push(service)
+      }
+    }
+
+    // Flag all external entities as external
+    for (const service of externalServices) {
+      for (const name in service.entities) {
+        const def = model.definitions[service.entities[name].name]
+        def['@cds.external'] = true
+        def['@cds.persistence.table'] = true
+      }
+    }
+
+    // Ignore all entities and flag entities that are inside an external namespace
+    for (const name in model.entities) {
+      const def = model.entities[name]
+      if (Object.hasOwn(def, '@cds.external') && def['@cds.external']) continue
+      def['@cds.persistence.skip'] = true
+      if (externalNameSpaces.find(n => name.startsWith(n))) {
+        def['@cds.external'] = true
+      }
+    }
+
+    // Trace all entities of public services to include their dependencies up to the first external entity
+    if (localServices.length === 0) localServices.push(model)
+    for (const service of localServices) {
+      for (const name in service.entities) {
+        const def = service.entities[name]
+        if (def.kind !== 'entity') continue
+        const srcs = [def, ...sources(def)]
+        for (const src of srcs) {
+          src['@cds.persistence.skip'] = false
+          if (Object.hasOwn(src, '@cds.external') && src['@cds.external']) src['@cds.persistence.table'] = true
+          else src['@cds.persistence.table'] = false
+        }
+      }
+    }
+
+    // Create HDI container entities based upon @cds.persistence.skip annotation
+    const fileGenerator = cds.compile.to.hdbtable(model, { names: 'quoted' })
     const sql = fs.promises.readFile(path.resolve(__dirname, 'scripts/deploy.sql'), 'utf-8')
     const hdiconfig = `${await fs.promises.readFile(path.resolve(__dirname, 'scripts/.hdiconfig'), 'utf-8')}`
-    let files = [{ path: '.hdiconfig', content: `${hdiconfig}` }]
+    let files = [
+      { path: '.hdiconfig', content: `${hdiconfig}` },
+      {
+        path: 'synonyms.hdbrole', content: JSON.stringify({
+          role: {
+            name: "synonyms#",
+            schema_privileges: [
+              {
+                reference: credentials.schema,
+                privileges_with_grant_option: ["SELECT"]
+              }
+            ],
+          }
+        })
+      },
+      {
+        path: 'synonyms.hdbroleconfig',
+        content: JSON.stringify({ 'synonyms#': { [credentials.schema]: { schema: credentials.schema } } })
+      },
+    ]
     for (let [src, { file }] of fileGenerator) {
       files.push({ path: file, content: src })
     }
+
     const replaces = {
-      CONTAINER_GROUP: this.options.credentials.containerGroup,
+      CONTAINER_GROUP: this.options.credentials.containerGroup || '_SYS_DI',
       CONTAINER_NAME: this.options.credentials.schema,
-      JSON_FILES: JSON.stringify(files).replace(/'/g, "''"),
     }
 
+    // Deploy all entities with external entities as tables
     const fullSQL = `${await sql}`.replace(/{{{([^}]*)}}}/g, (a, b) => replaces[b])
-    await this.tx(async tx => tx.run(fullSQL))
+    await cds.tx(async tx => {
+      const messages = await tx.run(fullSQL, [JSON.stringify(files)])
+      const logs = (Array.isArray(messages.changes[1]) ? messages.changes[1] : messages.changes).map(r => r.MESSAGE).join('\n')
+      console.log("=========== DEPLOY LOCAL ENTITIES ===========")
+      console.log(logs)
+    })
+
+    // Create all external connections
+    if (remotes.length === 0) return true // early returns
+
+    // REVISIT: make it easier for the deployer to get DB_ADMIN or a user with CREATE REMOTE SOURCE priviledges
+    await Promise.all(remotes.map(async remote => {
+      if (remote.adapter) return ensureRemoteSource(remote)
+      if (remote.service) return ensureHDI(remote)
+    }))
+
+    files = []
+    // Deploy all external entities on top of the connections
+    for (const name in model.entities) {
+      const def = model.entities[name]
+      if (Object.hasOwn(def, '@cds.external') && def['@cds.external'] && !def['@cds.persistence.skip']) {
+        const remoteName = externalNameSpaces.find(n => name.startsWith(n))
+        const remote = remotes.find(r => r.name === remoteName)
+        // Create virtual table for remote sources
+        if (remote.adapter) {
+          const remoteEntityName = name.replace(remoteName + '.', '')
+          files.push({ path: `${name}.hdbtable`, content: null })
+          files.push({ path: `${name}.hdbvirtualtable`, content: `VIRTUAL TABLE "${name}" AT "${remote.name}"."<NULL>"."<NULL>"."${remoteEntityName}"` })
+          // It's allowed to just inline the remote source so the config file is not required
+          // files.push({
+          //   path: `${name}.hdbvirtualtableconfig`, content: JSON.stringify({
+          //     [name]: {
+          //       target: {
+          //         remote: remote.name,
+          //         // database: '<NULL>',
+          //         // schema: '<NULL>',
+          //         object: remoteEntityName,
+          //       }
+          //     }
+          //   })
+          // })
+        }
+        // Create synonyms for HDI containers
+        if (remote.service) {
+          const creds = vcap({ name: remote.service }).credentials
+          files.push({ path: `${name}.hdbtable`, content: null })
+          files.push({
+            path: `${name}.hdbsynonym`, content: JSON.stringify({
+              [name]: {
+                target: {
+                  // "revalidate": true      // optional (Boolean)
+                  // database: "DATABASE_A", // optional (cross-database access)
+                  schema: creds.schema,
+                  object: name,
+                }
+              }
+            })
+          })
+        }
+      }
+    }
+
+    if (files.length === 0) return true
+    await cds.tx(async tx => {
+      const messages = await tx.run(fullSQL, [JSON.stringify(files)])
+      const logs = (Array.isArray(messages.changes[1]) ? messages.changes[1] : messages.changes).map(r => r.MESSAGE || r).join('\n')
+      console.log("=========== DEPLOY REMOTE CONNECTION ===========")
+      console.log(logs)
+    })
+
     return true
+
+    function sources(query) {
+      let table = false
+      const srcs = []
+      if (query.kind === 'type') return srcs
+      if (query.kind === 'entity') {
+        query = model.definitions[query.name]
+        srcs.push(query)
+        if (
+          query.query &&
+          !(Object.hasOwn(query, '@cds.external') && query['@cds.external'])
+        ) {
+          query = query.query
+        } else {
+          table = true
+          query = cds.ql.SELECT(query)
+        }
+      }
+      try { self.infer(query) } catch { } // TODO: switch to cds.infer
+      for (const e in query.elements) {
+        const element = query.elements[e]
+        if (element.isAssociation) srcs.push(model.definitions[element.target])
+      }
+      if (table) return srcs
+      if (query.target) return [...srcs, model.definitions[query.target.name], ...sources(query.target)]
+      if (query.SET) return [...srcs, ...query.SET.args.map(q => sources(q)).flat()]
+      if (query.SELECT.from) return [...srcs, ...sources(query.SELECT.from)]
+      return srcs
+    }
+
+    function vcap(vcap) {
+      let services = []
+      const vcap_serivces = JSON.parse(process.env.VCAP_SERVICES)
+      if (vcap.label) services = vcap_serivces[vcap.label]
+      else {
+        for (const label in vcap_serivces) {
+          services = [...services, ...vcap_serivces[label]]
+        }
+      }
+      if (vcap.name) services = services.filter(s => s.name === vcap.name)
+
+      return services[0]
+    }
+
+    async function ensureRemoteSource(remote) {
+      const connector = await cds.connect.to('db-connector', {
+        kind: "hana",
+        credentials: vcap({ labal: 'user-provided', name: 'hana-cloud-connector' }).credentials,
+      })
+
+      await connector.tx(async tx => {
+        const { name } = remote
+
+        const adapterExists = await tx.run(`SELECT 1 FROM SYS.ADAPTERS WHERE ADAPTER_NAME='${remote.adapter}'`)
+        // For new HANA systems it is required to "create" the adapter once that is done all adapters show up
+        if (!adapterExists.length) await tx.run(`CREATE ADAPTER "${remote.adapter}" PROPERTIES '' AT LOCATION DPSERVER;`).catch(() => { })
+
+        const remoteSourceExists = await tx.run(`SELECT * FROM SYS.REMOTE_SOURCES WHERE REMOTE_SOURCE_NAME='${remote.name}'`)
+        if (remoteSourceExists.length) {
+          await tx.run(`ALTER REMOTE SOURCE "${name}" ADAPTER "ODataAdapter" AT LOCATION DPSERVER 
+              CONFIGURATION '${remote.configuration.replaceAll("'", "''")}'
+              WITH CREDENTIAL TYPE 'PASSWORD' USING '${remote.credential.replaceAll("'", "''")}'`)
+        } else {
+          await tx.run(`CREATE REMOTE SOURCE "${name}" ADAPTER "ODataAdapter" AT LOCATION DPSERVER 
+              CONFIGURATION '${remote.configuration.replaceAll("'", "''")}'
+              WITH CREDENTIAL TYPE 'PASSWORD' USING '${remote.credential.replaceAll("'", "''")}'`)
+        }
+
+        await tx.run(`CALL CHECK_REMOTE_SOURCE('${name}')`)
+        await tx.run(`GRANT CREATE VIRTUAL TABLE ON REMOTE SOURCE "${name}" TO ${credentials.schema}#OO`)
+        await tx.run(`GRANT CREATE REMOTE SUBSCRIPTION ON REMOTE SOURCE "${name}" TO ${credentials.schema}#OO`)
+        await tx.run(`GRANT CREATE VIRTUAL TABLE ON REMOTE SOURCE "${name}" TO "${credentials.hdi_user}"`)
+        await tx.run(`GRANT CREATE REMOTE SUBSCRIPTION ON REMOTE SOURCE "${name}" TO "${credentials.hdi_user}"`)
+      })
+      await connector.disconnect()
+    }
+
+    async function ensureHDI(remote) {
+      const hdiCredentials = vcap({ name: remote.service }).credentials
+      // Switch to HDI deployer user for the correct priviledges
+      hdiCredentials.user = hdiCredentials.hdi_user
+      hdiCredentials.password = hdiCredentials.hdi_password
+
+      const connector = await cds.connect.to('db-connector', {
+        "kind": "hana",
+        "credentials": hdiCredentials,
+      })
+
+      await connector.tx(async tx => {
+        const grantScript = `DO (
+  IN USERNAME NVARCHAR(255) => ?
+)
+BEGIN SEQUENTIAL EXECUTION
+  DECLARE RETURN_CODE INT;
+  DECLARE REQUEST_ID BIGINT;
+  DECLARE MESSAGES _SYS_DI.TT_MESSAGES;
+  DECLARE SCHEMA_ROLES _SYS_DI.TT_SCHEMA_ROLES;
+
+  NO_PARAMS = SELECT * FROM _SYS_DI.T_NO_PARAMETERS;
+
+  SCHEMA_ROLES = SELECT 'synonyms#' AS ROLE_NAME, '' AS PRINCIPAL_SCHEMA_NAME, :USERNAME AS PRINCIPAL_NAME FROM DUMMY;
+
+  CALL ${hdiCredentials.schema}#DI.GRANT_CONTAINER_SCHEMA_ROLES(:SCHEMA_ROLES, :NO_PARAMS, :RETURN_CODE, :REQUEST_ID, :MESSAGES);
+  SELECT * FROM :MESSAGES;
+END;
+`
+        await tx.run(grantScript, [[credentials.schema + '#OO']/*, [credentials.hdi_user], [credentials.user]*/])
+      })
+
+      await connector.disconnect()
+    }
   }
 
   static CQN2SQL = class CQN2HANA extends SQLService.CQN2SQL {
@@ -1348,7 +1610,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   // Creates a new database using HDI container groups
   async database({ database }, clean = false) {
-    if (clean) {
+    if (this.options.credentials.__system__) {
       // Reset back to system credentials
       this.options.credentials = this.options.credentials.__system__
     }
@@ -1390,7 +1652,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   // This removes SCHEMA name conflicts when testing in the same system
   // Additionally this allows for deploying using the HDI procedures
   async tenant({ database, tenant }, clean = false) {
-    if (clean) {
+    if (this.options.credentials.__database__) {
       // Reset back to database credentials
       this.options.credentials = this.options.credentials.__database__
     }
