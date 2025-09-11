@@ -62,9 +62,42 @@ describe('Replace attribute search by search predicate', () => {
 
     let res = cqn4sql(query, model)
     // todo, not necessary to add the search predicate as xpr
-    const expected = cds.ql`SELECT from bookshop.Genres as Genres {
-      Genres.ID
-    } where search((Genres.name, Genres.descr, Genres.code), ('x' OR 'y')) and (Genres.ID < 4 or Genres.ID > 5)`
+    const expected = { SELECT: {
+        columns: [ { ref: [ 'Genres', 'ID' ] } ],
+        from: { as: 'Genres', ref: [ 'bookshop.Genres' ] },
+        where: [
+          {
+            xpr: [
+              {
+                args: [
+                  {
+                    list: [
+                      { ref: [ 'Genres', 'name' ] },
+                      { ref: [ 'Genres', 'descr' ] },
+                      { ref: [ 'Genres', 'code' ] }
+                    ]
+                  },
+                  { xpr: [ { val: 'x' }, 'or', { val: 'y' } ] }
+                ],
+                func: 'search'
+              }
+            ]
+          },
+          'and',
+          {
+            xpr: [
+              { ref: [ 'Genres', 'ID' ] },
+              '<',
+              { val: 4 },
+              'or',
+              { ref: [ 'Genres', 'ID' ] },
+              '>',
+              { val: 5 }
+            ]
+          }
+        ]
+      }
+    }
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
