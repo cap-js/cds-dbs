@@ -929,8 +929,18 @@ describe('functions', () => {
     })
   })
   describe('SESSION_CONTEXT', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('dollar variants are supported', async () => {
+      const res = await SELECT.one.from('basic.literals.string').columns(
+        `session_context('$user.id') as id`,
+        `session_context('$user') as user`,
+        `session_context('$user.locale') as locale`,
+        `session_context('$now') as now`
+      )
+      expect(res.id).to.equal('anonymous')
+      expect(res.user).to.equal('anonymous')
+      expect(res.locale).to.equal('en')
+      // postgres truncates the millis, hence not enforcing in regexp
+      expect(res.now).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
     })
   })
   describe('SESSION_USER', () => {

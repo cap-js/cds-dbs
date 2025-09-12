@@ -61,7 +61,7 @@ function cqn4sql(originalQuery, model) {
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
     if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, SELECT.class.prototype)
-    const searchTerm = getSearchTerm(inferred.SELECT.search, inferred)
+    const searchTerm = getSearch(inferred.SELECT.search, inferred)
     if (searchTerm) {
       // Search target can be a navigation, in that case use _target to get the correct entity
       const { where, having } = transformSearch(searchTerm)
@@ -123,14 +123,9 @@ function cqn4sql(originalQuery, model) {
       // calculate the primary keys of the target entity, there is always exactly
       // one query source for UPDATE / DELETE
       const queryTarget = Object.values(inferred.sources)[0].definition
-      const primaryKey = { list: [] }
-      for (const k of Object.keys(queryTarget.elements)) {
-        const e = queryTarget.elements[k]
-        if (e.key === true && !e.virtual && e.isAssociation !== true) {
-          subquery.SELECT.columns.push({ ref: [e.name] })
-          primaryKey.list.push({ ref: [transformedFrom.as, e.name] })
-        }
-      }
+      const primaryKey = { list: getPrimaryKey(queryTarget, uniqueSubqueryAlias) }
+      // match primary keys of the target entity with the subquery
+      primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
 
@@ -258,7 +253,7 @@ function cqn4sql(originalQuery, model) {
     if (inferred.SELECT[prop]) {
       return { [prop]: [asXpr(inferred.SELECT.where), 'and', searchTerm] }
     } else {
-      return { [prop]: [searchTerm] }
+      return { [prop]: searchTerm.xpr ? [...searchTerm.xpr] : [searchTerm] }
     }
   }
 
@@ -1211,7 +1206,7 @@ function cqn4sql(originalQuery, model) {
       if(column.element && !isAssocOrStruct(column.element)) {
         columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
         const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
-        setElementOnColumns(res, element)
+        setElementOnColumns(res, column.element)
         return [res]
       }
 
@@ -1789,7 +1784,7 @@ function cqn4sql(originalQuery, model) {
         filterConditions.forEach(f => {
           transformedWhere.push('and')
           if (filterConditions.length > 1) transformedWhere.push(asXpr(f))
-          else if (f.length > 3 || f.includes('or') || f.includes('and')) transformedWhere.push(asXpr(f))
+          else if (f.length > 3 || f.includes('or') || f.includes('and') || f.includes('in')) transformedWhere.push(asXpr(f))
           else transformedWhere.push(...f)
         })
       } else {
@@ -2229,30 +2224,41 @@ function cqn4sql(originalQuery, model) {
     return SELECT
   }
 
-  /**
-   * For a given search expression return a function "search" which holds the search expression
-   * as well as the searchable columns as arguments.
+/**
+   * For a given search term calculate a search expression which can be used in a where clause.
+   * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
+   * the search results of the subquery.
    *
-   * @param {object} search - The search expression which shall be applied to the searchable columns on the query source.
+   * @param {object} searchTerm - The search expression which shall be applied to the searchable columns on the query source.
    * @param {object} query - The FROM clause of the CQN statement.
    *
    * @returns {(Object|null)} returns either:
+   * - an expression of the form `<primaryKey> in (select <primaryKey> from <entity> where search(<searchableColumns>, <searchTerm>))`
    * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
    * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
    */
-  function getSearchTerm(search, query) {
+  function getSearch(searchTerm, query) {
     const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
-    if (searchIn.length > 0) {
-      const xpr = search
-      const searchFunc = {
-        func: 'search',
-        args: [{ list: searchIn }, xpr.length === 1 && 'val' in xpr[0] ? xpr[0] : { xpr }],
-      }
-      return searchFunc
-    } else {
-      return null
+    if (searchIn.length === 0) return null
+
+    const searchFunc = {
+      func: 'search',
+      args: [
+        searchIn.length === 1 ? searchIn[0] : { list: searchIn },
+        searchTerm.length === 1 && 'val' in searchTerm[0] ? searchTerm[0] : { xpr: searchTerm },
+      ],
     }
+    // for aggregated queries / search on subqueries we do not do a subquery search
+    if (inferred.SELECT.groupBy || entity.SELECT)
+      return searchFunc
+    
+    const matchColumns = getPrimaryKey(entity)
+    if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
+      return searchFunc
+    
+      const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
+    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
   }
 
   /**
@@ -2416,6 +2422,17 @@ function assignQueryModifiers(SELECT, modifiers) {
  */
 function setElementOnColumns(col, element) {
   defineProperty(col, 'element', element)
+}
+
+function getPrimaryKey(entity, tableAlias = null) {
+  const primaryKey = []
+  for (const k of Object.keys(entity.elements)) {
+    const e = entity.elements[k]
+    if (e.key === true && !e.virtual && e.isAssociation !== true) {
+      primaryKey.push({ ref: tableAlias ? [tableAlias, e.name] : [e.name] })
+    }
+  }
+  return primaryKey
 }
 
 const getName = col => col.as || col.ref?.at(-1)
