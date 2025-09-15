@@ -30,8 +30,6 @@ describe('Bookshop - assert', () => {
       const { sql } = cds.db.cqn2sql(query, {})
 
       asserts.push(sql)
-
-      if (asserts.length === 1) break
     }
 
     const inner = asserts.map(sql => sql.replace(`${Books}`, `(${newSubselect})`)).join('\nUNION ALL\n')
