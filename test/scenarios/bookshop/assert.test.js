@@ -12,34 +12,6 @@ describe('Bookshop - assert', () => {
 
   before(async () => {
     const { Books, Genres } = cds.entities
-    const old = `
-    CREATE TRIGGER ${Books}_insert BEFORE INSERT ON ${Books}
-      BEGIN
-        SELECT RAISE(ABORT, error) FROM (
-          SELECT string_agg(error, '\n') AS error FROM (
-              SELECT 'title: ' ||
-                  (case
-                    when title is null  then 'is missing'
-                    when trim(title)='' then 'must not be empty'
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID)
-            UNION ALL
-              SELECT 'stock: ' ||
-                  (case
-                    when stock <= 0 then 'must be a positive number'
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID)
-            UNION ALL
-              SELECT 'genre: ' ||
-                  (case
-                    when genre_ID is null then 'genre is null' 
-                    when not exists (SELECT 1 FROM ${Genres} WHERE ID = genre_ID) then 'does not exist ' || genre_ID
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID)
-          ) WHERE error IS NOT NULL
-        ) WHERE error IS NOT NULL;
-      END;
-    `
 
     const asserts = []
     let newSubselect = 'SELECT '
@@ -62,46 +34,20 @@ describe('Bookshop - assert', () => {
       if (asserts.length === 1) break
     }
 
-    const final = asserts.map(sql => sql.replace(`${Books}`, `(${newSubselect})`)).join('\nUNION ALL\n')
+    const inner = asserts.map(sql => sql.replace(`${Books}`, `(${newSubselect})`)).join('\nUNION ALL\n')
 
     const sql = `
     CREATE TRIGGER ${Books}_insert BEFORE INSERT ON ${Books}
       BEGIN
         SELECT RAISE(ABORT, error) FROM (
           SELECT string_agg(error, '\n') AS error FROM (
-            ${final}
+            ${inner}
           ) WHERE error IS NOT NULL
         ) WHERE error IS NOT NULL;
       END;
     `
 
-    const inner = cds.ql`
-        SELECT RAISE(ABORT, error) FROM (
-          SELECT string_agg(error, ${'\n'}) AS error FROM (
-              SELECT 'title: ' ||
-                  (case
-                    when title is null  then 'is missing'
-                    when trim(title)='' then 'must not be empty'
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID FROM dummy)
-            UNION ALL
-              SELECT 'stock: ' ||
-                  (case
-                    when stock <= 0 then 'must be a positive number'
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID FROM dummy)
-            UNION ALL
-              SELECT 'genre: ' ||
-                  (case
-                    when genre_ID is null then 'genre is null' 
-                    when not exists (SELECT 1 FROM ${Genres} WHERE ID = genre_ID) then 'does not exist ' || genre_ID
-                  end)
-                AS error FROM (SELECT new.title, new.stock, new.genre_ID FROM dummy)
-          ) WHERE error IS NOT NULL
-        ) WHERE error IS NOT NULL;
-    `
-
-    await cds.run(old)
+    await cds.run(sql)
   })
 
   test('Books', async () => {
