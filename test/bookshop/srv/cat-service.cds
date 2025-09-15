@@ -7,7 +7,9 @@ service CatalogService @(path:'/browse') {
 
   /** For display in details pages */
   @readonly entity Books as projection on my.Books { *,
-    author.name as author
+    author.name as author,
+    @assert: (null)
+    price 
   } excluding { createdBy, modifiedBy };
 
   @requires: 'authenticated-user'

@@ -80,7 +80,7 @@ class CQN2SQLRenderer {
      */
     this.sql = '' // to have it as first property for debugging
     /** @type {unknown[]} */
-    this.values = [] // prepare values, filled in by subroutines
+    if (!vars) this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
     if (this._with?.length) {
       this.render_with()

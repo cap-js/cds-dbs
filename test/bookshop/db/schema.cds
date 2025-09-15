@@ -8,11 +8,34 @@ namespace sap.capire.bookshop;
 
 entity Books : managed {
   key ID             : Integer;
+      @assert: (case
+        when title is null  then 'is missing'
+        when trim(title)='' then 'must not be empty'
+      end)
       title          : localized String(111);
       descr          : localized String(1111);
+      @assert: (case
+        when author is null then 'is missing'
+        when not exists author then 'does not exist'
+        when sum(author.books.price) > 111 then author.name || ' already earned too much with their books'
+        when count(author.books.ID) -1 > 1 then author.name || ' already wrote too many books'
+      end)
       author         : Association to Authors;
-      genre          : Association to Genres default 10;
+      @assert: (case
+        when genre is null then null // genre may be null
+        when not exists genre then 'does not exist'
+      end)
+      genre          : Association to Genres;
+      @assert: (case
+        when stock <= 0 then 'must be a positive number'
+      end)
       stock          : Integer;
+      @assert: (case
+        // when price is not null and not price between 0 and 500 then 'must be between 0 and 500'
+        when price <= 0 or price > 500 then 'must be between 0 and 500'
+        when price is null and exists author.books.genre[name = 'Drama']
+          then 'Price must be specified for books by drama queens'
+      end)
       price          : Decimal;
       currency       : Currency;
       image          : LargeBinary @Core.MediaType: 'image/png';
