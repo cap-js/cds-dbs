@@ -136,8 +136,8 @@ describe('column order', () => {
       const query1 = INSERT.into('sap.capire.bookshop.Books')
         .columns(['ID', 'title', 'descr', 'stock', 'price'])
         .from(SELECT.from('sap.capire.bookshop.Books'))
-      
-        expect(() => hanaService.cqn2sql(query1)).to.throw(/selected columns must be specified/i)
+
+      expect(() => hanaService.cqn2sql(query1)).to.throw(/selected columns must be specified/i)
     })
 
     test('should throw when selected columns include *', async () => {
