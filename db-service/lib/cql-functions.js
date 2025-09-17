@@ -4,6 +4,12 @@ const cds = require('@sap/cds')
 
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 const StandardFunctions = {
+
+  error: function (code, ...args) {
+    // return this.expr({ func: 'concat', args: [code, { val: '(' }, ...args.map(arg => [{ val: ',' }, arg]).flat(), { val: ')' }] })
+    return this.expr({ func: 'concat', args: [code, { val: '(' }, ...args.map((arg, i) => i ? [{ val: ',' }, arg] : [arg]).flat(), { val: ')' }] })
+  },
+
   /**
    * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
    * @param {string} ref - The reference object containing column information
