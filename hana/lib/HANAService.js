@@ -862,6 +862,10 @@ class HANAService extends SQLService {
         c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
       )
 
+      // Ensure select is inferred before sorting
+      if (INSERT.from?.SELECT) INSERT.from = this.cqn4sql(INSERT.from)
+      if (INSERT.as?.SELECT) INSERT.as = this.cqn4sql(INSERT.as)
+
       const selectedColumns = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
       if (!selectedColumns)
         cds.error`To insert values from select, selected columns must be specified`
@@ -881,7 +885,7 @@ class HANAService extends SQLService {
 
       this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c =>
         this.quote(c),
-      )}) ${this.SELECT(this.cqn4sql(INSERT.from || INSERT.as))}`
+      )}) ${this.SELECT(INSERT.from || INSERT.as)}`
       this.entries = [this.values]
       return this.sql
     }
