@@ -45,3 +45,7 @@ jobs:
           FORCE_COLOR: true
           TAG: ${{ steps.hxe.outputs.TAG }}
           IMAGE_ID: ${{ steps.hxe.outputs.IMAGE_ID }}
+      - run: npm install sql.js && rm -rf node_modules/better-sqlite3/ && npm test -w sqlite
+        env:
+          cds_features_pool: true
+          FORCE_COLOR: true
