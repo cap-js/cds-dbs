@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const session = require('./session.json')
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
@@ -11,6 +12,21 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  // ==============================
+  // Session Context Functions
+  // ==============================
+
+  /**
+   * Generates SQL statement to retrieve session context
+   * @param {Object} x - Object containing the session variable
+   * @returns {string} - SQL statement
+   */
+  session_context: x => {
+    let sql = `session_context('${session[x.val] || x.val}')`
+    // if (x.val === '$now') sql += '::timestamp'
+    return sql
+  },
+
   // ==============================
   // String Functions
   // ==============================
@@ -99,7 +115,7 @@ const StandardFunctions = {
           }
         })
 
-      const columns = ref.list
+      const columns = ref.list || [ref]
       const xpr = []
       for (const s of searchTerms) {
         const nestedXpr = []
@@ -118,7 +134,7 @@ const StandardFunctions = {
     // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
 
-    const csnElements = ref.list
+    const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
@@ -141,14 +157,14 @@ const StandardFunctions = {
               `Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`,
             )
         }
-        fuzzy += ` MINIMAL TOKEN SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
         delete e.ref
       })
     } else {
-      ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
     if (Array.isArray(arg.xpr)) {
@@ -199,7 +215,7 @@ const StandardFunctions = {
   second: x => `TO_INTEGER(SECOND(${getTimeCast(x)}))`,
   date: x => `TO_DATE(${x})`,
   time: x => `TO_TIME(${x})`,
-  now: () => `session_context('$now')`,
+  now: () => `session_context('NOW')`,
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 

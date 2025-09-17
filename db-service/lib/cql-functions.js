@@ -21,7 +21,7 @@ const StandardFunctions = {
       val = sub[2] || sub[3] || ''
     }
     arg.val = val
-    const refs = ref.list
+    const refs = ref.list || [ref]
     return `(${refs.map(ref => this.expr({
       func: 'contains',
       args: [
