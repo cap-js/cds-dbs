@@ -143,10 +143,8 @@ class SQLiteService extends SQLService {
   }
 
   async _allStream(stmt, binding_params, one, objectMode) {
-    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
-    stmt.raw(true)
-    const get = stmt.get(binding_params)
-    if (!get) return []
+    stmt = stmt.iterate ? stmt : stmt.__proto__
+    stmt.raw?.(true)
     const rs = stmt.iterate(binding_params)
     const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
     const close = () => rs.return() // finish result set when closed early

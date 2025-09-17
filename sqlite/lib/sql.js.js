@@ -15,11 +15,11 @@ class WasmSqlite {
   prepare(sql) {
     const stmt = this.db.prepare(sql)
     const ret = {
-      run: (params) => {
+      run(params) {
         try {
           stmt.bind(params)
           stmt.step()
-          return { changes: this.db.getRowsModified(stmt) }
+          return { changes: stmt.db.getRowsModified(stmt) }
         } catch (err) {
           if (err.message.indexOf('NOT NULL constraint failed:') === 0) {
             err.code = 'SQLITE_CONSTRAINT_NOTNULL'
@@ -27,7 +27,7 @@ class WasmSqlite {
           throw err
         }
       },
-      get: (params) => {
+      get(params) {
         const columns = stmt.getColumnNames()
         stmt.bind(params)
         stmt.step()
@@ -38,7 +38,7 @@ class WasmSqlite {
         }
         return ret
       },
-      all: (params) => {
+      all(params) {
         const columns = stmt.getColumnNames()
         const ret = []
         stmt.bind(params)
@@ -51,6 +51,12 @@ class WasmSqlite {
           ret.push(obj)
         }
         return ret
+      },
+      *iterate(params) {
+        stmt.bind(params)
+        while (stmt.step()) {
+          yield stmt.get()
+        }
       }
     }
     this.gc.register(ret, stmt)
