@@ -17,24 +17,6 @@ typeMapping.cdsToSqlTypes.postgres = {
 const cds = require('@sap/cds')
 module.exports = cds
 
-// Adding cds.hana types to cds.builtin.types
-// REVISIT: Where should we put this?
-const hana = cds.linked({
-  definitions: {
-    'cds.hana.SMALLDECIMAL': { type: 'cds.Decimal' },
-    'cds.hana.SMALLINT': { type: 'cds.Int16' },
-    'cds.hana.TINYINT': { type: 'cds.UInt8' },
-    'cds.hana.REAL': { type: 'cds.Double' },
-    'cds.hana.CHAR': { type: 'cds.String' },
-    'cds.hana.CLOB': { type: 'cds.String' },
-    'cds.hana.NCHAR': { type: 'cds.String' },
-    'cds.hana.BINARY': { type: 'cds.String' },
-    'cds.hana.ST_POINT': { type: 'cds.String' },
-    'cds.hana.ST_GEOMETRY': { type: 'cds.String' },
-  },
-})
-Object.assign(cds.builtin.types, hana.definitions)
-
 const cdsTest = cds.test
 
 let isolateCounter = 0
@@ -54,13 +36,16 @@ cds.test = Object.setPrototypeOf(function () {
 
   global.beforeAll(() => {
     try {
-      const testSource = /(.*[\\/])test[\\/]/.exec(require.main.filename)?.[1]
-      const serviceDefinitionPath = testSource + 'test/service'
-      cds.env.requires.db = require(serviceDefinitionPath)
-      require(testSource + 'cds-plugin')
-    } catch (e) {
+      const path = cds.utils.path
+      const sep = path.sep
+      const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
+      const serviceDefinitionPath = `${testSource}/test/service`
+      cds.env.requires.db = {...cds.env.requires.db, ...require(serviceDefinitionPath)}
+      require(testSource + '/cds-plugin')
+    } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = require('@cap-js/sqlite/test/service')
+      cds.env.requires.db = {...cds.env.requires.db, ...require('@cap-js/sqlite/test/service')}
+      require('@cap-js/sqlite/cds-plugin')
     }
   })
 
@@ -127,17 +112,22 @@ cds.test = Object.setPrototypeOf(function () {
     }
 
     // Clean cache
-    delete cds.services._pending.db
+    delete cds.services._pending?.db
     delete cds.services.db
     delete cds.db
     delete cds.model
     global.cds.resolve.cache = {}
   })
 
+  ret.expect = cdsTest.expect
   return ret
 }, cdsTest.constructor.prototype)
 
-// Release cds._context for garbage collection
-global.afterEach(() => {
-  cds._context.disable()
-})
+cds.test.expect = cdsTest.expect
+
+// REVISIT: remove once sflight or cds-test is adjusted to the correct behavior
+const expect = cdsTest.expect().__proto__.constructor.prototype
+const _includes = expect.includes
+expect.includes = function (x) {
+  return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
+}

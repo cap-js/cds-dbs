@@ -34,6 +34,7 @@ entity SimpleBook {
   key ID : Integer;
   title  : localized String(111);
   author : Association to Authors;
+  activeAuthors : Association to Authors on activeAuthors.ID = author.ID and $now = $now and $user.id = $user.tenant;
 }
 
 entity BooksWithWeirdOnConditions {
@@ -169,7 +170,11 @@ entity WithStructuredKey {
 entity AssocWithStructuredKey {
   key ID: Integer;
   toStructuredKey: Association to WithStructuredKey;
+  toStructuredKeyRenamed: Association to WithStructuredKey { struct.mid as renamedStructMid, second as renamedSecond };
   accessGroup : Composition of AccessGroups;
+  empty: Association to AssocWithStructuredKey {};
+  emptyStruct: { a { b { c { d {} } } } };
+  emptyStructUnmanaged: { a { b { c { d { unmanaged: Association to Books on 1 = 1 } } } } };
 }
 entity Intermediate {
   key ID: Integer;
@@ -195,6 +200,7 @@ entity Receipt {
 
 entity Authors : managed, Person {
   books  : Association to many Books on books.author = $self;
+  booksWithALotInStock = books[stock > 100];
 }
 entity AuthorsUnmanagedBooks : managed, Person {
   books  : Association to many Books on books.coAuthor_ID_unmanaged = ID;
@@ -230,7 +236,7 @@ type KTA3 : { a : Integer; b : Association to AssocMaze3; };
 entity AssocMaze1 {
   key ID  : Integer;
   a_struc   : Association to AssocMaze2;
-  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like her,
+  // managed assocs with explicit aliased foreign keys look quite academic when written as source code like here,
   // but they automatically come into play when redirecting (explicitly or implicitly) mgd assocs and
   // renaming fields used as FK
   a_strucX  : Association to AssocMaze2 {a, b};
@@ -289,6 +295,14 @@ entity Skip {
   key ID: Integer;
   text: String;
   notSkipped: Association to NotSkipped;
+}
+
+@cds.persistence.table: true
+entity PersistenceTableOnSkipped as projection on Skip;
+
+entity ToPersistenceTable {
+  key ID: Integer;
+  ToPersistenceTableOnSkipped: Association to PersistenceTableOnSkipped;
 }
 
 @cds.localized: false
@@ -419,5 +433,69 @@ entity Unmanaged {
 
 entity Item {
   key ID: Integer;
-  item: Association to Item;
+  Item: Association to Item;
+}
+
+entity Posts {
+  key ID: Integer;
+  name: String;
+  iSimilar: Association to many Posts on UPPER(name) = UPPER(iSimilar.name);
+  iSimilarNested: Association to many Posts on UPPER(iSimilarNested.name) = UPPER(LOWER(UPPER(name)), name); 
+}
+
+entity ![$special] {
+  key ID: Integer;
+  name: String;
+  ![$special] : Association to ![$special];
+}
+
+entity ![$] {
+  key ID: Integer;
+  name: String;
+  ![$] : Association to ![$];
+}
+
+entity First {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  second: Association to Second;
+}
+
+entity Second {
+  key ID: Integer;
+  name: String;
+  text: localized String;
+  first: Association to many First on $self = first.second;
+}
+
+entity FirstRedirected {
+  key BUBU: Integer;
+  name: String;
+  text: localized String;
+}
+
+entity Third as projection on Second {
+  *,
+  first: redirected to FirstRedirected on $self.ID = first.BUBU
+};
+
+entity Car {
+    key ID: Integer;
+    make: String;
+    model: String;
+    doors: Association to many Door on doors.car = $self;
+}
+
+entity Door {
+    key ID: Integer;
+    description: String;
+    car: Association to Car;
+    windows: Association to many Window on windows.door = $self
+}
+
+entity Window {
+    key ID: Integer;
+    description: String;
+    door: Association to Door;
 }

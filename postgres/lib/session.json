@@ -1,5 +1,6 @@
 {
   "$user.id": "cap.applicationuser",
+  "$user": "cap.applicationuser",
   "$user.locale": "cap.locale",
   "$now": "cap.now",
   "$valid.from": "cap.valid_from",

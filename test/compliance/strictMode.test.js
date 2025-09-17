@@ -6,7 +6,7 @@ describe('strict mode', () => {
     process.env.cds_features_db__strict = true
   })
 
-  cds.test(__dirname + '/resources')
+  const {expect} = cds.test(__dirname + '/resources')
 
   afterAll(() => {
     process.env.cds_features_db__strict = undefined
@@ -19,8 +19,8 @@ describe('strict mode', () => {
     } catch (e) {
       error = e
     }
-    if (expectedMessage === 'notExisting') expect(error.message.toLowerCase()).toContain('notexisting')
-    else expect(error.message).toEqual(expectedMessage)
+    if (expectedMessage === 'notExisting') expect(error.message.toLowerCase()).to.contain('notexisting')
+    else expect(error.message).to.equal(expectedMessage)
   }
   describe('UPDATE Scenarios', () => {
     test('Update with multiple errors', async () => {

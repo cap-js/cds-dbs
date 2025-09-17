@@ -1,6 +1,6 @@
-const  { Readable } = require('stream')
+const { Readable } = require('stream')
 
-const generator = function*() {
+const generator = function* () {
   yield Buffer.from('Simple Large Binary')
 }
 
@@ -18,14 +18,14 @@ module.exports = [
   },
   {
     largebinary: Buffer.from('Simple Large Binary'),
-    '=largebinary': () => Readable.from(generator())  
+    '=largebinary': () => Readable.from(generator())
   },
   {
     largebinary: Buffer.from('Simple Large Binary').toString('base64'),
-    '=largebinary': () => Readable.from(generator())  
+    '=largebinary': () => Readable.from(generator())
   },
   {
-    largebinary: Readable.from(generator()),
-    '=largebinary': () => Readable.from(generator())  
+    largebinary: () => Readable.from(generator()),
+    '=largebinary': () => Readable.from(generator())
   }
 ]

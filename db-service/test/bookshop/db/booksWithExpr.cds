@@ -79,7 +79,7 @@ entity LBooks {
   key ID : Integer;
 
   title : localized String;
-  ctitle = substring(title, 3, 3);  // requires compiler 4.1
+  ctitle = substring(title, 3, 3);
 
   length : Decimal;
   width : Decimal;
@@ -91,4 +91,21 @@ entity Simple {
   name: String;
   my: Association to Simple;
   myName: String = my.name;
+}
+
+entity VariableReplacements {
+  key ID: Integer;
+  author: Association to Authors;
+  // with variable replacements
+  authorAlive = author[dateOfBirth <= $now and dateOfDeath >= $now and $user.unknown.foo.bar = 'Bob'];
+}
+
+entity Ternary {
+  key ID        : Integer;
+      value     : Integer;
+      book      : Association to Books;
+      nestedTernary : Integer = (1 > 0 ? 1 : (book.stock > 10 ? value : 3));
+      nestedTernaryWithTwoJoins : Integer = (1 > 0 ? 1 : (book.stock > book.author.age ? value : 3));
+      nestedTernaryWithNestedXpr : Integer = (1 > 0 ? 1 : (((10 + book.stock) in (1, 2, 3 , 4)) ? value : 3));
+      calculatedElementInNestedTernary : Integer = (1 > 0 ? 1 : (book.stock > nestedTernaryWithTwoJoins ? value : 3));
 }

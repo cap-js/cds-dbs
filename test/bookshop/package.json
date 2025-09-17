@@ -10,8 +10,8 @@
     "index.js"
   ],
   "dependencies": {
-    "@cap-js/sqlite": "latest",
-    "@sap/cds": ">=5.9",
+    "@cap-js/sqlite": "*",
+    "@sap/cds": "*",
     "express": "^4.17.1"
   },
   "scripts": {
@@ -20,11 +20,8 @@
     "watch": "cds watch"
   },
   "cds": {
-    "requires": {
-      "db": "sql"
-    },
     "features": {
-      "odata_new_adapter": true
+      "ieee754compatible": true
     }
   }
 }

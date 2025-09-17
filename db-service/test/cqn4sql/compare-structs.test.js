@@ -21,8 +21,8 @@ describe('compare structures', () => {
   it('expand <nullEqOps> NULL with a managed association in where w/ parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
-      let query = cqn4sql(CQL(queryString), model)
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
+      let query = cqn4sql(cds.ql(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
             where not (AssocWithStructuredKey.toStructuredKey_struct_mid_leaf ${first} null AND
@@ -34,7 +34,7 @@ describe('compare structures', () => {
   it('expand <nullEqOps> NULL with a managed association in where w/o parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where AssocWithStructuredKey.toStructuredKey ${first} null`
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where AssocWithStructuredKey.toStructuredKey ${first} null`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
@@ -47,7 +47,7 @@ describe('compare structures', () => {
   it('expand <nullEqOps> NULL with a managed association in having w/ parens', () => {
     eqOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } having not AssocWithStructuredKey.toStructuredKey ${first} null`
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } having not AssocWithStructuredKey.toStructuredKey ${first} null`
       let query = cqn4sql(CQL(queryString), model)
       const expectedQueryString = `
           SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
@@ -61,7 +61,7 @@ describe('compare structures', () => {
   it('expand <nullNotEqOps> NULL with a managed association in where w/ parens', () => {
     notEqOps.forEach(op => {
       const [first, second] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${
         second ? first + ' ' + second : first
       } null`
       let query = cqn4sql(CQL(queryString), model)
@@ -81,7 +81,7 @@ describe('compare structures', () => {
   it('expand <operator> NULL with a managed association in having and omits xpr if possible', () => {
     eqOps.forEach(op => {
       const [first, second] = op
-      const queryString = `SELECT from bookshop.Books { ID } having Books.author ${
+      const queryString = `SELECT from bookshop.Books as Books { ID } having Books.author ${
         second ? first + ' ' + second : first
       } null`
       let query = cqn4sql(CQL(queryString), model)
@@ -99,7 +99,7 @@ describe('compare structures', () => {
   it.skip('MUST expand <operator> NULL with a managed association in having if operands are flipped?', () => {
     eqOps.forEach(op => {
       const [first, second] = op
-      const queryString = `SELECT from bookshop.Books { ID } having null ${
+      const queryString = `SELECT from bookshop.Books as Books { ID } having null ${
         second ? first + ' ' + second : first
       } Books.author`
       let query = cqn4sql(CQL(queryString), model)
@@ -111,18 +111,18 @@ describe('compare structures', () => {
   })
 
   it('list in where', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } where (author.ID, 1) in ('foo', 'bar')`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in ('foo', 'bar')`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID } where (author.ID, 1) in ('foo', 'bar')`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in ('foo', 'bar')`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
   it('tuple list in where', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } where (author.ID, 1) in (('foo', 1), ('bar', 2))`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in (('foo', 1), ('bar', 2))`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID } where (author.ID, 1) in (('foo', 1), ('bar', 2))`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } where (Books.author_ID, 1) in (('foo', 1), ('bar', 2))`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
   it('list in having', () => {
-    let query = CQL`SELECT from bookshop.Books { ID } having (author.ID, 1) in ('foo', 'bar')`
-    let expected = CQL`SELECT from bookshop.Books as Books { Books.ID } having (Books.author_ID, 1) in ('foo', 'bar')`
+    let query = cds.ql`SELECT from bookshop.Books as Books { ID } having (author.ID, 1) in ('foo', 'bar')`
+    let expected = cds.ql`SELECT from bookshop.Books as Books { Books.ID } having (Books.author_ID, 1) in ('foo', 'bar')`
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 
@@ -130,10 +130,10 @@ describe('compare structures', () => {
     // `IS NULL` concat with "and"
     // `<> NULL` concat with "or"
     let query = cqn4sql(
-      CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
+      cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
       model,
     )
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
         where 1<2
           and (AWSK.toStructuredKey_struct_mid_leaf is null
           and AWSK.toStructuredKey_struct_mid_anotherLeaf is null
@@ -145,8 +145,8 @@ describe('compare structures', () => {
   })
 
   it('IS NULL comparison with a structure', () => {
-    let query = cqn4sql(CQL`SELECT from bookshop.Bar { ID } where Bar.structure is null`, model)
-    expect(query).to.deep.equal(CQL`SELECT from bookshop.Bar as Bar {Bar.ID}
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } where Bar.structure is null`, model)
+    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar {Bar.ID}
           where (Bar.structure_foo is null
             and Bar.structure_baz is null)`)
   })
@@ -154,7 +154,7 @@ describe('compare structures', () => {
   it('<operator> NULL comparison with a managed association in column list', () => {
     eqOps.forEach(op => {
       const [first, second] = op
-      const queryString = `SELECT from bookshop.Books {
+      const queryString = `SELECT from bookshop.Books as Books {
           ID,
           case when not author ${second ? first + ' ' + second : first} null then 'hit' end as c
         }`
@@ -170,9 +170,9 @@ describe('compare structures', () => {
   it('issues a proper error for operators which are not supported', () => {
     notSupportedOps.forEach(op => {
       const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
+      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
       expect(() => cqn4sql(CQL(queryString), model)).to.throw(
-        `The operator "${first}" is not supported for structure comparison`,
+        `The operator "${first}" can only be used with scalar operands`,
       )
     })
   })

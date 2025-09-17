@@ -23,9 +23,33 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(2)
     })
 
+    test('contains with search string that can not be found', async () => {
+      const res = await GET(`/browse/Books?$filter=contains(author,'string that can not be found in any author name')`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(0)
+    })
+
+    test('contains with search string null', async () => {
+      const res = await GET(`/browse/Books?$filter=contains(author,null)`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(0)
+    })
+
+    test('contains with explicit equals boolean value', async () => {
+      const res = await GET("/browse/Books?$filter=contains(author,'Allen') eq true")
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+    })
+
+    test('contains with explicit not equals boolean value', async () => {
+      const res = await GET("/browse/Books?$filter=contains(author,'Allen') ne false")
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.length).to.be.eq(2)
+    })
+
     test('avg', async () => {
       const { Books } = cds.entities
-      const res = await cds.run(CQL`SELECT from ${Books} { 
+      const res = await cds.run(cds.ql`SELECT from ${Books} {
         average(stock) as avgStock
       }`)
       expect(res[0].avgStock).to.not.be.undefined
@@ -40,6 +64,15 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(2)
       expect(wrong.status).to.be.eq(200)
       expect(wrong.data.value.length).to.be.eq(0)
+    })
+
+    test('not endswith finds null', async () => {
+      const { Books } = cds.entities('sap.capire.bookshop')
+      await cds.run(INSERT({ ID: 123, title: 'Harry Potter', stock: undefined }).into(Books))
+      const res = await GET(`/browse/Books?$filter=not endswith(author,'Poe')`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.some(item => item.ID === 123)).to.be.true
+      await cds.run(DELETE.from(Books).where({ ID: 123 }))
     })
 
     test('indexof', async () => {
@@ -65,6 +98,15 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(2)
       expect(wrong.status).to.be.eq(200)
       expect(wrong.data.value.length).to.be.eq(0)
+    })
+
+    test('not startswith finds null', async () => {
+      const { Books } = cds.entities('sap.capire.bookshop')
+      await cds.run(INSERT({ ID: 123, title: 'Harry Potter', stock: undefined }).into(Books))
+      const res = await GET(`/browse/Books?$filter=not startswith(author,'Poe')`)
+      expect(res.status).to.be.eq(200)
+      expect(res.data.value.some(item => item.ID === 123)).to.be.true
+      await cds.run(DELETE.from(Books).where({ ID: 123 }))
     })
 
     test('substring', async () => {
@@ -142,8 +184,7 @@ describe('Bookshop - Functions', () => {
 
   describe('Collection Functions', () => {
     test.skip('hassubset', async () => {
-      // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
-      // new adapter error: 400 - Function 'hassubset' is not supported
+      // error: 400 - Function 'hassubset' is not supported
       const { Books } = cds.entities('sap.capire.bookshop')
       await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1', '2', '3']]))
       await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2', '5', '6']]))
@@ -152,8 +193,7 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
     test.skip('hassubsequence', async () => {
-      // okra error: 400 - Property 'hassubset' does not exist in type 'CatalogService.Books'
-      // new adapter error: 400 - Function 'hassubsequence' is not supported
+      // error: 400 - Function 'hassubsequence' is not supported
       const { Books } = cds.entities('sap.capire.bookshop')
       await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([123, ['1', '2', '3']]))
       await cds.run(INSERT.into(Books).columns(['ID', 'footnotes']).rows([124, ['2', '5', '6']]))
@@ -164,16 +204,14 @@ describe('Bookshop - Functions', () => {
   })
 
   describe('Arithmetic Functions', () => {
-    test.skip('ceiling', async () => {
-      // REVISIT: switch on with the next cds release
+    test('ceiling', async () => {
       const res = await GET(`/browse/Books?$filter=ceiling(price) eq 14`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(2)
     })
 
-    test.skip('floor', async () => {
-      // REVISIT: switch on with the next cds release
+    test('floor', async () => {
       const res = await GET(`/browse/Books?$filter=floor(price) eq 13`)
 
       expect(res.status).to.be.eq(200)
@@ -232,7 +270,7 @@ describe('Bookshop - Functions', () => {
         const result = data.type ? func.extract(data) : data.value
         const cqn = SELECT.one(`${func.func}('${data.value}') as result`)
           .from('sap.capire.bookshop.Books')
-          .where([`${func.func}('${data.value}') = `], result)
+          .where(`${func.func}('${data.value}') = `, result)
 
         if (data.type & func.type) {
           const res = await cqn
@@ -264,11 +302,9 @@ describe('Bookshop - Functions', () => {
       expect(result).to.be.null
     })
 
-    test.skip('fractionalseconds', async () => {
-      // REVISIT: switch on with the next cds release
-      // okra error: Feature is not supported: Method "fractionalseconds" in $filter or $orderby query options
+    test('fractionalseconds', async () => {
       const res = await GET(
-        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) eq 0.321&$top=1`,
+        `/browse/Books?$select=ID&$filter=fractionalseconds(1970-01-01T00:00:01.321Z) ge 0.311&$top=1`,
       )
 
       expect(res.status).to.be.eq(200)
@@ -282,18 +318,14 @@ describe('Bookshop - Functions', () => {
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test.skip('maxdatetime', async () => {
-      // REVISIT: switch on with the next cds release
-      // okra error: Feature is not supported: Method "maxdatetime" in $filter or $orderby query options
+    test('maxdatetime', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=maxdatetime() eq 9999-12-31T23:59:59.999Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
 
-    test.skip('mindatetime', async () => {
-      // REVISIT: switch on with the next cds release
-      // okra error: Feature is not supported: Method "mindatetime" in $filter or $orderby query options
+    test('mindatetime', async () => {
       const res = await GET(`/browse/Books?$select=ID&$filter=mindatetime() eq 0001-01-01T00:00:00.000Z&$top=1`)
 
       expect(res.status).to.be.eq(200)
@@ -354,8 +386,7 @@ describe('Bookshop - Functions', () => {
     })
 
     test.skip('totalseconds', async () => {
-      // okra error: Feature is not supported: Method "totalseconds" in $filter or $orderby query options
-      // new adapter error: 400 - Property 'duration' does not exist in 'CatalogService.Books'
+      // error: 400 - Property 'duration' does not exist in 'CatalogService.Books'
       const res = await GET(`/browse/Books?$select=ID&$filter=totalseconds(duration'P1DT06H32M45.000S') gt 0&$top=1`)
 
       expect(res.status).to.be.eq(200)
@@ -372,17 +403,14 @@ describe('Bookshop - Functions', () => {
 
   describe('Type Functions', () => {
     test.skip('cast', async () => {
-      // okra error: 501 - Feature is not supported: Expression "5" in $filter or $orderby query options
-      // new adapter error: 400 - Function 'cast' is not supported
+      // error: 400 - Function 'cast' is not supported
       const res = await GET(`/browse/Books?$filter=cast(price,Edm.Int32) eq 13`)
 
       expect(res.status).to.be.eq(200)
       expect(res.data.value.length).to.be.eq(1)
     })
     test.skip('isOf', async () => {
-      // okra error: Feature is not supported: Expression "false" in $filter or $orderby query options
-      // "false" comes from expression.getKind() in ExpressionToCQN.js
-      // new adapter error: 400 - Function 'isof' is not supported
+      // error: 400 - Function 'isof' is not supported
       const res = await GET(`/browse/Books?$filter=isof(createdAt,Edm.Date)`)
 
       expect(res.status).to.be.eq(200)
@@ -392,8 +420,7 @@ describe('Bookshop - Functions', () => {
 
   describe('Geo Functions', () => {
     test.skip('geo.distance', async () => {
-      // okra error: 400 - Property 'geography' does not exist in type 'CatalogService.Books'
-      // new adapter error: 400 - Parsing URL failed at position 34: Expected "/" or a whitespace but "(" found.
+      // error: 400 - Parsing URL failed at position 34: Expected "/" or a whitespace but "(" found.
       const res = await GET(`/browse/Books?$filter=geo.distance(geography'POINT(-122.131577 47.678581)', geography'POINT(-122.374722,37.618888)') lt 900.0`)
 
       expect(res.status).to.be.eq(200)

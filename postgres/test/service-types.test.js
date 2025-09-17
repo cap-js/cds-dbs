@@ -2,15 +2,14 @@ const { resolve } = require('path')
 const cds = require('../../test/cds.js')
 if (cds.env.fiori) cds.env.fiori.lean_draft = true
 else cds.env.features.lean_draft = true
-// REVISIT: remove after streaming PR is merged in cds
-cds.env.features.stream_compat = true
 
 const project = resolve(__dirname, 'beershop')
-const { GET, POST, expect, data } = cds.test('serve', '--project', project).verbose()
 
 process.env.DEBUG && jest.setTimeout(100000)
 
 describe('OData to Postgres dialect', () => {
+  const { GET, POST, expect, data } = cds.test('serve', '--project', project)
+
   data.autoIsolation(true)
   data.autoReset(true)
 
@@ -74,7 +73,7 @@ describe('OData to Postgres dialect', () => {
 
     test(' -> DateTime', async () => {
       const response = await POST('/beershop/TypeChecks', {
-        type_DateTime: '2012-12-03T07:16:23.574Z',
+        type_DateTime: '2012-12-03T07:16:23Z',
       })
       expect(response.status).to.equal(201)
     })

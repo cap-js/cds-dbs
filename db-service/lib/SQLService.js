@@ -1,13 +1,28 @@
 const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
-const { Readable } = require('stream')
-const { resolveView } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { Readable, Transform } = require('stream')
+const { pipeline } = require('stream/promises')
+const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
   'cds.hana.BINARY': 1
+}
+
+/**
+ * Checks if parameter is an object that at least contains one property.
+ *
+ * @param {*} obj 
+ * @returns Boolean
+ */
+const _hasProps = (obj) => { 
+  if (!obj) return false
+  for (const p in obj) {
+    return true
+  }
+  return false
 }
 
 /** @typedef {import('@sap/cds/apis/services').Request} Request */
@@ -25,14 +40,16 @@ class SQLService extends DatabaseService {
     this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
     if (cds.env.features.db_strict) {
       this.before(['INSERT', 'UPSERT', 'UPDATE'], ({ query }) => {
-        const elements = query.target?.elements; if (!elements) return
+        const elements = query._target?.elements
+        if (!elements) return
         const kind = query.kind || Object.keys(query)[0]
         const operation = query[kind]
         if (!operation.columns && !operation.entries && !operation.data) return
         const columns =
           operation.columns ||
           Object.keys(
-            operation.data || operation.entries?.reduce((acc, obj) => {
+            operation.data ||
+            operation.entries?.reduce((acc, obj) => {
               return Object.assign(acc, obj)
             }, {}),
           )
@@ -54,32 +71,27 @@ class SQLService extends DatabaseService {
     return super.init()
   }
 
-  _changeToStreams(columns, rows, one, compat) {
+  _changeToStreams(columns, rows, one) {
     if (!rows || !columns) return
     if (!Array.isArray(rows)) rows = [rows]
-    if (!rows.length || !Object.keys(rows[0]).length) return
+    if (!rows.length || !Object.keys(rows[0]).length) return   
 
-    // REVISIT: remove after removing stream_compat feature flag
-    if (compat) {
-      rows[0][Object.keys(rows[0])[0]] = this._stream(Object.values(rows[0])[0])
-      return
-    }
-
+    let changes = false
     for (let col of columns) {
       const name = col.as || col.ref?.[col.ref.length - 1] || (typeof col === 'string' && col)
       if (col.element?.isAssociation) {
-        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false, compat)
+        if (one) this._changeToStreams(col.SELECT.columns, rows[0][name], false)
         else
-          rows.forEach(row => {
-            this._changeToStreams(col.SELECT.columns, row[name], false, compat)
-          })
+          changes = rows.some(row => !this._changeToStreams(col.SELECT.columns, row[name], false))
       } else if (col.element?.type === 'cds.LargeBinary') {
+        changes = true
         if (one) rows[0][name] = this._stream(rows[0][name])
         else
           rows.forEach(row => {
             row[name] = this._stream(row[name])
           })
       } else if (col.element?.type in BINARY_TYPES) {
+        changes = true
         if (one) rows[0][name] = this._buffer(rows[0][name])
         else
           rows.forEach(row => {
@@ -87,6 +99,7 @@ class SQLService extends DatabaseService {
           })
       }
     }
+    return changes
   }
 
   _stream(val) {
@@ -113,11 +126,13 @@ class SQLService extends DatabaseService {
    * Handler for SELECT
    * @type {Handler}
    */
-  async onSELECT({ query, data }) {
-    if (!query.target) {
-      try { this.infer(query) } catch (e) { /**/ }
+  async onSELECT({ query, data, iterator, objectMode }) {
+    // REVISIT: for custom joins, infer is called twice, which is bad
+    //          --> make cds.infer properly work with custom joins and remove this
+    if (!(query._target instanceof cds.entity)) {
+      try { this.infer(query) } catch { /**/ }
     }
-    if (query.target && !query.target._unresolved) {
+    if (!query._target?._unresolved) { // REVISIT: use query._target instead
       // Will return multiple rows with objects inside
       query.SELECT.expand = 'root'
     }
@@ -125,35 +140,40 @@ class SQLService extends DatabaseService {
     const { sql, values, cqn } = this.cqn2sql(query, data)
     const expand = query.SELECT.expand
     delete query.SELECT.expand
+    const isOne = cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1
 
     let ps = await this.prepare(sql)
-    let rows = await ps.all(values)
-    if (rows.length)
-      if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
+    let rows = iterator ? await ps.stream(values, isOne, objectMode) : await ps.all(values)
+    try {
+      if (rows.length)
+        if (expand) rows = rows.map(r => (typeof r._json_ === 'string' ? JSON.parse(r._json_) : r._json_ || r))
 
-    if (cds.env.features.stream_compat) {
-      if (query._streaming) {
-        this._changeToStreams(cqn.SELECT.columns, rows, true, true)
-        if (!rows.length) return
-
-        const result = rows[0]
-        // stream is always on position 0. Further properties like etag are inserted later.
-        let [key, val] = Object.entries(result)[0]
-        result.value = val
-        delete result[key]
-
-        return result
+      if (!iterator) {
+         this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one)
+      } else if (objectMode) {
+        const converter = (row) => this._changeToStreams(cqn.SELECT.columns, row, true)
+        const changeToStreams = new Transform({
+          objectMode: true,
+          transform(row, enc, cb) {
+            converter(row)
+            cb(null, row)
+          }
+        })
+        pipeline(rows, changeToStreams)
+        rows = changeToStreams
       }
-    } else {
-      this._changeToStreams(cqn.SELECT.columns, rows, query.SELECT.one, false)
-    }
 
-    if (cqn.SELECT.count) {
-      // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
-      return SQLService._arrayWithCount(rows, await this.count(query, rows))
-    }
+      if (cqn.SELECT.count) {
+        // REVISIT: the runtime always expects that the count is preserved with .map, required for renaming in mocks
+        return SQLService._arrayWithCount(rows, await this.count(query, rows))
+      }
 
-    return cqn.SELECT.one || query.SELECT.from?.ref?.[0].cardinality?.max === 1 ? rows[0] : rows
+      return iterator !== false && isOne ? rows[0] : rows
+    } catch (err) {
+      // Ensure that iterators receive pre stream errors
+      if (iterator) rows.emit('error', err)
+      throw err
+    }
   }
 
   /**
@@ -188,8 +208,8 @@ class SQLService extends DatabaseService {
   async onUPDATE(req) {
     // noop if not a touch for @cds.on.update
     if (
-      !req.query.UPDATE.data &&
-      !req.query.UPDATE.with &&
+      !_hasProps(req.query.UPDATE.data) &&
+      !_hasProps(req.query.UPDATE.with) &&
       !Object.values(req.target?.elements || {}).some(e => e['@cds.on.update'])
     )
       return 0
@@ -210,7 +230,31 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      let { compositions } = req.target
+      const transitions = getTransition(req.target, this, false, req.query.cmd || 'DELETE')
+      if (transitions.target !== transitions.queryTarget) {
+        const keys = []
+        const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
+        for (const key in transitionsTarget) {
+          const exists = e => e && !e.virtual && !e.value && !e.isAssociation
+          if (exists(transitionsTarget[key])) keys.push(key)
+        }
+        const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
+        const query = DELETE.from({
+          ref: [
+            {
+              id: transitions.target.name,
+              where: [
+                { list: matchedKeys.map(k => transitions.mapping.get(k.ref[0])) },
+                'in',
+                SELECT.from(req.query.DELETE.from).columns(matchedKeys).where(req.query.DELETE.where),
+              ],
+            },
+          ],
+        })
+        return this.onDELETE({ query, target: transitions.target })
+      }
+      const table = getDBTable(req.target)
+      const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
         let { from, where } = req.query.DELETE
@@ -237,6 +281,7 @@ class SQLService extends DatabaseService {
               )
             // Prepare and run deep query, à la CQL`DELETE from Foo[pred]:comp1.comp2...`
             const query = DELETE.from({ ref: [...from.ref, c.name] })
+            query._target = c._target
             return this.onDELETE({ query, depth, visited: [...visited], target: c._target })
           }),
         )
@@ -283,7 +328,7 @@ class SQLService extends DatabaseService {
    * @returns {Promise<number>}
    */
   async count(query, ret) {
-    if (ret) {
+    if (ret?.length) {
       const { one, limit: _ } = query.SELECT,
         n = ret.length
       const [max, offset = 0] = one ? [1] : _ ? [_.rows?.val, _.offset?.val] : []
@@ -292,9 +337,11 @@ class SQLService extends DatabaseService {
 
     // Keep original query columns when potentially used insde conditions
     const { having, groupBy } = query.SELECT
-    const columns = (having?.length || groupBy?.length)
-      ? query.SELECT.columns.filter(c => !c.expand)
-      : [{ val: 1 }]
+    let columns = []
+    if((having?.length || groupBy?.length)) {
+      columns = query.SELECT.columns.filter(c => !c.expand)
+    }
+    if (columns.length === 0) columns.push({ val: 1 })
     const cq = SELECT.one([{ func: 'count' }]).from(
       cds.ql.clone(query, {
         columns,
@@ -306,6 +353,15 @@ class SQLService extends DatabaseService {
     )
     const { count } = await this.onSELECT({ query: cq })
     return count
+  }
+
+  /**
+   * Streaming API variant of .run().
+   * @param {import('@sap/cds/apis/cqn').SELECT} query - SELECT CQN
+   * @param {function} callback - Function to be invoked for each row
+   */
+  foreach (query, callback) {
+    return query.foreach(callback)
   }
 
   /**
@@ -324,6 +380,7 @@ class SQLService extends DatabaseService {
   // preserves $count for .map calls on array
   static _arrayWithCount = function (a, count) {
     const _map = a.map
+
     const map = function (..._) {
       return SQLService._arrayWithCount(_map.call(a, ..._), count)
     }
@@ -350,8 +407,6 @@ class SQLService extends DatabaseService {
     let kind = q.kind || Object.keys(q)[0]
     if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
-      let target = q[kind]._transitions?.[0].target
-      if (target) q.target = target // REVISIT: Why isn't that done in resolveView?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
@@ -367,10 +422,8 @@ class SQLService extends DatabaseService {
       !q.SELECT?.from?.join &&
       !q.SELECT?.from?.SELECT &&
       !this.model?.definitions[_target_name4(q)]
-    ) {
-      return _unquirked(q)
-    }
-    return cqn4sql(q, this.model)
+    ) return q
+    else return cqn4sql(q, this.model)
   }
 
   /**
@@ -443,38 +496,29 @@ class PreparedStatement {
 }
 SQLService.prototype.PreparedStatement = PreparedStatement
 
+/** @param {import('@sap/cds').ql.Query} q */
 const _target_name4 = q => {
-  const target =
-    q._target_ref ||
-    q.from_into_ntt ||
-    q.SELECT?.from ||
-    q.INSERT?.into ||
-    q.UPSERT?.into ||
-    q.UPDATE?.entity ||
-    q.DELETE?.from ||
-    q.CREATE?.entity ||
-    q.DROP?.entity
+  const target = q._subject
+    || q.SELECT?.from
+    || q.INSERT?.into
+    || q.UPSERT?.into
+    || q.UPDATE?.entity
+    || q.DELETE?.from
+    || q.CREATE?.entity
+    || q.DROP?.entity
   if (target?.SET?.op === 'union') throw new cds.error('UNION-based queries are not supported')
   if (!target?.ref) return target
   const [first] = target.ref
   return first.id || first
 }
 
-const _unquirked = !cds.env.ql.quirks_mode ? q => q : q => {
-  if (!q) return q
-  else if (typeof q.SELECT?.from === 'string') q.SELECT.from = { ref: [q.SELECT.from] }
-  else if (typeof q.INSERT?.into === 'string') q.INSERT.into = { ref: [q.INSERT.into] }
-  else if (typeof q.UPSERT?.into === 'string') q.UPSERT.into = { ref: [q.UPSERT.into] }
-  else if (typeof q.UPDATE?.entity === 'string') q.UPDATE.entity = { ref: [q.UPDATE.entity] }
-  else if (typeof q.DELETE?.from === 'string') q.DELETE.from = { ref: [q.DELETE.from] }
-  else if (typeof q.CREATE?.entity === 'string') q.CREATE.entity = { ref: [q.CREATE.entity] }
-  else if (typeof q.DROP?.entity === 'string') q.DROP.entity = { ref: [q.DROP.entity] }
-  return q
-}
-
 const sqls = new (class extends SQLService {
   get factory() {
     return null
+  }
+
+  get model() {
+    return cds.model
   }
 })()
 cds.extend(cds.ql.Query).with(

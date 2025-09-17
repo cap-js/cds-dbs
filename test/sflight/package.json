@@ -1,0 +1,8 @@
+{
+    "name": "@capire/sflight",
+    "version": "1.0.0",
+    "devDependencies": {
+        "@cap-js/sqlite": "*"
+    },
+    "private": true
+}

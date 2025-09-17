@@ -1,40 +1,46 @@
-using { Currency, managed, sap } from '@sap/cds/common';
+using {
+  Currency,
+  managed,
+  sap
+} from '@sap/cds/common';
+
 namespace sap.capire.bookshop;
 
 entity Books : managed {
-  key ID : Integer;
-  title  : localized String(111);
-  descr  : localized String(1111);
-  author : Association to Authors;
-  genre  : Association to Genres;
-  stock  : Integer;
-  price  : Decimal;
-  currency : Currency;
-  image : LargeBinary @Core.MediaType : 'image/png';
-  footnotes: array of String;
-
-   authorsAddress: String = author.address;
+  key ID             : Integer;
+      title          : localized String(111);
+      descr          : localized String(1111);
+      author         : Association to Authors;
+      genre          : Association to Genres default 10;
+      stock          : Integer;
+      price          : Decimal;
+      currency       : Currency;
+      image          : LargeBinary @Core.MediaType: 'image/png';
+      footnotes      : array of String;
+      authorsAddress : String = author.address;
 }
 
 entity Authors : managed {
-  key ID : Integer;
-  name   : String(111);
-  dateOfBirth  : Date;
-  dateOfDeath  : Date;
-  placeOfBirth : String;
-  placeOfDeath : String;
-  books  : Association to many Books on books.author = $self;
+  key ID           : Integer;
+      name         : String(111);
+      dateOfBirth  : Date;
+      dateOfDeath  : Date;
+      placeOfBirth : String;
+      placeOfDeath : String;
+      books        : Association to many Books
+                       on books.author = $self;
 
-  street: String;
-  city: String;
-  address: String = street || ', ' || city;
+      street       : String;
+      city         : String;
+      address      : String = street || ', ' || city;
 }
 
 /** Hierarchically organized Code List for Genres */
 entity Genres : sap.common.CodeList {
-  key ID   : Integer;
-  parent   : Association to Genres;
-  children : Composition of many Genres on children.parent = $self;
+  key ID       : Integer;
+      parent   : Association to Genres;
+      children : Composition of many Genres
+                   on children.parent = $self;
 }
 
 entity A : managed {
@@ -67,3 +73,10 @@ entity C : managed {
       toB : Composition of many B
               on toB.ID = $self.B;
 }
+
+entity Values {
+  key ID    : Integer;
+      value : String;
+}
+
+entity BooksAnnotated as projection on Books;

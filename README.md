@@ -2,17 +2,16 @@
 
 # Welcome to the @cap-js/cds-dbs Monorepo
 
-
 This is a monorepo for our SQL Database Services.
 
-It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [sqlite](./sqlite/) and [postgres](./postgres/).
+It contains subfolders for the [base database service implementation](./db-service/) as well as the implementation of this interface for [SQLite](./sqlite/), [PostgreSQL](./postgres/) and [SAP HANA](./hana/).
 Each of the subfolders is published as individual npm module.
 
 Documentation can be found at [cap.cloud.sap](https://cap.cloud.sap/docs/guides/databases).
 
 ## Prerequisites
 
-See [Getting Started](https://cap.cloud.sap/docs/get-started) on how to jumpstart your development and grow as you go with [SAP Cloud Application Programming Model](https://cap.cloud.sap).
+See [Getting Started](https://cap.cloud.sap/docs/get-started/in-a-nutshell) on how to jumpstart your development and grow as you go with [SAP Cloud Application Programming Model](https://cap.cloud.sap).
 
 ## Setup
 
@@ -25,7 +24,6 @@ npm add @cap-js/sqlite -D
 ```
 
 Learn more about setup and usage in the [respective database guides](https://cap.cloud.sap/docs/guides/databases).
-
 
 ## Support
 
@@ -41,4 +39,4 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Licensing
 
-Copyright 2023 SAP SE or an SAP affiliate company and cds-dbs contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js/cds-dbs).
+Copyright 2024 SAP SE or an SAP affiliate company and cds-dbs contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cap-js/cds-dbs).

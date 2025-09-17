@@ -11,7 +11,7 @@ describe('DELETE', () => {
   })
   it('flatten structured access in where', () => {
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Books').where({ 'dedication.text': { '=': 'foo' } })
+    let d = DELETE.from('bookshop.Books as Books').where({ 'dedication.text': { '=': 'foo' } })
     const query = cqn4sql(d, model)
     const expected = JSON.parse(
       '{"DELETE":{"from":{"ref": ["bookshop.Books"], "as": "Books"},"where":[{"ref":["Books","dedication_text"]},"=",{"val":"foo"}]}}',
@@ -21,7 +21,7 @@ describe('DELETE', () => {
 
   it('DELETE with where exists expansion', () => {
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Books:author')
+    let d = DELETE.from('bookshop.Books:author as author')
     const query = cqn4sql(d, model)
     // how to express this in CQN?
     // DELETE.from({ref: ['bookshop.Authors'], as: 'author'}).where('exists ( SELECT 1 from bookshop.Books as Books where author_ID = author.ID)')
@@ -41,7 +41,7 @@ describe('DELETE', () => {
                   "ref": [
                     "bookshop.Books"
                   ],
-                  "as": "Books"
+                  "as": "$B"
                 },
                 "columns": [
                   {
@@ -51,7 +51,7 @@ describe('DELETE', () => {
                 "where": [
                   {
                     "ref": [
-                      "Books",
+                      "$B",
                       "author_ID"
                     ]
                   },
@@ -73,16 +73,54 @@ describe('DELETE', () => {
   it('DELETE with where exists expansion and path expression', () => {
     const forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Books:author').where(`books.title = 'Harry Potter'`)
+    let d = DELETE.from('bookshop.Books:author as author').where(`books.title = 'Harry Potter'`)
     const query = cqn4sql(d, forNodeModel)
 
     // this is the final exists subquery
-    const subquery = CQL`
+    const subquery = cds.ql`
      SELECT author.ID from bookshop.Authors as author
       left join bookshop.Books as books on books.author_ID = author.ID
      where exists (
-      SELECT 1 from bookshop.Books as Books2 where Books2.author_ID = author.ID
+      SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
      ) and books.title = 'Harry Potter'
+    `
+    const expected = JSON.parse(`{
+      "DELETE": {
+          "from": {
+            "ref": [
+              "bookshop.Authors"
+            ],
+            "as": "author2"
+          }
+        }
+      }`)
+    expected.DELETE.where = [
+      {
+        list: [
+          {
+            ref: ['author2', 'ID'],
+          },
+        ],
+      },
+      'in',
+      subquery,
+    ]
+    expect(query.DELETE).to.deep.equal(expected.DELETE)
+  })
+  it('DELETE with where exists expansion and path expression via multiple assocs', () => {
+    const forNodeModel = cds.compile.for.nodejs(JSON.parse(JSON.stringify(cds.model)))
+    const { DELETE } = cds.ql
+    let d = DELETE.from('bookshop.Books:author as author').where(`books.genre.name = 'Fiction'`)
+    const query = cqn4sql(d, forNodeModel)
+
+    // this is the final exists subquery
+    const subquery = cds.ql`
+     SELECT author.ID from bookshop.Authors as author
+      left join bookshop.Books as books on books.author_ID = author.ID
+      left join bookshop.Genres as genre on genre.ID = books.genre_ID
+     where exists (
+      SELECT 1 from bookshop.Books as $B where $B.author_ID = author.ID
+     ) and genre.name = 'Fiction' 
     `
     const expected = JSON.parse(`{
       "DELETE": {
@@ -131,6 +169,7 @@ describe('DELETE', () => {
             },
             'author',
           ],
+          as: 'author'
         },
       },
     }
@@ -147,7 +186,7 @@ describe('DELETE', () => {
             SELECT: {
               from: {
                 ref: ['bookshop.Books'],
-                as: 'Books',
+                as: '$B',
               },
               columns: [
                 {
@@ -156,7 +195,7 @@ describe('DELETE', () => {
               ],
               where: [
                 {
-                  ref: ['Books', 'author_ID'],
+                  ref: ['$B', 'author_ID'],
                 },
                 '=',
                 {
@@ -164,7 +203,7 @@ describe('DELETE', () => {
                 },
                 'and',
                 {
-                  ref: ['Books', 'ID'],
+                  ref: ['$B', 'ID'],
                 },
                 'in',
                 {
@@ -186,7 +225,7 @@ describe('DELETE', () => {
 
   it('DELETE with assoc filter and where exists expansion', () => {
     const { DELETE } = cds.ql
-    let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup')
+    let d = DELETE.from('bookshop.Reproduce[author = null and ID = 99]:accessGroup as accessGroup')
     const query = cqn4sql(d, model)
 
     const expected = {
@@ -201,7 +240,7 @@ describe('DELETE', () => {
             SELECT: {
               from: {
                 ref: ['bookshop.Reproduce'],
-                as: 'Reproduce',
+                as: '$R',
               },
               columns: [
                 {
@@ -210,7 +249,7 @@ describe('DELETE', () => {
               ],
               where: [
                 {
-                  ref: ['Reproduce', 'accessGroup_ID'],
+                  ref: ['$R', 'accessGroup_ID'],
                 },
                 '=',
                 {
@@ -220,7 +259,7 @@ describe('DELETE', () => {
                 {
                   xpr: [
                     {
-                      ref: ['Reproduce', 'author_ID'],
+                      ref: ['$R', 'author_ID'],
                     },
                     '=',
                     {
@@ -230,7 +269,7 @@ describe('DELETE', () => {
                 },
                 'and',
                 {
-                  ref: ['Reproduce', 'ID'],
+                  ref: ['$R', 'ID'],
                 },
                 '=',
                 {

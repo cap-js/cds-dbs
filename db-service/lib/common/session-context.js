@@ -23,8 +23,8 @@ class TemporalSessionContext extends SessionContext {
   get '$valid.to'() {
     return (super['$valid.to'] =
       this.ctx._?.['VALID-TO'] ??
-      this.ctx._?.['VALID-AT']?.replace(/(\dZ?)$/, d => parseInt(d[0]) + 1 + d[1] || '') ??
-      new Date().toISOString().replace(/(\dZ?)$/, d => parseInt(d[0]) + 1 + d[1] || ''))
+      this.ctx._?.['VALID-AT']?.replace(/\.(\d*)(Z?)$/, (_, d, z) => `.${parseInt(d) + 1}${z}`) ??
+      (new Date(Date.now() + 1)).toISOString())
   }
 }
 

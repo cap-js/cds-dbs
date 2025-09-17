@@ -13,15 +13,15 @@ describe('assign element onto columns', () => {
   })
 
   it('attaches the `element` to simple / structured columns', () => {
-    let query = cqn4sql(CQL`
-      SELECT from bookshop.Books {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.Books as Books {
         ID,
         author,
         dedication.addressee,
         dedication.sub
       }
     `, model)
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.author_ID,
         Books.dedication_addressee_ID,
@@ -40,7 +40,7 @@ describe('assign element onto columns', () => {
       .that.equals(Books.elements.dedication.elements.sub.elements.foo)
   })
   it('attaches the `element` to expand subquery columns', () => {
-    let query = cqn4sql(CQL`
+    let query = cqn4sql(cds.ql`
       SELECT from bookshop.Books {
         author { name }
       }
@@ -49,7 +49,7 @@ describe('assign element onto columns', () => {
     expect(query.SELECT.columns[0].SELECT.columns[0]).to.have.property('element').that.equals(Authors.elements['name'])
   })
   it('attaches the `element` to functions, xpr and val', () => {
-    let query = cqn4sql(CQL`
+    let query = cqn4sql(cds.ql`
       SELECT from bookshop.Books {
         1 as val,
         1 + 1 as xpr,
@@ -72,13 +72,13 @@ describe('assign element onto columns with flat model', () => {
   })
 
   it('foreign key is adjacent to its association in flat model', () => {
-    let query = cqn4sql(CQL`
-      SELECT from bookshop.Books {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.Books as Books {
         ID,
         author
       }
     `, model)
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
         Books.author_ID
     }
@@ -90,19 +90,19 @@ describe('assign element onto columns with flat model', () => {
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(Books.elements.author_ID)
   })
   it('within expand, the key in the target is attached, not the foreign key', () => {
-    let query = cqn4sql(CQL`
-      SELECT from bookshop.Books {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.Books as Books {
         ID,
         author {
           ID
         }
       }
     `, model)
-    const expected = CQL`SELECT from bookshop.Books as Books {
+    const expected = cds.ql`SELECT from bookshop.Books as Books {
         Books.ID,
-        (SELECT from bookshop.Authors as author {
-          author.ID
-        } where Books.author_ID = author.ID) as author
+        (SELECT from bookshop.Authors as $a {
+          $a.ID
+        } where Books.author_ID = $a.ID) as author
     }
     `
     const { Authors } = model.entities
@@ -112,13 +112,13 @@ describe('assign element onto columns with flat model', () => {
   })
 
   it('foreign key is adjacent to its association in flat model with multiple foreign keys', () => {
-    let query = cqn4sql(CQL`
-      SELECT from bookshop.AssocWithStructuredKey {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey {
         ID,
         toStructuredKey
       }
     `, model)
-    const expected = CQL`SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey {
+    const expected = cds.ql`SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey {
         AssocWithStructuredKey.ID,
         AssocWithStructuredKey.toStructuredKey_struct_mid_leaf,
         AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf,
@@ -143,15 +143,15 @@ describe('assign element onto columns with flat model', () => {
   })
 
   it('foreign key is adjacent to its association in flat model and is renamed', () => {
-    let query = cqn4sql(CQL`
-      SELECT from bookshop.TestPublisher {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.TestPublisher as TestPublisher {
         ID,
         publisherRenamedKey
       }
     `, model)
     // structured key is renamed in model:
     // --> `key publisherRenamedKey : Association to Publisher { structuredKey.ID as notID };`
-    const expected = CQL`SELECT from bookshop.TestPublisher as TestPublisher {
+    const expected = cds.ql`SELECT from bookshop.TestPublisher as TestPublisher {
         TestPublisher.ID,
         TestPublisher.publisherRenamedKey_notID
     }
@@ -161,5 +161,17 @@ describe('assign element onto columns with flat model', () => {
     expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(TestPublisher.elements.ID)
     // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(TestPublisher.elements.publisherRenamedKey_notID)
+  })
+
+  it('attaches foreign key and not the association as element', () => {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.Books as Books {
+        genre.parent.ID,
+        genre.parent as assoc
+      }
+    `, model)
+    const { Genres } = model.entities
+    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(Genres.elements.ID)
+    expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(Genres.elements.parent_ID)
   })
 })

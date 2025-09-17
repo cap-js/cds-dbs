@@ -27,7 +27,7 @@ class PostgresService extends SQLService {
         ...this.options.pool,
       },
       create: async () => {
-        const cr = this.options.credentials || {}
+        const { credentials: cr = {}, client: clientOptions = {} } = this.options
         const credentials = {
           // Cloud Foundry provides the user in the field username the pg npm module expects user
           user: cr.username || cr.user,
@@ -48,8 +48,10 @@ class PostgresService extends SQLService {
               ca: cr.sslrootcert,
             }),
         }
-        const dbc = new Client(credentials)
+        const dbc = new Client({ ...credentials, ...clientOptions })
         await dbc.connect()
+        dbc.open = true
+        dbc.on('end', () => { dbc.open = false })
         return dbc
       },
       destroy: dbc => dbc.end(),
@@ -177,9 +179,9 @@ GROUP BY k
           throw enhanceError(e, sql)
         }
       },
-      stream: async (values, one) => {
+      stream: async (values, one, objectMode) => {
         try {
-          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one)
+          const streamQuery = new QueryStream({ ...query, values: this._getValues(values) }, one, objectMode)
           return await this.dbc.query(streamQuery)
         } catch (e) {
           throw enhanceError(e, sql)
@@ -212,7 +214,7 @@ GROUP BY k
           if (isBinary) value.setEncoding('base64')
           value.pipe(paramStream)
           value.on('error', err => paramStream.emit('error', err))
-          streams[i] = paramStream
+          streams.push(paramStream)
           newValues[i] = streamID
           sql = sql.replace(
             new RegExp(`\\$${i + 1}`, 'g'),
@@ -253,7 +255,7 @@ GROUP BY k
     return this.dbc.query(sql)
   }
 
-  onPlainSQL(req, next) {
+  async onPlainSQL(req, next) {
     const query = req.query
     if (this.options.independentDeploy) {
       // REVISIT: Should not be needed when deployment supports all types or sends CQNs
@@ -283,17 +285,24 @@ GROUP BY k
         return target && this.run(cds.ql.CREATE(target))
       }
     }
-    // Look for ? placeholders outside of string and replace them with $n
-    if (/('|")(\1|[^\1]*?\1)|(\?)/.exec(query)?.[3]) {
-      let i = 1
-      // eslint-disable-next-line no-unused-vars
-      req.query = query.replace(/('|")(\1|[^\1]*?\1)|(\?)/g, (a, _b, _c, d, _e, _f, _g) => (d ? '$' + i++ : a))
-    }
 
-    return super.onPlainSQL(req, next)
+    try {
+      return await super.onPlainSQL(req, next)
+    }
+    catch (err) {
+      if (err.code === '3F000') {
+        if (this.options?.credentials?.schema) {
+          cds.error`Failed to configure schema ("${this.options?.credentials?.schema}") before plainSQL call: ${req.query}`
+        } else {
+          cds.error`No schema was configure / detected before plainSQL call: ${req.query}`
+        }
+      }
+      throw err
+    }
   }
 
-  async onSELECT({ query, data }) {
+  async onSELECT(req) {
+    const { query, data } = req
     // workaround for chunking odata streaming
     if (query.SELECT?.columns?.find(col => col.as === '$mediaContentType')) {
       const columns = query.SELECT.columns
@@ -311,35 +320,60 @@ GROUP BY k
       res[this.class.CQN2SQL.prototype.column_name(binary[0])] = stream
       return res
     }
-    return super.onSELECT({ query, data })
+    return super.onSELECT(req)
   }
 
-  async onINSERT(req) {
-    try {
-      return await super.onINSERT(req)
-    } catch (err) {
-      throw _not_unique(err, 'ENTITY_ALREADY_EXISTS')
-    }
-  }
-
-  async onUPDATE(req) {
-    try {
-      return await super.onUPDATE(req)
-    } catch (err) {
-      throw _not_unique(err, 'UNIQUE_CONSTRAINT_VIOLATION')
-    }
-  }
 
   static CQN2SQL = class CQN2Postgres extends SQLService.CQN2SQL {
+
+    render_with() {
+      const sql = this.sql
+      let recursive = false
+      const prefix = this._with.map(q => {
+        let sql
+        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        else if ('SET' in q) {
+          recursive = true
+          const { SET } = q
+          const isDepthFirst = SET.orderBy?.length && (SET.orderBy[0].sort?.toLowerCase() === 'desc' || SET.orderBy[0].sort === -1)
+          let alias = q.as
+          if (isDepthFirst) {
+            alias = alias + '_depth_first'
+            SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === q.as) r.ref[0] = alias })
+          }
+
+          sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${
+            // Root select
+            this.SELECT(SET.args[0])} ${
+            // Union clause
+            SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${
+            // Repeated join query
+            this.SELECT(SET.args[1])
+            })${
+            // Leverage Postgres specific depth first syntax
+            SET.orderBy?.length
+              ? ` SEARCH DEPTH FIRST BY ${SET.orderBy.map(r => this.ref(r))} SET "$DEPTH$"`
+              : ''
+            }`
+
+          // Enforce depth sorting for consuming queries
+          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
+        }
+        return { sql }
+      })
+      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    }
+
     _orderBy(orderBy, localized, locale) {
-      return orderBy.map(
-        localized
-          ? c =>
-            this.expr(c) +
-            (c.element?.[this.class._localized] ? ` COLLATE "${locale}"` : '') +
-            (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
-          : c => this.expr(c) + (c.sort === 'desc' || c.sort === -1 ? ' DESC' : ' ASC'),
-      )
+      return orderBy.map(c => {
+        const nulls = c.nulls || (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? 'LAST' : 'FIRST')
+        const o = localized
+          ? this.expr(c) +
+          (c.element?.[this.class._localized] && locale ? ` COLLATE "${locale}"` : '') +
+          (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+          : this.expr(c) + (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
+        return o + ' NULLS ' + (nulls.toLowerCase() === 'first' ? 'FIRST' : 'LAST')
+      })
     }
 
     orderBy(orderBy) {
@@ -347,7 +381,7 @@ GROUP BY k
     }
 
     orderByICU(orderBy, localized) {
-      const locale = `${this.context.locale.replace('_', '-')}-x-icu`
+      const locale = this.context.locale ? `${this.context.locale.replace('_', '-')}-x-icu` : this.context.locale
       return this._orderBy(orderBy, localized, locale)
     }
 
@@ -370,25 +404,31 @@ GROUP BY k
       return super.column_alias4(x, q)
     }
 
-    SELECT_expand({ SELECT }, sql) {
+    SELECT_expand(q, sql) {
+      const { SELECT } = q
       if (!SELECT.columns) return sql
       const queryAlias = this.quote(SELECT.from?.as || (SELECT.expand === 'root' && 'root'))
       const cols = SELECT.columns.map(x => {
         const name = this.column_name(x)
         const outputConverter = this.output_converter4(x.element, `${queryAlias}.${this.quote(name)}`)
-        let col = `${outputConverter} as ${this.doubleQuote(name)}`
-
-        if (x.SELECT?.count) {
-          // Return both the sub select and the count for @odata.count
-          const qc = cds.ql.clone(x, { columns: [{ func: 'count' }], one: 1, limit: 0, orderBy: 0 })
-          col += `,${this.expr(qc)} as ${this.doubleQuote(`${name}@odata.count`)}`
-        }
-        return col
+        return `${outputConverter} as ${this.doubleQuote(name)}`
       })
+      const isRoot = SELECT.expand === 'root'
+      const isSimple = cds.env.features.sql_simple_queries &&
+        isRoot && // Simple queries are only allowed to have a root
+        !Object.keys(q.elements).some(e =>
+          q.elements[e].isAssociation || // Indicates columns contains an expand
+          q.elements[e].$assocExpand || // REVISIT: sometimes associations are structs
+          q.elements[e].items // Array types require to be inlined with a json result
+        )
+
+      const subQuery = `SELECT ${cols} FROM (${sql}) as ${queryAlias}`
+      if (isSimple) return subQuery
+
       // REVISIT: Remove SELECT ${cols} by adjusting SELECT_columns
       let obj = `to_jsonb(${queryAlias}.*)`
-      return `SELECT ${SELECT.one || SELECT.expand === 'root' ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
-        } as _json_ FROM (SELECT ${cols} FROM (${sql}) as ${queryAlias}) as ${queryAlias}`
+      return `SELECT ${SELECT.one || isRoot ? obj : `coalesce(jsonb_agg (${obj}),'[]'::jsonb)`
+        } as _json_ FROM (${subQuery}) as ${queryAlias}`
     }
 
     doubleQuote(name) {
@@ -400,11 +440,32 @@ GROUP BY k
 
       // REVISIT: this should probably be made a bit easier to adopt
       return (this.sql = this.sql
-        // Adjusts json path expressions to be postgres specific
-        .replace(/->>'\$(?:(?:\."(.*?)")|(?:\[(\d*)\]))'/g, (a, b, c) => (b ? `->>'${b}'` : `->>${c}`))
         // Adjusts json function to be postgres specific
         .replace('json_each(?)', 'json_array_elements($1::json)')
-        .replace(/json_type\((\w+),'\$\."(\w+)"'\)/g, (_a, b, c) => `json_typeof(${b}->'${c}')`))
+      )
+    }
+
+    UPSERT(q, isUpsert = false) {
+      super.UPSERT(q, isUpsert)
+
+      // REVISIT: this should probably be made a bit easier to adopt
+      return (this.sql = this.sql
+        // Adjusts json function to be postgres specific
+        .replace('json_each(?)', 'json_array_elements($1::json)')
+      )
+    }
+
+    managed_extract(name, element, converter) {
+      const { UPSERT, INSERT } = this.cqn
+      const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
+        ? `value->>${this.columns.indexOf(name)}`
+        : `value->>'${name.replace(/'/g, "''")}'`
+      const sql = converter?.(extract) || extract
+      return { extract, sql }
+    }
+
+    managed_default(name, managed, src) {
+      return `(CASE WHEN json_typeof(value->${this.managed_extract(name).extract.slice(8)}) IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
     param({ ref }) {
@@ -426,9 +487,11 @@ GROUP BY k
     // Postgres does not support locking columns only tables which makes of unapplicable
     // Postgres does not support "wait n" it only supports "nowait"
     forUpdate(update) {
-      const { wait } = update
-      if (wait === 0) return 'FOR UPDATE NOWAIT'
-      return 'FOR UPDATE'
+      const { wait, ignoreLocked } = update
+      let sql = 'FOR UPDATE'
+      if (wait === 0) sql += ' NOWAIT'
+      if (ignoreLocked) sql += ' SKIP LOCKED'
+      return sql
     }
 
     forShareLock(lock) {
@@ -446,7 +509,7 @@ GROUP BY k
     }
 
     defaultValue(defaultValue = this.context.timestamp.toISOString()) {
-      return this.string(`${defaultValue}`)
+      return typeof defaultValue === 'string' ? this.string(`${defaultValue}`) : defaultValue
     }
 
     static Functions = { ...super.Functions, ...require('./cql-functions') }
@@ -467,6 +530,7 @@ GROUP BY k
       Time: () => 'TIME',
       DateTime: () => 'TIMESTAMP',
       Timestamp: () => 'TIMESTAMP',
+      Map: () => 'JSONB',
 
       // HANA Types
       'cds.hana.CLOB': () => 'BYTEA',
@@ -479,27 +543,32 @@ GROUP BY k
     // Used for INSERT statements
     static InputConverters = {
       ...super.InputConverters,
-      // UUID:      (e) => `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
-      boolean: e => `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
-      Float: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Decimal: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Integer: e => `CAST(${e} as integer)`,
-      Int64: e => `CAST(${e} as bigint)`,
-      Date: e => `CAST(${e} as DATE)`,
-      Time: e => `CAST(${e} as TIME)`,
-      DateTime: e => `CAST(${e} as TIMESTAMP)`,
-      Timestamp: e => `CAST(${e} as TIMESTAMP)`,
+      // UUID: (e) => e[0] === '$' ? e : `CAST(${e} as UUID)`, // UUID is strict in formatting sflight does not comply
+      boolean: e => e[0] === '$' ? e : `CASE ${e} WHEN 'true' THEN true WHEN 'false' THEN false END`,
+      // REVISIT: Postgres and HANA round Decimal numbers differently therefore precision and scale are removed
+      // Float: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      // Decimal: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Float: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Decimal: e => e[0] === '$' ? e : `CAST(${e} as decimal)`,
+      Integer: e => e[0] === '$' ? e : `CAST(${e} as integer)`,
+      Int64: e => e[0] === '$' ? e : `CAST(${e} as bigint)`,
+      Date: e => e[0] === '$' ? e : `CAST(${e} as DATE)`,
+      Time: e => e[0] === '$' ? e : `CAST(${e} as TIME)`,
+      DateTime: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
+      Timestamp: e => e[0] === '$' ? e : `CAST(${e} as TIMESTAMP)`,
       // REVISIT: Remove that with upcomming fixes in cds.linked
-      Double: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      DecimalFloat: (e, t) => `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
-      Binary: e => `DECODE(${e},'base64')`,
-      LargeBinary: e => `DECODE(${e},'base64')`,
+      Double: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      DecimalFloat: (e, t) => e[0] === '$' ? e : `CAST(${e} as decimal${t.precision && t.scale ? `(${t.precision},${t.scale})` : ''})`,
+      Binary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      LargeBinary: e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      Map: e => e[0] === '$' ? e : `CAST(${e} as jsonb)`,
 
       // HANA Types
-      'cds.hana.CLOB': e => `DECODE(${e},'base64')`,
-      'cds.hana.BINARY': e => `DECODE(${e},'base64')`,
-      'cds.hana.ST_POINT': e => `POINT(((${e})::json->>'x')::float, ((${e})::json->>'y')::float)`,
-      'cds.hana.ST_GEOMETRY': e => `POLYGON(${e})`,
+      'cds.hana.CLOB': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      'cds.hana.BINARY': e => e[0] === '$' ? e : `DECODE(${e},'base64')`,
+      // REVISIT: have someone take a look at how this syntax exactly works in postgres with postgis
+      'cds.hana.ST_POINT': e => `(${e})::point`,
+      'cds.hana.ST_GEOMETRY': e => `(${e})::polygon`,
     }
 
     static OutputConverters = {
@@ -516,13 +585,16 @@ GROUP BY k
       struct: e => `jsonb(${e})`,
       array: e => `jsonb(${e})`,
       // Reading int64 as string to not loose precision
-      Int64: expr => `cast(${expr} as varchar)`,
+      Int64: cds.env.features.ieee754compatible ? expr => `cast(${expr} as varchar)` : undefined,
       // REVISIT: always cast to string in next major
       // Reading decimal as string to not loose precision
-      Decimal: cds.env.features.string_decimals ? expr => `cast(${expr} as varchar)` : undefined,
+      Decimal: cds.env.features.ieee754compatible ? (expr, elem) => elem?.scale
+        ? `to_char(${expr},'FM${'0'.padStart(elem.precision, '9')}${'D'.padEnd(elem.scale + 1, '0')}')`
+        : `cast(${expr} as varchar)`
+        : undefined,
 
-      // Convert point back to json format
-      'cds.hana.ST_POINT': expr => `CASE WHEN (${expr}) IS NOT NULL THEN json_object('x':(${expr})[0],'y':(${expr})[1])::varchar END`,
+      // Convert ST types back to WKT format
+      'cds.hana.ST_POINT': expr => `ST_AsText(${expr})`,
     }
   }
 
@@ -553,15 +625,22 @@ GROUP BY k
         GRANT "${creds.usergroup}" TO "${creds.user}" WITH ADMIN OPTION;
       `)
       await this.exec(`CREATE DATABASE "${creds.database}" OWNER="${creds.user}" TEMPLATE=template0`)
-    } catch (e) {
+    } catch {
+      // Failed to connect to database
+      if (!this.dbc) {
+        return this.database({ database })
+      }
       // Failed to reset database
     } finally {
-      await this.dbc.end()
-      delete this.dbc
+      // Only clean when successfully connected
+      if (this.dbc) {
+        await this.dbc.end()
+        delete this.dbc
 
-      // Update credentials to new Database owner
-      await this.disconnect()
-      this.options.credentials = Object.assign({}, system, creds)
+        // Update credentials to new Database owner
+        await this.disconnect()
+        this.options.credentials = Object.assign({}, system, creds)
+      }
     }
   }
 
@@ -576,18 +655,20 @@ GROUP BY k
 
     try {
       if (!clean) {
-        await this.tx(async tx => {
-          // await tx.run(`DROP USER IF EXISTS "${creds.user}"`)
-          await tx
-            .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
-            .catch(e => {
-              if (e.code === '42710') return
-              throw e
-            })
-        })
-        await this.tx(async tx => {
-          await tx.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
-        })
+        await cds
+          .run(`CREATE USER "${creds.user}" IN GROUP "${creds.usergroup}" PASSWORD '${creds.password}'`)
+          .catch(e => {
+            if (e.code === '42710') return
+            throw e
+          })
+        // Retry granting priviledges as this is being done by multiple instances
+        // Postgres just rejects when other connections are granting the same user
+        const grant = (i = 0) => cds.run(`GRANT CREATE, CONNECT ON DATABASE "${creds.database}" TO "${creds.user}";`)
+          .catch((err) => {
+            if (i > 100) throw err
+            return grant(i + 1)
+          })
+        await grant()
       }
 
       // Update credentials to new Schema owner
@@ -597,7 +678,7 @@ GROUP BY k
       // Create new schema using schema owner
       await this.tx(async tx => {
         await tx.run(`DROP SCHEMA IF EXISTS "${creds.schema}" CASCADE`)
-        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`).catch(() => { })
+        if (!clean) await tx.run(`CREATE SCHEMA "${creds.schema}" AUTHORIZATION "${creds.user}"`)
       })
     } finally {
       await this.disconnect()
@@ -606,7 +687,7 @@ GROUP BY k
 }
 
 class QueryStream extends Query {
-  constructor(config, one) {
+  constructor(config, one, objectMode) {
     // REVISIT: currently when setting the row chunk size
     // it results in an inconsistent connection state
     // if (!one) config.rows = 1000
@@ -615,6 +696,7 @@ class QueryStream extends Query {
     this._one = one || config.one
 
     this.stream = new Readable({
+      objectMode,
       read: this.rows
         ? () => {
           this.stream.pause()
@@ -630,14 +712,19 @@ class QueryStream extends Query {
     this.push = this.stream.push.bind(this.stream)
 
     this._prom = new Promise((resolve, reject) => {
+      let hasData = false
       this.once('error', reject)
       this.once('end', () => {
-        if (!this._one) this.push(this.constructor.close)
+        if (!objectMode && !this._one) {
+          if (!hasData) this.push(this.constructor.open)
+          this.push(this.constructor.close)
+        }
         this.push(null)
         if (this.stream.isPaused()) this.stream.resume()
-        resolve(null)
+        resolve(this._one ? null : this.stream)
       })
       this.once('row', row => {
+        hasData = true
         if (row == null) return resolve(null)
         resolve(this.stream)
       })
@@ -675,10 +762,15 @@ class QueryStream extends Query {
     } else {
       this.handleDataRow = msg => {
         const val = msg.fields[0]
-        if (!this._one && val !== null) this.push(this.constructor.open)
+        const objectMode = this.stream.readableObjectMode
+        if (!objectMode && !this._one && val !== null) this.push(this.constructor.open)
         this.emit('row', val)
-        this.push(val)
+        this.push(objectMode ? JSON.parse(val) : val)
+
         delete this.handleDataRow
+        if (objectMode) {
+          this.handleDataRow = this.handleDataRowObjectMode
+        }
       }
     }
     return super.handleRowDescription(msg)
@@ -688,6 +780,11 @@ class QueryStream extends Query {
   handleDataRow(msg) {
     this.push(this.constructor.sep)
     this.push(msg.fields[0])
+  }
+
+  // Called when a new row is received
+  handleDataRowObjectMode(msg) {
+    this.push(JSON.parse(msg.fields[0]))
   }
 
   // Called when a new binary row is received
@@ -711,17 +808,17 @@ class ParameterStream extends Writable {
     this.lengthBuffer = Buffer.from([0x64, 0, 0, 0, 0])
 
     // Flush quote character before input stream
-    this.flushChunk = chunk => {
+    this.flushChunk = (chunk, cb) => {
       delete this.flushChunk
 
       this.lengthBuffer.writeUInt32BE(chunk.length + 5, 1)
       this.connection.stream.write(this.lengthBuffer)
-      this.connection.stream.write(Buffer.from(this.constructor.sep))
-      return this.connection.stream.write(chunk)
+      this.connection.stream.write(this.constructor.sep)
+      this.connection.stream.write(chunk, cb)
     }
   }
 
-  static sep = String.fromCharCode(31) // Separator One
+  static sep = Buffer.from(String.fromCharCode(31)) // Separator One
   static done = Buffer.from([0x63, 0, 0, 0, 4])
 
   then(resolve, reject) {
@@ -772,17 +869,14 @@ class ParameterStream extends Writable {
     })
   }
 
-  flush(chunk, callback) {
-    if (this.flushChunk(chunk)) {
-      return callback()
-    }
-    this.connection.stream.once('drain', callback)
+  flush(chunk, cb) {
+    this.flushChunk(chunk, cb)
   }
 
-  flushChunk(chunk) {
+  flushChunk(chunk, cb) {
     this.lengthBuffer.writeUInt32BE(chunk.length + 4, 1)
     this.connection.stream.write(this.lengthBuffer)
-    return this.connection.stream.write(chunk)
+    this.connection.stream.write(chunk, cb)
   }
 
   handleError(e) {
@@ -803,16 +897,6 @@ class ParameterStream extends Writable {
     this._finish()
     this.connection = null
   }
-}
-
-function _not_unique(err, code) {
-  if (err.code === '23505')
-    return Object.assign(err, {
-      originalMessage: err.message, // FIXME: required because of next line
-      message: code, // FIXME: misusing message as code
-      code: 400, // FIXME: misusing code as (http) status
-    })
-  return err
 }
 
 module.exports = PostgresService
