@@ -861,18 +861,20 @@ class HANAService extends SQLService {
       const columns = (INSERT.columns || ObjectKeys(elements)).filter(
         c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
       )
-      
-      const selectedColumn = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
-      if (columns.length !== selectedColumn?.length)
-        cds.error`The number of specified columns does not match the number of selected columns`
+
+      const selectedColumns = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
+      if (!selectedColumns)
+        cds.error`To insert values from select, selected columns must be specified`
+      if (columns.length !== selectedColumns?.length)
+        cds.error`The number of specified columns to insert does not match the number of selected columns`
       
       this.columns = []
-      const sortedColumns = selectedColumn
+      const sortedColumns = selectedColumns
         .map((_, index) => index)
-        .sort((a, b) => this.column_name(selectedColumn[a]) > this.column_name(selectedColumn[b]) ? 1 : -1)
+        .sort((a, b) => this.column_name(selectedColumns[a]) > this.column_name(selectedColumns[b]) ? 1 : -1)
         .map((index, i) => {
           this.columns[i] = columns[index]
-          return selectedColumn[index]
+          return selectedColumns[index]
         })
       if (INSERT.from?.SELECT) INSERT.from.SELECT.columns = sortedColumns
       if (INSERT.as?.SELECT) INSERT.as.SELECT.columns = sortedColumns
