@@ -864,7 +864,7 @@ class HANAService extends SQLService {
       
       const selectedColumn = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
       if (columns.length !== selectedColumn?.length)
-        throw new Error('The number of specified columns does not match the number of selected columns')
+        cds.error`The number of specified columns does not match the number of selected columns`
       
       this.columns = []
       const sortedColumns = selectedColumn
