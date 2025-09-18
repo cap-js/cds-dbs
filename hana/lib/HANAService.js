@@ -862,26 +862,30 @@ class HANAService extends SQLService {
         c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
       )
 
-      const selectedColumns = INSERT.from?.SELECT?.columns || INSERT.as?.SELECT?.columns
+      const source = INSERT.from || INSERT.as
+      const selectedColumns = source?.SELECT?.columns
       if (!selectedColumns)
         cds.error`To insert values from select, selected columns must be specified`
-      if (columns.length !== selectedColumns?.length)
+      if (columns.length != selectedColumns.length)
         cds.error`The number of specified columns to insert does not match the number of selected columns`
       
+      const inferredSource = this.cqn4sql(source)
+      const inferredColumns = inferredSource.SELECT.columns
+      if (inferredColumns.length != selectedColumns.length)
+        cds.error`Selected columns were automatially expanded, selected columns must be specified explicitly`
+      
       this.columns = []
-      const sortedColumns = selectedColumns
+      inferredSource.SELECT.columns = inferredColumns
         .map((_, index) => index)
-        .sort((a, b) => this.column_name(selectedColumns[a]) > this.column_name(selectedColumns[b]) ? 1 : -1)
+        .sort((a, b) => (this.column_name(inferredColumns[a]) > this.column_name(inferredColumns[b]) ? 1 : -1))
         .map((index, i) => {
           this.columns[i] = columns[index]
-          return selectedColumns[index]
+          return inferredColumns[index]
         })
-      if (INSERT.from?.SELECT) INSERT.from.SELECT.columns = sortedColumns
-      if (INSERT.as?.SELECT) INSERT.as.SELECT.columns = sortedColumns
 
       this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c =>
         this.quote(c),
-      )}) ${this.SELECT(this.cqn4sql(INSERT.from || INSERT.as))}`
+      )}) ${this.SELECT(inferredSource)}`
       this.entries = [this.values]
       return this.sql
     }
