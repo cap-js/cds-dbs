@@ -145,7 +145,30 @@ describe('column order', () => {
         .columns(['ID', 'title'])
         .from(SELECT.from('sap.capire.bookshop.Books').columns(['ID', '*']))
 
-      expect(() => hanaService.cqn2sql(query1)).to.throw(/not inferred and includes '*'/i)
+      expect(() => hanaService.cqn2sql(query1)).to.throw(/columns were automatially expanded/i)
+    })
+
+    test('should insert and select from navigation columns in the same order', async () => {
+      const query1 = INSERT.into('sap.capire.bookshop.Books')
+        .columns(['ID', 'author_ID', 'author_name'])
+        .from(
+          SELECT.from('sap.capire.bookshop.Books').columns([
+            { ref: ['ID'] },
+            { ref: ['author', 'ID'] },
+            { ref: ['author', 'name'] },
+          ]),
+        )
+      const query2 = INSERT.into('sap.capire.bookshop.Books')
+        .columns(['author_name', 'ID', 'author_ID'])
+        .from(
+          SELECT.from('sap.capire.bookshop.Books').columns([
+            { ref: ['author', 'name'] },
+            { ref: ['ID'] },
+            { ref: ['author', 'ID'] },
+          ]),
+        )
+
+      expectSqlScriptToBeEqual(query1, query2)
     })
   })
 })
