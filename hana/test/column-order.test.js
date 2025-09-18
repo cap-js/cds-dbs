@@ -150,6 +150,29 @@ describe('column order', () => {
 
     test('should insert and select from navigation columns in the same order', async () => {
       const query1 = INSERT.into('sap.capire.bookshop.Books')
+        .columns(['ID', 'author_ID', 'title'])
+        .from(
+          SELECT.from('sap.capire.bookshop.Books').columns([
+            { ref: ['ID'] },
+            { ref: ['author', 'ID'] },
+            { ref: ['title'] },
+          ]),
+        )
+      const query2 = INSERT.into('sap.capire.bookshop.Books')
+        .columns(['title', 'ID', 'author_ID'])
+        .from(
+          SELECT.from('sap.capire.bookshop.Books').columns([
+            { ref: ['title'] },
+            { ref: ['ID'] },
+            { ref: ['author', 'ID'] },
+          ]),
+        )
+
+      expectSqlScriptToBeEqual(query1, query2)
+    })
+
+    test('should throw when trying to insert and select from expanded column', async () => {
+      const query1 = INSERT.into('sap.capire.bookshop.Books')
         .columns(['ID', 'author_ID', 'author_name'])
         .from(
           SELECT.from('sap.capire.bookshop.Books').columns([
@@ -158,17 +181,8 @@ describe('column order', () => {
             { ref: ['author', 'name'] },
           ]),
         )
-      const query2 = INSERT.into('sap.capire.bookshop.Books')
-        .columns(['author_name', 'ID', 'author_ID'])
-        .from(
-          SELECT.from('sap.capire.bookshop.Books').columns([
-            { ref: ['author', 'name'] },
-            { ref: ['ID'] },
-            { ref: ['author', 'ID'] },
-          ]),
-        )
 
-      expectSqlScriptToBeEqual(query1, query2)
+      expect(() => hanaService.cqn2sql(query1)).to.throw(/insert does not match/i)
     })
   })
 })
