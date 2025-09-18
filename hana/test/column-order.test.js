@@ -171,6 +171,19 @@ describe('column order', () => {
       expectSqlScriptToBeEqual(query1, query2)
     })
 
+    test('should throw when trying to insert from inlined expands', async () => {
+      const query1 = INSERT.into('sap.capire.bookshop.Books')
+        .columns(['ID', 'descr'])
+        .from(
+          SELECT.from('sap.capire.bookshop.Books').columns([
+            { ref: ['ID'] },
+            { ref: ['author'], inline: [{ ref: ['street'] }, { ref: ['city'] }] },
+          ]),
+        )
+      
+        expect(() => hanaService.cqn2sql(query1)).to.throw(/columns were automatially expanded/i)
+    })
+
     test('should throw when trying to insert and select from expanded column', async () => {
       const query1 = INSERT.into('sap.capire.bookshop.Books')
         .columns(['ID', 'author_ID', 'author_name'])
