@@ -541,6 +541,12 @@ class HANAService extends SQLService {
     SELECT_columns(q) {
       const { SELECT, src } = q
       if (!SELECT.columns) return '*'
+
+      // Sort selected columns to avoid creating redundant execution plans (column names can't be equal)
+      SELECT.columns = SELECT.columns.sort((a, b) => {
+        return (typeof a === 'string' ? a : this.column_name(a)) > (typeof b === 'string' ? b : this.column_name(b)) ? 1 : -1
+      })
+
       if (SELECT.expand !== 'root') {
         const ret = []
         for (const x of q.SELECT.columns) {
@@ -845,6 +851,43 @@ class HANAService extends SQLService {
       }
       INSERT.entries = entries
       return this.INSERT_entries(q)
+    }
+
+    INSERT_select(q) {
+      const { INSERT } = q
+      const entity = this.name(q._target.name, q)
+      const alias = INSERT.into.as
+      const elements = q.elements || q._target?.elements || {}
+      const columns = (INSERT.columns || ObjectKeys(elements)).filter(
+        c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
+      )
+
+      const source = INSERT.from || INSERT.as
+      const selectedColumns = source?.SELECT?.columns
+      if (!selectedColumns)
+        cds.error`To insert values from select, selected columns must be specified`
+      if (columns.length != selectedColumns.length)
+        cds.error`The number of specified columns to insert does not match the number of selected columns`
+      
+      const inferredSource = this.cqn4sql(source)
+      const inferredColumns = inferredSource.SELECT.columns
+      if (inferredColumns.length != selectedColumns.length)
+        cds.error`Selected columns were automatially expanded, selected columns must be specified explicitly`
+      
+      this.columns = []
+      inferredSource.SELECT.columns = inferredColumns
+        .map((_, index) => index)
+        .sort((a, b) => (this.column_name(inferredColumns[a]) > this.column_name(inferredColumns[b]) ? 1 : -1))
+        .map((index, i) => {
+          this.columns[i] = columns[index]
+          return inferredColumns[index]
+        })
+
+      this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c =>
+        this.quote(c),
+      )}) ${this.SELECT(inferredSource)}`
+      this.entries = [this.values]
+      return this.sql
     }
 
     UPSERT(q) {
