@@ -100,27 +100,33 @@ describe('Flattening', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Orders as src { items }`, model)
       expect(query).to.deep.eql(cds.ql`SELECT from bookshop.Orders as src { }`)
     })
-    it('rejects struct fields in expressions in SELECT clause (1)', () => {
+    it('rejects struct fields in column expression', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { 2*nested as x }`, model)).to.throw(
         `The operator "*" can only be used with scalar operands`,
       )
     })
 
-    it('rejects struct fields in expressions in SELECT clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { sin(nested) as x }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+    it('expands managed associations in function args in columns', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { sin(nested) as x }`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as $B {
+          sin($B.nested_foo_x, $B.nested_bar_a, $B.nested_bar_b) as x
+        }`
+      expect(transformed).to.deep.eql(expected)
     })
 
-    it('rejects managed associations in expressions in SELECT clause (1)', () => {
+    it('rejects managed associations in column expression', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { 2*author as x }`, model)).to.throw(
         `The operator "*" can only be used with scalar operands`,
       )
     })
-    it('rejects managed associations in expressions in SELECT clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { sin(author) as x }`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
+    it('expands managed associations in function args in columns', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { sin(author) as x }`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B {
+          sin($B.author_ID) as x
+        }`
+      expect(transformed).to.deep.eql(expected)
     })
     it('rejects unmanaged associations in expressions in SELECT clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { 2*coAuthorUnmanaged as x }`, model)).to.throw(
@@ -135,9 +141,9 @@ describe('Flattening', () => {
     })
 
     it('rejects unmanaged associations in expressions in SELECT clause (3)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey { sin(emptyStructUnmanaged) as x }`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey { sin(emptyStructUnmanaged) as x }`, model),
+      ).to.throw(/Structured element “emptyStructUnmanaged” expands to nothing and can't be used in expressions/)
     })
 
     it('unfolds managed associations in SELECT clause', () => {
@@ -377,6 +383,27 @@ describe('Flattening', () => {
       )
     })
   })
+
+  describe('in list', () => {
+    it('unfolds structure', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Books as Books {
+              ID
+            } where (ID, author) in (select from bookshop.Books { ID, author } where title = 'x')`,
+        model,
+      )
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books {
+              Books.ID
+            } where (Books.ID, Books.author_ID) in (
+              select from bookshop.Books as $B {
+                $B.ID,
+                $B.author_ID
+              } where $B.title = 'x'
+            )`
+      expect(query).to.deep.equal(expected)
+    })
+  })
   describe('in where', () => {
     it('unfolds structure in subquery', () => {
       let query = cqn4sql(
@@ -390,16 +417,20 @@ describe('Flattening', () => {
               SELECT Authors.address_street, Authors.address_city from bookshop.Authors as Authors where Authors.ID > Books.ID
             )`)
     })
-    it('rejects struct fields in expressions in WHERE clause (1)', () => {
+    it('rejects struct fields in expressions in toplevel WHERE clause', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE 2 = nested`, model)).to.throw(
-        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/
+        /Can't compare structure "nested" to value "2"; only possible for structures with one sub-element/,
       )
     })
 
-    it('rejects struct fields in expressions in WHERE clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE sin(nested) < 0`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+    it('expands struct fields in function args in WHERE clause', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE sin(nested) < 0`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as $B {
+          $B.ID
+        }
+        WHERE sin($B.nested_foo_x, $B.nested_bar_a, $B.nested_bar_b) < 0`
+      expect(transformed).to.deep.eql(expected)
     })
 
     it('rejects managed association in WHERE clause', () => {
@@ -409,9 +440,15 @@ describe('Flattening', () => {
     })
 
     it('rejects managed associations in expressions in WHERE clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE sin(author) < 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } WHERE sin(author) < 0`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        WHERE sin($B.author_ID) < 0`
+      expect(transformed).to.deep.eql(expected)
+
     })
     // (PB) TODO align error message with the examples below
     it('rejects unmanaged associations in WHERE clause', () => {
@@ -558,9 +595,9 @@ describe('Flattening', () => {
     })
 
     it('fails for structures with multiple leafs in ORDER BY, accessing a deep element', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.WithStructuredKey { second } order by struct.mid`, model)).to.throw(
-        /"struct.mid" can't be used in order by as it expands to multiple fields/,
-      )
+      expect(() =>
+        cqn4sql(cds.ql`SELECT from bookshop.WithStructuredKey { second } order by struct.mid`, model),
+      ).to.throw(/"struct.mid" can't be used in order by as it expands to multiple fields/)
     })
 
     it('unfolds structured access to a single element in ORDER BY, select list alias shadows table alias', () => {
@@ -630,10 +667,14 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects struct fields in expressions in ORDER BY clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } ORDER BY sin(nested)`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+    it('expands struct fields in function args in ORDER BY clause', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } ORDER BY sin(nested)`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as $B {
+          $B.ID
+        }
+        ORDER BY sin($B.nested_foo_x, $B.nested_bar_a, $B.nested_bar_b)`
+      expect(transformed).to.deep.eql(expected)
     })
     it('unfolds managed association with one FK in ORDER BY clause', () => {
       let query = cqn4sql(
@@ -684,10 +725,14 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects managed associations in expressions in ORDER BY clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } ORDER BY sin(author)`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
+    it('expands managed associations in expressions in ORDER BY clause (2)', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } ORDER BY sin(author)`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B {
+          $B.ID
+        }
+        ORDER BY sin($B.author_ID)`
+      expect(transformed).to.deep.eql(expected)
     })
     it('ignores unmanaged associations in ORDER BY clause', () => {
       let query = cqn4sql(cds.ql`SELECT from bookshop.Books as Books { ID } ORDER BY ID, coAuthorUnmanaged`, model)
@@ -738,7 +783,7 @@ describe('Flattening', () => {
       const q = cds.ql`SELECT from bookshop.Intermediate as Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.second`
-  
+
       const qx = cds.ql`SELECT from bookshop.Intermediate as Intermediate
       left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
         on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
@@ -753,7 +798,7 @@ describe('Flattening', () => {
       const q = cds.ql`SELECT from bookshop.Intermediate {
         ID
       } group by toAssocWithStructuredKey.toStructuredKey.struct.mid.leaf`
-  
+
       const qx = cds.ql`SELECT from bookshop.Intermediate as Intermediate
       left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey
         on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
@@ -770,10 +815,14 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects managed associations in expressions in GROUP BY clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } GROUP BY sin(author)`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
+    it('expands managed associations in function args', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } GROUP BY sin(author)`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B {
+          $B.ID
+        }
+        GROUP BY sin($B.author_ID)`
+      expect(transformed).to.deep.eql(expected)
     })
     it('rejects struct fields in expressions in GROUP BY clause (1)', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } GROUP BY 2*nested`, model)).to.throw(
@@ -781,10 +830,14 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects struct fields in expressions in GROUP BY clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } GROUP BY sin(nested)`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+    it('expands struct fields in expressions in GROUP BY clause (2)', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } GROUP BY sin(nested)`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as $B {
+          $B.ID
+        }
+        GROUP BY sin($B.nested_foo_x, $B.nested_bar_a, $B.nested_bar_b)`
+      expect(transformed).to.deep.eql(expected)
     })
 
     it('ignores unmanaged associations in GROUP BY clause', () => {
@@ -836,10 +889,15 @@ describe('Flattening', () => {
       )
     })
 
-    it('rejects struct fields in expressions in HAVING clause (2)', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } HAVING sin(nested) < 0`, model)).to.throw(
-        /A structured element can't be used as a value in an expression/,
-      )
+    it('expands struct fields in expressions in function clause', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } HAVING sin(nested) < 0`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as $B
+        {
+          $B.ID
+        }
+        HAVING sin($B.nested_foo_x, $B.nested_bar_a, $B.nested_bar_b) < 0`
+      expect(transformed).to.deep.eql(expected)
     })
 
     it('rejects managed association in HAVING clause', () => {
@@ -852,10 +910,15 @@ describe('Flattening', () => {
     //   managed associations inside expressions aren't supported anywhere
     //   TODO if implementation is same for all clauses, we probably don't need all these tests
 
-    it('rejects managed associations in expressions in HAVING clause', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING sin(author) < 0`, model)).to.throw(
-        /An association can't be used as a value in an expression/,
-      )
+    it('expands managed associations in expressions in function args', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.Books { ID } HAVING sin(author) < 0`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID
+        }
+        HAVING sin($B.author_ID) < 0`
+      expect(transformed).to.deep.eql(expected)
     })
 
     it('rejects unmanaged associations in HAVING clause', () => {
