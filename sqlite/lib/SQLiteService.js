@@ -1,6 +1,13 @@
 const { SQLService } = require('@cap-js/db-service')
-const cds = require('@sap/cds')
-const sqlite = require('better-sqlite3')
+const cds = require('@sap/cds/lib')
+let sqlite
+try {
+  sqlite = require('better-sqlite3')
+} catch (err) {
+  // When failing to load better-sqlite3 it fallsback to sql.js (wasm version of sqlite)
+  sqlite = require('./sql.js.js')
+}
+
 const $session = Symbol('dbc.session')
 const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
 const convStrm = require('stream/consumers')
@@ -28,9 +35,11 @@ class SQLiteService extends SQLService {
   get factory() {
     return {
       options: { max: 1, ...this.options.pool },
-      create: tenant => {
+      create: async tenant => {
         const database = this.url4(tenant)
         const dbc = new sqlite(database, this.options.client)
+        await dbc.ready
+
         const deterministic = { deterministic: true }
         dbc.function('session_context', key => dbc[$session][key])
         dbc.function('regexp', deterministic, (re, x) => (RegExp(re).test(x) ? 1 : 0))
@@ -134,10 +143,8 @@ class SQLiteService extends SQLService {
   }
 
   async _allStream(stmt, binding_params, one, objectMode) {
-    stmt = stmt.constructor.name === 'Statement' ? stmt : stmt.__proto__
-    stmt.raw(true)
-    const get = stmt.get(binding_params)
-    if (!get) return []
+    stmt = stmt.iterate ? stmt : stmt.__proto__
+    stmt.raw?.(true)
     const rs = stmt.iterate(binding_params)
     const stream = Readable.from(objectMode ? this._iteratorObjectMode(rs) : this._iteratorRaw(rs, one), { objectMode })
     const close = () => rs.return() // finish result set when closed early
