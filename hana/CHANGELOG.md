@@ -4,13 +4,6 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [2.2.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (tbd)
-
-### Added
-
-* allow use of HANA TMSv2 instead of Service Manager for multitenant applications
-
-
 ## [2.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (2025-08-27)
 
 
