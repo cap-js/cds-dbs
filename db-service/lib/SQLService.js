@@ -312,14 +312,11 @@ class SQLService extends DatabaseService {
     // The database service is responsible for all entities therefor doesn't filter the targets
     const errors = await this.run(query, [service === 'db' ? '' : service])
     if (errors.length) for (const error of errors) {
-      const split = /(.*?)\((.*)\)/.exec(error.message)
-      if (split) {
-        error.message = split[1]
-        error.args = split[2].split(',')
-      }
+      const e = {}
+      try { Object.assign(e, JSON.parse(error.message)) } catch { e.message = e.message }
       // REVISIT: UI5 doesn't respect the full path target
-      error.target = 'in/' + error.target.slice(error.target.lastIndexOf('/') + 1)
-      req.error(error)
+      e.target = 'in/' + error.target.slice(error.target.lastIndexOf('/') + 1)
+      req.error(e)
     }
   }
 

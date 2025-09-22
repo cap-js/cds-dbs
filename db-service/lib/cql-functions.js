@@ -5,9 +5,54 @@ const cds = require('@sap/cds')
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 const StandardFunctions = {
 
+  /**
+   * Generates SQL statement that produces an runtime compatible error object
+   * @param {string|object} code - The i18n code or message of the error object
+   * @param {Array<xpr>} args - The arguments to apply to the i18n string
+   * @return {string} - SQL statement
+   */
   error: function (code, ...args) {
-    // return this.expr({ func: 'concat', args: [code, { val: '(' }, ...args.map(arg => [{ val: ',' }, arg]).flat(), { val: ')' }] })
-    return this.expr({ func: 'concat', args: [code, { val: '(' }, ...args.map((arg, i) => i ? [{ val: ',' }, arg] : [arg]).flat(), { val: ')' }] })
+    let targets, message
+    if (typeof code === 'object') {
+      args = code.args?.list
+      targets = code.targets?.list
+      message = code.message
+      code = code.code
+    }
+
+    return `(${this.SELECT({
+      SELECT: {
+        expand: 'root',
+        columns: [
+          args ? {
+            func: 'json_array',
+            args: args,
+            as: 'args',
+            element: cds.builtin.types.Map,
+          } : { val: null, as: 'args' },
+          targets ? {
+            func: 'json_array',
+            args: targets,
+            as: 'targets',
+            element: cds.builtin.types.Map,
+          } : { val: null, as: 'targets' },
+          {
+            __proto__: (message || { val: null }),
+            as: 'message',
+          },
+          {
+            __proto__: (code || { val: null }),
+            as: 'code',
+          },
+        ]
+      },
+      elements: {
+        args: cds.builtin.types.Map,
+        targets: cds.builtin.types.Map,
+        message: cds.builtin.types.String,
+        code: cds.builtin.types.String,
+      }
+    })})`
   },
 
   /**
