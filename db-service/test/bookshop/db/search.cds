@@ -29,7 +29,7 @@ entity NoSearchCandidateProjected as select from PathInSearchNotProjected {
     ID
 };
 
-// search through all searchable fields in the author
+// search all own searchable fields + those in `Authors`
 @cds.search: {author}
 entity BooksSearchAuthor : Books {}
 
@@ -37,12 +37,32 @@ entity Authors {
     key ID        : Integer;
         lastName  : String;
         firstName : String;
-        books     : Association to Books
+        books     : Composition of many Books
                         on books.author = $self;
 }
 
+// search all searchable fields in `Books` + `Genres:name` via `AuthorSearchBooks:books`
 @cds.search: {books, books.genre.name}
 entity AuthorSearchBooks : Authors {
+}
+
+// search only `books.title`
+@cds.search: {books.title}
+entity AuthorSearchOnlyBooksTitle : Authors {}
+
+// search only `description` (default searchable elements of  `Books` are skipped)
+@cds.search: {description}
+entity BooksSearchOnlyDescription : Books {
+    description : String;
+}
+
+
+entity BooksIgnoreVirtualElement : Books {
+    virtual virtualElement : String;
+}
+@cds.search: { virtualElement: true } 
+entity BooksIgnoreExplicitVirtualElement : Books {
+    virtual virtualElement : String;
 }
 
 // search over multiple associations
@@ -60,6 +80,7 @@ entity AuthorsSearchAddresses : Authors {
     address : Association to Addresses;
 }
 
+// exclude specific elements from search
 @cds.search: {street: false}
 entity Addresses {
     key ID     : Integer;

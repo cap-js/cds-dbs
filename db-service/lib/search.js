@@ -66,7 +66,7 @@ const _getSearchableColumns = entity => {
     if (key.startsWith(cdsSearchTerm)) cdsSearchKeys.push(key)
   }
 
-  let atLeastOneColumnIsSearchable = false
+  let skipDefaultSearchableElements = false
   const deepSearchCandidates = []
 
   // build a map of columns annotated with the @cds.search annotation
@@ -74,13 +74,18 @@ const _getSearchableColumns = entity => {
     const columnName = key.split(cdsSearchTerm + '.').pop()
     const annotationKey = `${cdsSearchTerm}.${columnName}`
     const annotationValue = entity[annotationKey]
-    if (annotationValue) atLeastOneColumnIsSearchable = true
 
     const column = entity.elements[columnName]
+    // always ignore virtual elements from search
+    if(column?.virtual) continue
     if (column?.isAssociation || columnName.includes('.')) {
-      deepSearchCandidates.push({ ref: columnName.split('.') })
+      const ref = columnName.split('.')
+      if(ref.length > 1) skipDefaultSearchableElements = true
+      deepSearchCandidates.push({ ref })
       continue
     }
+
+    if(annotationValue) skipDefaultSearchableElements = true
     cdsSearchColumnMap.set(columnName, annotationValue)
   }
 
@@ -99,7 +104,7 @@ const _getSearchableColumns = entity => {
     // if at least one element is explicitly annotated as searchable, e.g.:
     // `@cds.search { element1: true }` or `@cds.search { element1 }`
     // and it is not the current column name, then it must be excluded from the search
-    if (atLeastOneColumnIsSearchable) return false
+    if (skipDefaultSearchableElements) return false
 
     // the element is considered searchable if it is explicitly annotated as such or
     // if it is not annotated and the column is typed as a string (excluding elements/elements expressions)
