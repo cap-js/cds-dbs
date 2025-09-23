@@ -162,4 +162,16 @@ describe('assign element onto columns with flat model', () => {
     // foreign key is part of flat model
     expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(TestPublisher.elements.publisherRenamedKey_notID)
   })
+
+  it('attaches foreign key and not the association as element', () => {
+    let query = cqn4sql(cds.ql`
+      SELECT from bookshop.Books as Books {
+        genre.parent.ID,
+        genre.parent as assoc
+      }
+    `, model)
+    const { Genres } = model.entities
+    expect(query.SELECT.columns[0]).to.have.property('element').that.eqls(Genres.elements.ID)
+    expect(query.SELECT.columns[1]).to.have.property('element').that.eqls(Genres.elements.parent_ID)
+  })
 })

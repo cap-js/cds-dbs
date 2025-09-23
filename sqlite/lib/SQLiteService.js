@@ -2,6 +2,7 @@ const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds')
 const sqlite = require('better-sqlite3')
 const $session = Symbol('dbc.session')
+const sessionVariableMap = require('./session.json')  // Adjust the path as necessary for your project
 const convStrm = require('stream/consumers')
 const { Readable } = require('stream')
 
@@ -57,6 +58,13 @@ class SQLiteService extends SQLService {
 
   set(variables) {
     const dbc = this.dbc || cds.error('Cannot set session context: No database connection')
+
+    // Enrich provided session context with aliases
+    for (const alias in sessionVariableMap) {
+      const name = sessionVariableMap[alias]
+      if (variables[name]) variables[alias] = variables[name]
+    }
+
     if (!dbc[$session]) dbc[$session] = variables
     else Object.assign(dbc[$session], variables)
   }

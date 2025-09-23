@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -587,7 +587,7 @@ function infer(originalQuery, model) {
       }
 
       arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
-      if (getDefinition(arg.$refLinks[i].definition.target)?.['@cds.persistence.skip'] === true) isPersisted = false
+      if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
         defineProperty(arg, 'flatName', flatName)
@@ -640,7 +640,7 @@ function infer(originalQuery, model) {
     // ignore whole expand if target of assoc along path has ”@cds.persistence.skip”
     if (arg.expand) {
       const { $refLinks } = arg
-      const skip = $refLinks.some(link => getDefinition(link.definition.target)?.['@cds.persistence.skip'] === true)
+      const skip = $refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))
       if (skip) {
         $refLinks[$refLinks.length - 1].skipExpand = true
         return
