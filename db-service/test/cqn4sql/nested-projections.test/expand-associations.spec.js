@@ -268,6 +268,87 @@ describe('(nested projections) expand', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('get table aliases right with scoped queries', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books:author
+        {
+          name,
+          books { title }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as $a
+        {
+          $a.name,
+          (
+            SELECT
+              $b2.title
+            from bookshop.Books as $b2
+              where $a.ID = $b2.author_ID
+          ) as books
+        } where exists (SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID)`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('ignores expands which target ”@cds.persistence.skip”', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          ID,
+          skipped { text }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          NotSkipped.ID
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('ignores expand if assoc in path expression has target ”@cds.persistence.skip”', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          ID,
+          skipped.notSkipped { text }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.NotSkipped as NotSkipped
+        {
+          NotSkipped.ID
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assign unique subquery alias if implicit alias would be ambiguous', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Item as $I
+        {
+          Item
+          {
+            ID
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Item as $I
+        {
+          (
+            SELECT
+              $I2.ID
+            from bookshop.Item as $I2
+            where $I.Item_ID = $I2.ID
+          ) as Item
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 
   describe('wildcard', () => {
@@ -378,6 +459,96 @@ describe('(nested projections) expand', () => {
             }
             where $g.jerseyNumber = 1 and ($S.ID = $g.team_ID)
           ) as goalKeeper
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('correctly calculates aliases for refs of on-condition within xpr', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.WorklistItems
+        {
+          ID,
+          releaseChecks
+          {
+            ID,
+            detailsDeviations
+            {
+              ID
+            }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.WorklistItems as $W
+        {
+          $W.ID,
+          (
+            SELECT from bookshop.WorklistItem_ReleaseChecks as $r
+            {
+              $r.ID,
+              (
+                SELECT from bookshop.QualityDeviations as $d
+                {
+                  $d.ID
+                } where $d.material_ID = $r.parent_releaseDecisionTrigger_batch_material_ID
+                  and (
+                        $d.batch_ID = '*'
+                    or  $d.batch_ID = $r.parent_releaseDecisionTrigger_batch_ID
+                  )
+                  and $d.snapshotHash = $r.snapshotHash
+              ) as detailsDeviations
+            } where $r.parent_ID = $W.ID
+              and $r.parent_snapshotHash = $W.snapshotHash
+          ) as releaseChecks
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('assoc comparison needs to be expanded in on condition calculation', () => {
+      const transformed = cqn4sql(
+        cds.ql`
+        SELECT from a2j.Foo
+        {
+          ID,
+          buz { foo }
+        }`,
+      )
+
+      const expected = cds.ql`
+        SELECT from a2j.Foo as $F
+        {
+          $F.ID,
+          (
+            SELECT
+              $b.foo_ID
+            from a2j.Buz as $b
+              where ($b.bar_ID = $F.bar_ID AND $b.bar_foo_ID = $F.bar_foo_ID) and $b.foo_ID = $F.ID
+          ) as buz
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('unmanaged association path traversal in on condition needs to be flattened', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from a2j.Foo
+        {
+          ID,
+          buzUnmanaged { foo }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from a2j.Foo as $F
+        {
+          $F.ID,
+          (
+            SELECT
+              $b.foo_ID
+            from a2j.Buz as $b
+              where $b.bar_foo_ID = $F.bar_foo_ID and $b.bar_ID = $F.bar_ID and $b.foo_ID = $F.ID
+          ) as buzUnmanaged
         }`
 
       expectCqn(transformed).to.equal(expected)
@@ -566,6 +737,133 @@ describe('(nested projections) expand', () => {
               $a.name
             from bookshop.Authors as $a
             where book.author_ID = $a.ID) as author
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand via subquery with path expressions', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as inner
+          {
+            author,
+            ID
+          } where author.name = 'King'
+        ) as Outer
+        {
+          ID,
+          author { name }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books as inner
+            left join bookshop.Authors as author on author.ID = inner.author_ID
+          {
+            inner.author_ID,
+            inner.ID
+          } where author.name = 'King'
+        ) as Outer
+        {
+          Outer.ID,
+          (
+            SELECT from bookshop.Authors as $a
+            {
+              $a.name
+            }
+            where Outer.author_ID = $a.ID
+          ) as author
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand via subquery with path expressions nested', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as inner
+            {
+              author,
+              ID
+            } where author.name = 'King'
+          ) as Mid
+          {
+            *
+          }
+        ) as Outer
+        {
+          ID,
+          author { name }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from (
+            SELECT from bookshop.Books as inner
+              left join bookshop.Authors as author on author.ID = inner.author_ID
+            {
+              inner.author_ID,
+              inner.ID
+            } where author.name = 'King'
+          ) as Mid
+          {
+            Mid.author_ID,
+            Mid.ID
+          }
+        ) as Outer
+        {
+          Outer.ID,
+          (
+            SELECT from bookshop.Authors as $a
+            {
+              $a.name
+            }
+            where Outer.author_ID = $a.ID
+          ) as author
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand via subquery with path expressions and scoped query', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from (
+          SELECT from bookshop.Books:genre as inner
+          {
+            parent,
+            ID
+          } where parent.name = 'Drama'
+        ) as Outer
+        {
+          ID,
+          parent { name }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from (
+          SELECT from bookshop.Genres as inner
+            left join bookshop.Genres as parent on parent.ID = inner.parent_ID
+          {
+            inner.parent_ID,
+            inner.ID
+          } where
+            exists (
+              SELECT 1 from bookshop.Books as $B
+              where $B.genre_ID = inner.ID
+            )
+            and parent.name = 'Drama'
+        ) as Outer
+        {
+          Outer.ID,
+          (
+            SELECT from bookshop.Genres as $p
+            {
+              $p.name
+            }
+            where Outer.parent_ID = $p.ID
+          ) as parent
         }`
 
       expectCqn(transformed).to.equal(expected)
@@ -1010,6 +1308,557 @@ describe('(nested projections) expand', () => {
         }`
 
       expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand deep assoc within structured expand', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID,
+          dedication { text, addressee { name } }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID,
+          $B.dedication_text,
+          (
+            SELECT
+              $d.name
+            from bookshop.Person as $d
+            where $B.dedication_addressee_ID = $d.ID
+          ) as dedication_addressee
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand deep assoc within structured expand, multiple levels', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          ID,
+          dedication { text, addressee { name, address { * } } }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          $B.ID,
+          $B.dedication_text,
+          (
+            SELECT
+              $d.name,
+              $d.address_street,
+              $d.address_city
+            from bookshop.Person as $d
+            where $B.dedication_addressee_ID = $d.ID
+          ) as dedication_addressee
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('nested expand with multiple conditions', async () => {
+      // innermost expand on association with backlink plus additional condition
+      // must be properly linked
+      const transformed = cqn4sql(cds.ql`
+        SELECT from Collaborations
+        {
+          id,
+          leads
+          {
+            id
+          },
+          subCollaborations
+          {
+            id,
+            leads
+            {
+              id
+            }
+          }
+        }`)
+
+      const expected = cds.ql`
+        SELECT from Collaborations as $C
+        {
+          $C.id,
+          (
+            SELECT from CollaborationLeads as $l
+            {
+              $l.id
+            } where ( $C.id = $l.collaboration_id ) and $l.isLead = true
+          ) as leads,
+          (
+            SELECT from SubCollaborations as $s
+            {
+              $s.id,
+              (
+                SELECT from SubCollaborationAssignments as $l2
+                {
+                  $l2.id
+                } where ( $s.id = $l2.subCollaboration_id ) and $l2.isLead = true
+              ) as leads
+            } where $C.id = $s.collaboration_id
+          ) as subCollaborations
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  describe('anonymous expands', () => {
+    it('scalar elements', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          {
+            title,
+            descr,
+            price
+          } as bookInfos
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          Books.title as bookInfos_title,
+          Books.descr as bookInfos_descr,
+          Books.price as bookInfos_price
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('scalar elements, structure with renaming and association', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          {
+            title,
+            author,
+            dedication.text as widmung,
+            dedication.sub as deep
+          } as bookInfos
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          Books.title as bookInfos_title,
+          Books.author_ID as bookInfos_author_ID,
+          Books.dedication_text as bookInfos_widmung,
+          Books.dedication_sub_foo as bookInfos_deep_foo
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('mixed with inline', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          {
+            dedication.{
+              *
+            }
+          } as bookInfos
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          Books.dedication_addressee_ID as bookInfos_dedication_addressee_ID,
+          Books.dedication_text as bookInfos_dedication_text,
+          Books.dedication_sub_foo as bookInfos_dedication_sub_foo,
+          Books.dedication_dedication as bookInfos_dedication_dedication,
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('join relevant association', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          {
+            author.name
+          } as bookInfos
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          author.name as bookInfos_author_name,
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
+
+  // REVISIT: this is a tweak we do for OData semantics and should be removed
+  describe('aggregations', () => {
+    it('simple aggregation', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { name }
+        } group by author.name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name }) as author
+        } group by author.name`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('aggregation with mulitple path steps', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Intermediate as Intermediate
+        {
+          ID,
+          toAssocWithStructuredKey { toStructuredKey { second } }
+        } group by toAssocWithStructuredKey.toStructuredKey.second`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Intermediate as Intermediate
+          left join bookshop.AssocWithStructuredKey as toAssocWithStructuredKey on toAssocWithStructuredKey.ID = Intermediate.toAssocWithStructuredKey_ID
+        {
+          Intermediate.ID,
+          (SELECT from DUMMY
+          {
+            (SELECT from DUMMY
+            {
+              toAssocWithStructuredKey.toStructuredKey_second as second 
+            }) as toStructuredKey
+          }) as toAssocWithStructuredKey
+        } group by toAssocWithStructuredKey.toStructuredKey_second`
+
+      expected.SELECT.columns[1].SELECT.from = null
+      expected.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it.skip('simple aggregation expand ref wrapped in func', () => {
+      // TODO: how to detect the nested ref?
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { toLower(name) as lower }
+        } group by author.name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          (SELECT from DUMMY { toLower(author.name) as lower }) as author
+        } group by author.name`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('wildcard expand vanishes for aggregations', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.TestPublisher as TestPublisher
+        {
+          ID,
+          texts { publisher {*} }
+        } group by ID, publisher.structuredKey.ID, publisher.title`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.TestPublisher as TestPublisher
+          left join bookshop.Publisher as publisher on publisher.structuredKey_ID = TestPublisher.publisher_structuredKey_ID
+        {
+          TestPublisher.ID
+        } group by TestPublisher.ID, TestPublisher.publisher_structuredKey_ID, publisher.title`
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('aggregation with structure', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID,
+          books { dedication }
+        } group by books.dedication`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+          left join bookshop.Books as books on books.author_ID = Authors.ID
+        {
+          Authors.ID,
+          (SELECT from DUMMY
+          { 
+            books.dedication_addressee_ID as dedication_addressee_ID,
+            books.dedication_text as dedication_text,
+            books.dedication_sub_foo as dedication_sub_foo,
+            books.dedication_dedication as dedication_dedication
+          }) as books
+        } group by books.dedication_addressee_ID, books.dedication_text, books.dedication_sub_foo, books.dedication_dedication`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('optimized foreign key access', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { name, ID }
+        } group by author.name, author.ID`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name, Books.author_ID as ID }) as author
+        } group by author.name, Books.author_ID`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('foreign key access renamed', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { name, ID as foo }
+        } group by author.name, author.ID`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name, Books.author_ID as foo }) as author
+        } group by author.name, Books.author_ID`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('non optimized foreign key access with filters', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author[ID = 201] { name, ID }
+        } group by author[ID = 201].name, author[ID = 201].ID`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID and author.ID = 201
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name, author.ID as ID }) as author
+        } group by author.name, author.ID`
+
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('expand path with filter must be an exact match in group by', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          author[name='King'] { name }
+        } group by author[name='King'].name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID and author.name = 'King'
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name }) as author
+        } group by author.name`
+
+      // align expected structure: subquery without FROM
+      expected.SELECT.columns[1].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with multiple expands', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { name },
+          genre { name }
+        } group by author.name, genre.name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+          left join bookshop.Genres as genre on genre.ID = Books.genre_ID
+        {
+          Books.ID,
+          (SELECT from DUMMY { author.name as name }) as author,
+          (SELECT from DUMMY { genre.name as name }) as genre
+        } group by author.name, genre.name`
+
+      expected.SELECT.columns[1].SELECT.from = null
+      expected.SELECT.columns[2].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with nested expands', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Genres as Genres
+        {
+          ID,
+          Genres.parent { parent { name } },
+        } group by parent.parent.name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as Genres
+          left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
+          left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+        {
+          Genres.ID,
+          (
+            SELECT from DUMMY
+            {
+              (SELECT from DUMMY { parent2.name as name }) as parent
+            }
+          ) as parent,
+        } group by parent2.name`
+
+      expected.SELECT.columns[1].SELECT.from = null
+      expected.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('with nested expands and non-nested sibling', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Genres as Genres
+        {
+          ID,
+          Genres.parent { parent { name }, name },
+        } group by parent.parent.name, parent.name`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as Genres
+          left join bookshop.Genres as parent on parent.ID = Genres.parent_ID
+          left join bookshop.Genres as parent2 on parent2.ID = parent.parent_ID
+        {
+          Genres.ID,
+          (
+            SELECT from DUMMY
+            {
+              (SELECT from DUMMY { parent2.name as name }) as parent,
+              parent.name as name
+            }
+          ) as parent,
+        } group by parent2.name, parent.name`
+
+      expected.SELECT.columns[1].SELECT.from = null
+      expected.SELECT.columns[1].SELECT.columns[0].SELECT.from = null
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('simple path not part of group by', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { name, ID }
+        } group by author.name`
+
+      expect(() => cqn4sql(q)).to.throw(/The expanded column "author.ID" must be part of the group by clause/)
+    })
+
+    it('nested path not part of group by', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author { books { title }, ID }
+        } group by author.ID`
+
+      expect(() => cqn4sql(q)).to.throw(/The expanded column "author.books.title" must be part of the group by clause/)
+    })
+
+    it('deeply nested path not part of group by', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          ID,
+          Books.author
+          {
+            books
+            {
+              author
+              {
+                name
+              }
+            },
+            ID
+          }
+        } group by author.ID`
+
+      expect(() => cqn4sql(q)).to.throw(
+        /The expanded column "author.books.author.name" must be part of the group by clause/,
+      )
+    })
+
+    it('expand path with filter must be an exact match in group by', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          author[name='King'] { name }
+        } group by author.name`
+
+      expect(() => cqn4sql(q)).to.throw(
+        `The expanded column "author[{"ref":["name"]},"=",{"val":"King"}].name" must be part of the group by clause`,
+      )
+    })
+
+    it('expand path with filter must be an exact match in group by (2)', () => {
+      const q = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          Books.ID,
+          author { name }
+        } group by author[name='King'].name`
+
+      expect(() => cqn4sql(q)).to.throw(`The expanded column "author.name" must be part of the group by clause`)
     })
   })
 })
