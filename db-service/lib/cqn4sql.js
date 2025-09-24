@@ -1462,7 +1462,7 @@ function cqn4sql(originalQuery, model) {
           if (list.every(e => e.val))
             // no need for transformation
             transformedTokenStream.push({ list })
-          else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink }) })
+          else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink, prop: 'list' }) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
         // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
@@ -1549,7 +1549,7 @@ function cqn4sql(originalQuery, model) {
               const flat =  getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
               if(flat.length === 0)
                 throw new Error(`Structured element “${getFullName(definition)}” expands to nothing and can't be used in expressions`)
-              else if (flat.length > 1)
+              else if (flat.length > 1 && context.prop !== 'list') // only acceptable in `list`
                 throw new Error(`Structured element “${getFullName(definition)}” expands to multiple fields and can't be used in expressions`)
               transformedTokenStream.push(...flat)
               continue

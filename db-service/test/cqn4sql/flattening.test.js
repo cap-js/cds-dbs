@@ -385,7 +385,7 @@ describe('Flattening', () => {
   })
 
   describe('in list', () => {
-    it('unfolds structure', () => {
+    it('unfolds structure with one leaf', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Books as Books {
               ID
@@ -401,6 +401,27 @@ describe('Flattening', () => {
                 $B.author_ID
               } where $B.title = 'x'
             )`
+      expect(query).to.deep.equal(expected)
+    })
+
+    it('unfolds structure with multiple leafs', () => {
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.Bar as Bar {
+              ID
+            } where (ID, structure) in (select from bookshop.Bar { ID, structure } where ID = 'x')`,
+        model,
+      )
+      const expected = cds.ql`
+        SELECT from bookshop.Bar as Bar {
+          Bar.ID
+        }
+        where (Bar.ID, Bar.structure_foo, Bar.structure_baz) in (
+          select from bookshop.Bar as $B {
+            $B.ID,
+            $B.structure_foo,
+            $B.structure_baz 
+          } where $B.ID = 'x'
+        )`
       expect(query).to.deep.equal(expected)
     })
   })
@@ -948,8 +969,8 @@ describe('Flattening', () => {
         /Structured element “structure” expands to multiple fields and can't be used in expressions/,
       )
     })
-    it('rejects structure with multiple leafs in list', () => {
-      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE (ID, structure) in (ID, structure)`, model)).to.throw(
+    it('does not reject structure with multiple leafs in list', () => {
+      expect(() => cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE (ID, structure) in (ID, structure)`, model)).to.not.throw(
         /Structured element “structure” expands to multiple fields and can't be used in expressions/,
       )
     })
