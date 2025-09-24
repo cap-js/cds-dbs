@@ -25,12 +25,12 @@
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^2.1.1",
+    "@cap-js/db-service": "^2.4.0",
     "hdb": "^0.19.5"
   },
   "peerDependencies": {
     "@sap/hana-client": "^2",
-    "@sap/cds": ">=9"
+    "@sap/cds": ">=9.3"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
