@@ -33,6 +33,7 @@ jobs:
       - run: npm ci
       - run: npm install -g @sap/cds-dk
       - run: npm ci
+      - run: cds v
       - run: npm run lint
       - id: hxe
         uses: ./.github/actions/hxe
