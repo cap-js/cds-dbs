@@ -102,3 +102,17 @@ entity BookShelf {
         books : Composition of many Books
                     on books.shelf = $self;
 }
+
+@cds.search: {
+    toMulti
+}
+entity MultipleLeafAssocAsKey {
+    key toMulti : Association to MultipleKeys;
+}
+
+entity MultipleKeys {
+    key ID1 : Integer;
+    key ID2 : Integer;
+    key ID3 : Integer;
+    text: String;
+}
