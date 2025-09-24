@@ -13,7 +13,7 @@ jobs:
     environment: npm
     steps:
       # v4.1.3
-      - uses: googleapis/release-please-action@58fbed0b875bc2f73d60680e175b4c152bf0eb39
+      - uses: googleapis/release-please-action@4cd397a333e5500c1683589c277f56a3c10990e6
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
