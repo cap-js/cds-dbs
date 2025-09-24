@@ -1023,7 +1023,7 @@ function cqn4sql(originalQuery, model) {
          * the result.
          */
         if (inOrderBy && flatColumns.length > 1)
-          throw new Error(`"${getFullName(leaf)}" can't be used in order by as it expands to multiple fields`)
+          throw new Error(`Structured element “${getFullName(leaf)}” expands to multiple fields and can't be used in order by`)
         flatColumns.forEach(fc => {
           if (col.nulls) fc.nulls = col.nulls
           if (col.sort) fc.sort = col.sort
@@ -1549,6 +1549,8 @@ function cqn4sql(originalQuery, model) {
               const flat =  getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
               if(flat.length === 0)
                 throw new Error(`Structured element “${getFullName(definition)}” expands to nothing and can't be used in expressions`)
+              else if (flat.length > 1)
+                throw new Error(`Structured element “${getFullName(definition)}” expands to multiple fields and can't be used in expressions`)
               transformedTokenStream.push(...flat)
               continue
             } else if ((!$baseLink || lastAssoc) && token.isJoinRelevant) {

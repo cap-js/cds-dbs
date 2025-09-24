@@ -106,6 +106,9 @@ entity Bar {
       x : Integer;
     };
   };
+  empty: {
+    // nothing
+  }
 }
 
 entity EStruc {
