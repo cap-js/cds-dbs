@@ -56,6 +56,12 @@ class HANAClientDriver extends driver {
     this._native.setAutoCommit(false)
   }
 
+  async proc(sql, data, outParameters) {
+    await this.connected
+    const rows = await prom(this._native, 'exec')(sql, data, {returnMultipleResultSets:true})
+    return this._getResultForProcedure(rows, outParameters)
+  }
+
   async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
     // hana-client ResultSet API does not allow for deferred streaming of blobs
@@ -132,12 +138,6 @@ class HANAClientDriver extends driver {
       return { changes }
     }
 
-    ret.proc = async (data, outParameters) => {
-      const stmt = await ret._prep
-      const rows = await prom(stmt, 'execQuery')(data)
-      return this._getResultForProcedure(rows, outParameters, stmt)
-    }
-
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
       values = Array.isArray(values) ? values : []
@@ -172,30 +172,17 @@ class HANAClientDriver extends driver {
     return this._native.state() === 'connected'
   }
 
-  async _getResultForProcedure(rows, outParameters, stmt) {
-    const result = {}
-    // build result from scalar params
-    const paramInfo = stmt.getParameterInfo()
-    for (let i = 0; i < paramInfo.length; i++) {
-      if (paramInfo[i].direction > 1) {
-        result[paramInfo[i].name] = stmt.getParameterValue(i)
-      }
-    }
-
-    const resultSet = Array.isArray(rows) ? rows[0] : rows
-    const nextAsync = prom(resultSet, 'next')
-    const nextResultAsync = prom(resultSet, 'nextResult')
+  _getResultForProcedure(rows, outParameters) {
+    // on hdb, rows already contains results for scalar params
+    const isArray = Array.isArray(rows)
+    const result = isArray ? { ...rows[0] } : { ...rows }
 
     // merge table output params into scalar params
-    const params = Array.isArray(outParameters) && outParameters.filter(md => !(md.PARAMETER_NAME in result))
-    if (params && params.length) {
+    const args = isArray ? rows.slice(1) : []
+    if (args && args.length && outParameters) {
+      const params = outParameters.filter(md => !(md.PARAMETER_NAME in (isArray ? rows[0] : rows)))
       for (let i = 0; i < params.length; i++) {
-        const parameterName = params[i].PARAMETER_NAME
-        result[parameterName] = []
-        while (resultSet.nextCanBlock() ? await nextAsync() : resultSet.next()) {
-          result[parameterName].push(resultSet.getValues())
-        }
-        await nextResultAsync()
+        result[params[i].PARAMETER_NAME] = args[i]
       }
     }
 
