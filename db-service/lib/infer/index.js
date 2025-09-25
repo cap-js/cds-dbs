@@ -1138,6 +1138,7 @@ function isNonForeignKeyNavigation(assoc, nextStep) {
 }
 
 function rejectNonFkNavigation(assoc, additionalInfo) {
+  return
   if (assoc.on) {
     throw new Error(`Unexpected unmanaged association “${assoc.name}” in filter expression of “${additionalInfo}”`)
   }
