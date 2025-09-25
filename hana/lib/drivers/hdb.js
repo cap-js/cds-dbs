@@ -82,6 +82,11 @@ class HDBDriver extends driver {
     })
   }
 
+  async proc(sql, data, outParameters) {
+    const stmt = await this.prepare(sql)
+    return stmt.proc(data, outParameters)
+  }
+
   async prepare(sql, hasBlobs) {
     const ret = await super.prepare(sql)
 
