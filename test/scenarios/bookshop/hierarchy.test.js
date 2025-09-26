@@ -32,6 +32,15 @@ describe('Bookshop - Genres', () => {
     await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID')`)
   })
 
+  test('TopLevels with $expand', async () => {
+    const query = `/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2)&$select=DrillState,ID,name&$expand=parent($select=ID,name)`
+    const res = await GET(query)
+
+    // should have parent expanded
+    const hasParent = res.data.value.some(item => item.parent)
+    expect(hasParent).to.be.true
+  })
+
   test('ancestors($filter)/TopLevels(1)', async () => {
     const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=ancestors($root/GenreHierarchy,GenreHierarchy,ID,filter(tolower(name) eq tolower('Fantasy')),keep start)/${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)`)
     expect(res).property('data').property('value').deep.eq([
