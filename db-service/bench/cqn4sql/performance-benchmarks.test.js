@@ -37,6 +37,10 @@ if (process.env.CDS_BENCH === 'true') {
   
     runBenchmarkFor('assoc2join simple', cds.ql`SELECT from my.Books { ID, author.firstName }`)
     runBenchmarkFor('assoc2join recursive (depth 3)', cds.ql`SELECT from my.Genres { ID, parent.parent.parent.name }`)
+
+    runBenchmarkFor('@cds.search simple', SELECT.from('my.Authors').columns('ID', 'firstName', 'lastName').search('Tolkien'))
+    runBenchmarkFor('@cds.search deep',   SELECT.from('my.AuthorsSearchBooks').columns('ID', 'firstName', 'lastName').search('The Lord of the Rings'))
+
   
   })
   

@@ -22,6 +22,9 @@ entity Authors {
                       on books.author = $self;
 }
 
+@cds.search: { books }
+entity AuthorsSearchBooks : Authors {}
+
 entity Genres {
   key ID       : Integer;
       name     : String;
