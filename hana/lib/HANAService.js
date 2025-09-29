@@ -5,6 +5,7 @@ const { Readable } = require('stream')
 const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
+const { getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const collations = require('./collations.json')
 const sessionVariableMap = require('./session.json')
 const keywords = cds.compiler.to.hdi.keywords
@@ -758,7 +759,8 @@ class HANAService extends SQLService {
       }
 
       const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
-      const transitions = this.srv.resolve.transitions4db(q)
+      // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
+      const transitions = this.srv.resolve.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, 'INSERT')
 
       const columns = elements
         ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
