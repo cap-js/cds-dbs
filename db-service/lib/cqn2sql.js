@@ -350,12 +350,12 @@ class CQN2SQLRenderer {
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       columnsIn.push(ref)
-      const foreignkey = element._foreignKey4
+      const foreignkey4 = element._foreignKey4
       if (
         from.args ||
         columnsFiltered.find(c => this.column_name(c) === name) ||
         // foreignkey needs to be included when the association is expanded
-        (foreignkey && q.__proto__.SELECT.columns.some(c => c.expand && c.ref[0] === target.elements[foreignkey]?.name))
+        (foreignkey4 && q.SELECT.columns.some(c => c.element.isAssociation && c.element.name === foreignkey4))
       ) {
         columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
       }
