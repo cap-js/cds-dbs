@@ -355,7 +355,7 @@ class CQN2SQLRenderer {
         from.args ||
         columnsFiltered.find(c => this.column_name(c) === name) ||
         // foreignkey needs to be included when the association is expanded
-        (foreignkey4 && q.SELECT.columns.some(c => c.element.isAssociation && c.element.name === foreignkey4))
+        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4))
       ) {
         columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
       }
