@@ -56,10 +56,10 @@ entity BooksSearchOnlyDescription : Books {
     description : String;
 }
 
-
 entity BooksIgnoreVirtualElement : Books {
     virtual virtualElement : String;
 }
+
 @cds.search: { virtualElement: true } 
 entity BooksIgnoreExplicitVirtualElement : Books {
     virtual virtualElement : String;
