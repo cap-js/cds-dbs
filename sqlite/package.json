@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "CDS database service for SQLite",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/sqlite#cds-database-service-for-sqlite",
   "repository": {
