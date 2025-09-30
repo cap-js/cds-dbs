@@ -2,7 +2,7 @@ const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
-const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
@@ -230,9 +230,7 @@ class SQLService extends DatabaseService {
     // REVISIT: It's not yet 100 % clear under which circumstances we can rely on db constraints
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
-      const resolve = this.resolve
-      // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-      const transitions = resolve?.transitions4db ? resolve.transitions4db(req.query, false) : getTransition(req.target, this, false, req.query.cmd || 'DELETE')
+      const transitions = getTransition(req.target, this, false, req.query.cmd || 'DELETE')
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
@@ -255,8 +253,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-      const table = resolve?.table ? resolve.table(req.target) : getDBTable(req.target)
+      const table = getDBTable(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
@@ -407,6 +404,10 @@ class SQLService extends DatabaseService {
    */
   cqn2sql(query, values) {
     let q = this.cqn4sql(query)
+    let kind = q.kind || Object.keys(q)[0]
+    if (kind in { INSERT: 1, DELETE: 1, UPSERT: 1, UPDATE: 1 }) {
+      q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
+    }
     let cqn2sql = new this.class.CQN2SQL(this)
     return cqn2sql.render(q, values)
   }
