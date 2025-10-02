@@ -274,6 +274,30 @@ describe('search w/ path expressions', () => {
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
 
+  it('deep search with structured key', () => {
+    let query = cds.ql`SELECT from search.MultipleLeafAssocAsKey as M { toMulti }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.MultipleLeafAssocAsKey as M
+    {
+      M.toMulti_ID1,
+      M.toMulti_ID2,
+      M.toMulti_ID3
+    }
+    where (M.toMulti_ID1, M.toMulti_ID2, M.toMulti_ID3) in (
+      SELECT from search.MultipleLeafAssocAsKey as $M left join search.MultipleKeys as toMulti
+        on toMulti.ID1 = $M.toMulti_ID1 and toMulti.ID2 = $M.toMulti_ID2 and toMulti.ID3 = $M.toMulti_ID3
+      {
+        $M.toMulti_ID1,
+        $M.toMulti_ID2,
+        $M.toMulti_ID3
+      } where search(toMulti.text, 'x')
+    )`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
   it('deep search candidate of base entity not projected', () => {
     let query = cds.ql`SELECT from search.PathInSearchNotProjected as PathInSearchNotProjected { title }`
     query.SELECT.search = [{ val: 'x' }]
