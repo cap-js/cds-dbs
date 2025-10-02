@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.1...hana-v2.3.2) (2025-10-02)
+
+
+### Fixed
+
+* guard access to hana server version ([#1368](https://github.com/cap-js/cds-dbs/issues/1368)) ([5618d90](https://github.com/cap-js/cds-dbs/commit/5618d90b77aceae2e9df8a078ff33d4eddeff27e))
+
 ## [2.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.0...hana-v2.3.1) (2025-09-30)
 
 
