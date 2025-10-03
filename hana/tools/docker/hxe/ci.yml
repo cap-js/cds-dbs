@@ -26,3 +26,18 @@ services:
       # - '30030-30033:39030-39033'
       # - '51000-51060:51000-51060'
       # - '53075:53075'
+
+  bookshop:
+    image: "node:latest"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=development
+      - PORT=4008
+    volumes:
+      - ../../../../test/bookshop/:/home/node/app
+    expose:
+      - "4008"
+    ports:
+      - "4008:4008"
+    command: "npm start"
