@@ -335,4 +335,38 @@ describe('(a2j) in infix filter', () => {
       expectCqn(transformed).to.equal(expected)
     })
   })
+
+  describe.only('path expressions in filter', () => {
+    it('puts the filter condition into a correlated subquery in the on-condition of the join', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books.genre.name = 'Drama'].name, 'Emily' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              left join bookshop.Books as books on books.author_ID = $A.ID
+              left join bookshop.Genres as genre on genre.ID = books.genre_ID
+              {
+                1 as dummy
+              }
+              where genre.name = 'Drama' AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Emily' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
 })

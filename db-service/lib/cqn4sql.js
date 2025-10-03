@@ -314,11 +314,19 @@ function cqn4sql(originalQuery, model) {
       lhs.args.push(arg)
       alreadySeen.set(nextAssoc.$refLink.alias, true)
       if (nextAssoc.where) {
-        const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
+        const subqueryTarget = nextAssoc.$refLink.definition._target
+        const primaryKeys = getPrimaryKey(subqueryTarget)
+        const correlation = primaryKeys.flatMap(pk => {
+          return [ {ref: pk.ref }, '=', { ref: [ /*outer alias added later*/...pk.ref ]} ]
+        })
+        const sub = SELECT.columns('1 as dummy').from(nextAssoc.$refLink.definition._target).where([...nextAssoc.where, 'and', ...correlation])
+        const transformedSub = transformSubquery(sub)
+        transformedSub.SELECT.where.at(-1).ref[0] = arg.as // replace outer alias placeholder
         lhs.on = [
           ...(hasLogicalOr(lhs.on) ? [asXpr(lhs.on)] : lhs.on),
           'and',
-          ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter),
+          'exists',
+          transformedSub,
         ]
       }
       if (node.children) {

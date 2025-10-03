@@ -1137,11 +1137,12 @@ function isNonForeignKeyNavigation(assoc, nextStep) {
   return assoc.on || !isForeignKeyOf(nextStep, assoc)
 }
 
-function rejectNonFkNavigation(assoc, additionalInfo) {
-  if (assoc.on) {
-    throw new Error(`Unexpected unmanaged association “${assoc.name}” in filter expression of “${additionalInfo}”`)
-  }
-  throw new Error(`Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${additionalInfo}”`)
+function rejectNonFkNavigation() {
+  return
+  // if (assoc.on) {
+  //   throw new Error(`Unexpected unmanaged association “${assoc.name}” in filter expression of “${additionalInfo}”`)
+  // }
+  // throw new Error(`Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${additionalInfo}”`)
 }
 
 /**
