@@ -88,6 +88,15 @@ class HANADriver {
     return module.exports.prom(this._native, 'exec')(sql)
   }
 
+  /**
+   * Used to execute procedure SQL statement like CALL, DO BEGIN, CALL ASYNC
+   * @param {string} sql The SQL String to be executed
+   * @returns {Promise<any>} The result from the database driver
+   */
+  async proc(sql, data = []) {
+    throw new Error('Implementation missing "proc"')
+  }
+
   set(variables) {
     this._native.set(variables)
   }
