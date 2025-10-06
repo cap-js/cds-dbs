@@ -336,7 +336,7 @@ describe('(a2j) in infix filter', () => {
     })
   })
 
-  describe.only('path expressions in filter', () => {
+  describe('path expressions in filter', () => {
     it('puts the filter condition into a correlated subquery in the on-condition of the join', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
@@ -353,8 +353,8 @@ describe('(a2j) in infix filter', () => {
           left join bookshop.Authors as author2
           on author2.ID = $B.author_ID and exists (
               SELECT from bookshop.Authors as $A
-              left join bookshop.Books as books on books.author_ID = $A.ID
-              left join bookshop.Genres as genre on genre.ID = books.genre_ID
+              inner join bookshop.Books as books on books.author_ID = $A.ID
+              inner join bookshop.Genres as genre on genre.ID = books.genre_ID
               {
                 1 as dummy
               }

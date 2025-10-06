@@ -21,7 +21,8 @@ describe('negative', () => {
         _inferred(cds.ql`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model),
       ).to.throw(/A filter can only be provided when navigating along associations/)
     })
-    it('join relevant path is rejected (path expressions inside filter only enabled for exists subqueries)', () => {
+    // the following was enabled:
+    it.skip('join relevant path is rejected (path expressions inside filter only enabled for exists subqueries)', () => {
       expect(() =>
         _inferred(
           cds.ql`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,

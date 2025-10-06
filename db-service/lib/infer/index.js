@@ -454,11 +454,7 @@ function infer(originalQuery, model) {
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
               if (isNonForeignKeyNavigation(element, nextStep)) {
-                if (inExists) {
-                  defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-                } else {
-                  rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
-                }
+                defineProperty($baseLink, 'pathExpressionInsideFilter', true)
               }
             }
             const resolvableIn = getDefinition(definition.target) || target
@@ -518,11 +514,7 @@ function infer(originalQuery, model) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
             if (isNonForeignKeyNavigation(element, nextStep)) {
-              if (inExists) {
-                defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-              } else {
-                rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
-              }
+              defineProperty($baseLink, 'pathExpressionInsideFilter', true)
             }
           }
           const $refLink = { definition: elements[id], target }
@@ -1135,14 +1127,6 @@ function isNonForeignKeyNavigation(assoc, nextStep) {
   if (!nextStep || !assoc.target) return false
 
   return assoc.on || !isForeignKeyOf(nextStep, assoc)
-}
-
-function rejectNonFkNavigation() {
-  return
-  // if (assoc.on) {
-  //   throw new Error(`Unexpected unmanaged association “${assoc.name}” in filter expression of “${additionalInfo}”`)
-  // }
-  // throw new Error(`Only foreign keys of “${assoc.name}” can be accessed in infix filter, but found “${additionalInfo}”`)
 }
 
 /**
