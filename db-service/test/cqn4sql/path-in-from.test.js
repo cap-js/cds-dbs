@@ -29,7 +29,7 @@ describe('infix filter on entities', () => {
 
   it('fails when using table alias in infix filter at entity', () => {
     expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books[Books.price < 12.13] {ID}`, model)).to.throw(
-      /"Books" not found in "bookshop.Books"/,
+      /"Books" not found in the elements of "bookshop.Books"/,
     )
   })
 
@@ -65,7 +65,7 @@ describe('infix filter on entities', () => {
       ] as Books {ID} where price > 5 group by price having price order by price limit 5`, model)
     expect(query).to.deep.equal(
       cds.ql`SELECT from bookshop.Books as Books {Books.ID}
-            WHERE (Books.price > 5) and (Books.price < 12.13)
+            WHERE Books.price < 12.13 and Books.price > 5
             GROUP BY Books.price, Books.title
             HAVING Books.price and Books.title
             ORDER BY Books.price, Books.title DESC

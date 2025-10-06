@@ -2418,6 +2418,13 @@ function assignQueryModifiers(SELECT, modifiers) {
     } else if (key === 'having') {
       if (!SELECT.having) SELECT.having = val
       else SELECT.having.push('and', ...val)
+    } else if (key === 'where') {
+      // ignore OData shortcut variant: `… bookshop.Orders:items[2]`
+      if(val.length === 1 && val[0].val) continue 
+      if (!SELECT.where) SELECT.where = val
+      // infix filter comes first in resulting where
+      else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
+      delete modifiers.where
     }
   }
 }
