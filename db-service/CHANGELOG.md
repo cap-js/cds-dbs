@@ -4,6 +4,28 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.0...db-service-v2.5.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.4.0...db-service-v2.5.0) (2025-09-30)
+
+
+### Added
+
+* make hana server version accessible to sub classes ([#1263](https://github.com/cap-js/cds-dbs/issues/1263)) ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sets default to hana cloud if server version cannot be detected ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+
+
+### Fixed
+
+* **`@cds.search`:** no duplicates for search along `to-many` paths ([#1341](https://github.com/cap-js/cds-dbs/issues/1341)) ([5c5f4fb](https://github.com/cap-js/cds-dbs/commit/5c5f4fbf790f718c3cf1bcb6f3bf7be421be598f))
+* associations in `[@cds](https://github.com/cds).search` are additive ([#1355](https://github.com/cap-js/cds-dbs/issues/1355)) ([ea931cb](https://github.com/cap-js/cds-dbs/commit/ea931cb120c2857aa18a4eb68b893926c0999a9f))
+* set proper element link for path into fk ([#1344](https://github.com/cap-js/cds-dbs/issues/1344)) ([9f365d3](https://github.com/cap-js/cds-dbs/commit/9f365d35ac614969d8fd2c2a9a1a2e0cd643969d))
+
 ## [2.4.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.3.0...db-service-v2.4.0) (2025-08-27)
 
 

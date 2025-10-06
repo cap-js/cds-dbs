@@ -150,5 +150,20 @@ describe('searching', () => {
       const res = await cds.run(query)
       expect(res.length).to.be.eq(2)
     })
+
+    test('search also own columns if association is part of `@cds.search`', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+
+      // matches the title
+      let res = await SELECT.from(Books).columns('author.name', 'title').search('Wuthering')
+      expect(res.length).to.be.eq(1)
+      expect(res[0].title).to.be.eq('Wuthering Heights')
+
+      res = await SELECT.from(Books).columns('author.name', 'title').search('Emily')
+      expect(res.length).to.be.eq(1)
+      expect(res[0].title).to.be.eq('Wuthering Heights')
+    })
   })
 })
