@@ -444,7 +444,7 @@ describe('Flattening', () => {
       )
     })
 
-    it('expands struct fields in function args in WHERE clause', () => {
+    it('expands struct fields in function args with exactly one leaf', () => {
       const transformed = cqn4sql(cds.ql`SELECT from bookshop.Bar { ID } WHERE sin(nested1) < 0`, model)
       const expected = cds.ql`
         SELECT from bookshop.Bar as $B {
