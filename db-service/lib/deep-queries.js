@@ -7,13 +7,7 @@ const ROOT = Symbol('root')
 let _compareJson
 const compareJson = (...args) => {
   if (!_compareJson) {
-    try {
-      // new path
-      _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
-    } catch {
-      // old path
-      _compareJson = require('@sap/cds/libx/_runtime/cds-services/services/utils/compareJson').compareJson
-    }
+    _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
   }
   return _compareJson(...args)
 }
