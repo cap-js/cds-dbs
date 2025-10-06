@@ -4,6 +4,35 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.1...hana-v2.3.2) (2025-10-02)
+
+
+### Fixed
+
+* guard access to hana server version ([#1368](https://github.com/cap-js/cds-dbs/issues/1368)) ([5618d90](https://github.com/cap-js/cds-dbs/commit/5618d90b77aceae2e9df8a078ff33d4eddeff27e))
+
+## [2.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.0...hana-v2.3.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.2.0...hana-v2.3.0) (2025-09-30)
+
+
+### Added
+
+* add support for SAP HANA Tenant Management Service v2 ([#1356](https://github.com/cap-js/cds-dbs/issues/1356)) ([b4bd9f2](https://github.com/cap-js/cds-dbs/commit/b4bd9f2381ce7e2389c7f9480352bb79ba045377))
+* make hana server version accessible to sub classes ([#1263](https://github.com/cap-js/cds-dbs/issues/1263)) ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sets default to hana cloud if server version cannot be detected ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sort selected columns & expands before formatting sql ([#1330](https://github.com/cap-js/cds-dbs/issues/1330)) ([d81b0bf](https://github.com/cap-js/cds-dbs/commit/d81b0bfd2be1fd3ea3c7bd23dbb2010d2d713155))
+
+
+### Fixed
+
+* updated fuzzy search syntax to include now require search mode 'text' ([#1333](https://github.com/cap-js/cds-dbs/issues/1333)) ([1946665](https://github.com/cap-js/cds-dbs/commit/194666500ccfb9a81f369f9680d83c2b2f2ba883))
+
 ## [2.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (2025-08-27)
 
 
