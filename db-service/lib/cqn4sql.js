@@ -2424,7 +2424,8 @@ function assignQueryModifiers(SELECT, modifiers) {
       if (!SELECT.where) SELECT.where = val
       // infix filter comes first in resulting where
       else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
-      modifiers = modifiers.id
+      // make it a regular ref
+      SELECT.from.ref.splice(-1, 1, modifiers.id)
     }
   }
 }
