@@ -78,8 +78,6 @@ describe('query clauses', () => {
     )
   })
 
-  //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
-  // which, by the way, is the case in tests below where we have a path in FROM -> ???
   it('gets precedence right for infix filter at entity and WHERE clause', () => {
     let query = cqn4sql(
       cds.ql`SELECT from bookshop.Books[price < 12.13 or stock > 77] as Books {Books.ID} where stock < 11 or price > 17.89`,
