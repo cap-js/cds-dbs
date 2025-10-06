@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "keywords": [
