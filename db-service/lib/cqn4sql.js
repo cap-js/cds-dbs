@@ -77,6 +77,9 @@ function cqn4sql(originalQuery, model) {
   if (inferred.DELETE?.from.ref?.at(-1).id) {
     assignQueryModifiers(inferred.DELETE, inferred.DELETE.from.ref.at(-1))
   }
+  if (inferred.UPDATE?.entity.ref?.at(-1).id) {
+    assignQueryModifiers(inferred.UPDATE, inferred.UPDATE.entity.ref.at(-1))
+  }
   inferred = infer(inferred, model)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
