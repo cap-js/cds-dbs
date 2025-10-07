@@ -41,7 +41,7 @@ if (process.env.CDS_BENCH === 'true') {
     runBenchmarkFor('@cds.search simple', SELECT.from('my.Authors').columns('ID', 'firstName', 'lastName').search('Tolkien'))
     runBenchmarkFor('@cds.search deep',   SELECT.from('my.AuthorsSearchBooks').columns('ID', 'firstName', 'lastName').search('The Lord of the Rings'))
 
-  
+    runBenchmarkFor('scoped query', cds.ql`SELECT from my.Books:author { name }`)
   })
   
   
