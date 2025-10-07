@@ -1785,9 +1785,9 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      // only append infix filter to outer where if it is the leaf of the from ref
-      if (refReverse[0].where)
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
+      // OData shortcut
+      if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val)
+        filterConditions.push(getTransformedTokenStream(refReverse[0].where, { $baseLink: $refLinksReverse[0] }))
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
@@ -2420,12 +2420,10 @@ function assignQueryModifiers(SELECT, modifiers) {
       else SELECT.having.push('and', ...val)
     } else if (key === 'where') {
       // ignore OData shortcut variant: `… bookshop.Orders:items[2]`
-      if(val.length === 1 && val[0].val) continue 
+      if(val.length === 1 && val[0].val) continue
       if (!SELECT.where) SELECT.where = val
       // infix filter comes first in resulting where
       else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
-      // make it a regular ref
-      SELECT.from.ref.splice(-1, 1, modifiers.id)
     }
   }
 }

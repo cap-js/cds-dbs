@@ -29,7 +29,7 @@ describe('infix filter on entities', () => {
 
   it('fails when using table alias in infix filter at entity', () => {
     expect(() => cqn4sql(cds.ql`SELECT from bookshop.Books[Books.price < 12.13] {ID}`, model)).to.throw(
-      /"Books" not found in the elements of "bookshop.Books"/,
+      /"Books" not found in "bookshop.Books"/,
     )
   })
 

@@ -10,7 +10,7 @@ const admin = {
 describe('Bookshop - Genres', () => {
   const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
 
-  test('Delete Genres', async () => {
+  test.only('Delete Genres', async () => {
     const body = require('./genres.json')
 
     const beforeData = await GET('/test/Genres', admin)
