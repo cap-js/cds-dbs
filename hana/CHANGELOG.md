@@ -4,6 +4,27 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.3](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.2...hana-v2.3.3) (2025-10-06)
+
+
+### Fixed
+
+* bump min db-service ([#1370](https://github.com/cap-js/cds-dbs/issues/1370)) ([06eee49](https://github.com/cap-js/cds-dbs/commit/06eee49ca09b0c8826270c207e9dfd809bc0c247))
+
+## [2.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.1...hana-v2.3.2) (2025-10-02)
+
+
+### Fixed
+
+* guard access to hana server version ([#1368](https://github.com/cap-js/cds-dbs/issues/1368)) ([5618d90](https://github.com/cap-js/cds-dbs/commit/5618d90b77aceae2e9df8a078ff33d4eddeff27e))
+
+## [2.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.0...hana-v2.3.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
 ## [2.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.2.0...hana-v2.3.0) (2025-09-30)
 
 
