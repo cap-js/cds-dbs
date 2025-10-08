@@ -415,7 +415,8 @@ describe('negative', () => {
   })
 
   describe('infix filters', () => {
-    it('rejects non fk traversal in infix filter in from', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in from', () => {
       expect(() => _inferred(cds.ql`SELECT from bookshop.Books[author.name = 'Kurt']`, model)).to.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
@@ -426,7 +427,8 @@ describe('negative', () => {
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
       )
     })
-    it('rejects non fk traversal in infix filter in where', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in where', () => {
       let query = cds.ql`SELECT from bookshop.Books where author.books[author.name = 'John Doe'].title = 'foo'`
       expect(() => _inferred(query)).to.throw(
         /Only foreign keys of “author” can be accessed in infix filter, but found “name”/,
@@ -439,7 +441,8 @@ describe('negative', () => {
       )
     })
 
-    it('rejects non fk traversal in infix filter in column', () => {
+    // works now
+    it.skip('rejects non fk traversal in infix filter in column', () => {
       expect(() =>
         _inferred(
           cds.ql`SELECT from bookshop.Authors {

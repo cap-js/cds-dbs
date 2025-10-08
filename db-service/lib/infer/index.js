@@ -217,6 +217,8 @@ function infer(originalQuery, model) {
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
           setElementOnColumns(col, queryElements[as])
+        } else if (col.expand) {
+          inferArg(col, queryElements, null, { inExpand: true })
         } else if (col.ref) {
           const firstStepIsTableAlias =
             (col.ref.length > 1 && col.ref[0] in sources) ||
@@ -227,8 +229,6 @@ function infer(originalQuery, model) {
           // we must handle $self references after the query elements have been calculated
           if (firstStepIsSelf) dollarSelfRefs.push(col)
           else handleRef(col)
-        } else if (col.expand) {
-          inferArg(col, queryElements, null)
         } else {
           cds.error`Not supported: ${JSON.stringify(col)}`
         }
@@ -304,7 +304,7 @@ function infer(originalQuery, model) {
           // don't miss an exists within an expression
           t.xpr.forEach(processToken)
         } else {
-          inferArg(t, queryElements, null, { inExists: skipJoins, inXpr, inQueryModifier: true })
+          inferArg(t, queryElements, null, { skipJoins: skipJoins, inXpr, inQueryModifier: true })
           skipJoins = false
         }
       }
@@ -373,8 +373,9 @@ function infer(originalQuery, model) {
    * @param {object} [$baseLink=null] - A base reference link, usually it's an object with a definition and a target.
    * Used for infix filters, exists <assoc> and nested projections.
    * @param {object} [context={}] - Contextual information for element inference.
-   * @param {boolean} [context.inExists=false] - Flag to control the creation of joins for non-association path traversals.
+   * @param {boolean} [context.skipJoins=false] - Flag to control the creation of joins for non-association path traversals.
    * for `exists <assoc>` paths we do not need to create joins for path expressions as they are part of the semi-joined subquery.
+   * for `assoc[…] {}` expands we do not need to create joins for path expressions as they are rendered as part of the correlated subquery.
    * @param {boolean} [context.inXpr=false] - Flag to signal whether the element is part of an expression.
    * Used to ignore non-persisted elements.
    * @param {boolean} [context.inNestedProjection=false] - Flag to signal whether the element is part of a nested projection.
@@ -397,14 +398,14 @@ function infer(originalQuery, model) {
    */
 
   function inferArg(arg, queryElements = null, $baseLink = null, context = {}) {
-    const { inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs } =
+    const { skipJoins: inExists, inXpr, inCalcElement, baseColumn, inInfixFilter, inQueryModifier, inFrom, dollarSelfRefs, inExpand } =
       context
     if (arg.param || arg.SELECT) return // parameter references are only resolved into values on execution e.g. :val, :1 or ?
     if (arg.args) applyToFunctionArgs(arg.args, inferArg, [null, $baseLink, context])
     if (arg.list) arg.list.forEach(arg => inferArg(arg, null, $baseLink, context))
     if (arg.xpr)
       arg.xpr.forEach((token, i) =>
-        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, inExists: inExists || arg.xpr[i - 1] === 'exists' }),
+        inferArg(token, queryElements, $baseLink, { ...context, inXpr: true, skipJoins: inExists || arg.xpr[i - 1] === 'exists' }),
       ) // e.g. function in expression
 
     if (!arg.ref) {
@@ -549,7 +550,8 @@ function infer(originalQuery, model) {
       }
 
       if (step.where) {
-        const danglingFilter = !(arg.ref[i + 1] || arg.expand || arg.inline || inExists)
+        const nextStep = arg.ref[i + 1]
+        const danglingFilter = !(nextStep || arg.expand || arg.inline || inExists)
         const definition = arg.$refLinks[i].definition
         if ((!definition.target && definition.kind !== 'entity') || (!inFrom && danglingFilter))
           throw new Error('A filter can only be provided when navigating along associations')
@@ -561,7 +563,7 @@ function infer(originalQuery, model) {
             skipJoinsForFilter = true
           } else if (token.ref || token.xpr || token.list) {
             inferArg(token, false, arg.$refLinks[i], {
-              inExists: skipJoinsForFilter || inExists,
+              skipJoins: skipJoinsForFilter || inExists || (inExpand && !nextStep),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -1027,7 +1029,7 @@ function infer(originalQuery, model) {
         // no joins for infix filters along `exists <path>`
         skipJoins = true
       } else {
-        inferArg(token, queryElements, null, { inExists: skipJoins, inXpr: true, dollarSelfRefs })
+        inferArg(token, queryElements, null, { skipJoins: skipJoins, inXpr: true, dollarSelfRefs })
         skipJoins = false
       }
     })

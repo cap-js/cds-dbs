@@ -341,7 +341,7 @@ function cqn4sql(originalQuery, model) {
         }
         // non join relevant path expressions inside filter, e.g. `author[name = 'FOO']…`
         else {
-          const filter = getTransformedTokenStream(nextAssoc.where, nextAssoc.$refLink)
+          const filter = getTransformedTokenStream(nextAssoc.where, { $baseLink: nextAssoc.$refLink })
           lhs.on.push(...['and', ...(hasLogicalOr(filter) ? [asXpr(filter)] : filter)])
         }
 
