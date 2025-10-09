@@ -643,7 +643,7 @@ function infer(originalQuery, model) {
     const leafArt = arg.$refLinks[arg.$refLinks.length - 1].definition
     const virtual = (leafArt.virtual || !isPersisted) && !inXpr
     // check if we need to merge the column `ref` into the join tree of the query
-    if (!inFrom && !inExists && !virtual && !inCalcElement) {
+    if (!inFrom && !inExists && !virtual && !inCalcElement && !inInfixFilter) {
       // for a ref inside an `inline` we need to consider the column `ref` which has the `inline` prop
       const colWithBase = baseColumn
         ? { ref: [...baseColumn.ref, ...arg.ref], $refLinks: [...baseColumn.$refLinks, ...arg.$refLinks] }
