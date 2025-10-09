@@ -217,7 +217,7 @@ function infer(originalQuery, model) {
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
           setElementOnColumns(col, queryElements[as])
-        } else if (col.expand) {
+        } else if (col.expand && !col.ref) {
           inferArg(col, queryElements, null, { inExpand: true })
         } else if (col.ref) {
           const firstStepIsTableAlias =
@@ -228,7 +228,7 @@ function infer(originalQuery, model) {
             !firstStepIsTableAlias && col.ref.length > 1 && ['$self', '$projection'].includes(col.ref[0])
           // we must handle $self references after the query elements have been calculated
           if (firstStepIsSelf) dollarSelfRefs.push(col)
-          else handleRef(col)
+          else handleRef(col, { inExpand: col.expand })
         } else {
           cds.error`Not supported: ${JSON.stringify(col)}`
         }
@@ -339,7 +339,7 @@ function infer(originalQuery, model) {
           if (referencesOtherDollarSelfColumn) {
             unprocessedColumns.push(currentDollarSelfColumn)
           } else {
-            handleRef(currentDollarSelfColumn, inXpr)
+            handleRef(currentDollarSelfColumn, { inXpr })
           }
         }
 
@@ -347,8 +347,8 @@ function infer(originalQuery, model) {
       } while (dollarSelfColumns.length > 0)
     }
 
-    function handleRef(col, inXpr) {
-      inferArg(col, queryElements, null, { inXpr })
+    function handleRef(col, context) {
+      inferArg(col, queryElements, null, context)
       const { definition } = col.$refLinks[col.$refLinks.length - 1]
       if (col.cast)
         // final type overwritten -> element not visible anymore
