@@ -217,7 +217,7 @@ function infer(originalQuery, model) {
             queryElements[as] = col.cast ? getElementForCast(col) : getCdsTypeForVal(col.val)
           }
           setElementOnColumns(col, queryElements[as])
-        } else if (col.expand && !col.ref) {
+        } else if (col.expand && !col.ref) { // anonymous expand
           inferArg(col, queryElements, null, { inExpand: true })
         } else if (col.ref) {
           const firstStepIsTableAlias =
