@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.6.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.1...db-service-v2.6.0) (2025-10-10)
+
+
+### Added
+
+* **`flattening`:** allow flattening of `n`-ary structures in `list` ([#1337](https://github.com/cap-js/cds-dbs/issues/1337)) ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+* **`flattening`:** allow flattening of structures with exactly one leaf ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+
 ## [2.5.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.0...db-service-v2.5.1) (2025-09-30)
 
 
