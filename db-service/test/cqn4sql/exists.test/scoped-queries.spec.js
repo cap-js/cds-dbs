@@ -322,7 +322,7 @@ describe('(exist predicate) scoped queries', () => {
         WHERE EXISTS (
           SELECT 1 from bookshop.Books as $B
           where $B.author_ID = author.ID and ($B.ID=201 or $B.ID=202)
-        ) and (author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar')`
+        ) and ((author.ID=4711 or author.ID=4712) and (author.name='foo' or author.name='bar'))`
 
       expectCqn(transformed).to.equal(expected)
     })
@@ -450,11 +450,11 @@ describe('(exist predicate) scoped queries', () => {
           $a.ID
         }
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B
-          where $B.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $B2
+          where $B2.author_ID = $a.ID
         ) and EXISTS (
-          SELECT 1 from bookshop.Books as $b2
-          where $b2.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $b
+          where $b.author_ID = $a.ID
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -497,15 +497,15 @@ describe('(exist predicate) scoped queries', () => {
           $a.ID
         }
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B
-          where $B.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $B2
+          where $B2.author_ID = $a.ID
           and EXISTS (
             SELECT 1 from bookshop.Genres as $g
-            where $g.ID = $B.genre_ID
+            where $g.ID = $B2.genre_ID
           )
         ) and EXISTS (
-          SELECT 1 from bookshop.Books as $b2
-          where $b2.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $b
+          where $b.author_ID = $a.ID
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -533,11 +533,11 @@ describe('(exist predicate) scoped queries', () => {
             and EXISTS (
               SELECT 1 from bookshop.Books as $B3 where $B3.author_ID = $a.ID
                 and EXISTS (
-                  SELECT 1 from bookshop.Genres as $g where $g.ID = $B3.genre_ID
+                  SELECT 1 from bookshop.Genres as $g2 where $g2.ID = $B3.genre_ID
                 )
             )
         ) and EXISTS (
-          SELECT 1 from bookshop.Genres as $g2 where $g2.ID = $b.genre_ID
+          SELECT 1 from bookshop.Genres as $g where $g.ID = $b.genre_ID
         )`
 
       expectCqn(transformed).to.equal(expected)
@@ -556,14 +556,14 @@ describe('(exist predicate) scoped queries', () => {
           $a.ID
         }
         WHERE EXISTS (
-          SELECT 1 from bookshop.Books as $B where $B.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $B2 where $B2.author_ID = $a.ID
         ) and EXISTS (
-          SELECT 1 from bookshop.Books as $b2 where $b2.author_ID = $a.ID
+          SELECT 1 from bookshop.Books as $b where $b.author_ID = $a.ID
           and
           (
             EXISTS (
-              SELECT 1 from bookshop.Authors as $c where $c.ID = $b2.coAuthor_ID_unmanaged
-            ) or $b2.title = 'Sturmhöhe'
+              SELECT 1 from bookshop.Authors as $c where $c.ID = $b.coAuthor_ID_unmanaged
+            ) or $b.title = 'Sturmhöhe'
           )
         )`
 

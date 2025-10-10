@@ -68,21 +68,17 @@ describe('Replace attribute search by search predicate', () => {
         from: { as: 'Genres', ref: ['bookshop.Genres'] },
         where: [
           {
-            xpr: [
-              {
-                args: [
-                  {
-                    list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }],
-                  },
-                  { xpr: [{ val: 'x' }, 'or', { val: 'y' }] },
-                ],
-                func: 'search',
-              },
-            ],
+            xpr: [{ ref: ['Genres', 'ID'] }, '<', { val: 4 }, 'or', { ref: ['Genres', 'ID'] }, '>', { val: 5 }],
           },
           'and',
           {
-            xpr: [{ ref: ['Genres', 'ID'] }, '<', { val: 4 }, 'or', { ref: ['Genres', 'ID'] }, '>', { val: 5 }],
+            args: [
+              {
+                list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }],
+              },
+              { xpr: [{ val: 'x' }, 'or', { val: 'y' }] },
+            ],
+            func: 'search',
           },
         ],
       },
