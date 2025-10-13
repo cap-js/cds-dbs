@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.9.2](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.1...hana-v1.9.2) (2025-10-13)
+
+
+### Fixed
+
+* updated fuzzy search to include the now required search mode 'text' ([#1378](https://github.com/cap-js/cds-dbs/issues/1378)) ([de4a859](https://github.com/cap-js/cds-dbs/commit/de4a85932f645c5c89449990900f290408492f85)), closes [#1333](https://github.com/cap-js/cds-dbs/issues/1333)
+
 ## [1.9.1](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v1.9.1) (2025-05-28)
 
 
