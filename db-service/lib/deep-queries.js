@@ -3,13 +3,7 @@ const { _target_name4 } = require('./SQLService')
 
 const ROOT = Symbol('root')
 
-let _compareJson
-const compareJson = (...args) => {
-  if (!_compareJson) {
-    _compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
-  }
-  return _compareJson(...args)
-}
+const compareJson = require('@sap/cds/libx/_runtime/common/utils/compareJson').compareJson
 
 const handledDeep = Symbol('handledDeep')
 
