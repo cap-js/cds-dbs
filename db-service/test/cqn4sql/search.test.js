@@ -593,4 +593,21 @@ describe('include / exclude logic', () => {
     } where search(Books.title, 'x')`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
   })
+
+  it('excluding an association should not lead to the association being searched', () => {
+    const excludeAuthor = cds.ql`SELECT from search.BooksDontSearchAuthor as Books { ID }`
+    const excludeAuthorName = cds.ql`SELECT from search.BooksDontSearchAuthorName as Books { ID }`
+    const defaultSearchableElements = cds.ql`SELECT from search.Books as Books { ID }`
+    excludeAuthor.SELECT.search = [{ val: 'x' }]
+    excludeAuthorName.SELECT.search = [{ val: 'x' }]
+    defaultSearchableElements.SELECT.search = [{ val: 'x' }]
+
+    // excluding assocs / elements in assoc.targets should lead to same result as default searchable elements
+    const noAuthor = cqn4sql(excludeAuthor, model)
+    const noAuthorName = cqn4sql(excludeAuthorName, model)
+    const allDefaults = cqn4sql(defaultSearchableElements, model)
+    expect(noAuthor.SELECT.where)
+      .to.deep.equal(noAuthorName.SELECT.where)
+      .to.deep.equal(allDefaults.SELECT.where)
+  })
 })

@@ -137,3 +137,10 @@ entity MultipleKeys {
     key ID3 : Integer;
     text: String;
 }
+
+// the following should just lead to the defaults being searched
+@cds.search: {author: false}
+entity BooksDontSearchAuthor: Books {}
+
+@cds.search: {author.name: false}
+entity BooksDontSearchAuthorName: Books {}

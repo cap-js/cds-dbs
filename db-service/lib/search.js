@@ -79,6 +79,9 @@ const _getSearchableColumns = entity => {
     // always ignore virtual elements from search
     if(column?.virtual) continue
     if (column?.isAssociation || columnName.includes('.')) {
+      if(!annotationValue)
+        continue
+
       const ref = columnName.split('.')
       if(ref.length > 1) skipDefaultSearchableElements = true
       deepSearchCandidates.push({ ref })
