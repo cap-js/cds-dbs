@@ -3,7 +3,6 @@ const { _target_name4 } = require('./SQLService')
 
 const ROOT = Symbol('root')
 
-// REVISIT: remove old path with cds^8
 let _compareJson
 const compareJson = (...args) => {
   if (!_compareJson) {
