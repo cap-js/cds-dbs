@@ -113,6 +113,9 @@ entity CalculatedAddressesWithoutAnno : Addresses {
     calculatedAddress : String = street || ' ' || zip || '' || city
 }
 
+@cds.search: {calculatedAddress: false}
+entity CalculatedAddressesExclude : Addresses {}
+
 @cds.search: {
     genre,
     books.doesNotExist
