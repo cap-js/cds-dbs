@@ -113,6 +113,9 @@ entity CalculatedAddressesWithoutAnno : Addresses {
     calculatedAddress : String = street || ' ' || zip || '' || city
 }
 
+@cds.search: {calculatedAddress: false}
+entity CalculatedAddressesExclude : Addresses {}
+
 @cds.search: {
     genre,
     books.doesNotExist
@@ -123,3 +126,24 @@ entity BookShelf {
         books : Composition of many Books
                     on books.shelf = $self;
 }
+
+@cds.search: {
+    toMulti
+}
+entity MultipleLeafAssocAsKey {
+    key toMulti : Association to MultipleKeys;
+}
+
+entity MultipleKeys {
+    key ID1 : Integer;
+    key ID2 : Integer;
+    key ID3 : Integer;
+    text: String;
+}
+
+// the following should just lead to the defaults being searched
+@cds.search: {author: false}
+entity BooksDontSearchAuthor: Books {}
+
+@cds.search: {author.name: false}
+entity BooksDontSearchAuthorName: Books {}
