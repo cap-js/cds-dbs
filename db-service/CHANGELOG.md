@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.6.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.1...db-service-v2.6.0) (2025-10-23)
+
+
+### Added
+
+* **`flattening`:** allow flattening of `n`-ary structures in `list` ([#1337](https://github.com/cap-js/cds-dbs/issues/1337)) ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+* **`flattening`:** allow flattening of structures with exactly one leaf ([7ec18f2](https://github.com/cap-js/cds-dbs/commit/7ec18f24dba80ba31ad4e46f816c17fa64cba91a))
+
+
+### Fixed
+
+* **`@cds.search`:** properly exclude an association from being searched ([#1385](https://github.com/cap-js/cds-dbs/issues/1385)) ([9ed4245](https://github.com/cap-js/cds-dbs/commit/9ed42458417c15dc33409befd0ef40889f04a69f))
+* tree table with expand ([#1363](https://github.com/cap-js/cds-dbs/issues/1363)) ([bdad412](https://github.com/cap-js/cds-dbs/commit/bdad412f0362165b532ce35261773e5ecc7c696a))
+
 ## [2.5.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.5.0...db-service-v2.5.1) (2025-09-30)
 
 
