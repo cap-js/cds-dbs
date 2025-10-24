@@ -406,7 +406,7 @@ describe('(a2j) in infix filter', () => {
       `
       expectCqn(transformed).to.equal(expected)
     })
-    it.only('one more nesting level', () => {
+    it('one more nesting level', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books
         {
@@ -449,6 +449,39 @@ describe('(a2j) in infix filter', () => {
           author.name as author_name
         }
         WHERE startswith( author2.name, 'Sanderson' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('adjacent path expressions inside filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books.genre.name = books.genre.parent.name].name, 'Emily' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              inner join bookshop.Books as books on books.author_ID = $A.ID
+              inner join bookshop.Genres as genre on genre.ID = books.genre_ID
+
+              inner join bookshop.Genres as parent on parent.ID = genre.parent_ID
+              {
+                1 as dummy
+              }
+              where genre.name = parent.name AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Emily' )
       `
       expectCqn(transformed).to.equal(expected)
     })
