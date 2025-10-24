@@ -309,6 +309,13 @@ class CQN2SQLRenderer {
       requiredComputedColumns[name] = true
     }
 
+    // HACK
+    let originalWhere
+    if (where?.[0] === 'exists') {
+      originalWhere = where
+      where = undefined
+    }
+
     // The hierarchy functions will output the following columns. Which might clash with the entity columns
     const reservedColumnNames = {
       PARENT_ID: 1, NODE_ID: 1,
@@ -391,10 +398,12 @@ class CQN2SQLRenderer {
     // In the case of join operations make sure to compute the hierarchy from the source table only
     const stableFrom = getStableFrom(from)
     const alias = stableFrom.as
+    const innerSELECT = { SELECT: { columns: columnsIn, from: stableFrom } }
+    if (originalWhere) innerSELECT.SELECT.where = originalWhere
     const source = () => {
       return ({
       func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+      args: [{ xpr: ['SOURCE', innerSELECT, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
       as: alias
     })
   }
@@ -501,7 +510,9 @@ class CQN2SQLRenderer {
       return this.from(setStableFrom(from, graph))
     }
 
-    return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+    const res = `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+    console.log(res)
+    return res
 
     function collectDistanceTo(where, innot = false) {
       for (let i = 0; i < where.length; i++) {
