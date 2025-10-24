@@ -406,5 +406,51 @@ describe('(a2j) in infix filter', () => {
       `
       expectCqn(transformed).to.equal(expected)
     })
+    it.only('one more nesting level', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          title,
+          author.name
+        }
+        WHERE startswith( author[books[genre[parent.name = 'Fiction'].name = 'Science Fiction'].title = 'Sunlit Man'].name, 'Sanderson' )
+      `)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+          left join bookshop.Authors as author on author.ID = $B.author_ID
+
+          left join bookshop.Authors as author2
+          on author2.ID = $B.author_ID and exists (
+              SELECT from bookshop.Authors as $A
+              inner join bookshop.Books as books
+              on books.author_ID = $A.ID and exists (
+                SELECT from bookshop.Books as $B2
+                inner join bookshop.Genres as genre
+                on genre.ID = $B2.genre_ID and exists (
+                  SELECT from bookshop.Genres as $G
+                  inner join bookshop.Genres as parent on parent.ID = $G.parent_ID
+                  {
+                    1 as dummy
+                  }
+                  where parent.name = 'Fiction' AND $G.ID = genre.ID
+                )
+                {
+                  1 as dummy
+                }
+                where genre.name = 'Science Fiction' AND $B2.ID = books.ID
+              )
+              {
+                1 as dummy
+              }
+              where books.title = 'Sunlit Man' AND $A.ID = author2.ID
+            )
+        {
+          $B.title,
+          author.name as author_name
+        }
+        WHERE startswith( author2.name, 'Sanderson' )
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 })
