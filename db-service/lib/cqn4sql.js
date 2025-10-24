@@ -1465,6 +1465,13 @@ function cqn4sql(originalQuery, model) {
             transformedTokenStream.push({ list })
           else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink, prop: 'list' }) })
         }
+      } else if (tokenStream.length === 1 && token.val && $baseLink) {
+        // infix filter - OData variant w/o mentioning key
+        const def = getDefinition($baseLink.definition.target) || $baseLink.definition
+        const flatKeys = getPrimaryKey(def, $baseLink.alias)
+        if (flatKeys.length > 1) // TODO: what about keyless?
+          throw new Error(`Shortcut notation “[${token.val}]” not available for composite primary key of “${def.name}”, write “<key> = ${token.val}” explicitly`)
+          transformedTokenStream.push(...[flatKeys[0], '=', token]);
       } else if (token.ref && token.param) {
         transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
@@ -1772,15 +1779,9 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      // OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
+      // OData variant w/o mentioning key
       if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val) {
-        const $baseLink = $refLinksReverse[0]
-        const token = refReverse[0].where[0]
-        const def = getDefinition($baseLink.definition.target) || $baseLink.definition
-        const flatKeys = getPrimaryKey(def, $baseLink.alias)
-        if (flatKeys.length > 1) // TODO: what about keyless?
-          throw new Error(`Shortcut notation “[${token.val}]” not available for composite primary key of “${def.name}”, write “<key> = ${token.val}” explicitly`)
-        filterConditions.push([flatKeys[0], '=', token]);
+        filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
       }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
