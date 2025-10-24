@@ -4,7 +4,6 @@ const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 
 const { expectCqn } = require('../helpers/expectCqn')
-const { expect } = cds.test
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
