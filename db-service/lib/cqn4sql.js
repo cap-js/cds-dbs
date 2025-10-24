@@ -1465,25 +1465,6 @@ function cqn4sql(originalQuery, model) {
             transformedTokenStream.push({ list })
           else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink, prop: 'list' }) })
         }
-      } else if (tokenStream.length === 1 && token.val && $baseLink) {
-        // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
-        const def = getDefinition($baseLink.definition.target) || $baseLink.definition
-        const keys = def.keys // use key aspect on entity
-        const keyValComparisons = []
-        const flatKeys = []
-        for (const v of Object.values(keys)) {
-          if (v !== backlinkFor($baseLink.definition)?.[0]) {
-            // up__ID already part of inner where exists, no need to add it explicitly here
-            flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
-          }
-        }
-        // TODO: improve error message, the current message is generally not true (only for OData shortcut notation)
-        if (flatKeys.length > 1)
-          throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
-        flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
-        keyValComparisons.forEach((kv, j) =>
-          transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
-        )
       } else if (token.ref && token.param) {
         transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
@@ -1791,9 +1772,16 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      // OData shortcut
-      if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val)
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where, { $baseLink: $refLinksReverse[0] }))
+      // OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
+      if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val) {
+        const $baseLink = $refLinksReverse[0]
+        const token = refReverse[0].where[0]
+        const def = getDefinition($baseLink.definition.target) || $baseLink.definition
+        const flatKeys = getPrimaryKey(def, $baseLink.alias)
+        if (flatKeys.length > 1) // TODO: what about keyless?
+          throw new Error(`Shortcut notation “[${token.val}]” not available for composite primary key of “${def.name}”, write “<key> = ${token.val}” explicitly`)
+        filterConditions.push([flatKeys[0], '=', token]);
+      }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
