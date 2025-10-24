@@ -1471,7 +1471,7 @@ function cqn4sql(originalQuery, model) {
         const flatKeys = getPrimaryKey(def, $baseLink.alias)
         if (flatKeys.length > 1) // TODO: what about keyless?
           throw new Error(`Shortcut notation “[${token.val}]” not available for composite primary key of “${def.name}”, write “<key> = ${token.val}” explicitly`)
-          transformedTokenStream.push(...[flatKeys[0], '=', token]);
+        transformedTokenStream.push(...[flatKeys[0], '=', token]);
       } else if (token.ref && token.param) {
         transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
