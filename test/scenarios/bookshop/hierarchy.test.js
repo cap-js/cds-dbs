@@ -52,7 +52,7 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
-  test('LimitedRank calculation with ExpandLevels should be correct', async () => {
+  test('LimitedRank via composition and filter', async () => {
     const db = await cds.connect.to('db')    
     await db.run(INSERT.into('TreeService.Root').entries([
       { ID: 1, name: 'test root' },
