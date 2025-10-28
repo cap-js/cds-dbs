@@ -1,5 +1,16 @@
 using {sap.capire.bookshop as my} from '../db/schema';
 
+entity Root {
+  key ID     : Integer;
+      name   : String;
+      genres : Composition of many my.Genres
+                 on genres.root = $self;
+}
+
+extend my.Genres with {
+  root : Association to Root;
+};
+
 
 @path: '/tree'
 service TreeService {
@@ -19,4 +30,6 @@ service TreeService {
       NodeProperty            : ID,
       ParentNavigationProperty: parent
     };
+
+  entity RootComp as projection on Root;
 }
