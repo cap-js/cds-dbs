@@ -12,7 +12,7 @@ describe('searching', () => {
 
   test('search via to-n association', async () => {
     // Make sure that there are no duplicates for search along to-many associations
-    const { Authors, Books } = cds.entities('sap.capire.bookshop')
+    const { Authors, Books } = cds.entities
     await INSERT.into(Authors).entries({ ID: 42, name: 'Rowling' })
     await INSERT.into(Books).entries([
       { ID: 2500, title: "Harry Potter and the Philosopher's Stone", author_ID: 42 },
