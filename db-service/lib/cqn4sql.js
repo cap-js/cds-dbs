@@ -74,6 +74,12 @@ function cqn4sql(originalQuery, model) {
   if (inferred.SELECT?.from.ref?.at(-1).id) {
     assignQueryModifiers(inferred.SELECT, inferred.SELECT.from.ref.at(-1))
   }
+  if (inferred.DELETE?.from.ref?.at(-1).id) {
+    assignQueryModifiers(inferred.DELETE, inferred.DELETE.from.ref.at(-1))
+  }
+  if (inferred.UPDATE?.entity.ref?.at(-1).id) {
+    assignQueryModifiers(inferred.UPDATE, inferred.UPDATE.entity.ref.at(-1))
+  }
   inferred = infer(inferred, model)
   const { getLocalizedName, isLocalized, getDefinition } = getModelUtils(model, originalQuery) // TODO: pass model to getModelUtils
   // if the query has custom joins we don't want to transform it
@@ -1460,24 +1466,12 @@ function cqn4sql(originalQuery, model) {
           else transformedTokenStream.push({ list: getTransformedTokenStream(list, { $baseLink, prop: 'list' }) })
         }
       } else if (tokenStream.length === 1 && token.val && $baseLink) {
-        // infix filter - OData variant w/o mentioning key --> flatten out and compare each leaf to token.val
+        // infix filter - OData variant w/o mentioning key
         const def = getDefinition($baseLink.definition.target) || $baseLink.definition
-        const keys = def.keys // use key aspect on entity
-        const keyValComparisons = []
-        const flatKeys = []
-        for (const v of Object.values(keys)) {
-          if (v !== backlinkFor($baseLink.definition)?.[0]) {
-            // up__ID already part of inner where exists, no need to add it explicitly here
-            flatKeys.push(...getFlatColumnsFor(v, { tableAlias: $baseLink.alias }))
-          }
-        }
-        // TODO: improve error message, the current message is generally not true (only for OData shortcut notation)
-        if (flatKeys.length > 1)
-          throw new Error('Filters can only be applied to managed associations which result in a single foreign key')
-        flatKeys.forEach(c => keyValComparisons.push([...[c, '=', token]]))
-        keyValComparisons.forEach((kv, j) =>
-          transformedTokenStream.push(...kv) && keyValComparisons[j + 1] ? transformedTokenStream.push('and') : null,
-        )
+        const flatKeys = getPrimaryKey(def, $baseLink.alias)
+        if (flatKeys.length > 1) // TODO: what about keyless?
+          throw new Error(`Shortcut notation “[${token.val}]” not available for composite primary key of “${def.name}”, write “<key> = ${token.val}” explicitly`)
+        transformedTokenStream.push(...[flatKeys[0], '=', token]);
       } else if (token.ref && token.param) {
         transformedTokenStream.push({ ...token })
       } else if (pseudos.elements[token.ref?.[0]]) {
@@ -1785,9 +1779,10 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      // only append infix filter to outer where if it is the leaf of the from ref
-      if (refReverse[0].where)
+      // OData variant w/o mentioning key
+      if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val) {
         filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
+      }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
       if (whereExistsSubSelects.length > 0) {
@@ -2418,6 +2413,12 @@ function assignQueryModifiers(SELECT, modifiers) {
     } else if (key === 'having') {
       if (!SELECT.having) SELECT.having = val
       else SELECT.having.push('and', ...val)
+    } else if (key === 'where') {
+      // ignore OData shortcut variant: `… bookshop.Orders:items[2]`
+      if(!val || val.length === 1 && val[0].val) continue
+      if (!SELECT.where) SELECT.where = val
+      // infix filter comes first in resulting where
+      else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
     }
   }
 }
