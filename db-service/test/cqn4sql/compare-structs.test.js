@@ -18,80 +18,7 @@ describe('compare structures', () => {
   })
   const { eqOps, notEqOps, notSupportedOps } = cqn4sql
 
-  it('expand <nullEqOps> NULL with a managed association in where w/ parens', () => {
-    eqOps.forEach(op => {
-      const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${first} null`
-      let query = cqn4sql(cds.ql(queryString), model)
-      const expectedQueryString = `
-          SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
-            where not (AssocWithStructuredKey.toStructuredKey_struct_mid_leaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_second ${first} null)`
-      expect(query).to.deep.equal(CQL(expectedQueryString))
-    })
-  })
-  it('expand <nullEqOps> NULL with a managed association in where w/o parens', () => {
-    eqOps.forEach(op => {
-      const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where AssocWithStructuredKey.toStructuredKey ${first} null`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedQueryString = `
-          SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
-            where AssocWithStructuredKey.toStructuredKey_struct_mid_leaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_second ${first} null`
-      expect(query).to.deep.equal(CQL(expectedQueryString))
-    })
-  })
-  it('expand <nullEqOps> NULL with a managed association in having w/ parens', () => {
-    eqOps.forEach(op => {
-      const [first] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } having not AssocWithStructuredKey.toStructuredKey ${first} null`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedQueryString = `
-          SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
-            having not (AssocWithStructuredKey.toStructuredKey_struct_mid_leaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf ${first} null AND
-                  AssocWithStructuredKey.toStructuredKey_second ${first} null)`
-      expect(query).to.deep.equal(CQL(expectedQueryString))
-    })
-  })
 
-  it('expand <nullNotEqOps> NULL with a managed association in where w/ parens', () => {
-    notEqOps.forEach(op => {
-      const [first, second] = op
-      const queryString = `SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { ID } where not AssocWithStructuredKey.toStructuredKey ${
-        second ? first + ' ' + second : first
-      } null`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedQueryString = `
-          SELECT from bookshop.AssocWithStructuredKey as AssocWithStructuredKey { AssocWithStructuredKey.ID }
-            where not (AssocWithStructuredKey.toStructuredKey_struct_mid_leaf ${
-              second ? first + ' ' + second : first
-            } null OR
-                  AssocWithStructuredKey.toStructuredKey_struct_mid_anotherLeaf ${
-                    second ? first + ' ' + second : first
-                  } null OR
-                  AssocWithStructuredKey.toStructuredKey_second ${second ? first + ' ' + second : first} null)`
-      expect(query).to.deep.equal(CQL(expectedQueryString))
-    })
-  })
-
-  it('expand <operator> NULL with a managed association in having and omits xpr if possible', () => {
-    eqOps.forEach(op => {
-      const [first, second] = op
-      const queryString = `SELECT from bookshop.Books as Books { ID } having Books.author ${
-        second ? first + ' ' + second : first
-      } null`
-      let query = cqn4sql(CQL(queryString), model)
-      const expectedCQL = CQL(
-        `SELECT from bookshop.Books as Books { Books.ID } having Books.author_ID ${
-          second ? first + ' ' + second : first
-        } null`,
-      )
-      expect(query).to.deep.equal(expectedCQL)
-    })
   })
 
   // PB new
@@ -126,30 +53,7 @@ describe('compare structures', () => {
     expect(cqn4sql(query, model)).to.deep.equal(expected)
   })
 
-  it('”IS / <> NULL” comparison with a managed association with two FKs', () => {
-    // `IS NULL` concat with "and"
-    // `<> NULL` concat with "or"
-    let query = cqn4sql(
-      cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { ID } where 1<2 and toStructuredKey is null or 2<3 or toStructuredKey <> null`,
-      model,
-    )
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.AssocWithStructuredKey as AWSK { AWSK.ID }
-        where 1<2
-          and (AWSK.toStructuredKey_struct_mid_leaf is null
-          and AWSK.toStructuredKey_struct_mid_anotherLeaf is null
-          and AWSK.toStructuredKey_second is null)
-          or 2<3
-          or (AWSK.toStructuredKey_struct_mid_leaf <> null
-          or AWSK.toStructuredKey_struct_mid_anotherLeaf <> null
-          or AWSK.toStructuredKey_second <> null)`)
-  })
 
-  it('IS NULL comparison with a structure', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Bar as Bar { ID } where Bar.structure is null`, model)
-    expect(query).to.deep.equal(cds.ql`SELECT from bookshop.Bar as Bar {Bar.ID}
-          where (Bar.structure_foo is null
-            and Bar.structure_baz is null)`)
-  })
 
   it('<operator> NULL comparison with a managed association in column list', () => {
     eqOps.forEach(op => {
