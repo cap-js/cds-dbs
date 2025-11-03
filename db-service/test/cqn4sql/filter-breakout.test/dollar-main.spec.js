@@ -25,26 +25,28 @@ describe('internal $main variable', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
-          ( (exists author.books[ contains(title, $main.title) ]) ?
-            'This author has already written similar books' :
-            'No similar books by this author'
+          (
+            exists author.books[ contains(title, $main.title) ] ?
+              'This author has already written similar books' :
+              'No similar books by this author'
           ) as hasSimilarBooks
         }`)
 
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
         {
-          ( CASE WHEN
-           (
-            EXISTS (
-              SELECT 1 from bookshop.Authors as $a
-              where $a.ID = Books.author_ID and EXISTS (
-                SELECT 1 from bookshop.Books as $b
-                where $b.author_ID = $a.ID
-                  and contains($b.title, Books.title)
+          (
+            CASE
+            WHEN EXISTS
+              (
+                SELECT 1 from bookshop.Authors as $a
+                where $a.ID = Books.author_ID
+                and EXISTS (
+                    SELECT 1 from bookshop.Books as $b
+                    where $b.author_ID = $a.ID
+                      and contains($b.title, Books.title)
+                  )
               )
-            )
-          )
             THEN 'This author has already written similar books'
             ELSE 'No similar books by this author'
             END
