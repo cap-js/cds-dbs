@@ -68,6 +68,11 @@ function getImplicitAlias(str, useTechnicalAlias = true) {
   return index != -1 ? str.substring(index + 1) : str
 }
 
+function getMainAlias (query) {
+  if (query.outerQueries) return query.outerQueries[0].SELECT.from.$refLinks.at(-1)
+  else return query.SELECT?.from.$refLinks.at(-1)
+}
+
 function defineProperty(obj, prop, value) {
   return Object.defineProperty(obj, prop, {
     value,
@@ -145,4 +150,5 @@ module.exports = {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  getMainAlias,
 }

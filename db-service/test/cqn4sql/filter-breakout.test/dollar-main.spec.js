@@ -53,4 +53,42 @@ describe('internal $main variable', () => {
       expectCqn(transformed).to.equal(expected)
     })
   })
+
+  describe('general behavior', () => {
+    it('shared prefix with outer query', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          genre.name as genre,
+          (exists author.books[ contains(genre.name, $main.genre.name) ] ? true : false) as hasBooksWithSimilarGenres
+        }`)
+      
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        left join bookshop.Genres as genre on genre.ID = Books.genre_ID
+        {
+          genre.name as genre,
+          (
+            CASE
+            WHEN EXISTS
+              (
+                SELECT 1 from bookshop.Authors as $a
+                where $a.ID = Books.author_ID and
+                EXISTS (
+                  SELECT 1 from bookshop.Books as $b
+                  inner join bookshop.Genres as genre2 on genre2.ID = $b.genre_ID
+                  where $b.author_ID = $a.ID
+                    and contains(genre2.name, genre.name)
+                )
+              )
+            THEN true
+            ELSE false
+            END
+          )
+          as hasBooksWithSimilarGenres
+        }
+      `
+      expectCqn(transformed).to.equal(expected)
+    })
+  })
 })

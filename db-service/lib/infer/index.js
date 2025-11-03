@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, getMainAlias } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -444,14 +444,8 @@ function infer(originalQuery, model) {
       if (i === 0) {
         if(!firstStepIsTableAlias && arg.ref.length > 1 && arg.ref[0] === '$main') {
           // replace $main with the alias of the outermost query
-          const mainAlias = (() => {
-            if(inferred.outerQueries)
-              return inferred.outerQueries[0].SELECT.from.$refLinks.at(-1)
-            else
-              return inferred.SELECT?.from.$refLinks.at(-1)
-          })()
+          const mainAlias = getMainAlias(inferred)
           arg.$refLinks.push(Object.assign(mainAlias, {$main: true}))
-          arg.ref[0] = mainAlias.alias
         } else if (id in pseudos.elements) {
           // pseudo path
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
@@ -668,7 +662,9 @@ function infer(originalQuery, model) {
         : arg
       if (isColumnJoinRelevant(colWithBase)) {
         defineProperty(arg, 'isJoinRelevant', true)
-        joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
+        // join resolved in outer query
+        if(!(arg.$refLinks[0].$main && originalQuery.outerQueries))
+          joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
       }
     }
     if (isCalculatedOnRead(leafArt)) {

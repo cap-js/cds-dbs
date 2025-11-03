@@ -2279,6 +2279,9 @@ function cqn4sql(originalQuery, model) {
       throw new Error('Invalid node')
     }
     if(node.$refLinks[0].$main) {
+      if (node.isJoinRelevant) {
+        return getJoinRelevantAlias(node)
+      }
       return node.$refLinks[0].alias
     }
     if ($baseLink) {
