@@ -144,5 +144,44 @@ describe('internal $main variable', () => {
         }`
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('behaves like table alias in outermost projection', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          $main.title,
+          $main.author.name
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        left join bookshop.Authors as author on author.ID = Books.author_ID
+        {
+          Books.title,
+          author.name as author_name
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+    it('behaves like table alias in outermost projection - shared prefix', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          $main.title,
+          $main.author.name,
+          Books.author.books.title as sharesAuthorJoin
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        left join bookshop.Authors as author on author.ID = Books.author_ID
+
+        left join bookshop.Books as books2 on books2.author_ID = author.ID
+        {
+          Books.title,
+          author.name as author_name,
+          books2.title as sharesAuthorJoin
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
   })
 })
