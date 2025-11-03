@@ -62,7 +62,7 @@ describe('internal $main variable', () => {
           genre.name as genre,
           (exists author.books[ contains(genre.name, $main.genre.name) ] ? true : false) as hasBooksWithSimilarGenres
         }`)
-      
+
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
         left join bookshop.Genres as genre on genre.ID = Books.genre_ID
@@ -88,6 +88,38 @@ describe('internal $main variable', () => {
           as hasBooksWithSimilarGenres
         }
       `
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('even inside a subquery, we always resolve to the outermost source', () => {
+      // in the nested subquery, $main still refers to `Books` - not to `Books2` nor `author`
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          (
+            SELECT 1 from bookshop.Authors as author
+            where author.ID = Books.author.ID
+            and exists (
+              SELECT 1 from bookshop.Books as Books2
+              where Books2.author.ID = author.ID and
+                    contains(Books2.title, $main.title)
+            )
+          ) as handWrittenExists
+        }`)
+      
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          (
+            SELECT 1 from bookshop.Authors as author
+            where author.ID = Books.author_ID
+            and EXISTS (
+              SELECT 1 from bookshop.Books as Books2
+              where Books2.author_ID = author.ID
+                and contains(Books2.title, Books.title)
+            )
+          ) as handWrittenExists
+        }`
       expectCqn(transformed).to.equal(expected)
     })
   })

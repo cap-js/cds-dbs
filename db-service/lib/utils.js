@@ -69,8 +69,11 @@ function getImplicitAlias(str, useTechnicalAlias = true) {
 }
 
 function getMainAlias (query) {
-  if (query.outerQueries) return query.outerQueries[0].SELECT.from.$refLinks.at(-1)
-  else return query.SELECT?.from.$refLinks.at(-1)
+  let mainAlias
+  if (query.outerQueries) mainAlias = query.outerQueries[0].SELECT?.from.$refLinks.at(-1)
+  else mainAlias = query.SELECT?.from.$refLinks.at(-1)
+  if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
+  return mainAlias
 }
 
 function defineProperty(obj, prop, value) {
