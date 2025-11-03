@@ -2278,6 +2278,9 @@ function cqn4sql(originalQuery, model) {
     if (!node || !node.$refLinks || !node.ref) {
       throw new Error('Invalid node')
     }
+    if(node.$refLinks[0].$main) {
+      return node.$refLinks[0].alias
+    }
     if ($baseLink) {
       return getBaseLinkAlias($baseLink)
     }

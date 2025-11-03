@@ -421,12 +421,13 @@ function infer(originalQuery, model) {
     // if any path step points to an artifact with `@cds.persistence.skip`
     // we must ignore the element from the queries elements
     let isPersisted = true
-    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
+    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias, firstStepIsSpecialMain
     if (!inFrom) {
       firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
       firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
       expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
     }
+
     if (dollarSelfRefs && firstStepIsSelf) {
       defineProperty(arg, 'inXpr', true)
       dollarSelfRefs.push(arg)
@@ -441,7 +442,17 @@ function infer(originalQuery, model) {
     arg.ref.forEach((step, i) => {
       const id = step.id || step
       if (i === 0) {
-        if (id in pseudos.elements) {
+        if(!firstStepIsTableAlias && arg.ref.length > 1 && arg.ref[0] === '$main') {
+          // replace $main with the alias of the outermost query
+          const mainAlias = (() => {
+            if(inferred.outerQueries)
+              return inferred.outerQueries[0].SELECT.from.$refLinks.at(-1)
+            else
+              return inferred.SELECT?.from.$refLinks.at(-1)
+          })()
+          arg.$refLinks.push(Object.assign(mainAlias, {$main: true}))
+          arg.ref[0] = mainAlias.alias
+        } else if (id in pseudos.elements) {
           // pseudo path
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
           pseudoPath = true // only first path step must be well defined
@@ -586,7 +597,8 @@ function infer(originalQuery, model) {
         })
       }
 
-      arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
+      if(!arg.$refLinks[i].$main)
+        arg.$refLinks[i].alias = !arg.ref[i + 1] && arg.as ? arg.as : id.split('.').pop()
       if (hasOwnSkip(getDefinition(arg.$refLinks[i].definition.target))) isPersisted = false
       if (!arg.ref[i + 1]) {
         const flatName = nameSegments.join('_')
