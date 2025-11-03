@@ -19,7 +19,7 @@ describe('internal $main variable', () => {
   })
 
   describe('assert cases', () => {
-    it('breakout of infix filter', () => {
+    it('breakout of infix filter to-many', () => {
       // the first column checks if the author of the current book
       // has already written other books with a similar title
       const transformed = cqn4sql(cds.ql`
@@ -51,6 +51,24 @@ describe('internal $main variable', () => {
             ELSE 'No similar books by this author'
             END
           ) as hasSimilarBooks
+        }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('breakout of infix filter to-one', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books as Books
+        {
+          author.books[ contains(title, $main.title) and ID != $main.ID ].title as similarBookTitle
+        }`)
+      const expected = cds.ql`
+        SELECT from bookshop.Books as Books
+          left join bookshop.Authors as author on author.ID = Books.author_ID
+          left join bookshop.Books as books2
+            on books2.author_ID = author.ID and
+               contains(books2.title, Books.title) and books2.ID != Books.ID
+        {
+          books2.title as similarBookTitle
         }`
       expectCqn(transformed).to.equal(expected)
     })
