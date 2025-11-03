@@ -19,7 +19,7 @@ describe('internal $main variable', () => {
   })
 
   describe('assert cases', () => {
-    it('breakout of infix filter to-many', () => {
+    it('breakout of infix filter - resolve $main in exists subquery', () => {
       // the first column checks if the author of the current book
       // has already written other books with a similar title
       const transformed = cqn4sql(cds.ql`
@@ -55,7 +55,7 @@ describe('internal $main variable', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('breakout of infix filter to-one', () => {
+    it('breakout of infix filter - resolve $main in join on condition', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
@@ -76,6 +76,8 @@ describe('internal $main variable', () => {
 
   describe('general behavior', () => {
     it('shared prefix with outer query', () => {
+      // the `$main.genre.name` re-uses the join which is
+      // generated for the `genre.name` column in the outer query
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
