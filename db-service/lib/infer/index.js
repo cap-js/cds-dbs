@@ -421,7 +421,7 @@ function infer(originalQuery, model) {
     // if any path step points to an artifact with `@cds.persistence.skip`
     // we must ignore the element from the queries elements
     let isPersisted = true
-    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias, firstStepIsSpecialMain
+    let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
     if (!inFrom) {
       firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
       firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
