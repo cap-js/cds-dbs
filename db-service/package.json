@@ -27,7 +27,7 @@
     "generic-pool": "^3.9.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9"
+    "@sap/cds": ">=9.5.0"
   },
   "license": "Apache-2.0"
 }
