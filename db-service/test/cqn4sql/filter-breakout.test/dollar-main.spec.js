@@ -162,25 +162,67 @@ describe('internal $main variable', () => {
         }`
       expectCqn(transformed).to.equal(expected)
     })
+
     it('behaves like table alias in outermost projection - shared prefix', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Books as Books
         {
           $main.title,
-          $main.author.name,
-          Books.author.books.title as sharesAuthorJoin
+          $main.author.name
         }`)
 
       const expected = cds.ql`
         SELECT from bookshop.Books as Books
         left join bookshop.Authors as author on author.ID = Books.author_ID
-
-        left join bookshop.Books as books2 on books2.author_ID = author.ID
         {
           Books.title,
-          author.name as author_name,
-          books2.title as sharesAuthorJoin
+          author.name as author_name
         }`
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('access $main in from clause', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books[$main.books.title = title]:author as author
+        {
+          books.title as sharedBookJoin
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as author
+        left join bookshop.Books as books on books.author_ID = author.ID
+        {
+          books.title as sharedBookJoin
+        }
+        where exists (
+          SELECT 1 from bookshop.Books as $B
+          where $B.author_ID = author.ID and books.title = $B.title
+        )
+        `
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it('access $main in from clause nested', () => {
+      // select all Genres with a "grandParent" that share it's name with the "grandKid"
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Genres[$main.name = name]:parent.parent as grandParent
+        {
+          grandParent.name as grandParentName,
+        }`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Genres as grandParent
+        {
+          grandParent.name as grandParentName,
+        }
+        where exists (
+          SELECT 1 from bookshop.Genres as $p
+          where $p.parent_ID = grandParent.ID and exists (
+            SELECT 1 from bookshop.Genres as $G
+            where $G.parent_ID = $p.ID and grandParent.name = $G.name
+          )
+        )
+      `
       expectCqn(transformed).to.equal(expected)
     })
   })

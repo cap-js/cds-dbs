@@ -68,14 +68,6 @@ function getImplicitAlias(str, useTechnicalAlias = true) {
   return index != -1 ? str.substring(index + 1) : str
 }
 
-function getMainAlias (query) {
-  let mainAlias
-  if (query.outerQueries) mainAlias = query.outerQueries[0].SELECT?.from.$refLinks.at(-1)
-  else mainAlias = query.SELECT?.from.$refLinks.at(-1)
-  if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
-  return mainAlias
-}
-
 function defineProperty(obj, prop, value) {
   return Object.defineProperty(obj, prop, {
     value,
@@ -153,5 +145,4 @@ module.exports = {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
-  getMainAlias,
 }

@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, getMainAlias } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
 const cdsTypes = cds.linked({
   definitions: {
     Timestamp: { type: 'cds.Timestamp' },
@@ -47,7 +47,6 @@ function infer(originalQuery, model) {
   let $combinedElements
 
   const sources = inferTarget(_.into || _.from || _.entity, {}) // IMPORTANT: _.into has to go before _.from for INSERT.into().from(SELECT)
-  const joinTree = new JoinTree(sources)
   const aliases = Object.keys(sources)
   const target = aliases.length === 1 ? getDefinitionFromSources(sources, aliases[0]) : originalQuery
   Object.defineProperties(inferred, {
@@ -72,7 +71,6 @@ function infer(originalQuery, model) {
     Object.defineProperties(inferred, {
       $combinedElements: { value: $combinedElements, writable: true, configurable: true },
       elements: { value: elements, writable: true, configurable: true },
-      joinTree: { value: joinTree, writable: true, configurable: true }, // REVISIT: eliminate
     })
     // also enrich original query -> writable because it may be inferred again
     defineProperty(originalQuery, 'elements', elements)
@@ -96,6 +94,10 @@ function infer(originalQuery, model) {
    */
   function inferTarget(from, querySources, useTechnicalAlias = true) {
     const { ref } = from
+    // Given a from clause `Root:parent[$main.name = name].parent as Foo`
+    // we need to first resolve until to the last step of the from.ref
+    // before we can replace $main with `Foo`
+    const $mainLazyResolve = [] // TODO: remove and replace with real alias breakout
     if (ref) {
       const { id, args } = ref[0]
       const first = id || ref[0]
@@ -111,7 +113,7 @@ function infer(originalQuery, model) {
       if (target.kind !== 'entity' && !target.isAssociation)
         throw new Error('Query source must be a an entity or an association')
 
-      inferArg(from, null, null, { inFrom: true })
+      inferArg(from, null, null, { inFrom: true, $mainLazyResolve })
       const alias =
         from.uniqueSubqueryAlias ||
         from.as ||
@@ -137,6 +139,10 @@ function infer(originalQuery, model) {
     } else if (from.SET) {
       infer(from, model)
     }
+
+    const joinTree = new JoinTree(querySources)
+    Object.defineProperty( inferred, 'joinTree', { value: joinTree, writable: true, configurable: true } )
+    for(const lazyRef of $mainLazyResolve) inferArg(lazyRef)
     return querySources
   }
 
@@ -422,7 +428,8 @@ function infer(originalQuery, model) {
     // we must ignore the element from the queries elements
     let isPersisted = true
     let firstStepIsTableAlias, firstStepIsSelf, expandOnTableAlias
-    if (!inFrom) {
+    const firstStepIsDollarMain = arg.ref.length > 1 && arg.ref[0] === '$main'
+    if (!inFrom && !firstStepIsDollarMain) {
       firstStepIsTableAlias = arg.ref.length > 1 && arg.ref[0] in sources
       firstStepIsSelf = !firstStepIsTableAlias && arg.ref.length > 1 && ['$self', '$projection'].includes(arg.ref[0])
       expandOnTableAlias = arg.ref.length === 1 && arg.ref[0] in sources && (arg.expand || arg.inline)
@@ -439,13 +446,19 @@ function infer(originalQuery, model) {
     // on conditions of joins
     const skipAliasedFkSegmentsOfNameStack = []
     let pseudoPath = false
-    arg.ref.forEach((step, i) => {
+    for(let i = 0; i < arg.ref.length; i++) {
+      const step = arg.ref[i]
       const id = step.id || step
       if (i === 0) {
-        if(!firstStepIsTableAlias && arg.ref.length > 1 && arg.ref[0] === '$main') {
-          // replace $main with the alias of the outermost query
-          const mainAlias = getMainAlias(inferred)
-          arg.$refLinks.push(Object.assign(mainAlias, {$main: true}))
+        if(firstStepIsDollarMain) {
+          if(inFrom) { // we need to resolve the full from clause first
+            context.$mainLazyResolve.push(arg)
+            return; // this will be done once the from clause is fully resolved
+          } else {
+            // replace $main with the alias of the outermost query
+            const mainAlias = getMainAlias(inferred)
+            arg.$refLinks.push(Object.assign(mainAlias, {$main: true}))
+          }
         } else if (id in pseudos.elements) {
           // pseudo path
           arg.$refLinks.push({ definition: pseudos.elements[id], target: pseudos })
@@ -574,6 +587,7 @@ function infer(originalQuery, model) {
             skipJoinsForFilter = true
           } else if (token.ref || token.xpr || token.list) {
             inferArg(token, false, arg.$refLinks[i], {
+              ...context,
               inExists: skipJoinsForFilter || inExists,
               inXpr: !!token.xpr,
               inInfixFilter: true,
@@ -638,8 +652,7 @@ function infer(originalQuery, model) {
           }
         }
       }
-    })
-
+    }
     // we need inner joins for the path expressions inside filter expressions after exists predicate
     if ($baseLink?.pathExpressionInsideFilter) defineProperty(arg, 'join', 'inner')
 
@@ -664,7 +677,7 @@ function infer(originalQuery, model) {
         defineProperty(arg, 'isJoinRelevant', true)
         // join resolved in outer query
         if(!(arg.$refLinks[0].$main && originalQuery.outerQueries))
-          joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
+          inferred.joinTree.mergeColumn(colWithBase, originalQuery.outerQueries)
       }
     }
     if (isCalculatedOnRead(leafArt)) {
@@ -909,7 +922,7 @@ function infer(originalQuery, model) {
         if (calcElementIsJoinRelevant) {
           if (!calcElement.value.isJoinRelevant)
             defineProperty(step, 'isJoinRelevant',true)
-          joinTree.mergeColumn(p, originalQuery.outerQueries)
+          inferred.joinTree.mergeColumn(p, originalQuery.outerQueries)
         } else {
           // we need to explicitly set the value to false in this case,
           // e.g. `SELECT from booksCalc.Books { ID, author.{name }, author {name } }`
@@ -1166,6 +1179,23 @@ const idOnly = ref => ref.id || ref
 function applyToFunctionArgs(funcArgs, cb, cbArgs) {
   if (Array.isArray(funcArgs)) funcArgs.forEach(arg => cb(arg, ...cbArgs))
   else if (typeof funcArgs === 'object') Object.keys(funcArgs).forEach(prop => cb(funcArgs[prop], ...cbArgs))
+}
+
+function getMainAlias (query) {
+  let mainAlias
+  if (query.outerQueries) mainAlias = query.outerQueries[0].SELECT?.from.$refLinks.at(-1)
+  else {
+    if(query.SELECT.from.ref.length === query.SELECT.from.$refLinks.length) // already fully resolved
+      mainAlias = query.SELECT?.from.$refLinks.at(-1)
+    else {
+      // we are in the middle of resolving the from clause
+      // e.g. TODO
+      const foo = cds.infer.target(query)
+      console.log('_target')
+    }
+  }
+  if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
+  return mainAlias
 }
 
 module.exports = infer
