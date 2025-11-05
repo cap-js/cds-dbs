@@ -1184,16 +1184,7 @@ function applyToFunctionArgs(funcArgs, cb, cbArgs) {
 function getMainAlias (query) {
   let mainAlias
   if (query.outerQueries) mainAlias = query.outerQueries[0].SELECT?.from.$refLinks.at(-1)
-  else {
-    if(query.SELECT.from.ref.length === query.SELECT.from.$refLinks.length) // already fully resolved
-      mainAlias = query.SELECT?.from.$refLinks.at(-1)
-    else {
-      // we are in the middle of resolving the from clause
-      // e.g. TODO
-      const foo = cds.infer.target(query)
-      console.log('_target')
-    }
-  }
+  else mainAlias = query.SELECT?.from.$refLinks.at(-1)
   if(!mainAlias) throw new Error('Cannot determine main query source for $main, please report this')
   return mainAlias
 }
