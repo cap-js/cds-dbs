@@ -203,7 +203,7 @@ describe('internal $main variable', () => {
     })
 
     it('access $main in from clause nested', () => {
-      // select all Genres with a "grandParent" that share it's name with the "grandKid"
+      // select all Genres with a "grandParent" that share their name with the "grandParent"
       const transformed = cqn4sql(cds.ql`
         SELECT from bookshop.Genres[$main.name = name]:parent.parent as grandParent
         {
