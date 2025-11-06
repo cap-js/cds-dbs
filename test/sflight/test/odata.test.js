@@ -1,4 +1,4 @@
-const cds = require('@sap/cds/lib')
+const cds = require('@sap/cds')
 const { GET, POST, PATCH, axios, expect } = cds.test(__dirname+'/..')
 const EDIT = (url) => POST (url+'/TravelService.draftEdit',{})
 const SAVE = (url) => POST (url+'/TravelService.draftActivate')
