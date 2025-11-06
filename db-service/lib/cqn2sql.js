@@ -80,6 +80,14 @@ class CQN2SQLRenderer {
      * @type {string} the rendered SQL string
      */
     this.sql = '' // to have it as first property for debugging
+
+    // VK: JUST EXPERIMENTS - move to cqn4sql
+    if (q.SELECT) {
+      const q_ = cds.model.definitions[q.SELECT.from.ref[0]].query
+      q_.as = q.SELECT.from.ref[0].replace(/\./, '_')
+      this._with = [q_]
+    }
+
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
