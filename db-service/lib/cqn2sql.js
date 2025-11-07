@@ -82,8 +82,9 @@ class CQN2SQLRenderer {
     this.sql = '' // to have it as first property for debugging
 
     // VK: JUST EXPERIMENTS - move to cqn4sql
-    if (q.SELECT && cds.model.definitions[q.SELECT.from.ref[0]]['@cds.persistence.skip']) {
-      const q_ = cds.model.definitions[q.SELECT.from.ref[0]].query
+    const modelDefinition = cds.model.definitions[q.SELECT?.from?.ref?.[0]]
+    if (modelDefinition?.['@cds.persistence.skip'] && modelDefinition?.query) {
+      const q_ =modelDefinition.query
       q_.as = q.SELECT.from.ref[0].replace(/\./, '_')
       this._with = [q_]
     }
