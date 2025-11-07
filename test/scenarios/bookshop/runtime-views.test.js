@@ -11,51 +11,51 @@ describe('Runtime Views', () => {
   describe('Basic Runtime View Operations', () => {
     
     test('testSelectAll_whereId - from runtimeViews1.Book', async () => {
-      const res = await GET(`/runtimeViews0/Book?$filter=ID eq 201`)
+      const res = await GET(`/runtimeViews1/Book?$filter=id eq 201`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
-        ID: 201,
+        id: 201,
         title: 'Wuthering Heights',
         authorName: 'Peter'
       })
     })
 
     test('testSelect_nestedProjection_whereId - from runtimeViews2.Book', async () => {
-      const res = await GET(`/runtimeViews2/Book?$select=ID,autor&$filter=ID eq 201&$expand=autor`)
+      const res = await GET(`/runtimeViews2/Book?$select=id,autor&$filter=id eq 201&$expand=autor`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
-        ID: 201,
+        id: 201,
         autor: {
-          ID: 1,
+          id: 1,
           nombre: 'Peter'
         }
       })
     })
 
     test('testSelect_withAlias_byId', async () => {
-      const res = await GET(`/runtimeViews2/Book?$select=ID,title,AuthorName&$filter=ID eq 201`)
+      const res = await GET(`/runtimeViews2/Book?$select=id,title,AuthorName&$filter=id eq 201`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
-        ID: 201,
+        id: 201,
         title: 'Wuthering Heights',
         AuthorName: 'Peter'
       })
     })
 
     test('testSelect_withAlias_whereIn_orderBy', async () => {
-      const res = await GET(`/runtimeViews2/Book?$select=ID,title,AuthorName&$filter=ID eq 201 or ID eq 277&$orderby=title`)
+      const res = await GET(`/runtimeViews2/Book?$select=id,title,AuthorName&$filter=id eq 201 or id eq 277&$orderby=title`)
       
       expect(res.data.value).toHaveLength(2)
       expect(res.data.value[0]).toMatchObject({
-        ID: 277,
+        id: 277,
         title: 'Wikipedia',
         AuthorName: null
       })
       expect(res.data.value[1]).toMatchObject({
-        ID: 201,
+        id: 201,
         title: 'Wuthering Heights',
         AuthorName: 'Peter'
       })
@@ -98,7 +98,7 @@ describe('Runtime Views', () => {
     })
 
     test('testSelect_ExpandWithAlias_toOne', async () => {
-      const res = await GET(`/runtimeViews2/Book?$select=title&$expand=cat($select=name)&$filter=ID eq 201`)
+      const res = await GET(`/runtimeViews2/Book?$select=title&$expand=cat($select=name)&$filter=id eq 201`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
@@ -328,7 +328,7 @@ describe('Runtime Views', () => {
     })
 
     test('testSelectFromFilteredPathDbViewToRuntimeView', async () => {
-      const res = await GET(`/runtimeViews0/views.BookToAuthorRTView?$filter=authorView/ID eq 1&$expand=authorView($select=name)`)
+      const res = await GET(`/runtimeViews0/views.BookToAuthorRTView?$filter=authorView/id eq 1&$expand=authorView($select=name)`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0].authorView.name).toBe('Peter')

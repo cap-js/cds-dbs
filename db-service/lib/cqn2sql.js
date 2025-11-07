@@ -86,7 +86,7 @@ class CQN2SQLRenderer {
     if (modelDefinition?.['@cds.persistence.skip'] && modelDefinition?.query) {
       const q_ =modelDefinition.query
       q_.as = q.SELECT.from.ref[0].replace(/\./, '_')
-      this._with = [q_]
+      this.with(q_)
     }
 
     /** @type {unknown[]} */
