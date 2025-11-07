@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Runtime Views', () => {
-  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
+  const { expect, GET } = cds.test(bookshop)
   
   beforeAll(() => {
     cds.log('odata', 'error')
@@ -11,7 +11,7 @@ describe('Runtime Views', () => {
   describe('Basic Runtime View Operations', () => {
     
     test('testSelectAll_whereId - from runtimeViews1.Book', async () => {
-      const res = await GET(`/admin/runtimeViews1.Book?$filter=id eq 201`)
+      const res = await GET(`/runtimeViews1/Book?$filter=id eq 201`)
       
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
