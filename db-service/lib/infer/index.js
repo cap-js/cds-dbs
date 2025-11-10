@@ -453,7 +453,7 @@ function infer(originalQuery, model) {
             const element = elements[id]
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
-              if (isNonForeignKeyNavigation(element, nextStep)) {
+              if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
                 if (inExists) {
                   defineProperty($baseLink, 'pathExpressionInsideFilter', true)
                 } else {
@@ -517,7 +517,7 @@ function infer(originalQuery, model) {
         if (element) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
-            if (isNonForeignKeyNavigation(element, nextStep)) {
+            if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[i-1]?.where) {
               if (inExists) {
                 defineProperty($baseLink, 'pathExpressionInsideFilter', true)
               } else {
