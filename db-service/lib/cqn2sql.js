@@ -81,17 +81,6 @@ class CQN2SQLRenderer {
      */
     this.sql = '' // to have it as first property for debugging
 
-    // VK: JUST EXPERIMENTS - move to cqn4sql
-    let modelDefinition = cds.model.definitions[q.SELECT?.from?.ref?.[0]]
-    while (modelDefinition?.['@cds.persistence.skip'] && modelDefinition?.query) {
-      let q_ = modelDefinition.query
-      q_.as = modelDefinition.name.replace(/\./, '_')
-      modelDefinition = cds.model.definitions[q_._target?.name]
-      //if (!modelDefinition?.['@cds.persistence.skip'] || !modelDefinition?.query) q_ = cqn4sql(q_, cds.model)
-      this._with ??= []
-      this._with.unshift(q_)
-    }
-
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here

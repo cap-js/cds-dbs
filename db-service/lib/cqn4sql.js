@@ -53,7 +53,7 @@ const { pseudos } = require('./infer/pseudos')
  * @param {object} model
  * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model) {
+function cqn4sql(originalQuery, model, options) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -167,7 +167,30 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
+  let currentDef = model.definitions[transformedQuery.SELECT?.from?.ref?.[0]]
+  const visitedDefs = new Set() // Prevent infinite loops
+
+  while (currentDef?.['@cds.persistence.skip'] && currentDef?.query) {
+    if (visitedDefs.has(currentDef.name)) break
+    visitedDefs.add(currentDef.name)
+
+    addWith(currentDef.name, currentDef)
+    currentDef = model.definitions[currentDef.query._target?.name]
+  }
+
   return transformedQuery
+
+  function addWith(id, modelDef = null) {
+    const definition = modelDef || model.definitions[id]
+    if (!definition?.query) return
+
+    const _with = cqn4sql(definition.query, model, { transformedQuery })
+    _with.as = definition.name.replace(/\./, '_')
+
+    const target = options?.transformedQuery || transformedQuery
+    target._with ??= []
+    target._with.push(_with)
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -305,6 +328,7 @@ function cqn4sql(originalQuery, model) {
       )
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
+      if (Object.hasOwn(getDefinition(nextAssoc.$refLink.definition.target), '@cds.persistence.skip')) addWith(id)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -962,8 +986,7 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
-          continue
+        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))
@@ -1188,13 +1211,15 @@ function cqn4sql(originalQuery, model) {
     let firstNonJoinRelevantAssoc, stepAfterAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on && !element.keys)
-      return [] // unmanaged doesn't make it into columns
+    if (element.on && !element.keys) return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
     else if (isJoinRelevant) {
-      const leafAssocIndex = column.$refLinks.findIndex(link => link.definition.isAssociation && link.onlyForeignKeyAccess)
-      firstNonJoinRelevantAssoc = column.$refLinks[leafAssocIndex] || [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
+      const leafAssocIndex = column.$refLinks.findIndex(
+        link => link.definition.isAssociation && link.onlyForeignKeyAccess,
+      )
+      firstNonJoinRelevantAssoc =
+        column.$refLinks[leafAssocIndex] || [...column.$refLinks].reverse().find(link => link.definition.isAssociation)
       stepAfterAssoc = column.$refLinks.at(leafAssocIndex + 1) || column.$refLinks.at(-1)
       let elements = firstNonJoinRelevantAssoc.definition.elements || firstNonJoinRelevantAssoc.definition.foreignKeys
       if (elements && stepAfterAssoc.definition.name in elements) {
@@ -1203,13 +1228,18 @@ function cqn4sql(originalQuery, model) {
         columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
 
-      if(column.element && !isAssocOrStruct(column.element)) {
-        columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
+      if (column.element && !isAssocOrStruct(column.element)) {
+        columnAlias =
+          column.as || leafAssocIndex === -1
+            ? columnAlias
+            : column.ref
+                .slice(leafAssocIndex - 1)
+                .map(idOnly)
+                .join('_')
         const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
         setElementOnColumns(res, column.element)
         return [res]
       }
-
     } else if (!baseName && structsAreUnfoldedAlready) {
       baseName = element.name // name is already fully constructed
     } else {
@@ -1254,7 +1284,8 @@ function cqn4sql(originalQuery, model) {
         if (flattenThisForeignKey) {
           const fkElement = getElementForRef(k.ref, getDefinition(element.target))
           let fkBaseName
-          if (!firstNonJoinRelevantAssoc || firstNonJoinRelevantAssoc.onlyForeignKeyAccess) fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
+          if (!firstNonJoinRelevantAssoc || firstNonJoinRelevantAssoc.onlyForeignKeyAccess)
+            fkBaseName = `${baseName}_${k.as || k.ref.at(-1)}`
           // e.g. if foreign key is accessed via infix filter - use join alias to access key in target
           else fkBaseName = k.ref.at(-1)
           const fkPath = [...csnPath, k.ref.at(-1)]
@@ -1501,8 +1532,7 @@ function cqn4sql(originalQuery, model) {
             throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
-          if(newTokens.length === 0)
-            throw new Error(`Can't compare two empty structures`)
+          if (newTokens.length === 0) throw new Error(`Can't compare two empty structures`)
 
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
           transformedTokenStream.push(...(needXpr ? [asXpr(newTokens)] : newTokens))
@@ -1585,9 +1615,17 @@ function cqn4sql(originalQuery, model) {
       const lhsIsStructured = isAssocOrStruct(lhsDef)
       const rhsIsStructured = isAssocOrStruct(rhsDef)
       if (!lhsIsStructured)
-        throw new Error(`Can't compare structure “${rhs.ref.map(idOnly).join('.')}” with non-structure “${lhs.ref.map(idOnly).join('.')}”`)
+        throw new Error(
+          `Can't compare structure “${rhs.ref.map(idOnly).join('.')}” with non-structure “${lhs.ref
+            .map(idOnly)
+            .join('.')}”`,
+        )
       if (!rhsIsStructured)
-        throw new Error(`Can't compare structure “${lhs.ref.map(idOnly).join('.')}” with non-structure “${rhs.ref.map(idOnly).join('.')}”`)
+        throw new Error(
+          `Can't compare structure “${lhs.ref.map(idOnly).join('.')}” with non-structure “${rhs.ref
+            .map(idOnly)
+            .join('.')}”`,
+        )
 
       const flatLhs = flattenWithBaseName(lhs)
       const flatRhs = flattenWithBaseName(rhs)
@@ -1613,8 +1651,7 @@ function cqn4sql(originalQuery, model) {
     } else if (lhsDef && (rhsVal || rhs === 'null' || rhs.val === null)) {
       // compare with value
       const flatLhs = flattenWithBaseName(lhs)
-      if (flatLhs.length !== 1 && rhsVal && rhs !== 'null')
-        canOnlyCompareToExactlyOneLeaf(lhsDef, lhs.ref, rhsVal)
+      if (flatLhs.length !== 1 && rhsVal && rhs !== 'null') canOnlyCompareToExactlyOneLeaf(lhsDef, lhs.ref, rhsVal)
 
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatLhs.forEach((column, i) => {
@@ -1624,8 +1661,7 @@ function cqn4sql(originalQuery, model) {
     } else if (lhsVal && rhsDef) {
       const flatRhs = flattenWithBaseName(rhs)
       // comparing a struct to a value is ok if structure has exactly one leaf
-      if (flatRhs.length !== 1 && lhsVal)
-        canOnlyCompareToExactlyOneLeaf(rhsDef, rhs.ref, lhsVal)
+      if (flatRhs.length !== 1 && lhsVal) canOnlyCompareToExactlyOneLeaf(rhsDef, rhs.ref, lhsVal)
 
       const boolOp = notEqOps.some(([f, s]) => operator[0] === f && operator[1] === s) ? 'or' : 'and'
       flatRhs.forEach((column, i) => {
@@ -1639,7 +1675,7 @@ function cqn4sql(originalQuery, model) {
       const what = struct.isAssociation ? 'association' : 'structure'
       const postfix = struct.isAssociation ? 'associations with one foreign key' : 'structures with one sub-element'
       throw new Error(
-        `Can't compare ${what} "${structRef.map(idOnly).join('.')}" to value "${val}"; only possible for ${postfix}`
+        `Can't compare ${what} "${structRef.map(idOnly).join('.')}" to value "${val}"; only possible for ${postfix}`,
       )
     }
 
@@ -1784,7 +1820,8 @@ function cqn4sql(originalQuery, model) {
         filterConditions.forEach(f => {
           transformedWhere.push('and')
           if (filterConditions.length > 1) transformedWhere.push(asXpr(f))
-          else if (f.length > 3 || f.includes('or') || f.includes('and') || f.includes('in')) transformedWhere.push(asXpr(f))
+          else if (f.length > 3 || f.includes('or') || f.includes('and') || f.includes('in'))
+            transformedWhere.push(asXpr(f))
           else transformedWhere.push(...f)
         })
       } else {
@@ -2030,7 +2067,9 @@ function cqn4sql(originalQuery, model) {
             // sanity check: error out if we can't produce a join
             if (backlink.keys.length === 0) {
               throw new Error(
-                `Path step “${assocRefLink.definition.name}” is a self comparison with “${getFullName(backlink)}” that has no foreign keys`,
+                `Path step “${assocRefLink.definition.name}” is a self comparison with “${getFullName(
+                  backlink,
+                )}” that has no foreign keys`,
               )
             }
             // managed backlink -> calculate fk-pk pairs
@@ -2216,7 +2255,7 @@ function cqn4sql(originalQuery, model) {
     return SELECT
   }
 
-/**
+  /**
    * For a given search term calculate a search expression which can be used in a where clause.
    * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
    * the search results of the subquery.
@@ -2242,15 +2281,17 @@ function cqn4sql(originalQuery, model) {
       ],
     }
     // for aggregated queries / search on subqueries we do not do a subquery search
-    if (inferred.SELECT.groupBy || entity.SELECT)
-      return searchFunc
-    
+    if (inferred.SELECT.groupBy || entity.SELECT) return searchFunc
+
     const matchColumns = getPrimaryKey(entity)
-    if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
+    if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1))
+      // keyless or not deep, fallback to old behavior
       return searchFunc
-    
-      const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
-    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
+
+    const subquery = SELECT.from(entity)
+      .columns(...matchColumns)
+      .where(searchFunc)
+    return { xpr: [matchColumns.length === 1 ? matchColumns[0] : { list: matchColumns }, 'in', subquery] }
   }
 
   /**
