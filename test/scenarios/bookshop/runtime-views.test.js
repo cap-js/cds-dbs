@@ -10,9 +10,19 @@ describe('Runtime Views', () => {
 
   describe('Basic Runtime View Operations', () => {
     
-    test('testSelectAll_whereId - from runtimeViews1.Book', async () => {
-      const res = await GET(`/runtimeViews1/Book?$filter=id eq 201`)
+    test('testSelectAll_whereId - from runtimeViews0.Book', async () => {
+      const res = await GET(`/runtimeViews0/Book?$filter=ID eq 201`)
       
+      expect(res.data.value).toHaveLength(1)
+      expect(res.data.value[0]).toMatchObject({
+        id: 201,
+        title: 'Wuthering Heights',
+        authorName: 'Peter'
+      })
+    })
+    
+    test('testSelectAll_whereId - from runtimeViews1.Book', async () => {
+      const res = await GET(`/runtimeViews1/Book?$filter=id eq 201`)      
       expect(res.data.value).toHaveLength(1)
       expect(res.data.value[0]).toMatchObject({
         id: 201,

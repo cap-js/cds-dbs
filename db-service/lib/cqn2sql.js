@@ -84,11 +84,12 @@ class CQN2SQLRenderer {
     // VK: JUST EXPERIMENTS - move to cqn4sql
     let modelDefinition = cds.model.definitions[q.SELECT?.from?.ref?.[0]]
     while (modelDefinition?.['@cds.persistence.skip'] && modelDefinition?.query) {
-      const q_ =modelDefinition.query
+      let q_ = modelDefinition.query
       q_.as = modelDefinition.name.replace(/\./, '_')
+      modelDefinition = cds.model.definitions[q_._target?.name]
+      //if (!modelDefinition?.['@cds.persistence.skip'] || !modelDefinition?.query) q_ = cqn4sql(q_, cds.model)
       this._with ??= []
       this._with.unshift(q_)
-      modelDefinition = cds.model.definitions[q_._target?.name]
     }
 
     /** @type {unknown[]} */
