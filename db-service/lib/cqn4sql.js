@@ -51,9 +51,8 @@ const { pseudos } = require('./infer/pseudos')
  *
  * @param {object} originalQuery
  * @param {object} model
- * @returns {object} transformedQuery the transformed query
  */
-function cqn4sql(originalQuery, model, options) {
+function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
@@ -174,6 +173,8 @@ function cqn4sql(originalQuery, model, options) {
     if (visitedDefs.has(currentDef.name)) break
     visitedDefs.add(currentDef.name)
 
+    if (!transformedQuery._with) transformedQuery._with = []
+
     addWith(currentDef.name, currentDef)
     currentDef = model.definitions[currentDef.query._target?.name]
   }
@@ -183,13 +184,18 @@ function cqn4sql(originalQuery, model, options) {
   function addWith(id, modelDef = null) {
     const definition = modelDef || model.definitions[id]
     if (!definition?.query) return
-
-    const _with = cqn4sql(definition.query, model, { transformedQuery })
+    
+    const q = cds.ql.clone(definition.query)
+    if (!q.SELECT.columns) q.SELECT.columns = ['*']
+    if (q.SELECT.columns.includes('*')) {
+      for (let el of definition.elements) {
+        if (el.type === 'cds.LargeBinary') q.SELECT.columns.push({ ref: [el.name] })
+      }
+    }
+    q._with = transformedQuery._with
+    const _with = cqn4sql(q, model)
     _with.as = definition.name.replace(/\./, '_')
-
-    const target = options?.transformedQuery || transformedQuery
-    target._with ??= []
-    target._with.push(_with)
+    transformedQuery._with.push(_with)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {

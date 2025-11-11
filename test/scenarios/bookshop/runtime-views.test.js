@@ -6,6 +6,11 @@ describe('Runtime Views', () => {
   
   beforeAll(() => {
     cds.log('odata', 'error')
+    cds.env.features.runtime_views = true
+  })
+
+  afterAll(() => {
+    cds.env.features.runtime_views = false
   })
 
   describe('Basic Runtime View Operations', () => {

@@ -23,8 +23,17 @@ function prettyPrintRef(ref, model = null) {
 
 function hasOwnSkip(definition) {
   return (
-    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true
+    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true && !isRuntimeView(definition)
   )
+}
+
+function isRuntimeView(definition) {
+  if (!cds.env.features.runtime_views) return false
+  if (!definition['@cds.persistence.skip']) return true
+
+  if (definition.query) return isRuntimeView(cds.model.definitions[definition.query.SELECT.from.ref.at(-1)])
+
+  return false
 }
 
 /**
