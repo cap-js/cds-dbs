@@ -1,7 +1,6 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
@@ -736,16 +735,7 @@ class CQN2SQLRenderer {
    * @returns SQL
    */
   where_resolved(from, where, q) {
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const kind = q.kind || (
-      q.SELECT ? 'SELECT' :
-      q.INSERT ? 'INSERT' :
-      q.UPSERT ? 'UPSERT' :
-      q.UPDATE ? 'UPDATE' :
-      q.DELETE ? 'DELETE' :
-      undefined
-    )
-    const transitions = this.srv.resolve?.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, kind)
+    const transitions = this.srv.resolve.transitions4db(q)
     if (transitions.target === transitions.queryTarget) return this.where(where)
 
     // view and table column refs to be matched
@@ -876,8 +866,7 @@ class CQN2SQLRenderer {
     if (!elements && !INSERT.entries?.length) {
       return // REVISIT: mtx sends an insert statement without entries and no reference entity
     }
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const transitions = this.srv.resolve?.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, 'INSERT')
+    const transitions = this.srv.resolve.transitions4db(q)
     const columns = elements
       ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
@@ -1045,8 +1034,7 @@ class CQN2SQLRenderer {
       .slice(0, columns.length)
       .map(c => c.converter(c.extract))
     
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const transitions = this.srv.resolve?.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, 'INSERT')
+    const transitions = this.srv.resolve.transitions4db(q)
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extraction} FROM json_each(?)`)
   }
@@ -1072,8 +1060,7 @@ class CQN2SQLRenderer {
     const alias = INSERT.into.as
     const src = this.cqn4sql(INSERT.from)
     const elements = q.elements || q._target?.elements || {}
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const transitions = this.srv.resolve?.transitions4db ? this.srv.resolve.transitions4db(q, this.srv) : getTransition(q._target, this.srv, false, 'INSERT')
+    const transitions = this.srv.resolve.transitions4db(q, this.srv)
     let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
       .filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
@@ -1163,8 +1150,7 @@ class CQN2SQLRenderer {
       else return true
     }).map(c => `${this.quote(c)} = excluded.${this.quote(c)}`)
 
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const transitions = this.srv.resolve.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, 'UPDATE')
+    const transitions = this.srv.resolve.transitions4db(q)
     return (this.sql = `INSERT INTO ${this.quote(entity)} (${columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))}) ${sql
       } WHERE TRUE ON CONFLICT(${keys.map(c => this.quote(c))}) DO ${updateColumns.length ? `UPDATE SET ${updateColumns}` : 'NOTHING'}`)
   }
@@ -1178,8 +1164,7 @@ class CQN2SQLRenderer {
    */
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const transitions = this.srv.resolve?.transitions4db ? this.srv.resolve.transitions4db(q) : getTransition(q._target, this.srv, false, 'UPDATE')
+    const transitions = this.srv.resolve.transitions4db(q)
     const elements = q._target?.elements    
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
@@ -1441,8 +1426,7 @@ class CQN2SQLRenderer {
    * @returns {string} Database table name
    */
   table_name(q) {
-    // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-    const table = cds.db.resolve?.table ? cds.db.resolve.table(q._target) : getDBTable(q._target)
+    const table = cds.db.resolve.table(q._target)
     return this.name(table.name, q)
   }
 

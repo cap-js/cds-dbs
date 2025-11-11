@@ -2,7 +2,6 @@ const cds = require('@sap/cds'),
   DEBUG = cds.debug('sql|db')
 const { Readable, Transform } = require('stream')
 const { pipeline } = require('stream/promises')
-const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
 
@@ -231,8 +230,7 @@ class SQLService extends DatabaseService {
     return (super.onDELETE = /* cds.env.features.assert_integrity === 'db' ? this.onSIMPLE : */ deep_delete)
     async function deep_delete(/** @type {Request} */ req) {
       const resolve = this.resolve
-      // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-      const transitions = resolve?.transitions4db ? resolve.transitions4db(req.query, false) : getTransition(req.target, this, false, req.query.cmd || 'DELETE')
+      const transitions = resolve.transitions4db(req.query, false)
       if (transitions.target !== transitions.queryTarget) {
         const keys = []
         const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
@@ -255,8 +253,7 @@ class SQLService extends DatabaseService {
         })
         return this.onDELETE({ query, target: transitions.target })
       }
-      // REVISIT: remove fallback when cds.dbs requires cds >= 9.3
-      const table = resolve?.table ? resolve.table(req.target) : getDBTable(req.target)
+      const table = resolve.table(req.target)
       const { compositions } = table
       if (compositions) {
         // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
