@@ -1564,7 +1564,7 @@ const _managed = {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
-const _columnExists = (elements, c) => !elements[c].virtual && !elements[c].value && !elements[c].isAssociation
+const _columnExists = (elements, c) => elements[c] && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation
 
 /**
  * @param {import('@sap/cds/apis/cqn').Query} q
