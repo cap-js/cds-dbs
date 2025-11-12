@@ -761,11 +761,10 @@ class HANAService extends SQLService {
       const transitions = this.srv.resolve.transitions4db(q)
 
       const columns = elements
-        ? ObjectKeys(elements).filter(c => (c = transitions.mapping.get(c)?.ref?.[0] || c)
+        ? ObjectKeys(elements).filter(c => this.columnExists(elements, c)
+          && (c = transitions.mapping.get(c)?.ref?.[0] || c)
           && c in transitions.target.elements
-          && !transitions.target.elements[c].virtual
-          && !transitions.target.elements[c].value
-          && !transitions.target.elements[c].isAssociation
+          && this.columnExists(transitions.target.elements, c)
           && !elements[c]?.[SYSTEM_VERSIONED]
         )
         : ObjectKeys(INSERT.entries[0])
