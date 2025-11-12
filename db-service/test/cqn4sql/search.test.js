@@ -68,21 +68,17 @@ describe('Replace attribute search by search predicate', () => {
         from: { as: 'Genres', ref: ['bookshop.Genres'] },
         where: [
           {
-            xpr: [
-              {
-                args: [
-                  {
-                    list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }],
-                  },
-                  { xpr: [{ val: 'x' }, 'or', { val: 'y' }] },
-                ],
-                func: 'search',
-              },
-            ],
+            xpr: [{ ref: ['Genres', 'ID'] }, '<', { val: 4 }, 'or', { ref: ['Genres', 'ID'] }, '>', { val: 5 }],
           },
           'and',
           {
-            xpr: [{ ref: ['Genres', 'ID'] }, '<', { val: 4 }, 'or', { ref: ['Genres', 'ID'] }, '>', { val: 5 }],
+            args: [
+              {
+                list: [{ ref: ['Genres', 'name'] }, { ref: ['Genres', 'descr'] }, { ref: ['Genres', 'code'] }],
+              },
+              { xpr: [{ val: 'x' }, 'or', { val: 'y' }] },
+            ],
+            func: 'search',
           },
         ],
       },
@@ -270,6 +266,30 @@ describe('search w/ path expressions', () => {
       {
         $B.ID
       } where search(author.lastName, 'x')
+    )`
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('deep search with structured key', () => {
+    let query = cds.ql`SELECT from search.MultipleLeafAssocAsKey as M { toMulti }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+    SELECT from search.MultipleLeafAssocAsKey as M
+    {
+      M.toMulti_ID1,
+      M.toMulti_ID2,
+      M.toMulti_ID3
+    }
+    where (M.toMulti_ID1, M.toMulti_ID2, M.toMulti_ID3) in (
+      SELECT from search.MultipleLeafAssocAsKey as $M left join search.MultipleKeys as toMulti
+        on toMulti.ID1 = $M.toMulti_ID1 and toMulti.ID2 = $M.toMulti_ID2 and toMulti.ID3 = $M.toMulti_ID3
+      {
+        $M.toMulti_ID1,
+        $M.toMulti_ID2,
+        $M.toMulti_ID3
+      } where search(toMulti.text, 'x')
     )`
     expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
   })
@@ -568,5 +588,43 @@ describe('include / exclude logic', () => {
       Books.ID
     } where search(Books.title, 'x')`
     expect(JSON.parse(JSON.stringify(transformed))).to.deep.equal(expected)
+  })
+
+  it('excluding an association should not lead to the association being searched', () => {
+    let query = cds.ql`SELECT from search.CalculatedAddressesExclude as Address { Address.ID }`
+    query.SELECT.search = [{ val: 'x' }]
+
+    let res = cqn4sql(query, model)
+    const expected = cds.ql`
+      SELECT from search.CalculatedAddressesExclude as Address
+      {
+        Address.ID
+      } where search(Address.city, 'x')`
+
+    expect(JSON.parse(JSON.stringify(res))).to.deep.equal(expected)
+  })
+
+  it('excluding an association should not lead to the association being searched', () => {
+    const excludeAuthor = cds.ql`SELECT from search.BooksDontSearchAuthor as Books { ID }`
+    const excludeAuthorName = cds.ql`SELECT from search.BooksDontSearchAuthorName as Books { ID }`
+    const defaultSearchableElements = cds.ql`SELECT from search.Books as Books { ID }`
+    excludeAuthor.SELECT.search = [{ val: 'x' }]
+    excludeAuthorName.SELECT.search = [{ val: 'x' }]
+    defaultSearchableElements.SELECT.search = [{ val: 'x' }]
+
+    // excluding assocs (or paths) should lead to same result as default searchable elements
+    const noAuthor = cqn4sql(excludeAuthor, model)
+    const noAuthorName = cqn4sql(excludeAuthorName, model)
+    const allDefaults = cqn4sql(defaultSearchableElements, model)
+    expect(noAuthor.SELECT.where)
+      .to.deep.equal(noAuthorName.SELECT.where)
+      .to.deep.equal(allDefaults.SELECT.where)
+
+    const expected = cds.ql`
+    SELECT from search.BooksDontSearchAuthor as Books
+    {
+      Books.ID
+    } where search(Books.title, 'x')`
+    expect(JSON.parse(JSON.stringify(noAuthor))).to.deep.equal(expected)
   })
 })
