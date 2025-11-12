@@ -1233,7 +1233,7 @@ function cqn4sql(originalQuery, model) {
     let firstNonJoinRelevantAssoc, stepAfterAssoc
     let element = $refLinks ? $refLinks[$refLinks.length - 1].definition : column
     if (isWildcard && element.type === 'cds.LargeBinary') return []
-    if (element.on && !element.keys) 
+    if (element.on && !element.keys)
       return [] // unmanaged doesn't make it into columns
     else if (element.virtual === true) return []
     else if (!isJoinRelevant && flatName) baseName = flatName
@@ -2289,11 +2289,11 @@ function cqn4sql(originalQuery, model) {
     // for aggregated queries / search on subqueries we do not do a subquery search
     if (inferred.SELECT.groupBy || entity.SELECT)
       return searchFunc
-
+    
     const matchColumns = getPrimaryKey(entity)
     if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
       return searchFunc
-
+    
       const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
     return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
   }
