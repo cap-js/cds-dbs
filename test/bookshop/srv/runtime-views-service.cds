@@ -338,10 +338,7 @@ service runtimeViews2Service {
             1          as cid,
             title,
             authorName as AuthorName,
-            Author     as autor {
-                id   as id,
-                name as nombre
-            }
+            Author     as autor
         };
 }
 
