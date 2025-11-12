@@ -23,7 +23,7 @@ function prettyPrintRef(ref, model = null) {
 
 function hasOwnSkip(definition) {
   return (
-    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true && !isRuntimeView(definition)
+    definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true
   )
 }
 
@@ -154,4 +154,5 @@ module.exports = {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView
 }

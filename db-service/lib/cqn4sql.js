@@ -13,6 +13,7 @@ const {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView
 } = require('./utils')
 
 /**
@@ -169,7 +170,9 @@ function cqn4sql(originalQuery, model) {
   let currentDef = model.definitions[transformedQuery.SELECT?.from?.ref?.[0]]
   const visitedDefs = new Set() // Prevent infinite loops
 
-  while (currentDef?.['@cds.persistence.skip'] && currentDef?.query) {
+  while (hasOwnSkip(currentDef)) {
+    if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+
     if (visitedDefs.has(currentDef.name)) break
     visitedDefs.add(currentDef.name)
 
@@ -334,7 +337,8 @@ function cqn4sql(originalQuery, model) {
       )
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
-      if (Object.hasOwn(getDefinition(nextAssoc.$refLink.definition.target), '@cds.persistence.skip')) addWith(id)
+      const def = getDefinition(nextAssoc.$refLink.definition.target)
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -492,8 +496,11 @@ function cqn4sql(originalQuery, model) {
       let columnAlias = col.as || (col.isJoinRelevant ? col.flatName : null)
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
-
-      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
+      
+      if (col.$refLinks.some(link => {
+        const def = getDefinition(link.definition.target)
+        return hasOwnSkip(def) && !isRuntimeView(def)
+      })) return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -992,7 +999,10 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) continue
+        if (col.$refLinks.some(link => {
+          const def = getDefinition(link.definition.target)
+          return hasOwnSkip(def) && !isRuntimeView(def)
+        })) continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
           res.push(...getTransformedOrderByGroupBy([dollarSelfReplacement], inOrderBy))

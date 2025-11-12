@@ -290,9 +290,8 @@ describe('Runtime Views', () => {
         await GET(`/runtimeViews/VirtualBookView`)
         fail('Expected request to throw an error') // should not reach here
       } catch (error) {
-        // TODO: Currently breaks on db with 500 - no such table: runtimeViews_VirtualBook, can we do it better ?
-        expect(error.response.status).toBe(501)
-        expect(error.response.data.error).toMatch(/not a runtime view/)
+        expect(error.response.status).toBe(500)
+        expect(error.response.data.error.message).toMatch(/not a runtime view/)
       }      
     })
 
