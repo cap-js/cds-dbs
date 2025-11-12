@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Runtime Views', () => {
-  const { expect, GET } = cds.test(bookshop)
+  const { GET } = cds.test(bookshop)
   
   beforeAll(() => {
     cds.log('odata', 'error')
@@ -286,7 +286,24 @@ describe('Runtime Views', () => {
   describe('Error Cases', () => {
     
     test('testSelect_Unsupported - Virtual entities should throw', async () => {
-      await expect(GET(`/runtimeViews0/runtimeViews.VirtualBookView`)).rejects.toThrow()
+      try {
+        await GET(`/runtimeViews/VirtualBookView`)
+        fail('Expected request to throw an error') // should not reach here
+      } catch (error) {
+        // TODO: Currently breaks on db with 500 - no such table: runtimeViews_VirtualBook, can we do it better ?
+        expect(error.response.status).toBe(501)
+        expect(error.response.data.error).toMatch(/not a runtime view/)
+      }      
+    })
+
+    test('testSelect_Unsupported - Remote entities should throw in crud.js', async () => {
+      try {
+        await GET(`/runtimeViews/BusinessPartners`)
+        fail('Expected request to throw an error') // should not reach here
+      } catch (error) {
+        expect(error.response.status).toBe(501)
+        expect(error.response.data.error.message).toMatch(/refers to a remote service/)
+      }     
     })
 
     test('testSelectExcludedThrows - Excluded fields should not be accessible', async () => {

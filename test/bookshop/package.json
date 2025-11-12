@@ -20,6 +20,13 @@
     "watch": "cds watch"
   },
   "cds": {
+    "requires": {
+      "S4": {
+        "service": "API_BUSINESS_PARTNER",
+        "kind": "odata",
+        "model": "srv/external/API_BUSINESS_PARTNER"
+      }
+    },
     "features": {
       "ieee754compatible": true
     }

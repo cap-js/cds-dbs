@@ -1,5 +1,7 @@
 using {sap.capire.bookshop as my} from '../db/schema';
 
+using { API_BUSINESS_PARTNER as external } from './external/API_BUSINESS_PARTNER.csn';
+
 // Create bookshop namespace for compatibility
 context bookshop {
     // Map Order-related entities to Books (representing book orders)
@@ -378,7 +380,8 @@ service runtimeViews3Service {
         };
 }
 
-context runtimeViews {
+@path: '/runtimeViews'
+service runtimeViews {
 
     entity BooksWithHighStock as
         projection on runtimeViews1Service.Book {
@@ -401,6 +404,16 @@ context runtimeViews {
     };
 
     entity VirtualBookView    as select from VirtualBook;
+
+    @cds.persistence.skip
+    view MyRemoteView as
+    select from external.A_BusinessPartner {
+        key BusinessPartner,
+        BusinessPartnerName,
+        CreationDate
+    };
+
+    entity BusinessPartners as projection on MyRemoteView;
 }
 
 @path: '/runtimeViews10'
