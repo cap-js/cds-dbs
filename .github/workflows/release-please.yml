@@ -9,6 +9,7 @@ jobs:
         contents: write
         pull-requests: write
         packages: write
+        id-token: write
     runs-on: ubuntu-latest
     environment: npm
     steps:
@@ -24,7 +25,7 @@ jobs:
           ref: 'release/v1'
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
       ## debug info
