@@ -17,6 +17,7 @@ class CQN2SQLRenderer {
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
   constructor(srv) {
+    this.srv = srv
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
@@ -349,7 +350,13 @@ class CQN2SQLRenderer {
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       columnsIn.push(ref)
-      if (from.args || columnsFiltered.find(c => this.column_name(c) === name)) {
+      const foreignkey4 = element._foreignKey4
+      if (
+        from.args ||
+        columnsFiltered.find(c => this.column_name(c) === name) ||
+        // foreignkey needs to be included when the association is expanded
+        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4))
+      ) {
         columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
       }
     }

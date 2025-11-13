@@ -25,6 +25,7 @@ class HDBDriver extends driver {
     creds = {
       fetchSize: 1 << 16, // V8 default memory page size
       dataFormatSupport: 7, // with 7 hana supports booleans
+      compress: false, // compression is disabled by default to avoic cpu overhead
       ...creds,
     }
 

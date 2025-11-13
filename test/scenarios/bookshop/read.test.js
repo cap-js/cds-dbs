@@ -107,6 +107,11 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
+  test('groupby combining simple properties and path expressions', async () => {
+    const res = await GET('/admin/Books?$apply=groupby((ID,author/ID,author/placeOfBirth))', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
   // creates having null = 1 in the SQL statement
   test.skip('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
@@ -358,6 +363,12 @@ describe('Bookshop - Read', () => {
     const res = await GET(`/browse/Books?$apply=filter(((ID eq 251 or ID eq 252) and ((contains(tolower(descr),tolower('Edgar'))))))`)
     expect(res.status).to.be.eq(200)
     expect(res.data.value.length).to.be.eq(2)
+  })
+
+  test('Books $count with $top=0 and group by', async () => {
+    // top=0 to force count subquery
+    const res = await GET(`/admin/Books?$apply=groupby((author/name))&$top=0&$count=true`, admin)
+    expect(res.data['@odata.count']).to.be.eq(4)
   })
 
   it('joins as subselect are executable', async () => {

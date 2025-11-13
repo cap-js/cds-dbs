@@ -4,6 +4,71 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.3.4](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.3...hana-v2.3.4) (2025-10-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.5.1 to ^2.6.0
+
+## [2.3.3](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.2...hana-v2.3.3) (2025-10-06)
+
+
+### Fixed
+
+* bump min db-service ([#1370](https://github.com/cap-js/cds-dbs/issues/1370)) ([06eee49](https://github.com/cap-js/cds-dbs/commit/06eee49ca09b0c8826270c207e9dfd809bc0c247))
+
+## [2.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.1...hana-v2.3.2) (2025-10-02)
+
+
+### Fixed
+
+* guard access to hana server version ([#1368](https://github.com/cap-js/cds-dbs/issues/1368)) ([5618d90](https://github.com/cap-js/cds-dbs/commit/5618d90b77aceae2e9df8a078ff33d4eddeff27e))
+
+## [2.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.0...hana-v2.3.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.2.0...hana-v2.3.0) (2025-09-30)
+
+
+### Added
+
+* add support for SAP HANA Tenant Management Service v2 ([#1356](https://github.com/cap-js/cds-dbs/issues/1356)) ([b4bd9f2](https://github.com/cap-js/cds-dbs/commit/b4bd9f2381ce7e2389c7f9480352bb79ba045377))
+* make hana server version accessible to sub classes ([#1263](https://github.com/cap-js/cds-dbs/issues/1263)) ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sets default to hana cloud if server version cannot be detected ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sort selected columns & expands before formatting sql ([#1330](https://github.com/cap-js/cds-dbs/issues/1330)) ([d81b0bf](https://github.com/cap-js/cds-dbs/commit/d81b0bfd2be1fd3ea3c7bd23dbb2010d2d713155))
+
+
+### Fixed
+
+* updated fuzzy search syntax to include now require search mode 'text' ([#1333](https://github.com/cap-js/cds-dbs/issues/1333)) ([1946665](https://github.com/cap-js/cds-dbs/commit/194666500ccfb9a81f369f9680d83c2b2f2ba883))
+
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (2025-08-27)
+
+
+### Added
+
+* add default support for `[hybrid]` profile ([#1317](https://github.com/cap-js/cds-dbs/issues/1317)) ([88da9c9](https://github.com/cap-js/cds-dbs/commit/88da9c96f8c4b35f618c7b08b7854aec1379444a))
+* Support `CALL PROC() ASYNC` ([#1276](https://github.com/cap-js/cds-dbs/issues/1276)) ([d81aeac](https://github.com/cap-js/cds-dbs/commit/d81aeac57c8907ba019fc021dae014a8ef8b1d3d))
+
+
+### Fixed
+
+* column name collisions for `$apply=groupby(ID,author/ID)` ([#1289](https://github.com/cap-js/cds-dbs/issues/1289)) ([69597ba](https://github.com/cap-js/cds-dbs/commit/69597bae0737322d606db18c0a297d0d12497973))
+
+## [2.1.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.1...hana-v2.1.2) (2025-07-28)
+
+
+### Fixed
+
+* TypeError for empty `list` ([#1269](https://github.com/cap-js/cds-dbs/issues/1269)) ([f262718](https://github.com/cap-js/cds-dbs/commit/f26271813e161c9f7c05fbc82b10c4d5f14916a7))
+
 ## [2.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.0...hana-v2.1.1) (2025-06-06)
 
 
