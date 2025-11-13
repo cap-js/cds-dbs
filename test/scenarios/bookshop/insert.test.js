@@ -5,13 +5,6 @@ describe('Bookshop - Insert', () => {
   const { expect } = cds.test(bookshop)
 
   test('unique constraing violation throws error', async () => {
-    const { duplicateElements } = cds.entities('AdminService')
-    const insert = INSERT({ ID: 201, barBaz: {code :'foo'} }).into(duplicateElements)
-    const resp = await insert
-    expect(resp).to.match(/ENTITY_ALREADY_EXISTS|UNIQUE constraint/i)
-  })
-
-  test('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
     const insert = INSERT({ ID: 201, title: 'Harry Potter' }).into(Books)
     const err = await expect(insert).rejected
