@@ -868,10 +868,10 @@ class CQN2SQLRenderer {
     }
     const transitions = this.srv.resolve.transitions4db(q)
     const columns = elements
-      ? ObjectKeys(elements).filter(c => _columnExists(elements, c)
+      ? ObjectKeys(elements).filter(c => this.physical_column(elements, c)
         && (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
-        && _columnExists(transitions.target.elements, c)
+        && this.physical_column(transitions.target.elements, c)
       )
       : ObjectKeys(INSERT.entries[0])
 
@@ -1061,10 +1061,10 @@ class CQN2SQLRenderer {
     const elements = q.elements || q._target?.elements || {}
     const transitions = this.srv.resolve.transitions4db(q, this.srv)
     let columns = (this.columns = (INSERT.columns || src.SELECT.columns?.map(c => this.column_name(c)) || ObjectKeys(src.elements) || ObjectKeys(elements))
-      .filter(c => _columnExists(elements, c)
+      .filter(c => this.physical_column(elements, c)
         && (c = transitions.mapping.get(c)?.ref?.[0] || c)
         && c in transitions.target.elements
-        && _columnExists(transitions.target.elements, c)
+        && this.physical_column(transitions.target.elements, c)
       ))
 
     const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
@@ -1174,9 +1174,9 @@ class CQN2SQLRenderer {
       for (let col in data) {
         const c = transitions.mapping.get(col)?.ref?.[0] || col
         const columnExistsInDatabase = elements
-          && _columnExists(elements, col)
+          && this.physical_column(elements, col)
           && c in transitions.target.elements
-          && _columnExists(transitions.target.elements, c)
+          && this.physical_column(transitions.target.elements, c)
         if (!elements || columnExistsInDatabase) {
           columns.push({ name: c, sql: sql4(data[col], col) })
         }
@@ -1534,6 +1534,10 @@ class CQN2SQLRenderer {
     })
   }
 
+  physical_column (elements, c) {
+    return elements[c] && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation
+  }
+
   managed_extract(name, element, converter) {
     const { UPSERT, INSERT } = this.cqn
     const extract = !(INSERT?.entries || UPSERT?.entries) && (INSERT?.rows || UPSERT?.rows)
@@ -1564,7 +1568,6 @@ const _managed = {
 
 const is_regexp = x => x?.constructor?.name === 'RegExp' // NOTE: x instanceof RegExp doesn't work in repl
 const _empty = a => !a || a.length === 0
-const _columnExists = (elements, c) => elements[c] && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation
 
 /**
  * @param {import('@sap/cds/apis/cqn').Query} q
