@@ -201,7 +201,7 @@ function infer(originalQuery, model) {
         } else if (col.val !== undefined || col.xpr || col.SELECT || col.func || col.param) {
           const as = col.as || col.func || col.val
           if (as === undefined) cds.error`Expecting expression to have an alias name`
-          if (queryElements[as]) cds.error`Duplicate definition of element “${as}”`
+          if (queryElements[as]) rejectDuplicatedElement(as)
           if (col.xpr || col.SELECT) {
             queryElements[as] = getElementForXprOrSubquery(col, queryElements, dollarSelfRefs)
           }
@@ -602,9 +602,17 @@ function infer(originalQuery, model) {
           if (arg.$refLinks.length === 1 && arg.$refLinks[0].definition.kind === 'entity')
             elementName = arg.$refLinks[0].alias
           else elementName = arg.as || flatName
-          if (queryElements) queryElements[elementName] = elements
+
+          if (queryElements) {
+            if (queryElements[elementName] !== undefined)
+              rejectDuplicatedElement(elementName)
+            queryElements[elementName] = elements
+          }
         } else if (arg.inline && queryElements) {
           const elements = resolveInline(arg)
+          for (const elName in elements) {
+            if (queryElements[elName] !== undefined) rejectDuplicatedElement(elName)  
+          }
           Object.assign(queryElements, elements)
         } else {
           // shortcut for `ref: ['$user']` -> `ref: ['$user', 'id']`
@@ -626,7 +634,7 @@ function infer(originalQuery, model) {
               else elementName = flatName
             }
             if (queryElements[elementName] !== undefined)
-              throw new Error(`Duplicate definition of element “${elementName}”`)
+              rejectDuplicatedElement(elementName)
             const element = getCopyWithAnnos(arg, leafArt)
             queryElements[elementName] = element
           }
@@ -807,6 +815,10 @@ function infer(originalQuery, model) {
       throw new Error(err.join(','))
     }
   }
+  function rejectDuplicatedElement(elementName) {
+    throw new Error(`Duplicate definition of element “${elementName}”`)
+  }
+
   function linkCalculatedElement(column, baseLink, baseColumn, context = {}) {
     const calcElement = column.$refLinks?.[column.$refLinks.length - 1].definition || column
     if (alreadySeenCalcElements.has(calcElement)) return
