@@ -1,5 +1,7 @@
 'use strict'
 
+const cds = require('@sap/cds')
+
 /**
  * Formats a ref array into a string representation.
  * If the first step is an entity, the separator is a colon, otherwise a dot.
@@ -25,6 +27,15 @@ function hasOwnSkip(definition) {
   return (
     definition && Object.hasOwn(definition, '@cds.persistence.skip') && definition['@cds.persistence.skip'] === true
   )
+}
+
+function isRuntimeView(definition) {
+  if (!cds.env.features.runtime_views) return false
+  if (!definition['@cds.persistence.skip']) return true
+
+  if (definition.query) return isRuntimeView(cds.model.definitions[definition.query.SELECT.from.ref.at(-1)])
+
+  return false
 }
 
 /**
@@ -145,4 +156,5 @@ module.exports = {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView
 }

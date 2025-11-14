@@ -13,6 +13,7 @@ const {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView,
 } = require('./utils')
 
 /**
@@ -31,6 +32,35 @@ const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/']]
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
+
+class WithContext {
+  constructor(originalQuery) {
+    this.withClauses = new Map()
+
+    // Initialize with existing clauses
+    if (originalQuery._with) {
+      originalQuery._with.forEach(clause => {
+        this.withClauses.set(clause.as, clause)
+      })
+    }
+  }
+
+  add(_with) {
+    _with.forEach(element => {
+      if (!this.withClauses.has(element.as)) {
+        this.withClauses.set(element.as, element)
+      }
+    })
+  }
+
+  hasWith(alias) {
+    return this.withClauses.has(alias)
+  }
+
+  getWithClauses() {
+    return Array.from(this.withClauses.values())
+  }
+}
 
 const { pseudos } = require('./infer/pseudos')
 /**
@@ -51,12 +81,13 @@ const { pseudos } = require('./infer/pseudos')
  *
  * @param {object} originalQuery
  * @param {object} model
- * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
+  
+  const withContext = new WithContext(originalQuery)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
@@ -134,6 +165,7 @@ function cqn4sql(originalQuery, model) {
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
+      if (transformedSubquery._with) withContext.add({ _with: transformedSubquery._with })
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -173,7 +205,55 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
+  // Process runtime views using centralized _with management
+  processRuntimeViews(transformedQuery, model, withContext)
+
+  // Attach _with clauses to the final result
+  const withClauses = withContext.getWithClauses()
+  if (withClauses.length > 0) {
+    transformedQuery._with = withClauses
+  }
+
   return transformedQuery
+
+  function processRuntimeViews(transformedQuery, model, withContext) {
+    let currentDef = model.definitions[transformedQuery._target?.name]
+    
+    while (hasOwnSkip(currentDef)) {
+      if (!currentDef?.query) {
+        throw new Error(`${currentDef.name} is not a runtime view`)
+      }
+
+      const alias = currentDef.name.replace(/\./, '_')
+      if (withContext.hasWith(alias)) {
+        break // Already processed
+      }
+      
+      addWith(currentDef.name, currentDef, withContext)
+      currentDef = model.definitions[currentDef.query._target?.name]
+    }
+  }
+
+  function addWith(id, modelDef, withContext) {
+    const definition = modelDef || model.definitions[id]
+    if (!definition?.query) return
+
+    const q = cds.ql.clone(definition.query)
+    if (!q.SELECT.columns) q.SELECT.columns = ['*']
+    if (q.SELECT.columns.includes('*')) {
+      for (let el of definition.elements) {
+        if (el.type === 'cds.LargeBinary' && 
+            !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) {
+          q.SELECT.columns.push({ ref: [el.name] })
+        }
+      }
+    }
+
+    const transformedQ = cqn4sql(q, model)
+    if (!transformedQ._with) transformedQ._with = []
+    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') })
+    withContext.add(transformedQ._with)
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -311,6 +391,8 @@ function cqn4sql(originalQuery, model) {
       )
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
+      const def = getDefinition(nextAssoc.$refLink.definition.target)
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined, withContext) // REVISIT: What about _with ??? originalQuery ???
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -469,7 +551,13 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
+      if (
+        col.$refLinks.some(link => {
+          const def = getDefinition(link.definition.target)
+          return hasOwnSkip(def) && !isRuntimeView(def)
+        })
+      )
+        return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -968,7 +1056,12 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
+        if (
+          col.$refLinks.some(link => {
+            const def = getDefinition(link.definition.target)
+            return hasOwnSkip(def) && !isRuntimeView(def)
+          })
+        )
           continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -1066,10 +1159,14 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
+    
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
-    return cqn4sql(q, model)
+    const _q = cqn4sql(q, model)
+    if (_q._with) withContext.add(_q._with)
+    return _q
+
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
