@@ -34,7 +34,7 @@ context bookshop {
     entity OrderItem {
         key ID       : UUID;
             parent   : Association to Order;
-            book     : Association to my.Books;
+            book     : Association to views.Books;
             amount   : Integer;
             quantity : Integer;
     };
@@ -54,7 +54,7 @@ context bookshop {
 
     entity Edition {
         key ID          : UUID;
-            book        : Association to my.Books;
+            book        : Association to views.Books;
             editionType : Association to EditionType;
     };
 
@@ -109,6 +109,11 @@ context assocs {
 }
 
 context views {
+
+    entity Books as projection on my.Books {
+        *,
+        editions : Association to many bookshop.Edition on editions.book = $self
+    };
 
     entity BooksWithVirtuals             as
         select from my.Books {
@@ -178,7 +183,7 @@ service runtimeViews0Service {
     entity Author         as projection on my.Authors;
 
     @cds.persistence.skip
-    entity Book           as projection on my.Books;
+    entity Book           as projection on views.Books;
 
     @cds.persistence.skip
     entity Publisher      as projection on bookshop.Publisher;
