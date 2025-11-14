@@ -36,13 +36,11 @@ const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 class WithContext {
   constructor(originalQuery) {
     this.withClauses = new Map()
-    this.aliases = new Set()
 
     // Initialize with existing clauses
     if (originalQuery._with) {
       originalQuery._with.forEach(clause => {
-        this.withClauses.set(clause.as, clause)
-        this.aliases.add(clause.as)
+        this.withClauses.set(clause.as, clause) 
       })
     }
   }
@@ -54,7 +52,6 @@ class WithContext {
       clause._with.forEach(element => {
         if (!this.withClauses.has(element.as)) {
           this.withClauses.set(element.as, element)
-          this.aliases.add(element.as)
           added = true
         }
       })
@@ -62,7 +59,6 @@ class WithContext {
 
     if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
       this.withClauses.set(clause.currentWith.as, clause.currentWith)
-      this.aliases.add(clause.currentWith.as)
       added = true
     }
 
