@@ -165,7 +165,7 @@ function cqn4sql(originalQuery, model) {
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
-      withContext.add({ _with: transformedSubquery._with })
+      if (transformedSubquery._with) withContext.add({ _with: transformedSubquery._with })
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -1164,7 +1164,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    withContext.add(_q._with)
+    if (_q._with) withContext.add(_q._with)
     return _q
 
 

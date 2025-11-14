@@ -381,8 +381,8 @@ service runtimeViews3Service {
         };
 }
 
-@path: '/runtimeViews'
-service runtimeViews {
+@path: '/runtimeViews4'
+service runtimeViews4Service {
 
     entity BooksWithHighStock as
         projection on runtimeViews1Service.Book {
@@ -417,8 +417,8 @@ service runtimeViews {
     entity BusinessPartners as projection on MyRemoteView;
 }
 
-@path: '/runtimeViews10'
-service runtimeViews10Service {
+@path: '/runtimeViews5'
+service runtimeViews5Service {
 
     entity Order     as
         projection on runtimeViews0Service.Order {
@@ -439,8 +439,8 @@ service runtimeViews10Service {
         };
 }
 
-@path: '/runtimeViews20'
-service runtimeViews20Service {
+@path: '/runtimeViews6'
+service runtimeViews6Service {
 
     entity Order        as
         projection on runtimeViews2Service.Order {
@@ -474,14 +474,14 @@ service runtimeViewsCalculatedService {
 }
 
 context draft {
-    @path: '/runtimeViews1Draft'
-    service runtimeViews1Service {
+    @path: '/runtimeViewsDraft1'
+    service runtimeViewsDraft1Service {
         @odata.draft.enabled
         entity Book as projection on runtimeViews0Service.Book;
     }
 
-    @path: '/runtimeViews2Draft'
-    service runtimeViews2Service {
+    @path: '/runtimeViewsDraft2'
+    service runtimeViewsDraft2Service {
         entity Book as projection on runtimeViews1Service.Book;
     }
 }
