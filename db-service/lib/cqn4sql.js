@@ -71,11 +71,6 @@ function cqn4sql(originalQuery, model) {
         this.clauses.push(clause.cte)
       }
     },
-    propagateTo(query) {
-      if (this.clauses.length > 0) {
-        query._with = [...this.clauses]
-      }
-    },
     hasClause(alias) {
       return this.clauses.some(w => w.as === alias)
     }
@@ -239,10 +234,7 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
-    
-    // Propagate existing _with clauses to nested query
-    _withManager.propagateTo(transformedQuery)
-    
+
     const _with = cqn4sql(q, model)
     _withManager.add({ _with: _with._with, cte: { SELECT: _with.SELECT, as: definition.name.replace(/\./, '_') } })
   }
@@ -1151,8 +1143,6 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
-    
-    _withManager.propagateTo(q)
     
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true

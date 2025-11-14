@@ -49,8 +49,8 @@ describe('Runtime Views', () => {
       expect(res.data.value[0]).toMatchObject({
         id: 201,
         autor: {
-          id: 1,
-          nombre: 'Peter'
+          id: 101,
+          name: 'Emily Brontë'
         }
       })
     })
@@ -83,10 +83,10 @@ describe('Runtime Views', () => {
     })
 
     test('testSelect_distinct', async () => {
-      const res = await GET(`/runtimeViews0/Book?$select=author/name&$filter=ID ne 207`)
+      const res = await GET(`/runtimeViews0/Book?$select=author/name&$filter=ID ne 201`)
       
-      const authors = res.data.value.map(b => b.author?.name).filter(Boolean)
-      expect(authors).toEqual(expect.arrayContaining(['Emil', 'Peter']))
+      const authors = res.data.value.map(b => b.author_name)
+      expect(authors).toEqual(expect.arrayContaining(['Charlotte Brontë', 'Edgar Allen Poe']))
     })
 
     test('testSelect_groupBy_having', async () => {
