@@ -31,24 +31,16 @@ jobs:
       # Publish packages
       - name: Publish db-service
         if: ${{ steps.release.outputs.db-service--release_created }}
-        run: npm publish --workspace db-service --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace db-service --access public --provenance
 
       - name: Publish sqlite
         if: ${{ steps.release.outputs.sqlite--release_created }}
-        run: npm publish --workspace sqlite --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace sqlite --access public --provenance
 
       - name: Publish postgres
         if: ${{ steps.release.outputs.postgres--release_created }}
-        run: npm publish --workspace postgres --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace postgres --access public --provenance
 
       - name: Publish SAP HANA
         if: ${{ steps.release.outputs.hana--release_created }}
-        run: npm publish --workspace hana --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace hana --access public --provenance
