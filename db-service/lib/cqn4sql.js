@@ -40,23 +40,17 @@ class WithContext {
     // Initialize with existing clauses
     if (originalQuery._with) {
       originalQuery._with.forEach(clause => {
-        this.withClauses.set(clause.as, clause) 
+        this.withClauses.set(clause.as, clause)
       })
     }
   }
 
-  add(clause) {
-    if (clause._with) {
-      clause._with.forEach(element => {
-        if (!this.withClauses.has(element.as)) {
-          this.withClauses.set(element.as, element)
-        }
-      })
-    }
-
-    if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
-      this.withClauses.set(clause.currentWith.as, clause.currentWith)
-    }
+  add(_with) {
+    _with.forEach(element => {
+      if (!this.withClauses.has(element.as)) {
+        this.withClauses.set(element.as, element)
+      }
+    })
   }
 
   hasWith(alias) {
@@ -256,7 +250,9 @@ function cqn4sql(originalQuery, model) {
     }
 
     const transformedQ = cqn4sql(q, model)
-    withContext.add({ _with: transformedQ._with, currentWith: { SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') } })
+    if (!transformedQ._with) transformedQ._with = []
+    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') })
+    withContext.add(transformedQ._with)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -1168,7 +1164,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    withContext.add({ _with: _q._with })
+    withContext.add(_q._with)
     return _q
 
 
