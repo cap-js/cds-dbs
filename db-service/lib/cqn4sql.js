@@ -57,24 +57,8 @@ function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
-
-  // Initialize centralized _with management
-  const _withManager = {
-    clauses: originalQuery._with ? [...originalQuery._with] : [],
-    add(clause) {
-      if (clause._with) {
-        clause._with.forEach(element => {
-          if (!this.hasWith(element.as)) this.clauses.push(element)
-        })
-      }
-      if (clause.currentWith && !this.hasWith(clause.currentWith.as)) {
-        this.clauses.push(clause.currentWith)
-      }
-    },
-    hasWith(alias) {
-      return this.clauses.some(w => w.as === alias)
-    }
-  }
+  
+  const withContext = createWithContext(originalQuery)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
@@ -152,7 +136,7 @@ function cqn4sql(originalQuery, model) {
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
-      _withManager.add({ _with: transformedSubquery._with })
+      withContext.add({ _with: transformedSubquery._with })
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -193,16 +177,66 @@ function cqn4sql(originalQuery, model) {
   }
 
   // Process runtime views using centralized _with management
-  processRuntimeViews(transformedQuery, model, _withManager)
+  processRuntimeViews(transformedQuery, model, withContext)
 
   // Attach _with clauses to the final result
-  if (_withManager.clauses.length > 0) {
-    transformedQuery._with = _withManager.clauses
+  const withClauses = withContext.getWithClauses()
+  if (withClauses.length > 0) {
+    transformedQuery._with = withClauses
   }
 
   return transformedQuery
 
-  function processRuntimeViews(transformedQuery, model, _withManager) {
+  function createWithContext(query) {
+    class WithContext {
+      constructor(originalQuery) {
+        this.withClauses = new Map()
+        this.aliases = new Set()
+
+        // Initialize with existing clauses
+        if (originalQuery._with) {
+          originalQuery._with.forEach(clause => {
+            this.withClauses.set(clause.as, clause)
+            this.aliases.add(clause.as)
+          })
+        }
+      }
+
+      add(clause) {
+        let added = false
+
+        if (clause._with) {
+          clause._with.forEach(element => {
+            if (!this.withClauses.has(element.as)) {
+              this.withClauses.set(element.as, element)
+              this.aliases.add(element.as)
+              added = true
+            }
+          })
+        }
+
+        if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
+          this.withClauses.set(clause.currentWith.as, clause.currentWith)
+          this.aliases.add(clause.currentWith.as)
+          added = true
+        }
+
+        return added
+      }
+
+      hasWith(alias) {
+        return this.withClauses.has(alias)
+      }
+
+      getWithClauses() {
+        return Array.from(this.withClauses.values())
+      }
+    }
+
+    return new WithContext(query)
+  }
+
+  function processRuntimeViews(transformedQuery, model, withContext) {
     let currentDef = model.definitions[transformedQuery._target?.name]
     
     while (hasOwnSkip(currentDef)) {
@@ -211,16 +245,16 @@ function cqn4sql(originalQuery, model) {
       }
 
       const alias = currentDef.name.replace(/\./, '_')
-      if (_withManager.hasWith(alias)) {
+      if (withContext.hasWith(alias)) {
         break // Already processed
       }
       
-      addWith(currentDef.name, currentDef, _withManager)
+      addWith(currentDef.name, currentDef, withContext)
       currentDef = model.definitions[currentDef.query._target?.name]
     }
   }
 
-  function addWith(id, modelDef, _withManager) {
+  function addWith(id, modelDef, withContext) {
     const definition = modelDef || model.definitions[id]
     if (!definition?.query) return
 
@@ -236,7 +270,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     const transformedQ = cqn4sql(q, model)
-    _withManager.add({ _with: transformedQ._with, currentWith: { SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') } })
+    withContext.add({ _with: transformedQ._with, currentWith: { SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') } })
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -376,7 +410,7 @@ function cqn4sql(originalQuery, model) {
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined, withContext) // REVISIT: What about _with ??? originalQuery ???
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -1148,7 +1182,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    _withManager.add({ _with: _q._with })
+    withContext.add({ _with: _q._with })
     return _q
 
 
