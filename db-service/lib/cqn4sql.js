@@ -46,23 +46,17 @@ class WithContext {
   }
 
   add(clause) {
-    let added = false
-
     if (clause._with) {
       clause._with.forEach(element => {
         if (!this.withClauses.has(element.as)) {
           this.withClauses.set(element.as, element)
-          added = true
         }
       })
     }
 
     if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
       this.withClauses.set(clause.currentWith.as, clause.currentWith)
-      added = true
     }
-
-    return added
   }
 
   hasWith(alias) {
