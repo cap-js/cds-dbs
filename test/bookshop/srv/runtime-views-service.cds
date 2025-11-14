@@ -6,7 +6,7 @@ using { API_BUSINESS_PARTNER as external } from './external/API_BUSINESS_PARTNER
 context bookshop {
     // Map Order-related entities to Books (representing book orders)
     entity Order {
-        key OrderNo        : Integer @title: 'Order Number';
+        key OrderNo        : Integer;
             status         : String(20);
             header         : Composition of one OrderHeader;
             items          : Composition of many OrderItem
@@ -338,9 +338,8 @@ service runtimeViews2Service {
     entity Book        as
         projection on runtimeViews1Service.Book {
             id,
-            'fiction'  as cat,
-            'books'    as cg,
-            1          as cid,
+            genre  as category,
+            genre.name as categoryName,
             title,
             authorName as AuthorName,
             Author     as autor
