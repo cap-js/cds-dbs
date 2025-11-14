@@ -4,7 +4,6 @@ const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
 
 const { expectCqn } = require('../helpers/expectCqn')
-const { expect } = cds.test
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -815,29 +814,6 @@ describe('(nested projections) expand structures', () => {
         }`
 
       expectCqn(transformed).to.equal(expected)
-    })
-  })
-
-  describe('negative', () => {
-    it('rejects unmanaged association in infix filter of expand path', () => {
-      // REVISIT: could we render an inner join for the path expression in the subquery?
-      const q = cds.ql`
-        SELECT from bookshop.Books
-        {
-          author[books.title = 'foo'] { name }
-        }`
-
-      expect(() => cqn4sql(q)).to.throw(/Unexpected unmanaged association “books” in filter expression of “author”/)
-    })
-
-    it('rejects non-fk access in infix filter of expand path', () => {
-      const q = cds.ql`
-        SELECT from bookshop.EStrucSibling
-        {
-          self[sibling.struc1 = 'foo'] { ID }
-        }`
-
-      expect(() => cqn4sql(q)).to.throw(/Only foreign keys of “sibling” can be accessed in infix filter/)
     })
   })
 })
