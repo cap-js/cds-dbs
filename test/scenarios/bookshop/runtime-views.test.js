@@ -2,7 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Runtime Views', () => {
-  const { GET } = cds.test(bookshop)
+  cds.test(bookshop)
 
   beforeAll(async () => {
     cds.env.features.runtime_views = true
