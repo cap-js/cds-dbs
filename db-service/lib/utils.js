@@ -1,5 +1,7 @@
 'use strict'
 
+const cds = require('@sap/cds')
+
 /**
  * Formats a ref array into a string representation.
  * If the first step is an entity, the separator is a colon, otherwise a dot.
