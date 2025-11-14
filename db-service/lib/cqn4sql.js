@@ -33,6 +33,51 @@ const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/'
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
 
+class WithContext {
+  constructor(originalQuery) {
+    this.withClauses = new Map()
+    this.aliases = new Set()
+
+    // Initialize with existing clauses
+    if (originalQuery._with) {
+      originalQuery._with.forEach(clause => {
+        this.withClauses.set(clause.as, clause)
+        this.aliases.add(clause.as)
+      })
+    }
+  }
+
+  add(clause) {
+    let added = false
+
+    if (clause._with) {
+      clause._with.forEach(element => {
+        if (!this.withClauses.has(element.as)) {
+          this.withClauses.set(element.as, element)
+          this.aliases.add(element.as)
+          added = true
+        }
+      })
+    }
+
+    if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
+      this.withClauses.set(clause.currentWith.as, clause.currentWith)
+      this.aliases.add(clause.currentWith.as)
+      added = true
+    }
+
+    return added
+  }
+
+  hasWith(alias) {
+    return this.withClauses.has(alias)
+  }
+
+  getWithClauses() {
+    return Array.from(this.withClauses.values())
+  }
+}
+
 const { pseudos } = require('./infer/pseudos')
 /**
  * Transforms a CDL style query into SQL-Like CQN:
@@ -58,7 +103,7 @@ function cqn4sql(originalQuery, model) {
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
   
-  const withContext = createWithContext(originalQuery)
+  const withContext = new WithContext(originalQuery)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
@@ -186,55 +231,6 @@ function cqn4sql(originalQuery, model) {
   }
 
   return transformedQuery
-
-  function createWithContext(query) {
-    class WithContext {
-      constructor(originalQuery) {
-        this.withClauses = new Map()
-        this.aliases = new Set()
-
-        // Initialize with existing clauses
-        if (originalQuery._with) {
-          originalQuery._with.forEach(clause => {
-            this.withClauses.set(clause.as, clause)
-            this.aliases.add(clause.as)
-          })
-        }
-      }
-
-      add(clause) {
-        let added = false
-
-        if (clause._with) {
-          clause._with.forEach(element => {
-            if (!this.withClauses.has(element.as)) {
-              this.withClauses.set(element.as, element)
-              this.aliases.add(element.as)
-              added = true
-            }
-          })
-        }
-
-        if (clause.currentWith && !this.withClauses.has(clause.currentWith.as)) {
-          this.withClauses.set(clause.currentWith.as, clause.currentWith)
-          this.aliases.add(clause.currentWith.as)
-          added = true
-        }
-
-        return added
-      }
-
-      hasWith(alias) {
-        return this.withClauses.has(alias)
-      }
-
-      getWithClauses() {
-        return Array.from(this.withClauses.values())
-      }
-    }
-
-    return new WithContext(query)
-  }
 
   function processRuntimeViews(transformedQuery, model, withContext) {
     let currentDef = model.definitions[transformedQuery._target?.name]
