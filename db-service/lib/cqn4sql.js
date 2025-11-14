@@ -215,12 +215,12 @@ function cqn4sql(originalQuery, model) {
         break // Already processed
       }
       
-      processWith(currentDef.name, currentDef, _withManager)
+      addWith(currentDef.name, currentDef, _withManager)
       currentDef = model.definitions[currentDef.query._target?.name]
     }
   }
 
-  function processWith(id, modelDef, _withManager) {
+  function addWith(id, modelDef, _withManager) {
     const definition = modelDef || model.definitions[id]
     if (!definition?.query) return
 
@@ -376,7 +376,7 @@ function cqn4sql(originalQuery, model) {
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
-      if (hasOwnSkip(def) && isRuntimeView(def)) processWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
