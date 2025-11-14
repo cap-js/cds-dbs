@@ -58,6 +58,29 @@ function cqn4sql(originalQuery, model) {
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
 
+  // Initialize centralized _with management
+  const _withManager = {
+    clauses: originalQuery._with ? [...originalQuery._with] : [],
+    add(clause) {
+      if (clause._with) {
+        clause._with.forEach(element => {
+          if (!this.hasClause(element)) this.clauses.push(element)
+        })
+      }
+      if (!this.clauses.some(w => w.as === clause.cte.as)) {
+        this.clauses.push(clause.cte)
+      }
+    },
+    propagateTo(query) {
+      if (this.clauses.length > 0) {
+        query._with = [...this.clauses]
+      }
+    },
+    hasClause(alias) {
+      return this.clauses.some(w => w.as === alias)
+    }
+  }
+
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
     if (!inferred.SELECT.elements) Object.setPrototypeOf(inferred, SELECT.class.prototype)
@@ -133,7 +156,6 @@ function cqn4sql(originalQuery, model) {
       // match primary keys of the target entity with the subquery
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
-      subquery._with = originalQuery._with // REVISIT: another query ???
       const transformedSubquery = cqn4sql(subquery, model)
 
       // replace where condition of original query with the transformed subquery
@@ -174,20 +196,35 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
-  let currentDef = model.definitions[transformedQuery.SELECT?.from?.ref?.[0]]
-  while (hasOwnSkip(currentDef)) {
-    if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+  // Process runtime views using centralized _with management
+  processRuntimeViews(transformedQuery, model, _withManager)
 
-    if (!transformedQuery._with) transformedQuery._with = []
-    if (transformedQuery._with.some(w => w.as === currentDef.name.replace(/\./, '_'))) break
-    
-    addWith(currentDef.name, currentDef)
-    currentDef = model.definitions[currentDef.query._target?.name]
+  // Attach _with clauses to the final result
+  if (_withManager.clauses.length > 0) {
+    transformedQuery._with = _withManager.clauses
   }
 
   return transformedQuery
 
-  function addWith(id, modelDef) {
+  function processRuntimeViews(transformedQuery, model, _withManager) {
+    let currentDef = model.definitions[transformedQuery._target?.name]
+    
+    while (hasOwnSkip(currentDef)) {
+      if (!currentDef?.query) {
+        throw new Error(`${currentDef.name} is not a runtime view`)
+      }
+
+      const alias = currentDef.name.replace(/\./, '_')
+      if (_withManager.hasClause(alias)) {
+        break // Already processed
+      }
+      
+      addWith(currentDef.name, currentDef, _withManager)
+      currentDef = model.definitions[currentDef.query._target?.name]
+    }
+  }
+
+  function addWith(id, modelDef, _withManager) {
     const definition = modelDef || model.definitions[id]
     if (!definition?.query) return
 
@@ -195,15 +232,18 @@ function cqn4sql(originalQuery, model) {
     if (!q.SELECT.columns) q.SELECT.columns = ['*']
     if (q.SELECT.columns.includes('*')) {
       for (let el of definition.elements) {
-        if (el.type === 'cds.LargeBinary'  && !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) q.SELECT.columns.push({ ref: [el.name] })
+        if (el.type === 'cds.LargeBinary' && 
+            !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) {
+          q.SELECT.columns.push({ ref: [el.name] })
+        }
       }
     }
     
-    if (!transformedQuery._with) transformedQuery._with = originalQuery._with || [] // REVISIT: ???
-    q._with = transformedQuery._with
+    // Propagate existing _with clauses to nested query
+    _withManager.propagateTo(transformedQuery)
+    
     const _with = cqn4sql(q, model)
-    _with.as = definition.name.replace(/\./, '_')
-    transformedQuery._with.push(_with)
+    _withManager.add({ _with: _with._with, cte: { SELECT: _with.SELECT, as: definition.name.replace(/\./, '_') } })
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -343,7 +383,7 @@ function cqn4sql(originalQuery, model) {
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id) // REVISIT: What about _with ??? originalQuery ???
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -413,7 +453,6 @@ function cqn4sql(originalQuery, model) {
       } else if (col === '*') {
         handleWildcard(columns)
       } else if (col.SELECT) {
-        col._with = originalQuery._with // REVISIT: another query ???
         handleSubquery(col)
       } else {
         handleDefault(col)
@@ -880,7 +919,6 @@ function cqn4sql(originalQuery, model) {
         one: column.$refLinks.at(-1).definition.is2one,
       },
     }
-    subquery._with = originalQuery._with // REVISIT: another query ???
     const expanded = transformSubquery(subquery)
     const correlated = _correlate({ ...expanded, as: columnAlias }, outerAlias)
     defineProperty(correlated, 'elements', expanded.elements)
@@ -1112,6 +1150,9 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
+    
+    _withManager.propagateTo(q)
+    
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
@@ -2253,7 +2294,7 @@ function cqn4sql(originalQuery, model) {
       SELECT.where = customWhere || []
       if (queryModifier) assignQueryModifiers(SELECT, queryModifier)
 
-      const transformedExists = transformSubquery({ SELECT, _with: originalQuery._with }) // REVISIT: another query ???
+      const transformedExists = transformSubquery({ SELECT })
       if (transformedExists.SELECT.where?.length) {
         const wrappedWhere = hasLogicalOr(transformedExists.SELECT.where)
           ? [asXpr(transformedExists.SELECT.where)]
