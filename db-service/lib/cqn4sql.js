@@ -64,10 +64,10 @@ function cqn4sql(originalQuery, model) {
     add(clause) {
       if (clause._with) {
         clause._with.forEach(element => {
-          if (!this.hasClause(element)) this.clauses.push(element)
+          if (!this.hasClause(element.as)) this.clauses.push(element)
         })
       }
-      if (!this.clauses.some(w => w.as === clause.cte.as)) {
+      if (clause.cte && !this.hasClause(clause.cte.as)) {
         this.clauses.push(clause.cte)
       }
     },
@@ -157,6 +157,7 @@ function cqn4sql(originalQuery, model) {
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
+      _withManager.add({ _with: transformedSubquery._with })
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -1156,7 +1157,10 @@ function cqn4sql(originalQuery, model) {
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
-    return cqn4sql(q, model)
+    const _q = cqn4sql(q, model)
+    _withManager.add({ _with: _q._with })
+    return _q
+
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
