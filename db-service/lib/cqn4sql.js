@@ -64,14 +64,14 @@ function cqn4sql(originalQuery, model) {
     add(clause) {
       if (clause._with) {
         clause._with.forEach(element => {
-          if (!this.hasClause(element.as)) this.clauses.push(element)
+          if (!this.hasWith(element.as)) this.clauses.push(element)
         })
       }
-      if (clause.cte && !this.hasClause(clause.cte.as)) {
-        this.clauses.push(clause.cte)
+      if (clause.currentWith && !this.hasWith(clause.currentWith.as)) {
+        this.clauses.push(clause.currentWith)
       }
     },
-    hasClause(alias) {
+    hasWith(alias) {
       return this.clauses.some(w => w.as === alias)
     }
   }
@@ -211,16 +211,16 @@ function cqn4sql(originalQuery, model) {
       }
 
       const alias = currentDef.name.replace(/\./, '_')
-      if (_withManager.hasClause(alias)) {
+      if (_withManager.hasWith(alias)) {
         break // Already processed
       }
       
-      addWith(currentDef.name, currentDef, _withManager)
+      processWith(currentDef.name, currentDef, _withManager)
       currentDef = model.definitions[currentDef.query._target?.name]
     }
   }
 
-  function addWith(id, modelDef, _withManager) {
+  function processWith(id, modelDef, _withManager) {
     const definition = modelDef || model.definitions[id]
     if (!definition?.query) return
 
@@ -235,8 +235,8 @@ function cqn4sql(originalQuery, model) {
       }
     }
 
-    const _with = cqn4sql(q, model)
-    _withManager.add({ _with: _with._with, cte: { SELECT: _with.SELECT, as: definition.name.replace(/\./, '_') } })
+    const transformedQ = cqn4sql(q, model)
+    _withManager.add({ _with: transformedQ._with, currentWith: { SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') } })
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -376,7 +376,7 @@ function cqn4sql(originalQuery, model) {
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
+      if (hasOwnSkip(def) && isRuntimeView(def)) processWith(id, undefined ,_withManager) // REVISIT: What about _with ??? originalQuery ???
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
