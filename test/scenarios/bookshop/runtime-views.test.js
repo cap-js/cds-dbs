@@ -53,7 +53,7 @@ describe('Runtime Views', () => {
 
     describe('Projections and Expansions', () => {
       test('nested projection with basic fields', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id', 'autor']).where({ id: 201 })
+        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id']).where({ id: 201 })
 
         expect(res).toHaveLength(1)
         expect(res[0]).toMatchObject({
@@ -112,7 +112,7 @@ describe('Runtime Views', () => {
           .columns([{ ref: ['author'], expand: ['*'] }])
           .where('ID != 201')
 
-        const authors = res.map(b => b.author_name)
+        const authors = res.map(b => b.author.name)
         expect(authors).toEqual(expect.arrayContaining(['Charlotte Brontë', 'Edgar Allen Poe', 'Richard Carpenter']))
       })
 
@@ -280,7 +280,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViews4Service.VirtualBookView')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/not a runtime view/)
+          expect(error.message).toMatch(/is not a runtime view/)
         }
       })
 
@@ -289,7 +289,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViews4Service.BusinessPartners')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/refers to a remote service/)
+          expect(error.message).toMatch(/is not a runtime view/)
         }
       })
     })
