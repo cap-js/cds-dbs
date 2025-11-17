@@ -1,6 +1,6 @@
 using {sap.capire.bookshop as my} from '../db/schema';
 
-using { API_BUSINESS_PARTNER as external } from './external/API_BUSINESS_PARTNER.csn';
+using {API_BUSINESS_PARTNER as external} from './external/API_BUSINESS_PARTNER.csn';
 
 // Create bookshop namespace for compatibility
 context bookshop {
@@ -22,58 +22,37 @@ context bookshop {
     };
 
     entity Category as projection on my.Genres;
-
-    entity Sales {
-        key ID     : UUID;
-            amount : Decimal;
-    };
-
-    entity Fulfillment {
-        key ffid  : UUID;
-            state : String;
-    };
-
-    entity Address {
-        key ID      : UUID;
-            street  : String;
-            city    : String;
-            country : String;
-    };
 }
 
 context views {
 
-    entity Books as projection on my.Books {
-        *,
-        editions : Association to many bookshop.Edition on editions.book = $self
-    };
+    entity Books as
+        projection on my.Books {
+            *,
+            editions : Association to many bookshop.Edition
+                           on editions.book = $self
+        };
 
 }
 
 service runtimeViews0Service {
     @cds.persistence.skip
-    entity Author         as projection on my.Authors;
+    entity Author  as projection on my.Authors;
 
     @cds.persistence.skip
-    entity Book           as projection on views.Books;
+    entity Book    as projection on views.Books;
+
 
     @cds.persistence.skip
-    entity Publisher      as projection on bookshop.Publisher;
+    entity Edition as projection on bookshop.Edition;
 
-    @cds.persistence.skip
-    entity Edition        as projection on bookshop.Edition;
 
-    @cds.persistence.skip
-    entity Category       as projection on bookshop.Category;  
 }
 
 service runtimeViews1Service {
-    entity Author        as
-        projection on runtimeViews0Service.Author {
-            ID as id, *
-        };
 
-    entity Book          as
+
+    entity Book    as
         projection on runtimeViews0Service.Book {
             *,
             ID          as id,
@@ -88,7 +67,7 @@ service runtimeViews1Service {
             author
         };
 
-    entity Edition       as
+    entity Edition as
         projection on runtimeViews0Service.Edition {
             book             as parent,
             ID               as editionNumber,
@@ -102,7 +81,7 @@ service runtimeViews1Service {
                            on external.editionID = editionNumber
         }
 
-    entity Changes       as projection on VirtualChanges;
+    entity Changes as projection on VirtualChanges;
 
     @cds.persistence.skip
     entity VirtualChanges {
@@ -121,10 +100,10 @@ service runtimeViews1Service {
 }
 
 service runtimeViews2Service {
-    entity Book        as
+    entity Book as
         projection on runtimeViews1Service.Book {
             id,
-            genre  as category,
+            genre      as category,
             genre.name as categoryName,
             title,
             authorName as AuthorName,
@@ -140,15 +119,15 @@ service runtimeViewsErrorService {
         title : String
     };
 
-    entity VirtualBookView    as select from VirtualBook;
+    entity VirtualBookView  as select from VirtualBook;
 
     @cds.persistence.skip
     view MyRemoteView as
-    select from external.A_BusinessPartner {
-        key BusinessPartner,
-        BusinessPartnerName,
-        CreationDate
-    };
+        select from external.A_BusinessPartner {
+            key BusinessPartner,
+                BusinessPartnerName,
+                CreationDate
+        };
 
     entity BusinessPartners as projection on MyRemoteView;
 }
