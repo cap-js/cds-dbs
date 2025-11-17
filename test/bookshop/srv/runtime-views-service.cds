@@ -141,6 +141,6 @@ context draft {
 
     @path: '/runtimeViewsDraft2'
     service runtimeViewsDraft2Service {
-        entity Book as projection on runtimeViews1Service.Book;
+        entity Book as projection on runtimeViewsDraft1Service.Book;
     }
 }

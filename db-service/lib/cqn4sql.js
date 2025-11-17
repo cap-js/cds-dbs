@@ -251,7 +251,7 @@ function cqn4sql(originalQuery, model) {
 
     const transformedQ = cqn4sql(q, model)
     if (!transformedQ._with) transformedQ._with = []
-    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./, '_') })
+    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./g, '_') })
     withContext.add(transformedQ._with)
   }
 
