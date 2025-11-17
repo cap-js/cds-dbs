@@ -920,6 +920,92 @@ describe('SELECT', () => {
     )
   })
 
+  describe('error', () => {
+    test('all positional parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1', 'Target2')) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['Arg1'],
+        targets: ['Target1', 'Target2'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('no parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error() FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('only positional message parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE') FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('skipped optional args positional parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',null,('Target1')) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: ['Target1'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('all positional parameters skipped by passing null', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error(null,null,null) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('nulls in lists are preserved', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(null),(null,null)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res[0].error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res[0].error)
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
+        targets: [null, null],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+  })
+
   describe('search', () => {
     // Make sure that the queries work, but never check their behavior as it is undefined
 
@@ -1015,7 +1101,7 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cds.foreach(SELECT.from(all),process.bind(aggregate))
+      await cds.foreach(SELECT.from(all), process.bind(aggregate))
       expect(aggregate).deep.eq(expected)
     }))
 
