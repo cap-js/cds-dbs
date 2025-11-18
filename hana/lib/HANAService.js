@@ -51,17 +51,7 @@ class HANAService extends SQLService {
     const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options: this.options.pool || {},
       create: async function create(tenant, start = Date.now()) {
         try {
           const { credentials } = isMultitenant
@@ -202,16 +192,16 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-      const { sql, entries, cqn } = this.cqn2sql(query, data)
-      if (!sql) return // Do nothing when there is nothing to be done
-      const ps = await this.prepare(sql)
-      // HANA driver supports batch execution
-      const results = await (entries
-        ? this.server.major <= 2
-          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-        : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, results)
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return new this.class.InsertResults(cqn, results)
   }
 
   async onNOTFOUND(req, next) {
@@ -1229,7 +1219,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => (typeof e === 'string' && e.match(/^NEW\./))  ? `HEXTOBIN(${e})`: e,
+      Binary: e => (typeof e === 'string' && e.match(/^NEW\./)) ? `HEXTOBIN(${e})` : e,
       Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 

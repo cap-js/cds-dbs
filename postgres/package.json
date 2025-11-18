@@ -64,6 +64,13 @@
           "vcap": {
             "label": "postgresql-db"
           },
+          "pool": {
+            "min": 0,
+            "max": 10,
+            "testOnBorrow": true,
+            "acquireTimeoutMillis": 1000,
+            "destroyTimeoutMillis": 1000
+          },
           "schema_evolution": "auto"
         }
       },
