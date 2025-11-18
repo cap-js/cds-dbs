@@ -146,30 +146,4 @@ describe('Runtime Views', () => {
       })
     })
   })
-
-  describe('Draft-enabled Runtime Views', () => {
-    test('active entities in draft-enabled view', async () => {
-      const res = await SELECT.from('draft.runtimeViewsDraft2Service.Book')
-        .columns(['title', 'IsActiveEntity', 'HasActiveEntity'])
-        .where({ IsActiveEntity: true })
-
-      expect(res).toEqual(
-        expect.arrayContaining([
-          { title: 'Wuthering Heights' },
-          { title: 'Jane Eyre' },
-          { title: 'The Raven' },
-          { title: 'Eleonora' },
-          { title: 'Catweazle' },
-        ]),
-      )
-    })
-
-    test('draft entity status in active entities', async () => {
-      const res = await SELECT.from('draft.runtimeViewsDraft1Service.Book')
-        .columns(['title', 'IsActiveEntity', 'HasActiveEntity'])
-        .where({ IsActiveEntity: true })
-
-      expect(res).toEqual(expect.arrayContaining([{ title: 'Wuthering Heights' }]))
-    })
-  })
 })

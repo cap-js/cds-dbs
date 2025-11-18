@@ -86,8 +86,6 @@ function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
   const hasCustomJoins =
     originalQuery.SELECT?.from.args && (!originalQuery.joinTree || originalQuery.joinTree.isInitial)
-  
-  const withContext = new WithContext(originalQuery)
 
   if (!hasCustomJoins && inferred.SELECT?.search) {
     // we need an instance of query because the elements of the query are needed for the calculation of the search columns
@@ -120,6 +118,7 @@ function cqn4sql(originalQuery, model) {
 
   let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
+  let withContext
 
   if (inferred.INSERT || inferred.UPSERT) {
     transformedQuery = transformQueryForInsertUpsert(kind)
@@ -177,6 +176,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (inferred.SELECT) {
+      withContext = new WithContext(originalQuery)
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
     } else {
       if (from) {
@@ -208,9 +208,11 @@ function cqn4sql(originalQuery, model) {
   processRuntimeViews(transformedQuery, model, withContext)
 
   // Attach _with clauses to the final result
-  const withClauses = withContext.getWithClauses()
-  if (withClauses.length > 0) {
-    transformedQuery._with = withClauses
+  if (withContext) {
+    const withClauses = withContext.getWithClauses()
+    if (withClauses.length > 0) {
+      transformedQuery._with = withClauses
+    }
   }
 
   return transformedQuery

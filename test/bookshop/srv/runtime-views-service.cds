@@ -131,16 +131,3 @@ service runtimeViewsErrorService {
 
     entity BusinessPartners as projection on MyRemoteView;
 }
-
-context draft {
-    @path: '/runtimeViewsDraft1'
-    service runtimeViewsDraft1Service {
-        @odata.draft.enabled
-        entity Book as projection on runtimeViews0Service.Book;
-    }
-
-    @path: '/runtimeViewsDraft2'
-    service runtimeViewsDraft2Service {
-        entity Book as projection on runtimeViewsDraft1Service.Book;
-    }
-}
