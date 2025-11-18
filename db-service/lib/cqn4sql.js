@@ -165,7 +165,6 @@ function cqn4sql(originalQuery, model) {
       primaryKey.list.forEach(k => subquery.SELECT.columns.push({ ref: k.ref.slice(1) }))
 
       const transformedSubquery = cqn4sql(subquery, model)
-      if (transformedSubquery._with) withContext.add({ _with: transformedSubquery._with })
 
       // replace where condition of original query with the transformed subquery
       // correlate UPDATE / DELETE query with subquery by primary key matches
@@ -392,7 +391,7 @@ function cqn4sql(originalQuery, model) {
 
       const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined, withContext) // REVISIT: What about _with ??? originalQuery ???
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined, withContext)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
