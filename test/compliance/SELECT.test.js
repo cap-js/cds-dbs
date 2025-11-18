@@ -926,8 +926,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1', 'Target2')) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: ['Arg1'],
@@ -940,8 +940,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error() FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: null,
         args: null,
@@ -954,8 +954,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error('MESSAGE') FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null,
@@ -968,8 +968,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error('MESSAGE',null,('Target1')) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null,
@@ -982,8 +982,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error(null,null,null) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: null,
         args: null,
@@ -996,8 +996,8 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT error('MESSAGE',(null),(null,null)) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
-      assert.ok(res[0].error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res[0].error)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
