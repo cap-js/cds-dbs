@@ -14,7 +14,7 @@ const StandardFunctions = {
   error: function (message, args, targets) {
     targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
     if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
-    args = args && (args.list || args.val && [args])
+    args = args && (args.list || (args.val || args.ref) && [args])
 
     return `(${this.SELECT({
       SELECT: {

@@ -923,7 +923,21 @@ describe('SELECT', () => {
   describe('error', () => {
     test('all positional parameters', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),(short,medium,large)) FROM ${string}`
+      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}` // where or oder by
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = JSON.parse(res.error)
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['yes'],
+        targets: ['short', 'medium', 'large'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('vals used as args and targets parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1','Target2')) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
@@ -931,7 +945,7 @@ describe('SELECT', () => {
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: ['Arg1'],
-        targets: ['short', 'medium', 'large'],
+        targets: ['Target1', 'Target2'],
       }, 'Ensure that the function reads correct parameters and returns the right values')
     })
 
