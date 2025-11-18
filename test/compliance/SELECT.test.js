@@ -927,7 +927,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: ['yes'],
@@ -941,7 +941,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: ['Arg1'],
@@ -955,7 +955,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: null,
         args: null,
@@ -969,7 +969,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null,
@@ -983,7 +983,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null,
@@ -997,7 +997,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: null,
         args: null,
@@ -1011,7 +1011,7 @@ describe('SELECT', () => {
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
-      const funcRes = JSON.parse(res.error)
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: [null, null],
