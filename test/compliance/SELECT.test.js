@@ -923,7 +923,7 @@ describe('SELECT', () => {
   describe('error', () => {
     test('all positional parameters', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1', 'Target2')) FROM ${string}`
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),(short,medium,large)) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
@@ -931,7 +931,7 @@ describe('SELECT', () => {
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: ['Arg1'],
-        targets: ['Target1', 'Target2'],
+        targets: ['short', 'medium', 'large'],
       }, 'Ensure that the function reads correct parameters and returns the right values')
     })
 
@@ -965,7 +965,7 @@ describe('SELECT', () => {
 
     test('skipped optional args positional parameter', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT error('MESSAGE',null,('Target1')) FROM ${string}`
+      const cqn = cds.ql`SELECT error('MESSAGE',null,(short)) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
@@ -973,7 +973,7 @@ describe('SELECT', () => {
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
         args: null,
-        targets: ['Target1'],
+        targets: ['short'],
       }, 'Ensure that the function reads correct parameters and returns the right values')
     })
 
@@ -993,15 +993,15 @@ describe('SELECT', () => {
 
     test('nulls in lists are preserved', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT error('MESSAGE',(null),(null,null)) FROM ${string}`
+      const cqn = cds.ql`SELECT error('MESSAGE',(null,null),(null)) FROM ${string}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
       const funcRes = JSON.parse(res.error)
       assert.deepStrictEqual(funcRes, {
         message: 'MESSAGE',
-        args: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
-        targets: [null, null],
+        args: [null, null],
+        targets: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
       }, 'Ensure that the function reads correct parameters and returns the right values')
     })
   })

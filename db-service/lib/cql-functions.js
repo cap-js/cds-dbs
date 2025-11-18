@@ -12,7 +12,8 @@ const StandardFunctions = {
    * @return {string} - SQL statement
    */
   error: function (message, args, targets) {
-    targets = targets && (targets.list || targets.val && [targets])
+    targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
+    if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
     args = args && (args.list || args.val && [args])
 
     return `(${this.SELECT({
