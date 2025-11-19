@@ -4,6 +4,7 @@ const cds = require('@sap/cds')
 cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
 
 const infer = require('./infer')
+const WithContext = require('./common/with-context')
 const { computeColumnsToBeSearched } = require('./search')
 const {
   prettyPrintRef,
@@ -32,35 +33,6 @@ const notEqOps = [['is', 'not'], ['<>'], ['!=']]
 const notSupportedOps = [['>'], ['<'], ['>='], ['<='], ['*'], ['+'], ['-'], ['/']]
 
 const allOps = eqOps.concat(eqOps).concat(notEqOps).concat(notSupportedOps)
-
-class WithContext {
-  constructor(originalQuery) {
-    this.withClauses = new Map()
-
-    // Initialize with existing clauses
-    if (originalQuery._with) {
-      originalQuery._with.forEach(clause => {
-        this.withClauses.set(clause.as, clause)
-      })
-    }
-  }
-
-  add(_with) {
-    _with.forEach(element => {
-      if (!this.withClauses.has(element.as)) {
-        this.withClauses.set(element.as, element)
-      }
-    })
-  }
-
-  hasWith(alias) {
-    return this.withClauses.has(alias)
-  }
-
-  getWithClauses() {
-    return Array.from(this.withClauses.values())
-  }
-}
 
 const { pseudos } = require('./infer/pseudos')
 /**
