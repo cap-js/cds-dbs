@@ -923,7 +923,7 @@ describe('SELECT', () => {
   describe('error', () => {
     test('all positional parameters', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}` // where or oder by
+      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}`
       cqn.SELECT.one = true
       const res = await cds.run(cqn)
       assert.ok(res.error, 'Ensure that the function is applied')
