@@ -1,3 +1,5 @@
+const child_process = require('node:child_process')
+
 const { SQLService } = require('@cap-js/db-service')
 const cds = require('@sap/cds')
 const sqlite = require('better-sqlite3')
@@ -41,6 +43,13 @@ class SQLiteService extends SQLService {
         dbc.function('hour', deterministic, d => d === null ? null : toDate(d, true).getUTCHours())
         dbc.function('minute', deterministic, d => d === null ? null : toDate(d, true).getUTCMinutes())
         dbc.function('second', deterministic, d => d === null ? null : toDate(d, true).getUTCSeconds())
+
+        let http_get = url => child_process.execSync(`node -e "fetch('${url}').then(r => r.body.pipeTo(require('node:stream').Writable.toWeb(process.stdout)))"`)
+        try {
+          child_process.execSync(`curl --help`)
+          http_get = url => child_process.execSync(`curl "${url}"`, { stdio: ['ignore', 'pipe', 'ignore'] })
+        } catch { }
+        dbc.function('http_get', deterministic, http_get)
         if (!dbc.memory) dbc.pragma('journal_mode = WAL')
         return dbc
       },
