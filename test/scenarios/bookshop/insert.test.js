@@ -2,7 +2,21 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Insert', () => {
-  const { expect } = cds.test(bookshop)
+  const { expect, POST } = cds.test(bookshop)
+
+  test('duplicate column names', async () => {
+    const admin = {
+      auth: {
+        username: 'alice',
+      },
+    }
+    const resp = await POST(`/admin/duplicateElements`, { ID: 11, barBaz_code: 'everything changed' }, admin)
+    expect(resp.data).to.deep.include({
+      bar_baz_code: null,
+      barBaz_code: null,
+      ID: 11
+    })
+  })
 
   test('unique constraing violation throws error', async () => {
     const { Books } = cds.entities('AdminService')
