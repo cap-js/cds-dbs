@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.0.7](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.6...postgres-v2.0.7) (2025-11-20)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
 ## [2.0.6](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.5...postgres-v2.0.6) (2025-10-23)
 
 
