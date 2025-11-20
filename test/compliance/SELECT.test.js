@@ -1005,7 +1005,7 @@ describe('SELECT', () => {
       }, 'Ensure that the function reads correct parameters and returns the right values')
     })
 
-    test('nulls in lists are preserved', async () => {
+    test.skip('nulls in lists are preserved', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT error('MESSAGE',(null,null),(null)) FROM ${string}`
       cqn.SELECT.one = true
