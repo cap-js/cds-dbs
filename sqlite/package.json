@@ -44,7 +44,10 @@
           }
         },
         "sqlite": {
-          "impl": "@cap-js/sqlite"
+          "impl": "@cap-js/sqlite",
+          "pool": {
+            "max": 1
+          }
         }
       },
       "db": "sql"
