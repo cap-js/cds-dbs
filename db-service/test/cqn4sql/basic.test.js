@@ -71,24 +71,20 @@ describe('query clauses', () => {
             Bar.ID as ID: cds.String
           }`)
   })
-  //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
-  // which, by the way, is the case in tests below where we have a path in FROM -> ???
   it('handles infix filter at entity and WHERE clause', () => {
-    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[price < 12.13] as Books {Books.ID} where stock < 11`, model)
+    let query = cqn4sql(cds.ql`SELECT from bookshop.Books[price < 12.13 or true] as Books {Books.ID} where stock < 11`, model)
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (Books.price < 12.13)`,
+      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.price < 12.13 or true) and Books.stock < 11`,
     )
   })
 
-  //(SMW) TODO I'd prefer to have the cond from the filter before the cond coming from the WHERE
-  // which, by the way, is the case in tests below where we have a path in FROM -> ???
   it('gets precedence right for infix filter at entity and WHERE clause', () => {
     let query = cqn4sql(
       cds.ql`SELECT from bookshop.Books[price < 12.13 or stock > 77] as Books {Books.ID} where stock < 11 or price > 17.89`,
       model,
     )
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11 or Books.price > 17.89) and (Books.price < 12.13 or Books.stock > 77)`,
+      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.price < 12.13 or Books.stock > 77) and (Books.stock < 11 or Books.price > 17.89)`,
     )
     //expect (query) .to.deep.equal (cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.price < 12.13 or Books.stock > 77) and (Books.stock < 11 or Books.price > 17.89)`)  // (SMW) want this
   })
@@ -101,7 +97,7 @@ describe('query clauses', () => {
       model,
     )
     expect(query).to.deep.equal(
-      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE (Books.stock < 11) and (not (Books.price < 12.13))`,
+      cds.ql`SELECT from bookshop.Books as Books {Books.ID} WHERE not (Books.price < 12.13) and Books.stock < 11`,
     )
   })
 

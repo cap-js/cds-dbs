@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":disableDependencyDashboard"],
-  "ignoreDeps": ["saplabs/hanaexpress", "amannn/action-semantic-pull-request", "martinbeentjes/npm-get-version-action"]
+  "ignoreDeps": ["saplabs/hanaexpress", "amannn/action-semantic-pull-request", "martinbeentjes/npm-get-version-action"],
+  "lockFileMaintenance": { "enabled": true }
 }

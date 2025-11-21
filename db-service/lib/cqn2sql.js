@@ -350,7 +350,13 @@ class CQN2SQLRenderer {
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       columnsIn.push(ref)
-      if (from.args || columnsFiltered.find(c => this.column_name(c) === name)) {
+      const foreignkey4 = element._foreignKey4
+      if (
+        from.args ||
+        columnsFiltered.find(c => this.column_name(c) === name) ||
+        // foreignkey needs to be included when the association is expanded
+        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4))
+      ) {
         columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
       }
     }
@@ -1320,7 +1326,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this, args) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args: [args]) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }

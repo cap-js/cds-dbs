@@ -158,6 +158,18 @@ describe('entities and views with parameters', () => {
       expected.SELECT.where[1].SELECT.from.ref[0].args = {}
       expect(cqn4sql(query, model)).to.deep.equal(expected)
     })
+    it('scoped query with undefined where', () => {
+      const query = cds.ql`SELECT from Books:author(P1: 1, P2: 2) as author { ID }`
+      // there are cases, e.g. in the odata-v2 tests, where the runtime sends a query like this
+      query.SELECT.from.ref.at(-1).where = undefined
+      const expected = cds.ql`
+        SELECT from Authors(P1: 1, P2: 2) as author { author.ID }
+          where exists (
+            SELECT 1 from Books as $B where $B.author_ID = author.ID
+          )
+      `
+      expect(cqn4sql(query, model)).to.deep.equal(expected)
+    })
   })
 
   describe('expand subqueries', () => {

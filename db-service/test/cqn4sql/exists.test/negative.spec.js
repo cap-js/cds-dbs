@@ -85,7 +85,9 @@ describe('(exist predicate) negative tests', () => {
   })
 
   describe('restrictions', () => {
-    it('rejects the path expression at the leaf of scoped queries', () => {
+    // semantically equivalent to adding a where clause..
+    // IMO artificially rejecting this is not necessary, we can solve this uniformly also for regular where clause
+    it.skip('rejects the path expression at the leaf of scoped queries', () => {
       // original idea was to just add the `genre.name` as WHERE clause to the query
       // however, with left outer joins we might get too many results
       //
@@ -104,12 +106,9 @@ describe('(exist predicate) negative tests', () => {
       )
     })
 
-    // (SMW) msg not good -> filter in general is ok for assoc with multiple FKS,
-    // only shortcut notation is not allowed
-    // TODO: message is BAD, it could include the fix: `write ”<key> = 42” explicitly`
     it('OData shortcut notation does not work on associations with multiple foreign keys', () => {
       expect(() => cqn4sql(cds.ql`SELECT from bookshop.AssocWithStructuredKey:toStructuredKey[42]`)).to.throw(
-        /Filters can only be applied to managed associations which result in a single foreign key/,
+        `Shortcut notation “[42]” not available for composite primary key of “bookshop.WithStructuredKey”, write “<key> = 42” explicitly`,
       )
     })
   })

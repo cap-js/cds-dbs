@@ -35,6 +35,7 @@ class HDBDriver extends driver {
   constructor(creds) {
     creds = {
       fetchSize: 1 << 16, // V8 default memory page size
+      compress: false, // compression is disabled by default to avoic cpu overhead
       ...creds,
     }
 
