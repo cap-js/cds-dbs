@@ -161,9 +161,12 @@ class HANAService extends SQLService {
     const isSimple = temporary.length + blobs.length + withclause.length === 0
     const isOne = cqn.SELECT.one || query.SELECT.from.ref?.[0].cardinality?.max === 1
     const isStream = iterator && !isLockQuery
+    const isHyper = isStream && withclause.length < 2 && cds.env.features.hyper_streaming
 
     // REVISIT: add prepare options when param:true is used
-    let sqlScript = isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
+    let sqlScript = isHyper
+      ? `${sql} FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='${isOne ? 'no' : 'yes'}') RETURNS NVARCHAR(2147483647)`
+      : isLockQuery || isSimple ? sql : this.wrapTemporary(temporary, withclause, blobs)
     const { hints } = query.SELECT
     if (hints) sqlScript += ` WITH HINT (${hints.join(',')})`
     let rows
