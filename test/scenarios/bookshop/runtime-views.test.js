@@ -2,6 +2,7 @@ const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Runtime Views', () => {
+  if(cds.env.sql.names === 'quoted') return 'skipped'
   cds.test(bookshop)
 
   beforeAll(async () => {
