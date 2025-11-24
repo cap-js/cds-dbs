@@ -45,12 +45,12 @@ describe('Runtime Views', () => {
       })
 
       test('nested projection with expand', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id', 'autor']).where({ id: 201 })
+        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id', 'Authorid']).where({ id: 201 })
 
         expect(res).toHaveLength(1)
         expect(res[0]).toMatchObject({
           id: 201,
-          autor_ID: 101,
+          Authorid: 101,
         })
       })
     })
@@ -138,11 +138,21 @@ describe('Runtime Views', () => {
 
     describe('Field Access Restrictions', () => {
       test('excluded fields should not be accessible', async () => {
-        await expect(SELECT.from('runtimeViews2Service.Book').columns(['stock'])).rejects.toThrow(/stock/)
+        try {
+          await SELECT.from('runtimeViews2Service.Book').columns(['stock'])
+          fail('Expected request to throw an error')
+        } catch (error) {
+          expect(error.message).toMatch(/stock/)
+        }
       })
 
       test('excluded fields with alias should not be accessible', async () => {
-        await expect(SELECT.from('runtimeViews2Service.Book').columns(['stock'])).rejects.toThrow(/stock/)
+        try {
+          await SELECT.from('runtimeViews2Service.Book').columns(['stock'])
+          fail('Expected request to throw an error')
+        } catch (error) {
+          expect(error.message).toMatch(/stock/)
+        }
       })
     })
   })

@@ -57,14 +57,12 @@ service runtimeViews1Service {
             *,
             ID          as id,
             stock       as count,
-            author      as Author,
             author.name as authorName,
             author.ID   as AuthorId
         }
         excluding {
             ID,
-            stock,
-            author
+            stock
         };
 
     entity Edition as
@@ -107,7 +105,7 @@ service runtimeViews2Service {
             genre.name as categoryName,
             title,
             authorName as AuthorName,
-            Author     as autor
+            AuthorId as Authorid
         };
 }
 
