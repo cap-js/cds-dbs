@@ -1,3 +1,6 @@
 {
-  "kind": "sqlite"
+  "kind": "sqlite",
+  "credentials": {
+    "url": ":memory:"
+  }
 }
