@@ -409,7 +409,7 @@ class SQLService extends DatabaseService {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
-    if (q._with) cqn2sql._with = q._with
+    if (cds.env.features.runtime_views && q._with) cqn2sql._with = q._with
     return cqn2sql.render(q, values)
   }
 

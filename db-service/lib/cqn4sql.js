@@ -148,7 +148,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (inferred.SELECT) {
-      withContext = new WithContext(originalQuery)
+      if (cds.env.features.runtime_views) withContext = new WithContext(originalQuery)
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
     } else {
       if (from) {
@@ -177,10 +177,10 @@ function cqn4sql(originalQuery, model) {
   }
 
   // Process runtime views using centralized _with management
-  processRuntimeViews(transformedQuery, model, withContext)
+  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model, withContext)
 
   // Attach _with clauses to the final result
-  if (withContext) {
+  if (cds.env.features.runtime_views && withContext) {
     const withClauses = withContext.getWithClauses()
     if (withClauses.length > 0) {
       transformedQuery._with = withClauses
@@ -1137,7 +1137,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    if (_q._with) withContext.add(_q._with)
+    if (cds.env.features.runtime_views && _q._with) withContext.add(_q._with)
     return _q
 
 
