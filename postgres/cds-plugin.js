@@ -28,10 +28,11 @@ cds.build?.register?.('postgres', class PostgresBuildPlugin extends cds.build.Pl
     if (fs.existsSync(path.join(this.task.src, 'package.json'))) {
       promises.push(this.copy(path.join(this.task.src, 'package.json')).to('package.json'))
     } else {
+      var postgresPackageJson = require('./package.json');
       const packageJson = {
         dependencies: {
-          '@sap/cds': '^9',
-          '@cap-js/postgres': '^2'
+          '@sap/cds': cds.version,
+          '@cap-js/postgres': postgresPackageJson.version
         },
         scripts: { start: 'cds-deploy' }
       }
