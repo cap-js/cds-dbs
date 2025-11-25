@@ -12,7 +12,7 @@ describe('affected rows', () => {
       Object.defineProperty(
         { ...cds.env.requires.db },
         'client',
-        { get() { called++ } },
+        { get() { called++; return {} } },
       )
     )
 
