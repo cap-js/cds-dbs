@@ -1,22 +1,21 @@
-const assert = require('assert')
 const cds = require('../cds.js')
-cds.test.in(__dirname + '/resources')
 
-const clientOption = cds.env.requires.db.client
-let called = 0
-Object.defineProperty(cds.env.requires.db, 'client', {
-  get: () => {
-    called++
-    return clientOption
-  }
-})
 /**
  * Tests explicitely, that all DBs access the specific client options
  */
 describe('affected rows', () => {
-  cds.test()
+  const { expect } = cds.test(__dirname + '/resources')
 
   test('client option is called during bootstrapping', async () => {
-    assert.strictEqual(called >= 1,true)
+    let called = 0
+    await cds.connect.to('db',
+      Object.defineProperty(
+        { ...cds.env.requires.db },
+        'client',
+        { get() { called++ } },
+      )
+    )
+
+    expect(called).to.gt(0)
   })
 })
