@@ -1,4 +1,4 @@
-const cds = require('../../cds.js')
+const cds = require('@sap/cds')
 
 class CatalogService extends cds.ApplicationService {
   init() {

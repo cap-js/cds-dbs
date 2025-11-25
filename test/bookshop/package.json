@@ -16,7 +16,7 @@
   },
   "scripts": {
     "genres": "cds serve test/genres.cds",
-    "start": "cds run",
+    "start": "npm install && rm -rf ../node_modules && mv ./node_modules/ ../node_modules && cds-serve",
     "watch": "cds watch"
   },
   "cds": {
