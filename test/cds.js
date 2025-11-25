@@ -105,7 +105,7 @@ cds.test = Object.setPrototypeOf(function () {
   ret.data.autoIsolation(true)
 
   global.beforeAll(async () => {
-    if (ret.data._autoIsolation && !ret.data._deployed) {
+    if (ret.data._autoIsolation && !cds.options.in_memory && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
