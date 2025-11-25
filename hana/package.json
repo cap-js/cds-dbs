@@ -52,7 +52,8 @@
           }
         },
         "hana": {
-          "impl": "@cap-js/hana"
+          "impl": "@cap-js/hana",
+          "schema_evolution": "auto"
         }
       },
       "db": "sql"
