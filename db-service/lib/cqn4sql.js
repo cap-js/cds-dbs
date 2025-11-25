@@ -183,7 +183,7 @@ function cqn4sql(originalQuery, model) {
   if (cds.env.features.runtime_views && withContext) {
     const withClauses = withContext.getWithClauses()
     if (withClauses.length > 0) {
-      transformedQuery._with = withClauses
+      defineProperty(transformedQuery, '_with', withClauses)
     }
   }
 
@@ -223,7 +223,7 @@ function cqn4sql(originalQuery, model) {
     }
 
     const transformedQ = cqn4sql(q, model)
-    if (!transformedQ._with) transformedQ._with = []
+    if (!transformedQ._with) defineProperty(transformedQ, '_with', [])
     transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./g, '_') })
     withContext.add(transformedQ._with)
   }
