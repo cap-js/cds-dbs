@@ -52,7 +52,20 @@
           }
         },
         "hana": {
-          "impl": "@cap-js/hana"
+          "impl": "@cap-js/hana",
+          "pool": {
+            "min": 0,
+            "max": 10,
+            "acquireTimeoutMillis": 10000,
+            "idleTimeoutMillis": 60000,
+            "evictionRunIntervalMillis": 100000,
+            "numTestsPerEvictionRun": 10,
+            "testOnBorrow": true,
+            "fifo": false,
+            "[production]": {
+              "acquireTimeoutMillis": 1000
+            }
+          }
         }
       },
       "db": "sql"
