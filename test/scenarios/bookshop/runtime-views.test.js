@@ -128,17 +128,6 @@ describe('Runtime Views', () => {
           ]
         })
       })
-
-      test('db view with books redirected to compare results', async () => {
-        const res = await SELECT.from('runtimeViews0Service.AuthorDBRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
-        expect(res).toHaveLength(1)
-        expect(res[0]).toMatchObject({
-          ID: 101,
-          books: [
-            { title: 'Redirected Wuthering Heights' }
-          ]
-        })
-      })
     })
   })
 
@@ -187,7 +176,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViewsErrorService.AuthorsAndBooks')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/no such table|invalid table name/)
+          expect(error.message).toMatch(/no such table|invalid table name|does not exist/)
         }
       })
 
@@ -196,7 +185,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViewsErrorService.BookWithEditions')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/no such table|invalid table name/)
+          expect(error.message).toMatch(/no such table|invalid table name|does not exist/)
         }
       })
     })

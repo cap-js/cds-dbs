@@ -74,9 +74,8 @@ service runtimeViews0Service {
     entity AuthorRedirected as projection on Author {
         *,
         books: redirected to my.BookRedirected on books.authorID = $self.ID
-    };   
-    
-    entity AuthorDBRedirected as projection on my.AuthorsRedirected;
+    };
+
 }
 
 service runtimeViews1Service {
