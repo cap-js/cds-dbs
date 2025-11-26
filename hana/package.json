@@ -3,6 +3,10 @@
   "version": "2.4.0",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cap-js/cds-dbs.git"
+  },
   "keywords": [
     "CAP",
     "CDS",
