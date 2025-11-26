@@ -46,11 +46,32 @@ service runtimeViews0Service {
     @cds.persistence.skip
     entity Edition as projection on bookshop.Edition;
 
+    @cds.persistence.skip
+    view AuthorsAndBooks as
+    select from Author {
+        ID          as commonID,
+        name        as commonName,
+        'Author'    as type
+    }
+    union all
+    select from Book {
+        ID          as commonID,
+        title       as commonName,
+        'Book'      as type
+    };
 
+    @cds.persistence.skip
+    view BookWithEditions as
+    select from Book
+        left join Edition on Edition.ID = Book.ID
+    {
+        Book.ID,
+        Book.title,
+        Edition.ID       as editionID
+    };
 }
 
 service runtimeViews1Service {
-
 
     entity Book    as
         projection on runtimeViews0Service.Book {
