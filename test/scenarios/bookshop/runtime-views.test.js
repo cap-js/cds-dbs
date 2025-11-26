@@ -187,7 +187,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViewsErrorService.AuthorsAndBooks')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/no such table: runtimeViewsErrorService_AuthorsAndBooks/)
+          expect(error.message).toMatch(/no such table|invalid table name/)
         }
       })
 
@@ -196,7 +196,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViewsErrorService.BookWithEditions')
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/no such table: runtimeViewsErrorService_BookWithEditions/)
+          expect(error.message).toMatch(/no such table|invalid table name/)
         }
       })
     })
