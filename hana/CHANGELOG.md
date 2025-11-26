@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.0...hana-v2.4.1) (2025-11-26)
+
+
+### Fixed
+
+* introduce repository.url in package.json ([#1430](https://github.com/cap-js/cds-dbs/issues/1430)) ([00ad7fb](https://github.com/cap-js/cds-dbs/commit/00ad7fbf2904d254a307ef764d8036640694f395))
+
 ## [2.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.4...hana-v2.4.0) (2025-11-26)
 
 
