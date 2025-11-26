@@ -35,6 +35,18 @@ entity Authors : managed {
       address      : String = street || ', ' || city;
 }
 
+entity BookRedirected {
+  key ID: Integer;
+  title: String;
+  descr: localized String;
+  authorID: Integer;
+};
+
+entity AuthorsRedirected as projection on Authors {
+  *,
+  books: redirected to BookRedirected on books.authorID = $self.ID
+};
+
 /** Hierarchically organized Code List for Genres */
 entity Genres : sap.common.CodeList {
   key ID       : Integer;

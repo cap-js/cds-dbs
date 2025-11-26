@@ -114,6 +114,30 @@ describe('Runtime Views', () => {
         )
       })
     })
+
+    describe('Redirected views', () => {
+      test('runtime with books redirected', async () => {
+        const res = await SELECT.from('runtimeViews0Service.AuthorRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
+        expect(res).toHaveLength(1)
+        expect(res[0]).toMatchObject({
+          ID: 101,
+          books: [
+            { title: 'Redirected Wuthering Heights' }
+          ]
+        })
+      })
+
+      test('db view with books redirected to compare results', async () => {
+        const res = await SELECT.from('runtimeViews0Service.AuthorDBRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
+        expect(res).toHaveLength(1)
+        expect(res[0]).toMatchObject({
+          ID: 101,
+          books: [
+            { title: 'Redirected Wuthering Heights' }
+          ]
+        })
+      })
+    })
   })
 
   describe('Error Cases', () => {

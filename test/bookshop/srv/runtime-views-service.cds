@@ -37,6 +37,7 @@ context views {
 
 service runtimeViews0Service {
     @cds.persistence.skip
+    @cds.redirection.target
     entity Author  as projection on my.Authors;
 
     @cds.persistence.skip
@@ -69,6 +70,13 @@ service runtimeViews0Service {
         Book.title,
         Edition.ID       as editionID
     };
+    
+    entity AuthorRedirected as projection on Author {
+        *,
+        books: redirected to my.BookRedirected on books.authorID = $self.ID
+    };   
+    
+    entity AuthorDBRedirected as projection on my.AuthorsRedirected;
 }
 
 service runtimeViews1Service {
