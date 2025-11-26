@@ -1508,7 +1508,7 @@ describe('SELECT', () => {
             { xpr: [ref, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref] }, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref, ref] }, op, SELECT([{ ...ref, as: 'a' }, { ...ref, as: 'b' }]).from(targetName)] },
-            // Repreating the previous statements replaceing ref with null
+            // Repeating the previous statements replacing ref with null
             { xpr: [unified.null, op, { list: [ref] }] },
             { xpr: [unified.null, op, { list: [ref, ref] }] },
             { xpr: [{ list: [unified.null] }, op, { list: [{ list: [ref] }] }] },
