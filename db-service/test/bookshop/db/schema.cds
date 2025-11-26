@@ -106,6 +106,9 @@ entity Bar {
       x : Integer;
     };
   };
+  empty: {
+    // nothing
+  }
 }
 
 entity EStruc {
@@ -295,6 +298,14 @@ entity Skip {
   key ID: Integer;
   text: String;
   notSkipped: Association to NotSkipped;
+}
+
+@cds.persistence.table: true
+entity PersistenceTableOnSkipped as projection on Skip;
+
+entity ToPersistenceTable {
+  key ID: Integer;
+  ToPersistenceTableOnSkipped: Association to PersistenceTableOnSkipped;
 }
 
 @cds.localized: false

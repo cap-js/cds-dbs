@@ -6,6 +6,7 @@ const { SQLService } = require('@cap-js/db-service')
 const drivers = require('./drivers')
 const cds = require('@sap/cds')
 const collations = require('./collations.json')
+const sessionVariableMap = require('./session.json')
 const keywords = cds.compiler.to.hdi.keywords
 // keywords come as array
 const hanaKeywords = keywords.reduce((prev, curr) => {
@@ -14,7 +15,6 @@ const hanaKeywords = keywords.reduce((prev, curr) => {
 }, {})
 
 const DEBUG = cds.debug('sql|db')
-let HANAVERSION = 0
 const SYSTEM_VERSIONED = '@hana.systemversioned'
 
 /**
@@ -26,6 +26,11 @@ class HANAService extends SQLService {
     // REVISIT: refactor together with cds-deploy.js
     if (this.options.hdi) {
       super.deploy = this.hdiDeploy
+    }
+
+    // TODO: find a way to reliably detect minor/patch versions
+    this.server = {
+      major: 4
     }
 
     this.on(['BEGIN'], this.onBEGIN)
@@ -43,20 +48,10 @@ class HANAService extends SQLService {
     if (!credentials) {
       throw new Error(`Database kind "${kind}" configured, but no HDI container or Service Manager instance bound to application.`)
     }
-    const isMultitenant = !!service.options.credentials.sm_url || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
+    const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options: this.options.pool || {},
       create: async function create(tenant, start = Date.now()) {
         try {
           const { credentials } = isMultitenant
@@ -64,7 +59,7 @@ class HANAService extends SQLService {
             : service.options
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
-          HANAVERSION = dbc.server.major
+          service.server.major = dbc.server.major || service.server.major
           return dbc
         } catch (err) {
           if (isMultitenant) {
@@ -118,14 +113,19 @@ class HANAService extends SQLService {
   }
 
   async set(variables) {
-    // REVISIT: required to be compatible with generated views
-    if (variables['$valid.from']) variables['VALID-FROM'] = variables['$valid.from']
-    if (variables['$valid.to']) variables['VALID-TO'] = variables['$valid.to']
-    if (variables['$user.id']) variables['APPLICATIONUSER'] = variables['$user.id']
-    if (variables['$user.locale']) variables['LOCALE'] = variables['$user.locale']
-    if (variables['$now']) variables['NOW'] = variables['$now']
+    const _variables = {}
+    // Check all properties on the variables object
+    for (let name in variables) {
+      _variables[sessionVariableMap[name] || name] = variables[name]
+    }
 
-    this.ensureDBC().set(variables)
+    // Explicitly check for the default session variable properties
+    // As they are getters and not own properties of the object
+    for (let name in sessionVariableMap) {
+      if (variables[name]) _variables[sessionVariableMap[name]] = variables[name]
+    }
+
+    this.ensureDBC().set(_variables)
   }
 
   async onSELECT(req) {
@@ -192,16 +192,16 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-      const { sql, entries, cqn } = this.cqn2sql(query, data)
-      if (!sql) return // Do nothing when there is nothing to be done
-      const ps = await this.prepare(sql)
-      // HANA driver supports batch execution
-      const results = await (entries
-        ? HANAVERSION <= 2
-          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-        : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, results)
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return new this.class.InsertResults(cqn, results)
   }
 
   async onNOTFOUND(req, next) {
@@ -351,7 +351,7 @@ class HANAService extends SQLService {
         throw new Error('CQN query using joins must specify the selected columns.')
       }
 
-      let { limit, one, distinct, from, orderBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
+      let { limit, one, distinct, from, orderBy, groupBy, having, expand, columns = ['*'], localized, count, parent, recurse } = q.SELECT
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
@@ -403,6 +403,9 @@ class HANAService extends SQLService {
               if (!match) {
                 c.as = `$$${c.ref.join('.')}$$`
                 columns.push(c)
+                if (groupBy && !groupBy.find(col => col.ref + '' === ref)) {
+                  groupBy.push(c)
+                }
               }
               return { __proto__: c, ref: [this.column_name(match || c)], sort: c.sort }
             }
@@ -579,7 +582,7 @@ class HANAService extends SQLService {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
                 const colName = this.column_name(col)
-                if (!parent.SELECT.columns.some(c => this.column_name(c) === colName)) {
+                if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
                   const isSource = from => {
                     if (from.as === col.ref[0]) return true
                     return from.args?.some(a => {
@@ -589,7 +592,7 @@ class HANAService extends SQLService {
                   }
 
                   // Inject foreign columns into parent selects (recursively)
-                  const as = `$$${col.ref.join('.')} $$`
+                  const as = `$$${col.ref.join('.')}$$`
                   let rename = col.ref[0] !== parent.as
                   let curPar = parent
                   while (curPar) {
@@ -613,49 +616,7 @@ class HANAService extends SQLService {
                     col.ref = [parent.as, colName]
                   }
                 } else {
-                  x.SELECT.from = { ref: [parent.alias], as: parent.as }
-                  x.SELECT.columns.forEach(col => {
-                    // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
-                    if (col.ref?.length > 1) {
-                      const colName = this.column_name(col)
-                      if (!parent.SELECT.columns.some(c => !c.elements && this.column_name(c) === colName)) {
-                        const isSource = from => {
-                          if (from.as === col.ref[0]) return true
-                          return from.args?.some(a => {
-                            if (a.args) return isSource(a)
-                            return a.as === col.ref[0]
-                          })
-                        }
-
-                        // Inject foreign columns into parent selects (recursively)
-                        const as = `$$${col.ref.join('.')} $$`
-                        let rename = col.ref[0] !== parent.as
-                        let curPar = parent
-                        while (curPar) {
-                          if (isSource(curPar.SELECT.from)) {
-                            if (curPar.SELECT.columns.find(c => c.as === as)) {
-                              rename = true
-                            } else {
-                              rename = rename || curPar === parent
-                              curPar.SELECT.columns.push(rename ? { __proto__: col, ref: col.ref, as } : { __proto__: col, ref: [...col.ref] })
-                            }
-                            break
-                          } else {
-                            curPar.SELECT.columns.push({ __proto__: col, ref: [curPar.SELECT.parent.as, as], as })
-                            curPar = curPar.SELECT.parent
-                          }
-                        }
-                        if (rename) {
-                          col.as = colName
-                          col.ref = [parent.as, as]
-                        } else {
-                          col.ref = [parent.as, colName]
-                        }
-                      } else {
-                        col.ref[1] = colName
-                      }
-                    }
-                  })
+                  col.ref[1] = colName
                 }
               }
             })
@@ -810,7 +771,7 @@ class HANAService extends SQLService {
 
       // HANA Express does not process large JSON documents
       // The limit is somewhere between 64KB and 128KB
-      if (HANAVERSION <= 2) {
+      if (this.srv.server.major <= 2) {
         this.entries = INSERT.entries.map(e => (e instanceof Readable && !e.readableObjectMode
           ? [e]
           : [_stream([e])]))
@@ -1200,7 +1161,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     }
 
     managed_extract(name, element, converter) {
-      const path = this.string(HANAVERSION <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
+      const path = this.string(this.srv?.server.major <= 2 ? `$.${name}` : `$[${JSON.stringify(name)}]`)
       return {
         extract: `${this.quote(name)} ${this.insertType4(element)} PATH ${path}, ${this.quote('$.' + name)} NVARCHAR(2147483647) FORMAT JSON PATH ${path}`,
         sql: converter(`NEW.${this.quote(name)}`),
@@ -1258,7 +1219,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => (typeof e === 'string' && e.match(/^NEW\./))  ? `HEXTOBIN(${e})`: e,
+      Binary: e => (typeof e === 'string' && e.match(/^NEW\./)) ? `HEXTOBIN(${e})` : e,
       Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 
@@ -1324,9 +1285,11 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   }
 
   async onCall({ query, data }, name, schema) {
-    const outParameters = await this._getProcedureMetadata(name, schema)
+    const isAsync = /\sASYNC\s*$/.test(query)
+    const outParameters = isAsync ? [{ PARAMETER_NAME: 'ASYNC_CALL_ID' }] : await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
-    return this.ensureDBC() && ps.proc(data, outParameters)
+    const ret = this.ensureDBC() && await ps.proc(data, outParameters)
+    return isAsync ? ret.ASYNC_CALL_ID[0] : ret
   }
 
   async onPlainSQL(req, next) {

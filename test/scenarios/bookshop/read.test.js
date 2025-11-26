@@ -107,6 +107,11 @@ describe('Bookshop - Read', () => {
     expect(res.status).to.be.eq(200)
   })
 
+  test('groupby combining simple properties and path expressions', async () => {
+    const res = await GET('/admin/Books?$apply=groupby((ID,author/ID,author/placeOfBirth))', admin)
+    expect(res.status).to.be.eq(200)
+  })
+
   // creates having null = 1 in the SQL statement
   test.skip('groupby with multiple path expressions and filter', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toB/toC/ID))&$filter=ID eq 1', admin)
@@ -485,5 +490,34 @@ describe('Bookshop - Read', () => {
     const crossJoinResult = await cds.db.run(query)
     const pathExpressionResult = await cds.db.run(pathExpressionQuery)
     expect(crossJoinResult).to.deep.eq(pathExpressionResult)
+  })
+
+  it('special $main variable', async () => {
+    // INSERT a second Harry Potter book
+    // this one already exists: `{ ID: 272, title: 'Harry Potter', … }`
+    await INSERT.into('sap.capire.bookshop.Books').entries([
+      { ID: 678, title: 'Harry Potter and the Chamber of Secrets', author_ID: 171, stock: 10 }
+    ])
+    // with the $main syntax, we can check if the author of a given book
+    // has already written other books with a similar title
+    const thereExistsASimilarBook = cds.ql`
+      SELECT from sap.capire.bookshop.Books as Books
+      {
+        ID,
+        ( (
+          exists author.books[
+            (contains(title, $main.title) or contains($main.title, title)) and ID != $main.ID
+          ]) ?
+          'This author has already written similar books' :
+          'No similar books by the books author'
+        ) as hasSimilarBooks
+      }`
+    const allBooks = await cds.run(thereExistsASimilarBook)
+    for( const book of allBooks ) {
+      if([272, 678].includes(book.ID))
+        expect(book.hasSimilarBooks).to.equal('This author has already written similar books')
+      else
+        expect(book.hasSimilarBooks).to.equal('No similar books by the books author')
+    }
   })
 })
