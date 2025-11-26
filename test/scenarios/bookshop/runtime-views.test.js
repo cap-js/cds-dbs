@@ -31,6 +31,8 @@ describe('Runtime Views', () => {
           id: 201,
           title: 'Wuthering Heights',
           authorName: 'Emily Brontë',
+          author_dateOfBirth: '1818-07-30',
+          author_placeOfBirth: 'Thornton, Yorkshire',
         })
       })
     })

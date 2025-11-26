@@ -87,7 +87,11 @@ service runtimeViews1Service {
             ID          as id,
             stock       as count,
             author.name as authorName,
-            author.ID   as AuthorId
+            author.ID   as AuthorId,
+            author {
+                placeOfBirth,
+                dateOfBirth
+            }
         }
         excluding {
             ID,
