@@ -225,7 +225,7 @@ service views1Service {
 
 service views2Service {
     entity Book as
-        projection on runtimeViews1Service.Book {
+        projection on views1Service.Book {
             id,
             genre      as category,
             genre.name as categoryName,
