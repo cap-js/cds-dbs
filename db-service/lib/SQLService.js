@@ -5,7 +5,6 @@ const { pipeline } = require('stream/promises')
 const { resolveView, getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
 const DatabaseService = require('./common/DatabaseService')
 const cqn4sql = require('./cqn4sql')
-const { defineProperty } = require('./utils')
 
 const BINARY_TYPES = {
   'cds.Binary': 1,
@@ -410,7 +409,6 @@ class SQLService extends DatabaseService {
       q = resolveView(q, this.model, this) // REVISIT: before resolveView was called on flat cqn obtained from cqn4sql -> is it correct to call on original q instead?
     }
     let cqn2sql = new this.class.CQN2SQL(this)
-    if (cds.env.features.runtime_views && q._with) defineProperty(cqn2sql, '_with', q._with)
     return cqn2sql.render(q, values)
   }
 

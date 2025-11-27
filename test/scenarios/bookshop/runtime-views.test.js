@@ -1,6 +1,8 @@
 const cds = require('../../cds.js')
 const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
+const { fail } = require('assert')
+
 describe('Runtime Views', () => {
   cds.test(bookshop)
   if(cds.env.sql.names === 'quoted') return 'skipped'

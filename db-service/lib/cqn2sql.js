@@ -1,6 +1,8 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const { defineProperty } = require('./utils')
+
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
@@ -76,6 +78,7 @@ class CQN2SQLRenderer {
    */
   render(q, vars) {
     const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
+    if (cds.env.features.runtime_views && q._with) defineProperty(this, '_with', q._with)
     /**
      * @type {string} the rendered SQL string
      */

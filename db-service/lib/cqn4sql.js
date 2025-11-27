@@ -209,7 +209,7 @@ function cqn4sql(originalQuery, model) {
 
   function addWith(id, modelDef, withContext) {
     const definition = modelDef || model.definitions[id]
-    if (!definition?.query) return
+    if (!definition?.query || definition.query.SET) return
 
     const q = cds.ql.clone(definition.query)
     if (!q.SELECT.columns) q.SELECT.columns = ['*']
