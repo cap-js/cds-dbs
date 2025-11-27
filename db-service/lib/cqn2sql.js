@@ -120,8 +120,9 @@ class CQN2SQLRenderer {
       }
       return { sql, values }
     })
-    if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
-    else this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    // if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
+    // else 
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
     this.values = [...prefix.map(p => p.values).flat(), ...values]
   }
 
