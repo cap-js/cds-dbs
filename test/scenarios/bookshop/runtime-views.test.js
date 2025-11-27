@@ -209,7 +209,7 @@ describe('Runtime Views', () => {
 
       test('View with UNION should throw DB error', async () => {
         try {
-          await SELECT.from('runtimeViewsErrorService.AuthorsAndBooks')
+          await SELECT.from('runtimeViews0Service.AuthorsAndBooks')
           fail('Expected request to throw an error')
         } catch (error) {
           expect(error.message).toMatch(/no such table|invalid table name|does not exist/)
@@ -218,7 +218,7 @@ describe('Runtime Views', () => {
 
       test('View with JOIN should throw DB error', async () => {
         try {
-          await SELECT.from('runtimeViewsErrorService.BookWithEditions')
+          await SELECT.from('runtimeViews0Service.BookWithEditions')
           fail('Expected request to throw an error')
         } catch (error) {
           expect(error.message).toMatch(/no such table|invalid table name|does not exist/)
