@@ -22,6 +22,8 @@ describe('Runtime Views', () => {
           ID: 201,
           title: 'Wuthering Heights',
         })
+        const resDeployed = await SELECT.from('views0Service.Book').where({ ID: 201 })
+        expect(res).toEqual(resDeployed)
       })
 
       test('runtimeViews1.Book with id field and author should return correct book data', async () => {
@@ -34,6 +36,8 @@ describe('Runtime Views', () => {
           author_dateOfBirth: '1818-07-30',
           author_placeOfBirth: 'Thornton, Yorkshire',
         })
+        const resDeployed = await SELECT.from('views1Service.Book').where({ id: 201 })
+        expect(res).toEqual(resDeployed)
       })
     })
 
@@ -45,6 +49,9 @@ describe('Runtime Views', () => {
         expect(res[0]).toMatchObject({
           id: 201,
         })
+
+        const resDeployed = await SELECT.from('views2Service.Book').columns(['id']).where({ id: 201 })
+        expect(res).toEqual(resDeployed)
       })
 
       test('nested projection with expand', async () => {
@@ -55,6 +62,9 @@ describe('Runtime Views', () => {
           id: 201,
           Authorid: 101,
         })
+
+        const resDeployed = await SELECT.from('views2Service.Book').columns(['id', 'Authorid']).where({ id: 201 })
+        expect(res).toEqual(resDeployed)
       })
     })
 
@@ -70,6 +80,11 @@ describe('Runtime Views', () => {
           title: 'Wuthering Heights',
           AuthorName: 'Emily Brontë',
         })
+
+        const resDeployed = await SELECT.from('views2Service.Book')
+          .columns(['id', 'title', 'AuthorName'])
+          .where({ id: 201 })
+        expect(res).toEqual(resDeployed)
       })
 
       test('select with alias, filter, and ordering', async () => {
@@ -89,6 +104,12 @@ describe('Runtime Views', () => {
           title: 'Wuthering Heights',
           AuthorName: 'Emily Brontë',
         })
+
+        const resDeployed = await SELECT.from('views2Service.Book')
+          .columns(['id', 'title', 'AuthorName'])
+          .where('id = 201 or id = 207')
+          .orderBy('title')
+        expect(res).toEqual(resDeployed)
       })
     })
 
@@ -100,6 +121,11 @@ describe('Runtime Views', () => {
 
         const authors = res.map(b => b.author.name)
         expect(authors).toEqual(expect.arrayContaining(['Charlotte Brontë', 'Edgar Allen Poe', 'Richard Carpenter']))
+
+        const resDeployed = await SELECT.from('views0Service.Book')
+          .columns([{ ref: ['author'], expand: ['*'] }])
+          .where('ID != 201')
+        expect(res).toEqual(resDeployed)
       })
 
       test('group by with aggregate count', async () => {
@@ -114,6 +140,12 @@ describe('Runtime Views', () => {
             { AuthorName: 'Emily Brontë', books: 1 },
           ]),
         )
+
+        const resDeployed = await SELECT.from('views2Service.Book')
+          .columns(['AuthorName', 'count(*) as books'])
+          .where('AuthorName IS NOT NULL')
+          .groupBy('AuthorName')
+        expect(res).toEqual(resDeployed)
       })
     })
 
@@ -127,6 +159,8 @@ describe('Runtime Views', () => {
             { title: 'Redirected Wuthering Heights' }
           ]
         })
+        const resDeployed = await SELECT.from('views0Service.AuthorRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
+        expect(res).toEqual(resDeployed)
       })
     })
   })
