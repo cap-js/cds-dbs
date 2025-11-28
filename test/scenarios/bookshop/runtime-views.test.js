@@ -137,7 +137,7 @@ describe('Runtime Views', () => {
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
-          .orderBy('title')
+          .orderBy('AuthorName')
 
         expect(res).toEqual(
           expect.arrayContaining([
@@ -150,7 +150,7 @@ describe('Runtime Views', () => {
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
-          .orderBy('title')
+          .orderBy('AuthorName')
         expect(res).toEqual(resDeployed)
       })
     })
