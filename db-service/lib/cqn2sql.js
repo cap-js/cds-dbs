@@ -107,8 +107,14 @@ class CQN2SQLRenderer {
 
   render_with() {
     const sql = this.sql
-    let recursive = false
     const values = this.values
+    const { prefix, recursive } = this.getWithPrefix()
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    this.values = [...prefix.map(p => p.values).flat(), ...values]
+  }
+
+  getWithPrefix() {
+    let recursive = false
     const prefix = this._with.map(q => {
       const values = this.values = []
       let sql
@@ -120,9 +126,7 @@ class CQN2SQLRenderer {
       }
       return { sql, values }
     })
-    if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
-    else this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-    this.values = [...prefix.map(p => p.values).flat(), ...values]
+    return { prefix, recursive }
   }
 
   /**
