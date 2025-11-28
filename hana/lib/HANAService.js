@@ -1172,6 +1172,15 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
+    render_with() {
+      const sql = this.sql
+      const values = this.values
+      const { prefix, recursive } = super.getWithPrefix()
+      if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
+      else this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
+    }
+
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 
