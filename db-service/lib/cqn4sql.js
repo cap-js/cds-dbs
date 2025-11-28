@@ -192,7 +192,7 @@ function cqn4sql(originalQuery, model) {
   return transformedQuery
 
   function processRuntimeViews(transformedQuery, model, withContext) {
-    let currentDef = model.definitions[transformedQuery._target?.name]
+    let currentDef = transformedQuery._target
     
     while (hasOwnSkip(currentDef)) {
       if (!currentDef?.query) {
