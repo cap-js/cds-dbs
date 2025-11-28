@@ -156,5 +156,5 @@ module.exports = {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
-  isRuntimeView
+  isRuntimeView,
 }
