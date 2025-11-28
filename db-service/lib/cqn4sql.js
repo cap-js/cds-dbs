@@ -199,7 +199,7 @@ function cqn4sql(originalQuery, model) {
         throw new Error(`${currentDef.name} is not a runtime view`)
       }
 
-      const alias = currentDef.name.replace(/\./, '_')
+      const alias = currentDef.name.replace(/\./g, '_')
       if (withContext.hasWith(alias)) {
         break // Already processed
       }
