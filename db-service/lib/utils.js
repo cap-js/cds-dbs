@@ -33,7 +33,10 @@ function isRuntimeView(definition) {
   if (!cds.env.features.runtime_views) return false
   if (!definition['@cds.persistence.skip']) return true
 
-  if (definition.query) return isRuntimeView(definition.query._target)
+  if (definition.query) 
+    // experimental
+    // return isRuntimeView(definition.query._target)
+    return isRuntimeView(cds.model.definitions[definition.query.SELECT.from.ref.at(-1)])
 
   return false
 }
