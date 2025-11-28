@@ -177,27 +177,29 @@ function cqn4sql(originalQuery, model) {
   }
 
   // Process runtime views using centralized _with management
-  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model, withContext)
+  if (cds.env.features.runtime_views) {
+    processRuntimeViews(transformedQuery, model, withContext)
 
-  // Attach _with clauses to the final result
-  if (cds.env.features.runtime_views && withContext) {
-    const withClauses = withContext.getWithClauses()
-    if (withClauses.length > 0) {
-      defineProperty(transformedQuery, '_with', withClauses)
+    // Attach _with clauses to the final result
+    if (withContext) {
+      const withClauses = withContext.getWithClauses()
+      if (withClauses.length > 0) {
+        defineProperty(transformedQuery, '_with', withClauses)
+      }
     }
   }
 
   return transformedQuery
 
   function processRuntimeViews(transformedQuery, model, withContext) {
-    let currentDef = model.definitions[transformedQuery._target?.name]
+    let currentDef = transformedQuery._target
     
     while (hasOwnSkip(currentDef)) {
       if (!currentDef?.query) {
         throw new Error(`${currentDef.name} is not a runtime view`)
       }
 
-      const alias = currentDef.name.replace(/\./, '_')
+      const alias = currentDef.name.replace(/\./g, '_')
       if (withContext.hasWith(alias)) {
         break // Already processed
       }

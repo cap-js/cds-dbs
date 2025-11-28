@@ -1,29 +1,20 @@
 class WithContext {
   constructor(originalQuery) {
-    this.withClauses = new Map()
+    this.withClauses = {}
 
-    // Initialize with existing clauses
-    if (originalQuery._with) {
-      originalQuery._with.forEach(clause => {
-        this.withClauses.set(clause.as, clause)
-      })
-    }
+    if (originalQuery._with) this.add(originalQuery._with)
   }
 
   add(_with) {
-    _with.forEach(element => {
-      if (!this.withClauses.has(element.as)) {
-        this.withClauses.set(element.as, element)
-      }
-    })
+    _with.forEach(clause => { this.withClauses[clause.as] ??= clause })
   }
 
   hasWith(alias) {
-    return this.withClauses.has(alias)
+    return this.withClauses[alias]
   }
 
   getWithClauses() {
-    return Array.from(this.withClauses.values())
+    return Object.values(this.withClauses)
   }
 }
 
