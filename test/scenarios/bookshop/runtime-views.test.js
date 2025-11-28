@@ -120,6 +120,7 @@ describe('Runtime Views', () => {
         const res = await SELECT.from('runtimeViews0Service.Book')
           .columns([{ ref: ['author'], expand: ['*'] }])
           .where('ID != 201')
+          .orderBy('title')
 
         const authors = res.map(b => b.author.name)
         expect(authors).toEqual(expect.arrayContaining(['Charlotte Brontë', 'Edgar Allen Poe', 'Richard Carpenter']))
@@ -127,6 +128,7 @@ describe('Runtime Views', () => {
         const resDeployed = await SELECT.from('views0Service.Book')
           .columns([{ ref: ['author'], expand: ['*'] }])
           .where('ID != 201')
+          .orderBy('title')
         expect(res).toEqual(resDeployed)
       })
 
@@ -135,6 +137,7 @@ describe('Runtime Views', () => {
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
+          .orderBy('title')
 
         expect(res).toEqual(
           expect.arrayContaining([
@@ -147,6 +150,7 @@ describe('Runtime Views', () => {
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
+          .orderBy('title')
         expect(res).toEqual(resDeployed)
       })
     })
