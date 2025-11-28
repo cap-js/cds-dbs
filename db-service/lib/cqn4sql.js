@@ -177,13 +177,15 @@ function cqn4sql(originalQuery, model) {
   }
 
   // Process runtime views using centralized _with management
-  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model, withContext)
+  if (cds.env.features.runtime_views) {
+    processRuntimeViews(transformedQuery, model, withContext)
 
-  // Attach _with clauses to the final result
-  if (cds.env.features.runtime_views && withContext) {
-    const withClauses = withContext.getWithClauses()
-    if (withClauses.length > 0) {
-      defineProperty(transformedQuery, '_with', withClauses)
+    // Attach _with clauses to the final result
+    if (withContext) {
+      const withClauses = withContext.getWithClauses()
+      if (withClauses.length > 0) {
+        defineProperty(transformedQuery, '_with', withClauses)
+      }
     }
   }
 
