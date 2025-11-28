@@ -16,18 +16,22 @@ describe('Runtime Views', () => {
   describe('Basic Runtime View Operations', () => {
     describe('Basic Book Queries', () => {
       test('runtimeViews0.Book with ID field should return correct book data', async () => {
-        const res = await SELECT.from('runtimeViews0Service.Book').where({ ID: 201 })
+        const { Book: RTView } = cds.entities('runtimeViews0Service')
+        const { Book: DBView } = cds.entities('views0Service')
+        const res = await SELECT.from(RTView).where({ ID: 201 })
         expect(res).to.have.length(1)
         expect(res[0]).to.include({
           ID: 201,
           title: 'Wuthering Heights',
         })
-        const resDeployed = await SELECT.from('views0Service.Book').where({ ID: 201 })
+        const resDeployed = await SELECT.from(DBView).where({ ID: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
 
       test('runtimeViews1.Book with id field and author should return correct book data', async () => {
-        const res = await SELECT.from('runtimeViews1Service.Book').where({ id: 201 })
+        const { Book: RTView } = cds.entities('runtimeViews1Service')
+        const { Book: DBView } = cds.entities('views1Service')
+        const res = await SELECT.from(RTView).where({ id: 201 })
         expect(res).to.have.length(1)
         expect(res[0]).to.include({
           id: 201,
@@ -36,26 +40,30 @@ describe('Runtime Views', () => {
           author_dateOfBirth: '1818-07-30',
           author_placeOfBirth: 'Thornton, Yorkshire',
         })
-        const resDeployed = await SELECT.from('views1Service.Book').where({ id: 201 })
+        const resDeployed = await SELECT.from(DBView).where({ id: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
     })
 
     describe('Projections and Expansions', () => {
       test('nested projection with basic fields', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id']).where({ id: 201 })
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        const { Book: DBView } = cds.entities('views2Service')
+        const res = await SELECT.from(RTView).columns(['id']).where({ id: 201 })
 
         expect(res).to.have.length(1)
         expect(res[0]).to.include({
           id: 201,
         })
 
-        const resDeployed = await SELECT.from('views2Service.Book').columns(['id']).where({ id: 201 })
+        const resDeployed = await SELECT.from(DBView).columns(['id']).where({ id: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
 
       test('nested projection with expand', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book').columns(['id', 'Authorid']).where({ id: 201 })
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        const { Book: DBView } = cds.entities('views2Service')
+        const res = await SELECT.from(RTView).columns(['id', 'Authorid']).where({ id: 201 })
 
         expect(res).to.have.length(1)
         expect(res[0]).to.include({
@@ -63,14 +71,16 @@ describe('Runtime Views', () => {
           Authorid: 101,
         })
 
-        const resDeployed = await SELECT.from('views2Service.Book').columns(['id', 'Authorid']).where({ id: 201 })
+        const resDeployed = await SELECT.from(DBView).columns(['id', 'Authorid']).where({ id: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
     })
 
     describe('Aliases and Complex Queries', () => {
       test('select with alias by ID', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book')
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        const { Book: DBView } = cds.entities('views2Service')
+        const res = await SELECT.from(RTView)
           .columns(['id', 'title', 'AuthorName'])
           .where({ id: 201 })
 
@@ -81,14 +91,16 @@ describe('Runtime Views', () => {
           AuthorName: 'Emily Brontë',
         })
 
-        const resDeployed = await SELECT.from('views2Service.Book')
+        const resDeployed = await SELECT.from(DBView)
           .columns(['id', 'title', 'AuthorName'])
           .where({ id: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
 
       test('select with alias, filter, and ordering', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book')
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        const { Book: DBView } = cds.entities('views2Service')
+        const res = await SELECT.from(RTView)
           .columns(['id', 'title', 'AuthorName'])
           .where('id = 201 or id = 207')
           .orderBy('title')
@@ -105,7 +117,7 @@ describe('Runtime Views', () => {
           AuthorName: 'Emily Brontë',
         })
 
-        const resDeployed = await SELECT.from('views2Service.Book')
+        const resDeployed = await SELECT.from(DBView)
           .columns(['id', 'title', 'AuthorName'])
           .where('id = 201 or id = 207')
           .orderBy('title')
@@ -115,7 +127,9 @@ describe('Runtime Views', () => {
 
     describe('Aggregations and Distinct Queries', () => {
       test('distinct author selection', async () => {
-        const res = await SELECT.from('runtimeViews0Service.Book')
+        const { Book: RTView } = cds.entities('runtimeViews0Service')
+        const { Book: DBView } = cds.entities('views0Service')
+        const res = await SELECT.from(RTView)
           .columns([{ ref: ['author'], expand: ['*'] }])
           .where('ID != 201')
           .orderBy('title')
@@ -123,7 +137,7 @@ describe('Runtime Views', () => {
         const authors = res.map(b => b.author.name)
         expect(authors).to.deep.equal(['Richard Carpenter', 'Edgar Allen Poe', 'Charlotte Brontë', 'Edgar Allen Poe'])
 
-        const resDeployed = await SELECT.from('views0Service.Book')
+        const resDeployed = await SELECT.from(DBView)
           .columns([{ ref: ['author'], expand: ['*'] }])
           .where('ID != 201')
           .orderBy('title')
@@ -131,7 +145,9 @@ describe('Runtime Views', () => {
       })
 
       test('group by with aggregate count', async () => {
-        const res = await SELECT.from('runtimeViews2Service.Book')
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        const { Book: DBView } = cds.entities('views2Service')
+        const res = await SELECT.from(RTView)
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
@@ -145,7 +161,7 @@ describe('Runtime Views', () => {
         ])
         
 
-        const resDeployed = await SELECT.from('views2Service.Book')
+        const resDeployed = await SELECT.from(DBView)
           .columns(['AuthorName', 'count(*) as books'])
           .where('AuthorName IS NOT NULL')
           .groupBy('AuthorName')
@@ -157,6 +173,7 @@ describe('Runtime Views', () => {
     describe('Redirected views', () => {
       test('runtime with books redirected', async () => {
         const { AuthorRedirected: RTView } = cds.entities('runtimeViews0Service')
+        const { AuthorRedirected: DBView } = cds.entities('views0Service')
         const res = await cds.ql`select from ${RTView} { ID, books { title } } where ID = ${101}`
         expect(res).to.have.length(1)
         expect(res[0]).to.deep.include({
@@ -165,7 +182,7 @@ describe('Runtime Views', () => {
             { title: 'Redirected Wuthering Heights' }
           ]
         })
-        const resDeployed = await SELECT.from('views0Service.AuthorRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
+        const resDeployed = await SELECT.from(DBView).columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
         expect(res).to.deep.equal(resDeployed)
       })
     })
@@ -181,19 +198,23 @@ describe('Runtime Views', () => {
 
     describe('Field Access Restrictions', () => {
       test('excluded fields should not be accessible', async () => {
-        await expect(SELECT.from('runtimeViews2Service.Book').columns(['stock'])).to.be.rejectedWith(/"stock" not found/)
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        await expect(SELECT.from(RTView).columns(['stock'])).to.be.rejectedWith(/"stock" not found/)
       })
 
       test('excluded fields with alias should not be accessible', async () => {
-        await expect(SELECT.from('runtimeViews2Service.Book').columns(['stock'])).to.be.rejectedWith(/"stock" not found/)
+        const { Book: RTView } = cds.entities('runtimeViews2Service')
+        await expect(SELECT.from(RTView).columns(['stock'])).to.be.rejectedWith(/"stock" not found/)
       })
 
       test('View with UNION should throw DB error', async () => {
-        await expect(SELECT.from('runtimeViews0Service.AuthorsAndBooks')).to.be.rejectedWith(/no such table|invalid table name|does not exist/)
+        const { AuthorsAndBooks: RTView } = cds.entities('runtimeViews0Service')
+        await expect(SELECT.from(RTView)).to.be.rejectedWith(/no such table|invalid table name|does not exist/)
       })
 
       test('View with JOIN should throw DB error', async () => {
-        await expect(SELECT.from('runtimeViews0Service.BookWithEditions')).to.be.rejectedWith(/no such table|invalid table name|does not exist/)
+        const { BookWithEditions: RTView } = cds.entities('runtimeViews0Service')
+        await expect(SELECT.from(RTView)).to.be.rejectedWith(/no such table|invalid table name|does not exist/)
       })
     })
   })
