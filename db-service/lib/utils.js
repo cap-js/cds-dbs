@@ -34,7 +34,7 @@ function isRuntimeView(definition) {
   if (!definition['@cds.persistence.skip']) return true
 
   if (definition.query) 
-    // experimental
+    // VK
     // return isRuntimeView(definition.query._target)
     return isRuntimeView(cds.model.definitions[definition.query.SELECT.from.ref.at(-1)])
 

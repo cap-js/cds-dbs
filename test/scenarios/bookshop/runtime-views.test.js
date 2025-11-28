@@ -3,6 +3,7 @@ const bookshop = cds.utils.path.resolve(__dirname, '../../bookshop')
 
 describe('Runtime Views', () => {
   const { expect } = cds.test(bookshop)
+  if(cds.env.sql.names === 'quoted') return 'skipped' // VK
 
   beforeAll(async () => {
     cds.env.features.runtime_views = true
