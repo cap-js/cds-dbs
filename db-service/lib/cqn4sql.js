@@ -365,8 +365,8 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = getDefinition(nextAssoc.$refLink.definition.target).name
       const def = getDefinition(nextAssoc.$refLink.definition.target)
+      const id = def.name
       if (hasOwnSkip(def) && isRuntimeView(def)) addWith(id, undefined, withContext)
       const { args } = nextAssoc
       const arg = {
