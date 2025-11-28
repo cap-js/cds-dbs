@@ -1,7 +1,5 @@
 using {sap.capire.bookshop as my} from '../db/schema';
 
-using {API_BUSINESS_PARTNER as external} from './external/API_BUSINESS_PARTNER.csn';
-
 // Create bookshop namespace for compatibility
 context bookshop {
     // Map other entities
@@ -150,16 +148,6 @@ service runtimeViewsErrorService {
     };
 
     entity VirtualBookView  as select from VirtualBook;
-
-    @cds.persistence.skip
-    view MyRemoteView as
-        select from external.A_BusinessPartner {
-            key BusinessPartner,
-                BusinessPartnerName,
-                CreationDate
-        };
-
-    entity BusinessPartners as projection on MyRemoteView;
 }
 
 service views0Service {
