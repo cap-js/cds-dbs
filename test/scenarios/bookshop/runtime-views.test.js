@@ -196,7 +196,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViews2Service.Book').columns(['stock'])
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/stock/)
+          expect(error.message).toMatch(/"stock" not found/)
         }
       })
 
@@ -205,7 +205,7 @@ describe('Runtime Views', () => {
           await SELECT.from('runtimeViews2Service.Book').columns(['stock'])
           fail('Expected request to throw an error')
         } catch (error) {
-          expect(error.message).toMatch(/stock/)
+          expect(error.message).toMatch(/"stock" not found/)
         }
       })
 
