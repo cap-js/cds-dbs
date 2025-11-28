@@ -205,7 +205,7 @@ function cqn4sql(originalQuery, model) {
       }
       
       addWith(currentDef.name, currentDef, withContext)
-      currentDef = model.definitions[currentDef.query._target?.name]
+      currentDef = currentDef.query._target
     }
   }
 
