@@ -153,7 +153,8 @@ describe('Runtime Views', () => {
 
     describe('Redirected views', () => {
       test('runtime with books redirected', async () => {
-        const res = await SELECT.from('runtimeViews0Service.AuthorRedirected').columns(['ID', { expand: [{ref: ['title']}], ref: ['books'] }]).where({ ID: 101 })
+        const { AuthorRedirected: RTView } = cds.entities('runtimeViews0Service')
+        const res = await cds.ql`select from ${RTView} { ID, books { title } } where ID = ${101}`
         expect(res).toHaveLength(1)
         expect(res[0]).toMatchObject({
           ID: 101,
