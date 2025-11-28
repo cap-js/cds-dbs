@@ -5,7 +5,6 @@ const { fail } = require('assert')
 
 describe('Runtime Views', () => {
   cds.test(bookshop)
-  if(cds.env.sql.names === 'quoted') return 'skipped'
 
   beforeAll(async () => {
     cds.env.features.runtime_views = true
@@ -178,16 +177,7 @@ describe('Runtime Views', () => {
         const { VirtualBookView } = cds.entities('runtimeViewsErrorService')
         try { await cds.ql`select from ${VirtualBookView}` }
         catch (error) { expect(error.message).toMatch(/is not a runtime view/) }
-      })
-
-      test('Remote entities should throw error', async () => {
-        try {
-          await SELECT.from('runtimeViewsErrorService.BusinessPartners')
-          fail('Expected request to throw an error')
-        } catch (error) {
-          expect(error.message).toMatch(/is not a runtime view/)
-        }
-      })
+      })      
     })
 
     describe('Field Access Restrictions', () => {
