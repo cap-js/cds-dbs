@@ -39,6 +39,7 @@ describe('Runtime Views', () => {
           authorName: 'Emily Brontë',
           author_dateOfBirth: '1818-07-30',
           author_placeOfBirth: 'Thornton, Yorkshire',
+          type: 'Book',
         })
         const resDeployed = await SELECT.from(DBView).where({ id: 201 })
         expect(res).to.deep.equal(resDeployed)

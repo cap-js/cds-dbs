@@ -85,6 +85,7 @@ service runtimeViews1Service {
             stock       as count,
             author.name as authorName,
             author.ID   as AuthorId,
+            'Book'    as type,
             author {
                 placeOfBirth,
                 dateOfBirth
@@ -172,6 +173,7 @@ service views1Service {
             stock       as count,
             author.name as authorName,
             author.ID   as AuthorId,
+            'Book'    as type,
             author {
                 placeOfBirth,
                 dateOfBirth
