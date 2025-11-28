@@ -170,12 +170,9 @@ describe('Runtime Views', () => {
   describe('Error Cases', () => {
     describe('Unsupported Entity Types', () => {
       test('Virtual entities should throw error', async () => {
-        try {
-          await SELECT.from('runtimeViewsErrorService.VirtualBookView')
-          fail('Expected request to throw an error')
-        } catch (error) {
-          expect(error.message).toMatch(/is not a runtime view/)
-        }
+        const { VirtualBookView } = cds.entities('runtimeViewsErrorService')
+        await expect(cds.ql`select from ${VirtualBookView }).rejected
+          .to.eq(/is not a runtime view/) // the way to validate the error object is not very straight forward
       })
 
       test('Remote entities should throw error', async () => {
