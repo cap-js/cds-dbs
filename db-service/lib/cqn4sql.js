@@ -225,7 +225,8 @@ function cqn4sql(originalQuery, model) {
 
     const transformedQ = cqn4sql(q, model)
     if (!transformedQ._with) defineProperty(transformedQ, '_with', [])
-    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: definition.name.replace(/\./g, '_') })
+    const alias = cds.env.sql.names === 'quoted' ? definition.name : definition.name.replace(/\./g, '_')
+    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: alias })
     withContext.add(transformedQ._with)
   }
 
