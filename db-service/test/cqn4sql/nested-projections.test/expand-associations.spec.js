@@ -37,6 +37,36 @@ describe('(nested projections) expand', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+    it('same as above but two expands, one renamed', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Books
+        {
+          author as a { name },
+          author      { name }
+        }`)
+
+      expect(transformed.SELECT.columns[0].SELECT).to.have.property('expand').that.equals(true)
+      expect(transformed.SELECT.columns[0].SELECT).to.have.property('one').that.equals(true)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Books as $B
+        {
+          (
+            SELECT from bookshop.Authors as $a
+            {
+              $a.name
+            } where $B.author_ID = $a.ID
+          ) as a,
+          (
+            SELECT from bookshop.Authors as $a2
+            {
+              $a2.name
+            } where $B.author_ID = $a2.ID
+          ) as author
+        }`
+
+      expectCqn(transformed).to.equal(expected)
+    })
 
     it('prototype of the subquery is not polluted', () => {
       const transformed = cqn4sql(cds.ql`

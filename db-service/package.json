@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/db-service",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "CDS base database service",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/db-service#cds-base-database-service",
   "repository": {
@@ -27,7 +27,7 @@
     "generic-pool": "^3.9.0"
   },
   "peerDependencies": {
-    "@sap/cds": ">=9"
+    "@sap/cds": ">=9.4.5"
   },
   "license": "Apache-2.0"
 }
