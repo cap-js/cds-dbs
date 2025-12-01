@@ -392,11 +392,11 @@ class CQN2SQLRenderer {
     const alias = stableFrom.as
     const source = () => {
       return ({
-      func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
-      as: alias
-    })
-  }
+        func: 'HIERARCHY',
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+        as: alias
+      })
+    }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
     const expandedByOne = { list: [] } // DistanceTo(...,1)
@@ -1032,7 +1032,7 @@ class CQN2SQLRenderer {
     const extraction = (this._managed = this.managed(columns.map(c => ({ name: c })), elements))
       .slice(0, columns.length)
       .map(c => c.converter(c.extract))
-    
+
     const transitions = this.srv.resolve.transitions4db(q)
     return (this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${this.columns.map(c => this.quote(transitions.mapping.get(c)?.ref?.[0] || c))
       }) SELECT ${extraction} FROM json_each(?)`)
@@ -1133,10 +1133,19 @@ class CQN2SQLRenderer {
       .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
 
     const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
-    sql = `SELECT ${managed.map(c => c.upsert
-      .replace(/value->/g, '"$$$$value$$$$"->')
-      .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
-      } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+      sql = `SELECT ${managed.map(c => c.upsert
+        .replace(/value->/g, '"$$$$value$$$$"->')
+        .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
+        } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    } else {
+      const extractions = this._managed
+      if (this.values) this.values = [] // Clear previously computed values
+      const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(src)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+      this.entries = [this.values]
+    }
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -1163,7 +1172,7 @@ class CQN2SQLRenderer {
   UPDATE(q) {
     const { entity, with: _with, data, where } = q.UPDATE
     const transitions = this.srv.resolve.transitions4db(q)
-    const elements = q._target?.elements    
+    const elements = q._target?.elements
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
@@ -1185,7 +1194,7 @@ class CQN2SQLRenderer {
 
     const extraction = this.managed(columns, elements)
       .filter((c, i) => {
-        if(transitions.mapping.get(c.name)?.ref?.length > 1) return false
+        if (transitions.mapping.get(c.name)?.ref?.length > 1) return false
         return columns[i] || c.onUpdate
       }).map((c, i) => `${this.quote(transitions.mapping.get(c.name)?.ref?.[0] || c.name)}=${!columns[i] ? c.onUpdate : c.sql}`)
 
@@ -1496,7 +1505,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default && { __proto__:  element.default, param: false })
+        || (element.default && { __proto__: element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)
@@ -1534,7 +1543,7 @@ class CQN2SQLRenderer {
     })
   }
 
-  physical_column (elements, c) {
+  physical_column(elements, c) {
     return elements[c] && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation
   }
 

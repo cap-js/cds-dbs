@@ -54,9 +54,22 @@ describe('UPSERT', () => {
     })
   })
 
-  describe('as', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+  describe('from', () => {
+    test('transform', async () => {
+      const { cuid, keys } = cds.entities('basic.common')
+      // fill other table first
+      await cds.run(INSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys))
+      await UPSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
+      ])
     })
   })
 
