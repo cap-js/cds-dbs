@@ -12,6 +12,31 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  /**
+   * Generates SQL statement that produces a runtime compatible error object
+   * @param {string|object} message - The i18n key or message of the error object
+   * @param {Array<xpr>} args - The arguments to apply to the i18n string
+   * @param {Array<xpr>} targets - The name of the element that the error is related to
+   * @return {string} - SQL statement
+   */
+  error: function (message, args, targets) {
+    targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
+    if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
+    args = args && (args.list || (args.val || args.ref) && [args])
+
+    const expr = expr => expr
+      ? `' || coalesce('"' || ${this.expr(expr)} || '"','null') || '`
+      : 'null'
+
+    return `'{"message":${expr(message)}, "args":${args
+      ? `[${args.map(arg => expr(arg))}]`
+      : 'null'
+      },"targets":${targets
+        ? `[${targets.map(target => expr(target))}]`
+        : 'null'
+      }}'`
+  },
+
   // ==============================
   // Session Context Functions
   // ==============================
