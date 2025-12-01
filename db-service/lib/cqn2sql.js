@@ -1176,10 +1176,7 @@ class CQN2SQLRenderer {
     let sql = `UPDATE ${this.quote(this.table_name(q))}`
     if (entity.as) sql += ` AS ${this.quote(entity.as)}`
 
-    let columns = []
-    if (data) _add(data, val => this.val({ val }))
-    if (_with) _add(_with, x => this.expr(x))
-    function _add(data, sql4) {
+    const _add = (data, sql4) => {
       for (let col in data) {
         const c = transitions.mapping.get(col)?.ref?.[0] || col
         const columnExistsInDatabase = elements
@@ -1191,6 +1188,10 @@ class CQN2SQLRenderer {
         }
       }
     }
+
+    let columns = []
+    if (data) _add(data, val => this.val({ val }))
+    if (_with) _add(_with, x => this.expr(x))
 
     const extraction = this.managed(columns, elements)
       .filter((c, i) => {
@@ -1391,7 +1392,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args: [args]) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args : [args]) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }
