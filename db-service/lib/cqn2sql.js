@@ -1125,15 +1125,15 @@ class CQN2SQLRenderer {
       .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
       .join(' AND ')
 
-    const columns = this.columns // this.columns is computed as part of this.INSERT
-    const managed = this._managed.slice(0, columns.length)
-
-    const extractkeys = managed
-      .filter(c => keys.includes(c.name))
-      .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
-
+    let columns = this.columns // this.columns is computed as part of this.INSERT
     const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
     if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+      const managed = this._managed.slice(0, columns.length)
+
+      const extractkeys = managed
+        .filter(c => keys.includes(c.name))
+        .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
+
       sql = `SELECT ${managed.map(c => c.upsert
         .replace(/value->/g, '"$$$$value$$$$"->')
         .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
