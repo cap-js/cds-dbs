@@ -1019,7 +1019,7 @@ class CQN2SQLRenderer {
     const entity = this.name(q._target.name, q)
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
+    let columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
 
