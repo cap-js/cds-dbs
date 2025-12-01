@@ -68,10 +68,20 @@ service runtimeViews0Service {
         Book.title,
         Edition.ID       as editionID
     };
+
+    @cds.persistence.skip
+    @cds.redirection.target
+    view BookRedirected as select from my.Books {
+        key ID,
+        'Redirected ' || title as title : String,
+        descr,
+        author.ID as authorID : Integer,
+        author
+    };
     
     entity AuthorRedirected as projection on Author {
         *,
-        books: redirected to my.BookRedirected on books.authorID = $self.ID
+        books: redirected to BookRedirected on books.author.ID = $self.ID
     };
 
 }
@@ -159,9 +169,18 @@ service views0Service {
 
     entity Edition as projection on bookshop.Edition;
 
+    @cds.redirection.target
+    view BookRedirected as select from my.Books {
+        key ID,
+        'Redirected ' || title as title : String,
+        descr,
+        author.ID as authorID : Integer,
+        author
+    };
+
     entity AuthorRedirected as projection on Author {
         *,
-        books: redirected to my.BookRedirected on books.authorID = $self.ID
+        books: redirected to BookRedirected on books.author.ID = $self.ID
     };
 }
 
