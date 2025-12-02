@@ -180,6 +180,28 @@ async function rsIterator(rs, one, objectMode) {
   // Raw binary data stream unparsed
   const raw = rs.createBinaryStream()[Symbol.asyncIterator]()
 
+  // Hyper stream
+  if (rs.metadata.length === 1) {
+    const row = await raw.next()
+    let length = row.value[0]
+    let offset = 1
+    switch (length) {
+      case 0xff:
+        return null
+      case 0xf6:
+        length = row.value.readInt16LE(offset)
+        offset += 2
+        break
+      case 0xf7:
+        length = row.value.readInt32LE(offset)
+        offset += 4
+        break
+      default:
+    }
+    const data = row.value.slice(offset, offset + length)
+    return Readable.from(data, { objectMode: false })
+  }
+
   const blobs = rs.metadata.slice(4).map(b => b.columnName)
   const levels = [
     {
