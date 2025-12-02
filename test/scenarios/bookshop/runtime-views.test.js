@@ -209,7 +209,7 @@ describe('Runtime Views', () => {
 
       test('View with UNION should throw DB error', async () => {
         const { AuthorsAndBooks: RTView } = cds.entities('runtimeViews0Service')
-        await expect(SELECT.from(RTView)).to.be.rejectedWith(/no such table|invalid table name|does not exist/)
+        await expect(SELECT.from(RTView)).to.be.rejectedWith(/”UNION” based queries are not supported/)
       })
 
       test('View with JOIN should throw DB error', async () => {

@@ -199,35 +199,36 @@ function cqn4sql(originalQuery, model) {
         throw new Error(`${currentDef.name} is not a runtime view`)
       }
 
-      const alias = currentDef.name.replace(/\./g, '_')
-      if (withContext.hasWith(alias)) {
+      if (withContext.hasWith(currentDef.name)) {
         break // Already processed
       }
       
-      addWith(currentDef, withContext)
+      addWith(currentDef, withContext, model)
       currentDef = currentDef.query._target
     }
   }
 
-  function addWith(definition, withContext) {
-    if (!definition?.query || definition.query.SET) return
+  function addWith(definition, withContext, model) {
+    if (!definition?.query) return
 
     const q = cds.ql.clone(definition.query)
-    if (!q.SELECT.columns) q.SELECT.columns = ['*']
-    if (q.SELECT.columns.includes('*')) {
-      for (let el of definition.elements) {
-        if (el.type === 'cds.LargeBinary' && 
-            !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) {
-          q.SELECT.columns.push({ ref: [el.name] })
+    if (q.SELECT) {
+      if (!q.SELECT.columns) q.SELECT.columns = ['*']
+      if (q.SELECT.columns.includes('*')) {
+        for (let el of definition.elements) {
+          if (el.type === 'cds.LargeBinary' && 
+              !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) {
+            q.SELECT.columns.push({ ref: [el.name] })
+          }
         }
       }
     }
-
-    const transformedQ = cqn4sql(q, model)
-    if (!transformedQ._with) defineProperty(transformedQ, '_with', [])
-    const alias = cds.env.sql.names === 'quoted' ? definition.name : definition.name.replace(/\./g, '_')
-    transformedQ._with.push({ SELECT: transformedQ.SELECT, as: alias })
-    withContext.add(transformedQ._with)
+    const transformedQ = cqn4sql(infer(q, model), model)
+    let _with = []
+    if (transformedQ._with) _with = transformedQ._with
+    transformedQ.as = definition.name
+    _with.push(transformedQ)
+    withContext.add(_with)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -367,7 +368,7 @@ function cqn4sql(originalQuery, model) {
 
       const def = getDefinition(nextAssoc.$refLink.definition.target)
       const id = def.name
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], withContext)
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], withContext, model)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
