@@ -325,7 +325,7 @@ GROUP BY k
       let recursive = false
       const prefix = this._with.map(q => {
         let sql
-        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        if ('SELECT' in q) sql = `${this.quote(this.name(q.as))} AS (${this.SELECT(q)})`
         else if ('SET' in q) {
           recursive = true
           const { SET } = q
@@ -351,7 +351,7 @@ GROUP BY k
             }`
 
           // Enforce depth sorting for consuming queries
-          if (isDepthFirst) sql += `,${this.quote(this.name(q.as))} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
+          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
         }
         return { sql }
       })
