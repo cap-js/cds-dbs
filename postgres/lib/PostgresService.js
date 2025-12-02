@@ -336,7 +336,7 @@ GROUP BY k
             SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === q.as) r.ref[0] = alias })
           }
 
-          sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.name(this.column_name(c)))) || ''}) AS (${
+          sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${
             // Root select
             this.SELECT(SET.args[0])} ${
             // Union clause
@@ -351,7 +351,7 @@ GROUP BY k
             }`
 
           // Enforce depth sorting for consuming queries
-          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
+          if (isDepthFirst) sql += `,${this.quote(this.name(q.as))} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
         }
         return { sql }
       })
