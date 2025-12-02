@@ -217,7 +217,7 @@ function cqn4sql(originalQuery, model) {
       if (q.SELECT.columns.includes('*')) {
         for (let el of definition.elements) {
           if (el.type === 'cds.LargeBinary' && 
-              !q.SELECT.columns.some(col => col.ref?.at(-1) === el.name)) {
+              !q.SELECT.columns.some(col => col.as === el.name || col.ref?.at(-1) === el.name)) {
             q.SELECT.columns.push({ ref: [el.name] })
           }
         }
