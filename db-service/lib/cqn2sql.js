@@ -683,6 +683,9 @@ class CQN2SQLRenderer {
       if (z.args) {
         return _aliased(`${this.quote(this.name(z, q))}${this.from_args(z.args)}`)
       }
+      if (ref.length > 1) {
+        return `${this.from({ ref: [from.ref[0]], as })}, json_each((${this.Map_extract({ ref: [as, ...from.ref.slice(1)], as, _from: true })}))`
+      }
       return _aliased(this.quote(this.name(z, q)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
@@ -1257,12 +1260,49 @@ class CQN2SQLRenderer {
    * @param {import('./infer/cqn').ref} param0
    * @returns {string} SQL
    */
-  ref({ ref }) {
+  ref(org) {
+    const { ref, element, _from } = org
     switch (ref[0]) {
       case '$now': return this.func({ func: 'session_context', args: [{ val: '$now', param: false }] }) // REVISIT: why do we need param: false here?
       case '$user': return this.func({ func: 'session_context', args: [{ val: '$user.' + ref[1] || 'id', param: false }] }) // REVISIT: same here?
-      default: return ref.map(r => this.quote(r)).join('.')
+      default: return !element?.parent || ref.length > 2
+        ? this.Map_extract(org)
+        : ref.map(r => this.quote(r)).join('.')
     }
+  }
+
+  Map_extract({ ref, _from }) {
+    ref = [...ref]
+    let src = this._from_value || (this.cqn._target instanceof cds.builtin.classes.Map && !_from)
+      ? ['value']
+      : ref.splice(0, 2)
+
+    src = src.map(r => this.quote(r)).join('.')
+
+    const level = (src, path, first) => {
+      let p = []
+      let star = false
+      const sql = path.reduce((sql, cur, i, arr) => {
+        if (star) return sql
+        const id = cur.id || cur
+        if (id === '*') {
+          star = true
+          const where = cur.where
+          this._from_value = true
+          sql = `SELECT ${first
+            ? `json_group_array(${level('value', arr.slice(i + 1))})`
+            : level('value', arr.slice(i + 1))} FROM json_each((${src})->>${this.string(sql)})${where ? ` WHERE ${this.where(where)}` : ''}`
+
+          this._from_value = undefined
+          return sql
+        }
+        return `${sql}.${JSON.stringify(id)}`
+      }, '$')
+
+      return star ? sql : sql === '$' ? src : `(${src})->>${this.string(sql)}`
+    }
+
+    return `(${level(src, ref, true)})`
   }
 
   /**
