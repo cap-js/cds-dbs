@@ -2,12 +2,6 @@ using {sap.capire.bookshop as my} from '../db/schema';
 
 // Create bookshop namespace for compatibility
 context bookshop {
-    // Map other entities
-    entity Publisher {
-        key ID   : UUID;
-            name : String;
-    };
-
     entity Edition {
         key ID          : UUID;
             book        : Association to views.Books;
@@ -20,27 +14,58 @@ context bookshop {
     };
 
     entity Category as projection on my.Genres;
+
+    entity Page {
+        key ID : Integer;
+        text: String;
+    }
+   
+    entity Review {
+        key ID : Integer;
+        text: String;
+    }    
+
+    @cds.persistence.skip
+    entity PageView as projection on Page;
+
+    @cds.persistence.skip
+    entity ReviewView as projection on Review;
 }
 
 context views {
 
-    entity Books as
-        projection on my.Books {
-            *,
-            editions : Association to many bookshop.Edition
-                           on editions.book = $self
-        };
+    entity AuthorView  as projection on my.Authors {
+        *,
+        reviews: Association to many bookshop.ReviewView on reviews.ID = $self.ID,
+        pages: Association to many bookshop.PageView on pages.ID = $self.ID     
+    };
 
+    entity BooksView as projection on my.Books {
+        *,
+        pages: Association to many bookshop.PageView on pages.ID = $self.ID       
+    };
+
+    entity Author  as projection on my.Authors {
+        *,
+        reviews: Association to many bookshop.Review on reviews.ID = $self.ID,
+        pages: Association to many bookshop.Page on pages.ID = $self.ID     
+    };
+
+    entity Books as projection on my.Books {
+        *,
+        pages: Association to many bookshop.Page on pages.ID = $self.ID       
+    };
+
+    
 }
 
 service runtimeViews0Service {
-    @cds.persistence.skip
     @cds.redirection.target
-    entity Author  as projection on my.Authors;
+    @cds.persistence.skip
+    entity Author  as projection on views.AuthorView;
 
     @cds.persistence.skip
-    entity Book    as projection on views.Books;
-
+    entity Book    as projection on views.BooksView;
 
     @cds.persistence.skip
     entity Edition as projection on bookshop.Edition;
@@ -140,7 +165,7 @@ service runtimeViews1Service {
 
 service runtimeViews2Service {
     entity Book as
-        projection on runtimeViews1Service.Book {
+        projection on runtimeViews1Service.Book {            
             id,
             genre      as category,
             genre.name as categoryName,
@@ -163,9 +188,19 @@ service runtimeViewsErrorService {
 
 service views0Service {
     @cds.redirection.target
-    entity Author  as projection on my.Authors;
+    entity Author  as projection on views.Author {
+        *,
+        reviews: Association to many bookshop.Review
+                       on reviews.ID = $self.ID,
+        pages: Association to many bookshop.Page
+                       on pages.ID = $self.ID,           
+    };
 
-    entity Book    as projection on views.Books;
+    entity Book as projection on views.Books {
+        *,       
+        pages: Association to many bookshop.Page
+                on pages.ID = $self.ID               
+    };
 
     entity Edition as projection on bookshop.Edition;
 
