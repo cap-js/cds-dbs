@@ -1,6 +1,8 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const { defineProperty } = require('./utils')
+
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
@@ -76,6 +78,7 @@ class CQN2SQLRenderer {
    */
   render(q, vars) {
     const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
+    if (cds.env.features.runtime_views && q._with) defineProperty(this, '_with', q._with)
     /**
      * @type {string} the rendered SQL string
      */
@@ -104,12 +107,18 @@ class CQN2SQLRenderer {
 
   render_with() {
     const sql = this.sql
-    let recursive = false
     const values = this.values
+    const { prefix, recursive } = this.getWithPrefix()
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    this.values = [...prefix.map(p => p.values).flat(), ...values]
+  }
+
+  getWithPrefix() {
+    let recursive = false
     const prefix = this._with.map(q => {
       const values = this.values = []
       let sql
-      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+      if ('SELECT' in q) sql = `${this.quote(this.name(q.as))} AS (${this.SELECT(q)})`
       else if ('SET' in q) {
         recursive = true
         const { SET } = q
@@ -117,8 +126,7 @@ class CQN2SQLRenderer {
       }
       return { sql, values }
     })
-    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-    this.values = [...prefix.map(p => p.values).flat(), ...values]
+    return { prefix, recursive }
   }
 
   /**

@@ -13,6 +13,7 @@ const {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView,
 } = require('./utils')
 
 /**
@@ -51,7 +52,6 @@ const { pseudos } = require('./infer/pseudos')
  *
  * @param {object} originalQuery
  * @param {object} model
- * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
@@ -173,7 +173,50 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
+  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model)
+
   return transformedQuery
+
+  function processRuntimeViews(transformedQuery, model) {
+    let currentDef = transformedQuery._target
+    
+    while (hasOwnSkip(currentDef)) {
+      if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+      if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
+      
+      addWith(currentDef, transformedQuery, model)
+      currentDef = currentDef.query._target
+    }
+  }
+
+  function addWith(definition, transformedQuery, model) {
+    if (!definition?.query) return
+
+    const q = cds.ql.clone(definition.query)
+    if (q.SELECT) {
+      if (!q.SELECT.columns) q.SELECT.columns = ['*']
+      if (q.SELECT.columns.includes('*')) {
+        for (let el of definition.elements) {
+          if (el.type === 'cds.LargeBinary' && 
+              !q.SELECT.columns.some(col => col.as === el.name || col.ref?.at(-1) === el.name)) {
+            q.SELECT.columns.push({ ref: [el.name] })
+          }
+        }
+      }
+    }
+    
+    const transformedQ = cqn4sql(infer(q, model), model)
+    const _with = transformedQ._with || []
+    transformedQ.as = definition.name
+    _with.push(transformedQ)
+    if (!transformedQuery._with) transformedQuery._with = _with
+    else {
+      // do not push duplicates
+      _with.forEach(w => {
+        if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+      })
+    }
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -310,7 +353,9 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = getDefinition(nextAssoc.$refLink.definition.target).name
+      const def = getDefinition(nextAssoc.$refLink.definition.target)
+      const id = def.name
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], transformedQuery, model)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -469,7 +514,13 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
+      if (
+        col.$refLinks.some(link => {
+          const def = getDefinition(link.definition.target)
+          return hasOwnSkip(def) && !isRuntimeView(def)
+        })
+      )
+        return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -968,7 +1019,12 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
+        if (
+          col.$refLinks.some(link => {
+            const def = getDefinition(link.definition.target)
+            return hasOwnSkip(def) && !isRuntimeView(def)
+          })
+        )
           continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -1066,10 +1122,22 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
+    
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
-    return cqn4sql(q, model)
+    const _q = cqn4sql(q, model)
+    if (cds.env.features.runtime_views && _q._with) {
+      if (!transformedQuery._with) transformedQuery._with = _q._with
+      else {
+        // do not push duplicates
+        _q._with.forEach(w => {
+          if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+        })
+      }
+    }
+    return _q
+
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
