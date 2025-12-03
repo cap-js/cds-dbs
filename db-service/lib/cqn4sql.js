@@ -191,7 +191,6 @@ function cqn4sql(originalQuery, model) {
 
   function addWith(definition, transformedQuery, model) {
     if (!definition?.query) return
-    if (transformedQuery._with?.some(w => w.as === definition.name)) return
 
     const q = cds.ql.clone(definition.query)
     if (q.SELECT) {
@@ -205,13 +204,19 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
+    
     const transformedQ = cqn4sql(infer(q, model), model)
     const _with = transformedQ._with || []
     transformedQ.as = definition.name
     _with.push(transformedQ)
     if (!transformedQuery._with) transformedQuery._with = _with
-    else transformedQuery._with.push(..._with)
+    else {
+      // do not push duplicates
+      _with.forEach(w => {
+        if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+      })
     }
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -1122,7 +1127,15 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    if (cds.env.features.runtime_views && _q._with) transformedQuery._with = _q._with
+    if (cds.env.features.runtime_views && _q._with) {
+      if (!transformedQuery._with) transformedQuery._with = _q._with
+      else {
+        // do not push duplicates
+        _q._with.forEach(w => {
+          if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+        })
+      }
+    }
     return _q
 
 

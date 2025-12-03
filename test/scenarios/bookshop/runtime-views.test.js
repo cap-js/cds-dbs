@@ -32,7 +32,11 @@ describe('Runtime Views', () => {
         const res = await SELECT.one.from(RTView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['reviews'] }], ref: ['author'] }]).where({ ID: 201 })
         expect(res).to.deep.include({
           ID: 201,
-          title: 'Wuthering Heights',
+          author: {
+            name: "Emily Brontë",
+            reviews: []
+          },
+          pages: []
         })
         const resDeployed = await SELECT.one.from(DBView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['reviews'] }], ref: ['author'] }]).where({ ID: 201 })
         expect(res).to.deep.equal(resDeployed)
@@ -42,9 +46,13 @@ describe('Runtime Views', () => {
         const { Book: RTView } = cds.entities('runtimeViews0Service')
         const { Book: DBView } = cds.entities('views0Service')
         const res = await SELECT.one.from(RTView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['author'] }]).where({ ID: 201 })
-        expect(res).to.include({
+        expect(res).to.deep.include({
           ID: 201,
-          title: 'Wuthering Heights',
+          author: {
+            name: "Emily Brontë",
+            pages: []
+          },
+          pages: []
         })
         const resDeployed = await SELECT.one.from(DBView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['author'] }]).where({ ID: 201 })
         expect(res).to.deep.equal(resDeployed)
