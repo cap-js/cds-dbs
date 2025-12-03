@@ -4,7 +4,6 @@ const cds = require('@sap/cds')
 cds.infer.target ??= q => q._target || q.target // instanceof cds.entity ? q._target : q.target
 
 const infer = require('./infer')
-const WithContext = require('./common/with-context')
 const { computeColumnsToBeSearched } = require('./search')
 const {
   prettyPrintRef,
@@ -90,7 +89,6 @@ function cqn4sql(originalQuery, model) {
 
   let transformedQuery = cds.ql.clone(inferred)
   const kind = inferred.kind || Object.keys(inferred)[0]
-  let withContext
 
   if (inferred.INSERT || inferred.UPSERT) {
     transformedQuery = transformQueryForInsertUpsert(kind)
@@ -148,7 +146,6 @@ function cqn4sql(originalQuery, model) {
     }
 
     if (inferred.SELECT) {
-      if (cds.env.features.runtime_views) withContext = new WithContext(originalQuery)
       transformedQuery = transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery)
     } else {
       if (from) {
@@ -176,40 +173,25 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
-  // Process runtime views using centralized _with management
-  if (cds.env.features.runtime_views) {
-    processRuntimeViews(transformedQuery, model, withContext)
-
-    // Attach _with clauses to the final result
-    if (withContext) {
-      const withClauses = withContext.getWithClauses()
-      if (withClauses.length > 0) {
-        defineProperty(transformedQuery, '_with', withClauses)
-      }
-    }
-  }
+  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model)
 
   return transformedQuery
 
-  function processRuntimeViews(transformedQuery, model, withContext) {
+  function processRuntimeViews(transformedQuery, model) {
     let currentDef = transformedQuery._target
     
     while (hasOwnSkip(currentDef)) {
-      if (!currentDef?.query) {
-        throw new Error(`${currentDef.name} is not a runtime view`)
-      }
-
-      if (withContext.hasWith(currentDef.name)) {
-        break // Already processed
-      }
+      if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+      if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
       
-      addWith(currentDef, withContext, model)
+      addWith(currentDef, transformedQuery, model)
       currentDef = currentDef.query._target
     }
   }
 
-  function addWith(definition, withContext, model) {
+  function addWith(definition, transformedQuery, model) {
     if (!definition?.query) return
+    if (transformedQuery._with?.some(w => w.as === definition.name)) return
 
     const q = cds.ql.clone(definition.query)
     if (q.SELECT) {
@@ -224,12 +206,12 @@ function cqn4sql(originalQuery, model) {
       }
     }
     const transformedQ = cqn4sql(infer(q, model), model)
-    let _with = []
-    if (transformedQ._with) _with = transformedQ._with
+    const _with = transformedQ._with || []
     transformedQ.as = definition.name
     _with.push(transformedQ)
-    withContext.add(_with)
-  }
+    if (!transformedQuery._with) transformedQuery._with = _with
+    else transformedQuery._with.push(..._with)
+    }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -368,7 +350,7 @@ function cqn4sql(originalQuery, model) {
 
       const def = getDefinition(nextAssoc.$refLink.definition.target)
       const id = def.name
-      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], withContext, model)
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], transformedQuery, model)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -1140,7 +1122,7 @@ function cqn4sql(originalQuery, model) {
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
-    if (cds.env.features.runtime_views && _q._with) withContext.add(_q._with)
+    if (cds.env.features.runtime_views && _q._with) transformedQuery._with = _q._with
     return _q
 
 
