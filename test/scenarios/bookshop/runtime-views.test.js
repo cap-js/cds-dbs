@@ -42,6 +42,22 @@ describe('Runtime Views', () => {
         expect(res).to.deep.equal(resDeployed)
       })
 
+      test('runtimeViews0.Book with nested expand to different related entities', async () => {
+        const { Book: RTView } = cds.entities('runtimeViews0Service')
+        const { Book: DBView } = cds.entities('views0Service')   
+        const res = await SELECT.one.from(RTView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}, { expand: [{ref: ['ID']}], ref: ['page'] }], ref: ['reviews'] }], ref: ['author'] }]).where({ ID: 201 })
+        expect(res).to.deep.include({
+          ID: 201,
+          author: {
+            name: "Emily Brontë",
+            reviews: []
+          },
+          pages: []
+        })
+         const resDeployed = await SELECT.one.from(DBView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}, { expand: [{ref: ['ID']}], ref: ['page'] }], ref: ['reviews'] }], ref: ['author'] }]).where({ ID: 201 })
+        expect(res).to.deep.equal(resDeployed)
+      })
+
       test('runtimeViews0.Book with nested expand to the same entity', async () => {
         const { Book: RTView } = cds.entities('runtimeViews0Service')
         const { Book: DBView } = cds.entities('views0Service')
@@ -55,6 +71,23 @@ describe('Runtime Views', () => {
           pages: []
         })
         const resDeployed = await SELECT.one.from(DBView).columns(['ID', { expand: [{ref: ['ID']}], ref: ['pages'] }, { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['author'] }]).where({ ID: 201 })
+        expect(res).to.deep.equal(resDeployed)
+      })
+
+      test('runtimeViews0.Book with expand to this entity', async () => {
+        const { Book: RTView } = cds.entities('runtimeViews0Service')
+        const { Book: DBView } = cds.entities('views0Service')
+        const res = await SELECT.one.from(RTView).columns(['ID', 'title', { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['author'] }, { expand: [{ref: ['title']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['this'] }]).where({ ID: 201 })
+        expect(res).to.deep.include({
+          ID: 201,
+          author: {
+            name: "Emily Brontë",
+            pages: []
+          },
+          this: { pages: [], title: 'Wuthering Heights'},
+          title: 'Wuthering Heights'
+        })
+        const resDeployed = await SELECT.one.from(DBView).columns(['ID', 'title', { expand: [{ref: ['name']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['author'] }, { expand: [{ref: ['title']}, { expand: [{ref: ['ID']}], ref: ['pages'] }], ref: ['this'] }]).where({ ID: 201 })
         expect(res).to.deep.equal(resDeployed)
       })
 

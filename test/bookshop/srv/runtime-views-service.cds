@@ -23,13 +23,17 @@ context bookshop {
     entity Review {
         key ID : Integer;
         text: String;
+        page: Association to Page
     }    
 
     @cds.persistence.skip
     entity PageView as projection on Page;
 
     @cds.persistence.skip
-    entity ReviewView as projection on Review;
+    entity ReviewView as projection on Review {
+        *,
+        page:  redirected to PageView
+    };
 }
 
 context views {
@@ -42,7 +46,8 @@ context views {
 
     entity BooksView as projection on my.Books {
         *,
-        pages: Association to many bookshop.PageView on pages.ID = $self.ID       
+        pages: Association to many bookshop.PageView on pages.ID = $self.ID,
+        this: Association to BooksView on this.ID = $self.ID
     };
 
     entity Author  as projection on my.Authors {
@@ -53,7 +58,8 @@ context views {
 
     entity Books as projection on my.Books {
         *,
-        pages: Association to many bookshop.Page on pages.ID = $self.ID       
+        pages: Association to many bookshop.Page on pages.ID = $self.ID,
+        this: Association to Books on this.ID = $self.ID    
     };
 
     
