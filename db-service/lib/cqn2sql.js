@@ -325,7 +325,7 @@ class CQN2SQLRenderer {
       DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
       DrillState: false,
       LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
-      LimitedRank: { xpr: [{ func: 'row_number', args: [] }, 'OVER', { xpr: [] }, '-', { val: 1, param: false }], as: 'LimitedRank' }
+      LimitedRank: { xpr: [{ func: 'row_number', args: [] }, 'OVER', { xpr: ['ORDER', 'BY', { ref: ['HIERARCHY_RANK'] }, 'ASC'] }, '-', { val: 1, param: false }], as: 'LimitedRank' }
     }
 
     const columnsFiltered = columns
@@ -1326,7 +1326,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this, args) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args: [args]) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }
