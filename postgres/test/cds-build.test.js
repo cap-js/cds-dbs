@@ -58,7 +58,7 @@ describe('cds build plugin', () => {
     execSync('npx cds build --production', { cwd: workDir })
     const packageJson = require(path.join(pgDest, 'package.json'))
     expect(packageJson.dependencies?.['@sap/cds']).to.equal(cds.version)
-    const pgAdapterVersion = require(path.join(__dirname,'..','package.json')).version;
+    const pgAdapterVersion = require(path.join(workDir, 'package.json')).version;
     expect(packageJson.dependencies?.['@cap-js/postgres']).to.equal(pgAdapterVersion)
   })
 })
