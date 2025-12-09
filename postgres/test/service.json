@@ -7,5 +7,5 @@
     "password": "postgres"
   },
   "dialect": "postgres",
-  "impl": "@cap-js/postgres"
+  "kind": "postgres"
 }
