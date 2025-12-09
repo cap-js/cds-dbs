@@ -533,7 +533,7 @@ class HANAService extends SQLService {
       if (!SELECT.columns) return '*'
 
       // Sort selected columns to avoid creating redundant execution plans (column names can't be equal)
-      SELECT.columns = SELECT.columns.sort((a, b) => {
+      if (SELECT.expand) SELECT.columns = SELECT.columns.sort((a, b) => {
         return (typeof a === 'string' ? a : this.column_name(a)) > (typeof b === 'string' ? b : this.column_name(b)) ? 1 : -1
       })
 
