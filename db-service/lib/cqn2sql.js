@@ -118,7 +118,7 @@ class CQN2SQLRenderer {
     const prefix = this._with.map(q => {
       const values = this.values = []
       let sql
-      if ('SELECT' in q) sql = `${this.quote(this.name(q.as))} AS (${this.SELECT(q)})`
+      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
       else if ('SET' in q) {
         recursive = true
         const { SET } = q
