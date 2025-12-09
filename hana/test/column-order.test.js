@@ -107,8 +107,8 @@ describe('column order', () => {
             { ref: ['author'], inline: [{ ref: ['street'] }, { ref: ['city'] }] },
           ]),
         )
-      
-        expect(() => hanaService.cqn2sql(query1)).to.throw(/columns were automatially expanded/i)
+
+      expect(() => hanaService.cqn2sql(query1)).to.throw(/columns were automatially expanded/i)
     })
 
     test('should throw when trying to insert and select from expanded column', async () => {
