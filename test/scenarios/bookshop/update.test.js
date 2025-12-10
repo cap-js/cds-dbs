@@ -138,7 +138,7 @@ describe('Bookshop - Update', () => {
     const { RenameKeys } = cds.entities('AdminService')
     const updateRichardsBooks = UPDATE.entity(RenameKeys)
       .where(`author.name = 'Richard Carpenter'`)
-      .set('ID = 42')
+      .set('foo = 42')
     const selectRichardsBooks = cds.ql`SELECT * FROM ${RenameKeys} where author.name = 'Richard Carpenter'`
 
     await cds.run(updateRichardsBooks)
