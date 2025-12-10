@@ -67,6 +67,7 @@ class SQLService extends DatabaseService {
     this.on(['DELETE'], this.onDELETE)
     this.on(['CREATE ENTITY', 'DROP ENTITY'], this.onSIMPLE)
     this.on(['BEGIN', 'COMMIT', 'ROLLBACK'], this.onEVENT)
+    this.before(['COMMIT'], this.onASSERT)
     this.on(['*'], this.onPlainSQL)
     return super.init()
   }
@@ -297,6 +298,26 @@ class SQLService extends DatabaseService {
   async onEVENT({ event }) {
     DEBUG?.(event) // in the other cases above DEBUG happens in cqn2sql
     return await this.exec(event)
+  }
+
+  /**
+   * Handler before COMMIT to validate the new database state
+   * @type {Handler}
+   */
+  async onASSERT(req) {
+    const query = require('./assert.js')(this)
+    if (!query) return
+    const service = cds.context.tx.name
+    // Filter errors by transaction service as leaking error from other entities could leak information
+    // The database service is responsible for all entities therefor doesn't filter the targets
+    const errors = await this.run(query, [service === 'db' ? '' : service])
+    if (errors.length) for (const error of errors) {
+      const e = {}
+      try { Object.assign(e, JSON.parse(error.message)) } catch { e.message = e.message }
+      // REVISIT: UI5 doesn't respect the full path target
+      e.target = 'in/' + error.target.slice(error.target.lastIndexOf('/') + 1)
+      req.error(e)
+    }
   }
 
   /**
