@@ -110,7 +110,7 @@ class CQN2SQLRenderer {
     const values = this.values
     const { prefix, recursive } = this.getWithPrefix()
     this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-    this.values = [...prefix.map(p => p.values).flat(), ...values]
+    this.values = prefix.reduce((acc, p) => acc.concat(p.values), []).concat(values)
   }
 
   getWithPrefix() {

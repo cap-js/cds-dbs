@@ -181,11 +181,15 @@ function cqn4sql(originalQuery, model) {
     let currentDef = transformedQuery._target
     
     while (hasOwnSkip(currentDef)) {
-      if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
-      if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
+      validateRuntimeViewDefinition(currentDef)
+      
+      if (isRuntimeViewAlreadyProcessed(transformedQuery, currentDef.name)) {
+        break // Already processed
+      }
       
       addWith(currentDef, transformedQuery, model)
-      if (transformedQuery._with[transformedQuery._with.length-1].joinTree._queryAliases?.has(transformedQuery.SELECT.from.ref?.[0])) transformedQuery.SELECT.from.ref[0] = transformedQuery._with[transformedQuery._with.length-1].joinTree._queryAliases.get(transformedQuery.SELECT.from.ref[0])
+      updateFromIfNeeded(transformedQuery)
+      
       currentDef = currentDef.query._target
     }
   }
@@ -224,10 +228,39 @@ function cqn4sql(originalQuery, model) {
     }
     if (!transformedQuery._with) transformedQuery._with = _with
     else if (_with.length) {
-      // do not push duplicates
+      // do not push duplicates - use Set for O(n) performance instead of O(n²)
+      const existingAliases = new Set(transformedQuery._with.map(tQ => tQ.as))
       _with.forEach(w => {
-        if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+        if (!existingAliases.has(w.as)) {
+          transformedQuery._with.push(w)
+          existingAliases.add(w.as)
+        }
       })
+    }
+  }
+
+  /**
+  * Helper functions for runtime views processing
+  */
+  function isRuntimeViewAlreadyProcessed(transformedQuery, definitionName) {
+    return transformedQuery._with?.some(w => w.as === definitionName)
+  }
+
+  function updateFromIfNeeded(transformedQuery) {
+    if (!transformedQuery._with?.length) return
+
+    const lastWithClause = transformedQuery._with[transformedQuery._with.length - 1]
+    const fromRef = transformedQuery.SELECT.from.ref?.[0]
+    const queryAliases = lastWithClause.joinTree._queryAliases
+
+    if (queryAliases?.has(fromRef)) {
+      transformedQuery.SELECT.from.ref[0] = queryAliases.get(fromRef)
+    }
+  }
+
+  function validateRuntimeViewDefinition(definition) {
+    if (!definition?.query) {
+      throw new Error(`${definition.name} is not a runtime view`)
     }
   }
 
@@ -1145,8 +1178,12 @@ function cqn4sql(originalQuery, model) {
       if (!transformedQuery._with) transformedQuery._with = _q._with
       else {
         // do not push duplicates
+        const existingAliases = new Set(transformedQuery._with.map(tQ => tQ.as))
         _q._with.forEach(w => {
-          if (!transformedQuery._with.some(tQ => tQ.as === w.as)) transformedQuery._with.push(w)
+          if (!existingAliases.has(w.as)) {
+            transformedQuery._with.push(w)
+            existingAliases.add(w.as)
+          }
         })
       }
     }
