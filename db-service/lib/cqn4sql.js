@@ -184,7 +184,7 @@ function cqn4sql(originalQuery, model) {
     while (hasOwnSkip(currentDef)) {
       validateRuntimeViewDefinition(currentDef)
       
-      if (isRuntimeViewAlreadyProcessed(transformedQuery, currentDef.name)) {
+      if (transformedQuery._with?.some(w => w.as === currentDef.name)) {
         break // Already processed
       }
       
@@ -214,7 +214,7 @@ function cqn4sql(originalQuery, model) {
     const transformedDQ = cqn4sql(inferredDQ, model)
     const _with = transformedDQ._with || []
     const _queryAliases = inferredDQ.joinTree._queryAliases
-    if (!_queryAliases.get(definition.name)){
+    if (!_queryAliases.has(definition.name)){
       transformedDQ.as = getNextAvailableTableAlias(getImplicitAlias(definition.name), _with, inferredDQ, definition.name)
       
       const transformedDQRef = transformedDQ.SELECT.from.ref
@@ -248,12 +248,8 @@ function cqn4sql(originalQuery, model) {
   }
 
   /**
-  * Helper functions for runtime views processing
+  * Helper function for runtime views processing
   */
-  function isRuntimeViewAlreadyProcessed(transformedQuery, definitionName) {
-    return transformedQuery._with?.some(w => w.as === definitionName)
-  }
-
   function updateFromIfNeeded(transformedQuery) {
     if (!transformedQuery._with?.length) return
 
