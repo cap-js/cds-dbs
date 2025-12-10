@@ -52,6 +52,7 @@ const { pseudos } = require('./infer/pseudos')
  *
  * @param {object} originalQuery
  * @param {object} model
+ * @returns {object} transformedQuery the transformed query
  */
 function cqn4sql(originalQuery, model) {
   let inferred = typeof originalQuery === 'string' ? cds.parse.cql(originalQuery) : cds.ql.clone(originalQuery)
@@ -212,11 +213,13 @@ function cqn4sql(originalQuery, model) {
     const inferredDQ = infer(q, model)
     const transformedDQ = cqn4sql(inferredDQ, model)
     const _with = transformedDQ._with || []
-    if (!inferredDQ.joinTree._queryAliases.get(definition.name)){
+    const _queryAliases = inferredDQ.joinTree._queryAliases
+    if (!_queryAliases.get(definition.name)){
       transformedDQ.as = getNextAvailableTableAlias(getImplicitAlias(definition.name), _with, inferredDQ, definition.name)
       
+      const transformedDQRef = transformedDQ.SELECT.from.ref
       // update SELECT.from with cte alias
-      if (inferredDQ.joinTree._queryAliases.has(transformedDQ.SELECT.from.ref)) transformedDQ.SELECT.from.ref[0] = inferredDQ.joinTree._queryAliases.get(transformedDQ.SELECT.from.ref[0])
+      if (_queryAliases.has(transformedDQRef)) transformedDQRef[0] = _queryAliases.get(transformedDQRef[0])
       else if (transformedDQ.SELECT.from.args) {
         transformedDQ.SELECT.from.args.map(arg => {
           const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(arg.ref[0]))
@@ -226,7 +229,7 @@ function cqn4sql(originalQuery, model) {
       }
 
       delete transformedDQ._with
-      transformedDQ.joinTree._queryAliases = inferredDQ.joinTree._queryAliases
+      transformedDQ.joinTree._queryAliases = _queryAliases
       _with.push(transformedDQ)
     }
 
@@ -922,7 +925,7 @@ function cqn4sql(originalQuery, model) {
     // Alias in expand subquery is derived from but not equal to
     // the alias of the column because to account for potential ambiguities
     // the alias cannot be addressed anyways
-    const uniqueSubqueryAlias = getNextAvailableTableAlias(getImplicitAlias(columnAlias))
+    const uniqueSubqueryAlias = getNextAvailableTableAlias(getImplicitAlias(columnAlias), inferred.outerQueries)
 
     // `SELECT from Authors {  books.genre as genreOfBooks { name } } becomes `SELECT from Books:genre as genreOfBooks`
     const from = { ref: subqueryFromRef, as: uniqueSubqueryAlias }
