@@ -214,6 +214,8 @@ function cqn4sql(originalQuery, model) {
     const _with = transformedDQ._with || []
     if (!inferredDQ.joinTree._queryAliases.get(definition.name)){
       transformedDQ.as = getNextAvailableTableAlias(getImplicitAlias(definition.name), _with, inferredDQ, definition.name)
+      
+      // update SELECT.from with cte alias
       if (inferredDQ.joinTree._queryAliases.has(transformedDQ.SELECT.from.ref)) transformedDQ.SELECT.from.ref[0] = inferredDQ.joinTree._queryAliases.get(transformedDQ.SELECT.from.ref[0])
       else if (transformedDQ.SELECT.from.args) {
         transformedDQ.SELECT.from.args.map(arg => {
@@ -222,13 +224,16 @@ function cqn4sql(originalQuery, model) {
           return arg
         })
       }
+
       delete transformedDQ._with
       transformedDQ.joinTree._queryAliases = inferredDQ.joinTree._queryAliases
       _with.push(transformedDQ)
     }
+
+    // propagate with clauses
     if (!transformedQuery._with) transformedQuery._with = _with
     else if (_with.length) {
-      // do not push duplicates - use Set for O(n) performance instead of O(n²)
+      // do not push duplicates
       const existingAliases = new Set(transformedQuery._with.map(tQ => tQ.as))
       _with.forEach(w => {
         if (!existingAliases.has(w.as)) {
@@ -1174,7 +1179,7 @@ function cqn4sql(originalQuery, model) {
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
     const _q = cqn4sql(q, model)
     if (cds.env.features.runtime_views && _q._with) {
-      if (q.joinTree?._queryAliases) transformedQuery._queryAliases = q.joinTree._queryAliases
+      // propagate with clauses
       if (!transformedQuery._with) transformedQuery._with = _q._with
       else {
         // do not push duplicates
