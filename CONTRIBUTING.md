@@ -1,5 +1,11 @@
 # Contributing
 
+## Code of Conduct
+
+All members of the project community must abide by the [Contributor Covenant, version 2.1](CODE_OF_CONDUCT.md).
+Only by respecting each other we can develop a productive, collaborative community.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting [a project maintainer](REUSE.toml).
+
 ## Engaging in Our Project
 
 We use GitHub to manage reviews of pull requests.
@@ -15,6 +21,15 @@ We use GitHub to manage reviews of pull requests.
 Should you wish to work on an issue, please claim it first by commenting on the GitHub issue that you want to work on. This is to prevent duplicated efforts from other contributors on the same issue.
 
 If you have questions about one of the issues, please comment on them, and one of the maintainers will clarify.
+
+## Contributing Code or Documentation
+
+You are welcome to contribute code in order to fix a bug or to implement a new feature that is logged as an issue.
+
+The following rule governs code contributions:
+
+* Contributions must be licensed under the [Apache 2.0 License](./LICENSE)
+* Due to legal reasons, contributors will be asked to accept a Developer Certificate of Origin (DCO) when they create the first pull request to this project. This happens in an automated fashion during the submission process. SAP uses [the standard DCO text of the Linux Foundation](https://developercertificate.org/).
 
 ## Issues and Planning
 
@@ -48,7 +63,7 @@ The prefix is used to calculate the semver release level, and the section of the
 | chore      | Any changes that aren't user-facing | none          | none                   |
 | docs       | Documentation updates               | none          | none                   |
 | style      | Code style and formatting changes   | none          | none                   |
-| refactor   | Code refactoring                    | none          | none                   |
+| refactor   | Code refactoring                    | none          | none                   |                |
 | test       | Adding tests or test-related changes| none          | none                   |
 | build      | Build system or tooling changes     | none          | none                   |
 | ci         | Continuous Integration/Deployment    | none          | none                   |
