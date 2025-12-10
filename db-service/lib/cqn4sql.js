@@ -185,7 +185,7 @@ function cqn4sql(originalQuery, model) {
       if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
       
       addWith(currentDef, transformedQuery, model)
-      if (transformedQuery._queryAliases.has(transformedQuery.SELECT.from.ref?.[0])) transformedQuery.SELECT.from.ref[0] = transformedQuery._queryAliases.get(transformedQuery.SELECT.from.ref[0])
+      if (transformedQuery._with[transformedQuery._with.length-1].joinTree._queryAliases?.has(transformedQuery.SELECT.from.ref?.[0])) transformedQuery.SELECT.from.ref[0] = transformedQuery._with[transformedQuery._with.length-1].joinTree._queryAliases.get(transformedQuery.SELECT.from.ref[0])
       currentDef = currentDef.query._target
     }
   }
@@ -205,32 +205,22 @@ function cqn4sql(originalQuery, model) {
         }
       }
     }
-    const inferredQ = infer(q, model)
-    const transformedQ = cqn4sql(inferredQ, model)
-    const _with = transformedQ._with || []
-    transformedQ._queryAliases?.forEach((value, key) => {
-      if (!inferredQ.joinTree._queryAliases.has(key)) {
-        inferredQ.joinTree._queryAliases.set(key, value)
-      }
-    })
-    transformedQuery._queryAliases?.forEach((value, key) => {
-      if (!inferredQ.joinTree._queryAliases.has(key)) {
-        inferredQ.joinTree._queryAliases.set(key, value)
-      }
-    })
-    if (!inferredQ.joinTree._queryAliases.get(definition.name)){
-      transformedQ.as = getNextAvailableTableAlias(getImplicitAlias(definition.name), inferredQ, definition.name)
-      if (inferredQ.joinTree._queryAliases.has(transformedQ.SELECT.from.ref)) transformedQ.SELECT.from.ref[0] = inferredQ.joinTree._queryAliases.get(transformedQ.SELECT.from.ref[0])
-      else if (transformedQ.SELECT.from.args) {
-        transformedQ.SELECT.from.args.map(arg => {
-          if (inferredQ.joinTree._queryAliases.has(arg.ref[0])) arg.ref[0] = inferredQ.joinTree._queryAliases.get(arg.ref[0])
+    const inferredDQ = infer(q, model)
+    const transformedDQ = cqn4sql(inferredDQ, model)
+    const _with = transformedDQ._with || []
+    if (!inferredDQ.joinTree._queryAliases.get(definition.name)){
+      transformedDQ.as = getNextAvailableTableAlias(getImplicitAlias(definition.name), _with, inferredDQ, definition.name)
+      if (inferredDQ.joinTree._queryAliases.has(transformedDQ.SELECT.from.ref)) transformedDQ.SELECT.from.ref[0] = inferredDQ.joinTree._queryAliases.get(transformedDQ.SELECT.from.ref[0])
+      else if (transformedDQ.SELECT.from.args) {
+        transformedDQ.SELECT.from.args.map(arg => {
+          const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(arg.ref[0]))
+          if (match) arg.ref[0] = match?.joinTree._queryAliases.get(arg.ref[0]);
           return arg
         })
       }
-      delete transformedQ._with
-      delete transformedQ._queryAliases
-      _with.push(transformedQ)
-      transformedQuery._queryAliases = inferredQ.joinTree._queryAliases
+      delete transformedDQ._with
+      transformedDQ.joinTree._queryAliases = inferredDQ.joinTree._queryAliases
+      _with.push(transformedDQ)
     }
     if (!transformedQuery._with) transformedQuery._with = _with
     else if (_with.length) {
@@ -1934,8 +1924,8 @@ function cqn4sql(originalQuery, model) {
     return whereExistsSubSelects[0]
   }
 
-  function getNextAvailableTableAlias(id, _inferred = inferred, key) {
-    return _inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries, key)
+  function getNextAvailableTableAlias(id, outerQueries = inferred.outerQueries, _inferred = inferred, key) {
+    return _inferred.joinTree.addNextAvailableTableAlias(id, outerQueries, key)
   }
 
   /**
