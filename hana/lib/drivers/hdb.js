@@ -4,7 +4,7 @@ const { text } = require('stream/consumers')
 
 const cds = require('@sap/cds')
 const hdb = require('hdb')
-const iconv = require('iconv-lite')
+const iconv = hdb.iconv
 
 const { driver, prom, handleLevel } = require('./base')
 const { resultSetStream } = require('./stream')
