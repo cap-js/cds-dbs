@@ -30,7 +30,7 @@ function hasOwnSkip(definition) {
 }
 
 function isRuntimeView(definition) {
-  if (!cds.env.features.runtime_views) return false
+  if (!definition || !cds.env.features.runtime_views) return false
   if (!definition['@cds.persistence.skip']) return true
 
   if (definition.query) return isRuntimeView(definition.query._target)

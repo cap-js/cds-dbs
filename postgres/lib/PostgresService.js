@@ -323,17 +323,17 @@ GROUP BY k
     render_with() {
       const sql = this.sql
       let recursive = false
-      const prefix = this._with.map(q => {
+      const prefix = this._with.map(w => {
         let sql
-        if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
-        else if ('SET' in q) {
+        if ('SELECT' in w) sql = `${this.quote(w._RTVAliasIsName ? this.name(w.as) : w.as)} AS (${this.SELECT(w)})`
+        else if ('SET' in w) {
           recursive = true
-          const { SET } = q
+          const { SET } = w
           const isDepthFirst = SET.orderBy?.length && (SET.orderBy[0].sort?.toLowerCase() === 'desc' || SET.orderBy[0].sort === -1)
-          let alias = q.as
+          let alias = w.as
           if (isDepthFirst) {
             alias = alias + '_depth_first'
-            SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === q.as) r.ref[0] = alias })
+            SET.args[1].SELECT.from.args.forEach(r => { if (r.ref[0] === w.as) r.ref[0] = alias })
           }
 
           sql = `${this.quote(alias)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${
@@ -351,7 +351,7 @@ GROUP BY k
             }`
 
           // Enforce depth sorting for consuming queries
-          if (isDepthFirst) sql += `,${this.quote(q.as)} AS (SELECT * FROM ${this.quote(q.as + '_depth_first')} ORDER BY "$DEPTH$")`
+          if (isDepthFirst) sql += `,${this.quote(w.as)} AS (SELECT * FROM ${this.quote(w.as + '_depth_first')} ORDER BY "$DEPTH$")`
         }
         return { sql }
       })

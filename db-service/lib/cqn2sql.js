@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const { defineProperty } = require('./utils')
+const { defineProperty, isRuntimeView, hasOwnSkip } = require('./utils')
 
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
@@ -28,7 +28,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return cds.env.features.runtime_views ? e : ((query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e)
+        return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -115,14 +115,14 @@ class CQN2SQLRenderer {
 
   getWithPrefix() {
     let recursive = false
-    const prefix = this._with.map(q => {
+    const prefix = this._with.map(w => {
       const values = this.values = []
       let sql
-      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
-      else if ('SET' in q) {
+      if ('SELECT' in w) sql = `${this.quote(w._RTVAliasIsName ? this.name(w.as) : w.as)} AS (${this.SELECT(w)})`
+      else if ('SET' in w) {
         recursive = true
-        const { SET } = q
-        sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
+        const { SET } = w
+        sql = `${this.quote(w.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
       }
       return { sql, values }
     })
@@ -691,7 +691,7 @@ class CQN2SQLRenderer {
       if (z.args) {
         return _aliased(`${this.quote(this.name(z, q))}${this.from_args(z.args)}`)
       }
-      return _aliased(this.quote(this.name(z, q)))
+      return _aliased(this.quote(q?._RTVRef ? z : this.name(z, q)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
