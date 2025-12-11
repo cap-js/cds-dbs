@@ -48,7 +48,7 @@ describe('Bookshop - Delete', () => {
 
   test('Delete with path expressions', async () => {
     const deleteEmilysBooks = DELETE.from('AdminService.RenameKeys').where(`author.name = 'Emily Brontë'`)
-    const selectEmilysBooks = CQL`SELECT * FROM AdminService.Books where author.name = 'Emily Brontë'`
+    const selectEmilysBooks = cds.ql`SELECT * FROM AdminService.Books where author.name = 'Emily Brontë'`
 
     const beforeDelete = await cds.run(selectEmilysBooks)
     await cds.run(deleteEmilysBooks)

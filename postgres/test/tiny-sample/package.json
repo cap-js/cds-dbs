@@ -1,0 +1,26 @@
+{
+  "name": "tiny-sample",
+  "version": "1.0.0",
+  "description": "A simple CAP project, to test the build plugin",
+  "dependencies": {
+    "@cap-js/postgres": "../../."
+  },
+  "cds": {
+    "features": {
+      "assert_integrity": "db"
+    },
+    "cdsc": {
+      "defaultStringLength": 1000,
+      "standardDatabaseFunctions": true
+    },
+    "requires": {
+      "db": {
+        "kind": "postgres",
+        "vcap": {
+          "label": false,
+          "name": "postgres-external"
+        }
+      }
+    }
+  }
+}

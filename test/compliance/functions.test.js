@@ -241,7 +241,7 @@ describe('functions', () => {
   })
   describe('COUNT', () => {
     test('simple count', async () => {
-      const cqn = CQL`SELECT count(1) as count FROM edge.hana.functions.timestamps`
+      const cqn = cds.ql`SELECT count(1) as count FROM edge.hana.functions.timestamps`
       const res = await cds.run(cqn)
       expect(res[0].count).to.be.eq(1000)
     })
@@ -363,7 +363,7 @@ describe('functions', () => {
   })
   describe('DAYS_BETWEEN', () => {
     test('sqlite vs HANA', async () => {
-      const cqn = CQL`SELECT a,b,days,DAYS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE days != DAYS_BETWEEN(a,b)`
+      const cqn = cds.ql`SELECT a,b,days,DAYS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE days != DAYS_BETWEEN(a,b)`
       const res = await cds.run(cqn)
 
       if (res.length) {
@@ -677,7 +677,7 @@ describe('functions', () => {
   })
   describe('MONTHS_BETWEEN', () => {
     test('sqlite vs HANA', async () => {
-      const cqn = CQL`SELECT a,b,months,MONTHS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE months != MONTHS_BETWEEN(a,b)`
+      const cqn = cds.ql`SELECT a,b,months,MONTHS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE months != MONTHS_BETWEEN(a,b)`
       const res = await cds.run(cqn)
       if (res.length) {
         throw new Error(
@@ -690,7 +690,7 @@ describe('functions', () => {
   })
   describe('NANO100_BETWEEN', () => {
     test('sqlite vs HANA', async () => {
-      const cqn = CQL`SELECT a,b,nano100,NANO100_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE nano100 != NANO100_BETWEEN(a,b)`
+      const cqn = cds.ql`SELECT a,b,nano100,NANO100_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE nano100 != NANO100_BETWEEN(a,b)`
       const res = await cds.run(cqn)
 
       const unacceptable = res.filter(r => {
@@ -882,7 +882,7 @@ describe('functions', () => {
   })
   describe('SECONDS_BETWEEN', () => {
     test('sqlite vs HANA', async () => {
-      const cqn = CQL`SELECT a,b,seconds,SECONDS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE seconds != SECONDS_BETWEEN(a,b)`
+      const cqn = cds.ql`SELECT a,b,seconds,SECONDS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE seconds != SECONDS_BETWEEN(a,b)`
       const res = await cds.run(cqn)
 
       const unacceptable = res.filter(r => {
@@ -929,8 +929,18 @@ describe('functions', () => {
     })
   })
   describe('SESSION_CONTEXT', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('dollar variants are supported', async () => {
+      const res = await SELECT.one.from('basic.literals.string').columns(
+        `session_context('$user.id') as id`,
+        `session_context('$user') as user`,
+        `session_context('$user.locale') as locale`,
+        `session_context('$now') as now`
+      )
+      expect(res.id).to.equal('anonymous')
+      expect(res.user).to.equal('anonymous')
+      expect(res.locale).to.equal('en')
+      // postgres truncates the millis, hence not enforcing in regexp
+      expect(res.now).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
     })
   })
   describe('SESSION_USER', () => {
@@ -1250,7 +1260,7 @@ describe('functions', () => {
   })
   describe('YEARS_BETWEEN', () => {
     test('sqlite vs HANA', async () => {
-      const cqn = CQL`SELECT a,b,years,YEARS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE years != YEARS_BETWEEN(a,b)`
+      const cqn = cds.ql`SELECT a,b,years,YEARS_BETWEEN(a,b) as sqlite FROM edge.hana.functions.timestamps WHERE years != YEARS_BETWEEN(a,b)`
       const res = await cds.run(cqn)
       if (res.length) {
         throw new Error(

@@ -7,11 +7,11 @@ describe('UPSERT', () => {
   describe('into', () => {
     test('Apply default for keys before join to existing data', async () => {
       const { keys } = cds.entities('basic.common')
-      // HXE cannot handle the default key logic
-      await INSERT([/*{ id: 0, data: 'insert' },*/ { id: 0, default: 'overwritten', data: 'insert' }]).into(keys)
+      // HXE cannot handle the default key logic when using @sap/hana-client
+      await INSERT([{ id: 0, data: 'insert' }, { id: 0, default: 'overwritten', data: 'insert' }]).into(keys)
       const insert = await SELECT.from(keys)
 
-      await UPSERT([/*{ id: 0, data: 'upsert' },*/ { id: 0, default: 'overwritten', data: 'upsert' }]).into(keys)
+      await UPSERT([{ id: 0, data: 'upsert' }, { id: 0, default: 'overwritten', data: 'upsert' }]).into(keys)
       const upsert = await SELECT.from(keys)
 
       for (let i = 0; i < insert.length; i++) {
@@ -26,8 +26,12 @@ describe('UPSERT', () => {
   })
 
   describe('entries', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+    test('smart quoting', async () => {
+      const { ASC } = cds.entities('complex.keywords')
+      await UPSERT.into(ASC).entries({ ID: 42, select: 4711 })
+      await UPSERT.into(ASC).entries({ ID: 42, alias: 9 })
+      const select = await SELECT.one.from(ASC).where('ID = 42')
+      expect(select).to.eql({ ID: 42, select: 4711, alias: 9 })
     })
   })
 
@@ -39,15 +43,55 @@ describe('UPSERT', () => {
     })
 
     describe('rows', () => {
-      test.skip('missing', () => {
-        throw new Error('not supported')
+      test('smart quoting', async () => {
+        const { ASC } = cds.entities('complex.keywords')
+        await UPSERT.into(ASC)
+          .columns(['ID', 'select'])
+          .rows([[42, 4711]])
+        let select = await SELECT.one.from(ASC, ['ID', 'select']).where('ID = 42')
+        expect(select).to.eql({ ID: 42, select: 4711 })
       })
     })
   })
 
-  describe('as', () => {
-    test.skip('missing', () => {
-      throw new Error('not supported')
+  describe('from', () => {
+    test('transform', async () => {
+      const { cuid, keys } = cds.entities('basic.common')
+      // fill other table first
+      await UPSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys)
+      await UPSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
+      ])
     })
+
+    test('projection', async () => {
+      const { cuid, keys } = cds.entities('basic.projection')
+      // fill other table first
+      await UPSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys)
+      await UPSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
+      ])
+    })
+  })
+
+  test('affected row', async () => {
+    const affectedRows = await UPSERT.into('complex.associations.Books').entries({ ID: 9999999, title: 'Book' })
+    expect(affectedRows).to.be.eq(1)
   })
 })

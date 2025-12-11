@@ -1,5 +1,6 @@
 module.exports = {
-  "impl": "@cap-js/hana",
+  "kind": "hana",
+  "dialect": "hana",
   "credentials": {
     "user": process.env.HANA_USER || "SYSTEM",
     "password": process.env.HANA_PASSWORD || "Manager1",
@@ -9,6 +10,6 @@ module.exports = {
     "encrypt": true,
     "sslValidateCertificate": false,
     "disableCloudRedirect": true,
-    "driver": "hana-client"
+    "driver": "hdb"
   }
 }

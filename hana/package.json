@@ -1,8 +1,12 @@
 {
   "name": "@cap-js/hana",
-  "version": "1.3.2",
+  "version": "2.4.1",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cap-js/cds-dbs.git"
+  },
   "keywords": [
     "CAP",
     "CDS",
@@ -16,39 +20,60 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "npm start && cds-test $(../test/find)",
+    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && npm run test:plain && npm run test:bookshop:quoted",
+    "test:bookshop:quoted": "cds_sql_names=quoted cds-test bookshop",
+    "test:plain": "cds-test",
     "test:remote": "cds-test",
     "start": "npm run start:hce || npm run start:hxe",
     "start:hce": "cd ./tools/docker/hce/ && ./start.sh",
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.9.0",
-    "hdb": "^0.19.5"
+    "@cap-js/db-service": "^2.7.0",
+    "hdb": "^2.0.0"
   },
   "peerDependencies": {
-    "@sap/hana-client": ">=2",
-    "@sap/cds": ">=8.2"
+    "@sap/hana-client": "^2",
+    "@sap/cds": ">=9"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
       "optional": true
     }
   },
+  "devDependencies": {
+    "@sap/hana-client": ">=2"
+  },
   "cds": {
     "requires": {
       "kinds": {
         "sql": {
+          "[hybrid]": {
+            "kind": "hana"
+          },
           "[production]": {
             "kind": "hana"
           }
         },
         "hana": {
-          "impl": "@cap-js/hana"
+          "impl": "@cap-js/hana",
+          "pool": {
+            "min": 0,
+            "max": 10,
+            "acquireTimeoutMillis": 10000,
+            "idleTimeoutMillis": 60000,
+            "evictionRunIntervalMillis": 100000,
+            "numTestsPerEvictionRun": 10,
+            "testOnBorrow": true,
+            "fifo": false,
+            "[production]": {
+              "acquireTimeoutMillis": 1000
+            }
+          }
         }
       },
       "db": "sql"
     }
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }

@@ -5,9 +5,9 @@
   "cds": {
     "requires": {
       "db": {
-        "impl": "@cap-js/sqlite",
-        "credentials": {
-          "url": ":memory:"
+        "kind": "sql",
+        "client": {
+          "xy": 51
         }
       }
     },

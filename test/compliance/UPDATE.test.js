@@ -30,6 +30,34 @@ describe('UPDATE', () => {
       const result = await SELECT.one.from(number)
       expect(result.integer32).to.equal(3)
     })
+
+    test('smart quoting', async () => {
+      const { Order } = cds.entities('complex.keywords')
+      const data = {
+        ID: 1,
+        alter: [
+          {
+            ID: 42,
+            number: null,
+            order_ID: 1,
+          },
+          {
+            ID: 43,
+            number: null,
+            order_ID: 1,
+          },
+        ],
+      }
+      await INSERT(data).into(Order)
+      const select = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where exists alter`)
+      expect(select[0]).to.deep.eql(data)
+
+      data.alter.forEach(e => (e.number = 99)) // change data
+      await UPDATE.entity(Order).with(data).where('exists alter')
+
+      const selectAfterChange = await cds.run(cds.ql`SELECT from ${Order} { ID, alter { * } } where exists alter`)
+      expect(selectAfterChange[0]).to.deep.eql(data)
+    })
   })
 
   describe('with', () => {
@@ -53,6 +81,18 @@ describe('UPDATE', () => {
       await UPDATE(string).with({ string: { func: 'concat', args: [{ val: 'a' }, { val: 'b' }] } })
       const result = await SELECT.one.from(string)
       expect(result.string).to.equal('ab')
+    })
+
+    test('non existing values', async () => {
+      const { string } = cds.entities('basic.literals')
+      try {
+        await UPDATE(string).with({ nonExisting: { val: 'not updated' } })
+        // should not get here
+        expect(0).to.be(1)
+      } catch (error) {
+        // nonExisting is filtered, so the sql is incomplete
+        expect(error.query).to.match(/UPDATE basic_literals_string AS ["]?\$s["]? SET [\n]?/i)
+      }
     })
   })
 
@@ -129,5 +169,12 @@ describe('UPDATE', () => {
       data.pages[1].number = 999
       await UPDATE(BooksUnique).data(data)
     })
+  })
+
+  test('affected rows', async () => {
+    const { count } = await SELECT.one`count(*)`.from('complex.associations.Books')
+
+    const affectedRows = await UPDATE.entity('complex.associations.Books').data({ title: 'Book' })
+    expect(affectedRows).to.be.eq(count)
   })
 })

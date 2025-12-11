@@ -13,9 +13,9 @@ describe('localized', () => {
     model = await cds.load(__dirname + '/../bookshop/db/schema').then( m => cds.compile.for.nodejs(m, options))
   })
   it('performs no replacement if not requested', () => {
-    const q = CQL`SELECT from bookshop.Books {ID, title}`
+    const q = cds.ql`SELECT from bookshop.Books as Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.Books as Books
                     {
                       Books.ID,
@@ -23,9 +23,9 @@ describe('localized', () => {
                     }`)
   })
   it('performs simple replacement of ref', () => {
-    const q = SELECT.localized `from bookshop.Books {ID, title}`
+    const q = SELECT.localized `from bookshop.Books as Books {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from localized.bookshop.Books as Books
                     {
                       Books.ID,
@@ -36,28 +36,28 @@ describe('localized', () => {
     const q = SELECT.localized `from bookshop.Authors {ID} where exists books[title = 'Sturmhöhe']`
     let query = cqn4sql(q, model)
     expect(cds.clone(query)).to.deep.equal(CQL(`
-        SELECT from ${transitive_ ? 'localized.' : ''}bookshop.Authors as Authors
+        SELECT from ${transitive_ ? 'localized.' : ''}bookshop.Authors as $A
             {
-              Authors.ID,
+              $A.ID,
             } where exists (
-              SELECT 1 from localized.bookshop.Books as books where books.author_ID = Authors.ID and books.title = 'Sturmhöhe'
+              SELECT 1 from localized.bookshop.Books as $b where $b.author_ID = $A.ID and $b.title = 'Sturmhöhe'
             )`))
   })
   it('uses localized table in where exists subquery (2)', () => {
     const q = SELECT.localized `from bookshop.Authors:books[title = 'Sturmhöhe'] {ID}`
     let query = cqn4sql(q, model)
     expect(cds.clone(query)).to.deep.equal(CQL(`
-        SELECT from localized.bookshop.Books as books
+        SELECT from localized.bookshop.Books as $b
             {
-              books.ID,
+              $b.ID,
             } where exists (
-              SELECT 1 from ${transitive_ ? 'localized.' : ''}bookshop.Authors as Authors where Authors.ID = books.author_ID
-            ) and books.title = 'Sturmhöhe'`))
+              SELECT 1 from ${transitive_ ? 'localized.' : ''}bookshop.Authors as $A where $A.ID = $b.author_ID
+            ) and $b.title = 'Sturmhöhe'`))
   })
   it('performs no replacement of ref if ”@cds.localized: false”', () => {
-    const q = SELECT.localized `from bookshop.BP {ID, title}`
+    const q = SELECT.localized `from bookshop.BP as BP {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.BP as BP
                     {
                       BP.ID,
@@ -67,14 +67,14 @@ describe('localized', () => {
   it('performs no replacement of ref if ”@cds.localized: false” and does not yield localized results for expand', () => {
     const q = SELECT.localized `from bookshop.BP {ID, title, currency { code } }`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
-        SELECT from bookshop.BP as BP
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
+        SELECT from bookshop.BP as $B
                     {
-                      BP.ID,
-                      BP.title,
+                      $B.ID,
+                      $B.title,
                       (
-                        SELECT currency.code from sap.common.Currencies as currency
-                          where BP.currency_code = currency.code
+                        SELECT $c.code from sap.common.Currencies as $c
+                          where $B.currency_code = $c.code
                       ) as currency
                     }`)
   })
@@ -91,18 +91,18 @@ describe('localized', () => {
       }
     }`
     let expected = CQL(`
-      SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictions as DataRestrictions {
-        DataRestrictions.ID,
+      SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictions as $D {
+        $D.ID,
         (
-          SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictionAccessGroups as dataRestrictionAccessGroups {
-            dataRestrictionAccessGroups.dataRestrictionID,
-            dataRestrictionAccessGroups.accessGroupID,
+          SELECT from ${transitive_?'localized.':''}bookshop.DataRestrictionAccessGroups as $d2 {
+            $d2.dataRestrictionID,
+            $d2.accessGroupID,
             (
-              SELECT from localized.bookshop.AccessGroups as accessGroup {
-                accessGroup.ID
-              } where accessGroup.ID = dataRestrictionAccessGroups.accessGroupID
+              SELECT from localized.bookshop.AccessGroups as $a {
+                $a.ID
+              } where $a.ID = $d2.accessGroupID
             ) as accessGroup
-          } where DataRestrictions.ID = dataRestrictionAccessGroups.dataRestrictionID
+          } where $D.ID = $d2.dataRestrictionID
         ) as dataRestrictionAccessGroups
       }
     `)
@@ -113,28 +113,28 @@ describe('localized', () => {
   it('performs replacement of ref if ”@cds.localized: true” and localized is set', () => {
     const q = SELECT.localized `from bookshop.BPLocalized {ID, title}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
-        SELECT from localized.bookshop.BPLocalized as BPLocalized
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
+        SELECT from localized.bookshop.BPLocalized as $B
                     {
-                      BPLocalized.ID,
-                      BPLocalized.title,
+                      $B.ID,
+                      $B.title,
                     }`)
   })
   it('performs simple replacement of ref within subquery', () => {
     const q = SELECT.localized `from bookshop.Books {ID, title, (SELECT title from bookshop.Books) as foo}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
-        SELECT from localized.bookshop.Books as Books
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
+        SELECT from localized.bookshop.Books as $B
                     {
-                      Books.ID,
-                      Books.title,
-                      (SELECT Books2.title from localized.bookshop.Books as Books2) as foo
+                      $B.ID,
+                      $B.title,
+                      (SELECT $B2.title from localized.bookshop.Books as $B2) as foo
                     }`)
   })
   it('performs simple replacement of ref within subquery in from', () => {
-    const q = SELECT.localized `from (SELECT Books.title from bookshop.Books) as foo { foo.title }`
+    const q = SELECT.localized `from (SELECT Books.title from bookshop.Books as Books) as foo { foo.title }`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from (
             SELECT Books.title from localized.bookshop.Books as Books
           ) as foo
@@ -144,9 +144,9 @@ describe('localized', () => {
     )
   })
   it('performs no replacement of ref within subquery if main query has ”@cds.localized: false”', () => {
-    const q = SELECT.localized `from bookshop.BP {ID, title, (SELECT title from bookshop.Books) as foo}`
+    const q = SELECT.localized `from bookshop.BP as BP {ID, title, (SELECT title from bookshop.Books as Books) as foo}`
     let query = cqn4sql(q, model)
-    expect(cds.clone(query)).to.deep.equal(CQL`
+    expect(cds.clone(query)).to.deep.equal(cds.ql`
         SELECT from bookshop.BP as BP
                     {
                       BP.ID,
@@ -156,7 +156,7 @@ describe('localized', () => {
   })
 
   it('replaces ref in from with localized within join', () => {
-    const q = SELECT.localized `from bookshop.Books {ID, title, author.name as author}`
+    const q = SELECT.localized `from bookshop.Books as Books {ID, title, author.name as author}`
     // request localized target replacement
     let query = cqn4sql(q, model)
     expect(cds.clone(query)).to.deep.equal(CQL(`
@@ -175,12 +175,12 @@ describe('localized', () => {
     // request localized target replacement
     let query = cqn4sql(q, model)
     expect(cds.clone(query)).to.deep.equal(CQL(`
-        SELECT from localized.bookshop.Books as Books
-                left outer join ${transitive_ ? 'localized.' : ''}bookshop.Authors as author on author.ID = Books.author_ID
-                left outer join localized.bookshop.Books as books2 on books2.author_ID = author.ID
+        SELECT from localized.bookshop.Books as $B
+                left outer join ${transitive_ ? 'localized.' : ''}bookshop.Authors as author on author.ID = $B.author_ID
+                left outer join localized.bookshop.Books as books on books.author_ID = author.ID
                     {
-                      Books.ID,
-                      books2.title as author_books_title,
+                      $B.ID,
+                      books.title as author_books_title,
                       author.name as author
                     }`))
   })
@@ -189,8 +189,8 @@ describe('localized', () => {
     const q = SELECT.localized `from bookshop.Books {
         author as books { name }
       }`
-    const qx = CQL(`SELECT from localized.bookshop.Books as Books {
-        (SELECT books2.name from ${transitive_ ? 'localized.' : ''}bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
+    const qx = CQL(`SELECT from localized.bookshop.Books as $B {
+        (SELECT $b2.name from ${transitive_ ? 'localized.' : ''}bookshop.Authors as $b2 where $B.author_ID = $b2.ID) as books
       }`)
     const res = cqn4sql(q, model)
     expect(cds.clone(res)).to.deep.equal(qx)
@@ -200,8 +200,8 @@ describe('localized', () => {
     const q = SELECT.localized`from bookshop.Books {
         author as books { name, (SELECT title from bookshop.Books) as foo }
       }`
-    const qx = CQL(`SELECT from localized.bookshop.Books as Books {
-        (SELECT books2.name, (SELECT Books3.title from localized.bookshop.Books as Books3) as foo from ${transitive_ ? 'localized.' : ''}bookshop.Authors as books2 where Books.author_ID = books2.ID) as books
+    const qx = CQL(`SELECT from localized.bookshop.Books as $B {
+        (SELECT $b2.name, (SELECT $B3.title from localized.bookshop.Books as $B3) as foo from ${transitive_ ? 'localized.' : ''}bookshop.Authors as $b2 where $B.author_ID = $b2.ID) as books
       }`)
     const res = cqn4sql(q, model)
     expect(cds.clone(res)).to.deep.equal(qx)
@@ -211,10 +211,10 @@ describe('localized', () => {
     const q = SELECT.localized`from bookshop.AuthorsUnmanagedBooks:books {
       ID
     }`
-    const qx = CQL(`SELECT from localized.bookshop.Books as books {
-      books.ID
+    const qx = CQL(`SELECT from localized.bookshop.Books as $b {
+      $b.ID
     } where exists (
-      SELECT 1 from ${transitive_ ? 'localized.' : ''}bookshop.AuthorsUnmanagedBooks as AuthorsUnmanagedBooks where books.coAuthor_ID_unmanaged = AuthorsUnmanagedBooks.ID
+      SELECT 1 from ${transitive_ ? 'localized.' : ''}bookshop.AuthorsUnmanagedBooks as $A where $b.coAuthor_ID_unmanaged = $A.ID
     )`)
     const res = cqn4sql(q, model)
     expect(cds.clone(res)).to.deep.equal(qx)
@@ -243,23 +243,33 @@ describe('localized', () => {
     `
     let q2 = cqn4sql(q, stakeholderModel)
     expect(cds.clone(q2)).to.deep.equal(CQL(`
-      SELECT from localized.Boo as boos { boos.ID } WHERE EXISTS (
-        SELECT 1 from localized.Foo as Foo3 WHERE Foo3.ID = boos.foo_ID
+      SELECT from localized.Boo as $b { $b.ID } WHERE EXISTS (
+        SELECT 1 from localized.Foo as $F3 WHERE $F3.ID = $b.foo_ID
       ) AND (
         EXISTS (
-          SELECT 1 from localized.Foo as foo WHERE foo.ID = boos.foo_ID AND EXISTS (
-            SELECT 1 from ${transitive_?'localized.':''}SpecialOwner2 as specialOwners
-            WHERE specialOwners.foo_ID = foo.ID and specialOwners.owner2_userID = $user.id
+          SELECT 1 from localized.Foo as $f WHERE $f.ID = $b.foo_ID AND EXISTS (
+            SELECT 1 from ${transitive_?'localized.':''}SpecialOwner2 as $s
+            WHERE $s.foo_ID = $f.ID and $s.owner2_userID = $user.id
           )
         )
         OR
         EXISTS (
-          SELECT 1 from localized.Foo as foo2 WHERE foo2.ID = boos.foo_ID AND EXISTS (
-            SELECT 1 from ${transitive_?'localized.':''}ActiveOwner as activeOwners
-            WHERE activeOwners.foo_ID = foo2.ID and activeOwners.owner_userID = $user.id
+          SELECT 1 from localized.Foo as $f2 WHERE $f2.ID = $b.foo_ID AND EXISTS (
+            SELECT 1 from ${transitive_?'localized.':''}ActiveOwner as $a
+            WHERE $a.foo_ID = $f2.ID and $a.owner_userID = $user.id
           )
         )
       )
     `))
+  })
+  it('can handle redirections', () => {
+    const q = SELECT.localized `from bookshop.Third[ID = 4711]:first { BUBU }`
+    let query = cqn4sql(q, model)
+    const expected = cds.ql`
+      SELECT from localized.bookshop.FirstRedirected as $f { $f.BUBU }
+      where exists (
+        SELECT 1 from localized.bookshop.Third as $T where $T.ID = $f.BUBU and $T.ID = 4711
+      )`
+    expect(JSON.parse(JSON.stringify(expected))).to.eql(JSON.parse(JSON.stringify(query)))
   })
 })

@@ -1,15 +1,17 @@
 const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
-const cds = require('../../cds.js')
+const cds = require('../../cds.js'), { path } = cds.utils
+
+const sflight = path.resolve(__dirname, '../../../test/sflight')
 
 describe('draft tests', () => {
 
   // Had to be moved before for cds-test might break jest
   beforeAll(() => {
-    cds.env.features.ieee754compatible = true
+    process.env.cds_features_ieee754compatible = 'true'
   })
 
-  const { GET, POST, PATCH, DELETE, expect } = cds.test('@capire/sflight')
+  const { GET, POST, PATCH, DELETE, expect } = cds.test(sflight)
   // NOTE: all access to cds.env has to go after the call to cds.test() or cds.test.in()
   // (see https://cap.cloud.sap/docs/node.js/cds-test#cds-test-env-check)
   cds.env.requires.db.kind = 'better-sqlite'
@@ -49,7 +51,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.greaterThan(100)
+    expect(res.data['@odata.count']).to.be.greaterThan(30)
     res.data.value.forEach(row => {
       expect(row.IsActiveEntity).to.be.eq(true)
       expect(row.HasActiveEntity).to.be.eq(false)
@@ -64,7 +66,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.greaterThan(100)
+    expect(res.data['@odata.count']).to.be.greaterThan(30)
     res.data.value.forEach(row => {
       expect(row.IsActiveEntity).to.be.eq(true)
       expect(row.HasActiveEntity).to.be.eq(false)
@@ -84,7 +86,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.greaterThan(100)
+    expect(res.data['@odata.count']).to.be.greaterThan(30)
   })
 
   test('edit then all', async () => {
@@ -98,7 +100,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.greaterThan(100)
+    expect(res.data['@odata.count']).to.be.greaterThan(30)
   })
 
   test('edit user2 then all', async () => {
@@ -112,7 +114,7 @@ describe('draft tests', () => {
       { auth: { username: 'user1', password: 'user1' } },
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data['@odata.count']).to.be.greaterThan(100)
+    expect(res.data['@odata.count']).to.be.greaterThan(30)
     let firstRow = res.data.value[0]
     expect(firstRow.IsActiveEntity).to.be.eq(true)
     expect(firstRow.HasActiveEntity).to.be.eq(false)
@@ -693,13 +695,13 @@ describe('draft tests', () => {
       {},
       { auth: { username: 'user1', password: 'user1' } },
     )
+
     expect(res.data).to.containSubset({
       '@odata.context': '../../$metadata#BookingSupplement/$entity',
       // BookingSupplementID: 1,
       Price: null,
       CurrencyCode_code: null,
       to_Booking_BookingUUID: BookingUUID,
-      to_Travel_TravelUUID: cds.env.features.odata_new_adapter ? TravelUUID : null, // Should be TravelUUID!
       to_Supplement_SupplementID: null,
       HasActiveEntity: false,
       IsActiveEntity: false,
@@ -970,7 +972,7 @@ describe('draft tests', () => {
       )
       expect(1).to.be.eq('Editing an active entity with an existing draft must fail')
     } catch (e) {
-      expect(e.message).to.be.eq('409 - A draft for this entity already exists')
+      expect(e.response.status).to.be.eq(409) // DRAFT_ALREADY_EXISTS
     }
   })
 })

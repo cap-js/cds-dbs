@@ -34,18 +34,27 @@ let isolateCounter = 0
 // Overwrite cds.test with autoIsolation logic
 cds.test = Object.setPrototypeOf(function () {
 
-  global.beforeAll(() => {
+  global.beforeAll(async () => {
+    // Inject the provided plugins for cds.env resolving
+    process.env.CDS_PLUGINS = JSON.stringify({
+      '@cap-js/sqlite': { impl: require.resolve('@cap-js/sqlite') },
+      '@cap-js/hana': { impl: require.resolve('@cap-js/hana') },
+      '@cap-js/postgres': { impl: require.resolve('@cap-js/postgres') },
+    })
+
     try {
       const path = cds.utils.path
       const sep = path.sep
       const testSource = process.argv[1].split(`${sep}test${sep}`)[0]
       const serviceDefinitionPath = `${testSource}/test/service`
-      cds.env.requires.db = require(serviceDefinitionPath)
-      require(testSource + '/cds-plugin')
+
+      // Overwrite default cds.requires.db with test config
+      process.env.CDS_REQUIRES_DB = JSON.stringify(require(serviceDefinitionPath))
     } catch {
       // Default to sqlite for packages without their own service
-      cds.env.requires.db = require('@cap-js/sqlite/test/service')
+      process.env.CDS_REQUIRES_DB = JSON.stringify(require('@cap-js/sqlite/test/service'))
     }
+    cds.env = cds.env.for(cds)
   })
 
   let ret = cdsTest(...arguments)
@@ -96,7 +105,7 @@ cds.test = Object.setPrototypeOf(function () {
   ret.data.autoIsolation(true)
 
   global.beforeAll(async () => {
-    if (ret.data._autoIsolation && !ret.data._deployed) {
+    if (ret.data._autoIsolation && !cds.options.in_memory && !ret.data._deployed) {
       ret.data._deployed = cds.deploy(cds.options.from[0])
       await ret.data._deployed
     }
@@ -111,7 +120,7 @@ cds.test = Object.setPrototypeOf(function () {
     }
 
     // Clean cache
-    delete cds.services._pending.db
+    delete cds.services._pending?.db
     delete cds.services.db
     delete cds.db
     delete cds.model
@@ -130,8 +139,3 @@ const _includes = expect.includes
 expect.includes = function (x) {
   return typeof x === 'object' ? this.subset(...arguments) : _includes.apply(this, arguments)
 }
-
-// Release cds._context for garbage collection
-global.afterEach(() => {
-  cds._context.disable()
-})

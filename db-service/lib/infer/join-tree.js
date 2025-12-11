@@ -170,7 +170,7 @@ class JoinTree {
         // find the correct query source
         if (
           r.queryArtifact === head.target ||
-          r.queryArtifact === head.target.target /** might as well be a query for order by */
+          r.queryArtifact === head.target._target /** might as well be a query for order by */
         )
           node = r
       })
@@ -181,6 +181,7 @@ class JoinTree {
     // if no root node was found, the column is selected from a subquery
     if (!node) return
     while (i < col.ref.length) {
+      if(col.join === 'inner') node.join = 'inner'
       const step = col.ref[i]
       const { where, args } = step
       const id = joinId(step, args, where)
@@ -211,6 +212,8 @@ class JoinTree {
             // filter is always join relevant
             // if the column ends up in an `inline` -> each assoc step is join relevant
             child.$refLink.onlyForeignKeyAccess = false
+            // all parents are now also join relevant
+            markParentAsJoinRelevant(child.parent)
           } else {
             child.$refLink.onlyForeignKeyAccess = true
           }
@@ -222,6 +225,8 @@ class JoinTree {
         if (node.$refLink && (!elements || !(child.$refLink.definition.name in elements))) {
           // no foreign key access
           node.$refLink.onlyForeignKeyAccess = false
+          markParentAsJoinRelevant(node.parent)
+
           col.$refLinks[i - 1] = node.$refLink
         }
 
@@ -231,6 +236,15 @@ class JoinTree {
       i += 1
     }
     return true
+
+    function markParentAsJoinRelevant(parent) {
+      while (parent) {
+        if (parent.$refLink?.definition.isAssociation) {
+          parent.$refLink.onlyForeignKeyAccess = false
+        }
+        parent = parent.parent
+      }
+    }
 
     function joinId(step, args, where) {
       let appendix
