@@ -1,7 +1,7 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
-const { defineProperty, isRuntimeView, hasOwnSkip } = require('./utils')
+const { defineProperty } = require('./utils')
 
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
