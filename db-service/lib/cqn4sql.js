@@ -186,6 +186,7 @@ function cqn4sql(originalQuery, model) {
       if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
       
       addWith(currentDef, transformedQuery, model)
+      updateFromIfNeeded(transformedQuery)
       currentDef = currentDef.query._target
     }
   }
@@ -211,25 +212,12 @@ function cqn4sql(originalQuery, model) {
     const rootDefinitionName = rootDefinition.name
     
     if (!transformedQuery._with?.some(w => w._target === transformedDQ._target)){
-      
-      // use the defintion name if the with clause is called by the original query
-      if (Object.hasOwn(originalQuery.SELECT, 'from') && rootDefinitionName === cds.infer.target(originalQuery).name) {
-        transformedDQ.as = rootDefinitionName
-        defineProperty(transformedDQ, '_RTVAliasIsName', true)
-      }
-      else transformedDQ.as = getNextAvailableTableAlias(getImplicitAlias(rootDefinitionName), _with, transformedDQ, rootDefinitionName)
+      const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
+      transformedDQ.as = getNextAvailableTableAlias(alias, _with, transformedDQ, rootDefinitionName)
       
       // update SELECT.from with alias for runtime views
       if (hasOwnSkip(transformedDQ._target)) {
         const transformedDQRef = transformedDQ.SELECT.from.ref
-        const updateRef = (transformedDQ, ref) => {
-          const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(ref[0]))
-          if (match) {
-            ref[0] = match?.joinTree._queryAliases.get(ref[0])
-            defineProperty(transformedDQ, '_RTVRef', true)
-          }
-          return ref
-        }
         if (transformedDQRef) updateRef(transformedDQ, transformedDQRef)
         else if (transformedDQ.SELECT.from.args) transformedDQ.SELECT.from.args.map(arg => updateRef(transformedDQ, arg.ref))
       }
@@ -239,8 +227,27 @@ function cqn4sql(originalQuery, model) {
 
       // propagate with clauses
       if (!transformedQuery._with) transformedQuery._with = _with
-      else if (_with.length) transformedQuery._with.push(..._with)
+      else if (_with.length) {
+        // do not push duplicates
+        _with.forEach(qw => {
+          if (!transformedQuery._with.some(tw => tw._target === qw._target)) transformedQuery._with.push(qw)
+        })
+      }
     }
+  }
+
+  function updateFromIfNeeded(transformedQuery) {
+    if (!transformedQuery._with?.length) return
+
+    const fromRef = transformedQuery.SELECT.from.ref
+    if (fromRef) updateRef(transformedQuery, fromRef)
+    else if (transformedQuery.SELECT.from.args) transformedQuery.SELECT.from.args.map(arg => updateRef(transformedQuery, arg.ref))
+  }
+
+  function updateRef(transformedDQ, ref) {
+    const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(ref[0]))
+    if (match) ref[0] = match?.joinTree._queryAliases.get(ref[0])
+    return ref
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {

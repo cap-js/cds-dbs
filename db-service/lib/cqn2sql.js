@@ -28,7 +28,8 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
+        const entity = (query?._target || this.model?.definitions[e])
+        return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -118,7 +119,7 @@ class CQN2SQLRenderer {
     const prefix = this._with.map(w => {
       const values = this.values = []
       let sql
-      if ('SELECT' in w) sql = `${this.quote(w._RTVAliasIsName ? this.name(w.as) : w.as)} AS (${this.SELECT(w)})`
+      if ('SELECT' in w) sql = `${this.quote(w.as)} AS (${this.SELECT(w)})`
       else if ('SET' in w) {
         recursive = true
         const { SET } = w
@@ -691,7 +692,7 @@ class CQN2SQLRenderer {
       if (z.args) {
         return _aliased(`${this.quote(this.name(z, q))}${this.from_args(z.args)}`)
       }
-      return _aliased(this.quote(q?._RTVRef ? z : this.name(z, q)))
+      return _aliased(this.quote(this.name(z, q)))
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
@@ -1408,7 +1409,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]g*$/.test(s)) return '"' + s + '"'
     return s
   }
 

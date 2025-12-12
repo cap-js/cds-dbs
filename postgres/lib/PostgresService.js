@@ -325,7 +325,7 @@ GROUP BY k
       let recursive = false
       const prefix = this._with.map(w => {
         let sql
-        if ('SELECT' in w) sql = `${this.quote(w._RTVAliasIsName ? this.name(w.as) : w.as)} AS (${this.SELECT(w)})`
+        if ('SELECT' in w) sql = `${this.quote(w.as)} AS (${this.SELECT(w)})`
         else if ('SET' in w) {
           recursive = true
           const { SET } = w
@@ -498,7 +498,7 @@ GROUP BY k
     quote(s) {
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toLowerCase() + '"'
-      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]g*$/.test(s)) return '"' + s.toLowerCase() + '"'
       return s
     }
 

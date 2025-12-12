@@ -18,13 +18,13 @@ context bookshop {
     entity Page {
         key ID : Integer;
         text: String;
-    }
-   
+    };
+
     entity Review {
         key ID : Integer;
         text: String;
-        page: Association to Page
-    }    
+        page: Association to Page;
+    };
 
     @cds.persistence.skip
     entity PageView as projection on Page;
@@ -41,7 +41,7 @@ context views {
     entity AuthorView  as projection on my.Authors {
         *,
         reviews: Association to many bookshop.ReviewView on reviews.ID = $self.ID,
-        pages: Association to many bookshop.PageView on pages.ID = $self.ID     
+        pages: Association to many bookshop.PageView on pages.ID = $self.ID
     };
 
     entity BooksView as projection on my.Books {
@@ -53,16 +53,16 @@ context views {
     entity Author  as projection on my.Authors {
         *,
         reviews: Association to many bookshop.Review on reviews.ID = $self.ID,
-        pages: Association to many bookshop.Page on pages.ID = $self.ID     
+        pages: Association to many bookshop.Page on pages.ID = $self.ID
     };
 
     entity Books as projection on my.Books {
         *,
         pages: Association to many bookshop.Page on pages.ID = $self.ID,
-        this: Association to Books on this.ID = $self.ID    
+        this: Association to Books on this.ID = $self.ID
     };
 
-    
+
 }
 
 service runtimeViews0Service {
@@ -109,12 +109,11 @@ service runtimeViews0Service {
         author.ID as authorID : Integer,
         author
     };
-    
+
     entity AuthorRedirected as projection on Author {
         *,
         books: redirected to BookRedirected on books.author.ID = $self.ID
     };
-
 }
 
 service runtimeViews1Service {
@@ -144,12 +143,12 @@ service runtimeViews1Service {
             editionType.name as editionName,
             editionType      as edition,
             change   : Association to Changes
-                           on change.ID = editionNumber,
+                            on change.ID = editionNumber,
             changes  : Composition of many Changes
-                           on changes.editionID = editionNumber,
+                            on changes.editionID = editionNumber,
             external : Composition of many ExternalChanges
-                           on external.editionID = editionNumber
-        }
+                            on external.editionID = editionNumber
+        };
 
     entity Changes as projection on VirtualChanges;
 
@@ -171,7 +170,7 @@ service runtimeViews1Service {
 
 service runtimeViews2Service {
     entity Book as
-        projection on runtimeViews1Service.Book {            
+        projection on runtimeViews1Service.Book {
             id,
             genre      as category,
             genre.name as categoryName,
@@ -186,7 +185,7 @@ service runtimeViewsErrorService {
     @cds.persistence.skip
     entity VirtualBook {
         id    : String;
-        title : String
+        title : String;
     };
 
     entity VirtualBookView  as select from VirtualBook;
@@ -199,13 +198,13 @@ service views0Service {
         reviews: Association to many bookshop.Review
                        on reviews.ID = $self.ID,
         pages: Association to many bookshop.Page
-                       on pages.ID = $self.ID,           
+                       on pages.ID = $self.ID,
     };
 
     entity Book as projection on views.Books {
-        *,       
+        *,
         pages: Association to many bookshop.Page
-                on pages.ID = $self.ID               
+                on pages.ID = $self.ID
     };
 
     entity Edition as projection on bookshop.Edition;
@@ -251,12 +250,12 @@ service views1Service {
             editionType.name as editionName,
             editionType      as edition,
             change   : Association to Changes
-                           on change.ID = editionNumber,
+                            on change.ID = editionNumber,
             changes  : Composition of many Changes
-                           on changes.editionID = editionNumber,
+                            on changes.editionID = editionNumber,
             external : Composition of many ExternalChanges
-                           on external.editionID = editionNumber
-        }
+                            on external.editionID = editionNumber
+        };
 
     entity Changes as projection on VirtualChanges;
 
@@ -270,7 +269,7 @@ service views1Service {
     entity ExternalChanges {
         key ID        : UUID;
             editionID : UUID;
-    }    
+    };
 }
 
 service views2Service {
