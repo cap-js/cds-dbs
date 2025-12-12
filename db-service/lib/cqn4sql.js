@@ -13,6 +13,7 @@ const {
   defineProperty,
   getModelUtils,
   hasOwnSkip,
+  isRuntimeView,
 } = require('./utils')
 
 /**
@@ -173,7 +174,81 @@ function cqn4sql(originalQuery, model) {
     }
   }
 
+  if (cds.env.features.runtime_views) processRuntimeViews(transformedQuery, model)
+
   return transformedQuery
+
+  function processRuntimeViews(transformedQuery, model) {
+    let currentDef = transformedQuery._target
+    
+    while (hasOwnSkip(currentDef)) {
+      if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
+      if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
+      
+      addWith(currentDef, transformedQuery, model)
+      updateFromIfNeeded(transformedQuery)
+      currentDef = currentDef.query._target
+    }
+  }
+
+  function addWith(rootDefinition, transformedQuery, model) {
+    if (!rootDefinition?.query) return
+
+    const q = cds.ql.clone(rootDefinition.query)
+    if (q.SELECT) {
+      if (!q.SELECT.columns) q.SELECT.columns = ['*']
+      if (q.SELECT.columns.includes('*')) {
+        for (let el of rootDefinition.elements) {
+          if (el.type === 'cds.LargeBinary' && 
+              !q.SELECT.columns.some(col => col.as === el.name || col.ref?.at(-1) === el.name)) {
+            q.SELECT.columns.push({ ref: [el.name] })
+          }
+        }
+      }
+    }
+    const inferredDQ = infer(q, model)
+    const transformedDQ = cqn4sql(inferredDQ, model)
+    const _with = transformedDQ._with || []
+    const rootDefinitionName = rootDefinition.name
+    
+    if (!transformedQuery._with?.some(w => w._target === transformedDQ._target)){
+      const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
+      transformedDQ.as = getNextAvailableTableAlias(alias, _with, transformedDQ, rootDefinitionName)
+      
+      // update SELECT.from with alias for runtime views
+      if (hasOwnSkip(transformedDQ._target)) {
+        const transformedDQRef = transformedDQ.SELECT.from.ref
+        if (transformedDQRef) updateRef(transformedDQ, transformedDQRef)
+        else if (transformedDQ.SELECT.from.args) transformedDQ.SELECT.from.args.map(arg => updateRef(transformedDQ, arg.ref))
+      }
+
+      if (transformedDQ._with) delete transformedDQ._with
+      _with.push(transformedDQ)
+
+      // propagate with clauses
+      if (!transformedQuery._with) transformedQuery._with = _with
+      else if (_with.length) {
+        // do not push duplicates
+        _with.forEach(qw => {
+          if (!transformedQuery._with.some(tw => tw._target === qw._target)) transformedQuery._with.push(qw)
+        })
+      }
+    }
+  }
+
+  function updateFromIfNeeded(transformedQuery) {
+    if (!transformedQuery._with?.length) return
+
+    const fromRef = transformedQuery.SELECT.from.ref
+    if (fromRef) updateRef(transformedQuery, fromRef)
+    else if (transformedQuery.SELECT.from.args) transformedQuery.SELECT.from.args.map(arg => updateRef(transformedQuery, arg.ref))
+  }
+
+  function updateRef(transformedDQ, ref) {
+    const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(ref[0]))
+    if (match) ref[0] = match?.joinTree._queryAliases.get(ref[0])
+    return ref
+  }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
     const { columns, having, groupBy, orderBy, limit } = queryProp
@@ -310,7 +385,9 @@ function cqn4sql(originalQuery, model) {
         ),
       )
 
-      const id = getDefinition(nextAssoc.$refLink.definition.target).name
+      const def = getDefinition(nextAssoc.$refLink.definition.target)
+      const id = def.name
+      if (hasOwnSkip(def) && isRuntimeView(def)) addWith(model.definitions[id], transformedQuery, model)
       const { args } = nextAssoc
       const arg = {
         ref: [args ? { id, args } : id],
@@ -469,7 +546,13 @@ function cqn4sql(originalQuery, model) {
       const refNavigation = col.ref.slice(col.$refLinks[0].definition.kind !== 'element' ? 1 : 0).join('_')
       if (!columnAlias && col.flatName && col.flatName !== refNavigation) columnAlias = refNavigation
 
-      if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target)))) return
+      if (
+        col.$refLinks.some(link => {
+          const def = getDefinition(link.definition.target)
+          return hasOwnSkip(def) && !isRuntimeView(def)
+        })
+      )
+        return
 
       const flatColumns = getFlatColumnsFor(col, { baseName, columnAlias, tableAlias })
       flatColumns.forEach(flatColumn => {
@@ -968,7 +1051,12 @@ function cqn4sql(originalQuery, model) {
       } else if (pseudos.elements[col.ref?.[0]]) {
         res.push({ ...col })
       } else if (col.ref) {
-        if (col.$refLinks.some(link => hasOwnSkip(getDefinition(link.definition.target))))
+        if (
+          col.$refLinks.some(link => {
+            const def = getDefinition(link.definition.target)
+            return hasOwnSkip(def) && !isRuntimeView(def)
+          })
+        )
           continue
         if (col.ref.length > 1 && col.ref[0] === '$self' && !col.$refLinks[0].definition.kind) {
           const dollarSelfReplacement = calculateDollarSelfColumn(col)
@@ -1066,10 +1154,23 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
+    
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
-    return cqn4sql(q, model)
+    const _q = cqn4sql(q, model)
+    if (cds.env.features.runtime_views && _q._with) {
+      // propagate with clauses
+      if (!transformedQuery._with) transformedQuery._with = _q._with
+      else {
+        // do not push duplicates
+        _q._with.forEach(qw => {
+          if (!transformedQuery._with.some(tw => tw._target === qw._target)) transformedQuery._with.push(qw)
+        })
+      }
+    }
+    return _q
+
 
     function assignUniqueSubqueryAlias() {
       if (q.SELECT.from.uniqueSubqueryAlias) return
@@ -1842,8 +1943,8 @@ function cqn4sql(originalQuery, model) {
     return whereExistsSubSelects[0]
   }
 
-  function getNextAvailableTableAlias(id) {
-    return inferred.joinTree.addNextAvailableTableAlias(id, inferred.outerQueries)
+  function getNextAvailableTableAlias(id, outerQueries = inferred.outerQueries, _inferred = inferred, key) {
+    return _inferred.joinTree.addNextAvailableTableAlias(id, outerQueries, key)
   }
 
   /**

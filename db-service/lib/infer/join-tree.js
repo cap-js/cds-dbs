@@ -135,18 +135,19 @@ class JoinTree {
    * @param {unknown[]} outerQueries - An array of outer queries.
    * @returns {string} - The next unambiguous table alias.
    */
-  addNextAvailableTableAlias(alias, outerQueries) {
+  addNextAvailableTableAlias(alias, outerQueries, key) {
     const upperAlias = alias.toUpperCase()
     if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer))) {
       let j = 2
       while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, j))) j += 1
       alias += j
     }
-    this._queryAliases.set(alias.toUpperCase(), alias)
+    this._queryAliases.set(key || alias.toUpperCase(), alias)
     return alias
 
     function outerHasAlias(outer, number) {
-      return outer.joinTree._queryAliases.get(number ? upperAlias + number : upperAlias)
+      const currAlias = number ? upperAlias + number : upperAlias
+      return key ? Array.from(outer.joinTree._queryAliases.values()).includes(currAlias) : outer.joinTree._queryAliases.get(currAlias)
     }
   }
 

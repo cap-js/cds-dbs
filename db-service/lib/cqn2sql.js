@@ -1,6 +1,8 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+const { defineProperty } = require('./utils')
+
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
@@ -26,7 +28,8 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
+        const entity = (query?._target || this.model?.definitions[e])
+        return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -76,6 +79,7 @@ class CQN2SQLRenderer {
    */
   render(q, vars) {
     const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
+    if (cds.env.features.runtime_views && q._with) defineProperty(this, '_with', q._with)
     /**
      * @type {string} the rendered SQL string
      */
@@ -104,21 +108,26 @@ class CQN2SQLRenderer {
 
   render_with() {
     const sql = this.sql
-    let recursive = false
     const values = this.values
-    const prefix = this._with.map(q => {
+    const { prefix, recursive } = this.getWithPrefix()
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    this.values = prefix.reduce((acc, p) => acc.concat(p.values), []).concat(values)
+  }
+
+  getWithPrefix() {
+    let recursive = false
+    const prefix = this._with.map(w => {
       const values = this.values = []
       let sql
-      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
-      else if ('SET' in q) {
+      if ('SELECT' in w) sql = `${this.quote(w.as)} AS (${this.SELECT(w)})`
+      else if ('SET' in w) {
         recursive = true
-        const { SET } = q
-        sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
+        const { SET } = w
+        sql = `${this.quote(w.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
       }
       return { sql, values }
     })
-    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-    this.values = [...prefix.map(p => p.values).flat(), ...values]
+    return { prefix, recursive }
   }
 
   /**
@@ -1400,7 +1409,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]g*$/.test(s)) return '"' + s + '"'
     return s
   }
 
