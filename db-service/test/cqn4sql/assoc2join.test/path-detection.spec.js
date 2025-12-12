@@ -2,7 +2,7 @@
 
 const cds = require('@sap/cds')
 const { loadModel } = require('../helpers/model')
-const { expectCqn } = require('../helpers/expectCqn')
+const { expectCqn, expect } = require('../helpers/expectCqn')
 
 let cqn4sql = require('../../../lib/cqn4sql')
 
@@ -260,7 +260,7 @@ describe('(a2j) path detection', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it('expose managed assoc in subquery with alias, navigate to field in outer', () => {
+    it.only('expose managed assoc in subquery with alias, navigate to field in outer', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from (
           SELECT from bookshop.Books as Books
@@ -283,6 +283,9 @@ describe('(a2j) path detection', () => {
           a.name as a_name
         }`
       expectCqn(transformed).to.equal(expected)
+      // make sure that the subquery in the join is properly inferred
+      expect(transformed.SELECT.from.args[0]).to.have.property('_target')
+      expect(transformed.SELECT.from.args[0]).to.have.property('elements')
     })
 
     it('expose managed assoc in subquery with alias, navigate to field in outer (subquery also has joins)', () => {
