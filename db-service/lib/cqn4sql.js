@@ -364,7 +364,11 @@ function cqn4sql(originalQuery, model) {
     const alreadySeen = new Map()
     inferred.joinTree._roots.forEach(r => {
       const args = []
-      if (r.queryArtifact.SELECT) args.push({ SELECT: transformSubquery(r.queryArtifact).SELECT, as: r.alias })
+      if (r.queryArtifact.SELECT) {
+        const transformedSubquery = transformSubquery(r.queryArtifact)
+        transformedSubquery.as = r.alias
+        args.push(transformedSubquery)
+      }
       else {
         const id = getLocalizedName(r.queryArtifact)
         args.push({ ref: [r.args ? { id, args: r.args } : id], as: r.alias })
