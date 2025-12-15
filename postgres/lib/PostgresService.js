@@ -498,7 +498,7 @@ GROUP BY k
     quote(s) {
       if (typeof s !== 'string') return '"' + s + '"'
       if (s.includes('"')) return '"' + s.replace(/"/g, '""').toLowerCase() + '"'
-      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]g*$/.test(s)) return '"' + s.toLowerCase() + '"'
+      if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s.toLowerCase() + '"'
       return s
     }
 

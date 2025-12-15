@@ -1191,7 +1191,6 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       const { prefix, recursive } = super.getWithPrefix()
       if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
       else this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-      // Efficient array concatenation - avoid multiple spread operations for better memory usage
       this.values = prefix.reduce((acc, p) => acc.concat(p.values), []).concat(values)
     }
 
