@@ -245,8 +245,16 @@ function cqn4sql(originalQuery, model) {
   }
 
   function updateRef(transformedDQ, ref) {
-    const match = transformedDQ._with?.find(w => w.joinTree._queryAliases.get(ref[0]))
-    if (match) ref[0] = match?.joinTree._queryAliases.get(ref[0])
+    if (!transformedDQ._with) return ref
+    
+    const refAlias = ref[0]
+    for (const w of transformedDQ._with) {
+      const aliasValue = w.joinTree._queryAliases.get(refAlias)
+      if (aliasValue) {
+        ref[0] = aliasValue
+        break
+      }
+    }
     return ref
   }
 
