@@ -137,17 +137,17 @@ class JoinTree {
    */
   addNextAvailableTableAlias(alias, outerQueries, key) {
     const upperAlias = alias.toUpperCase()
-    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer))) {
+    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer, key))) {
       let j = 2
-      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, j))) j += 1
+      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, key, j))) j += 1
       alias += j
     }
     this._queryAliases.set(key || alias.toUpperCase(), alias)
     return alias
 
-    function outerHasAlias(outer, number) {
+    function outerHasAlias(outer, searchInValues = false, number) {
       const currAlias = number ? upperAlias + number : upperAlias
-      return key ? Array.from(outer.joinTree._queryAliases.values()).includes(currAlias) : outer.joinTree._queryAliases.get(currAlias)
+      return searchInValues ? Array.from(outer.joinTree._queryAliases.values()).includes(currAlias) : outer.joinTree._queryAliases.get(currAlias)
     }
   }
 
