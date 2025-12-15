@@ -1,4 +1,3 @@
-// aslant.config.mjs
 import cds from '@sap/cds/eslint.config.mjs'
 import mocha from 'eslint-plugin-mocha'
 
