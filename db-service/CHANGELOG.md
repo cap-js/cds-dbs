@@ -4,6 +4,18 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.7.0...db-service-v2.8.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* propagte target to subquery ([#1438](https://github.com/cap-js/cds-dbs/issues/1438)) ([5460e43](https://github.com/cap-js/cds-dbs/commit/5460e4398079750ec3afec9a1747007618d23ecd))
+
 ## [2.7.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.6.0...db-service-v2.7.0) (2025-11-26)
 
 

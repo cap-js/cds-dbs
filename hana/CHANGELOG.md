@@ -4,6 +4,25 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.1...hana-v2.5.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* increase minimum hdb version to 2.26.3 ([#1442](https://github.com/cap-js/cds-dbs/issues/1442)) ([946a713](https://github.com/cap-js/cds-dbs/commit/946a713b35ddd3e4ace82001a1097e647a017b5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
 ## [2.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.0...hana-v2.4.1) (2025-11-26)
 
 
