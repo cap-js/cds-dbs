@@ -260,7 +260,7 @@ describe('(a2j) path detection', () => {
       expectCqn(transformed).to.equal(expected)
     })
 
-    it.only('expose managed assoc in subquery with alias, navigate to field in outer', () => {
+    it('expose managed assoc in subquery with alias, navigate to field in outer', () => {
       const transformed = cqn4sql(cds.ql`
         SELECT from (
           SELECT from bookshop.Books as Books
