@@ -241,7 +241,7 @@ function cqn4sql(originalQuery, model) {
 
     const fromRef = transformedQuery.SELECT.from.ref
     if (fromRef) updateRef(transformedQuery, fromRef)
-    else if (transformedQuery.SELECT.from.args) transformedQuery.SELECT.from.args.map(arg => updateRef(transformedQuery, arg.ref))
+    else if (transformedQuery.SELECT.from.args) transformedQuery.SELECT.from.args.forEach(arg => updateRef(transformedQuery, arg.ref))
   }
 
   function updateRef(transformedDQ, ref) {

@@ -28,8 +28,7 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        const entity = (query?._target || this.model?.definitions[e])
-        return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e
+        return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -1409,7 +1408,7 @@ class CQN2SQLRenderer {
   quote(s) {
     if (typeof s !== 'string') return '"' + s + '"'
     if (s.includes('"')) return '"' + s.replace(/"/g, '""') + '"'
-    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]g*$/.test(s)) return '"' + s + '"'
+    if (s in this.class.ReservedWords || !/^[A-Za-z_][A-Za-z_$0-9]*$/.test(s)) return '"' + s + '"'
     return s
   }
 
