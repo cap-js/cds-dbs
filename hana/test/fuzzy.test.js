@@ -43,6 +43,7 @@ describe('search', () => {
       expect(sql).to.include('EXACT MINIMAL SCORE 1')
       const res = await cqn
       expect(res.length).to.be(2) // Wuthering Heights and and Jane Eyre
+    })
 
     test('global config', async () => {
       cds.env.hana.fuzzy = 1
