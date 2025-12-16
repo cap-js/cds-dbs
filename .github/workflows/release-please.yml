@@ -9,19 +9,20 @@ jobs:
         contents: write
         pull-requests: write
         packages: write
+        id-token: write
     runs-on: ubuntu-latest
     environment: npm
     steps:
       # v4.1.3
-      - uses: googleapis/release-please-action@58fbed0b875bc2f73d60680e175b4c152bf0eb39
+      - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38
         id: release
         with:
           token: ${{secrets.CDS_DBS_TOKEN}}
       # The logic below handles the npm publication:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
       ## debug info
@@ -30,24 +31,16 @@ jobs:
       # Publish packages
       - name: Publish db-service
         if: ${{ steps.release.outputs.db-service--release_created }}
-        run: npm publish --workspace db-service --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace db-service --access public --provenance
 
       - name: Publish sqlite
         if: ${{ steps.release.outputs.sqlite--release_created }}
-        run: npm publish --workspace sqlite --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace sqlite --access public --provenance
 
       - name: Publish postgres
         if: ${{ steps.release.outputs.postgres--release_created }}
-        run: npm publish --workspace postgres --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace postgres --access public --provenance
 
       - name: Publish SAP HANA
         if: ${{ steps.release.outputs.hana--release_created }}
-        run: npm publish --workspace hana --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+        run: npm publish --workspace hana --access public --provenance

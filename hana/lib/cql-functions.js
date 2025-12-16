@@ -1,6 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
+const session = require('./session.json')
 
 const isTime = /^\d{1,2}:\d{1,2}:\d{1,2}$/
 const isDate = /^\d{1,4}-\d{1,2}-\d{1,2}$/
@@ -11,6 +12,46 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  /**
+   * Generates SQL statement that produces a runtime compatible error object
+   * @param {string|object} message - The i18n key or message of the error object
+   * @param {Array<xpr>} args - The arguments to apply to the i18n string
+   * @param {Array<xpr>} targets - The name of the element that the error is related to
+   * @return {string} - SQL statement
+   */
+  error: function (message, args, targets) {
+    targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
+    if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
+    args = args && (args.list || (args.val || args.ref) && [args])
+
+    const expr = expr => expr
+      ? `' || coalesce('"' || ${this.expr(expr)} || '"','null') || '`
+      : 'null'
+
+    return `'{"message":${expr(message)}, "args":${args
+      ? `[${args.map(arg => expr(arg))}]`
+      : 'null'
+      },"targets":${targets
+        ? `[${targets.map(target => expr(target))}]`
+        : 'null'
+      }}'`
+  },
+
+  // ==============================
+  // Session Context Functions
+  // ==============================
+
+  /**
+   * Generates SQL statement to retrieve session context
+   * @param {Object} x - Object containing the session variable
+   * @returns {string} - SQL statement
+   */
+  session_context: x => {
+    let sql = `session_context('${session[x.val] || x.val}')`
+    // if (x.val === '$now') sql += '::timestamp'
+    return sql
+  },
+
   // ==============================
   // String Functions
   // ==============================
@@ -99,7 +140,7 @@ const StandardFunctions = {
           }
         })
 
-      const columns = ref.list
+      const columns = ref.list || [ref]
       const xpr = []
       for (const s of searchTerms) {
         const nestedXpr = []
@@ -118,7 +159,7 @@ const StandardFunctions = {
     // fuzziness config
     const fuzzyIndex = cds.env.hana?.fuzzy || 0.7
 
-    const csnElements = ref.list
+    const csnElements = ref.list || [ref]
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
@@ -145,7 +186,7 @@ const StandardFunctions = {
         if (fuzziScore === 1)
           fuzzy += ` MINIMAL SCORE 1 search mode 'text'`
         else
-          fuzzy += ` MINIMAL TOKEN SCORE ${fuzziScore} SIMILARITY CALCULATION MODE 'search'`
+          fuzzy += ` MINIMAL SCORE ${fuzziScore} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
@@ -155,7 +196,7 @@ const StandardFunctions = {
       if (fuzzyIndex === 1) 
         ref = `${ref} EXACT MINIMAL SCORE 1 search mode 'text'`
       else
-        ref = `${ref} FUZZY MINIMAL TOKEN SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
     if (Array.isArray(arg.xpr)) {
@@ -206,7 +247,7 @@ const StandardFunctions = {
   second: x => `TO_INTEGER(SECOND(${getTimeCast(x)}))`,
   date: x => `TO_DATE(${x})`,
   time: x => `TO_TIME(${x})`,
-  now: () => `session_context('$now')`,
+  now: () => `session_context('NOW')`,
   fractionalseconds: x => `(TO_DECIMAL(SECOND(${x}),5,3) - TO_INTEGER(SECOND(${x})))`,
 }
 

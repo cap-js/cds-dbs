@@ -3,12 +3,12 @@ const cds = require('../../test/cds')
 describe('Versioned table', () => {
   before(() => {
     // Include the versioning feature model extension
-    cds.requires.toggles = true
+    // cds.requires.toggles = true
   })
 
   const { expect } = cds.test(
     __dirname + '/../../test/compliance/resources',
-    // Additional model definition is required, because feature flags don't work correctly without mtx
+    // cds.requires.toggles now works as expected, but it doesn't distinguished between implementations
     __dirname + '/../../test/compliance/resources/fts/versioning/hana.cds'
   )
 
@@ -42,4 +42,8 @@ describe('Versioned table', () => {
     expect(his).length(3)
   })
 
+  test('hana server version', () => {
+    // 2 hana express, 4 hana cloud
+    expect(cds.db.server.major).to.be.at.least(2)
+  })
 })

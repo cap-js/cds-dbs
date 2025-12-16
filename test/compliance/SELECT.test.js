@@ -920,6 +920,106 @@ describe('SELECT', () => {
     )
   })
 
+  describe('error', () => {
+    test('all positional parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['yes'],
+        targets: ['short', 'medium', 'large'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('vals used as args and targets parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1','Target2')) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['Arg1'],
+        targets: ['Target1', 'Target2'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('no parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error() FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('only positional message parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE') FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('skipped optional args positional parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',null,(short)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: ['short'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('all positional parameters skipped by passing null', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error(null,null,null) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test.skip('nulls in lists are preserved', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(null,null),(null)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: [null, null],
+        targets: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+  })
+
   describe('search', () => {
     // Make sure that the queries work, but never check their behavior as it is undefined
 
@@ -1015,7 +1115,7 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cds.foreach(SELECT.from(all),process.bind(aggregate))
+      await cds.foreach(SELECT.from(all), process.bind(aggregate))
       expect(aggregate).deep.eq(expected)
     }))
 
@@ -1408,7 +1508,7 @@ describe('SELECT', () => {
             { xpr: [ref, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref] }, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref, ref] }, op, SELECT([{ ...ref, as: 'a' }, { ...ref, as: 'b' }]).from(targetName)] },
-            // Repreating the previous statements replaceing ref with null
+            // Repeating the previous statements replacing ref with null
             { xpr: [unified.null, op, { list: [ref] }] },
             { xpr: [unified.null, op, { list: [ref, ref] }] },
             { xpr: [{ list: [unified.null] }, op, { list: [{ list: [ref] }] }] },

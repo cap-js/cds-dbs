@@ -5,6 +5,48 @@ const cds = require('@sap/cds')
 // OData: https://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part2-url-conventions.html#sec_CanonicalFunctions
 const StandardFunctions = {
   /**
+   * Generates SQL statement that produces a runtime compatible error object
+   * @param {string|object} message - The i18n key or message of the error object
+   * @param {Array<xpr>} args - The arguments to apply to the i18n string
+   * @param {Array<xpr>} targets - The name of the element that the error is related to
+   * @return {string} - SQL statement
+   */
+  error: function (message, args, targets) {
+    targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
+    if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
+    args = args && (args.list || (args.val || args.ref) && [args])
+
+    return `(${this.SELECT({
+      SELECT: {
+        expand: 'root',
+        columns: [
+          {
+            __proto__: (message || { val: null }),
+            as: 'message',
+          },
+          args ? {
+            func: 'json_array',
+            args: args,
+            as: 'args',
+            element: cds.builtin.types.Map,
+          } : { val: null, as: 'args' },
+          targets ? {
+            func: 'json_array',
+            args: targets,
+            as: 'targets',
+            element: cds.builtin.types.Map,
+          } : { val: null, as: 'targets' },
+        ]
+      },
+      elements: {
+        message: cds.builtin.types.String,
+        args: cds.builtin.types.Map,
+        targets: cds.builtin.types.Map,
+      }
+    })})`
+  },
+
+  /**
    * Generates SQL statement that produces a boolean value indicating whether the search term is contained in the given columns
    * @param {string} ref - The reference object containing column information
    * @param {string} arg - The argument object containing the search value
@@ -21,7 +63,7 @@ const StandardFunctions = {
       val = sub[2] || sub[3] || ''
     }
     arg.val = val
-    const refs = ref.list
+    const refs = ref.list || [ref]
     return `(${refs.map(ref => this.expr({
       func: 'contains',
       args: [
