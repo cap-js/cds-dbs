@@ -1,6 +1,8 @@
 const { Readable } = require('stream')
 
 const { _target_name4 } = require('@cap-js/db-service/lib/SQLService')
+const { getDBTable, getTransition } = require('@sap/cds/libx/_runtime/common/utils/resolveView')
+
 
 const ROOT = Symbol('root')
 const DEEP_INSERT_SQL = Symbol('deep insert sql')
@@ -24,16 +26,16 @@ async function onDeep(req, next) {
   // const target = query.sources[Object.keys(query.sources)[0]]
   if (!this.model?.definitions[_target_name4(req.query)]) return next()
 
-  const { target } = this.infer(query)
+  const { _target: target } = this.infer(query)
   if (!hasDeep(query, target)) return next()
 
   return getDeepQueries.call(this, query, target)
 }
 
 const hasDeep = (q, target) => {
-  if(q.INSERT && !q.INSERT.entries) return false
-  if(q.UPSERT && !q.UPSERT.entries) return false
-  for(const _ in target.compositions) return true
+  if (q.INSERT && !q.INSERT.entries) return false
+  if (q.UPSERT && !q.UPSERT.entries) return false
+  for (const _ in target.compositions) return true
   return false
 }
 
@@ -60,6 +62,8 @@ const getDeepQueries = async function (query, target) {
     )
   }
 
+  const cqn2sql = new this.class.CQN2SQL()
+
   const extract = new Map()
   const deletes = new Map()
   const upserts = new Map()
@@ -70,8 +74,6 @@ const getDeepQueries = async function (query, target) {
     const elems = Object.keys(target.elements)
     const columns = elems.filter(c => c in elements && !elements[c].virtual && !elements[c].value && !elements[c].isAssociation)
     const compositions = elems.filter(c => c in elements && elements[c].isComposition)
-
-    const cqn2sql = new this.class.CQN2SQL()
 
     const variableName = cqn2sql.name(target.name)
 
@@ -112,11 +114,12 @@ const getDeepQueries = async function (query, target) {
     }
 
     return `DO (IN JSON NCLOB => ?) BEGIN
-    ${sqls.extract.join(';\n')}${sqls.extract.length ? ';' : ''}
-    ${sqls.deletes.join(';\n')}${sqls.deletes.length ? ';' : ''}
-    ${sqls.inserts.join(';\n')}${sqls.inserts.length ? ';' : ''}
-    ${sqls.upserts.join(';\n')}${sqls.upserts.length ? ';' : ''}
-    END;`
+${sqls.extract.join(';\n')}${sqls.extract.length ? ';' : ''}
+${sqls.deletes.join(';\n')}${sqls.deletes.length ? ';' : ''}
+${sqls.inserts.join(';\n')}${sqls.inserts.length ? ';' : ''}
+${sqls.upserts.join(';\n')}${sqls.upserts.length ? ';' : ''}
+SELECT MAX(RN) AS "changes" FROM JSON_TABLE(:JSON, '$' COLUMNS(RN FOR ORDINALITY));
+END;`
   }
 
   if (query.INSERT) {
@@ -153,7 +156,8 @@ const getDeepQueries = async function (query, target) {
     const sql = target[DEEP_INSERT_SQL] = render()
 
     const ps = await this.prepare(sql)
-    return ps.run([getEntries(query)])
+    const ret = await ps.run([getEntries(query)])
+    return new this.class.InsertResults(query, ret.changes?.[1]?.[0])
   }
 
   if (query.UPDATE) {
@@ -181,7 +185,7 @@ const getDeepQueries = async function (query, target) {
           const fkeyrefs = fkeynames.map(k => ({ ref: [k] }))
           const keyrefs = keynames.map(k => ({ ref: [k] }))
           const pkeyrefs = composition._foreignKeys.map(k => ({ ref: [k.parentElement.name] }))
-          const fkeys = SELECT(pkeyrefs).from({ ref: [target.name], as: 'VAR' }).where([comp, 'is', 'not', 'null'])
+          const fkeys = SELECT(pkeyrefs).from({ ref: [target.name], as: 'VAR' }).where([cqn2sql.quote(comp), 'is', 'not', 'null'])
           const nkeys = SELECT(keyrefs).from({ ref: [compTarget.name], as: 'VAR' })
 
           const del = DELETE.from(compTarget)
@@ -214,12 +218,60 @@ const getDeepQueries = async function (query, target) {
     return ps.run([getEntries(query)])
   }
 
+  if (query.DELETE) {
+    const keys = []
+    const elements = query._target.keys || query._target.elements
+    const exists = e => e && !e.virtual && !e.value && !e.isAssociation
+    for (const key in elements) {
+      if (exists(elements[key])) keys.push({ ref: [key] })
+    }
+
+    const src = new this.class.CQN2SQL()
+    const variableName = src.name(query._target.name)
+    src.SELECT(SELECT(keys).from({ ...query.DELETE.from, as: 'VAR' }).where(query.DELETE.where))
+
+    const sqls = getDeepDeletes.call(this, { query: DELETE.from(query._target).where([{ list: keys }, 'in', SELECT(keys).from({ ref: [query._target.name], as: 'VAR' })]) })
+    const sql = `DO BEGIN
+${variableName} = ${src.sql};
+${sqls.join(';\n').replace(/([^ ]*) as "VAR"/gi, (_, b) => `:${b} as "VAR"`)};
+SELECT COUNT(*) AS "changes" FROM :${variableName};
+END`
+    const ps = await this.prepare(sql)
+    const ret = await ps.run(src.values)
+    return ret.changes?.[1]?.[0]?.changes
+  }
+
 }
 
 // Modified to be static version from SQLService
 const getDeepDeletes = function deep_delete(/** @type {Request} */ req) {
+  req.target ??= req.query._target
+  const transitions = getTransition(req.target, this, false, req.query.cmd || 'DELETE')
+  if (transitions.target !== transitions.queryTarget) {
+    const keys = []
+    const transitionsTarget = transitions.queryTarget.keys || transitions.queryTarget.elements
+    const exists = e => e && !e.virtual && !e.value && !e.isAssociation
+    for (const key in transitionsTarget) {
+      if (exists(transitionsTarget[key])) keys.push(key)
+    }
+    const matchedKeys = keys.filter(key => transitions.mapping.has(key)).map(k => ({ ref: [k] }))
+    const query = DELETE.from({
+      ref: [
+        {
+          id: transitions.target.name,
+          where: [
+            { list: matchedKeys.map(k => transitions.mapping.get(k.ref[0])) },
+            'in',
+            SELECT.from(req.query.DELETE.from).columns(matchedKeys).where(req.query.DELETE.where),
+          ],
+        },
+      ],
+    })
+    return deep_delete.call(this, { query, target: transitions.target })
+  }
   let ret = []
-  let { compositions } = (req.target ??= req.query.target)
+  const table = getDBTable(req.target)
+  let { compositions } = table
   if (compositions) {
     // Transform CQL`DELETE from Foo[p1] WHERE p2` into CQL`DELETE from Foo[p1 and p2]`
     let { from, where } = req.query.DELETE

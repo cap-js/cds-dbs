@@ -20,7 +20,7 @@ async function onDeep(req, next) {
   const { query } = req
 
   // REVISIT: req.target does not match the query.INSERT target for path insert
-  // const target = query.sources[Object.keys(query.sources)[0]]
+  const target = query._target
   if (!this.model?.definitions[_target_name4(req.query)]) return next()
 
   if (!hasDeep(query)) return next()

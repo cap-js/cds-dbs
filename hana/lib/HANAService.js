@@ -37,7 +37,7 @@ class HANAService extends SQLService {
     this.on(['COMMIT'], this.onCOMMIT)
     this.on(['ROLLBACK'], this.onROLLBACK)
     this.on(['SELECT', 'INSERT', 'UPSERT', 'UPDATE', 'DELETE'], this.onNOTFOUND)
-    this.on(['INSERT', 'UPSERT', 'UPDATE'], require('./deep-queries').onDeep)
+    this.on(['INSERT', 'UPSERT', 'UPDATE', 'DELETE'], require('./deep-queries').onDeep)
     return super.init()
   }
 
