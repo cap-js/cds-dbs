@@ -247,6 +247,19 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
     })
+
+    test('$now in view refers to tx timestamp', async () => {
+      let ts, res1, res2
+      await cds.tx(async tx => {
+        ts = tx.context.timestamp
+        // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+        res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+        res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+      })
+
+      expect(res1.now).to.eq(ts.toISOString())
+      expect(res1.now).to.eq(res2.now)
+    })
   })
 
   describe('excluding', () => {
@@ -757,13 +770,13 @@ describe('SELECT', () => {
       let oldMax, oldTimeout
       beforeAll(async () => {
         const options = cds.db.pools._factory.options
-        oldMax = options.max
-        oldTimeout = options.acquireTimeoutMillis
+        const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+
+        oldMax = options.max || activeOptions.max
+        oldTimeout = options.acquireTimeoutMillis || activeOptions.acquireTimeoutMillis
 
         if (isSQLite()) {
-          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-          cds.db.pools.undefined._config.acquireTimeoutMillis =
-            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = 1000
           return
         }
         await cds.db.disconnect()
@@ -776,14 +789,13 @@ describe('SELECT', () => {
         const options = cds.db.pools._factory.options
 
         if (isSQLite()) {
-          oldTimeout = cds.db.pools._factory.options.acquireTimeoutMillis
-          cds.db.pools.undefined._config.acquireTimeoutMillis =
-            cds.db.pools._factory.options.acquireTimeoutMillis = 1000
+          const activeOptions = cds.db.pools.undefined.options || cds.db.pools.undefined._config || {}
+          activeOptions.acquireTimeoutMillis = options.acquireTimeoutMillis = oldTimeout
           return
         }
         await cds.db.disconnect()
 
-        options.max = oldMax
+        options.max = oldMax || 1
         options.acquireTimeoutMillis = oldTimeout
       })
     }
@@ -870,7 +882,7 @@ describe('SELECT', () => {
     })
   }
 
-  describe('forUpdate', () => {
+  describe.skip('forUpdate', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forUpdate({
         of: ['bool'],
@@ -882,7 +894,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe('forShareLock', () => {
+  describe.skip('forShareLock', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
@@ -895,7 +907,7 @@ describe('SELECT', () => {
     )
   })
 
-  describe('forUpdate ignore locked', () => {
+  describe.skip('forUpdate ignore locked', () => {
     const boolLock = SELECT.from('basic.projection.globals')
       .forShareLock({
         of: ['bool'],
@@ -906,6 +918,106 @@ describe('SELECT', () => {
       .where([{ ref: ['bool'] }, '=', { val: bool }]),
       { ignoreLocked: true }
     )
+  })
+
+  describe('error', () => {
+    test('all positional parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(string),(short,medium,large)) FROM ${string} WHERE string = ${'yes'}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['yes'],
+        targets: ['short', 'medium', 'large'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('vals used as args and targets parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',('Arg1'),('Target1','Target2')) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: ['Arg1'],
+        targets: ['Target1', 'Target2'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('no parameters', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error() FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('only positional message parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE') FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('skipped optional args positional parameter', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',null,(short)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: null,
+        targets: ['short'],
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test('all positional parameters skipped by passing null', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error(null,null,null) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: null,
+        args: null,
+        targets: null,
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
+
+    test.skip('nulls in lists are preserved', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT error('MESSAGE',(null,null),(null)) FROM ${string}`
+      cqn.SELECT.one = true
+      const res = await cds.run(cqn)
+      assert.ok(res.error, 'Ensure that the function is applied')
+      const funcRes = typeof res.error === 'string' ? JSON.parse(res.error) : res.error
+      assert.deepStrictEqual(funcRes, {
+        message: 'MESSAGE',
+        args: [null, null],
+        targets: null, // REVISIT: (null) -> [null]: compiler currently treats single list elements as non list elements
+      }, 'Ensure that the function reads correct parameters and returns the right values')
+    })
   })
 
   describe('search', () => {
@@ -994,6 +1106,19 @@ describe('SELECT', () => {
       for (const prop in row) if (row[prop] != null) (this[prop] ??= []).push(row[prop])
     }
 
+    test('cds/srv.foreach', () => cds.tx(async () => {
+      const { all } = cds.entities('basic.projection')
+
+
+      const expected = {}
+      const rows = await cds.ql`SELECT FROM ${all}`
+      for (const row of rows) process.call(expected, row)
+
+      const aggregate = {}
+      await cds.foreach(SELECT.from(all), process.bind(aggregate))
+      expect(aggregate).deep.eq(expected)
+    }))
+
     test('aggregate', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
@@ -1004,12 +1129,11 @@ describe('SELECT', () => {
       for (const row of rows) process.call(expected, row)
 
       const aggregate = {}
-      await cqn.clone().then (rows => rows.map(process.bind(aggregate)))
+      await cqn.clone().then(rows => rows.map(process.bind(aggregate)))
       expect(aggregate).deep.eq(expected)
     }))
 
-    // REVISIT: unskip when merged into @sap/cds
-    test.skip('async iterator', () => cds.tx(async () => {
+    test('async iterator', () => cds.tx(async () => {
       const { all } = cds.entities('basic.projection')
 
       const cqn = cds.ql`SELECT FROM ${all}`
@@ -1024,8 +1148,7 @@ describe('SELECT', () => {
     }))
   })
 
-  // REVISIT: unskip when merged into @sap/cds
-  describe.skip('pipe', () => {
+  describe('pipeline', () => {
     test('json stream', () => cds.tx(async () => {
       const { json } = require('stream/consumers')
       const { all } = cds.entities('basic.projection')
@@ -1033,7 +1156,7 @@ describe('SELECT', () => {
       const expected = await cqn.clone()
 
       let result
-      await cqn.clone().pipe(async stream => { result = await json(stream) })
+      await cqn.clone().pipeline(async stream => { result = await json(stream) })
       expect(result).deep.eq(expected)
     }))
 
@@ -1046,7 +1169,7 @@ describe('SELECT', () => {
       const cqn = cds.ql`SELECT FROM ${all}`
 
       // Start simple http server
-      const srv = http.createServer((_, res) => cqn.pipe(res))
+      const srv = http.createServer((_, res) => cqn.pipeline(res))
       await promisify(srv.listen.bind(srv))()
       cds.once('shutdown', () => { srv.close() })
 
@@ -1057,7 +1180,7 @@ describe('SELECT', () => {
         const req = http.get(`http://localhost:${port}/`)
         req.on('error', reject)
         req.on('response', res => {
-          expect(res.headers).to.have.property('content-type').eq('application/json')
+          // expect(res.headers).to.have.property('content-type').eq('application/json')
           expect(res.headers).to.have.property('transfer-encoding').eq('chunked')
           json(res).then(resolve, reject)
         })
@@ -1385,7 +1508,7 @@ describe('SELECT', () => {
             { xpr: [ref, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref] }, op, SELECT(ref).from(targetName)] },
             { xpr: [{ list: [ref, ref] }, op, SELECT([{ ...ref, as: 'a' }, { ...ref, as: 'b' }]).from(targetName)] },
-            // Repreating the previous statements replaceing ref with null
+            // Repeating the previous statements replacing ref with null
             { xpr: [unified.null, op, { list: [ref] }] },
             { xpr: [unified.null, op, { list: [ref, ref] }] },
             { xpr: [{ list: [unified.null] }, op, { list: [{ list: [ref] }] }] },

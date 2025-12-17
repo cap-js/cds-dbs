@@ -2,13 +2,13 @@ const NEW_DRAFT_TRAVELUUID = '11111111111111111111111111111111'
 const EDIT_DRAFT_TRAVELUUID = '71657221A8E4645C17002DF03754AB66'
 const cds = require('../../cds.js'), { path } = cds.utils
 
-const sflight = path.resolve(__dirname,'../../../test/sflight')
+const sflight = path.resolve(__dirname, '../../../test/sflight')
 
 describe('draft tests', () => {
 
   // Had to be moved before for cds-test might break jest
   beforeAll(() => {
-    cds.env.features.ieee754compatible = true
+    process.env.cds_features_ieee754compatible = 'true'
   })
 
   const { GET, POST, PATCH, DELETE, expect } = cds.test(sflight)
@@ -972,7 +972,7 @@ describe('draft tests', () => {
       )
       expect(1).to.be.eq('Editing an active entity with an existing draft must fail')
     } catch (e) {
-      expect(e.message).to.be.eq('409 - A draft for this entity already exists')
+      expect(e.response.status).to.be.eq(409) // DRAFT_ALREADY_EXISTS
     }
   })
 })

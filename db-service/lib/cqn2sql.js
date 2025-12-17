@@ -17,6 +17,7 @@ class CQN2SQLRenderer {
    * @param {import('@sap/cds/apis/services').ContextProperties} context the cds.context of the request
    */
   constructor(srv) {
+    this.srv = srv
     this.context = srv?.context || cds.context // Using srv.context is required due to stakeholders doing unmanaged txs without cds.context being set
     this.class = new.target // for IntelliSense
     this.class._init() // is a noop for subsequent calls
@@ -82,6 +83,9 @@ class CQN2SQLRenderer {
     /** @type {unknown[]} */
     this.values = [] // prepare values, filled in by subroutines
     this[kind]((this.cqn = q)) // actual sql rendering happens here
+    if (this._with?.length) {
+      this.render_with()
+    }
     if (vars?.length && !this.values?.length) this.values = vars
     if (vars && Object.keys(vars).length && !this.values?.length) this.values = vars
     const sanitize_values = process.env.NODE_ENV === 'production' && cds.env.log.sanitize_values !== false
@@ -95,8 +99,26 @@ class CQN2SQLRenderer {
       DEBUG(this.sql, values)
     }
 
-
     return this
+  }
+
+  render_with() {
+    const sql = this.sql
+    let recursive = false
+    const values = this.values
+    const prefix = this._with.map(q => {
+      const values = this.values = []
+      let sql
+      if ('SELECT' in q) sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+      else if ('SET' in q) {
+        recursive = true
+        const { SET } = q
+        sql = `${this.quote(q.as)}(${SET.args[0].SELECT.columns?.map(c => this.quote(this.column_name(c))) || ''}) AS (${this.SELECT(SET.args[0])} ${SET.op?.toUpperCase() || 'UNION'} ${SET.all ? 'ALL' : ''} ${this.SELECT(SET.args[1])}${SET.orderBy ? ` ORDER BY ${this.orderBy(SET.orderBy)}` : ''})`
+      }
+      return { sql, values }
+    })
+    this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
+    this.values = [...prefix.map(p => p.values).flat(), ...values]
   }
 
   /**
@@ -258,8 +280,302 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-  SELECT_recurse() {
-    cds.error`Feature "recurse" queries not supported.`
+  SELECT_recurse(q) {
+    let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
+
+    const _target = q._target
+
+    if (_target && where) {
+      const keys = []
+      for (const _key in _target.keys) {
+        const k = _target.keys[_key]
+        if (!k.virtual && !k.isAssociation && !k.value) {
+          keys.push({ ref: [_key] })
+        }
+      }
+
+      // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
+      const clone = q.clone()
+      clone.columns(keys)
+      clone.SELECT.recurse = undefined
+      clone.SELECT.expand = undefined // omits JSON
+      where = [{ list: keys }, 'in', clone]
+    }
+
+    const requiredComputedColumns = { PARENT_ID: true, NODE_ID: true }
+    if (!_internal) requiredComputedColumns.RANK = true
+    const addComputedColumn = (name) => {
+      if (requiredComputedColumns[name]) return
+      requiredComputedColumns[name] = true
+    }
+
+    // The hierarchy functions will output the following columns. Which might clash with the entity columns
+    const reservedColumnNames = {
+      PARENT_ID: 1, NODE_ID: 1,
+      HIERARCHY_RANK: 1, HIERARCHY_DISTANCE: 1, HIERARCHY_LEVEL: 1, HIERARCHY_TREE_SIZE: 1
+    }
+    const availableComputedColumns = {
+      // Input computed columns
+      PARENT_ID: false,
+      NODE_ID: false,
+
+      // Output computed columns
+      RANK: { xpr: [{ ref: ['HIERARCHY_RANK'] }, '-', { val: 1, param: false }], as: 'RANK' },
+      Distance: { func: where?.length ? 'min' : 'max', args: [{ ref: ['HIERARCHY_DISTANCE'] }], as: 'Distance' },
+      DistanceFromRoot: { xpr: [{ ref: ['HIERARCHY_LEVEL'] }, '-', { val: 1, param: false }], as: 'DistanceFromRoot' },
+      DrillState: false,
+      LimitedDescendantCount: { xpr: [{ ref: ['HIERARCHY_TREE_SIZE'] }, '-', { val: 1, param: false }], as: 'LimitedDescendantCount' },
+      LimitedRank: { xpr: [{ func: 'row_number', args: [] }, 'OVER', { xpr: ['ORDER', 'BY', { ref: ['HIERARCHY_RANK'] }, 'ASC'] }, '-', { val: 1, param: false }], as: 'LimitedRank' }
+    }
+
+    const columnsFiltered = columns
+      .filter(x => {
+        if (x.element?.isAssociation) return false
+        const name = this.column_name(x)
+        if (name === '$$RN$$') return false
+        // REVISIT: ensure that the selected column is one of the hierarchy computed columns by unifying their common definition
+        if (x.element?.['@Core.Computed'] && name in availableComputedColumns) {
+          addComputedColumn(name)
+          return false
+        }
+        return true
+      })
+    const columnsOut = []
+    const columnsIn = []
+    const target = q._target || q.target
+    for (const name in target.elements) {
+      const ref = { ref: [name] }
+      const element = target.elements[name]
+      if (element.virtual || element.value || element.isAssociation) continue
+      if (element['@Core.Computed'] && name in availableComputedColumns) continue
+      if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
+      columnsIn.push(ref)
+      const foreignkey4 = element._foreignKey4
+      if (
+        from.args ||
+        columnsFiltered.find(c => this.column_name(c) === name) ||
+        // foreignkey needs to be included when the association is expanded
+        (foreignkey4 && q.SELECT.columns.some(c => c.element?.isAssociation && c.element.name === foreignkey4))
+      ) {
+        columnsOut.push(ref.as ? { ref: [ref.as], as: name } : ref)
+      }
+    }
+
+    const nodeKeys = []
+    const parentKeys = []
+    const association = target.elements[recurse.ref[0]]
+    association._foreignKeys.forEach(fk => {
+      nodeKeys.push(fk.childElement.name)
+      parentKeys.push(fk.parentElement.name)
+    })
+
+    columnsIn.push(
+      nodeKeys.length === 1
+        ? { ref: nodeKeys, as: 'NODE_ID' }
+        : { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ ref: [n] })), as: 'NODE_ID' },
+      parentKeys.length === 1
+        ? { ref: parentKeys, as: 'PARENT_ID' }
+        : { func: 'HIERARCHY_COMPOSITE_ID', args: parentKeys.map(n => ({ ref: [n] })), as: 'PARENT_ID' },
+    )
+
+    if (orderBy) {
+      orderBy = orderBy.map(r => {
+        const col = r.ref.at(-1)
+        if (!columnsIn.find(c => this.column_name(c) === col)) {
+          columnsIn.push({ ref: [col] })
+        }
+        return { ...r, ref: [col] }
+      })
+    }
+
+    // In the case of join operations make sure to compute the hierarchy from the source table only
+    const stableFrom = getStableFrom(from)
+    const alias = stableFrom.as
+    const source = () => {
+      return ({
+        func: 'HIERARCHY',
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+        as: alias
+      })
+    }
+
+    const expandedByNr = { list: [] } // DistanceTo(...,null)
+    const expandedByOne = { list: [] } // DistanceTo(...,1)
+    const expandedByZero = { list: [] } // not DistanceTo(...,null)
+    let expandedFilter = []
+    // If a root where exists it should always be DistanceFromRoot otherwise when a recurse.where exists with only DistanceTo() calls
+    let distanceType = 'DistanceFromRoot'
+    let distanceVal
+
+    if (recurse.where) {
+      distanceType = where?.length ? 'DistanceFromRoot' : 'Distance'
+      if (recurse.where[0] === 'and') recurse.where = recurse.where.slice(1)
+      expandedFilter = [...recurse.where]
+      collectDistanceTo(expandedFilter)
+    }
+
+    const direction = where?.length ? 'ANCESTORS' : 'DESCENDANTS'
+    // Ensure that the distance value is being computed
+    if (distanceType) addComputedColumn(distanceType)
+
+    let distanceClause = []
+    if (distanceType === 'Distance') {
+      const isOne = expandedByOne.list.length
+      distanceClause = ['DISTANCE', ...(
+        isOne
+          ? [{ val: 1 }]
+          : ['FROM', { val: 1 }]
+      )]
+      where = [{ ref: ['NODE_ID'] }, 'IN', isOne ? expandedByOne : expandedByNr]
+      expandedFilter = []
+    }
+
+    availableComputedColumns.DrillState = {
+      xpr: [ // When the node doesn't have children make it a leaf
+        'CASE', 'WHEN', { ref: ['HIERARCHY_TREE_SIZE'] }, '=', { val: 1, param: false }, 'THEN', { val: 'leaf', param: false },
+        ...(where?.length // When there is a where filter the final node will always be a leaf
+          ? ['WHEN', { func: where?.length ? 'min' : 'max', args: [{ ref: ['HIERARCHY_DISTANCE'] }] }, '=', { val: 0, param: false }, 'THEN', { val: 'leaf', param: false }]
+          : []
+        ), // When having expanded by 0 level nodes make sure they are collapsed
+        ...(expandedByZero.list.length
+          ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', expandedByZero, 'THEN', { val: 'collapsed', param: false }]
+          : []
+        ), // When having expanded by null or one nodes compute them as expanded
+        ...(expandedByNr.list.length || expandedByOne.list.length
+          ? ['WHEN', { ref: ['NODE_ID'] }, 'IN', { list: [...expandedByNr.list, ...expandedByOne.list] }, 'THEN', { val: 'expanded', param: false }]
+          : []
+        ), // When having expanded by one level node make its children collapsed
+        ...(expandedByOne.list.length
+          ? ['WHEN', { ref: ['PARENT_ID'] }, 'IN', expandedByOne, 'THEN', { val: 'collapsed', param: false }]
+          : []
+        ), // When using DistanceFromRoot compute all entries within the levels as expanded
+        ...(distanceType === 'DistanceFromRoot' && distanceVal
+          ? [
+            'WHEN', { ref: ['HIERARCHY_LEVEL'] }, '<>', { val: distanceVal.val + 1 },
+            'THEN', { val: 'expanded', param: false },
+          ]
+          : []
+        ), // Default to expanded when default filter behavior is truthy
+        'ELSE', { val: (recurse.where && !expandedByZero.list.length) && distanceType ? 'collapsed' : 'expanded', param: false },
+        'END',
+      ],
+      as: 'DrillState'
+    }
+
+    for (const name in requiredComputedColumns) {
+      const def = availableComputedColumns[name]
+      if (def) columnsOut.push(def)
+    }
+    if (_internal) columnsOut.push({ ref: ['NODE_ID'] })
+
+    const graph = distanceType === 'DistanceFromRoot' && !where
+      ? { SELECT: { columns: columnsOut, from: source(), where: expandedFilter } }
+      : {
+        SELECT: {
+          columns: columnsOut,
+          from: {
+            func: `HIERARCHY_${direction}`,
+            args: [{
+              xpr: [
+                'SOURCE', source(), 'AS', this.quote(alias),
+                'START', 'WHERE', {
+                  xpr: where // Requires special where logic before being put into the args
+                    ? from.args
+                      ? [{ ref: ['NODE_ID'] }, 'IN', { SELECT: { columns: [columnsIn.find(c => c.as === 'NODE_ID')], from, where: where } }]
+                      : this.is_comparator?.({ xpr: where }) ?? true ? where : [...where, '=', { val: true, param: false }]
+                    : [{ ref: ['PARENT_ID'] }, '=', { val: null }]
+                },
+                ...distanceClause
+              ]
+            }]
+          },
+          where: expandedFilter.length ? expandedFilter : undefined,
+          orderBy: [{ ref: ['HIERARCHY_RANK'], sort: 'asc' }],
+          groupBy: [{ ref: ['NODE_ID'] }, { ref: ['PARENT_ID'] }, { ref: ['HIERARCHY_RANK'] }, { ref: ['HIERARCHY_LEVEL'] }, { ref: ['HIERARCHY_TREE_SIZE'] }, ...columnsOut.filter(c => c.ref)],
+        }
+      }
+
+    // Only apply result join if the columns contain a references which doesn't start with the source alias
+    if (from.args && columns.find(c => c.ref?.[0] === alias)) {
+      graph.as = alias
+      return this.from(setStableFrom(from, graph))
+    }
+
+    return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+
+    function collectDistanceTo(where, innot = false) {
+      for (let i = 0; i < where.length; i++) {
+        const c = where[i]
+        if (c === 'not') {
+          distanceType = 'DistanceFromRoot'
+          innot = true
+        }
+        else if (c.func === 'DistanceTo') {
+          const expr = c.args[0]
+          // { func: 'HIERARCHY_COMPOSITE_ID', args: nodeKeys.map(n => ({ val: cur[n] })) }
+          const to = c.args[1].val
+          const list = to === 1
+            ? expandedByOne
+            : innot
+              ? expandedByZero
+              : expandedByNr
+
+          if (!list._where) {
+            list._where = []
+            where.splice(i, 1,
+              ...(to === 1
+                ? [{ ref: ['PARENT_ID'] }, 'IN', list]
+                : [{ ref: ['NODE_ID'] }, 'IN', {
+                  SELECT: {
+                    _internal: true,
+                    columns: [{ ref: ['NODE_ID'], element: { '@Core.Computed': true } }],
+                    from: q.SELECT.from,
+                    recurse: {
+                      ref: recurse.ref,
+                      where: list._where,
+                    },
+                  },
+                  target,
+                }])
+            )
+            i += 2
+          } else {
+            // Remove current entry from where
+            if (where[i - 1] === 'not') {
+              where.splice(i - 2, 3)
+              i -= 3
+            } else {
+              where.splice(i - 1, 2)
+              i -= 2
+            }
+          }
+          list.list.push(expr)
+          list._where.push(c)
+        }
+        else if (c.ref?.[0] === 'DistanceFromRoot') {
+          distanceType = 'DistanceFromRoot'
+          where[i] = { ref: ['HIERARCHY_LEVEL'] }
+          i += 2
+          distanceVal = where[i]
+          where[i] = { val: where[i].val + 1 }
+        }
+      }
+    }
+
+    function getStableFrom(from) {
+      if (from.args) return getStableFrom(from.args[0])
+      return from
+    }
+
+    function setStableFrom(from, src) {
+      if (from.args) {
+        const ret = { ...from }
+        ret.args = [...ret.args]
+        ret.args[0] = setStableFrom(ret.args[0], src)
+        return ret
+      }
+      return src
+    }
   }
 
   /**
@@ -371,6 +687,18 @@ class CQN2SQLRenderer {
     }
     if (from.SELECT) return _aliased(`(${this.SELECT(from)})`)
     if (from.join) return `${this.from(from.args[0])} ${from.join} JOIN ${this.from(from.args[1])}${from.on ? ` ON ${this.where(from.on)}` : ''}`
+    if (from.func) return _aliased(this.func(from))
+  }
+
+  /**
+   * Renders a FROM clause into generic SQL
+   * @param {import('./infer/cqn').source} from
+   * @returns {string} SQL
+   */
+  with(query) {
+    this._with ??= []
+    this._with.push(query)
+    return { ref: [query.as] }
   }
 
   /**
@@ -426,7 +754,7 @@ class CQN2SQLRenderer {
    */
   orderBy(orderBy, localized) {
     return orderBy.map(c => {
-      const o = localized
+      const o = (localized && this.context.locale)
         ? this.expr(c) +
         (c.element?.[this.class._localized] ? ' COLLATE NOCASE' : '') +
         (c.sort?.toLowerCase() === 'desc' || c.sort === -1 ? ' DESC' : ' ASC')
@@ -489,7 +817,7 @@ class CQN2SQLRenderer {
         ? this.INSERT_rows(q)
         : INSERT.values
           ? this.INSERT_values(q)
-          : INSERT.as
+          : INSERT.from || INSERT.as
             ? this.INSERT_select(q)
             : cds.error`Missing .entries, .rows, or .values in ${q}`
   }
@@ -691,12 +1019,17 @@ class CQN2SQLRenderer {
     const entity = this.name(q._target.name, q)
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
+    let columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
-      this.cqn4sql(INSERT.as),
-    )}`
+
+    const src = this.cqn4sql(INSERT.from)
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
+    const sql = extractions.length > columns.length
+      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      : this.SELECT(src)
+    if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${sql}`
     this.entries = [this.values]
     return this.sql
   }
@@ -749,18 +1082,32 @@ class CQN2SQLRenderer {
       .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
       .join(' AND ')
 
-    const columns = this.columns // this.columns is computed as part of this.INSERT
-    const managed = this._managed.slice(0, columns.length)
-
-    const extractkeys = managed
-      .filter(c => keys.includes(c.name))
-      .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
-
+    let columns = this.columns // this.columns is computed as part of this.INSERT
     const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
-    sql = `SELECT ${managed.map(c => c.upsert
-      .replace(/value->/g, '"$$$$value$$$$"->')
-      .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
-      } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+      const managed = this._managed.slice(0, columns.length)
+
+      const extractkeys = managed
+        .filter(c => keys.includes(c.name))
+        .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
+
+      sql = `SELECT ${managed.map(c => c.upsert
+        .replace(/value->/g, '"$$$$value$$$$"->')
+        .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
+        } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    } else {
+      const extractions = this._managed
+      if (this.values) this.values = [] // Clear previously computed values
+      const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+      const aliasedQuery = cds.ql.SELECT
+        .columns(src.SELECT.columns
+          .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+        )
+        .from(src)
+      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+      this.entries = [this.values]
+    }
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -856,7 +1203,7 @@ class CQN2SQLRenderer {
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
-        if (x.xpr) return `(${this.xpr(x)})`
+        if (x.xpr && !x.func) return `(${this.xpr(x)})`
         else return this.expr(x)
       })
       .join(' ')
@@ -997,7 +1344,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this.class.Functions, args) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args : [args]) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }
@@ -1101,7 +1448,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default?.val !== undefined && { val: element.default.val, param: false })
+        || (element.default && { __proto__: element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)

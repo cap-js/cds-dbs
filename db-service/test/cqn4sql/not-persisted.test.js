@@ -86,7 +86,6 @@ describe('not persisted', () => {
         order by ID`)
     })
 
-
     it('Navigation to virtual field does not cause join', () => {
       let query = cqn4sql(
         cds.ql`SELECT from bookshop.Foo as Foo {
@@ -106,7 +105,7 @@ describe('not persisted', () => {
     it('reject virtual elements in expressions', () => {
       let query = cds.ql`SELECT from bookshop.Foo {
         ID
-      } where virtualField = 2 * stru.v + stru.nested.nv and virtualField`;
+      } where virtualField = 2 * stru.v + stru.nested.nv and virtualField`
       expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
 
@@ -124,7 +123,7 @@ describe('not persisted', () => {
     })
 
     it('reject virtual elements in order by', () => {
-      let query =  cds.ql`SELECT from bookshop.Foo as Foo { ID, virtualField as x }
+      let query = cds.ql`SELECT from bookshop.Foo as Foo { ID, virtualField as x }
         order by ID, x, (Foo.toFoo.virtualField * 42)`
       expect(() => cqn4sql(query, model)).to.throw('Virtual elements are not allowed in expressions')
     })
@@ -153,6 +152,45 @@ describe('not persisted', () => {
     }`
       const res = cqn4sql(q, model)
       expect(JSON.parse(JSON.stringify(res))).to.deep.equal(qx)
+    })
+
+    it('select from `@cds.persistence.table`', () => {
+      const transformed = cqn4sql(cds.ql`SELECT from bookshop.PersistenceTableOnSkipped as P { * }`, model)
+      const expected = cds.ql`
+        SELECT from bookshop.PersistenceTableOnSkipped as P
+        {
+          P.ID,
+          P.text,
+          P.notSkipped_ID
+        }`
+      expect(transformed).to.deep.equal(expected)
+    })
+
+    it('ignores `@cds.persistence.skip` of base', () => {
+      const transformed = cqn4sql(
+        cds.ql`
+        SELECT from bookshop.ToPersistenceTable as T
+        {
+          ID,
+          ToPersistenceTableOnSkipped.ID as shouldBeThere
+        }
+        WHERE ToPersistenceTableOnSkipped.text = 'foo'
+        GROUP BY T.ID, ToPersistenceTableOnSkipped.text
+        ORDER BY T.ID, ToPersistenceTableOnSkipped.ID`,
+        model,
+      )
+      const expected = cds.ql`
+        SELECT from bookshop.ToPersistenceTable as T
+          left join bookshop.PersistenceTableOnSkipped as ToPersistenceTableOnSkipped
+            on ToPersistenceTableOnSkipped.ID = T.ToPersistenceTableOnSkipped_ID
+        {
+          T.ID,
+          T.ToPersistenceTableOnSkipped_ID as shouldBeThere
+        }
+        WHERE ToPersistenceTableOnSkipped.text = 'foo'
+        GROUP BY T.ID, ToPersistenceTableOnSkipped.text
+        ORDER BY T.ID, T.ToPersistenceTableOnSkipped_ID`
+        expect(transformed).to.deep.equal(expected)
     })
 
     // same as for virtual
@@ -215,7 +253,10 @@ describe('not persisted', () => {
     })
 
     it('do not remove from simple conditions', () => {
-      let query = cqn4sql(cds.ql`SELECT from bookshop.NotSkipped as NotSkipped { ID } where skipped.notSkipped.text`, model)
+      let query = cqn4sql(
+        cds.ql`SELECT from bookshop.NotSkipped as NotSkipped { ID } where skipped.notSkipped.text`,
+        model,
+      )
       expect(query).to.deep.equal(
         cds.ql`SELECT from bookshop.NotSkipped as NotSkipped
           left outer join bookshop.Skip as skipped on skipped.ID = NotSkipped.skipped_ID

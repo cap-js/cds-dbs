@@ -4,6 +4,112 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.0...postgres-v2.1.1) (2025-12-15)
+
+
+### Fixed
+
+* fixed versions in postgres deployer package.json ([#1429](https://github.com/cap-js/cds-dbs/issues/1429)) ([c70ab92](https://github.com/cap-js/cds-dbs/commit/c70ab92a290e90eea64d4f54c25b301e8f3f6a0d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.6...postgres-v2.1.0) (2025-11-26)
+
+
+### Added
+
+* show default pool configuration in `env` ([#1422](https://github.com/cap-js/cds-dbs/issues/1422)) ([89b397a](https://github.com/cap-js/cds-dbs/commit/89b397ade2a15be8ce81ed3e8d717fc98f1a8107))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
+## [2.0.6](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.5...postgres-v2.0.6) (2025-10-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2 to ^2.6.0
+
+## [2.0.5](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.4...postgres-v2.0.5) (2025-08-27)
+
+
+### Fixed
+
+* cds build for postgres ([#1320](https://github.com/cap-js/cds-dbs/issues/1320)) ([cb27495](https://github.com/cap-js/cds-dbs/commit/cb27495889bbab8fc55d37e338f4cac8e066bd4b))
+
+## [2.0.4](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.3...postgres-v2.0.4) (2025-07-28)
+
+
+### Fixed
+
+* ensure ordering of `ParameterStream` chunks ([#1280](https://github.com/cap-js/cds-dbs/issues/1280)) ([a49e200](https://github.com/cap-js/cds-dbs/commit/a49e200eb3c08cedcea04ffc5ecb7c664ee885c0))
+
+## [2.0.3](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.2...postgres-v2.0.3) (2025-06-30)
+
+
+### Fixed
+
+* **`cds-build`:** retain more build relevant options in the deployer app ([#1206](https://github.com/cap-js/cds-dbs/issues/1206)) ([e7ed70f](https://github.com/cap-js/cds-dbs/commit/e7ed70f36920867ec0063d29255e3681dec1b60c))
+
+## [2.0.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.1...postgres-v2.0.2) (2025-06-04)
+
+
+### Fixed
+
+* Allow raw streams to have empty results ([#1224](https://github.com/cap-js/cds-dbs/issues/1224)) ([0a59e69](https://github.com/cap-js/cds-dbs/commit/0a59e69eae2f701b5c475512fd1cd83cfb586153))
+
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/postgres-v2.0.0...postgres-v2.0.1) (2025-05-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180))
+
+
+### Fixed
+
+* Enable mixing stream and normal parameters in queries ([#1179](https://github.com/cap-js/cds-dbs/issues/1179)) ([7ee8083](https://github.com/cap-js/cds-dbs/commit/7ee808365426072250dd6de87abd11215f44561a))
+* hierarchies in quoted mode ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+* only sort by locale if locale is set ([#1193](https://github.com/cap-js/cds-dbs/issues/1193)) ([3465cba](https://github.com/cap-js/cds-dbs/commit/3465cbab579d4560d12d3b230c55b746d4d3f5a5))
+
+
+### Changed
+
+* remove PG `?` placeholder replacement ([#1180](https://github.com/cap-js/cds-dbs/issues/1180)) ([a1e0bd9](https://github.com/cap-js/cds-dbs/commit/a1e0bd9fe8501c284d8cbfc8d79d4dddda34c087))
+* remove stream_compat ([#1139](https://github.com/cap-js/cds-dbs/issues/1139)) ([#1144](https://github.com/cap-js/cds-dbs/issues/1144)) ([1b8b2d9](https://github.com/cap-js/cds-dbs/commit/1b8b2d9539cd97be2cef088c98d88ef9ec7dd1bf))
+
+## [2.0.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.14.0...postgres-v2.0.0) (2025-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165))
+
+
+### Added
+
+* Support for hierarchical queries ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+
+
+### Changed
+
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165)) ([ff39e22](https://github.com/cap-js/cds-dbs/commit/ff39e22ac6cd3f20c98bc31c1a6bb828aa009796))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+
 ## [1.14.0](https://github.com/cap-js/cds-dbs/compare/postgres-v1.13.0...postgres-v1.14.0) (2025-04-17)
 
 

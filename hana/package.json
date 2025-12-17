@@ -1,8 +1,12 @@
 {
   "name": "@cap-js/hana",
-  "version": "1.9.0",
+  "version": "2.5.0",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cap-js/cds-dbs.git"
+  },
   "keywords": [
     "CAP",
     "CDS",
@@ -25,12 +29,12 @@
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.20.0",
-    "hdb": "^0.19.5"
+    "@cap-js/db-service": "^2.8.0",
+    "hdb": "^2.26.3"
   },
   "peerDependencies": {
-    "@sap/hana-client": "2",
-    "@sap/cds": ">=8.2"
+    "@sap/hana-client": "^2",
+    "@sap/cds": ">=9"
   },
   "peerDependenciesMeta": {
     "@sap/hana-client": {
@@ -44,16 +48,32 @@
     "requires": {
       "kinds": {
         "sql": {
+          "[hybrid]": {
+            "kind": "hana"
+          },
           "[production]": {
             "kind": "hana"
           }
         },
         "hana": {
-          "impl": "@cap-js/hana"
+          "impl": "@cap-js/hana",
+          "pool": {
+            "min": 0,
+            "max": 10,
+            "acquireTimeoutMillis": 10000,
+            "idleTimeoutMillis": 60000,
+            "evictionRunIntervalMillis": 100000,
+            "numTestsPerEvictionRun": 10,
+            "testOnBorrow": true,
+            "fifo": false,
+            "[production]": {
+              "acquireTimeoutMillis": 1000
+            }
+          }
         }
       },
       "db": "sql"
     }
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }

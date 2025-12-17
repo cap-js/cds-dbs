@@ -1,11 +1,11 @@
 {
   "name": "@cap-js/postgres",
-  "version": "1.14.0",
+  "version": "2.1.1",
   "description": "CDS database service for Postgres",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/postgres#cds-database-service-for-postgres",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cap-js/cds-dbs"
+    "url": "git+https://github.com/cap-js/cds-dbs.git"
   },
   "bugs": {
     "url": "https://github.com/cap-js/cds-dbs/issues"
@@ -27,12 +27,12 @@
     "start": "docker compose -f pg-stack.yml up -d"
   },
   "dependencies": {
-    "@cap-js/db-service": "^1.20.0",
+    "@cap-js/db-service": "^2.8.0",
     "pg": "^8"
   },
   "peerDependencies": {
-    "@sap/cds": ">=7.6",
-    "@sap/cds-dk": ">=7.5"
+    "@sap/cds": ">=9",
+    "@sap/cds-dk": ">=9"
   },
   "peerDependenciesMeta": {
     "@sap/cds-dk": {
@@ -64,6 +64,13 @@
           "vcap": {
             "label": "postgresql-db"
           },
+          "pool": {
+            "min": 0,
+            "max": 10,
+            "testOnBorrow": true,
+            "acquireTimeoutMillis": 1000,
+            "destroyTimeoutMillis": 1000
+          },
           "schema_evolution": "auto"
         }
       },
@@ -76,5 +83,5 @@
       }
     }
   },
-  "license": "SEE LICENSE"
+  "license": "Apache-2.0"
 }

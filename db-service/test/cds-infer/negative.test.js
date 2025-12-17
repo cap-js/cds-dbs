@@ -17,9 +17,17 @@ describe('negative', () => {
 
   describe('filters', () => {
     it('filter must not be provided along a structure in a column', () => {
-      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model)).to.throw(
-        /A filter can only be provided when navigating along associations/,
-      )
+      expect(() =>
+        _inferred(cds.ql`SELECT from bookshop.Books { ID, dedication[text='foo'].sub.foo }`, model),
+      ).to.throw(/A filter can only be provided when navigating along associations/)
+    })
+    it('join relevant path is rejected (path expressions inside filter only enabled for exists subqueries)', () => {
+      expect(() =>
+        _inferred(
+          cds.ql`SELECT from bookshop.Authors { ID, books[dedication.addressee.name = 'Hasso'].dedication.addressee.name as Hasso }`,
+          model,
+        ),
+      ).to.throw('Only foreign keys of “addressee” can be accessed in infix filter')
     })
     it('filter must not be provided along a structure in from path expression', () => {
       expect(() => {
@@ -94,6 +102,18 @@ describe('negative', () => {
       expect(() => _inferred(query)).to.throw(/"title" not found in "author"/) // revisit: better error location ""bookshop.Books:author"
     })
 
+    it('exists subquery table alias not available in filter', () => {
+      expect(() =>
+        _inferred(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[books.title = 'ABAP Objects']`),
+      ).to.throw(/"books" not found in "books"/)
+    })
+
+    it('outer query table alias not available in filter', () => {
+      expect(() =>
+        _inferred(cds.ql`SELECT from bookshop.Authors { ID } WHERE EXISTS books[Authors.name = 'Horst']`),
+      ).to.throw(/"Authors" not found in "books"/)
+    })
+
     it('$self reference is not found in the query elements -> infer hints alternatives', () => {
       let query = cds.ql`SELECT from bookshop.Books as Books { ID, $self.author }`
       expect(() => _inferred(query)).to.throw(
@@ -158,6 +178,16 @@ describe('negative', () => {
     it('duplicate field name', () => {
       expect(() => _inferred(cds.ql`SELECT from bookshop.Books { ID, ID }`)).to.throw(
         /Duplicate definition of element “ID”/,
+      )
+    })
+    it('duplicate definition of nested projection (expand)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author {name}, author {name} }`)).to.throw(
+        /Duplicate definition of element “author”/,
+      )
+    })
+    it('duplicate definition of nested projection (inline)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author.{name}, author.{name} }`)).to.throw(
+        /Duplicate definition of element “author_name”/,
       )
     })
 

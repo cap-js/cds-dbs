@@ -4,6 +4,164 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.1...hana-v2.5.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* increase minimum hdb version to 2.26.3 ([#1442](https://github.com/cap-js/cds-dbs/issues/1442)) ([946a713](https://github.com/cap-js/cds-dbs/commit/946a713b35ddd3e4ace82001a1097e647a017b5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
+## [2.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.0...hana-v2.4.1) (2025-11-26)
+
+
+### Fixed
+
+* introduce repository.url in package.json ([#1430](https://github.com/cap-js/cds-dbs/issues/1430)) ([00ad7fb](https://github.com/cap-js/cds-dbs/commit/00ad7fbf2904d254a307ef764d8036640694f395))
+
+## [2.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.4...hana-v2.4.0) (2025-11-26)
+
+
+### Added
+
+* `error` standard function ([#1421](https://github.com/cap-js/cds-dbs/issues/1421)) ([b1b0fca](https://github.com/cap-js/cds-dbs/commit/b1b0fca00387c45ed91280b2df4282be90ea0a6e))
+* show default pool configuration in `env` ([#1422](https://github.com/cap-js/cds-dbs/issues/1422)) ([89b397a](https://github.com/cap-js/cds-dbs/commit/89b397ade2a15be8ce81ed3e8d717fc98f1a8107))
+
+
+### Fixed
+
+* **deps:** update dependency hdb to v2 ([#1266](https://github.com/cap-js/cds-dbs/issues/1266)) ([742a784](https://github.com/cap-js/cds-dbs/commit/742a784171503a5805c3f2e9d4f13135fa745ccb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
+## [2.3.4](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.3...hana-v2.3.4) (2025-10-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.5.1 to ^2.6.0
+
+## [2.3.3](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.2...hana-v2.3.3) (2025-10-06)
+
+
+### Fixed
+
+* bump min db-service ([#1370](https://github.com/cap-js/cds-dbs/issues/1370)) ([06eee49](https://github.com/cap-js/cds-dbs/commit/06eee49ca09b0c8826270c207e9dfd809bc0c247))
+
+## [2.3.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.1...hana-v2.3.2) (2025-10-02)
+
+
+### Fixed
+
+* guard access to hana server version ([#1368](https://github.com/cap-js/cds-dbs/issues/1368)) ([5618d90](https://github.com/cap-js/cds-dbs/commit/5618d90b77aceae2e9df8a078ff33d4eddeff27e))
+
+## [2.3.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.0...hana-v2.3.1) (2025-09-30)
+
+
+### Fixed
+
+* revert own resolve ([#1366](https://github.com/cap-js/cds-dbs/issues/1366)) ([9037570](https://github.com/cap-js/cds-dbs/commit/9037570c5dda08eb8bc168c0a68045ef9fc85a9f))
+
+## [2.3.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.2.0...hana-v2.3.0) (2025-09-30)
+
+
+### Added
+
+* add support for SAP HANA Tenant Management Service v2 ([#1356](https://github.com/cap-js/cds-dbs/issues/1356)) ([b4bd9f2](https://github.com/cap-js/cds-dbs/commit/b4bd9f2381ce7e2389c7f9480352bb79ba045377))
+* make hana server version accessible to sub classes ([#1263](https://github.com/cap-js/cds-dbs/issues/1263)) ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sets default to hana cloud if server version cannot be detected ([a3ccc3e](https://github.com/cap-js/cds-dbs/commit/a3ccc3ed2fd6a65f1fd5924756a4a7b965adf9a3))
+* sort selected columns & expands before formatting sql ([#1330](https://github.com/cap-js/cds-dbs/issues/1330)) ([d81b0bf](https://github.com/cap-js/cds-dbs/commit/d81b0bfd2be1fd3ea3c7bd23dbb2010d2d713155))
+
+
+### Fixed
+
+* updated fuzzy search syntax to include now require search mode 'text' ([#1333](https://github.com/cap-js/cds-dbs/issues/1333)) ([1946665](https://github.com/cap-js/cds-dbs/commit/194666500ccfb9a81f369f9680d83c2b2f2ba883))
+
+## [2.2.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.2...hana-v2.2.0) (2025-08-27)
+
+
+### Added
+
+* add default support for `[hybrid]` profile ([#1317](https://github.com/cap-js/cds-dbs/issues/1317)) ([88da9c9](https://github.com/cap-js/cds-dbs/commit/88da9c96f8c4b35f618c7b08b7854aec1379444a))
+* Support `CALL PROC() ASYNC` ([#1276](https://github.com/cap-js/cds-dbs/issues/1276)) ([d81aeac](https://github.com/cap-js/cds-dbs/commit/d81aeac57c8907ba019fc021dae014a8ef8b1d3d))
+
+
+### Fixed
+
+* column name collisions for `$apply=groupby(ID,author/ID)` ([#1289](https://github.com/cap-js/cds-dbs/issues/1289)) ([69597ba](https://github.com/cap-js/cds-dbs/commit/69597bae0737322d606db18c0a297d0d12497973))
+
+## [2.1.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.1...hana-v2.1.2) (2025-07-28)
+
+
+### Fixed
+
+* TypeError for empty `list` ([#1269](https://github.com/cap-js/cds-dbs/issues/1269)) ([f262718](https://github.com/cap-js/cds-dbs/commit/f26271813e161c9f7c05fbc82b10c4d5f14916a7))
+
+## [2.1.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.1.0...hana-v2.1.1) (2025-06-06)
+
+
+### Fixed
+
+* Better opt in flag for builtin generic pool ([#1234](https://github.com/cap-js/cds-dbs/issues/1234)) ([98282ff](https://github.com/cap-js/cds-dbs/commit/98282ffd86cb143ebe9000f75b4a51156f6c3539))
+* do not set session var TEMPORAL_SYSTEM_TIME_AS_OF by default ([#1233](https://github.com/cap-js/cds-dbs/issues/1233)) ([f13410d](https://github.com/cap-js/cds-dbs/commit/f13410d475d3a727921deed2185d82d95d31c376))
+
+## [2.1.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.1...hana-v2.1.0) (2025-06-04)
+
+
+### Added
+
+* opt-in replacement for `generic-pool` ([#815](https://github.com/cap-js/cds-dbs/issues/815)) ([32c08f4](https://github.com/cap-js/cds-dbs/commit/32c08f474eab67c71dad3b5e6a378f8bc52520b0))
+
+### Fixed
+
+* hana skip hextobin conversion for "select x from ..." input ([#1215](https://github.com/cap-js/cds-dbs/issues/1215)) ([e6d3d1b](https://github.com/cap-js/cds-dbs/commit/e6d3d1ba34fad4a5f8fa14328ab12108abfa3cf8))
+
+## [2.0.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.0.0...hana-v2.0.1) (2025-05-27)
+
+
+### Added
+
+* set NOW as session var in addition to $now ([#1201](https://github.com/cap-js/cds-dbs/issues/1201)) ([33d4814](https://github.com/cap-js/cds-dbs/commit/33d4814bfa77714a18d826b95c3c27b6f865e40f))
+
+## [2.0.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.9.0...hana-v2.0.0) (2025-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178))
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165))
+
+
+### Fixed
+
+* Adopt to recurse `DistanceTo` cqn format ([#1093](https://github.com/cap-js/cds-dbs/issues/1093)) ([246e0b3](https://github.com/cap-js/cds-dbs/commit/246e0b38840f7e132ea49cae335b6be7a55354b3))
+
+
+### Changed
+
+* Unfiltered db constraint errors ([#1165](https://github.com/cap-js/cds-dbs/issues/1165)) ([ff39e22](https://github.com/cap-js/cds-dbs/commit/ff39e22ac6cd3f20c98bc31c1a6bb828aa009796))
+* update peer dependency to @sap/cds@9 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+* update dependency to @cap-js/db-service@2 ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([#1178](https://github.com/cap-js/cds-dbs/issues/1178)) ([0507edd](https://github.com/cap-js/cds-dbs/commit/0507edd4e1dcb98983b1fb65ade1344d978b7524))
+
 ## [1.9.0](https://github.com/cap-js/cds-dbs/compare/hana-v1.8.1...hana-v1.9.0) (2025-04-17)
 
 
