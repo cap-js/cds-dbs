@@ -1203,7 +1203,10 @@ class CQN2SQLRenderer {
       .map((x, i) => {
         if (x in { LIKE: 1, like: 1 } && is_regexp(xpr[i + 1]?.val)) return this.operator('regexp')
         if (typeof x === 'string') return this.operator(x, i, xpr)
-        if (x.xpr && !x.func) return `(${this.xpr(x)})`
+        if (x.xpr && !x.func) {
+          const wrap = x.cast ? sql => `cast(${sql} as ${this.type4(x.cast)})` : sql => sql
+          return wrap(`(${this.xpr(x)})`)
+        }
         else return this.expr(x)
       })
       .join(' ')
