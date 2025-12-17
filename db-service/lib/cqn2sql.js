@@ -384,8 +384,7 @@ class CQN2SQLRenderer {
         if (!columnsIn.find(c => {
           const colName = this.column_name(c).replace(/^\$\$|\$\$$/g, '')
           return colName === col
-        }
-      )) {
+        })) {
           columnsIn.push({ ref: [col] })
         }
         return { ...r, ref: [col] }
