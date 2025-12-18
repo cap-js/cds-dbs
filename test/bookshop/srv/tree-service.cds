@@ -22,7 +22,6 @@ service TreeService {
   entity GenresComp as
     projection on my.Genres {
       *,
-      ID as foo,
       null as LimitedDescendantCount,
       null as DistanceFromRoot,
       null as DrillState,

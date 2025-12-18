@@ -382,8 +382,8 @@ class CQN2SQLRenderer {
       orderBy = orderBy.map(r => {
         const col = r.ref.at(-1)
         if (!columnsIn.find(c => {
-          const colName = this.column_name(c).replace(/^\$\$|\$\$$/g, '')
-          return colName === col
+          const colName = this.column_name(c)
+          return colName === col || nodeKeys.includes(colName)
         })) {
           columnsIn.push({ ref: [col] })
         }
