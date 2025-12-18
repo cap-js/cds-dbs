@@ -57,7 +57,6 @@ service TreeService {
 
   entity GenresAliases as
     projection on my.Genres {
-      name as parent_id,
       null as node_id, *
     };
 
