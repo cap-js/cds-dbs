@@ -244,7 +244,8 @@ const HANAFunctions = {
     let src = args.xpr[1]
 
     // Ensure that the orderBy column are exposed by the source for hierarchy sorting
-    const orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
+    let orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
+    orderBy = orderBy.replace(/"/g, "")
 
     const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))
     src.as = 'H' + (uniqueCounter++)

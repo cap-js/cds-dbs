@@ -54,4 +54,16 @@ service TreeService {
     NodeProperty            : ID,
     ParentNavigationProperty: parent
   };
+
+  entity GenresAliases as
+    projection on my.Genres {
+      name as parent_id,
+      null as node_id, *
+    };
+
+  annotate GenresAliases with @Aggregation.RecursiveHierarchy #GenresWithNodeIdAliasHierarchy: {
+    $Type                   : 'Aggregation.RecursiveHierarchyType', 
+    NodeProperty            : ID,
+    ParentNavigationProperty: parent
+  };
 }
