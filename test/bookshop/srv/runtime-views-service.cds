@@ -87,6 +87,24 @@ service runtimeViews0Service {
   entity Book             as projection on views.BooksView;
 
   @cds.persistence.skip
+  entity Book_Renamed     as
+    projection on views.BooksView {
+      ID             as ID_Renamed,
+      title          as title_Renamed,
+      descr          as descr_Renamed,
+      author         as author_Renamed,
+      genre          as genre_Renamed,
+      stock          as stock_Renamed,
+      price          as price_Renamed,
+      currency       as currency_Renamed,
+      image          as image_Renamed,
+      footnotes      as footnotes_Renamed,
+      authorsAddress as authorsAddress_Renamed,
+      pages          as pages_Renamed,
+      this           as this_Renamed,
+    };
+
+  @cds.persistence.skip
   entity Edition          as projection on bookshop.Edition;
 
   @cds.persistence.skip
@@ -127,8 +145,8 @@ service runtimeViews0Service {
 
   @cds.persistence.skip
   view BookWithEditions_Aliased as
-    select from Book as BookAlias left
-    join Edition as EditionAlias
+    select from Book as BookAlias
+    left join Edition as EditionAlias
       on EditionAlias.ID = BookAlias.ID
     {
       BookAlias.ID,

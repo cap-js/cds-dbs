@@ -256,6 +256,25 @@ describe('Runtime Views', () => {
         expect(res).to.deep.equal(resDeployed)
       })
 
+      test('runtime view with duplicate references', async () => {
+        const { Books: RTView0, Book_Renamed: RTView0_Renamed } = cds.entities('runtimeViews0Service')
+        const { Book: RTView1 } = cds.entities('runtimeViews1Service')
+        const { Book: RTView2 } = cds.entities('runtimeViews2Service')
+
+        const works = await cds.ql`SELECT AuthorName, id,
+                 (SELECT COUNT(*) FROM ${RTView1} as sub WHERE sub.authorName = outer.AuthorName) as sameAuthorCount
+                 FROM ${RTView2} as outer
+                 WHERE outer.id IN (SELECT ID FROM ${RTView0} WHERE ID < 250)
+                 ORDER BY AuthorName`
+
+        // test deduplication logic to ensure proper behavior
+        const broken = await cds.ql`SELECT AuthorName, id,
+                 (SELECT COUNT(*) FROM ${RTView1} as sub WHERE sub.authorName = outer.AuthorName) as sameAuthorCount
+                 FROM ${RTView2} as outer
+                 WHERE outer.id IN (SELECT ID_Renamed FROM ${RTView0_Renamed} WHERE ID_Renamed < 250)
+                 ORDER BY AuthorName`
+      })
+
       test('runtime view with EXISTS clause', async () => {
         const { Book: RTView0 } = cds.entities('runtimeViews0Service')
         const { Book: RTView1 } = cds.entities('runtimeViews1Service')
