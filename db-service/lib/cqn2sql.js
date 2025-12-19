@@ -342,17 +342,13 @@ class CQN2SQLRenderer {
       })
     const columnsOut = []
     const columnsIn = []
-    const renamedColumns = new Map()
     const target = q._target || q.target
     for (const name in target.elements) {
       const ref = { ref: [name] }
       const element = target.elements[name]
       if (element.virtual || element.value || element.isAssociation) continue
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
-      if (name.toUpperCase() in reservedColumnNames) {
-        ref.as = `$$${name}$$`
-        renamedColumns.set(name, ref.as)
-      }
+      if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
       columnsIn.push(ref)
       const foreignkey4 = element._foreignKey4
       if (
@@ -385,8 +381,8 @@ class CQN2SQLRenderer {
     if (orderBy) {
       orderBy = orderBy.map(r => {
         let col = r.ref.at(-1)
-        if (renamedColumns.has(col)) col = renamedColumns.get(col)
-        else if (!columnsIn.find(c => this.column_name(c) === col )) {
+        if (col.toUpperCase() in reservedColumnNames) col = `$$${col}$$`
+        if (!columnsIn.find(c => this.column_name(c) === col)) {
           columnsIn.push({ ref: [col] })
         }
         return { ...r, ref: [col] }

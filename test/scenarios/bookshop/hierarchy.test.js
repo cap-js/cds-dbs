@@ -8,8 +8,6 @@ describe('Bookshop - Genres', () => {
 
   beforeAll(async () => {
     cds.log('odata', 'error')
-    const db = await cds.connect.to('db')
-    await db.run(INSERT.into('TreeService.Root').entries([{ ID: 1, name: 'test root' }]))
   })
 
   const topLevels = 'com.sap.vocabularies.Hierarchy.v1.TopLevels'
