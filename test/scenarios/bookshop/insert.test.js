@@ -10,7 +10,6 @@ describe('Bookshop - Insert', () => {
         username: 'alice',
       },
     }
-    //foo
     const resp = await POST(`/admin/duplicateElements`, { ID: 11, barBaz_code: 'everything changed' }, admin)
     expect(resp.data).to.deep.include({
       bar_baz_code: null,
