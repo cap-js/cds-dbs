@@ -208,6 +208,13 @@ function cqn4sql(originalQuery, model) {
     }
     const inferredDQ = infer(q, model)
     const transformedDQ = cqn4sql(inferredDQ, model)
+
+    if (q.SELECT?.from?.args) for(const arg of q.SELECT.from.args) {
+      addWith(arg.$refLinks.at(-1).definition, inferredDQ ,model)
+      arg.as ??= arg.ref.at(-1).split('.').at(-1) // apply @sap/cds-compiler default alias
+      updateRef(inferredDQ, arg.ref)
+    }
+
     const _with = transformedDQ._with || []
     const rootDefinitionName = rootDefinition.name
     
