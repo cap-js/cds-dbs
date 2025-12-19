@@ -4,6 +4,13 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.8.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.0...db-service-v2.8.1) (2025-12-19)
+
+
+### Fixed
+
+* hierarchy node_id as alias ([#1450](https://github.com/cap-js/cds-dbs/issues/1450)) ([d115345](https://github.com/cap-js/cds-dbs/commit/d115345e5acc30046159ede98d99a864df55e2af))
+
 ## [2.8.0](https://github.com/cap-js/cds-dbs/compare/db-service-v2.7.0...db-service-v2.8.0) (2025-12-15)
 
 
