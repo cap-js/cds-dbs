@@ -355,6 +355,7 @@ GROUP BY k
         }
         return { sql }
       })
+      this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
     }
 
     _orderBy(orderBy, localized, locale) {
