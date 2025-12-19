@@ -245,7 +245,7 @@ const HANAFunctions = {
 
     // Ensure that the orderBy column are exposed by the source for hierarchy sorting
     let orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
-    // Safely clean quotes without mutating original if it might be used elsewhere
+    // use ![] instead of ""
     if (orderBy && typeof orderBy === 'string') {
       orderBy = orderBy.replace(/"([^"]*)"/g, '![$1]');
     }
