@@ -183,8 +183,7 @@ function cqn4sql(originalQuery, model) {
     
     while (hasOwnSkip(currentDef)) {
       if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
-      if (transformedQuery._with?.some(w => w.as === currentDef.name)) break // Already processed
-      
+
       addWith(currentDef, transformedQuery, model)
       updateFromIfNeeded(transformedQuery)
       currentDef = currentDef.query._target

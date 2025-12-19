@@ -1188,10 +1188,14 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     render_with() {
       const sql = this.sql
       const values = this.values
-      const { prefix, recursive } = super.getWithPrefix()
-      if (cds.env.features.runtime_views && this.withclause?.length) this.withclause.unshift(...prefix.map(p => p.sql))
-      else this.sql = `WITH${recursive ? ' RECURSIVE' : ''} ${prefix.map(p => p.sql)} ${sql}`
-      this.values = prefix.reduce((acc, p) => acc.concat(p.values), []).concat(values)
+      const prefix = this._with.map(q => {
+        const values = this.values = []
+        const sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        return { sql, values }
+      })
+      if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
+      else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
     }
 
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
