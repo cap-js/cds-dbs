@@ -14,3 +14,8 @@ ID;parent_ID;name
 22;21;Autobiography
 23;20;Essay
 24;20;Speech
+52;;Historical
+51;52;Medieval
+50;51;Knights and Chivalry
+49;50;Arthurian Legend
+53;;Contemporary
