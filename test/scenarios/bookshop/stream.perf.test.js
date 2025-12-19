@@ -19,7 +19,7 @@ describe.skip('Bookshop: Stream Performance', () => {
     let i = 1000
     const gen = function* () {
       yield `[{"ID":${i++},"title":"${i}","author_ID":101,"genre_ID":11}`
-      for (; i < 100000; i++) {
+      for (; i < 100_000; i++) {
         yield `,{"ID":${i},"title":"${i}","author_ID":101,"genre_ID":11}`
       }
       yield ']'
@@ -30,14 +30,14 @@ describe.skip('Bookshop: Stream Performance', () => {
   })
 
   const measure = [
-    // { async: false },
+    { async: false },
     { async: true },
   ]
 
   const modes = [
     { objectMode: false },
-    { objectMode: true },
-    { objectMode: null },
+    // { objectMode: true },
+    // { objectMode: null },
   ]
 
   const scenarios = [
@@ -74,45 +74,22 @@ describe.skip('Bookshop: Stream Performance', () => {
 
         let peakMemory = 0
         const proms = []
+        const txs = await Promise.all(new Array(20).fill().map(async () => (await cds.tx()).begin()))
         const s = performance.now()
-        for (let x = 0; x < 20; x++) {
-          const prom = cds.tx(async tx => {
+        let fastest = Number.POSITIVE_INFINITY
+
+        for (let total = 0; total < 100; total++) {
+          const tx = txs[total % txs.length]
+          proms.push((async () => {
+            const s = performance.now()
             const stream = await tx.dispatch(req)
-
-            if (objectMode !== false) {
-              await pipeline(
-                stream,
-                async function* (source) {
-                  for await (const row of source) {
-                    if (withImage) {
-                        /* const buffer = */ await streamConsumers.buffer(row.image)
-                      // if (imageData.compare(buffer)) throw new Error('Blob stream does not contain the original data')
-                    }
-
-                    if (withExpands) {
-                      await Promise.all([
-                        pipeline(row.genre, devNull()),
-                        pipeline(row.author, devNull()),
-                      ])
-                    }
-
-                    yield JSON.stringify(row)
-                  }
-                },
-                devNull()
-              )
-            } else {
-              await pipeline(stream, devNull())
-            }
-
+            await pipeline(stream, devNull())
+            const dur = performance.now() - s
+            if (dur < fastest) fastest = dur
             const curMemory = process.memoryUsage().heapUsed
             if (curMemory > peakMemory) peakMemory = curMemory
-          })
-
-          proms.push(prom)
-          if (!async) {
-            await prom
-          }
+          })())
+          if (async === false) await proms.at(-1)
         }
 
         const allResults = await Promise.allSettled(proms)
@@ -123,6 +100,10 @@ describe.skip('Bookshop: Stream Performance', () => {
         process.stdout.write(
           `${scenarios.length > 1 ? '  ' : ''}    - Duration: ${dur >>> 0} ms Rows: ${totalRows} (${(totalRows / dur) >>> 0} rows/ms) (${(peakMemory / 1024 / 1024) >>> 0} MiB mem)\n`
         )
+        process.stdout.write(
+          `${scenarios.length > 1 ? '  ' : ''}    - Fastest: ${fastest >>> 0} ms Rows: ${rows} (${(rows / fastest) >>> 0} rows/ms)\n`
+        )
+        await Promise.all(txs.map(tx => tx.commit()))
 
       }, 120 * 1000)
 
