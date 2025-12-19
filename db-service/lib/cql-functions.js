@@ -247,7 +247,7 @@ const HANAFunctions = {
     let orderBy = args.xpr.find((_, i, arr) => /ORDER/i.test(arr[i - 2]) && /BY/i.test(arr[i - 1]))
     // Safely clean quotes without mutating original if it might be used elsewhere
     if (orderBy && typeof orderBy === 'string') {
-      orderBy = orderBy.replace(/"/g, "")
+      orderBy = orderBy.replace(/"([^"]*)"/g, '![$1]');
     }
 
     const passThroughColumns = src.SELECT.columns.map(c => ({ ref: ['Source', this.column_name(c)] }))

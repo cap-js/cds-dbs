@@ -83,13 +83,35 @@ describe('Bookshop - Genres', () => {
   })
 
   test('Hierarchy query with projection alias should handle NODE_ID column conflicts', async () => {
-    const query = `/tree/GenresWithNodeIdAlias?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresWithNodeIdAlias,HierarchyQualifier='GenresWithNodeIdAliasHierarchy',NodeProperty='ID',Levels=1)&$filter=ID eq 10`
+    const query = `/tree/GenresWithNodeIdAlias?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresWithNodeIdAlias,HierarchyQualifier='GenresWithNodeIdAliasHierarchy',NodeProperty='ID',Levels=1)`
     const res = await GET(query)
     expect(res).property('data').property('value').deep.eq([
       {
         ID: 10,
         name: 'Fiction',
         node_id: 10
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: 20
+      }
+    ])
+  })
+
+  test('Hierarchy query with null as node_id alias', async () => {
+    const query = `/tree/GenresAliases?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresAliases,HierarchyQualifier='GenresAliases',NodeProperty='ID',Levels=1)`
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        name: 'Fiction',
+        node_id: null
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: null
       }
     ])
   })
