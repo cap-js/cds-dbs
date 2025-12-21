@@ -910,6 +910,18 @@ describe('Unfolding calculated elements in other places', () => {
     `
     expect(query).to.deep.equal(expected)
   })
+  it('in the from clause with a function in a scoped query, within another expression', () => {
+    let query = cqn4sql(cds.ql`SELECT from booksCalc.Authors[anotherFunc(age * (7+5)) + 42 > 'foo']:books as BooksOfOldies { ID }`, model)
+    const expected = cds.ql`
+      SELECT from booksCalc.Books as BooksOfOldies { BooksOfOldies.ID }
+      where exists (
+        select 1 from booksCalc.Authors as $A
+        where $A.ID = BooksOfOldies.author_ID
+          and anotherFunc( years_between( $A.dateOfBirth, $A.dateOfDeath ) * (7 + 5) ) + 42 > 'foo'
+      )
+    `
+    expect(query).to.deep.equal(expected)
+  })
 
   it.skip('in the from clause with a join relevant path', () => {
     // TODO: infix filter at from leaf is only a regular where,
