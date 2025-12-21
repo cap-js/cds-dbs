@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/hana",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "CDS database service for SAP HANA",
   "homepage": "https://cap.cloud.sap/",
   "repository": {
@@ -29,7 +29,7 @@
     "start:hxe": "cd ./tools/docker/hxe/ && ./start.sh"
   },
   "dependencies": {
-    "@cap-js/db-service": "^2.8.0",
+    "@cap-js/db-service": "^2.8.1",
     "hdb": "^2.26.3"
   },
   "peerDependencies": {
