@@ -185,7 +185,10 @@ function cqn4sql(originalQuery, model) {
       if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
 
       addWith(currentDef, transformedQuery, model)
-      updateFromIfNeeded(transformedQuery)
+
+      // update SELECT.from with runtime view alias
+      if (transformedQuery._with?.length) updateRefWithRTVAlias(transformedQuery._with, transformedQuery)
+
       currentDef = currentDef.query._target
     }
   }
@@ -221,7 +224,7 @@ function cqn4sql(originalQuery, model) {
       for(const arg of q.SELECT.from.args) {
         addWith(arg.$refLinks.at(-1).definition, inferredDQ, model)
         arg.as ??= arg.ref.at(-1).split('.').at(-1) // apply @sap/cds-compiler default alias
-        updateRef(inferredDQ._with, transformedDQ, arg.ref)
+        updateRefWithRTVAlias(inferredDQ._with, transformedDQ, arg.ref)
       }
     }
 
@@ -233,16 +236,7 @@ function cqn4sql(originalQuery, model) {
     transformedDQ.as = getNextAvailableTableAlias(alias, newWiths, transformedDQ, rootDefinitionName)
     
     // update SELECT.from with runtime view alias
-    if (hasOwnSkip(transformedDQ._target)) {
-      const transformedDQRef = transformedDQ.SELECT.from.ref
-      if (transformedDQRef) {
-        updateRef(transformedDQ._with, transformedDQ, transformedDQRef)
-      } else if (transformedDQ.SELECT.from.args) {
-        for (const arg of transformedDQ.SELECT.from.args) {
-          updateRef(transformedDQ._with, transformedDQ, arg.ref)
-        }
-      }
-    }
+    if (hasOwnSkip(transformedDQ._target)) updateRefWithRTVAlias(transformedDQ._with, transformedDQ)
 
     if (transformedDQ._with) delete transformedDQ._with
     newWiths.push(transformedDQ)
@@ -289,6 +283,7 @@ function cqn4sql(originalQuery, model) {
           const targetName = getMapKeyByValue(newW.joinTree._queryAliases, arg.ref[0])
           if (targetName) {
             const referencedWith = newWithCache.get(targetName)
+            // if the referenced with is already part of the transformed query, just update the alias
             if (referencedWith && existingSources.has(referencedWith._source)) {
               const alias = existingSourceToAlias.get(referencedWith._source.name)
               if (alias) {
@@ -305,65 +300,63 @@ function cqn4sql(originalQuery, model) {
       const oldAlias = newW.as
       newW.as = newAlias
       
-      updateReferencesInWiths(newWiths, oldAlias, newAlias, newW)
-      if (query) updateReferencesInQuery(query, oldAlias, newAlias)
+      updateRTVAlias(newWiths, oldAlias, newAlias, newW)
+      if (query) updateRTVAlias(query, oldAlias, newAlias)
     }            
     
     transformedQuery._with.push(newW)
   }
 
-  function updateReferencesInWiths(newWiths, oldAlias, newAlias, excludeWith) {
-    for (const _qw of newWiths) {
-      if (_qw === excludeWith) continue
-      
-      const _qwRef = _qw.SELECT.from.ref
-      if (_qwRef?.as === oldAlias) _qwRef.as = newAlias
-      else if (_qw.SELECT.from.args) {
-        for (const arg of _qw.SELECT.from.args) {
+  function updateRTVAlias(element, oldAlias, newAlias, excludeWith) {
+    const from = element.SELECT?.from
+    if (from) {
+      const _qwRef = from.ref
+      if (_qwRef?.[0] === oldAlias) _qwRef[0] = newAlias
+      else if (from.args) {
+        for (const arg of from.args) {
           if (arg.ref[0] === oldAlias) arg.ref[0] = newAlias
         }
       }
-    }
-  }
-
-  function updateReferencesInQuery(query, oldAlias, newAlias) {
-    const _qwRef = query.SELECT.from.ref
-    if (_qwRef?.[0] === oldAlias) _qwRef[0] = newAlias
-    else if (query.SELECT.from.args) {
-      for (const arg of query.SELECT.from.args) {
-        if (arg.ref[0] === oldAlias) arg.ref[0] = newAlias
-      }
-    }
-  }
-
-  function updateFromIfNeeded(transformedQuery) {
-    if (!transformedQuery._with?.length) return
-
-    const fromRef = transformedQuery.SELECT.from.ref
-    if (fromRef) {
-      updateRef(transformedQuery._with, transformedQuery, fromRef)
-    } else if (transformedQuery.SELECT.from.args) {
-      for (const arg of transformedQuery.SELECT.from.args) {
-        updateRef(transformedQuery._with, transformedQuery, arg.ref)
-      }
-    }
-  }
-
-  function updateRef(_with, transformedQuery, ref) {
-    if (!_with?.length || !ref?.length) return ref
-    
-    const refAlias = ref[0]
-    for (const w of _with) {
-      const aliasValue = w.joinTree._queryAliases.get(refAlias)
-      if (aliasValue) {
-        ref[0] = aliasValue
-        if (transformedQuery.joinTree?._queryAliases) {
-          transformedQuery.joinTree._queryAliases.set(refAlias, aliasValue)
+    } else if (Array.isArray(element)) {
+      for (const _qw of element) {
+        if (_qw === excludeWith) continue
+        
+        const _qwRef = _qw.SELECT.from.ref
+        if (_qwRef?.as === oldAlias) _qwRef.as = newAlias
+        else if (_qw.SELECT.from.args) {
+          for (const arg of _qw.SELECT.from.args) {
+            if (arg.ref[0] === oldAlias) arg.ref[0] = newAlias
+          }
         }
-        break
       }
     }
-    return ref
+  }
+
+  function updateRefWithRTVAlias(_with, query, ref) {
+    if (!_with?.length) return
+
+    const updateRef = (ref) => {
+      if (/RTV_$/.test(ref)) return
+      const refAlias = ref[0]
+      for (const w of _with) {
+        const aliasValue = w.joinTree._queryAliases.get(refAlias)
+        if (aliasValue) {
+          ref[0] = aliasValue
+          if (query.joinTree?._queryAliases) {
+            query.joinTree._queryAliases.set(refAlias, aliasValue)
+          }
+          break
+        }
+      }
+    }
+
+    if (ref) return updateRef(ref)
+
+    if (query.SELECT.from.args) {
+      for (const arg of query.SELECT.from.args) {
+        updateRef(arg.ref)
+      }
+    } else if (query.SELECT.from.ref) updateRef(query.SELECT.from.ref)
   }
 
   function getMapKeyByValue(map, searchValue) {
