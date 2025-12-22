@@ -137,18 +137,35 @@ class JoinTree {
    */
   addNextAvailableTableAlias(alias, outerQueries, key) {
     const upperAlias = alias.toUpperCase()
-    if (this._queryAliases.get(upperAlias) || outerQueries?.some(outer => outerHasAlias(outer, key))) {
+    
+    // cache outer query aliases for faster lookups
+    let outerAliasSet = null
+    if (outerQueries?.length) {
+      outerAliasSet = new Set()
+      for (const outer of outerQueries) {
+        if (key) {
+          // search in values when key is provided
+          for (const value of outer.joinTree._queryAliases.values()) {
+            outerAliasSet.add(value.toUpperCase())
+          }
+        } else {
+          // search in keys for normal alias lookup
+          for (const k of outer.joinTree._queryAliases.keys()) {
+            outerAliasSet.add(k)
+          }
+        }
+      }
+    }
+    
+    if (this._queryAliases.get(upperAlias) || outerAliasSet?.has(upperAlias)) {
       let j = 2
-      while (this._queryAliases.get(upperAlias + j) || outerQueries?.some(outer => outerHasAlias(outer, key, j))) j += 1
+      while (this._queryAliases.get(upperAlias + j) || outerAliasSet?.has(upperAlias + j)) {
+        j += 1
+      }
       alias += j
     }
     this._queryAliases.set(key || alias.toUpperCase(), alias)
     return alias
-
-    function outerHasAlias(outer, searchInValues = false, number) {
-      const currAlias = number ? upperAlias + number : upperAlias
-      return searchInValues ? Array.from(outer.joinTree._queryAliases.values()).includes(currAlias) : outer.joinTree._queryAliases.get(currAlias)
-    }
   }
 
   /**
