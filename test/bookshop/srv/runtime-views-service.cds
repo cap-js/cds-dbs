@@ -3,13 +3,13 @@ using {sap.capire.bookshop as my} from '../db/schema';
 // Create bookshop namespace for compatibility
 context bookshop {
   entity Edition {
-    key ID          : UUID;
+    key ID          : Integer;
         book        : Association to views.Books;
         editionType : Association to EditionType;
   };
 
   entity EditionType {
-    key ID   : UUID;
+    key ID   : Integer;
         name : String;
   };
 
