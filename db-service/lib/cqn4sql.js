@@ -253,11 +253,8 @@ function cqn4sql(originalQuery, model) {
 
   function mergeWith(transformedQuery, newW, newWiths, query) {
     const _transformedWith = transformedQuery._with
-    
-    // use Set for O(1) lookups instead of linear searches
-    const existingSources = new Set(_transformedWith.map(tw => tw._source))
     // do not push duplicates
-    if (existingSources.has(newW._source)) return
+    if (_transformedWith.some(tw => tw._source === newW._source)) return
    
     // if alias already exists, generate a new one and update all references
     if (_transformedWith.some(tw => tw.as === newW.as)) {
@@ -283,7 +280,7 @@ function cqn4sql(originalQuery, model) {
           if (targetName) {
             const referencedWith = newWithCache.get(targetName)
             // if the referenced with is already part of the transformed query, just update the alias
-            if (referencedWith && existingSources.has(referencedWith._source)) {
+            if (referencedWith && existingSourceToAlias.has(referencedWith._source.name)) {
               const alias = existingSourceToAlias.get(referencedWith._source.name)
               if (alias) {
                 newW.joinTree._queryAliases.set(referencedWith._source.name, alias)
@@ -299,7 +296,7 @@ function cqn4sql(originalQuery, model) {
       const oldAlias = newW.as
       newW.as = newAlias
 
-      const _updateRTVAlias = (element, oldAlias, newAlias) => {
+      const _updateRTVAlias = (element, oldAlias, newAlias, skipNewW) => {
         const from = element.SELECT?.from
         if (from) {
           const _qwRef = from.ref
@@ -311,6 +308,7 @@ function cqn4sql(originalQuery, model) {
           }
         } else if (Array.isArray(element)) {
           for (const _qw of element) {
+            if (skipNewW === _qw) continue
             const _qwRef = _qw.SELECT.from.ref
             if (_qwRef?.as === oldAlias) _qwRef.as = newAlias
             else if (_qw.SELECT.from.args) {
@@ -323,7 +321,7 @@ function cqn4sql(originalQuery, model) {
       }
 
       // update all references in the withs
-      if (newWiths.length) _updateRTVAlias(newWiths, oldAlias, newAlias)
+      _updateRTVAlias(newWiths, oldAlias, newAlias, newW)
 
       // update all references in the outer query
       if (query) _updateRTVAlias(query, oldAlias, newAlias)
