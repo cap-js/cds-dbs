@@ -322,8 +322,7 @@ function cqn4sql(originalQuery, model) {
         }
       }
 
-      // update all references in the remaining withs
-      newWiths = newWiths.slice(newWiths.indexOf(newW) +1)      
+      // update all references in the withs
       if (newWiths.length) _updateRTVAlias(newWiths, oldAlias, newAlias)
 
       // update all references in the outer query
