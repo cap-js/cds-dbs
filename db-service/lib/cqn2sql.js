@@ -28,7 +28,7 @@ class CQN2SQLRenderer {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
         const entity = query?._target || this.model?.definitions[e]
-        return (entity?.['@cds.persistence.name'] && !entity?.['@cds.persistence.skip']) || e
+        return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
