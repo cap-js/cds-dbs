@@ -257,22 +257,40 @@ describe('Runtime Views', () => {
       })
 
       test('runtime view with duplicate references', async () => {
-        const { Books: RTView0, Book_Renamed: RTView0_Renamed } = cds.entities('runtimeViews0Service')
+        const { Book_Renamed: RTView0_Renamed } = cds.entities('runtimeViews0Service')
         const { Book: RTView1 } = cds.entities('runtimeViews1Service')
         const { Book: RTView2 } = cds.entities('runtimeViews2Service')
-
-        const works = await cds.ql`SELECT AuthorName, id,
-                 (SELECT COUNT(*) FROM ${RTView1} as sub WHERE sub.authorName = outer.AuthorName) as sameAuthorCount
-                 FROM ${RTView2} as outer
-                 WHERE outer.id IN (SELECT ID FROM ${RTView0} WHERE ID < 250)
-                 ORDER BY AuthorName`
+        const { Book_Renamed: DBView0_Renamed } = cds.entities('views0Service')
+        const { Book: DBView1 } = cds.entities('views1Service')
+        const { Book: DBView2 } = cds.entities('views2Service')
 
         // test deduplication logic to ensure proper behavior
-        const broken = await cds.ql`SELECT AuthorName, id,
+        const res = await cds.ql`SELECT AuthorName, id,
                  (SELECT COUNT(*) FROM ${RTView1} as sub WHERE sub.authorName = outer.AuthorName) as sameAuthorCount
                  FROM ${RTView2} as outer
                  WHERE outer.id IN (SELECT ID_Renamed FROM ${RTView0_Renamed} WHERE ID_Renamed < 250)
                  ORDER BY AuthorName`
+
+        expect(res).to.deep.include(
+          {
+          AuthorName: 'Charlotte Brontë',
+          id: 207,
+          sameAuthorCount: 1
+          },
+          {
+          AuthorName: 'Emily Brontë',
+          id: 201,
+          sameAuthorCount: 1
+          }
+        )
+
+        // Verify deployed view works
+        const resDeployed = await cds.ql`SELECT AuthorName, id,
+                 (SELECT COUNT(*) FROM ${DBView1} as sub WHERE sub.authorName = outer.AuthorName) as sameAuthorCount
+                 FROM ${DBView2} as outer
+                 WHERE outer.id IN (SELECT ID_Renamed FROM ${DBView0_Renamed} WHERE ID_Renamed < 250)
+                 ORDER BY AuthorName`
+        expect(res).to.deep.equal(resDeployed)
       })
 
       test('runtime view with EXISTS clause', async () => {
