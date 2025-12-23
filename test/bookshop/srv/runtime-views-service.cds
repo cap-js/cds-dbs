@@ -89,7 +89,7 @@ service runtimeViews0Service {
   @cds.persistence.skip
   entity Book_Renamed     as
     projection on views.BooksView {
-      ID             as ID_Renamed, 
+      ID             as ID_Renamed,
       ID             as ID_Renamed_Again,
       title          as title_Renamed,
       descr          as descr_Renamed,
@@ -288,7 +288,7 @@ service views0Service {
 
   entity Book_Renamed     as
     projection on views.BooksView {
-      ID             as ID_Renamed, 
+      ID             as ID_Renamed,
       ID             as ID_Renamed_Again,
       title          as title_Renamed,
       descr          as descr_Renamed,

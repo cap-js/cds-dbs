@@ -1325,7 +1325,7 @@ function cqn4sql(originalQuery, model) {
         columnAlias = column.as || column.ref.slice(0, -1).map(idOnly).join('_')
       } else baseName = getFullName(column.$refLinks[column.$refLinks.length - 1].definition)
 
-      if(column.element && !isAssocOrStruct(column.element)) {
+      if (column.element && !isAssocOrStruct(column.element)) {
         columnAlias = column.as || leafAssocIndex === -1 ? columnAlias : column.ref.slice(leafAssocIndex - 1).map(idOnly).join('_')
         const res = { ref: [tableAlias, calculateElementName(column)], as: columnAlias }
         setElementOnColumns(res, column.element)
@@ -1615,7 +1615,7 @@ function cqn4sql(originalQuery, model) {
             throw new Error(`The operator "${next}" can only be used with scalar operands`)
 
           const newTokens = expandComparison(token, ops, rhs, $baseLink)
-          if(newTokens.length === 0)
+          if (newTokens.length === 0)
             throw new Error(`Can't compare two empty structures`)
 
           const needXpr = Boolean(tokenStream[i - 1] || tokenStream[indexRhs + 1])
@@ -1650,9 +1650,9 @@ function cqn4sql(originalQuery, model) {
             const lastAssoc =
               token.isJoinRelevant && [...token.$refLinks].reverse().find(l => l.definition.isAssociation)
             const tableAlias = getTableAlias(token, (!lastAssoc?.onlyForeignKeyAccess && lastAssoc) || $baseLink)
-            if(isAssocOrStruct(definition)) {
-              const flat =  getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
-              if(flat.length === 0)
+            if (isAssocOrStruct(definition)) {
+              const flat = getFlatColumnsFor(token, { tableAlias: $baseLink?.alias || tableAlias })
+              if (flat.length === 0)
                 throw new Error(`Structured element “${getFullName(definition)}” expands to nothing and can't be used in expressions`)
               else if (flat.length > 1 && context.prop !== 'list') // only acceptable in `list`
                 throw new Error(`Structured element “${getFullName(definition)}” expands to multiple fields and can't be used in expressions`)
@@ -1785,7 +1785,7 @@ function cqn4sql(originalQuery, model) {
 
   function assertNoStructInXpr(token, context) {
     const definition = token.$refLinks?.at(-1).definition
-    if(!definition) return
+    if (!definition) return
     const rejectStructs = context && (context.prop in { where: 1, having: 1 })
     // unmanaged is always forbidden
     // expanding a ref in a `where`/`having` context
@@ -1897,7 +1897,7 @@ function cqn4sql(originalQuery, model) {
 
       // OData variant w/o mentioning key
       if (refReverse[0].where?.length === 1 && refReverse[0].where[0].val) {
-        filterConditions.push(getTransformedTokenStream(refReverse[0].where,{ $baseLink: $refLinksReverse[0] }))
+        filterConditions.push(getTransformedTokenStream(refReverse[0].where, { $baseLink: $refLinksReverse[0] }))
       }
 
       if (existingWhere.length > 0) filterConditions.push(existingWhere)
@@ -2343,19 +2343,19 @@ function cqn4sql(originalQuery, model) {
     return SELECT
   }
 
-/**
-   * For a given search term calculate a search expression which can be used in a where clause.
-   * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
-   * the search results of the subquery.
-   *
-   * @param {object} searchTerm - The search expression which shall be applied to the searchable columns on the query source.
-   * @param {object} query - The FROM clause of the CQN statement.
-   *
-   * @returns {(Object|null)} returns either:
-   * - an expression of the form `<primaryKey> in (select <primaryKey> from <entity> where search(<searchableColumns>, <searchTerm>))`
-   * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
-   * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
-   */
+  /**
+     * For a given search term calculate a search expression which can be used in a where clause.
+     * The search function is pushed to a subquery and the primary key(s) of the entity is/are used to match
+     * the search results of the subquery.
+     *
+     * @param {object} searchTerm - The search expression which shall be applied to the searchable columns on the query source.
+     * @param {object} query - The FROM clause of the CQN statement.
+     *
+     * @returns {(Object|null)} returns either:
+     * - an expression of the form `<primaryKey> in (select <primaryKey> from <entity> where search(<searchableColumns>, <searchTerm>))`
+     * - a function with two arguments: The first one being the list of searchable columns, the second argument holds the search expression.
+     * - or null, if no searchable columns are found in neither in `@cds.search` nor in the target entity itself.
+     */
   function getSearch(searchTerm, query) {
     const entity = query.SELECT.from.SELECT ? query.SELECT.from : cds.infer.target(query) // REVISIT: we should reliably use inferred._target instead
     const searchIn = computeColumnsToBeSearched(inferred, entity)
@@ -2371,13 +2371,13 @@ function cqn4sql(originalQuery, model) {
     // for aggregated queries / search on subqueries we do not do a subquery search
     if (inferred.SELECT.groupBy || entity.SELECT)
       return searchFunc
-    
+
     const matchColumns = getPrimaryKey(entity)
     if (matchColumns.length === 0 || searchIn.every(r => r.ref.length === 1)) // keyless or not deep, fallback to old behavior
       return searchFunc
-    
-      const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
-    return { xpr: [ matchColumns.length === 1 ? matchColumns[0] : {list: matchColumns}, 'in', subquery] }
+
+    const subquery = SELECT.from(entity).columns(...matchColumns).where(searchFunc)
+    return { xpr: [matchColumns.length === 1 ? matchColumns[0] : { list: matchColumns }, 'in', subquery] }
   }
 
   /**
@@ -2394,7 +2394,7 @@ function cqn4sql(originalQuery, model) {
     if (!node || !node.$refLinks || !node.ref) {
       throw new Error('Invalid node')
     }
-    if(node.$refLinks[0].$main) {
+    if (node.$refLinks[0].$main) {
       if (node.isJoinRelevant) {
         return getJoinRelevantAlias(node)
       }
@@ -2537,7 +2537,7 @@ function assignQueryModifiers(SELECT, modifiers) {
       else SELECT.having.push('and', ...val)
     } else if (key === 'where') {
       // ignore OData shortcut variant: `… bookshop.Orders:items[2]`
-      if(!val || val.length === 1 && val[0].val) continue
+      if (!val || val.length === 1 && val[0].val) continue
       if (!SELECT.where) SELECT.where = val
       // infix filter comes first in resulting where
       else SELECT.where = [...(hasLogicalOr(val) ? [asXpr(val)] : val), 'and', ...(hasLogicalOr(SELECT.where) ? [asXpr(SELECT.where)] : SELECT.where)]
