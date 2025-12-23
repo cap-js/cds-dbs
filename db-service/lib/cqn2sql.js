@@ -1448,11 +1448,13 @@ class CQN2SQLRenderer {
     const keyZero = keys[0] && this.quote(keys[0])
 
     return [...columns, ...requiredColumns].map(({ name, sql }) => {
+      const isNull = sql === 'NULL'
+      const json = !sql
+
       const element = elements?.[name] || {}
 
       const converter = a => element[_convertInput]?.(a, element) || a
       let extract
-      const json = !sql
       if (!sql) {
         ({ sql, extract } = this.managed_extract(name, element, converter))
       } else {
@@ -1470,8 +1472,8 @@ class CQN2SQLRenderer {
 
       const qname = this.quote(name)
 
-      const insert = onInsert ? json ? this.managed_default(name, converter(onInsert), sql) : onInsert : sql
-      const update = onUpdate ? json ? this.managed_default(name, converter(onUpdate), sql) : onUpdate : sql
+      const insert = onInsert ? json ? this.managed_default(name, converter(onInsert), sql) : !isNull ? sql : onInsert : sql
+      const update = onUpdate ? json ? this.managed_default(name, converter(onUpdate), sql) : !isNull ? sql : onUpdate : sql
       const upsert = keyZero && (
         // upsert requires the keys to be provided for the existance join (default values optional)
         element.key
