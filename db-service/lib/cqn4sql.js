@@ -179,17 +179,13 @@ function cqn4sql(originalQuery, model) {
   return transformedQuery
 
   function processRuntimeViews(transformedQuery, model) {
-    let currentDef = transformedQuery._target
-    
-    while (hasOwnSkip(currentDef)) {
+    const currentDef = transformedQuery._target
+
+    if (hasOwnSkip(currentDef)) {
       if (!currentDef?.query) throw new Error(`${currentDef.name} is not a runtime view`)
 
       addWith(currentDef, transformedQuery, model)
-
-      // update SELECT.from with runtime view alias
-      if (transformedQuery._with?.length) updateRefsWithRTVAlias(transformedQuery._with, transformedQuery)
-
-      currentDef = currentDef.query._target
+      updateRefsWithRTVAlias(transformedQuery._with, transformedQuery)
     }
   }
 
