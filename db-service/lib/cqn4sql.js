@@ -205,7 +205,7 @@ function cqn4sql(originalQuery, model) {
             .map(col => col.as || col.ref?.at(-1))
             .filter(Boolean)
         )
-        
+
         for (let el of rootDefinition.elements) {
           if (el.type === 'cds.LargeBinary' && !existingColumns.has(el.name)) {
             q.SELECT.columns.push({ ref: [el.name] })
@@ -214,10 +214,11 @@ function cqn4sql(originalQuery, model) {
       }
     }
     const inferredDQ = infer(q, model)
+    inferredDQ._with = transformedQuery._with
     const transformedDQ = cqn4sql(inferredDQ, model)
 
     if (q.SELECT?.from?.args) {
-      for(const arg of q.SELECT.from.args) {
+      for (const arg of q.SELECT.from.args) {
         addWith(arg.$refLinks.at(-1).definition, inferredDQ, model)
         arg.as ??= arg.ref.at(-1).split('.').at(-1) // apply @sap/cds-compiler default alias
         updateRefsWithRTVAlias(inferredDQ._with, transformedDQ, arg.ref)
@@ -226,11 +227,11 @@ function cqn4sql(originalQuery, model) {
 
     const newWiths = transformedDQ._with || []
     const rootDefinitionName = rootDefinition.name
-    
+
     defineProperty(transformedDQ, '_source', rootDefinition)
     const alias = `RTV_${getImplicitAlias(rootDefinitionName)}`
     transformedDQ.as = getNextAvailableTableAlias(alias, newWiths, transformedDQ, rootDefinitionName)
-    
+
     // update SELECT.from with runtime view alias
     if (hasOwnSkip(transformedDQ._target)) updateRefsWithRTVAlias(transformedDQ._with, transformedDQ)
 
@@ -238,92 +239,7 @@ function cqn4sql(originalQuery, model) {
     newWiths.push(transformedDQ)
 
     // propagate with clauses
-    if (!transformedQuery._with) {
-      transformedQuery._with = newWiths
-    } else if (newWiths.length) {
-      for (const newW of newWiths) {
-        mergeWith(transformedQuery, newW, newWiths)
-      }
-    }
-  }
-
-  function mergeWith(transformedQuery, newW, newWiths, query) {
-    const _transformedWith = transformedQuery._with
-    // do not push duplicates
-    if (_transformedWith.some(tw => tw._source === newW._source)) return
-   
-    // if alias already exists, generate a new one and update all references
-    if (_transformedWith.some(tw => tw.as === newW.as)) {
-      const qwRootDefinitionName = newW._source.name
-      const alias = `RTV_${getImplicitAlias(qwRootDefinitionName)}`
-      const newAlias = getNextAvailableTableAlias(alias, _transformedWith, newW, qwRootDefinitionName)
-
-      // add outer queries with statement if needed
-      if (newW.SELECT.from.args) {
-        // build newWith lookup
-        const newWithCache = new Map()
-        newWiths.forEach(w => {
-          if (w._source?.name) newWithCache.set(w._source.name, w)
-        })
-        // build alias lookup
-        const existingSourceToAlias = new Map()
-        _transformedWith.forEach(tw => {
-          if (tw._source?.name) existingSourceToAlias.set(tw._source.name, tw.as)
-        })
-
-        newW.SELECT.from.args.forEach(arg => {
-          const targetName = getMapKeyByValue(newW.joinTree._queryAliases, arg.ref[0])
-          if (targetName) {
-            const referencedWith = newWithCache.get(targetName)
-            // if the referenced with is already part of the transformed query, just update the alias
-            if (referencedWith && existingSourceToAlias.has(referencedWith._source.name)) {
-              const alias = existingSourceToAlias.get(referencedWith._source.name)
-              if (alias) {
-                newW.joinTree._queryAliases.set(referencedWith._source.name, alias)
-                arg.ref[0] = alias
-              }
-            } else if (referencedWith) {
-              mergeWith(transformedQuery, referencedWith, newWiths) 
-            }
-          }
-        })
-      }
-
-      const oldAlias = newW.as
-      newW.as = newAlias
-
-      const _updateRTVAlias = (element, oldAlias, newAlias, skipNewW) => {
-        const from = element.SELECT?.from
-        if (from) {
-          const _qwRef = from.ref
-          if (_qwRef?.[0] === oldAlias) _qwRef[0] = newAlias
-          else if (from.args) {
-            for (const arg of from.args) {
-              if (arg.ref[0] === oldAlias) arg.ref[0] = newAlias
-            }
-          }
-        } else if (Array.isArray(element)) {
-          for (const _qw of element) {
-            if (skipNewW === _qw) continue
-            const _qwRef = _qw.SELECT.from.ref
-            if (_qwRef?.as === oldAlias) _qwRef.as = newAlias
-            else if (_qw.SELECT.from.args) {
-              for (const arg of _qw.SELECT.from.args) {
-                if (arg.ref[0] === oldAlias) arg.ref[0] = newAlias
-              }
-            }
-          }
-        }
-      }
-
-      // update all references in the withs
-      _updateRTVAlias(newWiths, oldAlias, newAlias, newW)
-
-      // update all references in the outer query
-      if (query) _updateRTVAlias(query, oldAlias, newAlias)
-    }
-    
-    transformedQuery._with.push(newW)
+    if (!transformedQuery._with) transformedQuery._with = newWiths
   }
 
   function updateRefsWithRTVAlias(_with, query, ref) {
@@ -346,20 +262,8 @@ function cqn4sql(originalQuery, model) {
 
     if (ref) return _updateRef(ref)
 
-    if (query.SELECT.from.args) {
-      for (const arg of query.SELECT.from.args) {
-        _updateRef(arg.ref)
-      }
-    } else if (query.SELECT.from.ref) _updateRef(query.SELECT.from.ref)
-  }
-
-  function getMapKeyByValue(map, searchValue) {
-    for (const [key, value] of map.entries()) {
-      if (value === searchValue) {
-        return key
-      }
-    }
-    return undefined
+    if (query.SELECT.from.args) for (const arg of query.SELECT.from.args) _updateRef(arg.ref)
+    else if (query.SELECT.from.ref) _updateRef(query.SELECT.from.ref)
   }
 
   function transformSelectQuery(queryProp, transformedFrom, transformedWhere, transformedQuery) {
@@ -1270,21 +1174,15 @@ function cqn4sql(originalQuery, model) {
       outerQueries.push(inferred)
       defineProperty(q, 'outerQueries', outerQueries)
     }
-    
+
     const target = cds.infer.target(inferred) // REVISIT: we should reliably use inferred._target instead
     if (isLocalized(target)) q.SELECT.localized = true
     if (q.SELECT.from.ref && !q.SELECT.from.as) assignUniqueSubqueryAlias()
+    if (cds.env.features.runtime_views) q._with = transformedQuery._with
     const _q = cqn4sql(q, model)
     if (cds.env.features.runtime_views && _q._with) {
-      // propagate with clauses
       if (!transformedQuery._with) transformedQuery._with = _q._with
-      else {
-        // do not push duplicates
-        _q._with.forEach(qw => {
-          mergeWith(transformedQuery, qw, _q._with, _q)
-        })
-        delete _q._with
-      }
+      delete _q._with
     }
     return _q
 
