@@ -62,6 +62,7 @@ describe('UPSERT', () => {
         { id: 1 },
         { id: 1, default: 'overwritten' },
       ]).into(keys)
+
       await UPSERT.into(cuid)
         .columns(['ID'])
         .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
@@ -79,6 +80,7 @@ describe('UPSERT', () => {
         { id: 1 },
         { id: 1, default: 'overwritten' },
       ]).into(keys)
+
       await UPSERT.into(cuid)
         .columns(['ID'])
         .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
@@ -86,6 +88,23 @@ describe('UPSERT', () => {
       expect(select).deep.eq([
         { ID: '1-defaulted' },
         { ID: '1-overwritten' },
+      ])
+    })
+
+    test('default key', async () => {
+      const { keys } = cds.entities('basic.projection')
+      // fill other table first
+      await UPSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys)
+
+      await UPSERT.into(keys)
+        .columns(['id'])
+        .from(cds.ql`SELECT 2 FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(keys).where`id = ${2}`.orderBy('id')
+      expect(select).deep.eq([
+        { id: 2, default: 'defaulted', data: null },
       ])
     })
   })
