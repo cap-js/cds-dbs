@@ -560,7 +560,7 @@ function cqn4sql(originalQuery, model) {
       res = { args: getTransformedFunctionArgs(value.args, $baseLink), func: value.func }
     }
     if (!omitAlias) res.as = column.as || column.name || column.flatName
-    res.element = column.element || column
+    setElementOnColumns(res, column.element || column)
     return res
   }
 
