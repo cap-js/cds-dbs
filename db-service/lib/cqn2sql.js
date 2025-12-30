@@ -380,7 +380,8 @@ class CQN2SQLRenderer {
 
     if (orderBy) {
       orderBy = orderBy.map(r => {
-        const col = r.ref.at(-1)
+        let col = r.ref.at(-1)
+        if (col.toUpperCase() in reservedColumnNames) col = `$$${col}$$`
         if (!columnsIn.find(c => this.column_name(c) === col)) {
           columnsIn.push({ ref: [col] })
         }
@@ -393,11 +394,11 @@ class CQN2SQLRenderer {
     const alias = stableFrom.as
     const source = () => {
       return ({
-      func: 'HIERARCHY',
-      args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
-      as: alias
-    })
-  }
+        func: 'HIERARCHY',
+        args: [{ xpr: ['SOURCE', { SELECT: { columns: columnsIn, from: stableFrom } }, ...(orderBy ? ['SIBLING', 'ORDER', 'BY', `${this.orderBy(orderBy)}`] : [])] }],
+        as: alias
+      })
+    }
 
     const expandedByNr = { list: [] } // DistanceTo(...,null)
     const expandedByOne = { list: [] } // DistanceTo(...,1)
@@ -1019,12 +1020,17 @@ class CQN2SQLRenderer {
     const entity = this.name(q._target.name, q)
     const alias = INSERT.into.as
     const elements = q.elements || q._target?.elements || {}
-    const columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
+    let columns = (this.columns = (INSERT.columns || ObjectKeys(elements)).filter(
       c => c in elements && !elements[c].virtual && !elements[c].isAssociation,
     ))
-    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${this.SELECT(
-      this.cqn4sql(INSERT.from || INSERT.as),
-    )}`
+
+    const src = this.cqn4sql(INSERT.from)
+    const extractions = this._managed = this.managed(columns.map(c => ({ name: c, sql: `NEW.${this.quote(c)}` })), elements)
+    const sql = extractions.length > columns.length
+      ? `SELECT ${extractions.map(c => `${c.insert} AS ${this.quote(c.name)}`)} FROM (${this.SELECT(src)}) AS NEW`
+      : this.SELECT(src)
+    if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+    this.sql = `INSERT INTO ${this.quote(entity)}${alias ? ' as ' + this.quote(alias) : ''} (${columns.map(c => this.quote(c))}) ${sql}`
     this.entries = [this.values]
     return this.sql
   }
@@ -1077,18 +1083,32 @@ class CQN2SQLRenderer {
       .map(k => `NEW.${this.quote(k)}=OLD.${this.quote(k)}`)
       .join(' AND ')
 
-    const columns = this.columns // this.columns is computed as part of this.INSERT
-    const managed = this._managed.slice(0, columns.length)
-
-    const extractkeys = managed
-      .filter(c => keys.includes(c.name))
-      .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
-
+    let columns = this.columns // this.columns is computed as part of this.INSERT
     const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
-    sql = `SELECT ${managed.map(c => c.upsert
-      .replace(/value->/g, '"$$$$value$$$$"->')
-      .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
-      } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+      const managed = this._managed.slice(0, columns.length)
+
+      const extractkeys = managed
+        .filter(c => keys.includes(c.name))
+        .map(c => `${c.onInsert || c.sql} as ${this.quote(c.name)}`)
+
+      sql = `SELECT ${managed.map(c => c.upsert
+        .replace(/value->/g, '"$$$$value$$$$"->')
+        .replace(/json_type\(value,/g, 'json_type("$$$$value$$$$",'))
+        } FROM (SELECT value as "$$value$$", ${extractkeys} from json_each(?)) as NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+    } else {
+      const extractions = this._managed
+      if (this.values) this.values = [] // Clear previously computed values
+      const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+      const aliasedQuery = cds.ql.SELECT
+        .columns(src.SELECT.columns
+          .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+        )
+        .from(src)
+      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
+      this.entries = [this.values]
+    }
 
     const updateColumns = columns.filter(c => {
       if (keys.includes(c)) return false //> keys go into ON CONFLICT clause
@@ -1326,7 +1346,7 @@ class CQN2SQLRenderer {
     } else {
       cds.error`Invalid arguments provided for function '${func}' (${args})`
     }
-    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args: [args]) || `${func}(${args})`
+    const fn = this.class.Functions[func]?.apply(this, Array.isArray(args) ? args : [args]) || `${func}(${args})`
     if (xpr) return `${fn} ${this.xpr({ xpr })}`
     return fn
   }
@@ -1430,7 +1450,7 @@ class CQN2SQLRenderer {
 
       let onInsert = this.managed_session_context(element[cdsOnInsert]?.['='])
         || this.managed_session_context(element.default?.ref?.[0])
-        || (element.default && { __proto__:  element.default, param: false })
+        || (element.default && { __proto__: element.default, param: false })
       let onUpdate = this.managed_session_context(element[cdsOnUpdate]?.['='])
 
       if (onInsert) onInsert = this.expr(onInsert)

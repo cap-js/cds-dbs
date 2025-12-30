@@ -43,4 +43,26 @@ service TreeService {
         name   : String;
         genres : Composition of many GenresComp on genres.root = $self;
   }
+
+  entity GenresWithNodeIdAlias as
+    projection on my.Genres {
+      ID as node_id, * 
+    };
+
+  annotate GenresWithNodeIdAlias with @Aggregation.RecursiveHierarchy #GenresWithNodeIdAliasHierarchy: {
+    $Type                   : 'Aggregation.RecursiveHierarchyType', 
+    NodeProperty            : ID,
+    ParentNavigationProperty: parent
+  };
+
+  entity GenresAliases as
+    projection on my.Genres {
+      null as node_id, *
+    };
+
+  annotate GenresAliases with @Aggregation.RecursiveHierarchy #GenresWithNodeIdAliasHierarchy: {
+    $Type                   : 'Aggregation.RecursiveHierarchyType', 
+    NodeProperty            : ID,
+    ParentNavigationProperty: parent
+  };
 }

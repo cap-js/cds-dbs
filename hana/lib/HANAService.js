@@ -907,8 +907,21 @@ class HANAService extends SQLService {
       const mixing = managed.map(c => c.upsert)
       const extraction = managed.map(c => c.extract)
 
-      const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      let sql
+      if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+        sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
 SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      } else {
+        const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+        if (this.values) this.values = []
+        const aliasedQuery = cds.ql.SELECT
+          .columns(src.SELECT.columns
+            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+          )
+          .from(src)
+        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        this.entries = [this.values]
+      }
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
