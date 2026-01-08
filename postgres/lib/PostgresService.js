@@ -469,7 +469,7 @@ GROUP BY k
     }
 
     val(val) {
-      const ret = super.val(val)
+      let ret = typeof val.val === 'boolean' ? `${val.val}` : super.val(val)
       return ret === '?' ? `$${this.values.length}` : ret
     }
 
