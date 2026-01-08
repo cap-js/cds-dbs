@@ -352,7 +352,7 @@ function cqn4sql(originalQuery, model) {
     for (let i = 0; i < columns.length; i++) {
       const col = columns[i]
 
-      if (isCalculatedOnRead(col.$refLinks?.[col.$refLinks.length - 1].definition) && !col.$refLinks?.[col.$refLinks.length - 1].target?.SELECT) {
+      if (isCalculatedOnRead(col.$refLinks?.at(-1).definition) && !col.$refLinks?.at(-1).target?.SELECT) {
         const name = getName(col)
         if (!transformedColumns.some(inserted => getName(inserted) === name)) {
           const calcElement = resolveCalculatedElement(col)
