@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.5.2) (2026-01-08)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
 ## [2.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.0...hana-v2.5.1) (2025-12-19)
 
 
