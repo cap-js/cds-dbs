@@ -1090,10 +1090,13 @@ describe('Unfolding calculated elements and localized', () => {
   it('calc elements with sub selects', () => {
     const q = cds.ql`SELECT ID, area from (SELECT ID, area from booksCalc.Books)`
     let query = cqn4sql(q, model)
-        const expected = cds.ql`SELECT __select__.ID, __select__.area from ( SELECT FROM booksCalc.Books as $B {
-        $B.ID,
-        $B.length * $B.width as area
-  }) AS __select__`
+    const expected = cds.ql`
+      SELECT __select__.ID, __select__.area from (
+          SELECT FROM booksCalc.Books as $B {
+            $B.ID,
+            $B.length * $B.width as area
+          }
+      ) AS __select__`
     expect(query).to.deep.equal(expected)
   })
 })
