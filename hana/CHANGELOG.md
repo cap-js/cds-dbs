@@ -4,6 +4,61 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.0...hana-v2.5.1) (2025-12-19)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.0 to ^2.8.1
+
+## [2.5.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.1...hana-v2.5.0) (2025-12-15)
+
+
+### Added
+
+* Added support to use `UPSERT` from `SELECT` ([#1435](https://github.com/cap-js/cds-dbs/issues/1435)) ([68f3db8](https://github.com/cap-js/cds-dbs/commit/68f3db8d79aa120768fe81324cd164782b9eec1b))
+
+
+### Fixed
+
+* increase minimum hdb version to 2.26.3 ([#1442](https://github.com/cap-js/cds-dbs/issues/1442)) ([946a713](https://github.com/cap-js/cds-dbs/commit/946a713b35ddd3e4ace82001a1097e647a017b5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.7.0 to ^2.8.0
+
+## [2.4.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.4.0...hana-v2.4.1) (2025-11-26)
+
+
+### Fixed
+
+* introduce repository.url in package.json ([#1430](https://github.com/cap-js/cds-dbs/issues/1430)) ([00ad7fb](https://github.com/cap-js/cds-dbs/commit/00ad7fbf2904d254a307ef764d8036640694f395))
+
+## [2.4.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.4...hana-v2.4.0) (2025-11-26)
+
+
+### Added
+
+* `error` standard function ([#1421](https://github.com/cap-js/cds-dbs/issues/1421)) ([b1b0fca](https://github.com/cap-js/cds-dbs/commit/b1b0fca00387c45ed91280b2df4282be90ea0a6e))
+* show default pool configuration in `env` ([#1422](https://github.com/cap-js/cds-dbs/issues/1422)) ([89b397a](https://github.com/cap-js/cds-dbs/commit/89b397ade2a15be8ce81ed3e8d717fc98f1a8107))
+
+
+### Fixed
+
+* **deps:** update dependency hdb to v2 ([#1266](https://github.com/cap-js/cds-dbs/issues/1266)) ([742a784](https://github.com/cap-js/cds-dbs/commit/742a784171503a5805c3f2e9d4f13135fa745ccb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.6.0 to ^2.7.0
+
 ## [2.3.4](https://github.com/cap-js/cds-dbs/compare/hana-v2.3.3...hana-v2.3.4) (2025-10-23)
 
 

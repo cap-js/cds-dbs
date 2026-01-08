@@ -180,6 +180,16 @@ describe('negative', () => {
         /Duplicate definition of element “ID”/,
       )
     })
+    it('duplicate definition of nested projection (expand)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author {name}, author {name} }`)).to.throw(
+        /Duplicate definition of element “author”/,
+      )
+    })
+    it('duplicate definition of nested projection (inline)', () => {
+      expect(() => _inferred(cds.ql`SELECT from bookshop.Books { author.{name}, author.{name} }`)).to.throw(
+        /Duplicate definition of element “author_name”/,
+      )
+    })
 
     it('anonymous functions are inferred by their func property name, ambiguities are rejected', () => {
       let ambiguousFunctions = cds.ql`SELECT from bookshop.Books { sum(1 + 1), sum(1 + 1) }`

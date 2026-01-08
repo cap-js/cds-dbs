@@ -6,14 +6,14 @@ describe('Bookshop - Genres', () => {
   const { expect, GET, perf } = cds.test(bookshop)
   const { report } = perf || {}
 
-  beforeAll(() => {
+  beforeAll(async () => {
     cds.log('odata', 'error')
   })
 
   const topLevels = 'com.sap.vocabularies.Hierarchy.v1.TopLevels'
 
   test('TopLevels(1)', async () => {
-    const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)`)
+    const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`)
     expect(res).property('data').property('value').deep.eq([
       {
         ID: 10,
@@ -52,8 +52,54 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
+  test('LimitedRank via composition and filter', async () => {
+    const query = `/tree/Root(ID=1)/genres?$select=LimitedRank,name&$apply=${topLevels}(HierarchyNodes=$root/Root(ID=1)/genres,HierarchyQualifier='GenresComptHierarchy',NodeProperty='ID',Levels=1,ExpandLevels=[{"NodeID":"52","Levels":1},{"NodeID":"51","Levels":1},{"NodeID":"50","Levels":1}])&$filter=ID eq 49`  
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 49,
+        LimitedRank: 5,
+        name: 'Arthurian Legend',
+      }
+    ])
+  })
+
   test('ancestors($filter)/TopLevels(null)', async () => {
     await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=ancestors($root/GenreHierarchy,GenreHierarchy,ID,filter(tolower(name) eq tolower('Fantasy')),keep start)/${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID')`)
+  })
+
+  test('Hierarchy query with projection alias should handle NODE_ID column conflicts', async () => {
+    const query = `/tree/GenresWithNodeIdAlias?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresWithNodeIdAlias,HierarchyQualifier='GenresWithNodeIdAliasHierarchy',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        name: 'Fiction',
+        node_id: 10
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: 20
+      }
+    ])
+  })
+
+  test('Hierarchy query with null as node_id alias', async () => {
+    const query = `/tree/GenresAliases?$select=name,node_id&$apply=${topLevels}(HierarchyNodes=$root/GenresAliases,HierarchyQualifier='GenresAliases',NodeProperty='ID',Levels=1)&$filter=ID eq 10 or ID eq 20`
+    const res = await GET(query)
+    expect(res).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        name: 'Fiction',
+        node_id: null
+      },
+      {
+        ID: 20,
+        name: 'Non-Fiction',
+        node_id: null
+      }
+    ])
   })
 
   test.skip('perf', async () => {
