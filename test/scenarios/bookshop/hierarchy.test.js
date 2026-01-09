@@ -102,12 +102,7 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
-  test('TopLevels pagination via composition with skip', async () => {
-    const db = await cds.connect.to('db')    
-    await db.run(INSERT.into('TreeService.Root').entries([
-      { ID: 1, name: 'test root' },
-    ]))
-    
+  test('TopLevels pagination via composition', async () => {
     const queryWithTop = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=10&$orderby=name`
     const resWithTop = await GET(queryWithTop)
 
