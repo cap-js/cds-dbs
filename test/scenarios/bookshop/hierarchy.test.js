@@ -102,14 +102,23 @@ describe('Bookshop - Genres', () => {
     ])
   })
 
-  test('TopLevels pagination via composition', async () => {
-    const queryWithTop = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=10&$orderby=name`
+  test('TopLevels pagination via composition with sorting', async () => {
+    const queryWithTop = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=2&$orderby=name`
     const resWithTop = await GET(queryWithTop)
 
-    const queryWithoutTop = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$orderby=name`
-    const resWithoutTop = await GET(queryWithoutTop)
-
-    expect(resWithTop).property('data').to.deep.equal(resWithoutTop.data)
+    expect(resWithTop.data['@odata.count']).to.equal(4)
+    expect(resWithTop).property('data').property('value').deep.eq([
+      {
+        ID: 10,
+        DrillState: 'collapsed',
+        name: 'Fiction',
+      },
+      {
+        ID: 52,
+        DrillState: 'collapsed',
+        name: 'Historical',
+      }
+    ])
   })
 
   test.skip('perf', async () => {
