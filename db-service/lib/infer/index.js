@@ -872,7 +872,7 @@ function infer(originalQuery, model) {
           arg,
           null,
           { definition: parentElementDefinition, target: parentElementDefinition },
-          { inCalcElement: true },
+          { inCalcElement: true, ...context },
         )
         const basePath =
           column.$refLinks?.length > 1
