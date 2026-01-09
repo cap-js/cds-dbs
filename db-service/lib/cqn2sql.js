@@ -298,6 +298,7 @@ class CQN2SQLRenderer {
       const clone = q.clone()
       clone.columns(keys)
       clone.SELECT.recurse = undefined
+      clone.SELECT.limit = undefined
       clone.SELECT.expand = undefined // omits JSON
       where = [{ list: keys }, 'in', clone]
     }
