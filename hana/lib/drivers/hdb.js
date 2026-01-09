@@ -20,6 +20,19 @@ if (cds.env.features.sql_simple_queries === 3) {
   }
 }
 
+try {
+  // When HANA does not know the data type of a place holder
+  // It falls back to expecting strings hdb enforces the type
+  // This validation overwrite converts any value into a string
+  const hdbWriter = require('hdb/lib/protocol/Writer.js')
+
+  const laxStrings = function laxStrings(value) {
+    this.writeCharacters(30, `${value}`);
+  };
+
+  hdbWriter.prototype[30] = laxStrings
+} catch (err) {/* prevent internal changes from breakinge everything */ }
+
 const credentialMappings = [
   { old: 'certificate', new: 'ca' },
   { old: 'encrypt', new: 'useTLS' },
