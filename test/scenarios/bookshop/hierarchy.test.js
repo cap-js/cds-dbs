@@ -103,11 +103,11 @@ describe('Bookshop - Genres', () => {
   })
 
   test('TopLevels pagination via composition with sorting', async () => {
-    const queryWithTop = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=2&$orderby=name`
-    const resWithTop = await GET(queryWithTop)
+    const query = `/tree/Root(ID=1)/genres?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)&$count=true&$skip=1&$top=2&$orderby=name`
+    const res = await GET(query)
 
-    expect(resWithTop.data['@odata.count']).to.equal(4)
-    expect(resWithTop).property('data').property('value').deep.eq([
+    expect(res.data['@odata.count']).to.equal(4)
+    expect(res).property('data').property('value').deep.eq([
       {
         ID: 10,
         DrillState: 'collapsed',
