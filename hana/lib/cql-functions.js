@@ -163,7 +163,8 @@ const StandardFunctions = {
     // if column specific value is provided, the configuration has to be defined on column level
     if (csnElements.some(e => e.element?.['@Search.ranking'] || e.element?.['@Search.fuzzinessThreshold'])) {
       csnElements.forEach(e => {
-        let fuzzy = `FUZZY`
+        const fuzziScore = e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex
+        let fuzzy = `${ fuzziScore === 1 ? 'EXACT' : 'FUZZY'}`
         // weighted search
         const rank = e.element?.['@Search.ranking']?.['=']
         switch (rank) {
@@ -182,14 +183,20 @@ const StandardFunctions = {
               `Invalid configuration ${rank} for @Search.ranking. HIGH, MEDIUM, LOW are supported values.`,
             )
         }
-        fuzzy += ` MINIMAL SCORE ${e.element?.['@Search.fuzzinessThreshold'] || fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+        if (fuzziScore === 1)
+          fuzzy += ` MINIMAL SCORE 1 search mode 'text'`
+        else
+          fuzzy += ` MINIMAL SCORE ${fuzziScore} SIMILARITY CALCULATION MODE 'search'`
         // rewrite ref to xpr to mix in search config
         // ensure in place modification to reuse .toString method that ensures quoting
         e.xpr = [{ ref: e.ref }, fuzzy]
         delete e.ref
       })
     } else {
-      ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
+      if (fuzzyIndex === 1) 
+        ref = `${ref} EXACT MINIMAL SCORE 1 search mode 'text'`
+      else
+        ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
     if (Array.isArray(arg.xpr)) {
