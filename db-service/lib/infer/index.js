@@ -92,7 +92,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources) {
+  function inferTarget(from, querySources, useTechnicalAlias) {
     const { ref } = from
     // Given a from clause `Root:parent[$main.name = name].parent as Foo`
     // we need to first resolve until to the last step of the from.ref
@@ -118,14 +118,17 @@ function infer(originalQuery, model) {
         from.uniqueSubqueryAlias ||
         from.as ||
         (ref.length === 1
-          ? getImplicitAlias(first)
-          : getImplicitAlias(ref.at(-1).id || ref.at(-1)))
+          ? getImplicitAlias(first, useTechnicalAlias)
+          : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias))
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: getDefinition(target.name), args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
-      from.args.forEach(a => inferTarget(a, querySources, false))
+      from.args.forEach(a =>
+        inferTarget(a, querySources, /** no need for technical alias for our own joins */ false
+          
+        ))
     } else if (from.SELECT) {
       const subqueryInFrom = infer(from, model) // we need the .elements in the sources
       // if no explicit alias is provided, we make up one
@@ -135,7 +138,7 @@ function infer(originalQuery, model) {
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
-      querySources[getImplicitAlias(from)] = { definition }
+      querySources[getImplicitAlias(from, useTechnicalAlias)] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }
