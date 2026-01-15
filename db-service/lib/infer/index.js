@@ -125,10 +125,7 @@ function infer(originalQuery, model) {
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
-      from.args.forEach(a =>
-        inferTarget(a, querySources, /** no need for technical alias for our own joins */ false
-          
-        ))
+      from.args.forEach(a => inferTarget(a, querySources, false))
     } else if (from.SELECT) {
       const subqueryInFrom = infer(from, model) // we need the .elements in the sources
       // if no explicit alias is provided, we make up one
