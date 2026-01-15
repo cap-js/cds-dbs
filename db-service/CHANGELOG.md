@@ -4,6 +4,14 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.8.2](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.1...db-service-v2.8.2) (2026-01-15)
+
+
+### Fixed
+
+* **cqn4sql:** calculated elements with function expr in from ([#1452](https://github.com/cap-js/cds-dbs/issues/1452)) ([970407e](https://github.com/cap-js/cds-dbs/commit/970407e29e4c98ee9c25d15277dff80c246b9523))
+* search aggregate functions ([#1463](https://github.com/cap-js/cds-dbs/issues/1463)) ([a8db1f3](https://github.com/cap-js/cds-dbs/commit/a8db1f38e219bd7818c3cfc9f45e108bcab1dd95))
+
 ## [2.8.1](https://github.com/cap-js/cds-dbs/compare/db-service-v2.8.0...db-service-v2.8.1) (2025-12-19)
 
 
