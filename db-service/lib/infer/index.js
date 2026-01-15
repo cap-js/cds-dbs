@@ -92,7 +92,7 @@ function infer(originalQuery, model) {
    *                              Each key is a query source alias, and its value is the corresponding CSN Definition.
    * @returns {object} The updated `querySources` object with inferred sources from the `from` clause.
    */
-  function inferTarget(from, querySources, useTechnicalAlias = true) {
+  function inferTarget(from, querySources) {
     const { ref } = from
     // Given a from clause `Root:parent[$main.name = name].parent as Foo`
     // we need to first resolve until to the last step of the from.ref
@@ -118,8 +118,8 @@ function infer(originalQuery, model) {
         from.uniqueSubqueryAlias ||
         from.as ||
         (ref.length === 1
-          ? getImplicitAlias(first, useTechnicalAlias)
-          : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias))
+          ? getImplicitAlias(first)
+          : getImplicitAlias(ref.at(-1).id || ref.at(-1)))
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
       querySources[alias] = { definition: getDefinition(target.name), args }
       const last = from.$refLinks.at(-1)
@@ -135,7 +135,7 @@ function infer(originalQuery, model) {
     } else if (typeof from === 'string') {
       // TODO: Create unique alias, what about duplicates?
       const definition = getDefinition(from) || cds.error`"${from}" not found in the definitions of your model`
-      querySources[getImplicitAlias(from, useTechnicalAlias)] = { definition }
+      querySources[getImplicitAlias(from)] = { definition }
     } else if (from.SET) {
       infer(from, model)
     }
