@@ -19,13 +19,7 @@ class PostgresService extends SQLService {
 
   get factory() {
     return {
-      options: {
-        min: 0,
-        testOnBorrow: true,
-        acquireTimeoutMillis: 1000,
-        destroyTimeoutMillis: 1000,
-        ...this.options.pool,
-      },
+      options: this.options.pool || {},
       create: async () => {
         const { credentials: cr = {}, client: clientOptions = {} } = this.options
         const credentials = {

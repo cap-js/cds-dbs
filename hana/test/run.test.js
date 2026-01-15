@@ -105,7 +105,7 @@ describe('stored procedures', () => {
 
   describe('async', () => {
     test('transactions', async () => {
-      await cds.tx(async (tx) => {
+      await cds.tx(async () => {
         // Call INSERT before starting the procedure to make sure it is already on the transaction
         // before the procedure could ever commit the transaction
         await cds.run(`INSERT INTO sap_capire_TestEntity (ID,title) VALUES (20,'FROM TX')`)

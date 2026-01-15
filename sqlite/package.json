@@ -1,6 +1,6 @@
 {
   "name": "@cap-js/sqlite",
-  "version": "2.0.2",
+  "version": "2.1.2",
   "description": "CDS database service for SQLite",
   "homepage": "https://github.com/cap-js/cds-dbs/tree/main/sqlite#cds-database-service-for-sqlite",
   "repository": {
@@ -26,7 +26,7 @@
     "test": "cds-test"
   },
   "dependencies": {
-    "@cap-js/db-service": "^2",
+    "@cap-js/db-service": "^2.8.1",
     "better-sqlite3": "^12.0.0"
   },
   "peerDependencies": {
@@ -44,7 +44,10 @@
           }
         },
         "sqlite": {
-          "impl": "@cap-js/sqlite"
+          "impl": "@cap-js/sqlite",
+          "pool": {
+            "max": 1
+          }
         }
       },
       "db": "sql"

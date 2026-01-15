@@ -12,7 +12,7 @@ describe('searching', () => {
 
   test('search via to-n association', async () => {
     // Make sure that there are no duplicates for search along to-many associations
-    const { Authors, Books } = cds.entities()
+    const { Authors, Books } = cds.entities
     await INSERT.into(Authors).entries({ ID: 42, name: 'Rowling' })
     await INSERT.into(Books).entries([
       { ID: 2500, title: "Harry Potter and the Philosopher's Stone", author_ID: 42 },
@@ -149,6 +149,21 @@ describe('searching', () => {
       query.SELECT.from['@cds.search.author'] = true
       const res = await cds.run(query)
       expect(res.length).to.be.eq(2)
+    })
+
+    test('search also own columns if association is part of `@cds.search`', async () => {
+      const { Books } = cds.entities
+      // ad-hoc search expression
+      Books['@cds.search.author'] = true
+
+      // matches the title
+      let res = await SELECT.from(Books).columns('author.name', 'title').search('Wuthering')
+      expect(res.length).to.be.eq(1)
+      expect(res[0].title).to.be.eq('Wuthering Heights')
+
+      res = await SELECT.from(Books).columns('author.name', 'title').search('Emily')
+      expect(res.length).to.be.eq(1)
+      expect(res[0].title).to.be.eq('Wuthering Heights')
     })
   })
 })
