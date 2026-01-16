@@ -1,0 +1,289 @@
+{
+  "definitions": {
+    "CatalogService": {
+      "@source": "srv/cat-service.cds",
+      "kind": "service",
+      "@path": "/browse",
+      "@data.product": true,
+      "@cds.external": 2
+    },
+    "CatalogService.ListOfBooks": {
+      "kind": "entity",
+      "@readonly": true,
+      "elements": {
+        "createdAt": {
+          "@cds.on.insert": {
+            "=": "$now"
+          },
+          "@Core.Immutable": true,
+          "@title": "{i18n>CreatedAt}",
+          "@readonly": true,
+          "type": "cds.Timestamp"
+        },
+        "modifiedAt": {
+          "@cds.on.insert": {
+            "=": "$now"
+          },
+          "@cds.on.update": {
+            "=": "$now"
+          },
+          "@title": "{i18n>ChangedAt}",
+          "@readonly": true,
+          "type": "cds.Timestamp"
+        },
+        "ID": {
+          "key": true,
+          "type": "cds.Integer"
+        },
+        "title": {
+          "type": "cds.String",
+          "length": 111
+        },
+        "author": {
+          "type": "cds.String",
+          "length": 111
+        },
+        "genre": {
+          "type": "cds.Association",
+          "target": "CatalogService.Genres",
+          "default": {
+            "val": 10
+          }
+        },
+        "stock": {
+          "type": "cds.Integer"
+        },
+        "price": {
+          "type": "cds.Decimal"
+        },
+        "currency": {
+          "@title": "{i18n>Currency}",
+          "@description": "{i18n>CurrencyCode.Description}",
+          "type": "Currency",
+          "target": "CatalogService.Currencies"
+        },
+        "image": {
+          "@Core.MediaType": "image/png",
+          "type": "cds.LargeBinary"
+        },
+        "footnotes": {
+          "items": {
+            "type": "cds.String"
+          }
+        },
+        "authorsAddress": {
+          "type": "cds.String"
+        }
+      }
+    },
+    "CatalogService.Genres": {
+      "kind": "entity",
+      "@cds.autoexposed": true,
+      "@cds.autoexpose": true,
+      "@cds.persistence.skip": "if-unused",
+      "@cds.odata.valuelist": true,
+      "elements": {
+        "name": {
+          "@title": "{i18n>Name}",
+          "type": "cds.String",
+          "length": 255
+        },
+        "descr": {
+          "@title": "{i18n>Description}",
+          "type": "cds.String",
+          "length": 1000
+        },
+        "ID": {
+          "key": true,
+          "type": "cds.Integer"
+        },
+        "parent": {
+          "type": "cds.Association",
+          "target": "CatalogService.Genres"
+        },
+        "children": {
+          "type": "cds.Composition",
+          "cardinality": {
+            "max": "*"
+          },
+          "target": "CatalogService.Genres",
+          "on": [
+            {
+              "ref": [
+                "children",
+                "parent"
+              ]
+            },
+            "=",
+            {
+              "ref": [
+                "$self"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CatalogService.Currencies": {
+      "kind": "entity",
+      "@cds.autoexposed": true,
+      "@cds.autoexpose": true,
+      "@cds.persistence.skip": "if-unused",
+      "@cds.odata.valuelist": true,
+      "elements": {
+        "name": {
+          "@title": "{i18n>Name}",
+          "type": "cds.String",
+          "length": 255
+        },
+        "descr": {
+          "@title": "{i18n>Description}",
+          "type": "cds.String",
+          "length": 1000
+        },
+        "code": {
+          "@title": "{i18n>CurrencyCode}",
+          "@Common.Text": {
+            "=": "name"
+          },
+          "key": true,
+          "type": "cds.String",
+          "length": 3
+        },
+        "symbol": {
+          "@title": "{i18n>CurrencySymbol}",
+          "type": "cds.String",
+          "length": 5
+        },
+        "minorUnit": {
+          "@title": "{i18n>CurrencyMinorUnit}",
+          "type": "cds.Int16"
+        }
+      }
+    },
+    "CatalogService.Books": {
+      "kind": "entity",
+      "@readonly": true,
+      "elements": {
+        "createdAt": {
+          "@cds.on.insert": {
+            "=": "$now"
+          },
+          "@Core.Immutable": true,
+          "@title": "{i18n>CreatedAt}",
+          "@readonly": true,
+          "type": "cds.Timestamp"
+        },
+        "modifiedAt": {
+          "@cds.on.insert": {
+            "=": "$now"
+          },
+          "@cds.on.update": {
+            "=": "$now"
+          },
+          "@title": "{i18n>ChangedAt}",
+          "@readonly": true,
+          "type": "cds.Timestamp"
+        },
+        "ID": {
+          "key": true,
+          "type": "cds.Integer"
+        },
+        "title": {
+          "type": "cds.String",
+          "length": 111
+        },
+        "descr": {
+          "type": "cds.String",
+          "length": 1111
+        },
+        "author": {
+          "type": "cds.String",
+          "length": 111
+        },
+        "genre": {
+          "type": "cds.Association",
+          "target": "CatalogService.Genres",
+          "default": {
+            "val": 10
+          }
+        },
+        "stock": {
+          "type": "cds.Integer"
+        },
+        "price": {
+          "type": "cds.Decimal"
+        },
+        "currency": {
+          "@title": "{i18n>Currency}",
+          "@description": "{i18n>CurrencyCode.Description}",
+          "type": "Currency",
+          "target": "CatalogService.Currencies"
+        },
+        "image": {
+          "@Core.MediaType": "image/png",
+          "type": "cds.LargeBinary"
+        },
+        "footnotes": {
+          "items": {
+            "type": "cds.String"
+          }
+        },
+        "authorsAddress": {
+          "type": "cds.String"
+        }
+      }
+    },
+    "CatalogService.submitOrder": {
+      "kind": "action",
+      "params": {
+        "book": {
+          "type": {
+            "ref": [
+              "CatalogService.Books",
+              "ID"
+            ]
+          }
+        },
+        "quantity": {
+          "type": "cds.Integer"
+        }
+      },
+      "returns": {
+        "elements": {
+          "stock": {
+            "type": "cds.Integer"
+          }
+        }
+      }
+    },
+    "CatalogService.OrderedBook": {
+      "kind": "event",
+      "elements": {
+        "book": {
+          "type": {
+            "ref": [
+              "CatalogService.Books",
+              "ID"
+            ]
+          }
+        },
+        "quantity": {
+          "type": "cds.Integer"
+        },
+        "buyer": {
+          "type": "cds.String"
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v6.3.5",
+    "flavor": "inferred",
+    "minified": true
+  },
+  "$version": "2.0",
+  "requires": [
+    "@sap/cds/common"
+  ]
+}

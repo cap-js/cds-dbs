@@ -1,0 +1,9 @@
+{
+  "name": "@capire/bookshop-CatalogService",
+  "version": "1.0.0",
+  "cds": {
+    "requires": {
+      "CatalogService": true
+    }
+  }
+}
