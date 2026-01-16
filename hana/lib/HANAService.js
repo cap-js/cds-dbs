@@ -1350,8 +1350,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   }
 
   // Creates a new database using HDI container groups
-  async database({ database }, clean = false) {
-    if (clean) {
+  async database({ database, useSystem = false }, clean = false) {
+    if (clean || useSystem) {
       // Reset back to system credentials
       this.options.credentials = this.options.credentials.__system__
     }
@@ -1392,8 +1392,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
   // As the tenants are located in a specific container group the containers can have the same name
   // This removes SCHEMA name conflicts when testing in the same system
   // Additionally this allows for deploying using the HDI procedures
-  async tenant({ database, tenant }, clean = false) {
-    if (clean) {
+  async tenant({ database, tenant, schema }, clean = false) {
+    if (clean && this.options.credentials.__database__) {
       // Reset back to database credentials
       this.options.credentials = this.options.credentials.__database__
     }
@@ -1401,7 +1401,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const creds = {
       containerGroup: database.toUpperCase(),
       usergroup: `${database}_USERS`.toUpperCase(),
-      schema: `${database}_${tenant}`.toUpperCase(),
+      schema: schema || `${database}_${tenant}`.toUpperCase(),
       user: `${database}_${tenant}_USER`.toUpperCase(),
     }
     creds.password = creds.user + 'Val1d' // Password restrictions require Aa1
