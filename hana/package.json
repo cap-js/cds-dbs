@@ -20,7 +20,8 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && npm run test:plain && npm run test:bookshop:quoted",
+    "test": "(([ -z \"${HANA_HOST}\" ] && npm start) || true) && npm run cleanup && npm run test:plain && npm run test:bookshop:quoted",
+    "cleanup": "node test/utils/cleanup.js",
     "test:bookshop:quoted": "cds_sql_names=quoted cds-test bookshop",
     "test:plain": "cds-test",
     "test:remote": "cds-test",
