@@ -195,7 +195,7 @@ describe('SELECT', () => {
 
       cqn.SELECT.columns.forEach(inline)
 
-      const res = await cds.run(cqn).catch(err => { debugger })
+      const res = await cds.run(cqn)
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
 
       assert.equal(res[0].valEQnull, false)
