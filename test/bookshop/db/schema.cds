@@ -11,7 +11,8 @@ entity Books : managed {
       title          : localized String(111);
       descr          : localized String(1111);
       author         : Association to Authors;
-      genre          : Association to Genres default 10;
+      genre          : Composition of many Genres
+                         on genre.ID < ID;
       stock          : Integer;
       price          : Decimal;
       currency       : Currency;

@@ -3,7 +3,7 @@ const bookshop = require('path').resolve(__dirname, '../../bookshop')
 
 describe('Bookshop - Genres', () => {
   if (cds.version < '9') return test.todo('Tests are skipped until release of cds9')
-  const { expect, GET, perf } = cds.test(bookshop)
+  const { expect, GET, POST, perf } = cds.test(bookshop)
   const { report } = perf || {}
 
   beforeAll(async () => {
@@ -41,6 +41,16 @@ describe('Bookshop - Genres', () => {
     expect(hasParent).to.be.true
   })
 
+  test('Path expression to hierarchy with multiple in draft $expand', async () => {
+    await POST`/tree/Books(ID=201,IsActiveEntity=true)/draftEdit${{}}`
+    const query = `/tree/Books(ID=201,IsActiveEntity=false)/genre?$select=DrillState,ID,name&$apply=${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=2)&$select=DrillState,ID,name&$expand=parent($select=ID,name),children`
+    const res = await GET(query)
+
+    // should have parent expanded
+    const hasParent = redata.value.some(item => item.parent)
+    expect(hasParent).to.be.true
+  })
+
   test('ancestors($filter)/TopLevels(1)', async () => {
     const res = await GET(`/tree/Genres?$select=DrillState,ID,name&$apply=ancestors($root/GenreHierarchy,GenreHierarchy,ID,filter(tolower(name) eq tolower('Fantasy')),keep start)/${topLevels}(HierarchyNodes=$root/GenreHierarchy,HierarchyQualifier='GenreHierarchy',NodeProperty='ID',Levels=1)`)
     expect(res).property('data').property('value').deep.eq([
@@ -53,7 +63,7 @@ describe('Bookshop - Genres', () => {
   })
 
   test('LimitedRank via composition and filter', async () => {
-    const query = `/tree/Root(ID=1)/genres?$select=LimitedRank,name&$apply=${topLevels}(HierarchyNodes=$root/Root(ID=1)/genres,HierarchyQualifier='GenresComptHierarchy',NodeProperty='ID',Levels=1,ExpandLevels=[{"NodeID":"52","Levels":1},{"NodeID":"51","Levels":1},{"NodeID":"50","Levels":1}])&$filter=ID eq 49`  
+    const query = `/tree/Root(ID=1)/genres?$select=LimitedRank,name&$apply=${topLevels}(HierarchyNodes=$root/Root(ID=1)/genres,HierarchyQualifier='GenresComptHierarchy',NodeProperty='ID',Levels=1,ExpandLevels=[{"NodeID":"52","Levels":1},{"NodeID":"51","Levels":1},{"NodeID":"50","Levels":1}])&$filter=ID eq 49`
     const res = await GET(query)
     expect(res).property('data').property('value').deep.eq([
       {
