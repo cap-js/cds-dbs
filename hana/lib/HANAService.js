@@ -938,6 +938,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         '<=': null,
         '!<': null,
         '!>': null,
+        'IS': null,
+        'IS NOT': null,
       }
 
       if (!_internal) {
