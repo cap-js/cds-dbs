@@ -11,8 +11,7 @@
   ],
   "dependencies": {
     "@cap-js/sqlite": "*",
-    "@sap/cds": "*",
-    "express": "^4.17.1"
+    "@sap/cds": "*"
   },
   "scripts": {
     "genres": "cds serve test/genres.cds",
