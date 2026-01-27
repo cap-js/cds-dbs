@@ -1195,6 +1195,19 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       return `(CASE WHEN ${this.quote('$.' + name)} IS NULL THEN ${managed} ELSE ${src} END)`
     }
 
+    render_with() {
+      const sql = this.sql
+      const values = this.values
+      const prefix = this._with.map(q => {
+        const values = this.values = []
+        const sql = `${this.quote(q.as)} AS (${this.SELECT(q)})`
+        return { sql, values }
+      })
+      if (this.withclause?.length) this.withclause = [...prefix.map(p => p.sql), ...this.withclause]
+      else this.sql = `WITH ${prefix.map(p => p.sql)} ${sql}`
+      this.values = [...prefix.map(p => p.values).flat(), ...values]
+    }
+
     // Loads a static result from the query `SELECT * FROM RESERVED_KEYWORDS`
     static ReservedWords = { ...super.ReservedWords, ...hanaKeywords }
 

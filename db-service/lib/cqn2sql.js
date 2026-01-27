@@ -1,6 +1,7 @@
 const cds = require('@sap/cds')
 const cds_infer = require('./infer')
 const cqn4sql = require('./cqn4sql')
+
 const _simple_queries = cds.env.features.sql_simple_queries
 const _strict_booleans = _simple_queries < 2
 
@@ -26,7 +27,8 @@ class CQN2SQLRenderer {
     if (cds.env.sql.names === 'quoted') {
       this.class.prototype.name = (name, query) => {
         const e = name.id || name
-        return (query?._target || this.model?.definitions[e])?.['@cds.persistence.name'] || e
+        const entity = query?._target || this.model?.definitions[e]
+        return (!entity?.['@cds.persistence.skip'] && entity?.['@cds.persistence.name']) || e
       }
       this.class.prototype.quote = (s) => `"${String(s).replace(/"/g, '""')}"`
     }
@@ -76,6 +78,7 @@ class CQN2SQLRenderer {
    */
   render(q, vars) {
     const kind = q.kind || Object.keys(q)[0] // SELECT, INSERT, ...
+    if (q._with) this._with = q._with
     /**
      * @type {string} the rendered SQL string
      */
