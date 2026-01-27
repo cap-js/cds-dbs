@@ -346,6 +346,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+      this.technicalAliases = this.technicalAliases || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -355,14 +356,22 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
+        
         const walkAlias = q => {
           if (q.args) return q.as || walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
           return q.as
         }
+
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q) // Use from alias for query re use alias
         q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
+
+        if (q.alias.length >= 128) { 
+          // HANA limits identifiers to 128 characters
+          q.technicalAlias = `$TA${++this.technicalAliases}`
+        }
+
         const src = q
 
         const { element, elements } = q
@@ -516,7 +525,9 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = this.quote(this.name(q.src.alias))
+        const fromSQL = q.src.technicalAlias 
+          ? `${this.quote(this.name(q.src.technicalAlias))} /* ${q.src.alias} */`
+          : this.quote(this.name(q.src.alias))
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
@@ -572,12 +583,12 @@ class HANAService extends SQLService {
           if (x.SELECT.from) {
             x.SELECT.from = {
               join: 'inner',
-              args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
+              args: [x.SELECT.from, { ref: [parent.technicalAlias || parent.alias], as: parent.as }],
               on: x.SELECT.where,
               as: x.SELECT.from.as,
             }
           } else {
-            x.SELECT.from = { ref: [parent.alias], as: parent.as }
+            x.SELECT.from = { ref: [parent.technicalAlias || parent.alias], as: parent.as }
             x.SELECT.columns.forEach(col => {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
