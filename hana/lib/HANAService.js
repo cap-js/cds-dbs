@@ -72,11 +72,12 @@ class HANAService extends SQLService {
               const deadline = start + acquireTimeoutMillis
               try {
                 await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
-                if (Date.now() < deadline) return create(tenant, start)
-                else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
-              } catch (err) {
-                 throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+              } catch (smErr) {
+                 smErr.cause = err
+                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
               }
+              if (Date.now() < deadline) return create(tenant, start)
+              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
             } else {
               // Stop trying when the tenant does not exist or is rate limited
               if (err.status == 404 || err.status == 429) {
