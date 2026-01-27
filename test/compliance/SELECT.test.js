@@ -301,7 +301,7 @@ describe('SELECT', () => {
     })
 
     test('expand association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
-      const { SelfReferencingEntity } = cds.entities('edge.hana.aliases'))
+      const { SelfReferencingEntity } = cds.entities('edge.hana.aliases')
 
       await INSERT.into(SelfReferencingEntity).entries([
         { ID: 5, associationNameWithLotsOfCharacters_ID: null },
