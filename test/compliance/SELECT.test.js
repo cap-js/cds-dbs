@@ -300,87 +300,126 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' }).rejected
     })
 
-    test('expand association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
-      const { SelfReferencingEntity } = cds.entities('edge.hana.aliases')
+    describe('aliases exceeding MAX_LENGTH_OF_ALIAS_NAME (128)', () => {
+      let SelfReferencingEntity
 
-      await INSERT.into(SelfReferencingEntity).entries([
-        { ID: 5, associationNameWithLotsOfCharacters_ID: null },
-        { ID: 4, associationNameWithLotsOfCharacters_ID: 5 },
-        { ID: 3, associationNameWithLotsOfCharacters_ID: 4 },
-        { ID: 2, associationNameWithLotsOfCharacters_ID: 3 },
-        { ID: 1, associationNameWithLotsOfCharacters_ID: 2 },
-        { ID: 0, associationNameWithLotsOfCharacters_ID: 1 },
-      ])
+      beforeAll(async () => {
+        ;({ SelfReferencingEntity } = cds.entities('edge.hana.aliases'))
 
-      const cqn = SELECT.from(SelfReferencingEntity)
-        .columns([
-          { ref: ['ID'] }, // 0
-          {
-            ref: ['associationNameWithLotsOfCharacters'], // 35 chars
-            expand: [
-              { ref: ['ID'] }, // 1
-              {
-                ref: ['associationNameWithLotsOfCharacters'], // 70 chars
-                expand: [
-                  { ref: ['ID'] }, // 2
-                  {
-                    ref: ['associationNameWithLotsOfCharacters'], // 105 chars
-                    expand: [
-                      { ref: ['ID'] }, // 3
-                      {
-                        ref: ['associationNameWithLotsOfCharacters'], // 140 chars > 127 chars
-                        expand: [
-                          { ref: ['ID'] }, // 4
-                          {
-                            ref: ['associationNameWithLotsOfCharacters'], // 175 chars > 127 chars
-                            expand: [
-                              { ref: ['ID'] }, // 5
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
+        await INSERT.into(SelfReferencingEntity).entries([
+          { ID: 5, associationNameWithLotsOfCharacters_ID: null },
+          { ID: 4, associationNameWithLotsOfCharacters_ID: 5 },
+          { ID: 3, associationNameWithLotsOfCharacters_ID: 4 },
+          { ID: 2, associationNameWithLotsOfCharacters_ID: 3 },
+          { ID: 1, associationNameWithLotsOfCharacters_ID: 2 },
+          { ID: 0, associationNameWithLotsOfCharacters_ID: 1 },
         ])
-        .where({ ID: 0 })
+      })
 
-      const res = await cds.run(cqn)
-      expect(res?.length).to.be(1)
-      
-      for (
-        let expectedId = 0, current = res[0];
-        expectedId <= 5;
-        expectedId++, current = current.associationNameWithLotsOfCharacters
-      ) {
-        expect(current).not.to.be.undefined
-        expect(current.ID).to.be(expectedId)
-      }
-    })
+      afterAll(async () => {
+        await DELETE.from(SelfReferencingEntity)
+      })
 
-    test('filter on association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
-      const { SelfReferencingEntity } = cds.entities('edge.hana.aliases')
+      test('expand association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
+        const cqn = SELECT.from(SelfReferencingEntity)
+          .columns([
+            { ref: ['ID'] }, // 0
+            {
+              ref: ['associationNameWithLotsOfCharacters'], // 35 chars
+              expand: [
+                { ref: ['ID'] }, // 1
+                {
+                  ref: ['associationNameWithLotsOfCharacters'], // 70 chars
+                  expand: [
+                    { ref: ['ID'] }, // 2
+                    {
+                      ref: ['associationNameWithLotsOfCharacters'], // 105 chars
+                      expand: [
+                        { ref: ['ID'] }, // 3
+                        {
+                          ref: ['associationNameWithLotsOfCharacters'], // 140 chars > 127 chars
+                          expand: [
+                            { ref: ['ID'] }, // 4
+                            {
+                              ref: ['associationNameWithLotsOfCharacters'], // 175 chars > 127 chars
+                              expand: [
+                                { ref: ['ID'] }, // 5
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ])
+          .where({ ID: 0 })
 
-      await INSERT.into(SelfReferencingEntity).entries([
-        { ID: 5, associationNameWithLotsOfCharacters_ID: null },
-        { ID: 4, associationNameWithLotsOfCharacters_ID: 5 },
-        { ID: 3, associationNameWithLotsOfCharacters_ID: 4 },
-        { ID: 2, associationNameWithLotsOfCharacters_ID: 3 },
-        { ID: 1, associationNameWithLotsOfCharacters_ID: 2 },
-        { ID: 0, associationNameWithLotsOfCharacters_ID: 1 },
-      ])
+        const res = await cds.run(cqn)
+        expect(res?.length).to.be(1)
 
-      const cqn = SELECT.from(SelfReferencingEntity).where([
-        { ref: [...new Array(5).fill('associationNameWithLotsOfCharacters'), 'ID'] },
-        '=',
-        { val: 5 },
-      ])
+        for (
+          let expectedId = 0, current = res[0];
+          expectedId <= 5;
+          expectedId++, current = current.associationNameWithLotsOfCharacters
+        ) {
+          expect(current).not.to.be.undefined
+          expect(current.ID).to.be(expectedId)
+        }
+      })
 
-      const res = await cds.run(cqn)
-      expect(res?.length).to.be(1 )
+      test('filter on association where alias may exceed MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
+        const cqn = SELECT.from(SelfReferencingEntity)
+          .columns([
+            { ref: ['ID'] }, // 0
+            {
+              ref: ['associationNameWithLotsOfCharacters'], // 35 chars
+              expand: [
+                { ref: ['ID'] }, // 1
+                {
+                  ref: ['associationNameWithLotsOfCharacters'], // 70 chars
+                  expand: [
+                    { ref: ['ID'] }, // 2
+                    {
+                      ref: ['associationNameWithLotsOfCharacters'], // 105 chars
+                      expand: [
+                        { ref: ['ID'] }, // 3
+                        {
+                          ref: ['associationNameWithLotsOfCharacters'], // 140 chars > 127 chars
+                          expand: [
+                            { ref: ['ID'] }, // 4
+                            {
+                              ref: ['associationNameWithLotsOfCharacters'], // 175 chars > 127 chars
+                              expand: [
+                                { ref: ['ID'] }, // 5
+                                { ref: ['associationNameWithLotsOfCharacters_ID'] },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ])
+          .where([{ ref: [...new Array(5).fill('associationNameWithLotsOfCharacters'), 'ID'] }, '=', { val: 5 }])
+
+        const res = await cds.run(cqn)
+        expect(res?.length).to.be(1)
+
+        for (
+          let expectedId = 0, current = res[0];
+          expectedId <= 5;
+          expectedId++, current = current.associationNameWithLotsOfCharacters
+        ) {
+          expect(current).not.to.be.undefined
+          expect(current.ID).to.be(expectedId)
+        }
+      })
     })
 
     test('$now in view refers to tx timestamp', async () => {
