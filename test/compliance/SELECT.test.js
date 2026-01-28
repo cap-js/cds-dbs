@@ -313,41 +313,15 @@ describe('SELECT', () => {
         { ID: 0, associationNameWithLotsOfCharacters_ID: 1 },
       ])
 
-      const cqn = SELECT.from(SelfReferencingEntity)
-        .columns([
-          { ref: ['ID'] }, // 0
-          {
-            ref: ['associationNameWithLotsOfCharacters'], // 35 chars
-            expand: [
-              { ref: ['ID'] }, // 1
-              {
-                ref: ['associationNameWithLotsOfCharacters'], // 70 chars
-                expand: [
-                  { ref: ['ID'] }, // 2
-                  {
-                    ref: ['associationNameWithLotsOfCharacters'], // 105 chars
-                    expand: [
-                      { ref: ['ID'] }, // 3
-                      {
-                        ref: ['associationNameWithLotsOfCharacters'], // 140 chars > 127 chars
-                        expand: [
-                          { ref: ['ID'] }, // 4
-                          {
-                            ref: ['associationNameWithLotsOfCharacters'], // 175 chars > 127 chars
-                            expand: [
-                              { ref: ['ID'] }, // 5
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ])
-        .where({ ID: 0 })
+      const cqn = cds.ql`SELECT FROM ${SelfReferencingEntity} {
+        ID, associationNameWithLotsOfCharacters {
+          ID, associationNameWithLotsOfCharacters {
+            ID, associationNameWithLotsOfCharacters {
+              ID, associationNameWithLotsOfCharacters {
+                ID, associationNameWithLotsOfCharacters {
+                  ID
+      } } } } } }
+      where ID = 0`
 
       const res = await cds.run(cqn)
       expect(res?.length).to.be(1)
