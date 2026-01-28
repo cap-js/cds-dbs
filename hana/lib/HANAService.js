@@ -375,7 +375,7 @@ class HANAService extends SQLService {
         q.as = walkAlias(q) // Use from alias for query re use alias
         q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
 
-        if (q.alias.length >= 127) { 
+        if (q.alias.length > 127) { 
           // HANA limits identifiers to 127 characters
           q.technicalAlias = `$TA${++this.technicalAliases}`
         }
