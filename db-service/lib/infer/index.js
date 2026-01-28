@@ -1079,7 +1079,10 @@ function infer(originalQuery, model) {
     if ($refLinks?.[$refLinks.length - 1].definition.elements)
       // no cast on structure
       cds.error`Structured elements can't be cast to a different type`
-    thing.cast = (cdsTypes[cast.type] && new cdsTypes[cast.type].constructor(cast)) || cast
+    const cdsType = cdsTypes[cast.type]
+    thing.cast = cdsType ? new cdsType.constructor(cast) : cast
+    if (cdsType)
+      thing.cast.type = cdsType._type
     return thing.cast
   }
 
