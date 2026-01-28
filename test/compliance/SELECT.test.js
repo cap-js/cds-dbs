@@ -171,7 +171,6 @@ describe('SELECT', () => {
     })
 
     test('select xpr', async () => {
-      // REVISIT: Make HANAService ANSI SQL compliant by wrapping compare expressions into case statements for columns
       const { string } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT (${'yes'} = string) as xpr : cds.Boolean FROM ${string} order by string`
       const res = await cds.run(cqn)
@@ -179,6 +178,60 @@ describe('SELECT', () => {
       assert.equal(res[0].xpr, null)
       assert.equal(res[1].xpr, false)
       assert.equal(res[2].xpr, true)
+    })
+
+    const inline = ({ xpr = [] }) => { for (const expr of xpr) if (expr && typeof expr === 'object' && 'val' in expr) expr.param = false }
+    test('select == and !=', async () => {
+
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT 
+        1 == null as valEQnull : cds.Boolean,
+        1 != null as valNEnull : cds.Boolean,
+        null == 1 as nullEQval : cds.Boolean,
+        null != 1 as nullNEval : cds.Boolean,
+        null == null as nullEQnull : cds.Boolean,
+        null != null as nullNEnull : cds.Boolean
+      FROM ${string}`
+
+      cqn.SELECT.columns.forEach(inline)
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+
+      assert.equal(res[0].valEQnull, false)
+      assert.equal(res[0].valNEnull, true)
+
+      assert.equal(res[0].nullEQval, false)
+      assert.equal(res[0].nullNEval, true)
+
+      assert.equal(res[0].nullEQnull, true)
+      assert.equal(res[0].nullNEnull, false)
+    })
+
+    test('select = and <>', async () => {
+      const { string } = cds.entities('basic.projection')
+      const cqn = cds.ql`SELECT 
+        1 = null as valEQnull : cds.Boolean,
+        1 <> null as valNEnull : cds.Boolean,
+        null = 1 as nullEQval : cds.Boolean,
+        null <> 1 as nullNEval : cds.Boolean,
+        null = null as nullEQnull : cds.Boolean,
+        null <> null as nullNEnull : cds.Boolean
+      FROM ${string}`
+
+      cqn.SELECT.columns.forEach(inline)
+
+      const res = await cds.run(cqn)
+      assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
+
+      assert.equal(res[0].valEQnull, false)
+      assert.equal(res[0].valNEnull, null)
+
+      assert.equal(res[0].nullEQval, null)
+      assert.equal(res[0].nullNEval, null)
+
+      assert.equal(res[0].nullEQnull, true)
+      assert.equal(res[0].nullNEnull, null)
     })
 
     test('select calculation', async () => {
