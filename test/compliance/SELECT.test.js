@@ -297,7 +297,8 @@ describe('SELECT', () => {
     test.skip('invalid cast (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`
-      await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' }).rejected
+      await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
+          .rejected
     })
 
     test('expand association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
