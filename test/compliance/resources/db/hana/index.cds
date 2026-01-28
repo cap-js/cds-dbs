@@ -3,4 +3,3 @@
 using from './literals';
 using from './funcs';
 using from './versioning';
-using from './aliases';
