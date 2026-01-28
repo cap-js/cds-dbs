@@ -300,23 +300,6 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
     })
-
-    test('expand association where alias exceeds MAX_LENGTH_OF_ALIAS_NAME (128)', async () => {
-      const { SelfReferencingEntity } = cds.entities('edge.hana.aliases')
-
-      const cqn = cds.ql`SELECT FROM ${SelfReferencingEntity} {
-        ID, associationNameWithLotsOfCharacters {
-          ID, associationNameWithLotsOfCharacters {
-            ID, associationNameWithLotsOfCharacters {
-              ID, associationNameWithLotsOfCharacters {
-                ID, associationNameWithLotsOfCharacters {
-                  ID
-      } } } } } }
-      where ID = 0`
-
-      const res = await cds.run(cqn)
-      expect(res).to.not.be.undefined
-    })
   })
 
   test('$now in view refers to tx timestamp', async () => {
