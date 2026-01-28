@@ -2,22 +2,27 @@ using {sap.capire.bookshop as my} from '../db/schema';
 
 @path: '/tree'
 service TreeService {
-  entity Genres as
+
+  @odata.draft.enabled
+  entity Books                 as projection on my.Books;
+
+  @cds.redirection.target
+  entity Genres                as
     projection on my.Genres {
       *,
-      null as LimitedDescendantCount,
-      null as DistanceFromRoot,
-      null as DrillState,
-      null as Matched,
-      null as MatchedDescendantCount,
-      null as LimitedRank,
+      null as LimitedDescendantCount: Int64,
+      null as DistanceFromRoot: Int64,
+      null as DrillState: String,
+      null as Matched: Int64,
+      null as MatchedDescendantCount: Int64,
+      null as LimitedRank: Int64,
     };
 
-    annotate Genres with @Aggregation.RecursiveHierarchy#GenresHierarchy: {
-      $Type                   : 'Aggregation.RecursiveHierarchyType',
-      NodeProperty            : ID,
-      ParentNavigationProperty: parent
-    };
+  annotate Genres with @Aggregation.RecursiveHierarchy #GenresHierarchy: {
+    $Type                   : 'Aggregation.RecursiveHierarchyType',
+    NodeProperty            : ID,
+    ParentNavigationProperty: parent
+  };
 
   entity GenresComp as
     projection on my.Genres {
