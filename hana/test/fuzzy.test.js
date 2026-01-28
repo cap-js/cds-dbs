@@ -24,6 +24,26 @@ describe('search', () => {
       expect(values[0]).to.eq('"autobio" "jane"') // taken as is
       await cqn
     })
+    
+    test('global config partial string', async () => {
+      cds.env.hana.fuzzy = 1
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(Books).search('"autobio"').columns('1')
+      const {sql} = cqn.toSQL()
+      expect(sql).to.include('EXACT MINIMAL SCORE 1')
+      const res = await cqn
+      expect(res.length).to.be(0) // must be exact match
+    })
+
+    test('global config whole string', async () => {
+      cds.env.hana.fuzzy = 1
+      const { Books } = cds.entities('sap.capire.bookshop')
+      const cqn = SELECT.from(Books).search('"Jane"').columns('1')
+      const {sql} = cqn.toSQL()
+      expect(sql).to.include('EXACT MINIMAL SCORE 1')
+      const res = await cqn
+      expect(res.length).to.be(2) // Wuthering Heights and and Jane Eyre
+    })
 
     test('global config', async () => {
       cds.env.hana.fuzzy = 1
@@ -44,6 +64,18 @@ describe('search', () => {
 
       const res = await cqn
       expect(res.length).to.be(1) // jane eyre
+    })
+
+    test('annotations with descr score 1', async () => {
+      const { BooksAnnotatedScore1 } = cds.entities
+      const cqn = SELECT.from(BooksAnnotatedScore1).search('is often').columns('1')
+      const {sql} = cqn.toSQL()
+      expect(sql).to.include('title FUZZY WEIGHT 0.8 MINIMAL TOKEN SCORE 0.9')
+      expect(sql).to.include('code FUZZY WEIGHT 0.5 MINIMAL TOKEN SCORE 0.7')
+      expect(sql).to.include('descr EXACT WEIGHT 0.3 MINIMAL SCORE 1')
+      
+      const res = await cqn
+      expect(res.length).to.be(2) // Eleonora and Raven
     })
   })
 
