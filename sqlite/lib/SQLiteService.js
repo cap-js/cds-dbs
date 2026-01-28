@@ -274,6 +274,7 @@ class SQLiteService extends SQLService {
     // Used for CREATE TABLE statements
     static TypeMap = {
       ...super.TypeMap,
+      Decimal: () => `REAL`,
       Binary: e => `BINARY_BLOB(${e.length || 5000})`,
       Date: () => 'DATE_TEXT',
       Time: () => 'TIME_TEXT',

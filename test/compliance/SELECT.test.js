@@ -241,6 +241,30 @@ describe('SELECT', () => {
       assert.strictEqual(res.length, 3, 'Ensure that all rows are coming back')
     })
 
+    test('select div with cast behaviors', async () => {
+      const { number } = cds.entities('basic.literals')
+
+      const cqn = cds.ql`SELECT
+        integer32 / integer64 as div2int:Integer,
+        CAST(integer32 as Decimal) / CAST(integer64 as Decimal) as div2int_decimal:Decimal(2,1),
+
+        double / decimal as div2double:Decimal(2,1),
+        CAST(double as Integer) / CAST(decimal as Integer) as div2double_int:Integer,
+
+        float / decimal as div2decimal:Decimal(2,1),
+        CAST(float as Integer) / CAST(decimal as Integer) as div2decimal_int:Integer
+      FROM ${number}`
+      const res = await cqn
+      expect(res).to.match([{
+        div2int: 0,
+        div2int_decimal: '0.5',
+        div2double: '0.5',
+        div2double_int: 0,
+        // div2decimal: '0.5', // broken on SQLite as DECIMAL is NUMERIC and not REAL
+        div2decimal_int: 0,
+      }])
+    })
+
     test('select sub select', async () => {
       const { string } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT (SELECT string FROM ${string} as sub WHERE sub.string = root.string) as string FROM ${string} as root`
