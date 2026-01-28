@@ -300,19 +300,19 @@ describe('SELECT', () => {
       await expect(cds.run(cqn), { message: 'Not supported type: cds.DoEsNoTeXiSt' })
         .rejected
     })
-  })
 
-  test('$now in view refers to tx timestamp', async () => {
-    let ts, res1, res2
-    await cds.tx(async tx => {
-      ts = tx.context.timestamp
-      // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
-      res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
-      res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+    test('$now in view refers to tx timestamp', async () => {
+      let ts, res1, res2
+      await cds.tx(async tx => {
+        ts = tx.context.timestamp
+        // the statements are run explicitly in sequential order to ensure current_timestamp would create different timestamps
+        res1 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+        res2 = await tx.run(SELECT.one.from('basic.projection.now_in_view'))
+      })
+
+      expect(res1.now).to.eq(ts.toISOString())
+      expect(res1.now).to.eq(res2.now)
     })
-
-    expect(res1.now).to.eq(ts.toISOString())
-    expect(res1.now).to.eq(res2.now)
   })
 
   describe('excluding', () => {
