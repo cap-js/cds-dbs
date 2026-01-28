@@ -4,6 +4,21 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.5.2](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.5.2) (2026-01-27)
+
+
+### Fixed
+
+* compare conversion for right hand `null` transformation ([#1469](https://github.com/cap-js/cds-dbs/issues/1469)) ([ec1d0c6](https://github.com/cap-js/cds-dbs/commit/ec1d0c6fa08db1f75e9b72eed382a507b49815cc))
+* prevent Service Manager DoS on pool connection failures ([#1474](https://github.com/cap-js/cds-dbs/issues/1474)) ([02eaf29](https://github.com/cap-js/cds-dbs/commit/02eaf29bc0a40348acf67c23f411d76c46eb56fb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
 ## [2.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.0...hana-v2.5.1) (2025-12-19)
 
 
