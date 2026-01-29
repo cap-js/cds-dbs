@@ -277,6 +277,25 @@ describe('Bookshop - Read', () => {
     expect(res.a.b.length).to.be.eq(2)
   })
 
+  test('Expand books with group by aggregation', async () => {
+    const { Authors, Books } = cds.entities('sap.capire.bookshop')
+    const expand = await cds.ql`
+      SELECT from ${Authors} {
+        books [group by author.ID] {
+         sum(price * stock) as totalStockValue
+        }
+      } where name = 'Edgar Allen Poe'`
+    const compareTo = await cds.ql`
+      SELECT from ${Books} {
+        sum(price * stock) as totalStockValue
+      }
+      where author.name = 'Edgar Allen Poe'
+      group by author.ID
+      `
+    
+    expect(expand[0].books[0].totalStockValue).to.be.eq(compareTo[0].totalStockValue)
+  })
+
   test.skip('Expand Book($count,$top,$orderby)', async () => {
     // REVISIT: requires changes in @sap/cds to allow $count inside expands
     const res = await GET(
