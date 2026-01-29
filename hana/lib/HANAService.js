@@ -354,7 +354,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
-      this.technicalAliases = this.technicalAliases || 0
+      this.aliasIdx = this.aliasIdx || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -373,10 +373,8 @@ class HANAService extends SQLService {
 
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q) // Use from alias for query re use alias
-        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
-
-        // HANA limitation https://help.sap.com/docs/HANA_SERVICE_CF/7c78579ce9b14a669c1f3295b0d8ca16/20a760537519101497e3cfe07b348f3c.html#:~:text=BIGINT%20data%20type-,Identifier%20length,-127%20characters
-        if (q.alias.length > 127) q.technicalAlias = `$TA${this.technicalAliases++}`
+        q.fullAlias = `${parent ? parent.fullAlias + '.' : ''}${alias || q.as}`
+        q.alias = `$TA${this.aliasIdx++}`
 
         const src = q
 
@@ -531,9 +529,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = q.src.technicalAlias 
-          ? `${this.quote(this.name(q.src.technicalAlias))} /* ${q.src.alias} */`
-          : this.quote(this.name(q.src.alias))
+        const fromSQL = `${this.quote(this.name(q.src.alias))} /* ${q.src.fullAlias} */`
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
