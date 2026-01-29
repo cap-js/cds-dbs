@@ -375,11 +375,8 @@ class HANAService extends SQLService {
         q.as = walkAlias(q) // Use from alias for query re use alias
         q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
 
-        if (q.alias.length > 127) { 
-          // HANA limits identifiers to 127 characters
-          q.technicalAlias = `$TA${++this.technicalAliases}`
         // HANA limitation https://help.sap.com/docs/HANA_SERVICE_CF/7c78579ce9b14a669c1f3295b0d8ca16/20a760537519101497e3cfe07b348f3c.html#:~:text=BIGINT%20data%20type-,Identifier%20length,-127%20characters
-        if (q.alias.length > 127) q.alias= `$TA${this.technicalAliases++}`
+        if (q.alias.length > 127) q.technicalAlias = `$TA${this.technicalAliases++}`
 
         const src = q
 
