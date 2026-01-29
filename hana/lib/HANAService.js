@@ -585,12 +585,12 @@ class HANAService extends SQLService {
           if (x.SELECT.from) {
             x.SELECT.from = {
               join: 'inner',
-              args: [x.SELECT.from, { ref: [parent.technicalAlias || parent.alias], as: parent.as }],
+              args: [x.SELECT.from, { ref: [parent.alias], as: parent.as }],
               on: x.SELECT.where,
               as: x.SELECT.from.as,
             }
           } else {
-            x.SELECT.from = { ref: [parent.technicalAlias || parent.alias], as: parent.as }
+            x.SELECT.from = { ref: [parent.alias], as: parent.as }
             x.SELECT.columns.forEach(col => {
               // if (col.ref?.length === 1) { col.ref.unshift(parent.as) }
               if (col.ref?.length > 1) {
