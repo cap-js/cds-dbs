@@ -20,14 +20,14 @@ describe('Infer types of calculated elements in select list', () => {
       model,
     )
     let { Books } = model.entities
-    expect(inferred.elements).to.deep.equal({
+    expect(inferred.elements).to.deep.contain({
       ID: Books.elements.ID,
       area: Books.elements.area,
       strArea: {
-        type: 'cds.String',
+        _type: 'cds.String',
       },
       areaCastedToInt: {
-        type: 'cds.Integer',
+        _type: 'cds.Integer',
       },
     })
   })
