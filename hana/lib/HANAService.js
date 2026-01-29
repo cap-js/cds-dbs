@@ -389,6 +389,9 @@ class HANAService extends SQLService {
           // Track parent _path_ for later concatination
           if (!columns.find(c => this.column_name(c) === '_path_'))
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
+          // make sure to include the _parent_path_ in group by is applied to expand
+          if (groupBy)
+            groupBy.push({ ref: [parent.as, '_path_'] })
         }
 
         if (recurse) {
