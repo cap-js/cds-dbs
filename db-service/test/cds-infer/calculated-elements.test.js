@@ -2,7 +2,7 @@
 
 const _inferred = require('../../lib/infer')
 const cds = require('@sap/cds')
-const { expect } = cds.test
+const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
 
 describe('Infer types of calculated elements in select list', () => {
   let model
