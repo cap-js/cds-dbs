@@ -1,7 +1,7 @@
 'use strict'
 
 const cds = require('@sap/cds')
-const { expect } = cds.test
+const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
