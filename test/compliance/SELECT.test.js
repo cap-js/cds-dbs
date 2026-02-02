@@ -118,12 +118,13 @@ describe('SELECT', () => {
 
     test('select funcs', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string),max(string),count(), count() as count64: cds.Integer64 FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].min, 'no', 'Ensure that the function is applied')
       assert.strictEqual(res[0].max, 'yes', 'Ensure that the function is applied')
       assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
+      assert.strictEqual(res[0].count64, '3', 'Ensure that the cast is applied')
     })
 
     test('select funcs (duplicates)', async () => {
