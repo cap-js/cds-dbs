@@ -57,7 +57,7 @@ describe('search', () => {
     })
   })
 
-    describe('like', () => {
+  describe('like', () => {
     beforeEach(() => cds.env.hana.fuzzy = false)
     test('fallback - 1 search term', async () => {
       const { Books } = cds.entities('sap.capire.bookshop')
