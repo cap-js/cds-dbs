@@ -51,22 +51,14 @@ class HANAService extends SQLService {
     const isMultitenant = !!service.options.credentials.sm_url || !!service.options.credentials.baseurl || ('multiTenant' in this.options ? this.options.multiTenant : cds.env.requires.multitenancy)
     const acquireTimeoutMillis = this.options.pool?.acquireTimeoutMillis || (cds.env.profiles.includes('production') ? 1000 : 10000)
     return {
-      options: {
-        min: 0,
-        max: 10,
-        acquireTimeoutMillis,
-        idleTimeoutMillis: 60000,
-        evictionRunIntervalMillis: 100000,
-        numTestsPerEvictionRun: Math.ceil((this.options.pool?.max || 10) - (this.options.pool?.min || 0) / 3),
-        ...(this.options.pool || {}),
-        testOnBorrow: true,
-        fifo: false
-      },
+      options: this.options.pool || {},
       create: async function create(tenant, start = Date.now()) {
+        let credentials
         try {
-          const { credentials } = isMultitenant
+          const smTenant = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+          credentials = smTenant.credentials
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           service.server.major = dbc.server.major || service.server.major
@@ -77,9 +69,15 @@ class HANAService extends SQLService {
               if (err.status === 404 || err.status === 429) {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
-              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              if (Date.now() - start < acquireTimeoutMillis) return create(tenant, start)
-              else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+              const deadline = start + acquireTimeoutMillis
+              try {
+                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
+              } catch (smErr) {
+                 smErr.cause = err
+                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+              }
+              if (Date.now() < deadline) return create(tenant, start)
+              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
             } else {
               // Stop trying when the tenant does not exist or is rate limited
               if (err.status == 404 || err.status == 429) {
@@ -202,16 +200,16 @@ class HANAService extends SQLService {
   }
 
   async onINSERT({ query, data }) {
-      const { sql, entries, cqn } = this.cqn2sql(query, data)
-      if (!sql) return // Do nothing when there is nothing to be done
-      const ps = await this.prepare(sql)
-      // HANA driver supports batch execution
-      const results = await (entries
-        ? this.server.major <= 2
-          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-        : this.ensureDBC() && ps.run())
-      return new this.class.InsertResults(cqn, results)
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    // HANA driver supports batch execution
+    const results = await (entries
+      ? this.server.major <= 2
+        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+      : this.ensureDBC() && ps.run())
+    return new this.class.InsertResults(cqn, results)
   }
 
   async onNOTFOUND(req, next) {
@@ -365,13 +363,14 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+        const walkAlias = (q) => {
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return 'unknown'
         }
         const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q) // Use from alias for query re use alias
+        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
         q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
         const src = q
 
@@ -391,6 +390,9 @@ class HANAService extends SQLService {
           // Track parent _path_ for later concatination
           if (!columns.find(c => this.column_name(c) === '_path_'))
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
+          // make sure to include the _parent_path_ in group by is applied to expand
+          if (groupBy)
+            groupBy.push({ ref: [parent.as, '_path_'] })
         }
 
         if (recurse) {
@@ -874,8 +876,21 @@ class HANAService extends SQLService {
       const mixing = managed.map(c => c.upsert)
       const extraction = managed.map(c => c.extract)
 
-      const sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
+      let sql
+      if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
+        sql = `WITH SRC AS (SELECT ? AS JSON FROM DUMMY UNION ALL SELECT TO_NCLOB(NULL) AS JSON FROM DUMMY)
 SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON ERROR) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      } else {
+        const src = this.cqn4sql(UPSERT.from || UPSERT.as)
+        if (this.values) this.values = []
+        const aliasedQuery = cds.ql.SELECT
+          .columns(src.SELECT.columns
+            .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+          )
+          .from(src)
+        sql = `SELECT ${mixing} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+        this.entries = [this.values]
+      }
 
       return (this.sql = `UPSERT ${this.quote(entity)} (${this.columns.map(c => this.quote(c))}) ${sql}`)
     }
@@ -935,6 +950,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         '<=': null,
         '!<': null,
         '!>': null,
+        'IS': null,
+        'IS NOT': null,
       }
 
       if (!_internal) {
@@ -1229,7 +1246,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
       // REVISIT: BASE64_DECODE has stopped working
       // Unable to convert NVARCHAR to UTF8
       // Not encoded string with CESU-8 or some UTF-8 except a surrogate pair at "base64_decode" function
-      Binary: e => (typeof e === 'string' && e.match(/^NEW\./))  ? `HEXTOBIN(${e})`: e,
+      Binary: e => (typeof e === 'string' && e.match(/^NEW\./)) ? `HEXTOBIN(${e})` : e,
       Boolean: e => e === '?' ? e : `CASE WHEN ${e} = 'true' OR ${e} = '1' THEN TRUE WHEN ${e} = 'false' OR ${e} = '0' THEN FALSE END`,
       // TODO: Decimal: (expr, element) => element.precision ? `TO_DECIMAL(${expr},${element.precision},${element.scale})` : expr
 

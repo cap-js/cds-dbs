@@ -12,6 +12,31 @@ const getDateType = x => (isDate.test(x.val) ? 'DATE' : 'TIMESTAMP')
 const getDateCast = x => (isVal(x) ? `TO_${getDateType(x)}(${x})` : x)
 
 const StandardFunctions = {
+  /**
+   * Generates SQL statement that produces a runtime compatible error object
+   * @param {string|object} message - The i18n key or message of the error object
+   * @param {Array<xpr>} args - The arguments to apply to the i18n string
+   * @param {Array<xpr>} targets - The name of the element that the error is related to
+   * @return {string} - SQL statement
+   */
+  error: function (message, args, targets) {
+    targets = targets && (targets.list || (targets.val || targets.ref) && [targets])
+    if (Array.isArray(targets)) targets = targets.map(e => e.ref && { val: e.ref.at(-1) } || e)
+    args = args && (args.list || (args.val || args.ref) && [args])
+
+    const expr = expr => expr
+      ? `' || coalesce('"' || ${this.expr(expr)} || '"','null') || '`
+      : 'null'
+
+    return `'{"message":${expr(message)}, "args":${args
+      ? `[${args.map(arg => expr(arg))}]`
+      : 'null'
+      },"targets":${targets
+        ? `[${targets.map(target => expr(target))}]`
+        : 'null'
+      }}'`
+  },
+
   // ==============================
   // Session Context Functions
   // ==============================
@@ -220,10 +245,19 @@ const StandardFunctions = {
 }
 
 const HANAFunctions = {
+  current_connection: () => 'current_connection',
   current_date: () => 'current_utcdate',
+  current_schema: () => 'current_schema',
   current_time: () => 'current_utctime',
-  current_timestamp: () => 'current_utctimestamp',
+  current_timestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
+  current_transaction_isolation_level: () => 'current_transaction_isolation_level',
+  current_user: () => 'current_user',
+  current_utcdate: () => 'current_utcdate',
+  current_utctime: () => 'current_utctime',
   current_utctimestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
+  session_user: () => 'session_user',
+  sysuuid: () => 'sysuuid',
+
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
   HIERARCHY_ANCESTORS: undefined,

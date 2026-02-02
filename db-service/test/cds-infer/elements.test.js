@@ -2,7 +2,7 @@
 // test the calculation of the elements of the query
 
 const cds = require('@sap/cds')
-const { expect } = cds.test.in(__dirname + '/../bookshop')
+const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: contain({_type}) doesn't work with jest
 const inferred = require('../../lib/infer')
 function _inferred(q, m = cds.model) {
   return inferred(q, m)
@@ -72,11 +72,11 @@ describe('infer elements', () => {
       const inferred = _inferred(cds.ql`
         SELECT 11, 'foo', true, false from bookshop.Books
       `)
-      expect(inferred.elements).to.deep.equal({
-        11: { type: 'cds.Integer' },
-        foo: { type: 'cds.String' },
-        true: { type: 'cds.Boolean' },
-        false: { type: 'cds.Boolean' },
+      expect(inferred.elements).to.deep.contain({
+        11: { _type: 'cds.Integer' },
+        foo: { _type: 'cds.String' },
+        true: { _type: 'cds.Boolean' },
+        false: { _type: 'cds.Boolean' },
       })
     })
   })
@@ -205,9 +205,9 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.equal({
-        twoLeapYearsEarlier: { type: 'cds.Date' },
-        twoLeapYearsLater: { type: 'cds.Date' },
+      expect(inferred.elements).to.deep.contain({
+        twoLeapYearsEarlier: { _type: 'cds.Date' },
+        twoLeapYearsLater: { _type: 'cds.Date' },
         months_between: {},
       })
     })
@@ -220,9 +220,9 @@ describe('infer elements', () => {
         }
       `
       let inferred = _inferred(q)
-      expect(inferred.elements).to.deep.equal({
-        twoLeapYearsEarlier: { type: 'cds.Date' },
-        twoLeapYearsLater: { type: 'cds.Date' },
+      expect(inferred.elements).to.deep.contain({
+        twoLeapYearsEarlier: { _type: 'cds.Date' },
+        twoLeapYearsLater: { _type: 'cds.Date' },
         calc: {},
       })
     })
@@ -367,46 +367,45 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let { Books } = model.entities
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
-      expect(inferred.elements).to.deep.equal({
+      expect(inferred.elements).to.deep.contain({
         price: {
-          type: 'cds.Integer',
+          _type: 'cds.Integer',
         },
         pi: {
-          type: 'cds.Decimal',
+          _type: 'cds.Decimal',
         },
         pid: {
-          type: 'cds.Decimal',
-          // REVISIT: currently CQL does not retain type arguments
-          // precision: 5,
-          // scale: 4
+          _type: 'cds.Decimal',
+          precision: 5,
+          scale: 4
         },
         boolf: {
-          type: 'cds.Boolean',
+          _type: 'cds.Boolean',
         },
         boolt: {
-          type: 'cds.Boolean',
+          _type: 'cds.Boolean',
         },
         nullt: {},
         nullc: {
-          type: 'cds.String',
+          _type: 'cds.String',
         },
         date: {
-          type: 'cds.Date',
+          _type: 'cds.Date',
         },
         time: {
-          type: 'cds.Time',
+          _type: 'cds.Time',
         },
         datetime: {
-          type: 'cds.DateTime',
+          _type: 'cds.DateTime',
         },
         timestamp: {
-          type: 'cds.Timestamp',
+          _type: 'cds.Timestamp',
         },
         string: {
-          type: 'cds.String',
+          _type: 'cds.String',
         },
         stringl: {
-          type: 'cds.LargeString',
+          _type: 'cds.LargeString',
         },
       })
     })
@@ -418,13 +417,13 @@ describe('infer elements', () => {
       expect(inferred.sources).to.have.nested.property('Books.definition', Books)
       let expectedElements = {
         IDS: {
-          type: 'cds.String',
+          _type: 'cds.String',
         },
         IDCustomType: {
           type: 'bookshop.DerivedFromDerivedString',
         },
       }
-      expect(inferred.elements).to.deep.equal(expectedElements)
+      expect(inferred.elements).to.deep.contain(expectedElements)
     })
 
     it('supports a cdl-style cast in the select list', () => {
@@ -438,10 +437,10 @@ describe('infer elements', () => {
       let inferred = _inferred(query)
       let expectedElements = {
         dedication_sub_foo: {
-          type: 'cds.Integer',
+          _type: 'cds.Integer',
         },
         IDS: {
-          type: 'cds.String',
+          _type: 'cds.String',
         },
         IDCustomType: {
           type: 'bookshop.DerivedFromDerivedString',
@@ -517,17 +516,17 @@ describe('infer elements', () => {
         elements: {
           $user: {
             elements: {
-              id: { type: 'cds.String' },
-              locale: { type: 'cds.String' }, // deprecated
-              tenant: { type: 'cds.String' }, // deprecated
+              id: { _type: 'cds.String' },
+              locale: { _type: 'cds.String' }, // deprecated
+              tenant: { _type: 'cds.String' }, // deprecated
             },
           },
-          $now: { type: 'cds.Timestamp' },
-          $at: { type: 'cds.Timestamp' },
-          $from: { type: 'cds.Timestamp' },
-          $to: { type: 'cds.Timestamp' },
-          $locale: { type: 'cds.String' },
-          $tenant: { type: 'cds.String' },
+          $now: { _type: 'cds.Timestamp' },
+          $at: { _type: 'cds.Timestamp' },
+          $from: { _type: 'cds.Timestamp' },
+          $to: { _type: 'cds.Timestamp' },
+          $locale: { _type: 'cds.String' },
+          $tenant: { _type: 'cds.String' },
         },
       }
       let query = cds.ql`SELECT from bookshop.Bar {
@@ -558,7 +557,7 @@ describe('infer elements', () => {
         $locale: pseudos.elements.$locale,
         $tenant: pseudos.elements.$tenant,
       }
-      expect(inferred.elements).to.deep.equal(expectedElements)
+      expect(inferred.elements).to.deep.contain(expectedElements)
     })
 
     it('$variables in where do not matter for infer', () => {
@@ -595,7 +594,7 @@ describe('infer elements', () => {
       }
       const inferred = _inferred(query, model)
       expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
-      expect(inferred.elements['discount']).to.eql({ type: 'cds.Integer' })
+      expect(inferred.elements['discount']).to.contain({ _type: 'cds.Integer' })
     })
     it('infers values type on binding parameter', () => {
       const query = {
@@ -607,7 +606,7 @@ describe('infer elements', () => {
       }
       const inferred = _inferred(query, model)
       expect(Object.keys(inferred.elements).length).to.eql(inferred.SELECT.columns.length)
-      expect(inferred.elements['discount']).to.eql({ type: 'cds.Integer' })
+      expect(inferred.elements['discount']).to.contain({ _type: 'cds.Integer' })
     })
   })
 })
