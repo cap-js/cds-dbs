@@ -364,15 +364,15 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+        const walkAlias = (q) => {
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return 'unknown'
         }
 
         const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q) // Use from alias for query re use alias
+        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
         q.fullAlias = `${parent ? parent.fullAlias + '.' : ''}${alias || q.as}`
         q.alias = `$TA${this.aliasIdx++}`
 

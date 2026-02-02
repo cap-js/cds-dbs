@@ -8,7 +8,8 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, DELETE } = cds.test(bookshop)
+  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
+  const { GET, POST, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -267,6 +268,25 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('Expand Book with $apply + $filter', async () => {
+    const res = await GET(
+      `/admin/Books?$select=title&$expand=author($select=name;$expand=books($select=title))&$apply=filter(title ne 'bar')&$filter=ID eq 252`,
+      admin,
+    )
+
+    expect(res).to.deep.contain({
+      status: 200,
+      data: {
+        value: [{
+          ID: 252,
+          title: 'Eleonora',
+          author: { name: 'Edgar Allen Poe' }
+        }]
+      },
+    })
+    expect(res.data.value[0].author.books.length).to.be.eq(2)
+  })
+
   test('Expand Book with alias', async () => {
     const { Books } = cds.entities('sap.capire.bookshop')
     const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from`${Books}[ID=252]`
@@ -277,6 +297,18 @@ describe('Bookshop - Read', () => {
     expect(res.a.b.length).to.be.eq(2)
   })
 
+  test('Expand Book with alias through sub select', async () => {
+    const { Books } = cds.entities('sap.capire.bookshop')
+    const res = await SELECT.one`ID as i, title as t, author as a { name as n, books as b { title as t } }`.from(SELECT.from`${Books}[ID=252]`)
+
+    expect(res).to.deep.contain({
+      i: 252,
+      t: 'Eleonora',
+      a: { n: 'Edgar Allen Poe' }
+    })
+    expect(res.a.b.length).to.be.eq(2)
+  })
+   
   test('Expand books with group by aggregation', async () => {
     const { Authors, Books } = cds.entities('sap.capire.bookshop')
     const expand = await cds.ql`
@@ -547,8 +579,8 @@ describe('Bookshop - Read', () => {
         ) as hasSimilarBooks
       }`
     const allBooks = await cds.run(thereExistsASimilarBook)
-    for( const book of allBooks ) {
-      if([272, 678].includes(book.ID))
+    for (const book of allBooks) {
+      if ([272, 678].includes(book.ID))
         expect(book.hasSimilarBooks).to.equal('This author has already written similar books')
       else
         expect(book.hasSimilarBooks).to.equal('No similar books by the books author')
