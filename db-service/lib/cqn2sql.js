@@ -329,6 +329,7 @@ class CQN2SQLRenderer {
       const clone = q.clone()
       clone.columns(keys)
       clone.SELECT.recurse = undefined
+      clone.SELECT.limit = undefined
       clone.SELECT.expand = undefined // omits JSON
       where = [{ list: keys }, 'in', clone]
     }
@@ -1255,7 +1256,7 @@ class CQN2SQLRenderer {
       ? _inline_null(xpr[i + 1]) || 'is'
       : '='
 
-    // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
+    // Translate == to IS NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
     if (x === '==') return xpr[i + 1]?.val === null
       ? _inline_null(xpr[i + 1]) || 'is'
@@ -1263,7 +1264,7 @@ class CQN2SQLRenderer {
         ? '='
         : this.is_not_distinct_from_
 
-    // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
+    // Translate != to IS NOT NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
     if (x === '!=') return xpr[i + 1]?.val === null
       ? _inline_null(xpr[i + 1]) || 'is not'
