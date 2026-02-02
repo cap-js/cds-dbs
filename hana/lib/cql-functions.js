@@ -245,10 +245,19 @@ const StandardFunctions = {
 }
 
 const HANAFunctions = {
+  current_connection: () => 'current_connection',
   current_date: () => 'current_utcdate',
+  current_schema: () => 'current_schema',
   current_time: () => 'current_utctime',
-  current_timestamp: () => 'current_utctimestamp',
+  current_timestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
+  current_transaction_isolation_level: () => 'current_transaction_isolation_level',
+  current_user: () => 'current_user',
+  current_utcdate: () => 'current_utcdate',
+  current_utctime: () => 'current_utctime',
   current_utctimestamp: x => (x ? `current_utctimestamp(${x})` : 'current_utctimestamp'),
+  session_user: () => 'session_user',
+  sysuuid: () => 'sysuuid',
+
   HIERARCHY: undefined,
   HIERARCHY_DESCENDANTS: undefined,
   HIERARCHY_ANCESTORS: undefined,
