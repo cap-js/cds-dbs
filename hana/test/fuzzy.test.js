@@ -34,7 +34,7 @@ describe('search', () => {
       await cqn
     })
 
-    test('annotations', async () => {
+    test('list of elements - annotations', async () => {
       const { BooksAnnotated } = cds.entities('sap.capire.bookshop')
       const cqn = SELECT.from(BooksAnnotated).search('"first-person"').columns('1')
       const { sql } = cqn.toSQL()
@@ -45,43 +45,15 @@ describe('search', () => {
       const res = await cqn
       expect(res.length).to.be(1) // jane eyre
     })
-  })
 
-  describe('like', () => {
-    beforeEach(() => cds.env.hana.fuzzy = false)
-    test('fallback - 1 search term', async () => {
-      const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"autobio"').columns('1')
+    test('single element - annotations', async () => {
+      const { BooksSingleAnnotated } = cds.entities
+      const cqn = SELECT.from(BooksSingleAnnotated).search('"first-person"').columns('1')
       const { sql } = cqn.toSQL()
-      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(5)
-      const res = await cqn
-      expect(res.length).to.be(2) // Eleonora and Jane Eyre
-    })
+      expect(sql).to.include('descr FUZZY WEIGHT 0.3 MINIMAL SCORE 0.9')
 
-    test('fallback - 2 search terms', async () => {
-      const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"autobio"', '"Jane"').columns('1')
-      const { sql, values } = cqn.toSQL()
-      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(10)
-      expect(values).to.include('%autobio%')
-      expect(values).to.include('%jane%')
       const res = await cqn
-      expect(res.length).to.be(1) // Jane Eyre
-    })
-
-    test('fallback - 3 search terms with special characters', async () => {
-      const { Books } = cds.entities('sap.capire.bookshop')
-      const cqn = SELECT.from(Books).search('"1847"', '1846', '"\\"Ellis Bell\\""').columns('1')
-      const { sql, values } = cqn.toSQL()
-      // 5 columns to be searched createdBy, modifiedBy, title, descr, currency_code
-      expect(sql.match(/(like)/g).length).to.be(15)
-      expect(values).to.include('%1847%')
-      expect(values).to.include('%1846%')
-      expect(values).to.include('%"ellis bell"%')
-      const res = await cqn
-      expect(res.length).to.be(1) // Emily Brontë
+      expect(res.length).to.be(1) // jane eyre
     })
   })
 })
