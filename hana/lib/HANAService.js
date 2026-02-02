@@ -373,7 +373,6 @@ class HANAService extends SQLService {
 
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
-        q.fullAlias = `${parent ? parent.fullAlias + '.' : ''}${alias || q.as}`
         q.alias = `$TA${this.aliasIdx++}`
 
         const src = q
@@ -532,7 +531,7 @@ class HANAService extends SQLService {
 
       if (expand === 'root' && this._outputColumns) {
         this.cqn = q
-        const fromSQL = `${this.quote(this.name(q.src.alias))} /* ${q.src.fullAlias} */`
+        const fromSQL = this.quote(this.name(q.src.alias))
         this.withclause.unshift(`${fromSQL} as (${this.sql})`)
         this.temporary.unshift({ blobs: this._blobs, select: `SELECT ${this._outputColumns} FROM ${fromSQL}` })
         if (this.values) {
