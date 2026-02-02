@@ -8,7 +8,8 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, DELETE } = cds.test(bookshop)
+  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
+  const { GET, POST, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
