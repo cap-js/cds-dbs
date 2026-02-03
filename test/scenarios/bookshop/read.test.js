@@ -342,6 +342,21 @@ describe('Bookshop - Read', () => {
     expect(res.data.author.books.length).to.be.eq(2)
   })
 
+  test('recursively expand children of Generes to exceed MAX_LENGTH_OF_IDENTIFIER (127)', async () => {
+    const { Genres } = cds.entities('sap.capire.bookshop')
+
+    const columns = Array.from({ length: 16 }).reduce(cols => {
+        const nestedCols = cols.pop()
+        cols.push([{ ref: ['ID'] }, { ref: ['children'], expand: nestedCols }])
+        return cols
+      }, [])
+
+    const cqn = SELECT.from(Genres).columns(...columns)
+
+    const res = await cds.run(cqn)
+    expect(res).to.not.be.undefined
+  })
+
   test('Sorting Books', async () => {
     const res = await POST(
       '/admin/Books',
