@@ -4,6 +4,30 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.6.0](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.1...hana-v2.6.0) (2026-02-03)
+
+
+### Added
+
+* enable `group by` aggregation for expand queries ([#1482](https://github.com/cap-js/cds-dbs/issues/1482)) ([55942da](https://github.com/cap-js/cds-dbs/commit/55942daa58f05e0e27a67d180aca415021525db9))
+
+
+### Fixed
+
+* Add missing functions that require no brackets ([#1485](https://github.com/cap-js/cds-dbs/issues/1485)) ([cfd1c3e](https://github.com/cap-js/cds-dbs/commit/cfd1c3ef95a85e2650d67a1f26ad6ac86f809bbe))
+* association identifiers exceed limit ([#1480](https://github.com/cap-js/cds-dbs/issues/1480)) ([ffe80dd](https://github.com/cap-js/cds-dbs/commit/ffe80dd5ee4b0248a19c48ffffa659edf24a28ef))
+* compare conversion for right hand `null` transformation ([#1469](https://github.com/cap-js/cds-dbs/issues/1469)) ([ec1d0c6](https://github.com/cap-js/cds-dbs/commit/ec1d0c6fa08db1f75e9b72eed382a507b49815cc))
+* expand through sub select ([#1488](https://github.com/cap-js/cds-dbs/issues/1488)) ([9cb5497](https://github.com/cap-js/cds-dbs/commit/9cb5497fb1dafe616a460041b1dfbfdbcd6f81a7))
+* prevent Service Manager DoS on pool connection failures ([#1474](https://github.com/cap-js/cds-dbs/issues/1474)) ([02eaf29](https://github.com/cap-js/cds-dbs/commit/02eaf29bc0a40348acf67c23f411d76c46eb56fb))
+* search annotations were not applied if only single element was searched ([#1490](https://github.com/cap-js/cds-dbs/issues/1490)) ([a1f2123](https://github.com/cap-js/cds-dbs/commit/a1f2123e0ecb2918f8e6ba28f500d88b7d34dff7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
 ## [2.5.1](https://github.com/cap-js/cds-dbs/compare/hana-v2.5.0...hana-v2.5.1) (2025-12-19)
 
 
