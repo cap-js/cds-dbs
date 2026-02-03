@@ -4,6 +4,15 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.3](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.2...sqlite-v2.1.3) (2026-02-03)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
 ## [2.1.2](https://github.com/cap-js/cds-dbs/compare/sqlite-v2.1.1...sqlite-v2.1.2) (2025-12-19)
 
 
