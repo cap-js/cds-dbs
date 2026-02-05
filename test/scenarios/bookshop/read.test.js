@@ -100,11 +100,11 @@ describe('Bookshop - Read', () => {
 
   test('groupby with nested path expression', async () => {
     const res = await GET(
-      '/admin/Books?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+      '/admin/Books?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))&$orderby=genre/name',
       admin,
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data.value[0].genre.name).to.be.eq('Mystery')
+    expect(res.data.value[0].genre.name).to.be.eq('Drama')
     expect(res.data.value[0].genre.children[0].name).to.be.defined
     expect(res.data.value[0].genre.children[0].children[0].name).to.be.defined
   })
