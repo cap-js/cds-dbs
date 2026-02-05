@@ -108,15 +108,20 @@ describe('Bookshop - Read', () => {
       },
       admin,
     )
-    expect(create.status).to.be.eq(201)
-    const res = await GET(
-      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
-      admin,
-    )
-    expect(res.status).to.be.eq(200)
-    expect(res.data.genre.name).to.be.eq('Non-Fiction')
-    expect(res.data.genre.children[0].name).to.be.eq('Biography')
-    expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
+    try {
+      expect(create.status).to.be.eq(201)
+
+      const res = await GET(
+        '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+        admin,
+      )
+      expect(res.status).to.be.eq(200)
+      expect(res.data.genre.name).to.be.eq('Non-Fiction')
+      expect(res.data.genre.children[0].name).to.be.eq('Biography')
+      expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
+    } finally {
+      await DELETE('/admin/Books(280)', admin)
+    }
   })
 
   test('groupby with multiple path expressions', async () => {
