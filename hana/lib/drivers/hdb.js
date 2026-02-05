@@ -60,6 +60,7 @@ class HDBDriver extends driver {
   }
 
   async validate() {
+    if (Object.keys(this.statements).length > 10_000) return false
     return this._native.readyState === 'connected'
   }
 
@@ -126,6 +127,7 @@ class HDBDriver extends driver {
 
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
+      ret.detach()
       const rs = await prom(stmt, 'execute')(values || [])
       return rsIterator(rs, one, objectMode)
     }

@@ -66,6 +66,7 @@ class HANAClientDriver extends driver {
     // It would be required to allow using getDate() on previous rows
     if (hasBlobs) {
       ret.all = async (values) => {
+        ret.detach()
         const stmt = await ret._prep
         // Create result set
         const reset = async function () {
@@ -140,6 +141,7 @@ class HANAClientDriver extends driver {
 
     ret.stream = async (values, one, objectMode) => {
       const stmt = await ret._prep
+      ret.detach()
       values = Array.isArray(values) ? values : []
       // Uses the native exec method instead of executeQuery to initialize a full stream
       // As executeQuery does not request the whole result set at once
@@ -169,6 +171,7 @@ class HANAClientDriver extends driver {
   }
 
   async validate() {
+    if (Object.keys(this.statements).length > 10_000) return false
     return this._native.state() === 'connected'
   }
 

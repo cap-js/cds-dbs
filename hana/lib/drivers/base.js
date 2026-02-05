@@ -9,6 +9,17 @@ class HANADriver {
   constructor(creds) {
     this._creds = creds
     this.connected = false
+    this.statements = {}
+  }
+
+  _prepare(sql) {
+    return module.exports.prom(
+      this._native,
+      'prepare',
+    )(sql).then(stmt => {
+      stmt._parentConnection = this._native
+      return stmt
+    })
   }
 
   /**
@@ -17,13 +28,17 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    const prep = module.exports.prom(
-      this._native,
-      'prepare',
-    )(sql).then(stmt => {
-      stmt._parentConnection = this._native
-      return stmt
+    this.statements[sql] ??= this._prepare(sql)
+
+    const prep = this.statements[sql].ready ?? this.statements[sql]
+    const release = {} // TODO: for node@22 use Promise.withResolvers()
+    release.promise = new Promise((resolve, reject) => {
+      release.resolve = resolve
+      release.reject = reject
     })
+    release.promise.catch(() => { })
+    this.statements[sql].ready = release.promise
+
     return {
       _prep: prep,
       run: async params => {
@@ -46,9 +61,16 @@ class HANADriver {
         const stmt = await prep
         return module.exports.prom(stmt, 'exec')(params)
       },
+      detach: async () => {
+        // Check whether something is waiting for the prepared statement already
+        if (this.statements[sql].ready === release.promise) {
+          this.statements[sql] = undefined
+          return
+        }
+        this._prepare(sql).then(release.resolve, release.reject)
+      },
       drop: async () => {
-        const stmt = await prep
-        return stmt.drop()
+        prep.then(release.resolve, release.reject)
       }
     }
   }

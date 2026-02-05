@@ -73,8 +73,8 @@ class HANAService extends SQLService {
               try {
                 await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
               } catch (smErr) {
-                 smErr.cause = err
-                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+                smErr.cause = err
+                throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
               }
               if (Date.now() < deadline) return create(tenant, start)
               else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
@@ -167,7 +167,11 @@ class HANAService extends SQLService {
     let rows
     if (values?.length || blobs.length > 0 || isStream) {
       const ps = await this.prepare(sqlScript, blobs.length)
-      rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
+      try {
+        rows = this.ensureDBC() && await ps[isStream ? 'stream' : 'all'](values || [], isOne, objectMode)
+      } finally {
+        ps.drop()
+      }
     } else {
       rows = await this.exec(sqlScript)
     }
@@ -203,13 +207,34 @@ class HANAService extends SQLService {
     const { sql, entries, cqn } = this.cqn2sql(query, data)
     if (!sql) return // Do nothing when there is nothing to be done
     const ps = await this.prepare(sql)
-    // HANA driver supports batch execution
-    const results = await (entries
-      ? this.server.major <= 2
-        ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
-        : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
-      : this.ensureDBC() && ps.run())
-    return new this.class.InsertResults(cqn, results)
+    try {
+      // HANA driver supports batch execution
+      const results = await (entries
+        ? this.server.major <= 2
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
+      return new this.class.InsertResults(cqn, results)
+    } finally {
+      ps.drop()
+    }
+  }
+
+  async onUPSERT({ query, data }) {
+    const { sql, entries, cqn } = this.cqn2sql(query, data)
+    if (!sql) return // Do nothing when there is nothing to be done
+    const ps = await this.prepare(sql)
+    try {
+      // HANA driver supports batch execution
+      const results = await (entries
+        ? this.server.major <= 2
+          ? entries.reduce((l, c) => l.then(() => this.ensureDBC() && ps.run(c)), Promise.resolve(0))
+          : entries.length > 1 ? this.ensureDBC() && await ps.runBatch(entries) : this.ensureDBC() && await ps.run(entries[0])
+        : this.ensureDBC() && ps.run())
+      return results.changes ?? results
+    } finally {
+      ps.drop()
+    }
   }
 
   async onNOTFOUND(req, next) {
@@ -307,11 +332,8 @@ class HANAService extends SQLService {
   }
 
   // prepare and exec are both implemented inside the drivers
-  prepare(sql, hasBlobs) {
-    const stmt = this.ensureDBC().prepare(sql, hasBlobs)
-    // we store the statements, to release them on commit/rollback all at once
-    this.dbc.statements.push(stmt)
-    return stmt
+  async prepare(sql, hasBlobs) {
+    return this.ensureDBC().prepare(sql, hasBlobs)
   }
 
   exec(sql) {
@@ -1278,8 +1300,9 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
 
   async onSIMPLE({ query, data, event }) {
     const { sql, values } = this.cqn2sql(query, data)
+    let ps
     try {
-      let ps = await this.prepare(sql)
+      ps = await this.prepare(sql)
       return (this.ensureDBC() && await ps.run(values)).changes
     } catch (err) {
       // Allow drop to fail when the view or table does not exist
@@ -1287,6 +1310,8 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
         return
       }
       throw err
+    } finally {
+      ps?.drop()
     }
   }
 
@@ -1311,8 +1336,26 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const isAsync = /\sASYNC\s*$/.test(query)
     const outParameters = isAsync ? [{ PARAMETER_NAME: 'ASYNC_CALL_ID' }] : await this._getProcedureMetadata(name, schema)
     const ps = await this.prepare(query)
-    const ret = this.ensureDBC() && await ps.proc(data, outParameters)
-    return isAsync ? ret.ASYNC_CALL_ID[0] : ret
+    try {
+      const ret = this.ensureDBC() && await ps.proc(data, outParameters)
+      return isAsync ? ret.ASYNC_CALL_ID[0] : ret
+    } finally {
+      ps.drop()
+    }
+  }
+
+  async _onPlainSQL({ query, data }, next) {
+    if (typeof query === 'string') {
+      DEBUG?.(query, data)
+      const ps = await this.prepare(query)
+      try {
+        const exec = this.hasResults(query) ? d => ps.all(d) : d => ps.run(d)
+        if (Array.isArray(data) && Array.isArray(data[0])) return await Promise.all(data.map(exec))
+        else return exec(data)
+      } finally {
+        ps.drop()
+      }
+    } else return next()
   }
 
   async onPlainSQL(req, next) {
@@ -1320,7 +1363,7 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     if (/ IF EXISTS /i.test(req.query)) {
       req.query = req.query.replace(/ IF EXISTS/gi, '')
       try {
-        return await super.onPlainSQL(req, next)
+        return await this._onPlainSQL(req, next)
       } catch (err) {
         if (/(^|')DROP /i.test(req.query) && (err.code === 259 || err.code === 321)) {
           return
@@ -1332,30 +1375,21 @@ SELECT ${mixing} FROM JSON_TABLE(SRC.JSON, '$' COLUMNS(${extraction}) ERROR ON E
     const proc = this._getProcedureNameAndSchema(req.query)
     if (proc && proc.name) return this.onCall(req, proc.name, proc.schema)
 
-    return super.onPlainSQL(req, next)
+    return this._onPlainSQL(req, next)
   }
 
   onBEGIN() {
     DEBUG?.('BEGIN')
-    if (this.dbc) this.dbc.statements = []
     return this.dbc?.begin()
   }
 
   onCOMMIT() {
     DEBUG?.('COMMIT')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.commit()
   }
 
   onROLLBACK() {
     DEBUG?.('ROLLBACK')
-    this.dbc?.statements?.forEach(stmt => stmt
-      .then(stmt => stmt.drop())
-      .catch(() => { })
-    )
     return this.dbc?.rollback()
   }
 
