@@ -98,6 +98,17 @@ describe('Bookshop - Read', () => {
     expect(res.data.value.every(row => row.author.name)).to.be.true
   })
 
+  test('groupby with nested path expression', async () => {
+    const res = await GET(
+      '/admin/Books?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
+      admin,
+    )
+    expect(res.status).to.be.eq(200)
+    expect(res.data.value[0].genre.name).to.be.eq('Mystery')
+    expect(res.data.value[0].genre.children[0].name).to.be.defined
+    expect(res.data.value[0].genre.children[0].children[0].name).to.be.defined
+  })
+
   test('groupby with multiple path expressions', async () => {
     const res = await GET('/admin/A?$apply=groupby((toB/toC/ID,toC/toB/ID))', admin)
     expect(res.status).to.be.eq(200)
