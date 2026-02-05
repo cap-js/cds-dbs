@@ -99,14 +99,24 @@ describe('Bookshop - Read', () => {
   })
 
   test('groupby with nested path expression', async () => {
+    const create = await POST(
+      '/admin/Books',
+      {
+        ID: 280,
+        title: 'dracula',
+        genre: { ID: 20 },
+      },
+      admin,
+    )
+    expect(create.status).to.be.eq(201)
     const res = await GET(
-      '/admin/Books?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))&$orderby=genre/name',
+      '/admin/Books(ID=280)?$apply=groupby((genre/name,genre/children/name,genre/children/children/name))',
       admin,
     )
     expect(res.status).to.be.eq(200)
-    expect(res.data.value[0].genre.name).to.be.eq('Drama')
-    expect(res.data.value[0].genre.children[0].name).to.be.defined
-    expect(res.data.value[0].genre.children[0].children[0].name).to.be.defined
+    expect(res.data.genre.name).to.be.eq('Non-Fiction')
+    expect(res.data.genre.children[0].name).to.be.eq('Biography')
+    expect(res.data.genre.children[0].children[0].name).to.be.eq('Autobiography')
   })
 
   test('groupby with multiple path expressions', async () => {
