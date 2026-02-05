@@ -8,7 +8,8 @@ const admin = {
 }
 
 describe('Bookshop - Read', () => {
-  const { expect, GET, POST, DELETE } = cds.test(bookshop)
+  const expect = require('@cap-js/cds-test/lib/expect.js') // REVISIT: to.deep.contain is not mirror to jest
+  const { GET, POST, DELETE } = cds.test(bookshop)
 
   test('Books', async () => {
     const res = await GET('/browse/Books', { headers: { 'accept-language': 'de' } })
@@ -339,6 +340,21 @@ describe('Bookshop - Read', () => {
     expect(res.data.title).to.be.eq('Eleonora')
     expect(res.data.author.name).to.be.eq('Edgar Allen Poe')
     expect(res.data.author.books.length).to.be.eq(2)
+  })
+
+  test('recursively expand children of Generes to exceed MAX_LENGTH_OF_IDENTIFIER (127)', async () => {
+    const { Genres } = cds.entities('sap.capire.bookshop')
+
+    const columns = Array.from({ length: 16 }).reduce(cols => {
+        const nestedCols = cols.pop()
+        cols.push([{ ref: ['ID'] }, { ref: ['children'], expand: nestedCols }])
+        return cols
+      }, [])
+
+    const cqn = SELECT.from(Genres).columns(...columns)
+
+    const res = await cds.run(cqn)
+    expect(res).to.not.be.undefined
   })
 
   test('Sorting Books', async () => {

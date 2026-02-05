@@ -354,6 +354,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+      this.aliasIdx = this.aliasIdx || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -369,9 +370,11 @@ class HANAService extends SQLService {
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
           return 'unknown'
         }
+
         const alias = q.as // Use query alias as path name
         q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
-        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
+        q.alias = `$TA${this.aliasIdx++}`
+
         const src = q
 
         const { element, elements } = q

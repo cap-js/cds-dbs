@@ -192,6 +192,12 @@ const StandardFunctions = {
       ref = `${ref} FUZZY MINIMAL SCORE ${fuzzyIndex} SIMILARITY CALCULATION MODE 'search'`
     }
 
+    // ensure the fuzzy config is eventually included
+    if (!ref.list && ref.xpr) {
+      const [, fuzzy] = ref.xpr
+      ref = `${ref} ${fuzzy}`
+    }
+
     if (Array.isArray(arg.xpr)) {
       arg = {
         val: arg.xpr
