@@ -257,15 +257,13 @@ class CQN2SQLRenderer {
 
     // REVISIT: When selecting from an entity that is not in the model the from.where are not normalized (as cqn4sql is skipped)
     if (!where && from?.ref?.length === 1 && from.ref[0]?.where) where = from.ref[0]?.where
-
+    const columns = this.SELECT_columns(q)
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
-    if (recurse) sql += ` ${this.SELECT_recurse_columns(q)} FROM ${this.SELECT_recurse(q)}`
-    else {
-      sql += ` ${this.SELECT_columns(q)}`
-      if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
-      else sql += this.from_dummy()
-    }
+    if (!_empty(columns)) sql += ` ${columns}`
+    if (recurse) sql += ` FROM ${this.SELECT_recurse(q)}`
+    else if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
+    else sql += this.from_dummy()
     if (!recurse && !_empty(where)) sql += ` WHERE ${this.where(where)}`
     if (!recurse && !_empty(groupBy)) sql += ` GROUP BY ${this.groupBy(groupBy)}`
     if (!recurse && !_empty(having)) sql += ` HAVING ${this.having(having)}`
@@ -280,35 +278,6 @@ class CQN2SQLRenderer {
       else cds.error`Query was not inferred and includes expand. For which the metadata is missing.`
     }
     return (this.sql = sql)
-  }
-
-    /**
-   * Renders a column clause into generic SQL
-   * @param {import('./infer/cqn').SELECT} param0
-   * @returns {string} SQL
-   */
-  SELECT_recurse_columns(q) {
-    const ret = []
-    const arr = q.SELECT.columns ?? ['*']
-
-    const availableComputedColumns = {
-      // Output computed columns
-      RANK: 1,
-      Distance: 1,
-      DistanceFromRoot: 1,
-      DrillState: 1,
-      LimitedDescendantCount: 1,
-      LimitedRank: 1
-    }
-
-    for (const x of arr) {
-      if (x.SELECT?.count) arr.push(this.SELECT_count(x))
-      const name = this.column_name(x)
-      if (x.element && 'value' in x.element && name in availableComputedColumns) {
-        ret.push(this.column_expr({ ref: [name] }, q))
-      } else ret.push(this.column_expr(x, q))
-    }
-    return ret
   }
 
   SELECT_recurse(q) {
