@@ -364,6 +364,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+      this.aliasIdx = this.aliasIdx || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -373,14 +374,17 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+        const walkAlias = (q) => {
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return 'unknown'
         }
+
         const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q) // Use from alias for query re use alias
-        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
+        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
+        q.alias = `$TA${this.aliasIdx++}`
+
         const src = q
 
         const { element, elements } = q
@@ -399,6 +403,9 @@ class HANAService extends SQLService {
           // Track parent _path_ for later concatination
           if (!columns.find(c => this.column_name(c) === '_path_'))
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
+          // make sure to include the _parent_path_ in group by is applied to expand
+          if (groupBy)
+            groupBy.push({ ref: [parent.as, '_path_'] })
         }
 
         if (recurse) {
