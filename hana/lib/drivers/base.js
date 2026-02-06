@@ -12,14 +12,30 @@ class HANADriver {
     this.statements = {}
   }
 
-  _prepare(sql) {
-    return module.exports.prom(
+  _prepare(sql, detached) {
+    let prep = (!detached && this.statements[sql]) || module.exports.prom(
       this._native,
       'prepare',
     )(sql).then(stmt => {
       stmt._parentConnection = this._native
       return stmt
     })
+    if (!detached) {
+      const release = {} // TODO: for node@22 use Promise.withResolvers()
+      release.promise = new Promise((resolve, reject) => {
+        release.resolve = resolve
+        release.reject = reject
+      })
+      release.promise.catch(() => { })
+      this.statements[sql] = release.promise
+      prep.catch(release.reject)
+      prep = prep.then(stmt => {
+        stmt.release = () => release.resolve(stmt)
+        return stmt
+      })
+    }
+
+    return prep
   }
 
   /**
@@ -28,50 +44,38 @@ class HANADriver {
    * @returns {import('@cap-js/db-service/lib/SQLService').PreparedStatement}
    */
   async prepare(sql) {
-    this.statements[sql] ??= this._prepare(sql)
-
-    const prep = this.statements[sql].ready ?? this.statements[sql]
-    const release = {} // TODO: for node@22 use Promise.withResolvers()
-    release.promise = new Promise((resolve, reject) => {
-      release.resolve = resolve
-      release.reject = reject
-    })
-    release.promise.catch(() => { })
-    this.statements[sql].ready = release.promise
-
     return {
-      _prep: prep,
       run: async params => {
         const { values, streams } = this._extractStreams(params)
-        const stmt = await prep
-        let changes = await module.exports.prom(stmt, 'exec')(values)
-        await this._sendStreams(stmt, streams)
-        return { changes }
+        const stmt = await this._prepare(sql)
+        try {
+          let changes = await module.exports.prom(stmt, 'exec')(values)
+          await this._sendStreams(stmt, streams)
+          return { changes }
+        } finally { stmt.release() }
       },
       runBatch: async params => {
-        const stmt = await prep
-        const changes = await module.exports.prom(stmt, 'exec')(params)
-        return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
+        const stmt = await this._prepare(sql)
+        try {
+          const changes = await module.exports.prom(stmt, 'exec')(params)
+          return { changes: !Array.isArray(changes) ? changes : changes.reduce((l, c) => l + c, 0) }
+        } finally { stmt.release() }
       },
       get: async params => {
-        const stmt = await prep
-        return (await module.exports.prom(stmt, 'exec')(params))[0]
+        const stmt = await this._prepare(sql)
+        try {
+          const ret = (await module.exports.prom(stmt, 'exec')(params))[0]
+          return ret
+        } finally { stmt.release() }
       },
       all: async params => {
-        const stmt = await prep
-        return module.exports.prom(stmt, 'exec')(params)
+        const stmt = await this._prepare(sql)
+        try {
+          const ret = await module.exports.prom(stmt, 'exec')(params)
+          stmt.release()
+          return ret
+        } finally { stmt.release() }
       },
-      detach: async () => {
-        // Check whether something is waiting for the prepared statement already
-        if (this.statements[sql].ready === release.promise) {
-          this.statements[sql] = undefined
-          return
-        }
-        this._prepare(sql).then(release.resolve, release.reject)
-      },
-      drop: async () => {
-        prep.then(release.resolve, release.reject)
-      }
     }
   }
 

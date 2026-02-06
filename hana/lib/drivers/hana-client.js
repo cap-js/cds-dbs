@@ -66,8 +66,7 @@ class HANAClientDriver extends driver {
     // It would be required to allow using getDate() on previous rows
     if (hasBlobs) {
       ret.all = async (values) => {
-        ret.detach()
-        const stmt = await ret._prep
+        const stmt = await this._prepare(sql, true)
         // Create result set
         const reset = async function () {
           if (this) await prom(this, 'close')()
@@ -121,27 +120,30 @@ class HANAClientDriver extends driver {
 
     ret.run = async params => {
       const { values, streams } = this._extractStreams(params)
-      const stmt = await ret._prep
-      let changes = await prom(stmt, 'exec')(values)
-      await this._sendStreams(stmt, streams)
-      // REVISIT: hana-client does not return any changes when doing an update with streams
-      // This causes the best assumption to be that the changes are one
-      // To get the correct information it is required to send a count with the update where clause
-      if (streams.length && changes === 0) {
-        changes = 1
-      }
-      return { changes }
+      const stmt = await this._prepare(sql)
+      try {
+        let changes = await prom(stmt, 'exec')(values)
+        await this._sendStreams(stmt, streams)
+        // REVISIT: hana-client does not return any changes when doing an update with streams
+        // This causes the best assumption to be that the changes are one
+        // To get the correct information it is required to send a count with the update where clause
+        if (streams.length && changes === 0) {
+          changes = 1
+        }
+        return { changes }
+      } finally { stmt.release() }
     }
 
     ret.proc = async (data, outParameters) => {
-      const stmt = await ret._prep
-      const rows = await prom(stmt, 'execQuery')(data)
-      return this._getResultForProcedure(rows, outParameters, stmt)
+      const stmt = await this._prepare(sql)
+      try {
+        const rows = await prom(stmt, 'execQuery')(data)
+        return this._getResultForProcedure(rows, outParameters, stmt)
+      } finally { stmt.release() }
     }
 
     ret.stream = async (values, one, objectMode) => {
-      const stmt = await ret._prep
-      ret.detach()
+      const stmt = await this._prepare(sql, true)
       values = Array.isArray(values) ? values : []
       // Uses the native exec method instead of executeQuery to initialize a full stream
       // As executeQuery does not request the whole result set at once
@@ -165,7 +167,7 @@ class HANAClientDriver extends driver {
         if (rs.isNull(0)) return null
         return Readable.from(streamBlob(rs, undefined, 0), { objectMode: false })
       }
-      return rsIterator(rs, one, objectMode)
+      return rsIterator(rs, one, objectMode, () => { stmt.drop() })
     }
     return ret
   }
@@ -239,7 +241,7 @@ class HANAClientDriver extends driver {
 
 HANAClientDriver.pool = true
 
-async function rsIterator(rs, one, objectMode) {
+async function rsIterator(rs, one, objectMode, onDone) {
   rs._rowPosition = -1
   rs.nextAsync = prom(rs, 'next')
   rs.getValueAsync = prom(rs, 'getValue')
@@ -317,7 +319,7 @@ async function rsIterator(rs, one, objectMode) {
     }
   }
 
-  return resultSetStream(state, one, objectMode)
+  return resultSetStream(state, one, objectMode, onDone)
 }
 
 async function* streamBlob(rs, rowIndex = -1, columnIndex, binaryBuffer) {
