@@ -4,6 +4,20 @@
 - The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [2.1.3](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.2...postgres-v2.1.3) (2026-02-03)
+
+
+### Fixed
+
+* `between_*` function input types ([#1468](https://github.com/cap-js/cds-dbs/issues/1468)) ([1d3905a](https://github.com/cap-js/cds-dbs/commit/1d3905a0a8e6b2a6b11c787456c86e93ac2a41cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @cap-js/db-service bumped from ^2.8.1 to ^2.8.2
+
 ## [2.1.2](https://github.com/cap-js/cds-dbs/compare/postgres-v2.1.1...postgres-v2.1.2) (2025-12-19)
 
 

@@ -118,12 +118,13 @@ describe('SELECT', () => {
 
     test('select funcs', async () => {
       const { string } = cds.entities('basic.projection')
-      const cqn = cds.ql`SELECT min(string),max(string),count() FROM ${string}`
+      const cqn = cds.ql`SELECT min(string),max(string),count(), count() as count64: cds.Integer64 FROM ${string}`
       const res = await cds.run(cqn)
       assert.strictEqual(res.length, 1, 'Ensure that all rows are coming back')
       assert.strictEqual(res[0].min, 'no', 'Ensure that the function is applied')
       assert.strictEqual(res[0].max, 'yes', 'Ensure that the function is applied')
       assert.strictEqual(res[0].count, 3, 'Ensure that the function is applied')
+      assert.strictEqual(res[0].count64, '3', 'Ensure that the cast is applied')
     })
 
     test('select funcs (duplicates)', async () => {
@@ -1407,6 +1408,7 @@ describe('SELECT', () => {
     ]
 
     unified.aggregate = [
+      ...unified.ref.filter(numberRefs).map(ref => ({ func: 'avg', args: [ref] })),
       ...unified.ref.filter(numberRefs).map(ref => ({ func: 'average', args: [ref] })),
       ...unified.ref.filter(noBlobRefs).map(ref => ({ func: 'count', args: [ref] })),
       { func: 'count', args: ['*'] },
@@ -1466,7 +1468,7 @@ describe('SELECT', () => {
       // X numeric function
       ...[
         'ceiling', 'floor', 'round', // OData spec
-        'abs', 'sign', 'sin', 'tan',
+        'ceil', 'abs', 'sign', 'sin', 'tan',
       ].map(func => {
         return [
           ...unified.numeric.map(val => ({ func, args: [val] })),
@@ -1491,32 +1493,37 @@ describe('SELECT', () => {
       { func: 'log', args: [{ val: 2 }, { val: 2 }] },
       { func: 'mod', args: [{ val: 2, cast: { type: 'cds.Integer' } }, { val: 2, cast: { type: 'cds.Integer' } }] },
       // X timestamp function
-      ...['year', 'month', 'day', 'hour', 'minute', 'second', 'fractionalseconds'].map(func => {
+      ...['date', 'time', 'year', 'month', 'day', 'hour', 'minute', 'second', 'fractionalseconds'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(timestampRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X datetime function
-      ...['year', 'month', 'day', 'hour', 'minute', 'second'].map(func => {
+      ...['date', 'time', 'year', 'month', 'day', 'hour', 'minute', 'second'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(datetimeRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X date function
-      ...['year', 'month', 'day'].map(func => {
+      ...['date', 'year', 'month', 'day'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(dateRefs).map(ref => ({ func, args: [ref] })),
         ]
       }).flat(),
       // X time function
-      ...['hour', 'minute', 'second'].map(func => {
+      ...['time', 'hour', 'minute', 'second'].map(func => {
         return [
           ...unified.date.map(val => ({ func, args: [val] })),
           ...unified.ref.filter(timeRefs).map(ref => ({ func, args: [ref] })),
         ]
+      }).flat(),
+      // X,Y between function
+      ...['years_between', 'months_between', 'days_between', 'seconds_between'].map(func => {
+        const arg = [...unified.date, ...unified.ref.filter(ref => timestampRefs(ref) || datetimeRefs(ref) || dateRefs(ref))]
+        return arg.map(x => arg.map(y => ({ func, args: [x, y] }))).flat()
       }).flat(),
       ...['$user.id', '$user.locale', '$valid.from', '$valid.to', '$now'].map(val => ({ func: 'session_context', args: [{ val }] })),
       ...unified.ref.map(ref => ({ func: 'coalesce', args: [ref, ref] })),

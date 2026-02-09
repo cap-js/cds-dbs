@@ -53,10 +53,12 @@ class HANAService extends SQLService {
     return {
       options: this.options.pool || {},
       create: async function create(tenant, start = Date.now()) {
+        let credentials
         try {
-          const { credentials } = isMultitenant
+          const smTenant = isMultitenant
             ? await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: false })
             : service.options
+          credentials = smTenant.credentials
           const dbc = new driver({ ...credentials, ...clientOptions })
           await dbc.connect()
           service.server.major = dbc.server.major || service.server.major
@@ -67,9 +69,15 @@ class HANAService extends SQLService {
               if (err.status === 404 || err.status === 429) {
                 throw new Error(`Pool failed connecting to '${tenant}'`, { cause: err })
               }
-              await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true })
-              if (Date.now() - start < acquireTimeoutMillis) return create(tenant, start)
-              else throw new Error(`Pool failed connecting to '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
+              const deadline = start + acquireTimeoutMillis
+              try {
+                await require('@sap/cds-mtxs/lib').xt.serviceManager.get(tenant, { disableCache: true, invalidCredentials: credentials, retryUntil: deadline })
+              } catch (smErr) {
+                 smErr.cause = err
+                 throw new Error(`Failed connecting to pool - could not get valid credentials from Service Manager`, { cause: smErr })
+              }
+              if (Date.now() < deadline) return create(tenant, start)
+              else throw new Error(`Pool exceeded for '${tenant}' within ${acquireTimeoutMillis}ms`, { cause: err })
             } else {
               // Stop trying when the tenant does not exist or is rate limited
               if (err.status == 404 || err.status == 429) {
@@ -346,6 +354,7 @@ class HANAService extends SQLService {
       this.withclause = this.withclause || []
       this.temporary = this.temporary || []
       this.temporaryValues = this.temporaryValues || []
+      this.aliasIdx = this.aliasIdx || 0
 
       if (q.SELECT.from?.join && !q.SELECT.columns) {
         throw new Error('CQN query using joins must specify the selected columns.')
@@ -355,14 +364,17 @@ class HANAService extends SQLService {
 
       // When one of these is defined wrap the query in a sub query
       if (expand || (parent && (limit || one || orderBy))) {
-        const walkAlias = q => {
-          if (q.args) return q.as || walkAlias(q.args[0])
+        const walkAlias = (q) => {
+          if (q.as) return q.as
+          if (q.args) return walkAlias(q.args[0])
           if (q.SELECT?.from) return walkAlias(q.SELECT?.from)
-          return q.as
+          return 'unknown'
         }
+
         const alias = q.as // Use query alias as path name
-        q.as = walkAlias(q) // Use from alias for query re use alias
-        q.alias = `${parent ? parent.alias + '.' : ''}${alias || q.as}`
+        q.as = walkAlias(q.args?.[0] ?? q.SELECT.from ?? q) // Use from alias for query re use alias
+        q.alias = `$TA${this.aliasIdx++}`
+
         const src = q
 
         const { element, elements } = q
@@ -381,6 +393,9 @@ class HANAService extends SQLService {
           // Track parent _path_ for later concatination
           if (!columns.find(c => this.column_name(c) === '_path_'))
             columns.push({ ref: [parent.as, '_path_'], as: '_parent_path_' })
+          // make sure to include the _parent_path_ in group by is applied to expand
+          if (groupBy)
+            groupBy.push({ ref: [parent.as, '_path_'] })
         }
 
         if (recurse) {
