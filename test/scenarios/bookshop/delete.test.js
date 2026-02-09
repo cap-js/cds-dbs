@@ -53,7 +53,7 @@ describe('Bookshop - Delete', () => {
     const beforeDelete = await cds.run(selectEmilysBooks)
     await cds.run(deleteEmilysBooks)
     const afterDelete = await cds.run(selectEmilysBooks)
-    expect(beforeDelete).to.have.lengthOf(1)
+    expect(beforeDelete).to.have.lengthOf(2)
     expect(afterDelete).to.have.lengthOf(0)
   })
 })
