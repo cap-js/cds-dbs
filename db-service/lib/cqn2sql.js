@@ -260,7 +260,7 @@ class CQN2SQLRenderer {
 
     let sql = `SELECT`
     if (distinct) sql += ` DISTINCT`
-    if (recurse) sql += ` ${this.SELECT_recurse_columns(q)} FROM ${this.SELECT_recurse(q)}`
+    if (recurse) sql += this.SELECT_recurse(q)
     else {
       sql += ` ${this.SELECT_columns(q)}`
       if (!_empty(from)) sql += ` FROM ${this.from(from, q)}`
@@ -528,13 +528,14 @@ class CQN2SQLRenderer {
         }
       }
 
+    const recurseColumns = this.SELECT_recurse_columns(q)
     // Only apply result join if the columns contain a references which doesn't start with the source alias
     if (from.args && columns.find(c => c.ref?.[0] === alias)) {
       graph.as = alias
-      return this.from(setStableFrom(from, graph))
+      return ` ${recurseColumns} FROM ${this.from(setStableFrom(from, graph))}`
     }
 
-    return `(${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
+    return ` ${recurseColumns} FROM (${this.SELECT(graph)})${alias ? ` AS ${this.quote(alias)}` : ''} `
 
     function collectDistanceTo(where, innot = false) {
       for (let i = 0; i < where.length; i++) {
