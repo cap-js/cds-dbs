@@ -4,7 +4,7 @@ const cds = require('@sap/cds')
 
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
-const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
+const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip, isRuntimeView } = require('../utils')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
