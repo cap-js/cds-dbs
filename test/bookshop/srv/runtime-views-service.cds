@@ -4,7 +4,6 @@ using {sap.capire.bookshop as my} from '../db/schema';
 context bookshop {
   entity Edition {
     key ID          : Integer;
-        book        : Association to views.Books;
         editionType : Association to EditionType;
   };
 
@@ -17,11 +16,14 @@ context bookshop {
 
   entity Page {
     key ID   : Integer;
+        author_ID : Integer;
+        book_ID: Integer;
         text : String;
   };
 
   entity Review {
     key ID   : Integer;
+        author_ID: Integer;
         text : String;
         page : Association to Page;
   };
@@ -43,16 +45,16 @@ context views {
     projection on my.Authors {
       *,
       reviews : Association to many bookshop.ReviewView
-                  on reviews.ID = $self.ID,
+                  on reviews.author_ID = $self.ID,
       pages   : Association to many bookshop.PageView
-                  on pages.ID = $self.ID
+                  on pages.author_ID = $self.ID
     };
 
   entity BooksView  as
     projection on my.Books {
       *,
       pages : Association to many bookshop.PageView
-                on pages.ID = $self.ID,
+                on pages.book_ID = $self.ID,
       this  : Association to BooksView
                 on this.ID = $self.ID
     };
@@ -61,16 +63,16 @@ context views {
     projection on my.Authors {
       *,
       reviews : Association to many bookshop.Review
-                  on reviews.ID = $self.ID,
+                  on reviews.author_ID = $self.ID,
       pages   : Association to many bookshop.Page
-                  on pages.ID = $self.ID
+                  on pages.author_ID = $self.ID
     };
 
   entity Books      as
     projection on my.Books {
       *,
       pages : Association to many bookshop.Page
-                on pages.ID = $self.ID,
+                on pages.book_ID = $self.ID,
       this  : Association to Books
                 on this.ID = $self.ID
     };
@@ -196,7 +198,6 @@ service runtimeViews1Service {
 
   entity Edition as
     projection on runtimeViews0Service.Edition {
-      book             as parent,
       ID               as editionNumber,
       editionType.name as editionName,
       editionType      as edition,
@@ -255,16 +256,16 @@ service views0Service {
     projection on views.Author {
       *,
       reviews : Association to many bookshop.Review
-                  on reviews.ID = $self.ID,
+                  on reviews.author_ID = $self.ID,
       pages   : Association to many bookshop.Page
-                  on pages.ID = $self.ID,
+                  on pages.author_ID = $self.ID,
     };
 
   entity Book             as
     projection on views.Books {
       *,
       pages : Association to many bookshop.Page
-                on pages.ID = $self.ID
+                on pages.book_ID = $self.ID
     };
 
   entity Edition          as projection on bookshop.Edition;
@@ -326,7 +327,6 @@ service views1Service {
 
   entity Edition as
     projection on views0Service.Edition {
-      book             as parent,
       ID               as editionNumber,
       editionType.name as editionName,
       editionType      as edition,
