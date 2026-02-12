@@ -54,19 +54,19 @@ describe('assign element onto columns', () => {
       // '11'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['11'])
-        .to.deep.equal({ type: 'cds.Integer' })
+        .to.deep.contain({ _type: 'cds.Integer' })
       // 'foo'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['foo'])
-        .to.deep.equal({ type: 'cds.String' })
+        .to.deep.contain({ _type: 'cds.String' })
       // 'true'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['true'])
-        .to.deep.equal({ type: 'cds.Boolean' })
+        .to.deep.contain({ _type: 'cds.Boolean' })
       // 'foo'
       expect(inferred.SELECT.columns[3].element)
         .to.deep.equal(inferred.elements['false'])
-        .to.deep.equal({ type: 'cds.Boolean' })
+        .to.deep.contain({ _type: 'cds.Boolean' })
     })
   })
 
@@ -145,7 +145,6 @@ describe('assign element onto columns', () => {
   })
 
   describe('casts', () => {
-    // revisit: precision / scale / length are not properly parsed
     it('simple values, cdl style cast', () => {
       let query = CQL(`SELECT from bookshop.Books {
       3.1415 as pid : cds.Decimal(5,4),
@@ -154,7 +153,7 @@ describe('assign element onto columns', () => {
       // 'pid'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['pid'])
-        .to.deep.equal({ type: 'cds.Decimal' /* , precision: 5, scale: 4 */ })
+        .to.deep.contain({ _type: 'cds.Decimal', precision: 5, scale: 4 })
     })
 
     it('supports a cast expression in the select list', () => {
@@ -166,11 +165,11 @@ describe('assign element onto columns', () => {
       // 'IDS'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['IDS'])
-        .to.deep.equal({ type: 'cds.String' })
+        .to.deep.contain({ _type: 'cds.String' })
       // 'IDCustomType'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['IDCustomType'])
-        .to.deep.equal({ type: 'bookshop.DerivedFromDerivedString' })
+        .to.deep.contain({ type: 'bookshop.DerivedFromDerivedString' })
     })
 
     it('supports a cdl-style cast in the select list', () => {
@@ -186,15 +185,15 @@ describe('assign element onto columns', () => {
       // (currently) b: object with type cds:integer? -> ignore the ref
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['dedication_sub_foo'])
-        .to.deep.equal({ type: 'cds.Integer' })
+        .to.deep.contain({ _type: 'cds.Integer' })
       // 'IDS'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['IDS'])
-        .to.deep.equal({ type: 'cds.String' })
+        .to.deep.contain({ _type: 'cds.String' })
       // 'IDCustomType'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['IDCustomType'])
-        .to.deep.equal({ type: 'bookshop.DerivedFromDerivedString' })
+        .to.deep.contain({ type: 'bookshop.DerivedFromDerivedString' })
     })
   })
 
@@ -204,9 +203,9 @@ describe('assign element onto columns', () => {
         elements: {
           $user: {
             elements: {
-              id: { type: 'cds.String' },
-              locale: { type: 'cds.String' }, // deprecated
-              tenant: { type: 'cds.String' }, // deprecated
+              id: { _type: 'cds.String' },
+              locale: { _type: 'cds.String' }, // deprecated
+              tenant: { _type: 'cds.String' }, // deprecated
             },
           },
         },
@@ -220,15 +219,15 @@ describe('assign element onto columns', () => {
       // '$user'
       expect(inferred.SELECT.columns[0].element)
         .to.deep.equal(inferred.elements['$user'])
-        .to.deep.equal(pseudos.elements.$user.elements.id)
+        .to.deep.contain(pseudos.elements.$user.elements.id)
       // '$user_tenant'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['$user_tenant'])
-        .to.deep.equal(pseudos.elements.$user.elements.tenant)
+        .to.deep.contain(pseudos.elements.$user.elements.tenant)
       // '$user_unknown_foo_bar'
       expect(inferred.SELECT.columns[2].element)
         .to.deep.equal(inferred.elements['$user_unknown_foo_bar'])
-        .to.deep.equal({})
+        .to.deep.contain({})
     })
   })
 
@@ -255,7 +254,7 @@ describe('assign element onto columns', () => {
       // 'discount'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['discount'])
-        .to.deep.equal({ type: 'cds.Integer' })
+        .to.deep.contain({ _type: 'cds.Integer' })
     })
     it('infers values type on binding parameter', () => {
       const query = {
@@ -269,7 +268,7 @@ describe('assign element onto columns', () => {
       // 'discount'
       expect(inferred.SELECT.columns[1].element)
         .to.deep.equal(inferred.elements['discount'])
-        .to.deep.equal({ type: 'cds.Integer' })
+        .to.deep.contain({ _type: 'cds.Integer' })
     })
   })
 })
