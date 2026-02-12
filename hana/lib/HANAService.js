@@ -210,7 +210,7 @@ class HANAService extends SQLService {
     } catch (err) {
       // Ensure that the known entity still exists
       if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
-        await this.dbc?.rollback() // roll back current tx to avoid later race conditions
+        await this.rollback() // roll back current tx to avoid later race conditions
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
