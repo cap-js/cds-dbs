@@ -436,7 +436,7 @@ class HANAService extends SQLService {
           if (c.element?.type === 'cds.Boolean') hasBooleans = true
           if (c.elements && c.element?.isAssociation) hasExpands = true
           if (c.element?.type in this.BINARY_TYPES || c.elements || c.element?.elements || c.element?.items) hasStructures = true
-          return c.elements ? c : { __proto__: c, ref: [this.column_name(c)] }
+          return c.elements && c.element?.isAssociation ? c : { __proto__: c, ref: [this.column_name(c)] }
         })
 
         const isSimpleQuery = (
