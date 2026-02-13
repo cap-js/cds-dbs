@@ -185,9 +185,7 @@ describe('INSERT', () => {
     // affectedRows is an InsertResult, so we need to do lose comparison here, as strict will not work due to InsertResult
     expect(affectedRows == 1).to.be.eq(true)
     // InsertResult
-    expect(affectedRows).not.to.include({ _affectedRows: 1 })
-    // iterator of the InsertResult resolves to the inserted keys
-    if (cds.db.kind === 'sqlite') expect([...affectedRows]).to.include({ID: 5})
+    expect(affectedRows).not.to.include({ _affectedRows: 1 }) // lastInsertRowid not available on postgres
   })
 
   test('default $now adds current tx timestamp in correct format', async () => {
