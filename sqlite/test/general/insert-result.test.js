@@ -4,7 +4,7 @@ const assert = require('assert')
 describe('insert from select', () => {
   cds.test(__dirname, 'testModel.cds')
 
-  before(async () => {
+  before(() => {
     return cds.run([INSERT.into('Foo2').entries({ ID: 11, name: 'test' })])
   })
 
