@@ -536,35 +536,35 @@ describe('SELECT', () => {
 
     test('deep nested not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested boolean function w/o operator', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('deep nested not + and', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple levels of not negations of expressions', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple not in a single deep nested expression', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [CXL`not not not startswith(string,${'n'})`] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [cds.parse.expr`not not not startswith(string,${'n'})`] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -579,14 +579,14 @@ describe('SELECT', () => {
 
     test('multiple levels of not negations of expression with not + and', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not startswith(string,${'n'}) and not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('multiple levels of not negations of expression with multiple not in a single expression', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', CXL`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', { xpr: ['not', cds.parse.expr`not not not startswith(string,${'n'}) and not not not startswith(string,${'n'})`] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -601,14 +601,14 @@ describe('SELECT', () => {
 
     test('deep nested not before xpr with CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', cds.parse.expr`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested multiple not before xpr with CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', CXL`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', cds.parse.expr`string = 'no' ? true : false`] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -623,14 +623,14 @@ describe('SELECT', () => {
 
     test('deep nested not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('deep nested multiple not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [{ xpr: ['not', 'not', 'not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }] }} ORDER BY string DESC`
       await cds.tx(async tx => {
         let res
         try {
@@ -645,21 +645,21 @@ describe('SELECT', () => {
 
     test('not before CASE statement', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
 
     test('and beetwen CASE statements', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(CXL`string = 'no' ? true : false`).xpr, 'and', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: [...(cds.parse.expr`string = 'no' ? true : false`).xpr, 'and', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'no')
     })
 
     test('and beetwen CASE statements with not', async () => {
       const { string } = cds.entities('basic.literals')
-      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(CXL`string = 'no' ? true : false`).xpr, 'and', 'not', ...(CXL`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
+      const query = cds.ql`SELECT * FROM ${string} WHERE ${{ xpr: ['not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr, 'and', 'not', ...(cds.parse.expr`string = 'no' ? true : false`).xpr] }} ORDER BY string DESC`
       const res = await cds.run(query)
       assert.strictEqual(res[0].string, 'yes')
     })
