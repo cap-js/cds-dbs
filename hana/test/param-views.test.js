@@ -11,18 +11,18 @@ describe('Parameterized view', () => {
     }, {
       // all books with <= 12 stock
       available: { val: 12 },
-      books: 2,
+      books: 3,
     }, {
       // all books (with <= 1000 stock)
       available: { val: 1000 },
-      books: 5,
+      books: 6,
     },
     // ===== just works queries =====
     {
       // cast is required as the SQL becomes (? * ?)
       // all books with <= 22 stock
-      available: CXL`cast(11 * 2 as cds.Integer)`,
-      books: 3,
+      available: cds.parse.expr`cast(11 * 2 as cds.Integer)`,
+      books: 4,
     }, {
       // the book with the least stock
       available: SELECT`min(stock)`.from('sap.capire.bookshop.Books'),
