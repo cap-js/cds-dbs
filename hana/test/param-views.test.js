@@ -21,7 +21,7 @@ describe('Parameterized view', () => {
     {
       // cast is required as the SQL becomes (? * ?)
       // all books with <= 22 stock
-      available: CXL`cast(11 * 2 as cds.Integer)`,
+      available: cds.parse.expr`cast(11 * 2 as cds.Integer)`,
       books: 4,
     }, {
       // the book with the least stock

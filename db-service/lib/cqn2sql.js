@@ -327,7 +327,7 @@ class CQN2SQLRenderer {
 
       // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
       const clone = q.clone()
-      clone.columns(keys)
+      clone.SELECT.columns = keys
       clone.SELECT.recurse = undefined
       clone.SELECT.limit = undefined
       clone.SELECT.expand = undefined // omits JSON
