@@ -46,7 +46,7 @@
           "[production]": {
             "kind": "postgres"
           },
-          "[pg!]": {
+          "[development]": {
             "kind": "postgres",
             "credentials": {
               "host": "localhost",
@@ -56,15 +56,11 @@
               "database": "postgres"
             }
           },
-          "[postgres!]": {
-            "kind": "postgres",
-            "credentials": {
-              "host": "localhost",
-              "port": 5432,
-              "user": "postgres",
-              "password": "postgres",
-              "database": "postgres"
-            }
+          "[pg]": {
+            "kind": "postgres"
+          },
+          "[postgres]": {
+            "kind": "postgres"
           }
         },
         "postgres": {
