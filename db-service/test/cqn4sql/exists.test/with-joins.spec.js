@@ -315,6 +315,62 @@ describe('(exist predicate) with joins', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+
+    it('navigate to key, but with infix filter', () => {
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[genre[name = 'Drama'].ID is not null]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            inner join bookshop.Genres as genre
+              on genre.ID = $b.genre_ID and
+                 genre.name = 'Drama'
+          WHERE $b.author_ID = Authors.ID
+            and genre.ID is not null
+        )`
+      
+      expectCqn(transformed).to.equal(expected)
+    })
+
+    it.skip('navigate to key, but with infix filter - nested', () => {
+      // will work with path expression in infix filters feature
+      const transformed = cqn4sql(cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          ID
+        }
+        WHERE EXISTS books[genre[ parent[name = 'Drama'].ID is not null ].ID is not null]`)
+
+      const expected = cds.ql`
+        SELECT from bookshop.Authors as Authors
+        {
+          Authors.ID
+        }
+        WHERE EXISTS (
+          SELECT 1 from bookshop.Books as $b
+            inner join bookshop.Genres as genre
+              on genre.ID = $b.genre_ID and (
+                  
+              )
+            inner join bookshop.Genres as parent
+              on parent.ID = genre.parent_ID and
+                 parent.name = 'Drama'
+          WHERE $b.author_ID = Authors.ID
+            and parent.ID is not null
+            and genre.ID is not null
+        )`
+
+      expectCqn(transformed).to.equal(expected)
+      })
   })
 
   describe('in where', () => {
