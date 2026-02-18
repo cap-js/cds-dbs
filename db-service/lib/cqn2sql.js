@@ -282,35 +282,6 @@ class CQN2SQLRenderer {
     return (this.sql = sql)
   }
 
-    /**
-   * Renders a column clause into generic SQL
-   * @param {import('./infer/cqn').SELECT} param0
-   * @returns {string} SQL
-   */
-  SELECT_recurse_columns(q) {
-    const ret = []
-    const arr = q.SELECT.columns ?? ['*']
-
-    const availableComputedColumns = {
-      // Output computed columns
-      RANK: 1,
-      Distance: 1,
-      DistanceFromRoot: 1,
-      DrillState: 1,
-      LimitedDescendantCount: 1,
-      LimitedRank: 1
-    }
-
-    for (const x of arr) {
-      if (x.SELECT?.count) arr.push(this.SELECT_count(x))
-      const name = this.column_name(x)
-      if (x.element && 'value' in x.element && name in availableComputedColumns) {
-        ret.push(this.column_expr({ ref: [name] }, q))
-      } else ret.push(this.column_expr(x, q))
-    }
-    return ret
-  }
-
   SELECT_recurse(q) {
     let { from, columns, where, orderBy, recurse, _internal } = q.SELECT
 
@@ -528,7 +499,12 @@ class CQN2SQLRenderer {
         }
       }
 
-    const recurseColumns = this.SELECT_recurse_columns(q)
+    const columnsQuery = q.clone()
+    columnsQuery.SELECT.columns = columns.map(x => {
+      if (x.element && 'value' in x.element) return { element: x.element, ref: [this.column_name(x)] }
+      return x
+    })
+    const recurseColumns = this.SELECT_columns(columnsQuery)
     // Only apply result join if the columns contain a references which doesn't start with the source alias
     if (from.args && columns.find(c => c.ref?.[0] === alias)) {
       graph.as = alias
