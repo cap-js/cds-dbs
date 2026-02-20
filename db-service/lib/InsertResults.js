@@ -70,7 +70,11 @@ module.exports = class InsertResult {
 
     // If no generated keys in entries/rows/values we might have database-generated keys
     return (super[iterator] = function* () {
-      for (let i = this.affectedRows-1; i>=0;i--) yield { [k1]: this.insertedRowId4(this.results[0])-i } // REVISIT: sqlite only returns a single lastInsertRowid per row -> how is that with others?
+      for (const row of this.results) {
+        const affectedRows = this.affectedRows4(row) - 1
+        const lastInsertRowid = this.insertedRowId4(row)
+        for (let i = lastInsertRowid - affectedRows; i<=lastInsertRowid;i++) yield { [k1]: i }
+      }
     })
   }
 
