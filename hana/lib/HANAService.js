@@ -218,6 +218,8 @@ class HANAService extends SQLService {
     } catch (err) {
       // Ensure that the known entity still exists
       if (!this.context.tenant && err.code === 259 && typeof req.query !== 'string') {
+        // decouple current request to avoid race condition
+        await this.release()
         // Clear current tenant connection pool
         this.disconnect(this.context.tenant)
       }
