@@ -499,7 +499,7 @@ class CQN2SQLRenderer {
         }
       }
 
-    const columnsQuery = q.clone()
+    const columnsQuery = cds.ql(q).clone()
     columnsQuery.SELECT.columns = columns.map(x => {
       if (x.element && 'value' in x.element) return { element: x.element, ref: [this.column_name(x)] }
       return x
