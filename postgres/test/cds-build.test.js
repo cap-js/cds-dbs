@@ -53,4 +53,12 @@ describe('cds build plugin', () => {
     expect(packageJson.cds?.requires?.db?.vcap?.label).to.be.false
     expect(packageJson.cds?.requires?.db?.vcap?.name).to.equal('postgres-external')
   })
+
+  test('should add the build-time versions of \'@sap/cds\' and \'@cap-js/postgres\'', () => {
+    execSync('npx cds build --production', { cwd: workDir })
+    const packageJson = require(path.join(pgDest, 'package.json'))
+    expect(packageJson.dependencies?.['@sap/cds']).to.equal(cds.version)
+    const pgAdapterVersion = require(path.join(__dirname,'..','package.json')).version;
+    expect(packageJson.dependencies?.['@cap-js/postgres']).to.equal(pgAdapterVersion)
+  })
 })

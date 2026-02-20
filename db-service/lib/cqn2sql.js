@@ -295,8 +295,9 @@ class CQN2SQLRenderer {
 
       // `where` needs to be wrapped to also support `where == ['exists', { SELECT }]` which is not allowed in `START WHERE`
       const clone = q.clone()
-      clone.columns(keys)
+      clone.SELECT.columns = keys
       clone.SELECT.recurse = undefined
+      clone.SELECT.limit = undefined
       clone.SELECT.expand = undefined // omits JSON
       where = [{ list: keys }, 'in', clone]
     }
@@ -379,7 +380,8 @@ class CQN2SQLRenderer {
 
     if (orderBy) {
       orderBy = orderBy.map(r => {
-        const col = r.ref.at(-1)
+        let col = r.ref.at(-1)
+        if (col.toUpperCase() in reservedColumnNames) col = `$$${col}$$`
         if (!columnsIn.find(c => this.column_name(c) === col)) {
           columnsIn.push({ ref: [col] })
         }
@@ -1126,7 +1128,7 @@ class CQN2SQLRenderer {
       .join(' AND ')
 
     let columns = this.columns // this.columns is computed as part of this.INSERT
-    const entity = q._target ? this.table_name(q) : INSERT.into.ref[0]
+    const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
     if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
       const managed = this._managed.slice(0, columns.length)
 
@@ -1142,7 +1144,12 @@ class CQN2SQLRenderer {
       const extractions = this._managed
       if (this.values) this.values = [] // Clear previously computed values
       const src = this.cqn4sql(UPSERT.from || UPSERT.as)
-      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(src)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
+      const aliasedQuery = cds.ql.SELECT
+        .columns(src.SELECT.columns
+          .map((c, i) => ({ ref: [this.column_name(c)], as: this.columns[i] }))
+        )
+        .from(src)
+      sql = `SELECT ${extractions.map(c => `${c.upsert}`)} FROM (${this.SELECT(aliasedQuery)}) AS NEW LEFT JOIN ${this.quote(entity)} AS OLD ON ${keyCompare}`
       if (extractions.length > columns.length) columns = this.columns = extractions.map(c => c.name)
       this.entries = [this.values]
     }
@@ -1270,7 +1277,7 @@ class CQN2SQLRenderer {
       ? _inline_null(xpr[i + 1]) || 'is'
       : '='
 
-    // Translate == to IS NOT NULL for rhs operand being NULL literal, otherwise ...
+    // Translate == to IS NULL for rhs operand being NULL literal, otherwise ...
     // Translate == to IS NOT DISTINCT FROM, unless both operands cannot be NULL
     if (x === '==') return xpr[i + 1]?.val === null
       ? _inline_null(xpr[i + 1]) || 'is'
@@ -1278,7 +1285,7 @@ class CQN2SQLRenderer {
         ? '='
         : this.is_not_distinct_from_
 
-    // Translate != to IS NULL for rhs operand being NULL literal, otherwise...
+    // Translate != to IS NOT NULL for rhs operand being NULL literal, otherwise...
     // Translate != to IS DISTINCT FROM, unless both operands cannot be NULL
     if (x === '!=') return xpr[i + 1]?.val === null
       ? _inline_null(xpr[i + 1]) || 'is not'

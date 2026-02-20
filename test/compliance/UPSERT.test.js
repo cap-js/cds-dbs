@@ -58,13 +58,30 @@ describe('UPSERT', () => {
     test('transform', async () => {
       const { cuid, keys } = cds.entities('basic.common')
       // fill other table first
-      await cds.run(INSERT([
+      await UPSERT([
         { id: 1 },
         { id: 1, default: 'overwritten' },
-      ]).into(keys))
+      ]).into(keys)
       await UPSERT.into(cuid)
         .columns(['ID'])
-        .from(cds.ql`SELECT id || '-' || default as ID FROM ${keys} WHERE id = ${1}`)
+        .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
+      const select = await SELECT.from(cuid).orderBy('ID')
+      expect(select).deep.eq([
+        { ID: '1-defaulted' },
+        { ID: '1-overwritten' },
+      ])
+    })
+
+    test('projection', async () => {
+      const { cuid, keys } = cds.entities('basic.projection')
+      // fill other table first
+      await UPSERT([
+        { id: 1 },
+        { id: 1, default: 'overwritten' },
+      ]).into(keys)
+      await UPSERT.into(cuid)
+        .columns(['ID'])
+        .from(cds.ql`SELECT id || '-' || default as ![something that is not "ID"] FROM ${keys} WHERE id = ${1}`)
       const select = await SELECT.from(cuid).orderBy('ID')
       expect(select).deep.eq([
         { ID: '1-defaulted' },
