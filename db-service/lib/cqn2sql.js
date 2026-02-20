@@ -501,7 +501,7 @@ class CQN2SQLRenderer {
 
     const columnsQuery = cds.ql(q).clone()
     columnsQuery.SELECT.columns = columns.map(x => {
-      if (x.element && 'value' in x.element) return { element: x.element, ref: [this.column_name(x)] }
+      if (x.element && 'value' in x.element && x.element.name in availableComputedColumns) return { element: x.element, ref: [this.column_name(x)] }
       return x
     })
     const recurseColumns = this.SELECT_columns(columnsQuery)
