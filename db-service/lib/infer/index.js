@@ -5,19 +5,7 @@ const cds = require('@sap/cds')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
-const cdsTypes = cds.linked({
-  definitions: {
-    Timestamp: { type: 'cds.Timestamp' },
-    DateTime: { type: 'cds.DateTime' },
-    Date: { type: 'cds.Date' },
-    Time: { type: 'cds.Time' },
-    String: { type: 'cds.String' },
-    Decimal: { type: 'cds.Decimal' },
-    Integer: { type: 'cds.Integer' },
-    Boolean: { type: 'cds.Boolean' },
-  },
-}).definitions
-for (const each in cdsTypes) cdsTypes[`cds.${each}`] = cdsTypes[each]
+const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
  * @param {import('@sap/cds/apis/csn').CSN} [model]
@@ -471,7 +459,7 @@ function infer(originalQuery, model) {
             const element = elements[id]
             if (inInfixFilter) {
               const nextStep = arg.ref[1]?.id || arg.ref[1]
-              if (isNonForeignKeyNavigation(element, nextStep)) {
+              if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
                 if (inExists) {
                   defineProperty($baseLink, 'pathExpressionInsideFilter', true)
                 } else {
@@ -535,7 +523,7 @@ function infer(originalQuery, model) {
         if (element) {
           if ($baseLink && inInfixFilter) {
             const nextStep = arg.ref[i + 1]?.id || arg.ref[i + 1]
-            if (isNonForeignKeyNavigation(element, nextStep)) {
+            if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[i-1]?.where) {
               if (inExists) {
                 defineProperty($baseLink, 'pathExpressionInsideFilter', true)
               } else {
@@ -746,7 +734,7 @@ function infer(originalQuery, model) {
             const expandElements = resolveExpand(inlineCol)
             elements = { ...elements, [name]: expandElements }
           } else if (inlineCol.val) {
-            elements[name] = { ...getCdsTypeForVal(inlineCol.val) }
+            elements[name] = getCdsTypeForVal(inlineCol.val)
           } else if (inlineCol.func) {
             elements[name] = {}
           } else {
@@ -1091,7 +1079,10 @@ function infer(originalQuery, model) {
     if ($refLinks?.[$refLinks.length - 1].definition.elements)
       // no cast on structure
       cds.error`Structured elements can't be cast to a different type`
-    thing.cast = cdsTypes[cast.type] || cast
+    const cdsType = cdsTypes[cast.type]
+    thing.cast = cdsType ? new cdsType.constructor(cast) : cast
+    if (cdsType)
+      thing.cast.type = cdsType._type
     return thing.cast
   }
 
@@ -1121,11 +1112,11 @@ function infer(originalQuery, model) {
     // if(val === null) return {type:'cds.String'}
     switch (typeof val) {
       case 'string':
-        return cdsTypes.String
+        return new cdsTypes.String.constructor()
       case 'boolean':
-        return cdsTypes.Boolean
+        return new cdsTypes.Boolean.constructor()
       case 'number':
-        return Number.isSafeInteger(val) ? cdsTypes.Integer : cdsTypes.Decimal
+        return Number.isSafeInteger(val) ? new cdsTypes.Integer.constructor() : new cdsTypes.Decimal.constructor()
       default:
         return {}
     }
