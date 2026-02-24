@@ -733,12 +733,12 @@ function infer(originalQuery, model) {
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)
             elements = { ...elements, [name]: expandElements }
-          } else if (inlineCol.val !== undefined) {
+          } else if (inlineCol.val) {
             elements[name] = getCdsTypeForVal(inlineCol.val)
           } else if (inlineCol.func) {
             elements[name] = {}
           } else if (inlineCol.xpr) {
-            elements[name] = inlineCol.cast ? getElementForCast(inlineCol) : {}
+            elements[name] = {}
           } else {
             elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
           }
