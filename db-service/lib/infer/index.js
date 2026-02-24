@@ -725,7 +725,7 @@ function infer(originalQuery, model) {
         } else {
           const nameParts = namePrefix ? [namePrefix] : []
           if (inlineCol.as) nameParts.push(inlineCol.as)
-          else nameParts.push(...inlineCol.ref.map(idOnly))
+          else if (inlineCol.ref) nameParts.push(...inlineCol.ref.map(idOnly))
           const name = nameParts.join('_')
           if (inlineCol.inline) {
             const inlineElements = resolveInline(inlineCol, name)
@@ -733,10 +733,12 @@ function infer(originalQuery, model) {
           } else if (inlineCol.expand) {
             const expandElements = resolveExpand(inlineCol)
             elements = { ...elements, [name]: expandElements }
-          } else if (inlineCol.val) {
+          } else if (inlineCol.val !== undefined) {
             elements[name] = getCdsTypeForVal(inlineCol.val)
           } else if (inlineCol.func) {
             elements[name] = {}
+          } else if (inlineCol.xpr) {
+            elements[name] = inlineCol.cast ? getElementForCast(inlineCol) : {}
           } else {
             elements[name] = inlineCol.$refLinks[inlineCol.$refLinks.length - 1].definition
           }
