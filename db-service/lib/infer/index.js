@@ -463,7 +463,7 @@ function infer(originalQuery, model) {
               if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[0]?.where) {
                 if (inExists) {
                   defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-                } else {
+                } else if (!inFrom) {
                   rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
                 }
               }
@@ -527,7 +527,7 @@ function infer(originalQuery, model) {
             if (isNonForeignKeyNavigation(element, nextStep) || arg.ref[i-1]?.where) {
               if (inExists) {
                 defineProperty($baseLink, 'pathExpressionInsideFilter', true)
-              } else {
+              } else if (!inFrom) {
                 rejectNonFkNavigation(element, element.on ? $baseLink.definition.name : nextStep)
               }
             }
@@ -575,9 +575,11 @@ function infer(originalQuery, model) {
             // books[exists genre[code='A']].title --> column is join relevant but inner exists filter is not
             skipJoinsForFilter = true
           } else if (token.ref || token.xpr || token.list) {
+            // For scoped queries (non-dangling filters in FROM), treat filter contents as EXISTS context
+            // because they will become part of an EXISTS subquery
             inferArg(token, false, arg.$refLinks[i], {
               ...context,
-              inExists: skipJoinsForFilter || inExists,
+              inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter),
               inXpr: !!token.xpr,
               inInfixFilter: true,
               inFrom,
@@ -587,7 +589,7 @@ function infer(originalQuery, model) {
               applyToFunctionArgs(token.args, inferArg, [
                 false,
                 arg.$refLinks[i],
-                { inExists: skipJoinsForFilter || inExists, inXpr: true, inInfixFilter: true, inFrom },
+                { inExists: skipJoinsForFilter || inExists || (inFrom && !danglingFilter), inXpr: true, inInfixFilter: true, inFrom },
               ])
             }
           }
