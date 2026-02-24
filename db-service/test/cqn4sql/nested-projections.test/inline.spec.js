@@ -840,5 +840,50 @@ describe('(nested projections) inline', () => {
       expectCqn(inlineTransformed).to.equal(expected)
       expectCqn(inlineTransformed).to.equal(regularTransformed)
     })
+
+    it.only('wildcard on assoc', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{*}
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it.only('wildcard on assoc with filter', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department[name = 'Bar'].{*}
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+            and department.name = 'Bar'
+        {
+          department.id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
   })
 })
