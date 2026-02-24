@@ -717,13 +717,40 @@ function infer(originalQuery, model) {
           seenWildcard = true
           const wildCardElements = {}
           // either the `.elements´ of the struct or the `.elements` of the assoc target
-          const leafLinkElements = getDefinition($leafLink.definition.target)?.elements || $leafLink.definition.elements
+          const targetDef = getDefinition($leafLink.definition.target)
+          const leafLinkElements = targetDef?.elements || $leafLink.definition.elements
+          const isAssociation = !!$leafLink.definition.target
+
           Object.entries(leafLinkElements).forEach(([k, v]) => {
             const name = namePrefix ? `${namePrefix}_${k}` : k
             // if overwritten/excluded omit from wildcard elements
             // in elements the names are already flat so consider the prefix
             // in excluding, the elements are addressed without the prefix
-            if (!(name in elements || col.excluding?.includes(k))) wildCardElements[name] = v
+            if (!(name in elements || col.excluding?.includes(k))) {
+              wildCardElements[name] = v
+
+              // For associations, we need to create fake columns and merge them into join tree
+              // so that the join gets generated for non-FK elements
+              if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
+                // Check if this element is a foreign key (FK elements don't need join)
+                const isFK = $leafLink.definition.keys?.some(key => key.ref[0] === k)
+                if (!isFK) {
+                  // Create a fake column with ref like ['department', 'name']
+                  const fakeCol = {
+                    ref: [...col.ref, k],
+                  }
+                  // Copy $refLinks and add new link for the target element with proper alias
+                  const fakeRefLinks = [
+                    ...$refLinks,
+                    { definition: v, target: targetDef, alias: k }
+                  ]
+                  defineProperty(fakeCol, '$refLinks', fakeRefLinks)
+                  defineProperty(fakeCol, 'isJoinRelevant', true)
+                  // Merge into join tree
+                  inferred.joinTree.mergeColumn(fakeCol, originalQuery.outerQueries)
+                }
+              }
+            }
           })
           elements = { ...elements, ...wildCardElements }
         } else {

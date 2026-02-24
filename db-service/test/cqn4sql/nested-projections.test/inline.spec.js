@@ -841,7 +841,7 @@ describe('(nested projections) inline', () => {
       expectCqn(inlineTransformed).to.equal(regularTransformed)
     })
 
-    it.only('wildcard on assoc', () => {
+    it('wildcard on assoc', () => {
       const inlineWithBrackets = cds.ql`
         SELECT from nestedProjections.EmployeeNoUnmanaged as E
         {
@@ -863,7 +863,7 @@ describe('(nested projections) inline', () => {
       expectCqn(inlineTransformed).to.equal(expected)
     })
 
-    it.only('wildcard on assoc with filter', () => {
+    it('wildcard on assoc with filter', () => {
       const inlineWithBrackets = cds.ql`
         SELECT from nestedProjections.EmployeeNoUnmanaged as E
         {
@@ -879,6 +879,94 @@ describe('(nested projections) inline', () => {
           department.name as department_name,
           department.costCenter as department_costCenter,
           department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with excluding', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{*} excluding { head }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with overwrite before *', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ 'custom' as name, * }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          'custom' as department_name,
+          E.department_id,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with overwrite after *', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ *, 'custom' as costCenter }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          'custom' as department_costCenter,
+          department.head_id as department_head_id
+        }`
+
+      const inlineTransformed = cqn4sql(inlineWithBrackets)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
+
+    it('wildcard on assoc with additional columns', () => {
+      const inlineWithBrackets = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+        {
+          department.{ *, 'extra' as extra }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.EmployeeNoUnmanaged as E
+          left join nestedProjections.Department as department on department.id = E.department_id
+        {
+          E.department_id,
+          department.name as department_name,
+          department.costCenter as department_costCenter,
+          department.head_id as department_head_id,
+          'extra' as department_extra
         }`
 
       const inlineTransformed = cqn4sql(inlineWithBrackets)
