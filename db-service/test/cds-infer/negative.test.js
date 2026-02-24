@@ -257,6 +257,31 @@ describe('negative', () => {
        select "ID" explicitly with "BooksSub.ID", "Authors.ID"`,
         )
       })
+
+      it('duplicated wildcard is not allowed', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, 1+1 as calc, * }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in column list/)
+      })
+
+      it('duplicated wildcard is not allowed in expand on assoc', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, author { *, 1+1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in expand of "author"/)
+      })
+
+      it('duplicated wildcard is not allowed in expand on structure', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, dedication { *, 1+1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in expand of "dedication"/)
+      })
+
+      it('duplicated wildcard is not allowed in inline on assoc', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, author.{ *, 1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in inline of "author"/)
+      })
+
+      it('duplicated wildcard is not allowed in inline on structure', () => {
+        let query = cds.ql`SELECT from bookshop.Books as Books { *, dedication.{ *, 1 as calc, * } }`
+        expect(() => _inferred(query)).to.throw(/Duplicate wildcard "\*" in inline of "dedication"/)
+      })
     })
   })
 
