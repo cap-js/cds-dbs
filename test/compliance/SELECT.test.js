@@ -295,6 +295,55 @@ describe('SELECT', () => {
       assert.strictEqual(res[0].static.length, 1)
     })
 
+    test('path expression into Map column', async () => {
+      const { map } = cds.entities('basic.literals')
+      await INSERT([
+        { map: { a: { b: [{ c: true }, { d: false }] } } },
+        { map: { a: { b: [{ c: 1 }, { d: 0 }] } } },
+      ]).into(map)
+
+      const obj = await cds.ql`SELECT map.a as extract FROM ${map}`
+      expect(obj).deep.eq([
+        { extract: { b: [{ c: true }, { d: false }] } },
+        { extract: { b: [{ c: 1 }, { d: 0 }] } },
+      ])
+      const arr = await cds.ql`SELECT map.a.b as extract FROM ${map}`
+      expect(arr).deep.eq([
+        { extract: [{ c: true }, { d: false }] },
+        { extract: [{ c: 1 }, { d: 0 }] },
+      ])
+
+      // REVISIT: can't cast "d" into :Boolean as the result type is :array<Boolean>
+      const star = await cds.ql`SELECT map.a.b.![*].d as extract FROM ${map}`
+      expect(star).deep.eq([
+        { extract: [null, 0] },
+        { extract: [null, 0] },
+      ])
+      const infix = await cds.ql`SELECT map.a.b.![*][d != null].d as extract FROM ${map}`
+      expect(infix).deep.eq([
+        { extract: [0] },
+        { extract: [0] },
+      ])
+
+      const table = await cds.ql`SELECT c:Boolean, d:Boolean FROM ${map}:map.a.b`
+      expect(table).deep.eq([
+        { c: true, d: null },
+        { c: null, d: false },
+        { c: true, d: null },
+        { c: null, d: false },
+      ])
+      const where = await cds.ql`SELECT c:Boolean, d:Boolean FROM ${map}:map.a.b WHERE d != null`
+      expect(where).deep.eq([
+        { c: null, d: false },
+        { c: null, d: false },
+      ])
+      const tblfix = await cds.ql`SELECT c:Boolean, d:Boolean FROM ${map}:map.a.b.![*][c != null]`
+      expect(tblfix).deep.eq([
+        { c: true, d: null },
+        { c: true, d: null },
+      ])
+    })
+
     test.skip('invalid cast (wrong)', async () => {
       const { globals } = cds.entities('basic.projection')
       const cqn = cds.ql`SELECT 'String' as ![string] : cds.DoEsNoTeXiSt FROM ${globals}`

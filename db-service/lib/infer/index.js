@@ -94,11 +94,14 @@ function infer(originalQuery, model) {
       if (ref.length > 1) {
         target = from.ref.slice(1).reduce((d, r) => {
           const next = getDefinition(d.elements[r.id || r]?.target) || d.elements[r.id || r]
-          if (!next) throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
+          if (!next) {
+            if (d instanceof cds.builtin.classes.Map) return d
+            throw new Error(`No association “${r.id || r}” in ${d.kind} “${d.name}”`)
+          }
           return next
         }, target)
       }
-      if (target.kind !== 'entity' && !target.isAssociation)
+      if (target.kind !== 'entity' && !target.isAssociation && !(target instanceof cds.builtin.classes.Map))
         throw new Error('Query source must be a an entity or an association')
 
       inferArg(from, null, null, { inFrom: true, $mainLazyResolve })
@@ -109,7 +112,7 @@ function infer(originalQuery, model) {
           ? getImplicitAlias(first, useTechnicalAlias)
           : getImplicitAlias(ref.at(-1).id || ref.at(-1), useTechnicalAlias))
       if (alias in querySources) throw new Error(`Duplicate alias "${alias}"`)
-      querySources[alias] = { definition: getDefinition(target.name), args }
+      querySources[alias] = { definition: getDefinition(target.name) || target, args }
       const last = from.$refLinks.at(-1)
       last.alias = alias
     } else if (from.args) {
@@ -504,6 +507,13 @@ function infer(originalQuery, model) {
             definition: getDefinitionFromSources(sources, id),
             target: getDefinitionFromSources(sources, id),
           })
+        } else if (Object.keys($combinedElements).length === 0) {
+          const definition = new cds.builtin.classes.Map()
+          definition.type = definition._type
+          definition.ref = arg.ref
+          const $refLink = { definition, target: sources[Object.keys(sources)[0]] }
+          arg.$refLinks.push($refLink)
+          nameSegments.push(id)
         } else {
           stepNotFoundInCombinedElements(id) // REVISIT: fails with {__proto__:elements)
         }
@@ -519,6 +529,9 @@ function infer(originalQuery, model) {
               .join(', ')} ]`,
           )
         }
+
+        // It is not possible to know what is inside a Map column
+        if(definition instanceof cds.builtin.classes.Map) break
 
         const target = getDefinition(definition.target) || arg.$refLinks[i - 1].target
         if (element) {
@@ -965,6 +978,7 @@ function infer(originalQuery, model) {
     for (let i = 0; i < column.ref.length; i++) {
       const ref = column.ref[i]
       const link = column.$refLinks[i]
+      if (link.definition instanceof cds.builtin.classes.Map) break
       if (link.definition.on && link.definition.isAssociation) {
         if (!column.ref[i + 1]) {
           if (column.expand && assoc) return true
@@ -1092,7 +1106,7 @@ function infer(originalQuery, model) {
   function getElementForCast(thing) {
     const { cast, $refLinks } = thing
     if (!cast) return {}
-    if ($refLinks?.[$refLinks.length - 1].definition.elements)
+    if ($refLinks?.[$refLinks.length - 1].definition.elements && !($refLinks?.[$refLinks.length - 1].definition instanceof cds.builtin.classes.Map))
       // no cast on structure
       cds.error`Structured elements can't be cast to a different type`
     const cdsType = cdsTypes[cast.type]
