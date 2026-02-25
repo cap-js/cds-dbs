@@ -643,8 +643,7 @@ function cqn4sql(originalQuery, model) {
         nameParts.push(nestedProjection.as ? nestedProjection.as : nestedProjection.ref.map(idOnly).join('_'))
         const name = nameParts.join('_')
         if (nestedProjection.ref) {
-          const augmentedInlineCol = { ...nestedProjection }
-          augmentedInlineCol.ref = col.ref ? [...col.ref, ...nestedProjection.ref] : nestedProjection.ref
+          const augmentedInlineCol = augmentInlineRefWithParent(nestedProjection, col)
           if (
             col.as ||
             nestedProjection.as ||
@@ -652,19 +651,6 @@ function cqn4sql(originalQuery, model) {
             nestedProjection.isJoinRelevant
           ) {
             augmentedInlineCol.as = nameParts.join('_')
-          }
-          Object.defineProperties(augmentedInlineCol, {
-            $refLinks: { value: [...nestedProjection.$refLinks], writable: true },
-            isJoinRelevant: {
-              value: nestedProjection.isJoinRelevant,
-              writable: true,
-            },
-          })
-          // if the expand is not anonymous, we must prepend the expand columns path
-          // to make sure the full path is resolvable
-          if (col.ref) {
-            augmentedInlineCol.$refLinks.unshift(...col.$refLinks)
-            augmentedInlineCol.isJoinRelevant = augmentedInlineCol.isJoinRelevant || col.isJoinRelevant
           }
           const flatColumns = getTransformedColumns([augmentedInlineCol])
           flatColumns.forEach(flatColumn => {
@@ -682,6 +668,10 @@ function cqn4sql(originalQuery, model) {
           if (!res.some(c => (c.as || c.ref.slice(1).map(idOnly).join('_')) === name)) {
             const rewrittenColumn = { ...nestedProjection }
             rewrittenColumn.as = name
+            // For xpr, we need to transform refs inside to include the struct prefix
+            if (nestedProjection.xpr && col.ref) {
+              rewrittenColumn.xpr = augmentInlineXprRefs(nestedProjection.xpr, col)
+            }
             rewrittenColumns.push(rewrittenColumn)
           }
         }
@@ -690,6 +680,53 @@ function cqn4sql(originalQuery, model) {
     })
 
     return res
+
+    /**
+     * Augment a ref column with the parent column's path and $refLinks.
+     */
+    function augmentInlineRefWithParent(refCol, parentCol) {
+      const augmented = { ...refCol }
+      augmented.ref = parentCol.ref ? [...parentCol.ref, ...refCol.ref] : refCol.ref
+      Object.defineProperties(augmented, {
+        $refLinks: { value: [...refCol.$refLinks], writable: true },
+        isJoinRelevant: { value: refCol.isJoinRelevant, writable: true },
+      })
+      if (parentCol.ref) {
+        augmented.$refLinks.unshift(...parentCol.$refLinks)
+        augmented.isJoinRelevant = augmented.isJoinRelevant || parentCol.isJoinRelevant
+      }
+      return augmented
+    }
+
+    /**
+     * Augment refs inside an xpr with the parent column's path and $refLinks,
+     * then transform them to flat refs.
+     */
+    function augmentInlineXprRefs(xpr, parentCol) {
+      return xpr.map(token => {
+        if (typeof token === 'string' || token.val !== undefined) {
+          return token
+        }
+        if (token.ref && token.$refLinks) {
+          const augmented = augmentInlineRefWithParent(token, parentCol)
+          // Transform this single ref column to get the flat version
+          const transformed = getTransformedColumns([augmented])
+          if (transformed.length === 1) {
+            return transformed[0]
+          }
+          return augmented
+        }
+        if (token.xpr) {
+          return { ...token, xpr: augmentInlineXprRefs(token.xpr, parentCol) }
+        }
+        if (token.func && token.args) {
+          return { ...token, args: token.args.map(arg => 
+            arg.ref ? augmentInlineXprRefs([arg], parentCol)[0] : arg
+          )}
+        }
+        return token
+      })
+    }
   }
 
   /**
