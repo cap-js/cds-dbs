@@ -8,7 +8,7 @@ const admin = {
 }
 
 describe('Bookshop - Genres', () => {
-  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop)
+  const { expect, GET, POST, PUT, DELETE } = cds.test(bookshop, '--service', 'TestService')
 
   test('Delete Genres', async () => {
     const body = require('./genres.json')
