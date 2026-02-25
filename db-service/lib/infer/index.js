@@ -5,6 +5,7 @@ const cds = require('@sap/cds')
 const JoinTree = require('./join-tree')
 const { pseudos } = require('./pseudos')
 const { isCalculatedOnRead, getImplicitAlias, getModelUtils, defineProperty, hasOwnSkip } = require('../utils')
+const { link } = require('@sap/cds-dk/lib/util/term')
 const cdsTypes = cds.builtin.types
 /**
  * @param {import('@sap/cds/apis/cqn').Query|string} originalQuery
@@ -731,11 +732,18 @@ function infer(originalQuery, model) {
 
               // For associations, we need to create fake columns and merge them into join tree
               // so that the join gets generated for non-FK elements
-              if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
+              if(v.value) {
+                linkCalculatedElement(
+                  { ref: [...col.ref, k], $refLinks: [...col.$refLinks, { definition: v, target: targetDef }] },
+                  $leafLink,
+                  col
+                )
+              }
+              else if (isAssociation && !v.virtual && v.type !== 'cds.LargeBinary' && !(v.on && !v.keys)) {
                 // Check if this element is a foreign key (FK elements don't need join)
                 const isFK = $leafLink.definition.keys?.some(key => key.ref[0] === k)
                 if (!isFK) {
-                  // Create a fake column with ref like ['department', 'name']
+                  // Create a fake column with ref [<inlined assoc>, <element name>] and proper $refLinks
                   const fakeCol = {
                     ref: [...col.ref, k],
                   }

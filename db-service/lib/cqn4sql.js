@@ -822,12 +822,11 @@ function cqn4sql(originalQuery, model) {
 
     // First, add FK columns from source table
     // These are accessed via the source table alias, not the join
-    // Don't pass columnAlias to avoid adding unnecessary aliases to FK columns
     const fkColumns = getFlatColumnsFor(col, { tableAlias: sourceTableAlias }, [], {
       exclude,
       replace,
     })
-    res.push(...fkColumns)
+    res.push(...fkColumns.filter(fk => !col.excluding?.some(e => targetDef.elements[e] === fk.element)))
 
     // Then, add non-FK columns from target via join
     if (targetDef?.elements) {
@@ -884,7 +883,17 @@ function cqn4sql(originalQuery, model) {
             setElementOnColumns(flatColumn, fkElement)
             res.push(flatColumn)
           }
-        } else {
+        } else if (elemDef.value) {
+          // Calculated element - resolve it
+          const calcElement = resolveCalculatedElement({ $refLinks: [{ definition: elemDef }] }, true)
+          if (calcElement.as) {
+            calcElement.as = fullName
+          } else {
+            calcElement.as = fullName
+          }
+          res.push(calcElement)
+        }        
+        else {
           // Scalar element
           const flatColumn = {
             ref: [joinAlias, elemName],
