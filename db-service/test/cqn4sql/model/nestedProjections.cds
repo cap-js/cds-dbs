@@ -56,6 +56,7 @@ entity Building {
 }
 entity Country {
   key code : String;
+  population : Integer;
 }
 entity Assets {
   key id : String;

@@ -4,6 +4,8 @@ const cqn4sql = require('../../lib/cqn4sql')
 const cds = require('@sap/cds')
 const { expect } = cds.test
 
+const { expectCqn } = require('./helpers/expectCqn')
+
 // TODO: UCSN -> order is different compared to odata model
 function customSort(a, b) {
   // Get the last values from the "ref" arrays or set them as empty strings
@@ -588,5 +590,32 @@ describe('wildcard expansion and exclude clause', () => {
     expect(query).to.deep.equal(
       cds.ql`SELECT from bookshop.Foo as Foo { Foo.ID, Foo.toFoo_ID, Foo.stru_u, Foo.stru_nested_nu }`,
     )
+  })
+
+  
+  it('multiple wildcards in query are ok if one different levels', () => {
+    let query = cqn4sql(cds.ql`SELECT from bookshop.SimpleBook as SimpleBook { *, author as a { * } }`, model)
+    expectCqn(query).to.equal(cds.ql`SELECT from bookshop.SimpleBook as SimpleBook
+      {
+        SimpleBook.ID,
+        SimpleBook.title,
+        SimpleBook.author_ID,
+        (
+          SELECT from bookshop.Authors as $a {
+            $a.createdAt,
+            $a.createdBy,
+            $a.modifiedAt,
+            $a.modifiedBy,
+            $a.ID,
+            $a.name,
+            $a.dateOfBirth,
+            $a.dateOfDeath,
+            $a.placeOfBirth,
+            $a.placeOfDeath,
+            $a.address_street,
+            $a.address_city
+          } where SimpleBook.author_ID = $a.ID
+        ) as a
+      }`)
   })
 })

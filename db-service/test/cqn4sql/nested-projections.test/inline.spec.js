@@ -46,6 +46,28 @@ describe('(nested projections) inline', () => {
       expectCqn(longTransformed).to.equal(expected)
     })
 
+    it('xpr', () => {
+      const inlineQuery = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+        {
+          office.{
+            1 + 1 as zwei,
+            floor || ' ' || room as combined,
+          }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+        {
+          (1 + 1) as office_zwei,
+          (Employee.office_floor || ' ' || Employee.office_room) as office_combined
+        }`
+
+      const transformed = cqn4sql(inlineQuery)
+
+      expectCqn(transformed).to.equal(expected)
+    })
+
     it('assigning alias within inline only influences name of element, prefix still appended', () => {
       const inline = cds.ql`
         SELECT from nestedProjections.EmployeeNoUnmanaged as EmployeeNoUnmanaged
@@ -171,6 +193,34 @@ describe('(nested projections) inline', () => {
 
       expectCqn(transformed).to.equal(expected)
     })
+    it('join relevant path within inlined projection', () => {
+      const queryInlineNotation = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+        {
+          office.{
+            floor,
+            address.{
+              city,
+              street,
+              country.{ population }
+            }
+          }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+        left join nestedProjections.Country as country on country.code = Employee.office_address_country_code
+        {
+          Employee.office_floor,
+          Employee.office_address_city,
+          Employee.office_address_street,
+          country.population as office_address_country_population
+        }`
+
+      const inlineTransformed = cqn4sql(queryInlineNotation)
+
+      expectCqn(inlineTransformed).to.equal(expected)
+    })
   })
 
   describe('mixed structures and associations', () => {
@@ -226,6 +276,29 @@ describe('(nested projections) inline', () => {
 
       expectCqn(inlineTransformed).to.equal(longTransformed)
       expectCqn(longTransformed).to.equal(expected)
+    })
+    it('xpr with join relevant filter', () => {
+      const inlineQuery = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+        {
+          office.{
+            (address.country[code = 'EN'].population + 10) || ' ' || building as combined,
+            address.country.{ code || 'FOO' as code }
+          }
+        }`
+
+      const expected = cds.ql`
+        SELECT from nestedProjections.Employee as Employee
+          left join nestedProjections.Country as country on country.code = Employee.office_address_country_code
+            and country.code = 'EN'
+        {
+          ((country.population + 10) || ' ' || Employee.office_building_id) as office_combined,
+          (Employee.office_address_country_code || 'FOO') as office_address_country_code
+        }`
+
+      const transformed = cqn4sql(inlineQuery)
+
+      expectCqn(transformed).to.equal(expected)
     })
   })
 
