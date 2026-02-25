@@ -352,7 +352,12 @@ class CQN2SQLRenderer {
       if (element.virtual || element.isAssociation) continue
       if (element['@Core.Computed'] && name in availableComputedColumns) continue
       if (name.toUpperCase() in reservedColumnNames) ref.as = `$$${name}$$`
-      if ('value' in element) columnsIn.push({...element.value, as: element.name})
+      // This only supports calculated elements within the scope of the own entity
+      if ('value' in element) {
+        const requested = columnsFiltered.find(c => this.column_name(c) === element.name)
+        if (requested) columnsIn.push(requested)
+        else continue
+      }
       else columnsIn.push(ref)
       const foreignkey4 = element._foreignKey4
       if (
