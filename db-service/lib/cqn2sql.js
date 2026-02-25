@@ -1128,7 +1128,7 @@ class CQN2SQLRenderer {
       .join(' AND ')
 
     let columns = this.columns // this.columns is computed as part of this.INSERT
-    const entity = this.name(q._target?.name || UPSERT.into.ref[0], q)
+    const entity = q._target ? this.table_name(q) : this.name(UPSERT.into.ref[0], q)
     if (UPSERT.entries || UPSERT.rows || UPSERT.values) {
       const managed = this._managed.slice(0, columns.length)
 
